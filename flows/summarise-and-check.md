@@ -1,19 +1,19 @@
 # summarise and check
 
-read the files in C:\work\inbox and give me a short summary, then check it against the
-source and tell me what you got wrong.
+read the files in C:\work\inbox. summarise them, then check your own summary against
+the source and tell me where you were wrong.
 
 ## step 1 - summarise
 
 - read every .md file in the folder
-- one paragraph per file, no more
+- one paragraph per file, no more, no preamble
 - keep the file name as the heading
 
 ## step 2 - check
 
 - go back over your own summary
 - for each claim, point at the line in the source that backs it
-- anything you cannot back, delete it and say you deleted it
+- anything you cannot back, delete it and say so at the end
 
 output markdown, nothing else.
 
