@@ -2,11 +2,14 @@
 # crude. cat the flow into the cli and let it go.
 set -e
 
-FLOW="flows/${1:-summarise-and-check}.md"
+NAME="${1:-summarise-and-check}"
+DIR="flows/$NAME"
 
-if [ ! -f "$FLOW" ]; then
-  echo "no such flow: $FLOW"
+if [ ! -d "$DIR" ]; then
+  echo "no such flow: $NAME"
   exit 1
 fi
 
-claude -p "$(cat $FLOW)"
+claude -p "$(cat $DIR/prompt.md)
+
+$(cat $DIR/instructions.md)"

@@ -13,5 +13,5 @@ prompts and a runner for the things i want to happen without me sitting there.
 
     ./run.sh weekly-digest
 
-the flow prompt lives in flows/<name>.md, the rules it has to follow live in
-flows/<name>.instructions.md.
+each flow is a folder now. prompt.md is what to do, instructions.md is the
+rules it has to follow.
