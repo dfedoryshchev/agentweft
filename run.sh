@@ -10,6 +10,14 @@ if [ ! -d "$DIR" ]; then
   exit 1
 fi
 
-claude -p "$(cat $DIR/prompt.md)
+OUT=$(claude -p "$(cat $DIR/prompt.md)
 
-$(cat $DIR/instructions.md)"
+$(cat $DIR/instructions.md)")
+
+# the digest comes back as three lists now, put a rule between them so the
+# "needs me" one is easy to find
+if [ "$NAME" = "weekly-digest" ]; then
+  echo "$OUT" | sed 's/^## /----/'
+else
+  echo "$OUT"
+fi

@@ -6,10 +6,17 @@ everything that landed this week, in one page i can read on a sunday.
 
 - the .md files in C:\work\inbox modified in the last 7 days
 
-## what i want
+## what changed
 
-- a "what changed" list, newest first
-- a "needs me" list, only things that actually need a decision
-- a "can wait" list
+newest first, one line each.
 
-no summary of the summary. no closing paragraph.
+## needs me
+
+only things that actually need a decision from me.
+
+## can wait
+
+everything else.
+
+put a blank line between the lists. no summary of the summary, no closing
+paragraph.
