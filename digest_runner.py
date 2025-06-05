@@ -1,12 +1,11 @@
 # bash cannot pull the three lists apart without turning into awk soup.
 # digest only, the other two still go through run.sh.
 import subprocess
+import sys
 
-FLOW_DIR = "flows/weekly-digest"
 
-
-def read(name):
-    f = open(FLOW_DIR + "/" + name)
+def read(flow, name):
+    f = open("flows/" + flow + "/" + name)
     text = f.read()
     f.close()
     return text
@@ -33,7 +32,8 @@ def items(text):
 
 
 def main():
-    prompt = read("prompt.md") + "\n\n" + read("instructions.md")
+    flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
+    prompt = read(flow, "prompt.md") + "\n\n" + read(flow, "instructions.md")
     out = call(prompt)
     for section in out.split("## "):
         if not section.strip():
