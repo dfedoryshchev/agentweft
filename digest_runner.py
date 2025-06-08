@@ -10,13 +10,19 @@ def read(flow, name):
     f.close()
     return text
 
+TRIES = 0
+
 def call(prompt):
-    r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True)
-    if r.returncode != 0:
-        print("cli failed")
+    global TRIES
+    while TRIES < 2:
+        r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True)
+        if r.returncode == 0:
+            return r.stdout
+        TRIES = TRIES + 1
+        print("cli failed, going again")
         print(r.stderr)
-        return ""
-    return r.stdout
+    print("giving up")
+    return ""
 
 
 def items(text):
@@ -35,6 +41,7 @@ def main():
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     prompt = read(flow, "prompt.md") + "\n\n" + read(flow, "instructions.md")
     out = call(prompt)
+    print(out)
     for section in out.split("## "):
         if not section.strip():
             continue
