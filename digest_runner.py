@@ -1,7 +1,20 @@
 # bash cannot pull the three lists apart without turning into awk soup.
 # digest only, the other two still go through run.sh.
+import os
 import subprocess
 import sys
+
+
+def load_env():
+    # not worth a dependency for six lines
+    if not os.path.exists(".env"):
+        return
+    for line in open(".env"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        k, v = line.split("=", 1)
+        os.environ[k] = v
 
 
 def read(flow, name):
@@ -38,8 +51,11 @@ def items(text):
 
 
 def main():
+    load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     prompt = read(flow, "prompt.md") + "\n\n" + read(flow, "instructions.md")
+    for key in ["INBOX", "LOGS", "WATCH"]:
+        prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
     out = call(prompt)
     print(out)
     for section in out.split("## "):

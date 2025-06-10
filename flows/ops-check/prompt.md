@@ -4,7 +4,7 @@ look at the log dump and tell me if anything is on fire.
 
 ## what to read
 
-- the .log files in C:\work\logs from today
+- the .log files in {LOGS} from today
 
 ## what i want
 

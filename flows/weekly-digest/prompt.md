@@ -4,7 +4,7 @@ everything that landed this week, in one page i can read on a sunday.
 
 ## what to read
 
-- the .md files in C:\work\inbox modified in the last 7 days
+- the .md files in {INBOX} modified in the last 7 days
 
 ## what changed
 

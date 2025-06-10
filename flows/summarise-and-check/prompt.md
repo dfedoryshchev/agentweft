@@ -1,6 +1,6 @@
 # summarise and check
 
-read the files in C:\work\inbox. summarise them, then check your own summary against
+read the files in {INBOX}. summarise them, then check your own summary against
 the source and tell me where you were wrong.
 
 ## step 1 - summarise
