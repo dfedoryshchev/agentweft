@@ -39,12 +39,9 @@ def call(prompt):
 
 
 def items(text):
-    lines = text.split("\n")
-    # last one is the empty string after the final newline and the one before
-    # it is the blank separator, neither of those are items
-    lines = lines[:-2]
     out = []
-    for line in lines:
+    for line in text.split("\n"):
+        line = line.strip()
         if line.startswith("- "):
             out.append(line[2:])
     return out
