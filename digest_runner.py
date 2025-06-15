@@ -47,13 +47,25 @@ def items(text):
     return out
 
 
+def steps(flow):
+    # a flow is one prompt unless there is a critique pass sitting next to it
+    if os.path.exists("flows/" + flow + "/critique.md"):
+        return ["prompt.md", "critique.md"]
+    return ["prompt.md"]
+
+
 def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
-    prompt = read(flow, "prompt.md") + "\n\n" + read(flow, "instructions.md")
-    for key in ["INBOX", "LOGS", "WATCH"]:
-        prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
-    out = call(prompt)
+    rules = read(flow, "instructions.md")
+    out = ""
+    for step in steps(flow):
+        prompt = read(flow, step) + "\n\n" + rules
+        for key in ["INBOX", "LOGS", "WATCH"]:
+            prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
+        if out:
+            prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
+        out = call(prompt)
     print(out)
     for section in out.split("## "):
         if not section.strip():
