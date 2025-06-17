@@ -12,7 +12,7 @@ prompts and a runner for the things i want to happen without me sitting there.
 
 ## running one
 
-    ./run.sh weekly-digest
+    python runner.py weekly-digest
 
 each flow is a folder now. prompt.md is what to do, instructions.md is the
 rules it has to follow.

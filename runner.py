@@ -1,5 +1,5 @@
-# bash cannot pull the three lists apart without turning into awk soup.
-# digest only, the other two still go through run.sh.
+# everything goes through here now. bash could not pull the three lists apart
+# without turning into awk soup.
 import os
 import subprocess
 import sys
@@ -66,15 +66,17 @@ def main():
         if out:
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
         out = call(prompt)
-    print(out)
-    for section in out.split("## "):
-        if not section.strip():
-            continue
-        name = section.split("\n")[0]
-        print("## " + name)
-        for it in items(section):
-            print("  - " + it)
-        print("")
+    if flow == "weekly-digest":
+        for section in out.split("## "):
+            if not section.strip():
+                continue
+            name = section.split("\n")[0]
+            print("## " + name)
+            for it in items(section):
+                print("  - " + it)
+            print("")
+    else:
+        print(out)
 
 
 main()
