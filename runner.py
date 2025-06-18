@@ -1,5 +1,6 @@
 # everything goes through here now. bash could not pull the three lists apart
 # without turning into awk soup.
+import datetime
 import os
 import subprocess
 import sys
@@ -47,6 +48,17 @@ def items(text):
     return out
 
 
+def next_run_path(flow):
+    os.makedirs("runs", exist_ok=True)
+    day = datetime.date.today().isoformat()
+    stem = flow + "-" + day
+    n = 1
+    for f in os.listdir("runs"):
+        if f.startswith(stem):
+            n = n + 1
+    return "runs/" + stem + "-" + str(n) + ".md"
+
+
 def steps(flow):
     # a flow is one prompt unless there is a critique pass sitting next to it
     if os.path.exists("flows/" + flow + "/critique.md"):
@@ -66,6 +78,12 @@ def main():
         if out:
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
         out = call(prompt)
+    path = next_run_path(flow)
+    f = open(path, "w")
+    f.write(out)
+    f.close()
+    print("saved " + path)
+
     if flow == "weekly-digest":
         for section in out.split("## "):
             if not section.strip():
