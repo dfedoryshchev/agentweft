@@ -4,6 +4,7 @@ import datetime
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 
 def load_env():
@@ -19,7 +20,7 @@ def load_env():
 
 
 def read(flow, name):
-    f = open("flows/" + flow + "/" + name)
+    f = open(Path("flows") / flow / name)
     text = f.read()
     f.close()
     return text
@@ -49,19 +50,20 @@ def items(text):
 
 
 def next_run_path(flow):
-    os.makedirs("runs", exist_ok=True)
+    runs = Path("runs")
+    runs.mkdir(exist_ok=True)
     day = datetime.date.today().isoformat()
     stem = flow + "-" + day
     n = 1
-    for f in os.listdir("runs"):
-        if f.startswith(stem):
+    for f in runs.iterdir():
+        if f.name.startswith(stem):
             n = n + 1
-    return "runs/" + stem + "-" + str(n) + ".md"
+    return runs / (stem + "-" + str(n) + ".md")
 
 
 def steps(flow):
     # a flow is one prompt unless there is a critique pass sitting next to it
-    if os.path.exists("flows/" + flow + "/critique.md"):
+    if (Path("flows") / flow / "critique.md").exists():
         return ["prompt.md", "critique.md"]
     return ["prompt.md"]
 
@@ -82,7 +84,7 @@ def main():
     f = open(path, "w")
     f.write(out)
     f.close()
-    print("saved " + path)
+    print("saved " + str(path))
 
     if flow == "weekly-digest":
         for section in out.split("## "):
