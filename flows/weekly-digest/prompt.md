@@ -18,5 +18,4 @@ only things that actually need a decision from me.
 
 everything else.
 
-put a blank line between the lists. no summary of the summary, no closing
-paragraph.
+put a blank line between the lists.
