@@ -71,7 +71,8 @@ def steps(flow):
 def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
-    rules = read(flow, "instructions.md")
+    shared = open(Path("fragments") / "header.md").read()
+    rules = shared + read(flow, "instructions.md")
     out = ""
     for step in steps(flow):
         prompt = read(flow, step) + "\n\n" + rules
