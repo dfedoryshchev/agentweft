@@ -25,3 +25,20 @@ things i keep hitting
   preamble. i am copying them by hand into every instructions.md
 - when a step fails halfway i lose the first step too and have to rerun the lot
 - runs/ is going to get big
+
+## 2025-06-29
+
+june retro. four flows, one runner, run.sh gone.
+
+what sticks
+- two passes beats one prompt, every single time. draft then critique.
+- the shared header fragment. should have done it in week two.
+- keeping the rules in a separate file from the prompt. i can change how it
+  behaves without touching what it does.
+
+what does not
+- competitor-watch. i have narrowed it twice and it still tells me things i do
+  not care about. i think the flow is wrong, not the prompt.
+- naming. flows/, fragments/, runs/. i have renamed the flow folder three times
+  and i will probably do it again.
+- no idea which runs failed without opening them
