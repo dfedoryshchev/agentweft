@@ -40,6 +40,21 @@ def call(prompt):
     return ""
 
 
+SEV = ["high", "med", "low"]
+
+
+def by_severity(lines):
+    out = []
+    for s in SEV:
+        for line in lines:
+            if line.startswith("[" + s + "]"):
+                out.append(line)
+    for line in lines:
+        if not any(line.startswith("[" + s + "]") for s in SEV):
+            out.append(line)
+    return out
+
+
 def items(text):
     out = []
     for line in text.split("\n"):
@@ -96,6 +111,9 @@ def main():
             for it in items(section):
                 print("  - " + it)
             print("")
+    elif flow == "ops-check":
+        for line in by_severity(items(out)):
+            print("- " + line)
     else:
         print(out)
 
