@@ -20,7 +20,7 @@ def load_env():
 
 
 def read(flow, name):
-    f = open(Path("flows") / flow / name)
+    f = open(flow_path(flow, name))
     text = f.read()
     f.close()
     return text
@@ -43,6 +43,10 @@ def call(prompt):
 SEV = ["high", "med", "low"]
 
 
+def is_graded(line):
+    return any(line.startswith("[" + s + "]") for s in SEV)
+
+
 def by_severity(lines):
     out = []
     for s in SEV:
@@ -50,7 +54,7 @@ def by_severity(lines):
             if line.startswith("[" + s + "]"):
                 out.append(line)
     for line in lines:
-        if not any(line.startswith("[" + s + "]") for s in SEV):
+        if not is_graded(line):
             out.append(line)
     return out
 
@@ -62,6 +66,10 @@ def items(text):
         if line.startswith("- "):
             out.append(line[2:])
     return out
+
+
+def flow_path(flow, *parts):
+    return Path("flows").joinpath(flow, *parts)
 
 
 def next_run_path(flow):
@@ -78,7 +86,7 @@ def next_run_path(flow):
 
 def steps(flow):
     # a flow is one prompt unless there is a critique pass sitting next to it
-    if (Path("flows") / flow / "critique.md").exists():
+    if flow_path(flow, "critique.md").exists():
         return ["prompt.md", "critique.md"]
     return ["prompt.md"]
 
