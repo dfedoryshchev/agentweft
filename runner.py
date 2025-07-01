@@ -85,9 +85,10 @@ def next_run_path(flow):
 
 
 def steps(flow):
-    # a flow is one prompt unless there is a critique pass sitting next to it
-    if flow_path(flow, "critique.md").exists():
-        return ["prompt.md", "critique.md"]
+    # the digest is planner then worker then critique now. the others are still
+    # one prompt.
+    if flow == "weekly-digest":
+        return ["planner.md", "worker.md", "critique.md"]
     return ["prompt.md"]
 
 

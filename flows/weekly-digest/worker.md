@@ -1,10 +1,6 @@
-# weekly digest
+# worker
 
-everything that landed this week, in one page i can read on a sunday.
-
-## what to read
-
-- the .md files in {INBOX} modified in the last 7 days
+here is the plan. now write the digest.
 
 ## what changed
 
