@@ -8,3 +8,7 @@ here is a digest the worker just wrote. you did not write it. go at it.
 - if the worker missed a file the planner listed, say so
 
 give me back the corrected digest and nothing else.
+
+do not explain your reasoning. do not list what you changed. i keep getting
+three paragraphs of preamble before the actual digest and i only want the
+digest.
