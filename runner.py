@@ -88,7 +88,7 @@ def steps(flow):
     # the digest is planner then worker then critique now. the others are still
     # one prompt.
     if flow == "weekly-digest":
-        return ["planner.md", "worker.md", "critique.md"]
+        return ["planner.md", "worker.md", "reviewer.md"]
     return ["prompt.md"]
 
 
