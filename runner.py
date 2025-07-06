@@ -84,6 +84,20 @@ def next_run_path(flow):
     return runs / (stem + "-" + str(n) + ".md")
 
 
+def frontmatter(flow):
+    text = read(flow, "flow.md")
+    if not text.startswith("---"):
+        return {}
+    block = text.split("---")[1]
+    out = {}
+    for line in block.strip().split("\n"):
+        if not line.strip():
+            continue
+        k, v = line.split(":")
+        out[k.strip()] = v.strip()
+    return out
+
+
 def steps(flow):
     # the digest is planner then worker then critique now. the others are still
     # one prompt.
