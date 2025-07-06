@@ -99,11 +99,9 @@ def frontmatter(flow):
 
 
 def steps(flow):
-    # the digest is planner then worker then critique now. the others are still
-    # one prompt.
-    if flow in ("weekly-digest", "ops-check"):
-        return ["planner.md", "worker.md", "reviewer.md"]
-    return ["prompt.md"]
+    fm = frontmatter(flow)
+    names = fm.get("steps", "prompt").split(",")
+    return [n.strip() + ".md" for n in names]
 
 
 def main():
