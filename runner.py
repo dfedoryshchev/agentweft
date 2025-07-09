@@ -93,7 +93,7 @@ def frontmatter(flow):
     for line in block.strip().split("\n"):
         if not line.strip():
             continue
-        k, v = line.split(":")
+        k, v = line.split(":", 1)
         out[k.strip()] = v.strip()
     return out
 
