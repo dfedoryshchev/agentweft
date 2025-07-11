@@ -27,10 +27,11 @@ def read(flow, name):
 
 TRIES = 0
 
-def call(prompt):
+def call(prompt, timeout=None):
     global TRIES
     while TRIES < 2:
-        r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True)
+        r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
+                           timeout=timeout)
         if r.returncode == 0:
             return r.stdout
         TRIES = TRIES + 1
@@ -107,6 +108,7 @@ def steps(flow):
 def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
+    fm = frontmatter(flow)
     shared = open(Path("fragments") / "header.md").read()
     rules = shared + read(flow, "instructions.md")
     out = ""
@@ -116,7 +118,7 @@ def main():
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
         if out:
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
-        out = call(prompt)
+        out = call(prompt, timeout=int(fm.get("timeout", 300)))
     path = next_run_path(flow)
     f = open(path, "w")
     f.write(out)
