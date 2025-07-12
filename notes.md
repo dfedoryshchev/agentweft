@@ -42,3 +42,15 @@ what does not
 - naming. flows/, fragments/, runs/. i have renamed the flow folder three times
   and i will probably do it again.
 - no idea which runs failed without opening them
+
+## 2025-07-12
+
+roles that argue produce better output. i did not expect that.
+
+the reviewer is the same model with a different prompt, and it still catches
+the worker inventing things, because it is not the one that wrote them. one
+model doing summarise-then-check in a single pass defends its own text. two
+passes with different instructions does not.
+
+the planner matters less than i thought. mostly it stops the worker starting
+in the middle.
