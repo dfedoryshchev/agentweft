@@ -3,4 +3,4 @@ name: summarise-and-check
 steps: prompt
 ---
 
-what this flow is for, in a sentence, so future me remembers.
+read a folder, summarise it, then check itself against the source.

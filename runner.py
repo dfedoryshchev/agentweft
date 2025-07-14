@@ -55,7 +55,7 @@ def call(prompt, timeout=None, cap=3):
     return retry(once, cap)
 
 
-SEV = ["high", "med", "low"]
+SEV = ("high", "med", "low")
 
 
 def is_graded(line):
