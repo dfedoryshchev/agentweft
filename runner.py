@@ -2,6 +2,7 @@
 # without turning into awk soup.
 import datetime
 import os
+import time
 import subprocess
 import sys
 from pathlib import Path
@@ -27,18 +28,31 @@ def read(flow, name):
 
 TRIES = 0
 
-def call(prompt, timeout=None):
+
+def retry(fn, cap=3):
     global TRIES
-    while TRIES < 2:
-        r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
-                           timeout=timeout)
-        if r.returncode == 0:
-            return r.stdout
+    wait = 2
+    while TRIES < cap:
+        ok, out = fn()
+        if ok:
+            return out
         TRIES = TRIES + 1
-        print("cli failed, going again")
-        print(r.stderr)
+        print("cli failed, waiting " + str(wait) + "s")
+        time.sleep(wait)
+        wait = wait * 2
     print("giving up")
     return ""
+
+
+def call(prompt, timeout=None, cap=3):
+    def once():
+        r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
+                           timeout=timeout)
+        if r.returncode != 0:
+            print(r.stderr)
+        return r.returncode == 0, r.stdout
+
+    return retry(once, cap)
 
 
 SEV = ["high", "med", "low"]
@@ -118,7 +132,8 @@ def main():
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
         if out:
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
-        out = call(prompt, timeout=int(fm.get("timeout", 300)))
+        out = call(prompt, timeout=int(fm.get("timeout", 300)),
+                   cap=int(fm.get("retries", 3)))
     path = next_run_path(flow)
     f = open(path, "w")
     f.write(out)
