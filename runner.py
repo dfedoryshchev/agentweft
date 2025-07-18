@@ -123,7 +123,9 @@ def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     fm = frontmatter(flow)
-    shared = open(Path("fragments") / "header.md").read()
+    frag = Path("fragments")
+    shared = (frag / "role-header.md").read_text() + (frag / "output-rules.md").read_text() \
+        + (frag / "header.md").read_text()
     rules = shared + read(flow, "instructions.md")
     out = ""
     for step in steps(flow):

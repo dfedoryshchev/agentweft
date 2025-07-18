@@ -1,4 +1,3 @@
-- markdown only, no preamble, no closing paragraph
 - if you are not sure about something, leave it out and say so at the end
 - never invent a number, a name or a date
 - if there is nothing to report, print "nothing to report" and stop
