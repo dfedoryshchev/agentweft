@@ -142,6 +142,13 @@ def main():
     f.close()
     print("saved " + str(path))
 
+    index = Path("runs") / "index.md"
+    f = open(index, "a")
+    f.write("## " + flow + "\n")
+    f.write("file: " + path.name + "\n")
+    f.write("steps: " + str(len(steps(flow))) + "\n")
+    f.close()
+
     if flow == "weekly-digest":
         for section in out.split("## "):
             if not section.strip():
