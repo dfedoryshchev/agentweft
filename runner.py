@@ -144,9 +144,7 @@ def main():
 
     index = Path("runs") / "index.md"
     f = open(index, "a")
-    f.write("## " + flow + "\n")
-    f.write("file: " + path.name + "\n")
-    f.write("steps: " + str(len(steps(flow))) + "\n")
+    f.write(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps\n")
     f.close()
 
     if flow == "weekly-digest":
