@@ -2,8 +2,9 @@
 
 here are the findings the worker pulled. you did not pull them. go at it.
 
-- anything that is not actually a problem, drop it
+- a retry that succeeded on the next line is not a finding. drop it.
+- a timeout inside a healthcheck is not a finding unless it repeats.
+- "connection refused" during a deploy window is not a finding.
 - anything counted wrong, fix the count
 - if two findings are the same thing, merge them
-
-give me back the corrected list and nothing else.
+- if you drop everything, print "nothing to report"
