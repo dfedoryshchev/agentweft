@@ -54,3 +54,20 @@ passes with different instructions does not.
 
 the planner matters less than i thought. mostly it stops the worker starting
 in the middle.
+
+## 2025-07-25
+
+july retro. roles happened.
+
+what sticks
+- planner / worker / reviewer. the reviewer is the one that earns its keep.
+- frontmatter. the step list living in the flow instead of in runner.py means
+  i can add a flow without touching python.
+- fragments/. three files now, and every role picks them up for free.
+
+what does not
+- runs/ is a pile. the index helps but it is not sorted and i cannot tell a
+  failed run from a good one without opening it.
+- the retry thing does not feel right. it gives up too early on long runs and
+  i have not worked out why yet.
+- competitor-watch is still here and i still do not read its output.
