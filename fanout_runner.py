@@ -24,6 +24,8 @@ def main():
     for task in tasks[:2]:
         parts.append(worker_call(flow, task, rules))
 
+    # the workers do not know about each other so "newest first" is now newest
+    # first within each chunk and nowhere else. needs a merge step.
     print("\n\n".join(parts))
 
 
