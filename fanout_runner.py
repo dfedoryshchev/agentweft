@@ -24,9 +24,9 @@ def main():
     for task in tasks[:2]:
         parts.append(worker_call(flow, task, rules))
 
-    # the workers do not know about each other so "newest first" is now newest
-    # first within each chunk and nowhere else. needs a merge step.
-    print("\n\n".join(parts))
+    merged = runner.call(runner.read(flow, "merge.md") + "\n\n" + rules
+                         + "\n\n" + "\n\n".join(parts))
+    print(merged)
 
 
 if __name__ == "__main__":

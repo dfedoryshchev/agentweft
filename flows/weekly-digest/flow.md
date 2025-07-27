@@ -1,6 +1,8 @@
 ---
 name: weekly digest
-steps: planner, worker, reviewer
+steps: planner, worker, merge, reviewer
+fanout: worker
+workers: 3
 timeout: 300
 retries: 3
 temperature: 0.2
