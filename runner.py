@@ -143,9 +143,12 @@ def main():
     print("saved " + str(path))
 
     index = Path("runs") / "index.md"
-    f = open(index, "a")
-    f.write(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps\n")
-    f.close()
+    lines = []
+    if index.exists():
+        lines = [l for l in index.read_text().split("\n") if l.strip()]
+    lines.append(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
+    lines.sort()
+    index.write_text("\n".join(lines) + "\n")
 
     if flow == "weekly-digest":
         for section in out.split("## "):
