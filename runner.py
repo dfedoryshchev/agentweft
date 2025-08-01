@@ -113,6 +113,23 @@ def frontmatter(flow):
     return out
 
 
+def fanout_step(flow):
+    return frontmatter(flow).get("fanout")
+
+
+def run_fanout(flow, rules, plan, fm):
+    tasks = [l for l in plan.split("\n") if "|" in l]
+    parts = []
+    for task in tasks:
+        prompt = read(flow, "worker.md") + "\n\n" + rules
+        for key in ["INBOX", "LOGS", "WATCH"]:
+            prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
+        prompt = prompt + "\n\nyour task, only this one:\n\n" + task
+        parts.append(call(prompt, timeout=int(fm.get("timeout", 300)),
+                          cap=int(fm.get("retries", 3))))
+    return "\n\n".join(parts)
+
+
 def steps(flow):
     fm = frontmatter(flow)
     names = fm.get("steps", "prompt").split(",")
@@ -128,7 +145,11 @@ def main():
         + (frag / "header.md").read_text()
     rules = shared + read(flow, "instructions.md")
     out = ""
+    fan = fanout_step(flow)
     for step in steps(flow):
+        if fan and step == fan + ".md":
+            out = run_fanout(flow, rules, out, fm)
+            continue
         prompt = read(flow, step) + "\n\n" + rules
         for key in ["INBOX", "LOGS", "WATCH"]:
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
