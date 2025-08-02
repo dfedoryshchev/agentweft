@@ -8,7 +8,6 @@ prompts and a runner for the things i want to happen without me sitting there.
   against the source and delete what it cannot back up
 - weekly-digest - what changed this week, what needs me, what can wait
 - ops-check - read today's logs and only tell me what is wrong
-- competitor-watch - what the other lot changed since last week
 
 ## running one
 
