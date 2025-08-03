@@ -132,7 +132,7 @@ def run_fanout(flow, rules, plan, fm):
 
 def steps(flow):
     fm = frontmatter(flow)
-    names = fm.get("steps", "prompt").split(",")
+    names = fm.get("steps", "worker").split(",")
     return [n.strip() + ".md" for n in names]
 
 

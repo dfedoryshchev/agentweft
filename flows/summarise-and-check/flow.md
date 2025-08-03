@@ -1,6 +1,6 @@
 ---
 name: summarise-and-check
-steps: prompt
+steps: worker, reviewer
 ---
 
 read a folder, summarise it, then check itself against the source.
