@@ -154,6 +154,11 @@ def main():
         for key in ["INBOX", "LOGS", "WATCH"]:
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
         if out:
+            # argv blows up on a long digest. writing it out and pointing at it
+            # instead, half done, the cli still wants it inline for now.
+            last = Path("runs") / "last-step.md"
+            last.parent.mkdir(exist_ok=True)
+            last.write_text(out, encoding="utf-8")
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
         out = call(prompt, timeout=int(fm.get("timeout", 300)),
                    cap=int(fm.get("retries", 3)))
