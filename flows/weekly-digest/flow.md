@@ -5,7 +5,7 @@ fanout: worker
 workers: 3
 timeout: 300
 retries: 3
-temperature: 0.2
+temperature: 0.1
 note: read on a sunday, not friday: friday me is too tired to decide anything
 ---
 
