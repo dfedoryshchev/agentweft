@@ -1,5 +1,6 @@
 # everything goes through here now. bash could not pull the three lists apart
 # without turning into awk soup.
+import concurrent.futures
 import datetime
 import os
 import time
@@ -119,14 +120,18 @@ def fanout_step(flow):
 
 def run_fanout(flow, rules, plan, fm):
     tasks = [l for l in plan.split("\n") if "|" in l]
-    parts = []
-    for task in tasks:
+
+    def one(task):
         prompt = read(flow, "worker.md") + "\n\n" + rules
         for key in ["INBOX", "LOGS", "WATCH"]:
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
         prompt = prompt + "\n\nyour task, only this one:\n\n" + task
-        parts.append(call(prompt, timeout=int(fm.get("timeout", 300)),
-                          cap=int(fm.get("retries", 3))))
+        return call(prompt, timeout=int(fm.get("timeout", 300)),
+                    cap=int(fm.get("retries", 3)))
+
+    width = int(fm.get("workers", 3))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
+        parts = list(pool.map(one, tasks))
     return "\n\n".join(parts)
 
 
