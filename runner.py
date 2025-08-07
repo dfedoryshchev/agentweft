@@ -141,8 +141,9 @@ def main():
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     fm = frontmatter(flow)
     frag = Path("fragments")
-    shared = (frag / "role-header.md").read_text() + (frag / "output-rules.md").read_text() \
-        + (frag / "header.md").read_text()
+    shared = ""
+    for name in ["role-header", "output-rules", "no-preamble", "header"]:
+        shared = shared + (frag / (name + ".md")).read_text()
     rules = shared + read(flow, "instructions.md")
     out = ""
     fan = fanout_step(flow)

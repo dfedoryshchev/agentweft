@@ -8,4 +8,3 @@ here is a digest the worker just wrote. you did not write it. go at it.
 - if the worker missed a file the planner listed, add it
 - if a file appears twice, keep the better line
 
-give me back the corrected digest and nothing else.
