@@ -2,7 +2,9 @@
 # without turning into awk soup.
 import concurrent.futures
 import datetime
+import json
 import os
+import tempfile
 import time
 import subprocess
 import sys
@@ -114,6 +116,24 @@ def frontmatter(flow):
     return out
 
 
+STATE = Path("state.json")
+
+
+def load_state():
+    if not STATE.exists():
+        return {}
+    return json.loads(STATE.read_text())
+
+
+def save_state(state):
+    # write a temp file and swap it in. a half written state.json took me an
+    # hour to work out the first time.
+    fd, tmp = tempfile.mkstemp(dir=str(STATE.parent), suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
+        json.dump(state, f, indent=2)
+    os.replace(tmp, STATE)
+
+
 def fanout_step(flow):
     return frontmatter(flow).get("fanout")
 
@@ -173,6 +193,11 @@ def main():
     f.write(out)
     f.close()
     print("saved " + str(path))
+
+    state = load_state()
+    state.setdefault(flow, {})["last_run"] = path.name
+    state[flow]["at"] = datetime.datetime.now().isoformat()
+    save_state(state)
 
     index = Path("runs") / "index.md"
     lines = []
