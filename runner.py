@@ -171,6 +171,7 @@ def main():
         shared = shared + (frag / (name + ".md")).read_text()
     rules = shared + read(flow, "instructions.md")
     out = ""
+    seen = load_state().get(flow, {}).get("last_run")
     fan = fanout_step(flow)
     for step in steps(flow):
         if fan and step == fan + ".md":
@@ -179,6 +180,9 @@ def main():
         prompt = read(flow, step) + "\n\n" + rules
         for key in ["INBOX", "LOGS", "WATCH"]:
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
+        if seen and step == "planner.md":
+            prompt = prompt + "\n\nthe last run was " + seen + \
+                ". only tell me what is different since then."
         if out:
             # argv blows up on a long digest. writing it out and pointing at it
             # instead, half done, the cli still wants it inline for now.
