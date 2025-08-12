@@ -29,17 +29,14 @@ def read(flow, name):
     f.close()
     return text
 
-TRIES = 0
-
-
 def retry(fn, cap=3):
-    global TRIES
+    tries = 0
     wait = 2
-    while TRIES < cap:
+    while tries < cap:
         ok, out = fn()
         if ok:
             return out
-        TRIES = TRIES + 1
+        tries = tries + 1
         print("cli failed, waiting " + str(wait) + "s")
         time.sleep(wait)
         wait = wait * 2
