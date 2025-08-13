@@ -71,3 +71,14 @@ what does not
 - the retry thing does not feel right. it gives up too early on long runs and
   i have not worked out why yet.
 - competitor-watch is still here and i still do not read its output.
+
+## 2025-08-13
+
+state makes diffs possible and i did not see that coming.
+
+ops-check used to tell me the same six things every morning because it had no
+idea it had already told me. now the planner gets handed the last run and only
+plans around what is new. the output went from a page to four lines.
+
+the digest could do the same with "what changed since the last digest" but the
+planner already reads mtimes so it is less obvious there.
