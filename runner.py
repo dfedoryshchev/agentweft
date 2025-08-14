@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+HERE = Path(__file__).resolve().parent
+
 
 def load_env():
     # not worth a dependency for six lines
@@ -113,7 +115,7 @@ def frontmatter(flow):
     return out
 
 
-STATE = Path("state.json")
+STATE = HERE / "state.json"
 
 
 def load_state():
