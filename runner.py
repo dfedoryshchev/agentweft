@@ -166,7 +166,7 @@ def main():
     fm = frontmatter(flow)
     frag = Path("fragments")
     shared = ""
-    for name in ["role-header", "output-rules", "no-preamble", "header"]:
+    for name in ["role-header", "output-rules", "no-preamble", "no-guessing", "header"]:
         shared = shared + (frag / (name + ".md")).read_text()
     rules = shared + read(flow, "instructions.md")
     out = ""

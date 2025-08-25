@@ -24,3 +24,4 @@ where list is one of: changed, needs-me, can-wait.
 - do not merge two files into one line
 - if a file is empty or unreadable, say so on its line and move on
 - if nothing changed at all, print "nothing to report" and stop
+- two weeks of files is not an excuse to write more lines, same shape
