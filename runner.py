@@ -46,12 +46,12 @@ def retry(fn, cap=3):
     return ""
 
 
-def call(prompt, timeout=None, cap=3):
+def call(prompt, timeout=None, cap=3, step="?"):
     def once():
         r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
                            timeout=timeout)
         if r.returncode != 0:
-            print(r.stderr)
+            print("step " + step + " failed: " + r.stderr.strip()[:200])
         return r.returncode == 0, r.stdout
 
     return retry(once, cap)
@@ -146,7 +146,7 @@ def run_fanout(flow, rules, plan, fm):
             prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
         prompt = prompt + "\n\nyour task, only this one:\n\n" + task
         return call(prompt, timeout=int(fm.get("timeout", 300)),
-                    cap=int(fm.get("retries", 3)))
+                    cap=int(fm.get("retries", 3)), step="worker (fanout)")
 
     width = int(fm.get("workers", 3))
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
@@ -190,7 +190,15 @@ def main():
             last.write_text(out, encoding="utf-8")
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
         out = call(prompt, timeout=int(fm.get("timeout", 300)),
-                   cap=int(fm.get("retries", 3)))
+                   cap=int(fm.get("retries", 3)), step=step)
+        if not out:
+            print("run stopped at " + step)
+            index = Path("runs") / "index.md"
+            index.parent.mkdir(exist_ok=True)
+            f = open(index, "a")
+            f.write("FAILED  " + flow + "  at " + step + "\n")
+            f.close()
+            return
     path = next_run_path(flow)
     f = open(path, "w")
     f.write(out)
