@@ -82,3 +82,22 @@ plans around what is new. the output went from a page to four lines.
 
 the digest could do the same with "what changed since the last digest" but the
 planner already reads mtimes so it is less obvious there.
+
+## 2025-08-30
+
+august retro. two weeks off in the middle of it.
+
+what sticks
+- one runner. the fan-out experiment folded back in behind a flag in the flow
+  file, which is where that decision belongs.
+- state. four lines of json and it changed what ops-check is for.
+- the workers run at the same time now. the digest went from ninety seconds to
+  about twenty five.
+
+what does not
+- coming back after two weeks and finding four prompts had quietly drifted
+  apart. hoisting the shared rule up into fragments/ helped but each flow still
+  has its own tone.
+- i still cannot resume a run that died in the middle. if the reviewer times
+  out i rerun the planner and the workers for nothing, and that is real money.
+- no idea what any of this costs me per run.
