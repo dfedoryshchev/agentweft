@@ -1,0 +1,11 @@
+name: weekly digest
+steps:
+  - role: planner
+  - role: worker
+    fanout: true
+  - role: merge
+  - role: reviewer
+timeout: 300
+retries: 3
+workers: 3
+note: "read on a sunday, not friday: friday me is too tired to decide anything"

@@ -101,3 +101,23 @@ what does not
 - i still cannot resume a run that died in the middle. if the reviewer times
   out i rerun the planner and the workers for nothing, and that is real money.
 - no idea what any of this costs me per run.
+
+## 2025-09-01
+
+the frontmatter parser is mine and i keep patching it. colons, then blank
+lines, then a value with a hash in it. this is a solved problem and i am
+solving it again badly.
+
+flow.yaml instead. one file per flow, proper yaml, and the step list stops
+being a comma separated string i split by hand:
+
+    name: weekly digest
+    steps:
+      - role: planner
+      - role: worker
+        fanout: true
+      - role: merge
+      - role: reviewer
+    timeout: 300
+
+that also gives me somewhere to hang per step settings later.
