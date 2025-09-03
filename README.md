@@ -9,6 +9,10 @@ prompts and a runner for the things i want to happen without me sitting there.
 - weekly-digest - what changed this week, what needs me, what can wait
 - ops-check - read today's logs and only tell me what is wrong
 
+## setup
+
+    pip install -r requirements.txt
+
 ## running one
 
     python runner.py weekly-digest
