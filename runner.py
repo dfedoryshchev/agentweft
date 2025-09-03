@@ -8,6 +8,8 @@ import tempfile
 import time
 import subprocess
 import sys
+
+import yaml
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -101,6 +103,14 @@ def next_run_path(flow):
     return runs / (stem + "-" + str(n) + ".md")
 
 
+def config(flow):
+    # yaml if the flow has been migrated, otherwise the old frontmatter
+    path = flow_path(flow, "flow.yaml")
+    if path.exists():
+        return yaml.safe_load(path.read_text())
+    return frontmatter(flow)
+
+
 def frontmatter(flow):
     text = read(flow, "flow.md")
     if not text.startswith("---"):
@@ -134,7 +144,14 @@ def save_state(state):
 
 
 def fanout_step(flow):
-    return frontmatter(flow).get("fanout")
+    fm = config(flow)
+    raw = fm.get("steps")
+    if isinstance(raw, list):
+        for s in raw:
+            if s.get("fanout"):
+                return s["role"]
+        return None
+    return fm.get("fanout")
 
 
 def run_fanout(flow, rules, plan, fm):
@@ -155,15 +172,17 @@ def run_fanout(flow, rules, plan, fm):
 
 
 def steps(flow):
-    fm = frontmatter(flow)
-    names = fm.get("steps", "worker").split(",")
-    return [n.strip() + ".md" for n in names]
+    fm = config(flow)
+    raw = fm.get("steps", "worker")
+    if isinstance(raw, list):
+        return [s["role"] + ".md" for s in raw]
+    return [n.strip() + ".md" for n in raw.split(",")]
 
 
 def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
-    fm = frontmatter(flow)
+    fm = config(flow)
     frag = Path("fragments")
     shared = ""
     for name in ["role-header", "output-rules", "no-preamble", "no-guessing", "header"]:
