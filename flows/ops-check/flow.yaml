@@ -1,0 +1,7 @@
+name: ops-check
+steps:
+  - role: planner
+  - role: worker
+  - role: reviewer
+timeout: 120
+retries: 2
