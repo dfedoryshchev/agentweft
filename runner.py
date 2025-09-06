@@ -175,7 +175,7 @@ def steps(flow):
     fm = config(flow)
     raw = fm.get("steps", "worker")
     if isinstance(raw, list):
-        return [s["role"] + ".md" for s in raw]
+        return [s.get("prompt", s["role"] + ".md") for s in raw]
     return [n.strip() + ".md" for n in raw.split(",")]
 
 

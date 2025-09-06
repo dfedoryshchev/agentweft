@@ -1,7 +1,10 @@
 name: ops-check
 steps:
   - role: planner
+    prompt: planner.md
   - role: worker
+    prompt: worker.md
   - role: reviewer
+    prompt: reviewer.md
 timeout: 120
 retries: 2

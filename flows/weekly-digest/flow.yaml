@@ -1,10 +1,14 @@
 name: weekly digest
 steps:
   - role: planner
+    prompt: planner.md
   - role: worker
+    prompt: worker.md
     fanout: true
   - role: merge
+    prompt: merge.md
   - role: reviewer
+    prompt: reviewer.md
 timeout: 300
 retries: 3
 workers: 3
