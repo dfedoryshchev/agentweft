@@ -4,9 +4,9 @@ import sys
 sys.path.insert(0, ".")
 import runner
 
-fm = runner.frontmatter("weekly-digest")
-assert fm["name"] == "weekly digest", fm
-assert "planner" in fm["steps"], fm
-assert fm["note"].startswith("read on a sunday"), fm
+cfg = runner.config("weekly-digest")
+assert cfg["name"] == "weekly digest", cfg
+assert cfg["steps"][0]["role"] == "planner", cfg
+assert cfg["note"].startswith("read on a sunday"), cfg
 
 print("ok")

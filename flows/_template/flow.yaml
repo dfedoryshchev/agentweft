@@ -1,0 +1,10 @@
+name: CHANGE ME
+steps:
+  - role: planner
+    prompt: planner.md
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+timeout: 300
+retries: 3

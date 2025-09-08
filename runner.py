@@ -104,25 +104,7 @@ def next_run_path(flow):
 
 
 def config(flow):
-    # yaml if the flow has been migrated, otherwise the old frontmatter
-    path = flow_path(flow, "flow.yaml")
-    if path.exists():
-        return yaml.safe_load(path.read_text())
-    return frontmatter(flow)
-
-
-def frontmatter(flow):
-    text = read(flow, "flow.md")
-    if not text.startswith("---"):
-        return {}
-    block = text.split("---")[1]
-    out = {}
-    for line in block.strip().split("\n"):
-        if not line.strip():
-            continue
-        k, v = line.split(":", 1)
-        out[k.strip()] = v.strip()
-    return out
+    return yaml.safe_load(flow_path(flow, "flow.yaml").read_text())
 
 
 STATE = HERE / "state.json"
@@ -144,14 +126,10 @@ def save_state(state):
 
 
 def fanout_step(flow):
-    fm = config(flow)
-    raw = fm.get("steps")
-    if isinstance(raw, list):
-        for s in raw:
-            if s.get("fanout"):
-                return s["role"]
-        return None
-    return fm.get("fanout")
+    for s in config(flow)["steps"]:
+        if s.get("fanout"):
+            return s["role"]
+    return None
 
 
 def run_fanout(flow, rules, plan, fm):
@@ -173,10 +151,7 @@ def run_fanout(flow, rules, plan, fm):
 
 def steps(flow):
     fm = config(flow)
-    raw = fm.get("steps", "worker")
-    if isinstance(raw, list):
-        return [s.get("prompt", s["role"] + ".md") for s in raw]
-    return [n.strip() + ".md" for n in raw.split(",")]
+    return [s.get("prompt", s["role"] + ".md") for s in fm["steps"]]
 
 
 def main():

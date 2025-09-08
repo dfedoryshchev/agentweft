@@ -1,0 +1,7 @@
+name: summarise-and-check
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+timeout: 300
