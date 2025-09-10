@@ -163,6 +163,7 @@ def main():
     for name in ["role-header", "output-rules", "no-preamble", "no-guessing", "header"]:
         shared = shared + (frag / (name + ".md")).read_text()
     rules = shared + read(flow, "instructions.md")
+    started = datetime.datetime.now()
     out = ""
     seen = load_state().get(flow, {}).get("last_run")
     fan = fanout_step(flow)
@@ -203,6 +204,12 @@ def main():
     state.setdefault(flow, {})["last_run"] = path.name
     state[flow]["at"] = datetime.datetime.now().isoformat()
     save_state(state)
+
+    journal = Path("runs") / "journal.md"
+    f = open(journal, "a")
+    f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + flow + "  ok  "
+            + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
+    f.close()
 
     index = Path("runs") / "index.md"
     lines = []
