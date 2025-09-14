@@ -125,6 +125,25 @@ def save_state(state):
     os.replace(tmp, STATE)
 
 
+def run_steps(flow, rules, fm, names, note=""):
+    """the redo path. same pipeline as the first pass, fanout included - a redo
+    that skips the fanout is not the same flow."""
+    out = note
+    fan = fanout_step(flow)
+    for step in names:
+        if fan and step == fan + ".md":
+            out = run_fanout(flow, rules, out, fm)
+            continue
+        prompt = read(flow, step) + "\n\n" + rules
+        for key in ["INBOX", "LOGS", "WATCH"]:
+            prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
+        if out:
+            prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
+        out = call(prompt, timeout=int(fm.get("timeout", 300)),
+                   cap=int(fm.get("retries", 3)), step=step)
+    return out
+
+
 def fanout_step(flow):
     for s in config(flow)["steps"]:
         if s.get("fanout"):
@@ -149,6 +168,13 @@ def run_fanout(flow, rules, plan, fm):
     return "\n\n".join(parts)
 
 
+def verdict(text):
+    first = text.strip().split("\n")[0].strip()
+    if first.startswith("VERDICT:"):
+        return first.split(":", 1)[1].strip()
+    return "ok"
+
+
 def steps(flow):
     fm = config(flow)
     return [s.get("prompt", s["role"] + ".md") for s in fm["steps"]]
@@ -164,6 +190,7 @@ def main():
         shared = shared + (frag / (name + ".md")).read_text()
     rules = shared + read(flow, "instructions.md")
     started = datetime.datetime.now()
+    goes = 0
     out = ""
     seen = load_state().get(flow, {}).get("last_run")
     fan = fanout_step(flow)
@@ -186,6 +213,19 @@ def main():
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
         out = call(prompt, timeout=int(fm.get("timeout", 300)),
                    cap=int(fm.get("retries", 3)), step=step)
+
+        # the reviewer can send the work back. it then has to look at what came
+        # back, otherwise i am shipping the unreviewed version.
+        while step.startswith("reviewer") and verdict(out) == "redo" and goes < 2:
+            goes = goes + 1
+            print("reviewer said redo, going round again")
+            redo = [s for s in steps(flow) if s != step]
+            work = run_steps(flow, rules, fm, redo, note=out)
+            again = read(flow, step) + "\n\n" + rules \
+                + "\n\nhere is what you wrote last pass:\n\n" + work
+            out = call(again, timeout=int(fm.get("timeout", 300)),
+                       cap=int(fm.get("retries", 3)), step=step)
+
         if not out:
             print("run stopped at " + step)
             index = Path("runs") / "index.md"

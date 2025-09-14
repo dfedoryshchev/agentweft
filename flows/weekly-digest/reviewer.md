@@ -8,3 +8,12 @@ here is a digest the worker just wrote. you did not write it. go at it.
 - if the worker missed a file the planner listed, add it
 - if a file appears twice, keep the better line
 
+
+start your reply with one line, exactly one of:
+
+    VERDICT: ok
+    VERDICT: redo
+
+redo means the worker has to do it again. only say redo if something is
+actually wrong, not if you would have phrased it differently. after the
+verdict line, give the corrected digest, or the reason for the redo.
