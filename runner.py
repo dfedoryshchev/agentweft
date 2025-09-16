@@ -103,8 +103,28 @@ def next_run_path(flow):
     return runs / (stem + "-" + str(n) + ".md")
 
 
+class OrderedLoader(yaml.SafeLoader):
+    pass
+
+
+def _no_dupes(loader, node, deep=False):
+    # safe_load quietly keeps the LAST of two identical keys, so a flow.yaml
+    # with two "steps:" blocks loses the first one and the run order changes
+    # under you with nothing in the output to say why
+    seen = {}
+    for k, v in node.value:
+        key = loader.construct_object(k, deep=deep)
+        if key in seen:
+            raise yaml.YAMLError("duplicate key in flow.yaml: " + str(key))
+        seen[key] = loader.construct_object(v, deep=deep)
+    return seen
+
+
+OrderedLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dupes)
+
+
 def config(flow):
-    return yaml.safe_load(flow_path(flow, "flow.yaml").read_text())
+    return yaml.load(flow_path(flow, "flow.yaml").read_text(), OrderedLoader)
 
 
 STATE = HERE / "state.json"
