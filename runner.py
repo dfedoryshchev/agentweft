@@ -200,6 +200,15 @@ def steps(flow):
     return [s.get("prompt", s["role"] + ".md") for s in fm["steps"]]
 
 
+def due(fm):
+    when = fm.get("schedule")
+    if not when:
+        return True
+    if when == "daily":
+        return True
+    return datetime.date.today().strftime("%A").lower() == when
+
+
 def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
@@ -209,6 +218,9 @@ def main():
     for name in ["role-header", "output-rules", "no-preamble", "no-guessing", "header"]:
         shared = shared + (frag / (name + ".md")).read_text()
     rules = shared + read(flow, "instructions.md")
+    if not due(fm) and "--force" not in sys.argv:
+        print(flow + " is not due today, use --force")
+        return
     started = datetime.datetime.now()
     goes = 0
     out = ""

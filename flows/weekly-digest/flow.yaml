@@ -9,6 +9,7 @@ steps:
     prompt: merge.md
   - role: reviewer
     prompt: reviewer.md
+schedule: sunday
 timeout: 300
 retries: 3
 workers: 3

@@ -6,5 +6,6 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+schedule: daily
 timeout: 120
 retries: 2
