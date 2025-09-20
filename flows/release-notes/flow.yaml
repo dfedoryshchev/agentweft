@@ -1,0 +1,7 @@
+name: release-notes
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+timeout: 180
