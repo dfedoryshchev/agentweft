@@ -121,3 +121,15 @@ being a comma separated string i split by hand:
     timeout: 300
 
 that also gives me somewhere to hang per step settings later.
+
+## 2025-09-21
+
+config beats convention for flows.
+
+the frontmatter parser was convention: everything in a fixed shape, and every
+time i wanted something new i added another rule to the parser. flow.yaml is
+config: the flow says what it is, the runner reads it, and adding a field costs
+nothing.
+
+release-notes took about ten minutes to add and i did not open runner.py once.
+that is the first time that has been true.
