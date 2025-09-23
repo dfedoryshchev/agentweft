@@ -6,3 +6,13 @@ here is a git log. turn it into release notes a person would read.
 - drop anything that is only interesting to me: formatting, renames, test-only
 - no commit hashes, no author names
 - if a change is a fix, say what was broken, not what the fix was
+
+## shape
+
+group them under these headings, drop any heading with nothing under it:
+
+    ## added
+    ## changed
+    ## fixed
+
+nothing else. no intro line, no version number, i add that myself.
