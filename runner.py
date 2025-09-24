@@ -260,10 +260,15 @@ def main():
 
         if not out:
             print("run stopped at " + step)
-            index = Path("runs") / "index.md"
-            index.parent.mkdir(exist_ok=True)
-            f = open(index, "a")
+            runs = Path("runs")
+            runs.mkdir(exist_ok=True)
+            f = open(runs / "index.md", "a")
             f.write("FAILED  " + flow + "  at " + step + "\n")
+            f.close()
+            f = open(runs / "journal.md", "a")
+            f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
+                    + "  failed at " + step + "  "
+                    + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
             f.close()
             return
     path = next_run_path(flow)
