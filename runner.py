@@ -182,7 +182,10 @@ def run_fanout(flow, rules, plan, fm):
         return call(prompt, timeout=int(fm.get("timeout", 300)),
                     cap=int(fm.get("retries", 3)), step="worker (fanout)")
 
+    # three workers and two tasks means an idle thread and a pool i paid to
+    # build. no point.
     width = int(fm.get("workers", 3))
+    width = min(width, len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
     return "\n\n".join(parts)
