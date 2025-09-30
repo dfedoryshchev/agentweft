@@ -4,4 +4,4 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
-timeout: 180
+timeout: 240
