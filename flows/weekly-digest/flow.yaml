@@ -12,5 +12,6 @@ steps:
 schedule: sunday
 timeout: 300
 retries: 3
-workers: 3
+workers: 4
+temperature: 0.1
 note: "read on a sunday, not friday: friday me is too tired to decide anything"
