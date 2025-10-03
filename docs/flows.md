@@ -40,7 +40,8 @@ each, and every line gets its own call instead of the whole list going to one
 worker. the results come back in whatever order they finish, so a fanout step
 almost always wants a merge step after it.
 
-`schedule` is checked before anything runs. `--force` ignores it.
+`schedule` is checked before anything runs. `python runner.py weekly-digest
+--force` ignores it.
 
 ## what each role is for
 
