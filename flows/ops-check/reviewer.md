@@ -1,6 +1,5 @@
 # reviewer
 
-here are the findings the worker pulled. you did not pull them. go at it.
 
 - a retry that succeeded on the next line is not a finding. drop it.
 - a timeout inside a healthcheck is not a finding unless it repeats.

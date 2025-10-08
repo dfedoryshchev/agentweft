@@ -1,6 +1,5 @@
 # reviewer
 
-here are release notes the worker wrote from a git log. you did not write them.
 
 - anything that is internal noise, delete it
 - anything that says "various improvements", delete it
