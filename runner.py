@@ -10,6 +10,8 @@ import subprocess
 import sys
 
 import yaml
+
+from roles import resolver
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -154,18 +156,16 @@ def save_state(state):
     os.replace(tmp, STATE)
 
 
-def run_steps(flow, rules, fm, names, note=""):
+def run_steps(flow, by_role, fm, names, note=""):
     """the redo path. same pipeline as the first pass, fanout included - a redo
     that skips the fanout is not the same flow."""
     out = note
     fan = fanout_step(flow)
     for step in names:
         if fan and step == fan + ".md":
-            out = run_fanout(flow, rules, out, fm)
+            out = run_fanout(flow, by_role["worker"], out, fm)
             continue
-        prompt = read(flow, step) + "\n\n" + rules
-        for key in ["INBOX", "LOGS", "WATCH"]:
-            prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
+        prompt = load_prompt(flow, step, by_role[step[:-3]])
         if out:
             prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
         out = call(prompt, timeout=int(fm.get("timeout", 300)),
@@ -225,11 +225,7 @@ def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     fm = config(flow)
-    frag = Path("fragments")
-    shared = ""
-    for name in ["role-header", "output-rules", "no-preamble", "no-guessing", "header"]:
-        shared = shared + (frag / (name + ".md")).read_text()
-    rules = shared + read(flow, "instructions.md")
+    by_role = resolver.resolve(fm, Path("flows") / flow)
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
         return
@@ -240,11 +236,9 @@ def main():
     fan = fanout_step(flow)
     for step in steps(flow):
         if fan and step == fan + ".md":
-            out = run_fanout(flow, rules, out, fm)
+            out = run_fanout(flow, by_role["worker"], out, fm)
             continue
-        prompt = read(flow, step) + "\n\n" + rules
-        for key in ["INBOX", "LOGS", "WATCH"]:
-            prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
+        prompt = load_prompt(flow, step, by_role[step[:-3]])
         if seen and step == "planner.md":
             prompt = prompt + "\n\nthe last run was " + seen + \
                 ". only tell me what is different since then."
@@ -264,8 +258,8 @@ def main():
             goes = goes + 1
             print("reviewer said redo, going round again")
             redo = [s for s in steps(flow) if s != step]
-            work = run_steps(flow, rules, fm, redo, note=out)
-            again = read(flow, step) + "\n\n" + rules \
+            work = run_steps(flow, by_role, fm, redo, note=out)
+            again = load_prompt(flow, step, by_role[step[:-3]]) \
                 + "\n\nhere is what you wrote last pass:\n\n" + work
             out = call(again, timeout=int(fm.get("timeout", 300)),
                        cap=int(fm.get("retries", 3)), step=step)
