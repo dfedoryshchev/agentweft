@@ -1,17 +1,17 @@
-# everything goes through here now. bash could not pull the three lists apart
-# without turning into awk soup.
 import concurrent.futures
 import datetime
-import json
 import os
-import tempfile
-import time
 import subprocess
 import sys
-
-import yaml
+import time
+from pathlib import Path
 
 from roles import resolver
+
+from .config import config, due, fanout_step, steps, verdict
+from .prompts import flow_path, load_prompt, read
+from .state import load_state, save_state
+
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -28,21 +28,6 @@ def load_env():
         k, v = line.split("=", 1)
         os.environ[k] = v
 
-
-def load_prompt(flow, name, rules):
-    # pulling this out of main so main stops being the only place that knows
-    # how a prompt gets built. half done.
-    text = read(flow, name) + "\n\n" + rules
-    for key in ["INBOX", "LOGS", "WATCH"]:
-        text = text.replace("{" + key + "}", os.environ.get(key, ""))
-    return text
-
-
-def read(flow, name):
-    f = open(flow_path(flow, name))
-    text = f.read()
-    f.close()
-    return text
 
 def retry(fn, cap=3):
     tries = 0
@@ -98,10 +83,6 @@ def items(text):
     return out
 
 
-def flow_path(flow, *parts):
-    return Path("flows").joinpath(flow, *parts)
-
-
 def next_run_path(flow):
     runs = Path("runs")
     runs.mkdir(exist_ok=True)
@@ -112,48 +93,6 @@ def next_run_path(flow):
         if f.name.startswith(stem):
             n = n + 1
     return runs / (stem + "-" + str(n) + ".md")
-
-
-class OrderedLoader(yaml.SafeLoader):
-    pass
-
-
-def _no_dupes(loader, node, deep=False):
-    # safe_load quietly keeps the LAST of two identical keys, so a flow.yaml
-    # with two "steps:" blocks loses the first one and the run order changes
-    # under you with nothing in the output to say why
-    seen = {}
-    for k, v in node.value:
-        key = loader.construct_object(k, deep=deep)
-        if key in seen:
-            raise yaml.YAMLError("duplicate key in flow.yaml: " + str(key))
-        seen[key] = loader.construct_object(v, deep=deep)
-    return seen
-
-
-OrderedLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dupes)
-
-
-def config(flow):
-    return yaml.load(flow_path(flow, "flow.yaml").read_text(), OrderedLoader)
-
-
-STATE = HERE / "state.json"
-
-
-def load_state():
-    if not STATE.exists():
-        return {}
-    return json.loads(STATE.read_text())
-
-
-def save_state(state):
-    # write a temp file and swap it in. a half written state.json took me an
-    # hour to work out the first time.
-    fd, tmp = tempfile.mkstemp(dir=str(STATE.parent), suffix=".tmp")
-    with os.fdopen(fd, "w") as f:
-        json.dump(state, f, indent=2)
-    os.replace(tmp, STATE)
 
 
 def run_steps(flow, by_role, fm, names, note=""):
@@ -171,13 +110,6 @@ def run_steps(flow, by_role, fm, names, note=""):
         out = call(prompt, timeout=int(fm.get("timeout", 300)),
                    cap=int(fm.get("retries", 3)), step=step)
     return out
-
-
-def fanout_step(flow):
-    for s in config(flow)["steps"]:
-        if s.get("fanout"):
-            return s["role"]
-    return None
 
 
 def run_fanout(flow, rules, plan, fm):
@@ -198,27 +130,6 @@ def run_fanout(flow, rules, plan, fm):
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
     return "\n\n".join(parts)
-
-
-def verdict(text):
-    first = text.strip().split("\n")[0].strip()
-    if first.startswith("VERDICT:"):
-        return first.split(":", 1)[1].strip()
-    return "ok"
-
-
-def steps(flow):
-    fm = config(flow)
-    return [s.get("prompt", s["role"] + ".md") for s in fm["steps"]]
-
-
-def due(fm):
-    when = fm.get("schedule")
-    if not when:
-        return True
-    if when == "daily":
-        return True
-    return datetime.date.today().strftime("%A").lower() == when
 
 
 def main():

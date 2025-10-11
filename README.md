@@ -18,7 +18,7 @@ copy .env.example to .env and point it at your folders.
 
 ## running one
 
-    python runner.py weekly-digest
+    python run.py weekly-digest
 
 ## how a flow is put together
 

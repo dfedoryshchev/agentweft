@@ -7,4 +7,4 @@ from pathlib import Path
 
 for flow in sorted(p.name for p in Path("flows").iterdir() if not p.name.startswith("_")):
     print("== " + flow)
-    subprocess.run([sys.executable, "runner.py", flow])
+    subprocess.run([sys.executable, "run.py", flow])

@@ -30,7 +30,7 @@ findings. be that specific or skip the reviewer.
 
 ## 5. run it three times before you trust it
 
-    python runner.py my-flow --force
+    python run.py my-flow --force
 
 the first run tells you the prompt is wrong. the second tells you the output
 shape is wrong. the third is the first one worth reading.
