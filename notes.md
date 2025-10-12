@@ -133,3 +133,18 @@ nothing.
 
 release-notes took about ten minutes to add and i did not open runner.py once.
 that is the first time that has been true.
+
+## 2025-10-12
+
+what should a flow spec actually promise.
+
+flow.yaml says what the steps ARE. it says nothing about what the flow is for
+or what counts as it having worked. when a run comes back wrong i read the
+output and guess, every time.
+
+the rules that matter are the ones i already write into instructions.md as
+prose and hope for: the digest never repeats a file in two lists, release-notes
+never mentions a commit hash, ops-check never says something is fine. those are
+checkable. they are just not anywhere a machine can see them.
+
+not building this yet. writing it down so i stop re-deciding it.
