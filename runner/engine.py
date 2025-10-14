@@ -95,6 +95,18 @@ def next_run_path(flow):
     return runs / (stem + "-" + str(n) + ".md")
 
 
+def run_step(flow, step, by_role, fm, previous="", extra=""):
+    """the ONLY place a step becomes a call. main and the redo path were
+    building the prompt slightly differently and it showed."""
+    prompt = load_prompt(flow, step, by_role[step[:-3]])
+    if extra:
+        prompt = prompt + extra
+    if previous:
+        prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + previous
+    return call(prompt, timeout=int(fm.get("timeout", 300)),
+                cap=int(fm.get("retries", 3)), step=step)
+
+
 def run_steps(flow, by_role, fm, names, note=""):
     """the redo path. same pipeline as the first pass, fanout included - a redo
     that skips the fanout is not the same flow."""
@@ -104,11 +116,7 @@ def run_steps(flow, by_role, fm, names, note=""):
         if fan and step == fan + ".md":
             out = run_fanout(flow, by_role["worker"], out, fm)
             continue
-        prompt = load_prompt(flow, step, by_role[step[:-3]])
-        if out:
-            prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
-        out = call(prompt, timeout=int(fm.get("timeout", 300)),
-                   cap=int(fm.get("retries", 3)), step=step)
+        out = run_step(flow, step, by_role, fm, previous=out)
     return out
 
 
@@ -149,9 +157,9 @@ def main():
         if fan and step == fan + ".md":
             out = run_fanout(flow, by_role["worker"], out, fm)
             continue
-        prompt = load_prompt(flow, step, by_role[step[:-3]])
+        extra = ""
         if seen and step == "planner.md":
-            prompt = prompt + "\n\nthe last run was " + seen + \
+            extra = "\n\nthe last run was " + seen + \
                 ". only tell me what is different since then."
         if out:
             # argv blows up on a long digest. writing it out and pointing at it
@@ -159,9 +167,7 @@ def main():
             last = Path("runs") / "last-step.md"
             last.parent.mkdir(exist_ok=True)
             last.write_text(out, encoding="utf-8")
-            prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + out
-        out = call(prompt, timeout=int(fm.get("timeout", 300)),
-                   cap=int(fm.get("retries", 3)), step=step)
+        out = run_step(flow, step, by_role, fm, previous=out, extra=extra)
 
         # the reviewer can send the work back. it then has to look at what came
         # back, otherwise i am shipping the unreviewed version.
@@ -170,10 +176,7 @@ def main():
             print("reviewer said redo, going round again")
             redo = [s for s in steps(flow) if s != step]
             work = run_steps(flow, by_role, fm, redo, note=out)
-            again = load_prompt(flow, step, by_role[step[:-3]]) \
-                + "\n\nhere is what you wrote last pass:\n\n" + work
-            out = call(again, timeout=int(fm.get("timeout", 300)),
-                       cap=int(fm.get("retries", 3)), step=step)
+            out = run_step(flow, step, by_role, fm, previous=work)
 
         if not out:
             print("run stopped at " + step)
