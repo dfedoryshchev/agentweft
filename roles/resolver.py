@@ -12,6 +12,21 @@ def _read(names):
     return "".join((frag / (n + ".md")).read_text() for n in names)
 
 
+def skill_rules():
+    # the skill files have frontmatter and the fragments do not, so this is
+    # _read again with three extra lines. wrong, sort it later.
+    out = ""
+    skills = HERE / "skills"
+    if not skills.exists():
+        return out
+    for skill in sorted(skills.iterdir()):
+        text = (skill / "SKILL.md").read_text()
+        if text.startswith("---"):
+            text = text.split("---", 2)[2]
+        out = out + text
+    return out
+
+
 def shared_rules():
     return _read(FRAGMENTS)
 
