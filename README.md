@@ -37,8 +37,14 @@ long they get:
     timeout: 300
     workers: 3
 
-each role has its own .md next to it. the rules every role gets are in
-fragments/. anything specific to the one flow goes in instructions.md.
+each role has its own .md next to it. anything specific to the one flow goes
+in instructions.md.
+
+the rules every role gets are split across two places at the moment:
+fragments/ for the plain ones, and skills/ for the two i moved over to try the
+folder-with-frontmatter format. both get concatenated onto every role prompt,
+which is the point, but having two loaders for the same job is silly and one of
+them is going to win.
 
 fanout on a step means the step before it produced a list, and each line gets
 its own call instead of handing the whole list to one.
