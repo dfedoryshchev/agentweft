@@ -95,46 +95,50 @@ def next_run_path(flow):
     return runs / (stem + "-" + str(n) + ".md")
 
 
-def run_step(flow, step, by_role, fm, previous="", extra=""):
-    """the ONLY place a step becomes a call. main and the redo path were
-    building the prompt slightly differently and it showed."""
-    prompt = load_prompt(flow, step, by_role[step[:-3]])
-    if extra:
-        prompt = prompt + extra
-    if previous:
-        prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + previous
-    return call(prompt, timeout=int(fm.get("timeout", 300)),
-                cap=int(fm.get("retries", 3)), step=step)
+class Run(object):
+    """everything a step needs, built once. fm and by_role were being threaded
+    through five functions just so two of them could read a timeout."""
+
+    def __init__(self, flow, fm, by_role):
+        self.flow = flow
+        self.fm = fm
+        self.by_role = by_role
+        self.timeout = int(fm.get("timeout", 300))
+        self.retries = int(fm.get("retries", 3))
+        self.workers = int(fm.get("workers", 3))
+        self.fan = fanout_step(flow)
+
+    def step(self, step, previous="", extra=""):
+        prompt = load_prompt(self.flow, step, self.by_role[step[:-3]])
+        if extra:
+            prompt = prompt + extra
+        if previous:
+            prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + previous
+        return call(prompt, timeout=self.timeout, cap=self.retries, step=step)
 
 
-def run_steps(flow, by_role, fm, names, note=""):
+def run_steps(run, names, note=""):
     """the redo path. same pipeline as the first pass, fanout included - a redo
     that skips the fanout is not the same flow."""
     out = note
-    fan = fanout_step(flow)
     for step in names:
-        if fan and step == fan + ".md":
-            out = run_fanout(flow, by_role["worker"], out, fm)
+        if run.fan and step == run.fan + ".md":
+            out = run_fanout(run, out)
             continue
-        out = run_step(flow, step, by_role, fm, previous=out)
+        out = run.step(step, previous=out)
     return out
 
 
-def run_fanout(flow, rules, plan, fm):
+def run_fanout(run, plan):
     tasks = [l for l in plan.split("\n") if "|" in l]
 
     def one(task):
-        prompt = read(flow, "worker.md") + "\n\n" + rules
-        for key in ["INBOX", "LOGS", "WATCH"]:
-            prompt = prompt.replace("{" + key + "}", os.environ.get(key, ""))
-        prompt = prompt + "\n\nyour task, only this one:\n\n" + task
-        return call(prompt, timeout=int(fm.get("timeout", 300)),
-                    cap=int(fm.get("retries", 3)), step="worker (fanout)")
+        return run.step("worker.md",
+                        extra="\n\nyour task, only this one:\n\n" + task)
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
-    width = int(fm.get("workers", 3))
-    width = min(width, len(tasks)) or 1
+    width = min(run.workers, len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
     return "\n\n".join(parts)
@@ -148,6 +152,7 @@ def main():
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
         return
+    run = Run(flow, fm, by_role)
     started = datetime.datetime.now()
     goes = 0
     out = ""
@@ -155,7 +160,7 @@ def main():
     fan = fanout_step(flow)
     for step in steps(flow):
         if fan and step == fan + ".md":
-            out = run_fanout(flow, by_role["worker"], out, fm)
+            out = run_fanout(run, out)
             continue
         extra = ""
         if seen and step == "planner.md":
@@ -167,7 +172,7 @@ def main():
             last = Path("runs") / "last-step.md"
             last.parent.mkdir(exist_ok=True)
             last.write_text(out, encoding="utf-8")
-        out = run_step(flow, step, by_role, fm, previous=out, extra=extra)
+        out = run.step(step, previous=out, extra=extra)
 
         # the reviewer can send the work back. it then has to look at what came
         # back, otherwise i am shipping the unreviewed version.
@@ -175,8 +180,8 @@ def main():
             goes = goes + 1
             print("reviewer said redo, going round again")
             redo = [s for s in steps(flow) if s != step]
-            work = run_steps(flow, by_role, fm, redo, note=out)
-            out = run_step(flow, step, by_role, fm, previous=work)
+            work = run_steps(run, redo, note=out)
+            out = run.step(step, previous=work)
 
         if not out:
             print("run stopped at " + step)
