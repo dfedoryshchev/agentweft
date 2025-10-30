@@ -148,3 +148,21 @@ never mentions a commit hash, ops-check never says something is fine. those are
 checkable. they are just not anywhere a machine can see them.
 
 not building this yet. writing it down so i stop re-deciding it.
+
+## 2025-10-30
+
+october retro. mostly tidying, one thing moved out.
+
+what sticks
+- runner/ as a package. main() was doing eight jobs and now it does one.
+- the Run object. i was passing fm into everything so two functions could read
+  a timeout out of it.
+- moving the general conventions to their own repo. they were never about this
+  project and i kept editing them twice.
+
+what does not
+- two loaders for the same job. fragments/ and skills/ both end up
+  concatenated onto every prompt and i have written that concatenation twice.
+  one of them has to go, i just do not know which yet.
+- still no way to rerun the bit that failed. it has been on this list since
+  august, and every reviewer redo pays for the whole flow again.
