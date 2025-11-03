@@ -9,6 +9,7 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
+from .errors import Fatal, classify
 from .prompts import flow_path, load_prompt, read
 from .state import load_state, save_state
 
@@ -48,9 +49,15 @@ def call(prompt, timeout=None, cap=3, step="?"):
     def once():
         r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
                            timeout=timeout)
-        if r.returncode != 0:
-            print("step " + step + " failed: " + r.stderr.strip()[:200])
-        return r.returncode == 0, r.stdout
+        if r.returncode == 0:
+            return True, r.stdout
+        kind = classify(r.stderr)
+        print("step " + step + " failed (" + kind.__name__.lower() + "): "
+              + r.stderr.strip()[:200])
+        if kind is Fatal:
+            # going again will not help and it still costs
+            raise Fatal(r.stderr.strip()[:200])
+        return False, r.stdout
 
     return retry(once, cap)
 
