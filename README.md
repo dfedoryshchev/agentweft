@@ -16,6 +16,9 @@ prompts and a runner for the things i want to happen without me sitting there.
 
 copy .env.example to .env and point it at your folders.
 
+    pip install -r requirements-dev.txt
+    pytest
+
 ## running one
 
     python run.py weekly-digest
