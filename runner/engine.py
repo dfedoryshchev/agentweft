@@ -30,7 +30,7 @@ def load_env():
         os.environ[k] = v
 
 
-def retry(fn, cap=3):
+def retry(fn, cap=3, sleep=time.sleep):
     tries = 0
     wait = 2
     while tries < cap:
@@ -39,7 +39,7 @@ def retry(fn, cap=3):
             return out
         tries = tries + 1
         print("cli failed, waiting " + str(wait) + "s")
-        time.sleep(wait)
+        sleep(wait)
         wait = wait * 2
     print("giving up")
     return ""
