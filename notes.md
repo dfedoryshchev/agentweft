@@ -166,3 +166,15 @@ what does not
   one of them has to go, i just do not know which yet.
 - still no way to rerun the bit that failed. it has been on this list since
   august, and every reviewer redo pays for the whole flow again.
+
+## 2025-11-09
+
+resume knows WHICH step died. it does not have what that step was given.
+
+every step gets the previous step's output appended to its prompt, and that
+output only ever lived in a variable. when the run dies the variable dies with
+it. so resume can tell me "it fell over at merge" and then has nothing to hand
+merge.
+
+runs/last-step.md is close but it is one file for all flows and it gets
+overwritten every step. needs to be per run, per step.
