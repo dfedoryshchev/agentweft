@@ -161,6 +161,7 @@ def main():
         return
     run = Run(flow, fm, by_role)
     started = datetime.datetime.now()
+    run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
     goes = 0
     out = ""
     seen = load_state().get(flow, {}).get("last_run")
@@ -173,13 +174,10 @@ def main():
         if seen and step == "planner.md":
             extra = "\n\nthe last run was " + seen + \
                 ". only tell me what is different since then."
-        if out:
-            # argv blows up on a long digest. writing it out and pointing at it
-            # instead, half done, the cli still wants it inline for now.
-            last = Path("runs") / "last-step.md"
-            last.parent.mkdir(exist_ok=True)
-            last.write_text(out, encoding="utf-8")
         out = run.step(step, previous=out, extra=extra)
+        step_dir = Path("runs") / run_id
+        step_dir.mkdir(parents=True, exist_ok=True)
+        (step_dir / step).write_text(out, encoding="utf-8")
 
         # the reviewer can send the work back. it then has to look at what came
         # back, otherwise i am shipping the unreviewed version.
