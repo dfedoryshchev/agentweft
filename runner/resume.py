@@ -23,6 +23,18 @@ def last_failure(flow_name):
     return found
 
 
+def step_output(run_id, step):
+    p = Path("runs") / run_id / step
+    return p.read_text(encoding="utf-8") if p.exists() else ""
+
+
+def runs_for(flow):
+    runs = Path("runs")
+    if not runs.exists():
+        return []
+    return sorted(p.name for p in runs.iterdir() if p.is_dir() and p.name.startswith(flow + "-"))
+
+
 def remaining(all_steps, failed_step):
     if failed_step not in all_steps:
         return all_steps

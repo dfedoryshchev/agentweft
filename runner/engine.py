@@ -11,6 +11,7 @@ from roles import resolver
 from .config import config, due, fanout_step, steps, verdict
 from .errors import Fatal, classify
 from .prompts import flow_path, load_prompt, read
+from . import resume
 from .state import load_state, save_state
 
 from pathlib import Path
@@ -154,6 +155,13 @@ def run_fanout(run, plan):
 def main():
     load_env()
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
+    pick_up = None
+    if "--resume" in sys.argv:
+        i = sys.argv.index("--resume")
+        pick_up = sys.argv[i + 1] if len(sys.argv) > i + 1 else None
+        if pick_up is None:
+            ids = resume.runs_for(flow)
+            pick_up = ids[-1] if ids else None
     fm = config(flow)
     by_role = resolver.resolve(fm, Path("flows") / flow)
     if not due(fm) and "--force" not in sys.argv:
