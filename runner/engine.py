@@ -172,7 +172,7 @@ def main():
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
     goes = 0
     out = ""
-    seen = load_state().get(flow, {}).get("last_run")
+    seen = load_state(flow).get("last_run")
     fan = fanout_step(flow)
     for step in steps(flow):
         if fan and step == fan + ".md":
@@ -215,10 +215,8 @@ def main():
     f.close()
     print("saved " + str(path))
 
-    state = load_state()
-    state.setdefault(flow, {})["last_run"] = path.name
-    state[flow]["at"] = datetime.datetime.now().isoformat()
-    save_state(state)
+    save_state(flow, {"last_run": path.name,
+                      "at": datetime.datetime.now().isoformat()})
 
     journal = Path("runs") / "journal.md"
     f = open(journal, "a")
