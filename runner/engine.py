@@ -172,9 +172,18 @@ def main():
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
     goes = 0
     out = ""
+    todo = steps(flow)
+    if pick_up:
+        failed = resume.last_failure(fm["name"])
+        if failed:
+            todo = resume.remaining(todo, failed[0])
+            before = steps(flow)[:len(steps(flow)) - len(todo)]
+            if before:
+                out = resume.step_output(pick_up, before[-1])
+            print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
     fan = fanout_step(flow)
-    for step in steps(flow):
+    for step in todo:
         if fan and step == fan + ".md":
             out = run_fanout(run, out)
             continue
