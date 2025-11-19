@@ -229,7 +229,8 @@ def main():
 
     journal = Path("runs") / "journal.md"
     f = open(journal, "a")
-    f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow)["name"] + "  ok  "
+    f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow)["name"]
+            + ("  ok (resumed)  " if pick_up else "  ok  ")
             + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
             + path.name + "\n")
     f.close()
