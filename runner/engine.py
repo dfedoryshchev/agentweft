@@ -9,6 +9,7 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
+from .handoff import EMPTY, Handoff
 from .errors import Fatal, classify
 from .prompts import flow_path, load_prompt, read
 from . import resume
@@ -116,16 +117,17 @@ class Run(object):
         self.workers = int(fm.get("workers", 3))
         self.fan = fanout_step(flow)
 
-    def step(self, step, previous="", extra=""):
-        prompt = load_prompt(self.flow, step, self.by_role[step[:-3]])
+    def step(self, step, previous=EMPTY, extra=""):
+        role = step[:-3]
+        prompt = load_prompt(self.flow, step, self.by_role[role])
         if extra:
             prompt = prompt + extra
-        if previous:
-            prompt = prompt + "\n\nhere is what you wrote last pass:\n\n" + previous
-        return call(prompt, timeout=self.timeout, cap=self.retries, step=step)
+        prompt = prompt + previous.as_prompt()
+        text = call(prompt, timeout=self.timeout, cap=self.retries, step=step)
+        return Handoff(role, text, verdict(text))
 
 
-def run_steps(run, names, note=""):
+def run_steps(run, names, note=EMPTY):
     """the redo path. same pipeline as the first pass, fanout included - a redo
     that skips the fanout is not the same flow."""
     out = note
@@ -138,18 +140,18 @@ def run_steps(run, names, note=""):
 
 
 def run_fanout(run, plan):
-    tasks = [l for l in plan.split("\n") if "|" in l]
+    tasks = [l for l in plan.output.split("\n") if "|" in l]
 
     def one(task):
         return run.step("worker.md",
-                        extra="\n\nyour task, only this one:\n\n" + task)
+                        extra="\n\nyour task, only this one:\n\n" + task).output
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
     width = min(run.workers, len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
-    return "\n\n".join(parts)
+    return Handoff("worker", "\n\n".join(parts), meta={"tasks": len(tasks)})
 
 
 def main():
@@ -171,7 +173,7 @@ def main():
     started = datetime.datetime.now()
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
     goes = 0
-    out = ""
+    out = EMPTY
     todo = steps(flow)
     if pick_up:
         failed = resume.last_failure(fm["name"])
@@ -179,7 +181,7 @@ def main():
             todo = resume.remaining(todo, failed[0])
             before = steps(flow)[:len(steps(flow)) - len(todo)]
             if before:
-                out = resume.step_output(pick_up, before[-1])
+                out = Handoff(before[-1][:-3], resume.step_output(pick_up, before[-1]))
             print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
     fan = fanout_step(flow)
@@ -194,11 +196,11 @@ def main():
         out = run.step(step, previous=out, extra=extra)
         step_dir = Path("runs") / run_id
         step_dir.mkdir(parents=True, exist_ok=True)
-        (step_dir / step).write_text(out, encoding="utf-8")
+        (step_dir / step).write_text(out.output, encoding="utf-8")
 
         # the reviewer can send the work back. it then has to look at what came
         # back, otherwise i am shipping the unreviewed version.
-        while step.startswith("reviewer") and verdict(out) == "redo" and goes < 2:
+        while step.startswith("reviewer") and out.verdict == "redo" and goes < 2:
             goes = goes + 1
             print("reviewer said redo, going round again")
             redo = [s for s in steps(flow) if s != step]
@@ -220,7 +222,7 @@ def main():
             return
     path = next_run_path(flow)
     f = open(path, "w")
-    f.write(out)
+    f.write(out.output)
     f.close()
     print("saved " + str(path))
 
@@ -244,7 +246,7 @@ def main():
     index.write_text("\n".join(lines) + "\n")
 
     if flow == "weekly-digest":
-        for section in out.split("## "):
+        for section in out.output.split("## "):
             if not section.strip():
                 continue
             name = section.split("\n")[0]
@@ -253,10 +255,10 @@ def main():
                 print("  - " + it)
             print("")
     elif flow == "ops-check":
-        for line in by_severity(items(out)):
+        for line in by_severity(items(out.output)):
             print("- " + line)
     else:
-        print(out)
+        print(out.output)
 
 
 if __name__ == "__main__":
