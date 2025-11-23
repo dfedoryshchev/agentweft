@@ -178,3 +178,21 @@ merge.
 
 runs/last-step.md is close but it is one file for all flows and it gets
 overwritten every step. needs to be per run, per step.
+
+## 2025-11-23
+
+what breaks in a long run.
+
+the digest with a full inbox is four steps and four fanned out workers, so
+eight calls, and about six minutes. things that have gone wrong in that window,
+in order of how annoying they were:
+
+- the cli times out on one worker and the merge gets a hole in it. the merge
+  does not know a part is missing so it stitches five where there should be six
+  and nothing anywhere says so.
+- a redo doubles the whole thing. two goes and i have paid for the flow three
+  times.
+- i cannot tell any of that from the output. it looks like a normal digest.
+
+the handoff object has a meta dict now and nothing puts anything in it. that is
+where the count should go.
