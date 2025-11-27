@@ -21,6 +21,7 @@ where list is one of: changed, needs-me, can-wait.
 ## what not to do
 
 - do not open files that have not changed in 7 days
+- one line per file means ONE line. not a line and a note under it.
 - do not merge two files into one line
 - if a file is empty or unreadable, say so on its line and move on
 - if nothing changed at all, print "nothing to report" and stop
