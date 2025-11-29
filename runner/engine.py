@@ -92,6 +92,17 @@ def items(text):
     return out
 
 
+def write_index(line):
+    index = Path("runs") / "index.md"
+    index.parent.mkdir(exist_ok=True)
+    lines = []
+    if index.exists():
+        lines = [l for l in index.read_text().split("\n") if l.strip()]
+    lines.append(line)
+    lines.sort()
+    index.write_text("\n".join(lines) + "\n")
+
+
 def next_run_path(flow):
     runs = Path("runs")
     runs.mkdir(exist_ok=True)
@@ -211,9 +222,7 @@ def main():
             print("run stopped at " + step)
             runs = Path("runs")
             runs.mkdir(exist_ok=True)
-            f = open(runs / "index.md", "a")
-            f.write("FAILED  " + flow + "  at " + step + "\n")
-            f.close()
+            write_index("FAILED  " + flow + "  at " + step)
             f = open(runs / "journal.md", "a")
             f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
                     + "  failed at " + step + "  "
@@ -237,13 +246,7 @@ def main():
             + path.name + "\n")
     f.close()
 
-    index = Path("runs") / "index.md"
-    lines = []
-    if index.exists():
-        lines = [l for l in index.read_text().split("\n") if l.strip()]
-    lines.append(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
-    lines.sort()
-    index.write_text("\n".join(lines) + "\n")
+    write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 
     if flow == "weekly-digest":
         for section in out.output.split("## "):
