@@ -54,3 +54,11 @@ its own call instead of handing the whole list to one.
 
 the reviewer can answer VERDICT: redo. the work is then done again and handed
 back to the reviewer, twice at most.
+
+## when a run dies
+
+    python run.py weekly-digest --resume
+
+picks up the most recent failed run for that flow, at the step that failed,
+with the output of the step before it. the journal is what knows where it got
+to.
