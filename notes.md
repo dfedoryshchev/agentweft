@@ -196,3 +196,23 @@ in order of how annoying they were:
 
 the handoff object has a meta dict now and nothing puts anything in it. that is
 where the count should go.
+
+## 2025-11-30
+
+november retro. hardening month.
+
+what sticks
+- resume. it has already saved me two full digest runs and that is real money.
+- the error taxonomy. retrying a missing api key three times with backoff was
+  the stupidest thing this has ever done.
+- the state clobber fix. one file per flow and the whole class of problem goes
+  away. i found it wiring resume, which is the only reason i found it.
+- pytest. the hand run asserts were fine until they were not.
+
+what does not
+- eight calls and six minutes for one digest, and i still have no number for
+  what that costs.
+- a fanned out worker can die and the merge stitches around the hole without
+  saying anything.
+- flow.yaml says what the steps are. it still says nothing about what the flow
+  is supposed to produce.
