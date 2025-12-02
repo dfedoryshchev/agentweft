@@ -216,3 +216,23 @@ what does not
   saying anything.
 - flow.yaml says what the steps are. it still says nothing about what the flow
   is supposed to produce.
+
+## 2025-12-02
+
+a flow should promise something.
+
+    promises:
+      inputs: a folder of .md files
+      outputs: three lists - changed, needs-me, can-wait
+      invariants:
+        - no file appears in two lists
+        - needs-me is at most 5 lines
+        - every line names a file
+
+inputs and outputs are documentation, which is worth something on its own -
+six months from now i will not remember what release-notes expects.
+
+invariants are the bit with teeth. they are already written down, in prose, in
+instructions.md, and the reviewer is the only thing checking them. if they were
+in the spec then something other than a prompt could check them, and a failure
+could say WHICH promise broke instead of me reading the output and squinting.
