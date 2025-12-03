@@ -176,7 +176,7 @@ def main():
             ids = resume.runs_for(flow)
             pick_up = ids[-1] if ids else None
     fm = config(flow)
-    by_role = resolver.resolve(fm, Path("flows") / flow)
+    by_role = resolver.resolve(fm.raw, Path("flows") / flow)
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
         return
@@ -240,7 +240,7 @@ def main():
 
     journal = Path("runs") / "journal.md"
     f = open(journal, "a")
-    f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow)["name"]
+    f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow).name
             + ("  ok (resumed)  " if pick_up else "  ok  ")
             + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
             + path.name + "\n")

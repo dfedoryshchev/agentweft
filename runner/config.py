@@ -2,6 +2,8 @@ import datetime
 
 import yaml
 
+from flow import spec
+
 from .prompts import flow_path
 
 
@@ -26,11 +28,12 @@ OrderedLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _n
 
 
 def config(flow):
-    return yaml.load(flow_path(flow, "flow.yaml").read_text(), OrderedLoader)
+    raw = yaml.load(flow_path(flow, "flow.yaml").read_text(), OrderedLoader)
+    return spec.load(raw)
 
 
 def fanout_step(flow):
-    for s in config(flow)["steps"]:
+    for s in config(flow).steps:
         if s.get("fanout"):
             return s["role"]
     return None
@@ -44,8 +47,7 @@ def verdict(text):
 
 
 def steps(flow):
-    fm = config(flow)
-    return [s.get("prompt", s["role"] + ".md") for s in fm["steps"]]
+    return [s.get("prompt", s["role"] + ".md") for s in config(flow).steps]
 
 
 def due(fm):
