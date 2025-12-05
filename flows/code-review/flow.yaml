@@ -1,0 +1,15 @@
+name: code-review
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+promises:
+  inputs: a unified diff
+  outputs: a list of findings, worst first
+  invariants:
+    - every finding names a file and a line
+    - a finding is a problem, not a preference
+    - nothing is reported that the diff does not show
+timeout: 300
+retries: 2
