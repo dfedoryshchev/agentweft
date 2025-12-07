@@ -6,5 +6,12 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+  - role: verify
+    prompt: verify.md
+promises:
+  inputs: CHANGE ME
+  outputs: CHANGE ME
+  invariants:
+    - CHANGE ME, one line each, checkable
 timeout: 300
 retries: 3
