@@ -33,9 +33,9 @@ def shared_rules():
     return _read(FRAGMENTS)
 
 
-def resolve(flow, flow_dir):
+def resolve(flow, flow_dir, promises=""):
     """role name -> the rules that role gets. built once, handed to every step."""
-    base = shared_rules() + skill_rules() + (flow_dir / "instructions.md").read_text()
+    base = shared_rules() + skill_rules() + (flow_dir / "instructions.md").read_text() + promises
     out = {}
     for step in flow["steps"]:
         role = step["role"]

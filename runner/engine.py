@@ -176,7 +176,7 @@ def main():
             ids = resume.runs_for(flow)
             pick_up = ids[-1] if ids else None
     fm = config(flow)
-    by_role = resolver.resolve(fm.raw, Path("flows") / flow)
+    by_role = resolver.resolve(fm.raw, Path("flows") / flow, fm.promises.as_prompt())
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
         return

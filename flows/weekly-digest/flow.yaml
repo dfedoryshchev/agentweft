@@ -9,6 +9,13 @@ steps:
     prompt: merge.md
   - role: reviewer
     prompt: reviewer.md
+promises:
+  inputs: the .md files in the inbox modified in the last 7 days
+  outputs: three lists - what changed, needs me, can wait
+  invariants:
+    - no file appears in two lists
+    - needs me is at most 5 lines
+    - every line names a file
 schedule: sunday
 timeout: 420
 retries: 3
