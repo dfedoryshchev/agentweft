@@ -236,3 +236,18 @@ invariants are the bit with teeth. they are already written down, in prose, in
 instructions.md, and the reviewer is the only thing checking them. if they were
 in the spec then something other than a prompt could check them, and a failure
 could say WHICH promise broke instead of me reading the output and squinting.
+
+## 2025-12-12
+
+ops-check promises are harder to write than the digest ones.
+
+the digest was easy because its output has a shape. three lists, no file twice,
+needs-me under five. i can say those.
+
+ops-check promises "only tell me what is wrong", and i cannot write that as an
+invariant. every version i try is either useless (findings are findings) or a
+lie (every finding is real - no, i want it to guess sometimes, i would rather
+see a maybe than miss an outage).
+
+the honest promise might be about what it must NOT do. never says something is
+fine. never reports a line the log does not contain. leaving it for now.
