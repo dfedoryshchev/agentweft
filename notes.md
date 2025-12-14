@@ -251,3 +251,18 @@ see a maybe than miss an outage).
 
 the honest promise might be about what it must NOT do. never says something is
 fine. never reports a line the log does not contain. leaving it for now.
+
+## 2025-12-14
+
+spec first is the pattern that survived.
+
+seven months of this and nearly everything has been rewritten. bash went.
+frontmatter went. the fragment loader is on its second life and about to be on
+its third. two flows were deleted outright.
+
+what did not change: write down what the thing has to do before writing the
+thing. the flow file came before the runner read it. the prompt rules came
+before the fragments. the promises block is the same move again, one level up.
+
+it is the only habit here that has not needed a rewrite, and it is the one i
+brought with me rather than learned doing this.
