@@ -11,5 +11,6 @@ promises:
     - every finding names a file and a line
     - a finding is a problem, not a preference
     - nothing is reported that the diff does not show
+journal: false
 timeout: 300
 retries: 2

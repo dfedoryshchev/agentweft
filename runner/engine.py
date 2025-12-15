@@ -238,13 +238,16 @@ def main():
     save_state(flow, {"last_run": path.name,
                       "at": datetime.datetime.now().isoformat()})
 
-    journal = Path("runs") / "journal.md"
-    f = open(journal, "a")
-    f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow).name
-            + ("  ok (resumed)  " if pick_up else "  ok  ")
-            + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
-            + path.name + "\n")
-    f.close()
+    # code-review runs per diff, several times an hour. it drowns the weekly
+    # rollup and none of it is interesting a day later.
+    if fm.get("journal", True):
+        journal = Path("runs") / "journal.md"
+        f = open(journal, "a")
+        f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow).name
+                + ("  ok (resumed)  " if pick_up else "  ok  ")
+                + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
+                + path.name + "\n")
+        f.close()
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 
