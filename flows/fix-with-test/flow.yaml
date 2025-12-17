@@ -1,0 +1,18 @@
+name: fix-with-test
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: patcher
+    prompt: patcher.md
+  - role: verify
+    prompt: verify.md
+promises:
+  inputs: a bug report and the file it is probably in
+  outputs: a failing test, then a patch, then the test passing
+  invariants:
+    - the test is written before the patch
+    - the test fails on the unpatched code
+    - the patch is the smallest thing that turns it green
+timeout: 300
+retries: 2
+journal: false
