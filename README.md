@@ -55,6 +55,22 @@ its own call instead of handing the whole list to one.
 the reviewer can answer VERDICT: redo. the work is then done again and handed
 back to the reviewer, twice at most.
 
+## what a flow promises
+
+flow.yaml can carry a promises block:
+
+    promises:
+      inputs: the .md files in the inbox modified in the last 7 days
+      outputs: three lists - what changed, needs me, can wait
+      invariants:
+        - no file appears in two lists
+        - needs me is at most 5 lines
+        - every line names a file
+
+inputs and outputs are for me in six months. the invariants get appended to
+every role prompt in the flow, so the thing doing the work is told what has to
+be true, and the reviewer is told the same thing in the same words.
+
 ## when a run dies
 
     python run.py weekly-digest --resume
