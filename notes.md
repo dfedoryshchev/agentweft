@@ -266,3 +266,25 @@ before the fragments. the promises block is the same move again, one level up.
 
 it is the only habit here that has not needed a rewrite, and it is the one i
 brought with me rather than learned doing this.
+
+## 2025-12-19
+
+year one, roughly. started this in may.
+
+six flows. two deleted along the way and i do not miss either. the runner is
+about eight hundred lines and four of them are the ones i would defend.
+
+the shape it settled into, which i did not plan:
+
+    a flow is a spec. the spec says what it promises.
+    the steps are roles. the roles argue.
+    every run is written down. a run that dies can be picked up.
+    nothing that costs money happens without a cap on it.
+
+none of that was the idea in may. in may the idea was to stop pasting the same
+prompt into a terminal twice a week.
+
+what is still wrong: i have no number for what a run costs. i have no way to
+tell whether last week's output was better or worse than this week's, only
+whether it looked fine when i read it. those are the same problem wearing two
+hats and it is next year's.
