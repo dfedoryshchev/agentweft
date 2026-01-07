@@ -20,8 +20,8 @@ now runs six of them.
 ## running one
 
     pip install -r requirements.txt
-    cp .env.example .env        # then point it at your folders
-    python run.py weekly-digest
+    cp .env.example .env        # then point INBOX at a folder of .md files
+    python run.py weekly-digest --force   # --force ignores the schedule
 
 ## the ideas that survived
 
