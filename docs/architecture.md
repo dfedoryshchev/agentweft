@@ -30,5 +30,15 @@ at a time.
 ## state and journal
 
 `runner/state.py` is one small json file per flow: what it last processed.
-`runs/journal.md` is one line per run. `runs/<run-id>/` holds each step's
-output, which is what makes resume possible.
+one file per flow, not one file with a key per flow - two runs at once used to
+read the whole thing, edit their own key and write it all back, and whichever
+finished last wiped the other one out.
+
+`runs/journal.md` is one line per run: when, which flow, ok or failed at which
+step, how long, and the output file. `rollup.py` reads it for the week.
+
+`runs/<run-id>/` holds each step's output as it is produced. that is what makes
+resume possible: `--resume` finds the last failed run in the journal, works out
+which steps are left, and hands the step before it whatever it produced last
+time. without the outputs on disk resume could tell you where it died and
+nothing else.
