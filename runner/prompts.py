@@ -17,5 +17,8 @@ def read(flow, name):
     f.close()
     return text
 
+FLOW_ROOT = ["flows"]
+
+
 def flow_path(flow, *parts):
-    return Path("flows").joinpath(flow, *parts)
+    return Path(FLOW_ROOT[0]).joinpath(flow, *parts)

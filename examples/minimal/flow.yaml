@@ -1,0 +1,11 @@
+name: minimal
+steps:
+  - role: worker
+    prompt: worker.md
+promises:
+  inputs: a folder of text files
+  outputs: one paragraph
+  invariants:
+    - one paragraph, no headings
+timeout: 120
+journal: false

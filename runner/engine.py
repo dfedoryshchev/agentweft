@@ -11,6 +11,7 @@ from roles import resolver
 from .config import config, due, fanout_step, steps, verdict
 from .handoff import EMPTY, Handoff
 from .errors import Fatal, classify
+from . import prompts
 from .prompts import flow_path, load_prompt, read
 from . import resume
 from .state import load_state, save_state
@@ -167,6 +168,8 @@ def run_fanout(run, plan):
 
 def main():
     load_env()
+    if "--flows" in sys.argv:
+        prompts.FLOW_ROOT[0] = sys.argv[sys.argv.index("--flows") + 1]
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     pick_up = None
     if "--resume" in sys.argv:
@@ -176,7 +179,7 @@ def main():
             ids = resume.runs_for(flow)
             pick_up = ids[-1] if ids else None
     fm = config(flow)
-    by_role = resolver.resolve(fm.raw, Path("flows") / flow, fm.promises.as_prompt())
+    by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
         return
