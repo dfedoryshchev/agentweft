@@ -1,0 +1,14 @@
+name: two-step
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+promises:
+  inputs: a folder of text files
+  outputs: a list of what changed, one line each
+  invariants:
+    - every line names a file
+    - no line is longer than about fifteen words
+timeout: 120
+journal: false
