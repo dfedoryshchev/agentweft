@@ -1,0 +1,2 @@
+- when the work spans more than one file, say which file each part belongs to
+- if two files have to change together, say so before doing either

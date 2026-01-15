@@ -7,7 +7,7 @@ HERE = Path(__file__).resolve().parent.parent
 FRAGMENTS = ["role-header", "no-preamble", "header"]
 # some rules only make sense for one role
 EXTRA = {"reviewer": ["reviewer-only"], "verify": ["reviewer-only"],
-         "patcher": []}
+         "worker": ["multi-file"], "patcher": ["multi-file"]}
 
 
 def _read(names):
