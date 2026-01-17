@@ -13,7 +13,7 @@ from .handoff import EMPTY, Handoff
 from .errors import Fatal, classify
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import resume
+from . import resume, router
 from .state import load_state, save_state
 
 from pathlib import Path
@@ -184,6 +184,7 @@ def main():
         print(flow + " is not due today, use --force")
         return
     run = Run(flow, fm, by_role)
+    route = router.Router(fm, cap=2)
     started = datetime.datetime.now()
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
     goes = 0
@@ -199,9 +200,11 @@ def main():
             print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
     fan = fanout_step(flow)
-    for step in todo:
+    step = todo[0]
+    while step:
         if fan and step == fan + ".md":
             out = run_fanout(run, out)
+            step = route.next(step, out)
             continue
         extra = ""
         if seen and step == "planner.md":
@@ -211,15 +214,6 @@ def main():
         step_dir = Path("runs") / run_id
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
-
-        # the reviewer can send the work back. it then has to look at what came
-        # back, otherwise i am shipping the unreviewed version.
-        while step.startswith("reviewer") and out.verdict == "redo" and goes < 2:
-            goes = goes + 1
-            print("reviewer said redo, going round again")
-            redo = [s for s in steps(flow) if s != step]
-            work = run_steps(run, redo, note=out)
-            out = run.step(step, previous=work)
 
         if not out:
             print("run stopped at " + step)
@@ -232,6 +226,12 @@ def main():
                     + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
             f.close()
             return
+
+        nxt = route.next(step, out)
+        if out.verdict == "redo" and nxt:
+            print("sent back to " + nxt)
+        step = nxt
+
     path = next_run_path(flow)
     f = open(path, "w")
     f.write(out.output)
