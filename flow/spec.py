@@ -41,5 +41,28 @@ class FlowSpec(object):
         return self.raw[key]
 
 
+REQUIRED = ("name", "steps")
+KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
+         "temperature", "journal", "note")
+
+
+def check(raw):
+    """-> list of complaints. a typo in flow.yaml used to just do nothing."""
+    bad = []
+    for key in REQUIRED:
+        if key not in raw:
+            bad.append("missing " + key)
+    for key in raw:
+        if key not in KNOWN:
+            bad.append("unknown key " + str(key))
+    for i, step in enumerate(raw.get("steps") or []):
+        if not isinstance(step, dict) or "role" not in step:
+            bad.append("step " + str(i) + " has no role")
+    return bad
+
+
 def load(raw):
+    bad = check(raw)
+    if bad:
+        raise ValueError("flow.yaml: " + "; ".join(bad))
     return FlowSpec(raw)
