@@ -30,6 +30,17 @@ class FlowSpec(BaseModel):
     timeout: int = 300
     retries: int = 3
     workers: int = 3
+    temperature: Optional[float] = None
+    journal: bool = True
+    note: Optional[str] = None
+
+    model_config = {"extra": "forbid"}
+
+    def as_prompt(self):
+        # everything downstream calls spec.promises.as_prompt(). the pydantic
+        # Promises does not have it, so either i add methods to the models or
+        # i wrap them, and wrapping them is what i was trying to delete.
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
