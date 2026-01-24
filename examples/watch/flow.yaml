@@ -1,0 +1,16 @@
+name: watch
+steps:
+  - role: planner
+    prompt: planner.md
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+promises:
+  inputs: a folder of log files
+  outputs: findings, worst first, or nothing to report
+  invariants:
+    - every finding quotes the line it came from
+    - nothing is reported that the logs do not contain
+timeout: 120
+journal: false
