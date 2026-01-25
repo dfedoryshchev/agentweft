@@ -40,3 +40,6 @@ now runs six of them.
 
 - `docs/flows.md` - how a flow is put together
 - `docs/writing-a-flow.md` - adding one
+- `docs/architecture.md` - what the code is doing
+- `docs/journal.md` - the journal, the weekly rollup, and --resume
+- `examples/` - flows that run without any of my folders existing

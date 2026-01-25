@@ -1,5 +1,7 @@
 # how a flow is put together
 
+(adding one: `writing-a-flow.md`. the journal and --resume: `journal.md`.)
+
 a flow is a folder under `flows/`. nothing outside that folder knows anything
 about it, which is the point: adding a flow should not mean editing python.
 
