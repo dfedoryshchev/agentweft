@@ -1,4 +1,5 @@
 import datetime
+import sys
 from collections import Counter
 from pathlib import Path
 
@@ -10,6 +11,11 @@ if not journal.exists():
     raise SystemExit(0)
 
 since = datetime.datetime.now() - datetime.timedelta(days=7)
+only_flow = None
+only_failed = "--failed" in sys.argv
+for i, a in enumerate(sys.argv):
+    if a == "--flow" and len(sys.argv) > i + 1:
+        only_flow = sys.argv[i + 1]
 
 runs = Counter()
 failed = Counter()
@@ -23,6 +29,10 @@ for line in journal.read_text().split("\n"):
     if when < since:
         continue
     name = parts[1]
+    if only_flow and name != only_flow:
+        continue
+    if only_failed and not parts[2].startswith("failed"):
+        continue
     runs[name] += 1
     if parts[2].startswith("failed"):
         failed[name] += 1
