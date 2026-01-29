@@ -1,0 +1,41 @@
+import sys
+from pathlib import Path
+
+from .config import config
+from .prompts import FLOW_ROOT
+
+
+def flows():
+    root = Path(FLOW_ROOT[0])
+    if not root.exists():
+        return []
+    return sorted(p.name for p in root.iterdir()
+                  if p.is_dir() and not p.name.startswith("_"))
+
+
+def cmd_list():
+    for name in flows():
+        try:
+            spec = config(name)
+        except Exception as e:
+            print(name + "  BROKEN  " + str(e)[:60])
+            continue
+        roles = ", ".join(s["role"] for s in spec.steps)
+        print(name + "  [" + roles + "]  " + (spec.get("schedule") or "on demand"))
+    return 0
+
+
+def cmd_show():
+    name = sys.argv[2]
+    spec = config(name)
+    print(spec.name)
+    if spec.promises.inputs:
+        print("  in:  " + spec.promises.inputs)
+    if spec.promises.outputs:
+        print("  out: " + spec.promises.outputs)
+    for i in spec.promises.invariants:
+        print("  always: " + i)
+    return 0
+
+
+COMMANDS = {"list": cmd_list, "show": cmd_show}
