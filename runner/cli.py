@@ -38,4 +38,17 @@ def cmd_show():
     return 0
 
 
-COMMANDS = {"list": cmd_list, "show": cmd_show}
+def cmd_help():
+    print("""usage:
+  python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
+  python run.py list              what flows there are
+  python run.py show <flow>       what one promises
+  python rollup.py [--flow x] [--failed]
+
+--force   ignore the schedule
+--resume  pick up the last failed run of that flow where it died""")
+    return 0
+
+
+COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help,
+            "--help": cmd_help, "-h": cmd_help}
