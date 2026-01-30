@@ -288,3 +288,16 @@ what is still wrong: i have no number for what a run costs. i have no way to
 tell whether last week's output was better or worse than this week's, only
 whether it looked fine when i read it. those are the same problem wearing two
 hats and it is next year's.
+
+## 2026-01-30
+
+january. spent it making this legible rather than adding to it.
+
+the router is the one thing i would call a change. the step list has been a
+straight line since july and the reviewer sending work back was a special case
+bolted onto the side of the loop. now the flow says where a verdict sends you
+and the runner asks. the loop got shorter, which is usually the sign.
+
+the pydantic thing is not going well. it validates beautifully and then i need
+promises.as_prompt() and i am back to wrapping the models in my own classes,
+which is the thing i was trying to delete. one more evening on it.
