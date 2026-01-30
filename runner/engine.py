@@ -215,6 +215,11 @@ def main():
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
 
+        blocked = route.gate(step, out)
+        if blocked:
+            print(blocked + " - not going on")
+            out = Handoff(out.role, "", verdict="redo", meta={"blocked": blocked})
+
         if not out:
             print("run stopped at " + step)
             runs = Path("runs")

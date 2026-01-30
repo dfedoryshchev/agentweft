@@ -44,6 +44,7 @@ class FlowSpec(object):
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "temperature", "journal", "note")
+STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce")
 
 
 def check(raw):
@@ -58,6 +59,10 @@ def check(raw):
     for i, step in enumerate(raw.get("steps") or []):
         if not isinstance(step, dict) or "role" not in step:
             bad.append("step " + str(i) + " has no role")
+            continue
+        for key in step:
+            if key not in STEP_KNOWN:
+                bad.append("step " + str(i) + ": unknown key " + str(key))
     return bad
 
 

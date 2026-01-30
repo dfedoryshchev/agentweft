@@ -18,11 +18,23 @@ class Router(object):
             target = s.get("on_redo")
             if target:
                 self.on_redo[s.get("prompt", s["role"] + ".md")] = target + ".md"
+        self.must = {}
+        for s in spec.steps:
+            if s.get("must_produce"):
+                self.must[s.get("prompt", s["role"] + ".md")] = s["must_produce"]
         self.cap = cap
         self.sent_back = 0
 
     def first(self):
         return self.order[0] if self.order else None
+
+    def gate(self, step, handoff):
+        """a step can be required to have produced something. red before green
+        is not a preference in fix-with-test, it is the flow."""
+        want = self.must.get(step)
+        if want and want not in handoff.output:
+            return "step " + step + " did not produce " + want
+        return None
 
     def next(self, step, handoff):
         """-> the next step, or None when there is nothing left."""

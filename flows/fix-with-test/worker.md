@@ -6,4 +6,8 @@ write the smallest test that fails because of it. name the file it goes in.
 the test must fail on the code as it stands right now - if you cannot make it
 fail, say so and stop, because then i have described the bug wrong.
 
-output the test and nothing else.
+say how it fails, on its own line, before the test:
+
+    FAILS: <the error the unpatched code gives>
+
+then the test and nothing else.

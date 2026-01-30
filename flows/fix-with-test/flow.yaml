@@ -2,10 +2,13 @@ name: fix-with-test
 steps:
   - role: worker
     prompt: worker.md
+    must_produce: "FAILS:"
   - role: patcher
     prompt: patcher.md
+    on_redo: worker
   - role: verify
     prompt: verify.md
+    on_redo: patcher
 promises:
   inputs: a bug report and the file it is probably in
   outputs: a failing test, then a patch, then the test passing
