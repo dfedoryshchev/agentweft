@@ -9,6 +9,8 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
+from guardrails.budget import Budget, OverBudget
+
 from .handoff import EMPTY, Handoff
 from .errors import Fatal, classify
 from . import prompts
@@ -128,6 +130,7 @@ class Run(object):
         self.retries = int(fm.get("retries", 3))
         self.workers = int(fm.get("workers", 3))
         self.fan = fanout_step(flow)
+        self.budget = Budget(fm.get("max_calls"), fm.get("max_tokens"))
 
     def step(self, step, previous=EMPTY, extra=""):
         role = step[:-3]
@@ -136,6 +139,7 @@ class Run(object):
             prompt = prompt + extra
         prompt = prompt + previous.as_prompt()
         text = call(prompt, timeout=self.timeout, cap=self.retries, step=step)
+        self.budget.charge(prompt, text)
         return Handoff(role, text, verdict(text))
 
 

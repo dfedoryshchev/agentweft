@@ -43,7 +43,7 @@ class FlowSpec(object):
 
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
-         "temperature", "journal", "note")
+         "temperature", "journal", "note", "max_calls", "max_tokens")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce")
 
 

@@ -16,6 +16,8 @@ promises:
     - no file appears in two lists
     - needs me is at most 5 lines
     - every line names a file
+max_calls: 20
+max_tokens: 120000
 schedule: sunday
 timeout: 420
 retries: 3
