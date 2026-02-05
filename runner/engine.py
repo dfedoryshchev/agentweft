@@ -50,7 +50,15 @@ def retry(fn, cap=3, sleep=time.sleep):
     return ""
 
 
+CACHE = {}
+
+
 def call(prompt, timeout=None, cap=3, step="?"):
+    # the same planner prompt twice in one evening is the same answer. a redo
+    # re-runs the whole flow and most of it has not changed.
+    if prompt in CACHE:
+        print("step " + step + " came from the cache")
+        return CACHE[prompt]
     def once():
         r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
                            timeout=timeout)
@@ -64,7 +72,9 @@ def call(prompt, timeout=None, cap=3, step="?"):
             raise Fatal(r.stderr.strip()[:200])
         return False, r.stdout
 
-    return retry(once, cap)
+    answer = retry(once, cap)
+    CACHE[prompt] = answer
+    return answer
 
 
 SEV = ("high", "med", "low")
