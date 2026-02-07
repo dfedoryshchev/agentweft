@@ -229,6 +229,17 @@ def main():
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
 
+        spent = run.budget.over()
+        if spent:
+            print("stopping: " + spent)
+            write_index("OVER  " + flow + "  " + spent)
+            f = open(Path("runs") / "journal.md", "a")
+            f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
+                    + "  over budget at " + step + "  "
+                    + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
+            f.close()
+            return
+
         blocked = route.gate(step, out)
         if blocked:
             print(blocked + " - not going on")
