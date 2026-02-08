@@ -9,6 +9,7 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
+from guardrails import promises
 from guardrails.budget import Budget, OverBudget
 
 from .handoff import EMPTY, Handoff
@@ -261,6 +262,10 @@ def main():
         if out.verdict == "redo" and nxt:
             print("sent back to " + nxt)
         step = nxt
+
+    broken = promises.failures(out.output, fm.promises.invariants)
+    for inv, detail in broken:
+        print("promise broken: " + inv + " (" + detail + ")")
 
     path = next_run_path(flow)
     f = open(path, "w")
