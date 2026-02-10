@@ -301,3 +301,15 @@ and the runner asks. the loop got shorter, which is usually the sign.
 the pydantic thing is not going well. it validates beautifully and then i need
 promises.as_prompt() and i am back to wrapping the models in my own classes,
 which is the thing i was trying to delete. one more evening on it.
+
+## 2026-02-10
+
+dropped pydantic.
+
+it validates better than my thirty lines and i am still deleting it. every
+place downstream wants spec.promises.as_prompt(), spec.get(), spec["steps"] -
+behaviour, not just fields. with pydantic i either hang methods off the models,
+which is a config library doing domain work, or i wrap them in the classes i
+already have, which is what i was trying to delete.
+
+so the wrapper stays and check() stays. one dependency, still.
