@@ -47,6 +47,10 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce")
 
 
+TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
+         "max_tokens": int, "journal": bool, "name": str}
+
+
 def check(raw):
     """-> list of complaints. a typo in flow.yaml used to just do nothing."""
     bad = []
@@ -56,6 +60,10 @@ def check(raw):
     for key in raw:
         if key not in KNOWN:
             bad.append("unknown key " + str(key))
+            continue
+        want = TYPES.get(key)
+        if want and not isinstance(raw[key], want):
+            bad.append(key + " should be " + want.__name__)
     for i, step in enumerate(raw.get("steps") or []):
         if not isinstance(step, dict) or "role" not in step:
             bad.append("step " + str(i) + " has no role")
