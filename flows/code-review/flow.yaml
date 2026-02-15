@@ -12,5 +12,7 @@ promises:
     - a finding is a problem, not a preference
     - nothing is reported that the diff does not show
 journal: false
+max_calls: 6
+max_tokens: 60000
 timeout: 300
 retries: 2

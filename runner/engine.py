@@ -9,7 +9,7 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
-from guardrails import promises
+from guardrails import defaults, promises
 from guardrails.budget import Budget, OverBudget
 
 from .handoff import EMPTY, Handoff
@@ -141,7 +141,7 @@ class Run(object):
         self.retries = int(fm.get("retries", 3))
         self.workers = int(fm.get("workers", 3))
         self.fan = fanout_step(flow)
-        self.budget = Budget(fm.get("max_calls"), fm.get("max_tokens"))
+        self.budget = Budget(*defaults.for_flow(fm))
 
     def step(self, step, previous=EMPTY, extra=""):
         role = step[:-3]

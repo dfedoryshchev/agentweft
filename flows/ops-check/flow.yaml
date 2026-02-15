@@ -7,5 +7,6 @@ steps:
   - role: reviewer
     prompt: reviewer.md
 schedule: daily
+max_calls: 8
 timeout: 180
 retries: 2

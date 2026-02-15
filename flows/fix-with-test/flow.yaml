@@ -16,6 +16,7 @@ promises:
     - the test is written before the patch
     - the test fails on the unpatched code
     - the patch is the smallest thing that turns it green
+max_calls: 9
 timeout: 300
 retries: 2
 journal: false
