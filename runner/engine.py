@@ -143,6 +143,12 @@ class Run(object):
         self.fan = fanout_step(flow)
         self.budget = Budget(*defaults.for_flow(fm))
 
+    def width_for(self, role):
+        for s in self.fm.steps:
+            if s["role"] == role:
+                return int(s.get("workers", self.workers))
+        return 1
+
     def step(self, step, previous=EMPTY, extra=""):
         role = step[:-3]
         prompt = load_prompt(self.flow, step, self.by_role[role])
@@ -175,7 +181,9 @@ def run_fanout(run, plan):
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
-    width = min(run.workers, len(tasks)) or 1
+    # planner 1, workers N, reviewer 1. the fanned out step is the only one
+    # that gets to be plural, and it says so itself.
+    width = min(run.width_for("worker"), len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
     return Handoff("worker", "\n\n".join(parts), meta={"tasks": len(tasks)})

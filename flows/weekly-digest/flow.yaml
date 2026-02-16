@@ -5,6 +5,7 @@ steps:
   - role: worker
     prompt: worker.md
     fanout: true
+    workers: 4
   - role: merge
     prompt: merge.md
   - role: reviewer
