@@ -274,6 +274,7 @@ def main():
     broken = promises.failures(out.output, fm.promises.invariants)
     for inv, detail in broken:
         print("promise broken: " + inv + " (" + detail + ")")
+        write_index("BROKE  " + flow + "  " + inv)
 
     path = next_run_path(flow)
     f = open(path, "w")
@@ -289,10 +290,15 @@ def main():
     if fm.get("journal", True):
         journal = Path("runs") / "journal.md"
         f = open(journal, "a")
+        status = "ok"
+        if pick_up:
+            status = "ok (resumed)"
+        if broken:
+            status = "ok, " + str(len(broken)) + " promise(s) broken"
         f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow).name
-                + ("  ok (resumed)  " if pick_up else "  ok  ")
+                + "  " + status + "  "
                 + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
-                + path.name + "\n")
+                + path.name + "  " + run.budget.summary() + "\n")
         f.close()
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
