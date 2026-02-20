@@ -1,0 +1,22 @@
+name: repo-audit
+steps:
+  - role: planner
+    prompt: planner.md
+  - role: worker
+    prompt: worker.md
+    fanout: true
+    workers: 3
+  - role: merge
+    prompt: merge.md
+  - role: reviewer
+    prompt: reviewer.md
+promises:
+  inputs: a list of source files
+  outputs: what the codebase does, and where the risk is
+  invariants:
+    - every claim names a file
+    - nothing is claimed about a file that was not read
+max_calls: 30
+max_tokens: 250000
+timeout: 300
+journal: false
