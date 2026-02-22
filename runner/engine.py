@@ -59,7 +59,7 @@ def call(prompt, timeout=None, cap=3, step="?"):
     # re-runs the whole flow and most of it has not changed.
     if prompt in CACHE:
         print("step " + step + " came from the cache")
-        return CACHE[prompt]
+        return CACHE[prompt], True
     def once():
         r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
                            timeout=timeout)
@@ -75,7 +75,7 @@ def call(prompt, timeout=None, cap=3, step="?"):
 
     answer = retry(once, cap)
     CACHE[prompt] = answer
-    return answer
+    return answer, False
 
 
 SEV = ("high", "med", "low")
@@ -155,8 +155,11 @@ class Run(object):
         if extra:
             prompt = prompt + extra
         prompt = prompt + previous.as_prompt()
-        text = call(prompt, timeout=self.timeout, cap=self.retries, step=step)
-        self.budget.charge(prompt, text)
+        text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step)
+        if not cached:
+            # a cached answer costs nothing and was counting against the cap,
+            # so a flow with a redo in it hit the ceiling on work it never did
+            self.budget.charge(prompt, text)
         return Handoff(role, text, verdict(text))
 
 
