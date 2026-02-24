@@ -43,6 +43,7 @@ def cmd_help():
   python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
+  python run.py spend            what the last runs cost
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -50,5 +51,17 @@ def cmd_help():
     return 0
 
 
-COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help,
+def cmd_spend():
+    from pathlib import Path
+    journal = Path("runs") / "journal.md"
+    if not journal.exists():
+        print("no runs yet")
+        return 0
+    for line in journal.read_text().split("\n")[-20:]:
+        if "calls" in line:
+            print(line)
+    return 0
+
+
+COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "--help": cmd_help, "-h": cmd_help}
