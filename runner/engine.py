@@ -10,7 +10,7 @@ from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
 from guardrails import defaults, promises
-from guardrails.budget import Budget, OverBudget
+from guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
 from .errors import Fatal, classify
@@ -213,7 +213,6 @@ def main():
     route = router.Router(fm, cap=2)
     started = datetime.datetime.now()
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
-    goes = 0
     out = EMPTY
     todo = steps(flow)
     if pick_up:
