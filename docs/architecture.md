@@ -27,6 +27,18 @@ fanout is the one branch: if a step is marked `fanout`, the previous step's
 output is split into lines and each one gets its own worker, up to `workers`
 at a time.
 
+## guardrails
+
+`guardrails/` is the layer that says no. `budget.py` counts calls and rough
+tokens and stops the run when a flow goes over what it declared.
+`promises.py` checks the output against the flow's own invariants afterwards -
+the prompts are told the same rules, but being told is not being checked.
+`defaults.py` exists because a flow saying nothing about cost used to mean no
+limit at all.
+
+none of it is a prompt. that is the whole design: a control that can be talked
+out of it is not a control.
+
 ## state and journal
 
 `runner/state.py` is one small json file per flow: what it last processed.
