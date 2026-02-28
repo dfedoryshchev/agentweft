@@ -44,3 +44,15 @@ for name, n in runs.most_common():
     avg = seconds[name] // n
     print("  " + name + "  " + str(n) + " runs, " + str(failed[name])
           + " failed, " + str(avg) + "s avg")
+
+print("")
+print("by week")
+weeks = Counter()
+for line in journal.read_text().split("\n"):
+    if not line.strip():
+        continue
+    parts = [p for p in line.split("  ") if p]
+    when = datetime.datetime.strptime(parts[0], "%Y-%m-%d %H:%M")
+    weeks[when.strftime("%Y w%W")] += 1
+for wk in sorted(weeks)[-8:]:
+    print("  " + wk + "  " + str(weeks[wk]) + " runs")
