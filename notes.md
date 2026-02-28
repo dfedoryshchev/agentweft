@@ -313,3 +313,22 @@ which is a config library doing domain work, or i wrap them in the classes i
 already have, which is what i was trying to delete.
 
 so the wrapper stays and check() stays. one dependency, still.
+
+## 2026-02-28
+
+february. the month it learned to say no.
+
+the spend cap is the one i should have built in august. nine months of running
+this with no ceiling and the only reason nothing went wrong is that nothing
+went wrong. the cache made it worse before it made it better - i was counting
+cached calls against the cap, so a flow with a redo in it hit the ceiling on
+work it had not done.
+
+the promise checking is smaller than it sounds and i want to keep it that way.
+it can check three shapes. everything else it says it cannot check, which is
+the honest answer and the one i would rather have than a tick i do not believe.
+
+repo-audit is the one i actually use now. twenty files, one worker each, and a
+merge that tells me where the risk is. i have pointed it at two of my own
+things and both times it found something in the second half of the list that i
+would not have looked at.
