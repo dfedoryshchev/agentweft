@@ -332,3 +332,24 @@ repo-audit is the one i actually use now. twenty files, one worker each, and a
 merge that tells me where the risk is. i have pointed it at two of my own
 things and both times it found something in the second half of the list that i
 would not have looked at.
+
+## 2026-03-02
+
+a check step that isnt a prompt.
+
+the promise checker knows three shapes and says "not checkable" to everything
+else, which is honest and not much use. the things i actually want to assert
+are not shapes at all:
+
+- does this markdown parse
+- is every path in this output a file that exists
+- does the test in this patch actually fail before the patch
+
+none of those want a model. they want a program. and i keep almost writing
+them into promises.py, where they do not belong, because promises.py is about
+the flow's own declared invariants and these are just checks.
+
+so: a check step is a thing with a name and a run(text) that says pass or fail
+and why. the flow lists which ones it wants. one of them can be "run this
+command and look at the exit code", which is the whole point, because then
+anything that has a cli can be a check without me writing an adapter for it.
