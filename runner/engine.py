@@ -9,7 +9,7 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
-from guardrails import defaults, promises
+from guardrails import defaults, gates, promises
 from guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
@@ -143,6 +143,12 @@ class Run(object):
         self.fan = fanout_step(flow)
         self.budget = Budget(*defaults.for_flow(fm))
 
+    def gates_for(self, step):
+        for s in self.fm.steps:
+            if s.get("prompt", s["role"] + ".md") == step:
+                return [gates.build(g) for g in (s.get("gates") or [])]
+        return []
+
     def width_for(self, role):
         for s in self.fm.steps:
             if s["role"] == role:
@@ -250,6 +256,11 @@ def main():
                     + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
             f.close()
             return
+
+        checks = run.gates_for(step)
+        results = [g.run(out.output) for g in checks]
+        for r in results:
+            print("  " + repr(r))
 
         blocked = route.gate(step, out)
         if blocked:
