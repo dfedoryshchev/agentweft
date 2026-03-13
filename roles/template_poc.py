@@ -19,6 +19,11 @@ def render(path, **ctx):
     return env.get_template(path).render(**ctx)
 
 
+# the flow files are markdown that people read. putting {% %} in them means
+# every prompt is now a template first and a prompt second, and a stray brace
+# in an example breaks a run.
+
+
 if __name__ == "__main__":
     import sys
 
