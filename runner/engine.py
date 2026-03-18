@@ -261,6 +261,18 @@ def main():
         results = [g.run(out.output) for g in checks]
         for r in results:
             print("  " + repr(r))
+        bad_gates = [r for r in results if not r.ok]
+        if bad_gates:
+            # a gate is not advice. it was failing the STEP, which meant the
+            # run carried on and wrote the output anyway.
+            print("gate failed at " + step + ", stopping")
+            write_index("GATE  " + flow + "  " + bad_gates[0].gate + " at " + step)
+            f = open(Path("runs") / "journal.md", "a")
+            f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
+                    + "  gate " + bad_gates[0].gate + " failed at " + step + "  "
+                    + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
+            f.close()
+            return
 
         blocked = route.gate(step, out)
         if blocked:
