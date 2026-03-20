@@ -4,6 +4,9 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+    gates:
+      - gate: length
+        max_lines: 20
 promises:
   inputs: a folder of text files
   outputs: a list of what changed, one line each

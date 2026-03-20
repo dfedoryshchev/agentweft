@@ -10,6 +10,12 @@ steps:
     prompt: merge.md
   - role: reviewer
     prompt: reviewer.md
+    gates:
+      - gate: length
+        max_lines: 40
+      - gate: regex
+        pattern: "here is|as an ai|i hope this"
+        present: false
 promises:
   inputs: the .md files in the inbox modified in the last 7 days
   outputs: three lists - what changed, needs me, can wait
