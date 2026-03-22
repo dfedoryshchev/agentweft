@@ -6,6 +6,8 @@ lists the ones it wants. nothing here knows what a model is.
 
 
 class Result(object):
+    """what a gate decided. `gate` is the gate's name, not the gate."""
+
     __slots__ = ("gate", "ok", "detail")
 
     def __init__(self, gate, ok, detail=""):
