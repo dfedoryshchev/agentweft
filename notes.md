@@ -353,3 +353,20 @@ so: a check step is a thing with a name and a run(text) that says pass or fail
 and why. the flow lists which ones it wants. one of them can be "run this
 command and look at the exit code", which is the whole point, because then
 anything that has a cli can be a check without me writing an adapter for it.
+
+## 2026-03-24
+
+dropped jinja too. second dependency i have tried and put back this year.
+
+it does what it says. the problem is what it does to the prompts: a role file
+stops being markdown a person reads and becomes a template that happens to
+render markdown. a stray brace in an example breaks a run, and half my prompts
+have examples with braces in them.
+
+the actual complaint was that fragments are all-or-nothing, and the per-role
+EXTRA map already solved that in october. i went looking for a library to
+replace a working seven-line dict.
+
+so: str.replace for the env substitution, the EXTRA map for the per-role bits,
+nothing new in requirements. i did look at string.Template on the way past and
+it is worse here - every dollar in a prompt would need escaping.
