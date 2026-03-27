@@ -261,6 +261,13 @@ def main():
         results = [g.run(out.output) for g in checks]
         for r in results:
             print("  " + repr(r))
+        if results:
+            step_dir = Path("runs") / run_id
+            step_dir.mkdir(parents=True, exist_ok=True)
+            with open(step_dir / "gates.md", "a") as gf:
+                gf.write("## " + step + "\n")
+                for r in results:
+                    gf.write(repr(r) + "\n")
         failed_gates = [r for r in results if not r.ok]
         if failed_gates:
             # a gate is not advice. it was failing the STEP, which meant the
