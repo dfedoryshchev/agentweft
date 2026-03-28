@@ -370,3 +370,20 @@ replace a working seven-line dict.
 so: str.replace for the env substitution, the EXTRA map for the per-role bits,
 nothing new in requirements. i did look at string.Template on the way past and
 it is worse here - every dollar in a prompt would need escaping.
+
+## 2026-03-28
+
+gates should be tools, not prompts.
+
+i spent nine months making the reviewer better at saying no. better prompt,
+more specific rules, a verdict line, a send-back loop. all of it helped and
+none of it is reliable, because it cannot be: it is a model being asked to be
+careful, and some days it is.
+
+a regex either matched or it did not. an exit code is an exit code.
+
+the split i would keep: the model is for the things only a model can do -
+reading, judging, writing. the gate is for everything with a yes or no answer.
+every time i have asked a prompt to do a gate's job it has worked most of the
+time, which is the worst possible outcome, because that is the failure mode you
+stop looking for.
