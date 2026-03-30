@@ -44,10 +44,38 @@ def cmd_help():
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
+  python run.py step <flow> <role>   one step, reading stdin, writing nothing
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
 --resume  pick up the last failed run of that flow where it died""")
+    return 0
+
+
+def cmd_step():
+    """python run.py step <flow> <role> - one step, nothing written down.
+
+    debugging a prompt meant running the whole flow and paying for all of it.
+    """
+    import os
+
+    from . import prompts
+    from .config import config
+    from .engine import Run, load_env
+    from roles import resolver
+
+    load_env()
+    flow, role = sys.argv[2], sys.argv[3]
+    spec = config(flow)
+    by_role = resolver.resolve(spec.raw, prompts.flow_path(flow),
+                               spec.promises.as_prompt())
+    run = Run(flow, spec, by_role)
+    previous = ""
+    if not os.isatty(0):
+        previous = sys.stdin.read()
+    from .handoff import Handoff
+    out = run.step(role + ".md", previous=Handoff("stdin", previous))
+    print(out.output)
     return 0
 
 
@@ -64,4 +92,5 @@ def cmd_spend():
 
 
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
+            "step": cmd_step,
             "--help": cmd_help, "-h": cmd_help}
