@@ -210,7 +210,16 @@ def main():
         if pick_up is None:
             ids = resume.runs_for(flow)
             pick_up = ids[-1] if ids else None
-    fm = config(flow)
+    try:
+        fm = config(flow)
+    except FileNotFoundError:
+        known = ", ".join(sorted(p.name for p in Path(prompts.FLOW_ROOT[0]).iterdir()
+                                 if p.is_dir() and not p.name.startswith("_")))
+        print("no flow called " + flow + ". there is: " + known)
+        return 1
+    except ValueError as e:
+        print(flow + "/flow.yaml is wrong: " + str(e))
+        return 1
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
