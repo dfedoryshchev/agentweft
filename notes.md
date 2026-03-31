@@ -387,3 +387,22 @@ reading, judging, writing. the gate is for everything with a yes or no answer.
 every time i have asked a prompt to do a gate's job it has worked most of the
 time, which is the worst possible outcome, because that is the failure mode you
 stop looking for.
+
+## 2026-03-31
+
+long runs cost more than i thought, and now i can see it.
+
+repo-audit on something real is twenty files, one worker each, plus a planner,
+a merge and a reviewer. twenty three calls and about a hundred and eighty
+thousand tokens on the rough count. i have been running it two or three times a
+week on the thing i am building, and once more each time i change the plan and
+want a fresh read.
+
+that is the most expensive flow i have and it is also the most useful, which is
+an annoying combination.
+
+what i have done about it: the planner caps at twenty files, the flow declares
+its own ceiling, and the cache means a re-run after a prompt tweak only pays
+for the steps that changed. what i have not done is anything about the fact
+that i am asking a model to read the same files every time, when almost none of
+them changed since the last read.
