@@ -39,6 +39,17 @@ limit at all.
 none of it is a prompt. that is the whole design: a control that can be talked
 out of it is not a control.
 
+## gates
+
+`guardrails/gates/` is the extension point. a gate has a name, options from
+flow.yaml, and `run(text) -> Result`. they register themselves into a dict at
+import; `build()` raises on an unknown name rather than skipping it, because a
+typo in a gate name silently disabling a check is exactly the failure this
+layer exists to prevent.
+
+`command` is the one that matters: it runs anything with a cli and looks at the
+exit code, so a check does not have to be code in here.
+
 ## state and journal
 
 `runner/state.py` is one small json file per flow: what it last processed.
