@@ -40,9 +40,13 @@ def read_resource(uri):
 def handle(msg):
     method = msg.get("method")
     if method == "initialize":
-        return {"protocolVersion": VERSION,
+        # the client sends its own protocolVersion and expects mine back, and
+        # a notification with no id afterwards that i must NOT reply to
+        return {"protocolVersion": msg.get("params", {}).get("protocolVersion", VERSION),
                 "serverInfo": {"name": NAME, "version": "0.1"},
-                "capabilities": {"resources": {}}}
+                "capabilities": {"resources": {"subscribe": False}}}
+    if method == "notifications/initialized":
+        return None
     if method == "resources/list":
         return {"resources": resources()}
     if method == "resources/read":
@@ -61,6 +65,10 @@ def serve(stdin=None, stdout=None):
             return 0
         try:
             result = handle(msg)
+            if msg.get("id") is None:
+                # a notification. replying to one gets you a protocol error
+                # from the client, which took me an evening to work out.
+                continue
             _write(stdout, {"jsonrpc": "2.0", "id": msg.get("id"), "result": result})
         except Exception as e:
             _write(stdout, {"jsonrpc": "2.0", "id": msg.get("id"),
