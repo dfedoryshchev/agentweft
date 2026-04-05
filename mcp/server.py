@@ -27,6 +27,11 @@ def _write(stream, payload):
 def resources():
     out = [{"uri": "flows://journal", "name": "run journal",
             "mimeType": "text/markdown"}]
+    runs = Path("runs")
+    if runs.exists():
+        for d in sorted((p for p in runs.iterdir() if p.is_dir()), reverse=True)[:20]:
+            out.append({"uri": "flows://run/" + d.name, "name": d.name,
+                        "mimeType": "text/markdown"})
     return out
 
 
