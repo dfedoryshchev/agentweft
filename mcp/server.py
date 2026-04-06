@@ -39,6 +39,14 @@ def read_resource(uri):
     if uri == "flows://journal":
         p = Path("runs") / "journal.md"
         return p.read_text(encoding="utf-8") if p.exists() else ""
+    if uri.startswith("flows://run/"):
+        d = Path("runs") / uri[len("flows://run/"):]
+        if not d.is_dir():
+            raise ValueError("no such run: " + uri)
+        parts = []
+        for f in sorted(d.iterdir()):
+            parts.append("## " + f.name + "\n\n" + f.read_text(encoding="utf-8"))
+        return "\n\n".join(parts)
     raise ValueError("no such resource: " + uri)
 
 
