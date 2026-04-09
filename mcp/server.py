@@ -50,6 +50,22 @@ def read_resource(uri):
     raise ValueError("no such resource: " + uri)
 
 
+def tools():
+    return [{"name": "run_flow",
+             "description": "run one of the flows and return what it produced",
+             "inputSchema": {"type": "object",
+                             "properties": {"flow": {"type": "string"}},
+                             "required": ["flow"]}}]
+
+
+def run_flow(name):
+    import subprocess
+
+    r = subprocess.run([sys.executable, "run.py", name, "--force"],
+                       capture_output=True, text=True, timeout=900)
+    return (r.stdout or "") + (r.stderr or "")
+
+
 def handle(msg):
     method = msg.get("method")
     if method == "initialize":
@@ -57,11 +73,20 @@ def handle(msg):
         # a notification with no id afterwards that i must NOT reply to
         return {"protocolVersion": msg.get("params", {}).get("protocolVersion", VERSION),
                 "serverInfo": {"name": NAME, "version": "0.1"},
-                "capabilities": {"resources": {"subscribe": False}}}
+                "capabilities": {"resources": {"subscribe": False}, "tools": {}}}
     if method == "notifications/initialized":
         return None
     if method == "resources/list":
         return {"resources": resources()}
+    if method == "tools/list":
+        return {"tools": tools()}
+    if method == "tools/call":
+        params = msg.get("params", {})
+        name = params.get("name")
+        if name != "run_flow":
+            raise ValueError("unknown tool: " + str(name))
+        flow = params.get("arguments", {}).get("flow", "")
+        return {"content": [{"type": "text", "text": run_flow(flow)}]}
     if method == "resources/read":
         uri = msg.get("params", {}).get("uri", "")
         return {"contents": [{"uri": uri, "mimeType": "text/markdown",
