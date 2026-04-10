@@ -61,9 +61,15 @@ def tools():
 def run_flow(name):
     import subprocess
 
+    # this used to hand back whatever run.py had printed by the time the pipe
+    # buffer filled, which for the digest is the planner and nothing else. the
+    # client saw a plan and called it the answer.
     r = subprocess.run([sys.executable, "run.py", name, "--force"],
                        capture_output=True, text=True, timeout=900)
-    return (r.stdout or "") + (r.stderr or "")
+    out = (r.stdout or "") + (r.stderr or "")
+    if r.returncode != 0:
+        return "the run failed:\n\n" + out
+    return out
 
 
 def handle(msg):
