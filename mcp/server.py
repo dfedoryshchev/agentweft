@@ -11,6 +11,10 @@ from pathlib import Path
 VERSION = "2024-11-05"
 NAME = "flows"
 
+# an agent that can start anything can start repo-audit in a loop, and that one
+# has a twenty six call ceiling. so: nothing runs unless it is named here.
+ALLOWED = ("weekly-digest", "ops-check", "summarise-and-check")
+
 
 def _read(stream):
     line = stream.readline()
@@ -52,7 +56,8 @@ def read_resource(uri):
 
 def tools():
     return [{"name": "run_flow",
-             "description": "run one of the flows and return what it produced",
+             "description": "run one of the flows and return what it produced. "
+                            "allowed: " + ", ".join(ALLOWED),
              "inputSchema": {"type": "object",
                              "properties": {"flow": {"type": "string"}},
                              "required": ["flow"]}}]
@@ -60,6 +65,10 @@ def tools():
 
 def run_flow(name):
     import subprocess
+
+    if name not in ALLOWED:
+        return ("not allowed: " + str(name) + ". this server can run: "
+                + ", ".join(ALLOWED))
 
     # this used to hand back whatever run.py had printed by the time the pipe
     # buffer filled, which for the digest is the planner and nothing else. the
