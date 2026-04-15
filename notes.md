@@ -406,3 +406,22 @@ its own ceiling, and the cache means a re-run after a prompt tweak only pays
 for the steps that changed. what i have not done is anything about the fact
 that i am asking a model to read the same files every time, when almost none of
 them changed since the last read.
+
+## 2026-04-15
+
+mcp fits ops better than flows.
+
+i built the trigger tool first because it seemed like the point: an agent can
+run a flow. two weeks in i have used it about four times, and every one was me
+proving it worked.
+
+what i use constantly is the other half. the journal and the run outputs as
+resources means i can ask "what did ops-check say this morning and why did
+tuesday's digest fail" without opening anything. no pasting, no path.
+
+which makes sense in hindsight. a flow is a thing i schedule, and scheduling it
+from a chat is not better than scheduling it. the runs are a thing i read, and
+reading them was the annoying part.
+
+the allowlist stays regardless. an agent that can start repo-audit in a loop is
+a bill.
