@@ -42,4 +42,6 @@ now runs six of them.
 - `docs/writing-a-flow.md` - adding one
 - `docs/architecture.md` - what the code is doing
 - `docs/journal.md` - the journal, the weekly rollup, and --resume
+- `docs/gates.md` - checks that are programs, not prompts
+- `docs/mcp.md` - reading the journal and runs from an agent
 - `examples/` - flows that run without any of my folders existing
