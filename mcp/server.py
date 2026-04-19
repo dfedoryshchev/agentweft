@@ -4,9 +4,10 @@ hand rolled. the protocol is a handful of methods over line delimited json on
 stdin and stdout, and pulling in a dependency to write forty lines of dict
 handling is how i ended up with pydantic and jinja in here twice.
 """
-import json
 import sys
 from pathlib import Path
+
+from . import transport
 
 VERSION = "2024-11-05"
 NAME = "flows"
@@ -14,18 +15,6 @@ NAME = "flows"
 # an agent that can start anything can start repo-audit in a loop, and that one
 # has a twenty six call ceiling. so: nothing runs unless it is named here.
 ALLOWED = ("weekly-digest", "ops-check", "summarise-and-check")
-
-
-def _read(stream):
-    line = stream.readline()
-    if not line:
-        return None
-    return json.loads(line)
-
-
-def _write(stream, payload):
-    stream.write(json.dumps(payload) + "\n")
-    stream.flush()
 
 
 def resources():
@@ -110,19 +99,4 @@ def handle(msg):
 
 
 def serve(stdin=None, stdout=None):
-    stdin = stdin or sys.stdin
-    stdout = stdout or sys.stdout
-    while True:
-        msg = _read(stdin)
-        if msg is None:
-            return 0
-        try:
-            result = handle(msg)
-            if msg.get("id") is None:
-                # a notification. replying to one gets you a protocol error
-                # from the client, which took me an evening to work out.
-                continue
-            _write(stdout, {"jsonrpc": "2.0", "id": msg.get("id"), "result": result})
-        except Exception as e:
-            _write(stdout, {"jsonrpc": "2.0", "id": msg.get("id"),
-                            "error": {"code": -32603, "message": str(e)}})
+    return transport.loop(handle, stdin, stdout)
