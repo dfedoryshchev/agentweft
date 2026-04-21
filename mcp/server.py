@@ -19,7 +19,9 @@ ALLOWED = ("weekly-digest", "ops-check", "summarise-and-check")
 
 def resources():
     out = [{"uri": "flows://journal", "name": "run journal",
-            "mimeType": "text/markdown"}]
+            "mimeType": "text/markdown"},
+           {"uri": "flows://rollup", "name": "last 7 days",
+            "mimeType": "text/plain"}]
     runs = Path("runs")
     if runs.exists():
         for d in sorted((p for p in runs.iterdir() if p.is_dir()), reverse=True)[:20]:
@@ -32,6 +34,12 @@ def read_resource(uri):
     if uri == "flows://journal":
         p = Path("runs") / "journal.md"
         return p.read_text(encoding="utf-8") if p.exists() else ""
+    if uri == "flows://rollup":
+        import subprocess
+
+        r = subprocess.run([sys.executable, "rollup.py"], capture_output=True,
+                           text=True, timeout=60)
+        return r.stdout or "nothing yet"
     if uri.startswith("flows://run/"):
         d = Path("runs") / uri[len("flows://run/"):]
         if not d.is_dir():
