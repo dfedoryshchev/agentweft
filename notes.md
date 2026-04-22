@@ -425,3 +425,29 @@ reading them was the annoying part.
 
 the allowlist stays regardless. an agent that can start repo-audit in a loop is
 a bill.
+
+## 2026-04-22
+
+what an eval case would look like.
+
+i have gates, which check one run. i have promises, which check one run against
+what the flow said. what i do not have is any way to answer "is this better
+than last month", and every prompt change i have made in eleven months has been
+judged by me reading one output and going yes that seems better.
+
+a case would be: fixed inputs, and the promises that have to hold.
+
+    evals/weekly-digest/cases/quiet-week/
+      inbox/            three files, one of them empty
+      expect.yaml       what has to be true of the output
+
+and then running every case for a flow gives me a number - how many held, what
+it cost - which i can compare to the last time i ran them.
+
+fixed inputs is the important half. the reason i cannot tell whether a change
+helped is that the input is different every time, because it is my actual
+inbox. same input, different prompt, is a comparison. different input,
+different prompt, is a vibe.
+
+not building it yet. the gate work needs to settle first, because the checks
+are the same checks.
