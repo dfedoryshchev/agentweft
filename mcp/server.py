@@ -21,7 +21,9 @@ def resources():
     out = [{"uri": "flows://journal", "name": "run journal",
             "mimeType": "text/markdown"},
            {"uri": "flows://rollup", "name": "last 7 days",
-            "mimeType": "text/plain"}]
+            "mimeType": "text/plain"},
+           {"uri": "flows://gates", "name": "gate results, most recent runs",
+            "mimeType": "text/markdown"}]
     runs = Path("runs")
     if runs.exists():
         for d in sorted((p for p in runs.iterdir() if p.is_dir()), reverse=True)[:20]:
@@ -34,6 +36,16 @@ def read_resource(uri):
     if uri == "flows://journal":
         p = Path("runs") / "journal.md"
         return p.read_text(encoding="utf-8") if p.exists() else ""
+    if uri == "flows://gates":
+        runs = Path("runs")
+        if not runs.exists():
+            return "nothing yet"
+        parts = []
+        for d in sorted((p for p in runs.iterdir() if p.is_dir()), reverse=True)[:10]:
+            g = d / "gates.md"
+            if g.exists():
+                parts.append("# " + d.name + "\n\n" + g.read_text(encoding="utf-8"))
+        return "\n\n".join(parts) or "no gates have run yet"
     if uri == "flows://rollup":
         import subprocess
 
