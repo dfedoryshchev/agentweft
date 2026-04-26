@@ -47,11 +47,16 @@ def register(cls):
     return cls
 
 
-def build(spec):
-    """{"gate": "regex", ...} -> a Gate. unknown names are an error, not a skip."""
-    name = spec.get("gate")
+def build(config):
+    """{"gate": "regex", ...} -> a Gate. unknown names are an error, not a skip.
+
+    the argument was called `spec`, which in this repo means a FlowSpec. it is
+    a dict of gate options and nothing to do with a spec.
+    """
+    name = config.get("gate")
     if name not in registry:
-        raise ValueError("unknown gate: " + str(name))
-    opts = dict(spec)
+        raise ValueError("unknown gate: " + str(name) + ". there is: "
+                         + ", ".join(sorted(registry)))
+    opts = dict(config)
     opts.pop("gate")
     return registry[name](**opts)
