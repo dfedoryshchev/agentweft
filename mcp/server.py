@@ -4,6 +4,7 @@ hand rolled. the protocol is a handful of methods over line delimited json on
 stdin and stdout, and pulling in a dependency to write forty lines of dict
 handling is how i ended up with pydantic and jinja in here twice.
 """
+import subprocess
 import sys
 from pathlib import Path
 
@@ -47,8 +48,6 @@ def read_resource(uri):
                 parts.append("# " + d.name + "\n\n" + g.read_text(encoding="utf-8"))
         return "\n\n".join(parts) or "no gates have run yet"
     if uri == "flows://rollup":
-        import subprocess
-
         r = subprocess.run([sys.executable, "rollup.py"], capture_output=True,
                            text=True, timeout=60)
         return r.stdout or "nothing yet"
@@ -73,8 +72,6 @@ def tools():
 
 
 def run_flow(name):
-    import subprocess
-
     if name not in ALLOWED:
         return ("not allowed: " + str(name) + ". this server can run: "
                 + ", ".join(ALLOWED))
