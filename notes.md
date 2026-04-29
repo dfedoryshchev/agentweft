@@ -451,3 +451,20 @@ different prompt, is a vibe.
 
 not building it yet. the gate work needs to settle first, because the checks
 are the same checks.
+
+## 2026-04-29
+
+april. mcp, and one thing i keep not building.
+
+the server is a hundred lines and most of it is the handshake. the useful part
+was the smallest part: the journal as a resource. i stopped pasting run output
+into a chat about two weeks ago and have not once missed it.
+
+the eval thing is still a note. that is three months of it being the obvious
+next thing and me doing something else, which usually means i am avoiding the
+part i do not know how to do. the part i do not know how to do is deciding what
+a case's expected output IS, when the whole point is that the output is not
+deterministic.
+
+i think the answer is that a case does not expect an output. it expects the
+promises to hold. which i already have code for.
