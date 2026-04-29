@@ -33,6 +33,12 @@ resume could tell you where it died and nothing more.
 
 picks a specific run instead of the most recent.
 
+## reading it from an agent
+
+`python mcp_server.py` exposes the journal, the weekly rollup, the gate results
+and every recent run as resources. see `docs/mcp.md`. that turned out to be the
+half of mcp i use.
+
 ## what it does not do
 
 a resumed run writes its own journal line. so a run that failed and was picked
