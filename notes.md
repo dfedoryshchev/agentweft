@@ -468,3 +468,22 @@ deterministic.
 
 i think the answer is that a case does not expect an output. it expects the
 promises to hold. which i already have code for.
+
+## 2026-05-04
+
+the model call should be behind an interface.
+
+`call()` shells out to a cli. that has been true since the second week and it
+is now the only thing in here that assumes anything about who is answering.
+
+three reasons it is due:
+
+- the fake. every test that touches a step has to monkeypatch subprocess.run,
+  which means the tests know how the call is made. they should not.
+- per role. the planner is cheap and the reviewer is not, and right now they
+  are the same call with the same settings.
+- the cli is not the only way to ask. an http call is a different shape and
+  the engine should not care which one it got.
+
+one class with one method: given a prompt, give me text back. everything else
+is a detail of the thing implementing it.
