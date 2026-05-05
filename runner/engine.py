@@ -9,6 +9,7 @@ from pathlib import Path
 from roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
+import providers
 from guardrails import defaults, gates, promises
 from guardrails.budget import Budget
 
@@ -54,24 +55,25 @@ def retry(fn, cap=3, sleep=time.sleep):
 CACHE = {}
 
 
-def call(prompt, timeout=None, cap=3, step="?"):
+def call(prompt, timeout=None, cap=3, step="?", provider=None):
     # the same planner prompt twice in one evening is the same answer. a redo
     # re-runs the whole flow and most of it has not changed.
     if prompt in CACHE:
         print("step " + step + " came from the cache")
         return CACHE[prompt], True
+    p = provider or providers.build({})
+
     def once():
-        r = subprocess.run(["claude", "-p", prompt], capture_output=True, text=True,
-                           timeout=timeout)
-        if r.returncode == 0:
-            return True, r.stdout
-        kind = classify(r.stderr)
+        reply = p.ask(prompt, timeout=timeout)
+        if reply:
+            return True, reply.text
+        kind = classify(reply.detail)
         print("step " + step + " failed (" + kind.__name__.lower() + "): "
-              + r.stderr.strip()[:200])
+              + reply.detail)
         if kind is Fatal:
             # going again will not help and it still costs
-            raise Fatal(r.stderr.strip()[:200])
-        return False, r.stdout
+            raise Fatal(reply.detail)
+        return False, reply.text
 
     answer = retry(once, cap)
     CACHE[prompt] = answer
