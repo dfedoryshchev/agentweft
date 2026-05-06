@@ -1,4 +1,4 @@
 from .base import Provider, Reply, build, registry
-from . import cli_provider  # noqa: F401  (registers itself)
+from . import api_provider, cli_provider  # noqa: F401  (they register themselves)
 
 __all__ = ["Provider", "Reply", "build", "registry"]
