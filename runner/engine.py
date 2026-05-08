@@ -144,6 +144,7 @@ class Run(object):
         self.workers = int(fm.get("workers", 3))
         self.fan = fanout_step(flow)
         self.budget = Budget(*defaults.for_flow(fm))
+        self.provider = providers.build(fm.get("provider") or {})
 
     def gates_for(self, step):
         for s in self.fm.steps:
@@ -163,7 +164,8 @@ class Run(object):
         if extra:
             prompt = prompt + extra
         prompt = prompt + previous.as_prompt()
-        text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step)
+        text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step,
+                            provider=self.provider)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
