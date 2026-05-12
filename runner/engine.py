@@ -145,6 +145,11 @@ class Run(object):
         self.fan = fanout_step(flow)
         self.budget = Budget(*defaults.for_flow(fm))
         self.provider = providers.build(fm.get("provider") or {})
+        self.by_step = {}
+        for s in fm.steps:
+            if s.get("provider"):
+                self.by_step[s.get("prompt", s["role"] + ".md")] = \
+                    providers.build(s["provider"])
 
     def gates_for(self, step):
         for s in self.fm.steps:
@@ -165,7 +170,7 @@ class Run(object):
             prompt = prompt + extra
         prompt = prompt + previous.as_prompt()
         text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step,
-                            provider=self.provider)
+                            provider=self.by_step.get(step, self.provider))
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did

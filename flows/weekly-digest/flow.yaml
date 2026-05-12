@@ -8,6 +8,8 @@ steps:
     workers: 4
   - role: merge
     prompt: merge.md
+    provider:
+      provider: cli
   - role: reviewer
     prompt: reviewer.md
     gates:
