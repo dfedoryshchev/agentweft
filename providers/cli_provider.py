@@ -12,9 +12,17 @@ class CliProvider(Provider):
 
     def ask(self, prompt, timeout=None):
         argv = [self.opts.get("command", "claude"), "-p", prompt]
-        r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+        try:
+            r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+        except FileNotFoundError:
+            return Reply("", detail=argv[0] + " is not on PATH")
+        except subprocess.TimeoutExpired:
+            return Reply("", detail="timed out after " + str(timeout) + "s")
         if r.returncode != 0:
-            return Reply("", detail=r.stderr.strip()[:200])
+            # some failures say nothing on stderr and everything on stdout, and
+            # i was throwing that away and reporting an empty error
+            detail = (r.stderr.strip() or r.stdout.strip())[:200]
+            return Reply("", detail=detail or ("exit " + str(r.returncode)))
         return Reply(r.stdout)
 
     def check(self):
