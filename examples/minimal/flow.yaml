@@ -9,3 +9,5 @@ promises:
     - one paragraph, no headings
 timeout: 120
 journal: false
+provider:
+  provider: fake

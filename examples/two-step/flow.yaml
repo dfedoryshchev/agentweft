@@ -15,3 +15,5 @@ promises:
     - no line is longer than about fifteen words
 timeout: 120
 journal: false
+provider:
+  provider: fake

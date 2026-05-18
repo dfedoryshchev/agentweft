@@ -1,5 +1,9 @@
 # examples
 
+these run on the fake provider, so they work from a fresh clone with no key and
+no folders of mine. swap `provider: fake` for `provider: cli` to run them for
+real.
+
 flows you can run without any of my folders existing.
 
     python run.py --flows examples minimal
