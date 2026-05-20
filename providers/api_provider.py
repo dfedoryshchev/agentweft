@@ -25,7 +25,11 @@ class ApiProvider(Provider):
                 "max_tokens": int(self.opts.get("max_tokens", 4096)),
                 "messages": [{"role": "user", "content": prompt}]}
         try:
-            r = httpx.post(url, json=body, timeout=httpx.Timeout(connect=timeout),
+            # this was httpx.Timeout(timeout, read=None), which is a real
+            # setting and means wait forever for the body. connect was honored,
+            # so it never failed - it just never came back. the flow said 300
+            # and meant 300 to answer the phone and unlimited to talk.
+            r = httpx.post(url, json=body, timeout=httpx.Timeout(timeout),
                            headers={"x-api-key": key,
                                     "content-type": "application/json"})
         except httpx.HTTPError as e:
