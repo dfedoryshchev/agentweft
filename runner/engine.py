@@ -173,7 +173,8 @@ class Run(object):
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
-            self.budget.charge(prompt, text)
+            used = self.by_step.get(step, self.provider)
+            self.budget.charge(prompt, text, provider=used.name)
         return Handoff(role, text, verdict(text))
 
 

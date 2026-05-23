@@ -20,10 +20,12 @@ class Budget(object):
         self.max_tokens = int(max_tokens or 0)
         self.calls = 0
         self.tokens = 0
+        self.by_provider = {}
 
-    def charge(self, prompt, answer):
+    def charge(self, prompt, answer, provider="cli"):
         self.calls = self.calls + 1
         self.tokens = self.tokens + (len(prompt) + len(answer)) // CHARS_PER_TOKEN
+        self.by_provider[provider] = self.by_provider.get(provider, 0) + 1
         return self
 
     def over(self):
@@ -34,4 +36,6 @@ class Budget(object):
         return None
 
     def summary(self):
-        return str(self.calls) + " calls, ~" + str(self.tokens) + " tokens"
+        where = ", ".join(k + " x" + str(v) for k, v in sorted(self.by_provider.items()))
+        return (str(self.calls) + " calls, ~" + str(self.tokens) + " tokens"
+                + (" (" + where + ")" if where else ""))
