@@ -44,6 +44,7 @@ def cmd_help():
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
+  python run.py provider         is each configured provider usable
   python run.py step <flow> <role>   one step, reading stdin, writing nothing
   python rollup.py [--flow x] [--failed]
 
@@ -79,6 +80,33 @@ def cmd_step():
     return 0
 
 
+def cmd_provider():
+    """is everything configured actually usable, without spending anything."""
+    import providers
+
+    from .config import config
+    from .engine import load_env
+
+    load_env()
+    seen = {}
+    for name in flows():
+        try:
+            spec = config(name)
+        except Exception:
+            continue
+        configs = [spec.get("provider") or {}]
+        configs += [s["provider"] for s in spec.steps if s.get("provider")]
+        for c in configs:
+            key = str(sorted((c or {}).items()))
+            if key in seen:
+                continue
+            seen[key] = True
+            p = providers.build(c or {})
+            ok, detail = p.check()
+            print(("  ok   " if ok else "  FAIL ") + p.name + "  " + detail)
+    return 0
+
+
 def cmd_spend():
     from pathlib import Path
     journal = Path("runs") / "journal.md"
@@ -92,5 +120,5 @@ def cmd_spend():
 
 
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
-            "step": cmd_step,
+            "step": cmd_step, "provider": cmd_provider,
             "--help": cmd_help, "-h": cmd_help}
