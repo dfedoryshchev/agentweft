@@ -1,0 +1,3 @@
+inbox: inbox
+expect:
+  invariants: all
