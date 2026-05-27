@@ -27,6 +27,16 @@ fanout is the one branch: if a step is marked `fanout`, the previous step's
 output is split into lines and each one gets its own worker, up to `workers`
 at a time.
 
+## providers
+
+`providers/` is who answers. one method, `ask(prompt, timeout) -> Reply`, and a
+`check()` that says whether the thing is usable without spending anything. cli,
+api and fake register themselves the same way gates do.
+
+the engine has not shelled out directly since may. that mattered less for the
+http support than for the fake: the tests used to monkeypatch `subprocess.run`,
+which meant every test knew how a call was made.
+
 ## guardrails
 
 `guardrails/` is the layer that says no. `budget.py` counts calls and rough
