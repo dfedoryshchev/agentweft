@@ -17,6 +17,8 @@ from .errors import Fatal, classify
 from . import prompts
 from .prompts import flow_path, load_prompt, read
 from . import resume, router
+from .settings import get as setting  # noqa: F401
+from . import settings
 from .state import load_state, save_state
 
 from pathlib import Path
@@ -138,9 +140,9 @@ class Run(object):
         self.flow = flow
         self.fm = fm
         self.by_role = by_role
-        self.timeout = int(fm.get("timeout", 300))
-        self.retries = int(fm.get("retries", 3))
-        self.workers = int(fm.get("workers", 3))
+        self.timeout = int(settings.get("timeout", flow=fm))
+        self.retries = int(settings.get("retries", flow=fm))
+        self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
         self.budget = Budget(*defaults.for_flow(fm))
         self.provider = providers.build(fm.get("provider") or {})
@@ -159,7 +161,7 @@ class Run(object):
     def width_for(self, role):
         for s in self.fm.steps:
             if s["role"] == role:
-                return int(s.get("workers", self.workers))
+                return int(settings.get("workers", step=s, flow=self.fm))
         return 1
 
     def step(self, step, previous=EMPTY, extra=""):
