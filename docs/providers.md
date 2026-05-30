@@ -35,6 +35,12 @@ the reviewer is not:
         provider:
           provider: api
 
+## where a setting comes from
+
+step, then flow, then environment, then the default in `runner/settings.py`.
+that order is the same for every setting, including which provider is used, so
+a step naming a provider always wins over the flow naming one.
+
 ## checking
 
     python run.py provider
