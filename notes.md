@@ -487,3 +487,22 @@ three reasons it is due:
 
 one class with one method: given a prompt, give me text back. everything else
 is a detail of the thing implementing it.
+
+## 2026-05-31
+
+may. the shell-out finally went.
+
+`call()` shelled out to a cli from week two until three weeks ago. the http
+provider is not why it mattered - i still run the cli. the fake is why. every
+test that touched a step used to monkeypatch subprocess.run, so the tests knew
+how a call was made, and nobody could run an example without a key.
+
+the timeout thing was the good bug. i had read=None in the Timeout, which is
+a real setting and means wait forever for the body, so a flow saying 300 meant
+300 to answer the phone and unlimited to talk. it never failed, it just never
+came back. found it at half eleven at night waiting for a run that was not
+coming.
+
+evals has code now. two cases, fixed inboxes, and the promises as the
+assertion. it does not score anything yet, which is the whole point of it, so
+that is next.
