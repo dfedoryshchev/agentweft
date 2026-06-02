@@ -63,7 +63,7 @@ def cmd_step():
     from . import prompts
     from .config import config
     from .engine import Run, load_env
-    from roles import resolver
+    from agentweft.roles import resolver
 
     load_env()
     flow, role = sys.argv[2], sys.argv[3]
@@ -82,7 +82,7 @@ def cmd_step():
 
 def cmd_provider():
     """is everything configured actually usable, without spending anything."""
-    import providers
+    from agentweft import providers
 
     from .config import config
     from .engine import load_env

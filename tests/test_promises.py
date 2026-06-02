@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, ".")
-from guardrails import promises
+from agentweft.guardrails import promises
 
 DIGEST = '''## what changed
 - notes.md | changed | moved

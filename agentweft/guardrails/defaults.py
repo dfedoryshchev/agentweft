@@ -5,7 +5,7 @@ thing that spends money.
 """
 
 def for_flow(spec):
-    from runner import settings
+    from agentweft.runner import settings
 
     return (settings.get("max_calls", flow=spec),
             settings.get("max_tokens", flow=spec))

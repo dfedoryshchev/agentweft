@@ -1,8 +1,8 @@
 import sys
 
 sys.path.insert(0, ".")
-import runner
-from runner import state
+from agentweft import runner
+from agentweft.runner import state
 
 
 def test_two_flows_do_not_clobber_each_other(tmp_path, monkeypatch):

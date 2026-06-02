@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, ".")
-from guardrails.budget import Budget
+from agentweft.guardrails.budget import Budget
 
 
 def test_a_call_is_charged():

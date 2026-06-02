@@ -3,7 +3,7 @@ import sys
 import pytest
 
 sys.path.insert(0, ".")
-import providers
+from agentweft import providers
 
 
 def test_the_default_is_the_cli():

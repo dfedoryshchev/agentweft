@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, ".")
-from guardrails import gates
+from agentweft.guardrails import gates
 
 
 def test_a_zero_exit_passes():

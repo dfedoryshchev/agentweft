@@ -1,8 +1,8 @@
 import sys
 
 sys.path.insert(0, ".")
-import runner
-from flow import spec
+from agentweft import runner
+from agentweft.flow import spec
 
 
 def test_a_flow_without_promises_still_loads():

@@ -2,19 +2,19 @@ import os
 import sys
 
 sys.path.insert(0, ".")
-import runner
-from roles import resolver
+from agentweft import runner
+from agentweft.roles import resolver
 
 
 def test_env_keys_are_substituted(monkeypatch):
     monkeypatch.setenv("INBOX", "C:/somewhere")
     assert runner.load_prompt.__module__
-    from runner import prompts
+    from agentweft.runner import prompts
     assert prompts.substitute("read {INBOX} now") == "read C:/somewhere now"
 
 
 def test_an_unknown_brace_is_left_alone():
-    from runner import prompts
+    from agentweft.runner import prompts
     assert prompts.substitute("keep {THIS}") == "keep {THIS}"
 
 

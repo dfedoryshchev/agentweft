@@ -2,7 +2,7 @@ import datetime
 
 import yaml
 
-from flow import spec
+from agentweft.flow import spec
 
 from .prompts import flow_path
 

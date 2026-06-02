@@ -1,8 +1,8 @@
 import sys
 
 sys.path.insert(0, ".")
-import runner
-from runner import resume
+from agentweft import runner
+from agentweft.runner import resume
 
 
 def test_remaining_starts_at_the_failed_step():

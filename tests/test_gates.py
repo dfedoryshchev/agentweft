@@ -3,7 +3,7 @@ import sys
 import pytest
 
 sys.path.insert(0, ".")
-from guardrails import gates
+from agentweft.guardrails import gates
 
 
 def test_regex_present():

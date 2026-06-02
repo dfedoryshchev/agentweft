@@ -3,7 +3,7 @@ import json
 import sys
 
 sys.path.insert(0, ".")
-from mcp import server
+from agentweft.mcp import server
 
 
 def rpc(msgs):

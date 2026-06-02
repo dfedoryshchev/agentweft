@@ -3,7 +3,7 @@ import sys
 import pytest
 
 sys.path.insert(0, ".")
-from flow import spec
+from agentweft.flow import spec
 
 
 def test_a_good_spec_loads():
@@ -31,7 +31,7 @@ def test_a_step_without_a_role_is_caught():
 
 
 def test_every_shipped_flow_passes_its_own_check():
-    import runner
+    from agentweft import runner
     for flow in ["weekly-digest", "ops-check", "summarise-and-check",
                  "release-notes", "code-review", "fix-with-test"]:
         runner.config(flow)

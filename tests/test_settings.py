@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, ".")
-from runner import settings
+from agentweft.runner import settings
 
 
 def test_the_step_beats_the_flow():

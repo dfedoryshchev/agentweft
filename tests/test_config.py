@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, ".")
-import runner
+from agentweft import runner
 
 
 def test_every_flow_loads():

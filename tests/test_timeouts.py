@@ -3,7 +3,7 @@ import sys
 import httpx
 
 sys.path.insert(0, ".")
-import providers
+from agentweft import providers
 
 
 def test_the_timeout_covers_read_not_just_connect(monkeypatch):

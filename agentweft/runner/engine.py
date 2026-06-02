@@ -5,12 +5,12 @@ import sys
 import time
 from pathlib import Path
 
-from roles import resolver
+from agentweft.roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
-import providers
-from guardrails import defaults, gates, promises
-from guardrails.budget import Budget
+from agentweft import providers
+from agentweft.guardrails import defaults, gates, promises
+from agentweft.guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
 from .errors import Fatal, classify

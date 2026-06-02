@@ -1,8 +1,8 @@
 import sys
 
 sys.path.insert(0, ".")
-import runner
-from runner import errors
+from agentweft import runner
+from agentweft.runner import errors
 
 
 def test_classify_timeout_is_transient():
