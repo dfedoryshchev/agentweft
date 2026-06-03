@@ -21,7 +21,9 @@ now runs six of them.
 
     pip install -r requirements.txt
     cp .env.example .env        # then point INBOX at a folder of .md files
-    python run.py weekly-digest --force   # --force ignores the schedule
+    python -m agentweft weekly-digest --force   # --force ignores the schedule
+
+(`python run.py ...` still works and is what i type.)
 
 ## the ideas that survived
 

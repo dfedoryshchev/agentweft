@@ -119,6 +119,17 @@ def cmd_spend():
     return 0
 
 
+def entrypoint():
+    """what `agentweft` on the path calls."""
+    import sys as _sys
+
+    from agentweft.runner import main as _main
+
+    if len(_sys.argv) > 1 and _sys.argv[1] in COMMANDS:
+        return COMMANDS[_sys.argv[1]]()
+    return _main()
+
+
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider,
             "--help": cmd_help, "-h": cmd_help}
