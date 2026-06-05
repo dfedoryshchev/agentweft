@@ -60,10 +60,12 @@ def cmd_step():
     """
     import os
 
+    from agentweft.roles import resolver
+
     from . import prompts
     from .config import config
     from .engine import Run, load_env
-    from agentweft.roles import resolver
+    from .handoff import Handoff
 
     load_env()
     flow, role = sys.argv[2], sys.argv[3]
@@ -74,7 +76,6 @@ def cmd_step():
     previous = ""
     if not os.isatty(0):
         previous = sys.stdin.read()
-    from .handoff import Handoff
     out = run.step(role + ".md", previous=Handoff("stdin", previous))
     print(out.output)
     return 0
@@ -108,7 +109,6 @@ def cmd_provider():
 
 
 def cmd_spend():
-    from pathlib import Path
     journal = Path("runs") / "journal.md"
     if not journal.exists():
         print("no runs yet")
@@ -121,12 +121,10 @@ def cmd_spend():
 
 def entrypoint():
     """what `agentweft` on the path calls."""
-    import sys as _sys
+    from .engine import main as _main
 
-    from agentweft.runner import main as _main
-
-    if len(_sys.argv) > 1 and _sys.argv[1] in COMMANDS:
-        return COMMANDS[_sys.argv[1]]()
+    if len(sys.argv) > 1 and sys.argv[1] in COMMANDS:
+        return COMMANDS[sys.argv[1]]()
     return _main()
 
 
