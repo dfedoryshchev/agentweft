@@ -506,3 +506,15 @@ coming.
 evals has code now. two cases, fixed inboxes, and the promises as the
 assertion. it does not score anything yet, which is the whole point of it, so
 that is next.
+
+## 2026-06-07
+
+started taking the specifics out.
+
+the flows have grown a decade of my own context: folder names, what a decision
+looks like for me, which log lines i already know about. useful, and none of it
+means anything to anyone else.
+
+so: the shapes stay, the specifics go. a planner that says "read the .md files
+in {INBOX}" is the same flow as one that named my folder, and it is the version
+that can be read by someone who is not me.
