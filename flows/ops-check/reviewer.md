@@ -1,6 +1,5 @@
 # reviewer
 
-
 - a retry that succeeded on the next line is not a finding. drop it.
 - a timeout inside a healthcheck is not a finding unless it repeats.
 - "connection refused" during a deploy window is not a finding.

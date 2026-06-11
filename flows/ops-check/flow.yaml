@@ -8,5 +8,12 @@ steps:
     prompt: reviewer.md
 schedule: daily
 max_calls: 8
+promises:
+  inputs: the log files from today
+  outputs: findings worst first, or nothing to report
+  invariants:
+    - never says something is fine
+    - nothing is reported that the logs do not contain
+    - every finding keeps the raw line
 timeout: 180
 retries: 2
