@@ -4,4 +4,11 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+promises:
+  inputs: a git log
+  outputs: notes a reader would care about, under added, changed and fixed
+  invariants:
+    - no commit hashes
+    - no author names
+    - at most 20 lines
 timeout: 240

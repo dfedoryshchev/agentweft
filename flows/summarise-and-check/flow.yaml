@@ -4,4 +4,10 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+promises:
+  inputs: a folder of .md files
+  outputs: a paragraph per file, then what was deleted and why
+  invariants:
+    - every claim points at a line in the source
+    - anything that could not be backed is listed under deleted
 timeout: 300
