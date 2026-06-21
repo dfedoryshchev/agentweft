@@ -16,6 +16,9 @@ promises:
   invariants:
     - every claim names a file
     - nothing is claimed about a file that was not read
+context:
+  command: ["audit-tool", "mcp"]
+  tool: hotspots
 max_calls: 26
 max_tokens: 250000
 timeout: 300

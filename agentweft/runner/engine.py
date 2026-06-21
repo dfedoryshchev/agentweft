@@ -10,6 +10,7 @@ from agentweft.roles import resolver
 from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
 from agentweft.guardrails import defaults, gates, promises
+from agentweft.mcp import context
 from agentweft.guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
@@ -258,6 +259,11 @@ def main():
             step = route.next(step, out)
             continue
         extra = ""
+        if step == "planner.md" and fm.get("context"):
+            text, why = context.risk_map(fm.get("context"))
+            if why:
+                print("no risk map: " + why)
+            extra = extra + context.as_prompt(text)
         if seen and step == "planner.md":
             extra = "\n\nthe last run was " + seen + \
                 ". only tell me what is different since then."
