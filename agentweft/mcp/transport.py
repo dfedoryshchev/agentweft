@@ -3,6 +3,22 @@ import json
 import sys
 
 
+def dumps(payload):
+    return json.dumps(payload) + "\n"
+
+
+def parse_lines(text):
+    out = []
+    for line in text.split("\n"):
+        if not line.strip():
+            continue
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue
+    return out
+
+
 def read(stream):
     line = stream.readline()
     if not line:
@@ -11,7 +27,7 @@ def read(stream):
 
 
 def write(stream, payload):
-    stream.write(json.dumps(payload) + "\n")
+    stream.write(dumps(payload))
     stream.flush()
 
 

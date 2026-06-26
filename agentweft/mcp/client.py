@@ -6,10 +6,11 @@ building serves a risk map over stdio, and a worker that is about to touch a
 file should probably know whether that file is the one everything depends on.
 
 no dependency. it is the same line delimited json the server speaks, pointed
-the other way.
+the other way, and now literally the same module.
 """
-import json
 import subprocess
+
+from . import transport
 
 
 class Client(object):
@@ -26,7 +27,7 @@ class Client(object):
         """one process, several messages, replies in order. servers are cheap
         to start and holding one open across a whole run is a thing to get
         wrong later, not now."""
-        payload = "".join(json.dumps(m) + chr(10) for m in messages)
+        payload = "".join(transport.dumps(m) for m in messages)
         try:
             r = subprocess.run(self.command, input=payload, capture_output=True,
                                text=True, timeout=self.timeout)
@@ -34,15 +35,7 @@ class Client(object):
             return [{"error": {"message": self.command[0] + " is not on PATH"}}]
         except subprocess.TimeoutExpired:
             return [{"error": {"message": "timed out"}}]
-        out = []
-        for line in (r.stdout or "").split(chr(10)):
-            if not line.strip():
-                continue
-            try:
-                out.append(json.loads(line))
-            except ValueError:
-                continue
-        return out
+        return transport.parse_lines(r.stdout or "")
 
     def handshake(self):
         return [{"jsonrpc": "2.0", "id": self._next_id(), "method": "initialize",
