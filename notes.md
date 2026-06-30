@@ -518,3 +518,23 @@ means anything to anyone else.
 so: the shapes stay, the specifics go. a planner that says "read the .md files
 in {INBOX}" is the same flow as one that named my folder, and it is the version
 that can be read by someone who is not me.
+
+## 2026-06-30
+
+june. it has a name and it is nearly readable by someone who is not me.
+
+the name took longer than the package move. everything under agentweft/, a
+pyproject, python -m agentweft. the specs are the warp and the agents are the
+weft, which is the only line in a year of this that i thought of once and did
+not rewrite.
+
+the client is the bit i did not expect to care about. i built the server so an
+agent could read the runs. the client is the other direction: the planner for
+repo-audit now asks the audit tool which files are risky before it decides what
+to read, so the plan comes out ordered by blast radius instead of by whatever
+it opened first. that is a better plan than i was writing by hand.
+
+evals score now. two cases, fixed inboxes, promises as the assertion, and a
+number at the end. i ran the digest cases against the prompt i had in january
+and the one i have now, and the january one scores better on one case. i have
+been improving it by feel for five months.
