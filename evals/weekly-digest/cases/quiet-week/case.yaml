@@ -1,3 +1,5 @@
 inbox: inbox
+provider:
+  provider: fake
 expect:
   invariants: all

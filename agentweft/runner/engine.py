@@ -210,6 +210,27 @@ def run_fanout(run, plan):
     return Handoff("worker", "\n\n".join(parts), meta={"tasks": len(tasks)})
 
 
+def run_once(flow):
+    """run a flow and hand back what it produced plus what it cost. the eval
+    harness wants the output, not the printing."""
+    fm = config(flow)
+    by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
+    run = Run(flow, fm, by_role)
+    route = router.Router(fm, cap=2)
+    out = EMPTY
+    step = steps(flow)[0]
+    while step:
+        if run.fan and step == run.fan + ".md":
+            out = run_fanout(run, out)
+            step = route.next(step, out)
+            continue
+        out = run.step(step, previous=out)
+        if not out:
+            break
+        step = route.next(step, out)
+    return out.output, run.budget
+
+
 def main():
     load_env()
     if "--flows" in sys.argv:
