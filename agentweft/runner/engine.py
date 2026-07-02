@@ -11,6 +11,8 @@ from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
 from agentweft.guardrails import defaults, gates, promises
 from agentweft.mcp import context
+
+NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
@@ -166,6 +168,9 @@ class Run(object):
         return 1
 
     def step(self, step, previous=EMPTY, extra=""):
+        import time as _t
+
+        began = _t.time()
         role = step[:-3]
         prompt = load_prompt(self.flow, step, self.by_role[role])
         if extra:
@@ -173,12 +178,14 @@ class Run(object):
         prompt = prompt + previous.as_prompt()
         text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step,
                             provider=self.by_step.get(step, self.provider))
+        used = self.by_step.get(step, self.provider)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
-            used = self.by_step.get(step, self.provider)
             self.budget.charge(prompt, text, provider=used.name)
-        return Handoff(role, text, verdict(text))
+        return Handoff(role, text, verdict(text),
+                       meta={"seconds": round(_t.time() - began, 1),
+                             "cached": cached, "provider": used.name})
 
 
 def run_steps(run, names, note=EMPTY):
@@ -261,6 +268,7 @@ def main():
     route = router.Router(fm, cap=2)
     started = datetime.datetime.now()
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
+    timings = []
     out = EMPTY
     todo = steps(flow)
     if pick_up:
@@ -292,6 +300,7 @@ def main():
         step_dir = Path("runs") / run_id
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
+        timings.append((step, out.meta.get("seconds", 0), out.meta.get("cached")))
 
         spent = run.budget.over()
         if spent:
@@ -381,6 +390,16 @@ def main():
         f.close()
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
+
+    trace = Path("runs") / run_id / "trace.md"
+    lines = ["# " + run_id, ""]
+    for name, secs, cached in timings:
+        lines.append("  " + name.ljust(16) + str(secs) + "s"
+                     + ("  (cached)" if cached else ""))
+    lines.append("")
+    lines.append("  total " + str(int((datetime.datetime.now() - started).total_seconds()))
+                 + "s, " + run.budget.summary())
+    trace.write_text(NEWLINE.join(lines) + NEWLINE, encoding="utf-8")
 
     if flow == "weekly-digest":
         for section in out.output.split("## "):
