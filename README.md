@@ -9,8 +9,12 @@ the specs are the warp, the agents are the weft.
 
 ## why
 
-i had a pile of prompts i was pasting into a terminal twice a week. this is
-what that turned into over about a year of running it on my own work.
+a flow that calls a model four times can go wrong in four places and tell you
+about none of them. what this is really for is the boring half: knowing what
+ran, what it produced at each step, what it cost, whether it kept its own
+promises, and being able to pick it up when it dies halfway.
+
+it started as a pile of prompts i was pasting into a terminal twice a week.
 
 ## five minutes
 
@@ -64,7 +68,8 @@ the examples run on a fake provider, so that works with no key and no setup.
   code in here.
 - **every run is written down.** one line per run, every step's output on disk,
   and a run that dies can be picked up where it fell over.
-- **nothing costs money without a cap.**
+- **nothing costs money without a cap.** a flow declares its own ceiling and
+  the run stops at it, mid flow, keeping what it has.
 
 ## docs
 
