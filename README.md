@@ -85,5 +85,16 @@ the examples run on a fake provider, so that works with no key and no setup.
 
 ## where it came from
 
-extracted and sanitized from a private system i have been running on my own
-work since 2025. the flows here are generic versions of ones that do real jobs.
+this is extracted and sanitized from a private system i have been running on my
+own work since 2025. the shapes are the same; the specifics are not. the flows
+here are generic versions of ones that do real jobs against folders and logs
+that are none of your business.
+
+it does not reimplement tools. it orchestrates agents that already have them -
+a cli, or anything speaking mcp - and governs what they are allowed to do:
+budgets, promises, gates, and a preflight that can refuse an edit inside a hot
+blast radius. that is the deliberate scope, not a gap.
+
+it is one person's tool that got useful. it is not a framework, it does not
+want to be, and if you need something with a plugin system you want a different
+project.
