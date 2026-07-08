@@ -19,6 +19,7 @@ for i, a in enumerate(sys.argv):
 
 runs = Counter()
 failed = Counter()
+resumed = Counter()
 seconds = Counter()
 
 for line in journal.read_text().split("\n"):
@@ -34,16 +35,21 @@ for line in journal.read_text().split("\n"):
     if only_failed and not parts[2].startswith("failed"):
         continue
     runs[name] += 1
+    if "resumed" in parts[2]:
+        resumed[name] += 1
     if parts[2].startswith("failed"):
         failed[name] += 1
     seconds[name] += int(parts[3].rstrip("s"))
 
 print("last 7 days")
 print("")
+# a resumed run writes its own line, so the count is runs-plus-resumes. showing
+# the resumes separately at least makes the number explainable.
 for name, n in runs.most_common():
     avg = seconds[name] // n
     print("  " + name + "  " + str(n) + " runs, " + str(failed[name])
-          + " failed, " + str(avg) + "s avg")
+          + " failed, " + str(avg) + "s avg"
+          + ("  (" + str(resumed[name]) + " of them resumes)" if resumed[name] else ""))
 
 print("")
 print("by week")
