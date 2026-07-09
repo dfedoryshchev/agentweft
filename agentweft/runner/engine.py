@@ -112,6 +112,18 @@ def items(text):
     return out
 
 
+def journal(flow_name, status, started, extra=""):
+    """the only place a journal line gets written. there were three, and the
+    failure one had drifted into a different column order."""
+    runs = Path("runs")
+    runs.mkdir(exist_ok=True)
+    secs = int((datetime.datetime.now() - started).total_seconds())
+    with open(runs / "journal.md", "a") as f:
+        f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + flow_name + "  "
+                + status + "  " + str(secs) + "s"
+                + ("  " + extra if extra else "") + NEWLINE)
+
+
 def write_index(line):
     index = Path("runs") / "index.md"
     index.parent.mkdir(exist_ok=True)
@@ -306,11 +318,7 @@ def main():
         if spent:
             print("stopping: " + spent)
             write_index("OVER  " + flow + "  " + spent)
-            f = open(Path("runs") / "journal.md", "a")
-            f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
-                    + "  over budget at " + step + "  "
-                    + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
-            f.close()
+            journal(fm["name"], "over budget at " + step, started)
             return
 
         checks = run.gates_for(step)
@@ -330,11 +338,8 @@ def main():
             # run carried on and wrote the output anyway.
             print("gate failed at " + step + ", stopping")
             write_index("GATE  " + flow + "  " + failed_gates[0].gate + " at " + step)
-            f = open(Path("runs") / "journal.md", "a")
-            f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
-                    + "  gate " + failed_gates[0].gate + " failed at " + step + "  "
-                    + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
-            f.close()
+            journal(fm["name"], "gate " + failed_gates[0].gate + " failed at " + step,
+                    started)
             return
 
         blocked = route.gate(step, out)
@@ -347,11 +352,7 @@ def main():
             runs = Path("runs")
             runs.mkdir(exist_ok=True)
             write_index("FAILED  " + flow + "  at " + step)
-            f = open(runs / "journal.md", "a")
-            f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + fm["name"]
-                    + "  failed at " + step + "  "
-                    + str(int((datetime.datetime.now() - started).total_seconds())) + "s\n")
-            f.close()
+            journal(fm["name"], "failed at " + step, started)
             return
 
         nxt = route.next(step, out)
@@ -376,8 +377,7 @@ def main():
     # code-review runs per diff, several times an hour. it drowns the weekly
     # rollup and none of it is interesting a day later.
     if fm.get("journal", True):
-        journal = Path("runs") / "journal.md"
-        f = open(journal, "a")
+        f = open(Path("runs") / "journal.md", "a")
         status = "ok"
         if pick_up:
             status = "ok (resumed)"
