@@ -46,7 +46,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
          "context")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
-              "gates", "provider")
+              "gates", "provider", "preflight")
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,

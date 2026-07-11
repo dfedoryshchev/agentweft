@@ -6,6 +6,9 @@ steps:
     prompt: worker.md
     fanout: true
     workers: 3
+    preflight:
+      mode: flag
+      threshold: 0.7
   - role: merge
     prompt: merge.md
   - role: reviewer

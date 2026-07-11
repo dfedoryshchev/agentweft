@@ -10,7 +10,7 @@ from agentweft.roles import resolver
 from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
 from agentweft.guardrails import defaults, gates, promises
-from agentweft.mcp import context
+from agentweft.mcp import context, preflight
 
 NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
@@ -167,6 +167,12 @@ class Run(object):
                 self.by_step[s.get("prompt", s["role"] + ".md")] = \
                     providers.build(s["provider"])
 
+    def preflight_for(self, step):
+        for s in self.fm.steps:
+            if s.get("prompt", s["role"] + ".md") == step:
+                return s.get("preflight")
+        return None
+
     def gates_for(self, step):
         for s in self.fm.steps:
             if s.get("prompt", s["role"] + ".md") == step:
@@ -281,6 +287,7 @@ def main():
     started = datetime.datetime.now()
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
     timings = []
+    risk_text = ""
     out = EMPTY
     todo = steps(flow)
     if pick_up:
@@ -301,10 +308,10 @@ def main():
             continue
         extra = ""
         if step == "planner.md" and fm.get("context"):
-            text, why = context.risk_map(fm.get("context"))
+            risk_text, why = context.risk_map(fm.get("context"))
             if why:
                 print("no risk map: " + why)
-            extra = extra + context.as_prompt(text)
+            extra = extra + context.as_prompt(risk_text)
         if seen and step == "planner.md":
             extra = "\n\nthe last run was " + seen + \
                 ". only tell me what is different since then."
@@ -341,6 +348,22 @@ def main():
             journal(fm["name"], "gate " + failed_gates[0].gate + " failed at " + step,
                     started)
             return
+
+        hot = []
+        if fm.get("context") and run.preflight_for(step):
+            hot = preflight.check(out.output, risk_text,
+                                  threshold=float(run.preflight_for(step).get(
+                                      "threshold", preflight.DEFAULT_THRESHOLD)))
+            if hot:
+                mode = run.preflight_for(step).get("mode", "flag")
+                print("preflight: " + str(len(hot)) + " hot file(s) in that step")
+                for path, score in hot:
+                    print("  " + path + "  " + str(score))
+                if mode == "refuse":
+                    journal(fm["name"], "refused at " + step + ", hot blast radius",
+                            started)
+                    write_index("REFUSED  " + flow + "  " + hot[0][0])
+                    return
 
         blocked = route.gate(step, out)
         if blocked:
