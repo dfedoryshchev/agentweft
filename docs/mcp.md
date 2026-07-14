@@ -48,6 +48,28 @@ carries on - a flow does not fail because a side channel is down.
 nothing in here knows which tool it is talking to. anything speaking the same
 protocol works.
 
+## preflight
+
+the risk map is advisory by default: it goes into the planner's prompt and the
+planner weights by it, mostly. a step can be made to check rather than trust:
+
+    steps:
+      - role: worker
+        prompt: worker.md
+        preflight:
+          mode: flag       # or refuse
+          threshold: 0.7
+
+before the run moves on, the files the step said it would touch are checked
+against the ranking. `flag` prints them and carries on. `refuse` stops the run
+and writes `refused at <step>, hot blast radius` to the journal.
+
+this is the part that is not a prompt. asking an agent to be careful about a
+hot file is a prompt. a number and a comparison is a control.
+
+it needs a `context:` block on the flow, because without a ranking there is
+nothing to check against, and with no ranking nothing is ever flagged.
+
 ## it is hand rolled
 
 about a hundred lines of dict handling over line delimited json. i have twice
