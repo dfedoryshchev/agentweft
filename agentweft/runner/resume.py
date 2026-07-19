@@ -24,6 +24,10 @@ def last_failure(flow_name):
 
 
 def step_output(run_id, step):
+    # the step files are written with encoding="utf-8" and were being read back
+    # with the platform default, which on this machine is cp1252. a digest with
+    # a single smart quote in it came back as a UnicodeDecodeError, and only
+    # ever on resume, which is the least convenient place to find out.
     p = Path("runs") / run_id / step
     return p.read_text(encoding="utf-8") if p.exists() else ""
 

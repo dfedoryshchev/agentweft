@@ -129,10 +129,11 @@ def write_index(line):
     index.parent.mkdir(exist_ok=True)
     lines = []
     if index.exists():
-        lines = [l for l in index.read_text().split("\n") if l.strip()]
+        lines = [l for l in index.read_text(encoding="utf-8").split("\n")
+                 if l.strip()]
     lines.append(line)
     lines.sort()
-    index.write_text("\n".join(lines) + "\n")
+    index.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def next_run_path(flow):
