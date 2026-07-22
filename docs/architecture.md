@@ -60,6 +60,21 @@ layer exists to prevent.
 `command` is the one that matters: it runs anything with a cli and looks at the
 exit code, so a check does not have to be code in here.
 
+## mcp, both ends
+
+`agentweft/mcp/` is the only part of this that talks to anything outside the
+process, and it does it in both directions over the same `transport.py`.
+
+`server.py` publishes what the flows did: the journal, the weekly rollup, gate
+results, and every recent run, plus a `run_flow` tool behind a short allowlist.
+`client.py` is the other direction - a flow asking something else what it
+knows. `context.py` turns that into planner prompt text; `preflight.py` turns
+it into a check with a threshold, which is the part that can stop a run.
+
+the split matters: context is advice a model can ignore, preflight is a number
+compared to a number. everything in here that is load bearing is the second
+kind.
+
 ## state and journal
 
 `runner/state.py` is one small json file per flow: what it last processed.
