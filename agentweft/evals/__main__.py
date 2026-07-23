@@ -25,6 +25,8 @@ def main():
         results.append((case["name"],
                         harness.score(spec, out, budget, time.time() - started)))
     print(harness.table(flow, results))
+    if "--no-save" not in sys.argv:
+        harness.save_scores(flow, results)
     return 0
 
 

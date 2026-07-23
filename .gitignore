@@ -4,3 +4,4 @@ __pycache__/
 runs/
 state.json
 state/
+evals/.last.json

@@ -67,6 +67,52 @@ def score(spec, output, budget=None, seconds=None):
             "seconds": int(seconds or 0)}
 
 
+LAST = ROOT / ".last.json"
+
+
+def save_scores(flow, results):
+    import json
+
+    ROOT.mkdir(exist_ok=True)
+    blob = {}
+    if LAST.exists():
+        blob = json.loads(LAST.read_text(encoding="utf-8"))
+    blob[flow] = {name: {"passed": r["passed"], "checked": r["checked"],
+                         "calls": r["calls"], "tokens": r["tokens"]}
+                  for name, r in results}
+    LAST.write_text(json.dumps(blob, indent=2), encoding="utf-8")
+
+
+def previous(flow):
+    import json
+
+    if not LAST.exists():
+        return {}
+    return json.loads(LAST.read_text(encoding="utf-8")).get(flow, {})
+
+
+def compare(flow, results):
+    """what got worse since the last scored run. this is the whole point - a
+    single score tells me nothing, a score against last time is a decision."""
+    was = previous(flow)
+    if not was:
+        return ["  (no previous run to compare against)"]
+    out = []
+    for name, r in results:
+        before = was.get(name)
+        if not before:
+            out.append("  " + name + "  new")
+            continue
+        d = r["passed"] - before["passed"]
+        dt = r["tokens"] - before["tokens"]
+        mark = "same" if d == 0 else ("BETTER +" + str(d) if d > 0 else "WORSE " + str(d))
+        out.append("  " + name.ljust(20) + mark
+                   + "  (" + str(before["passed"]) + "/" + str(before["checked"])
+                   + " -> " + str(r["passed"]) + "/" + str(r["checked"]) + ")"
+                   + ("  tokens " + ("+" if dt >= 0 else "") + str(dt) if dt else ""))
+    return out
+
+
 def table(flow, results):
     out = ["# " + flow, ""]
     total_p = total_c = 0
@@ -83,4 +129,7 @@ def table(flow, results):
                 out.append("      skip " + row["invariant"])
     out.append("")
     out.append("  total " + str(total_p) + "/" + str(total_c))
+    out.append("")
+    out.append("since the last scored run:")
+    out.extend(compare(flow, results))
     return chr(10).join(out)
