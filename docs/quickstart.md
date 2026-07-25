@@ -37,7 +37,7 @@ says whether each configured provider is usable, without spending anything.
 ## 5. run one for real
 
     mkdir inbox && echo "# a note" > inbox/note.md
-    INBOX=inbox python run.py weekly-digest --force
+    python run.py weekly-digest --force   # INBOX=./inbox is the default in .env.example
 
 then `python rollup.py` for what the week cost.
 
