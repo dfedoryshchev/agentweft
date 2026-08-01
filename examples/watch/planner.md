@@ -1,3 +1,4 @@
 # planner
 
-read the files in {LOGS}. say which are worth a close look, one line each.
+read the files in examples/_logs. say which are worth a close look, one line
+each.

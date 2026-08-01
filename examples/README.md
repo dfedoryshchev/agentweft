@@ -6,6 +6,10 @@ real.
 
     python run.py minimal --force --flows examples
 
+what they read is in here too: `_inbox/` and `_logs/`, a few files each. the
+real flows take their folders from the env, which a fresh clone has none of, so
+these name theirs instead. the underscore keeps them out of the flow list.
+
 ## what each one shows
 
 - **minimal** - one role, one step. the smallest thing that is still a flow,

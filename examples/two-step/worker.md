@@ -1,4 +1,4 @@
 # worker
 
-read the files in {INBOX}. list what is in each one, a line per file, naming
-the file.
+read the files in examples/_inbox. list what is in each one, a line per file,
+naming the file.

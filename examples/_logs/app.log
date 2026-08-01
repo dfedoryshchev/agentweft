@@ -1,0 +1,7 @@
+2026-07-30 09:14:02 INFO  importer started, 412 rows
+2026-07-30 09:14:09 WARN  row 118 is empty, skipped
+2026-07-30 09:14:11 ERROR importer failed: ValueError: no columns to parse
+2026-07-30 09:15:00 INFO  retry 1 of 3
+2026-07-30 09:15:04 ERROR importer failed: ValueError: no columns to parse
+2026-07-30 09:15:12 INFO  retry 2 of 3
+2026-07-30 09:20:41 INFO  importer finished, 0 rows written

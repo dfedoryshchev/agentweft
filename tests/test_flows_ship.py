@@ -42,6 +42,20 @@ def test_the_examples_parse_too():
         prompts.FLOW_ROOT[0] = "flows"
 
 
+def test_the_examples_read_folders_that_are_in_here():
+    # {INBOX} and friends are filled in from a .env, which a fresh clone does
+    # not have, so an example asking for one asks for the empty string
+    prompts.FLOW_ROOT[0] = "examples"
+    try:
+        for name in flows_in("examples"):
+            for step in runner.steps(name):
+                text = prompts.flow_path(name, step).read_text()
+                for key in prompts.ENV_KEYS:
+                    assert "{" + key + "}" not in text, (name, step, key)
+    finally:
+        prompts.FLOW_ROOT[0] = "flows"
+
+
 def test_the_examples_need_no_key():
     prompts.FLOW_ROOT[0] = "examples"
     try:
