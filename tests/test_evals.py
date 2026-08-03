@@ -16,6 +16,22 @@ def test_a_case_knows_where_its_inputs_are():
     assert case["inbox"].exists()
 
 
+def test_a_case_pins_its_provider():
+    case = harness.load_case(harness.cases_for("weekly-digest")[0])
+    assert case["provider"] == {"provider": "fake"}
+
+
+def test_the_case_provider_beats_the_flows():
+    """the whole point of an eval is that it is repeatable and free. the flow
+    it runs says cli, and on the merge step it says cli again."""
+    from agentweft.runner.engine import Run
+
+    spec = runner.config("weekly-digest")
+    run = Run("weekly-digest", spec, {}, provider={"provider": "fake"})
+    assert run.provider.name == "fake"
+    assert [p.name for p in run.by_step.values()] == ["fake"]
+
+
 def test_scoring_counts_only_what_can_be_checked():
     spec = runner.config("weekly-digest")
     good = ("## what changed" + chr(10) + "- a.md | changed | x" + chr(10)

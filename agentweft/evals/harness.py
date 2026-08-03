@@ -30,18 +30,24 @@ def load_case(path):
         cfg = yaml.safe_load(f.read_text()) or {}
     return {"name": path.name, "path": path,
             "inbox": path / cfg.get("inbox", "inbox"),
+            "provider": cfg.get("provider") or {},
             "expect": cfg.get("expect") or {}}
 
 
 def run_flow_for(flow, case):
-    """point the flow at the case's inputs and run it. -> (output, budget)."""
+    """point the flow at the case's inputs and run it. -> (output, budget).
+
+    the case says which provider, and it has to win: the cases have declared
+    `provider: fake` since the day they were written and nothing read it, so
+    every eval run was calling the flow's real provider and charging for it.
+    """
     from agentweft.runner import engine
 
     old = {k: os.environ.get(k) for k in ("INBOX", "LOGS", "WATCH")}
     for k in old:
         os.environ[k] = str(case["inbox"])
     try:
-        return engine.run_once(flow)
+        return engine.run_once(flow, provider=case.get("provider"))
     finally:
         for k, v in old.items():
             if v is None:

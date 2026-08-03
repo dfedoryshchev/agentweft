@@ -152,7 +152,7 @@ class Run(object):
     """everything a step needs, built once. fm and by_role were being threaded
     through five functions just so two of them could read a timeout."""
 
-    def __init__(self, flow, fm, by_role):
+    def __init__(self, flow, fm, by_role, provider=None):
         self.flow = flow
         self.fm = fm
         self.by_role = by_role
@@ -161,12 +161,15 @@ class Run(object):
         self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
         self.budget = Budget(*defaults.for_flow(fm))
-        self.provider = providers.build(fm.get("provider") or {})
+        # an override replaces the per-step ones too. half a run on the pinned
+        # provider and half on the flow's own is not a comparison of anything.
+        pinned = providers.build(provider) if provider else None
+        self.provider = pinned or providers.build(fm.get("provider") or {})
         self.by_step = {}
         for s in fm.steps:
             if s.get("provider"):
                 self.by_step[s.get("prompt", s["role"] + ".md")] = \
-                    providers.build(s["provider"])
+                    pinned or providers.build(s["provider"])
 
     def preflight_for(self, step):
         for s in self.fm.steps:
@@ -236,12 +239,13 @@ def run_fanout(run, plan):
     return Handoff("worker", "\n\n".join(parts), meta={"tasks": len(tasks)})
 
 
-def run_once(flow):
+def run_once(flow, provider=None):
     """run a flow and hand back what it produced plus what it cost. the eval
-    harness wants the output, not the printing."""
+    harness wants the output, not the printing, and it wants to say which
+    provider the whole thing runs on."""
     fm = config(flow)
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
-    run = Run(flow, fm, by_role)
+    run = Run(flow, fm, by_role, provider=provider)
     route = router.Router(fm, cap=2)
     out = EMPTY
     step = steps(flow)[0]
