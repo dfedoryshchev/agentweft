@@ -25,7 +25,18 @@ def cmd_list():
     return 0
 
 
+def need(n, usage):
+    """the args a command cannot run without. forgetting one used to print a
+    traceback at you, which reads like the tool broke rather than the call."""
+    if len(sys.argv) <= n:
+        print("usage: " + usage)
+        return False
+    return True
+
+
 def cmd_show():
+    if not need(2, "python run.py show <flow>"):
+        return 1
     name = sys.argv[2]
     spec = config(name)
     print(spec.name)
@@ -58,6 +69,9 @@ def cmd_step():
 
     debugging a prompt meant running the whole flow and paying for all of it.
     """
+    if not need(3, "python run.py step <flow> <role>"):
+        return 1
+
     import os
 
     from agentweft.roles import resolver
