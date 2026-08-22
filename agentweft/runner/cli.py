@@ -57,6 +57,7 @@ def cmd_help():
   python run.py spend            what the last runs cost
   python run.py provider         is each configured provider usable
   python run.py step <flow> <role>   one step, reading stdin, writing nothing
+  python run.py workflow          the phase list, and where it stops
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -92,6 +93,32 @@ def cmd_step():
         previous = sys.stdin.read()
     out = run.step(role + ".md", previous=Handoff("stdin", previous))
     print(out.output)
+    return 0
+
+
+def cmd_workflow():
+    """python run.py workflow - print the phase list i brought over.
+
+    it reads and it prints. nothing here runs a phase: the runner executes a
+    flow, and a phase is not a flow yet. this is so the file is at least
+    visible from the outside instead of being a diagram i remember.
+    """
+    from agentweft.orchestrate import workflow
+
+    wf = workflow.load()
+    print(wf.name + "  (lead: " + wf.lead + ")")
+    for phase in wf.phases:
+        seats = ", ".join(str(a) for a in phase.agents)
+        line = "  " + phase.name + "  [" + seats + "]"
+        if phase.loop > 1:
+            line += "  x" + str(phase.loop)
+        if phase.sequential:
+            line += "  one at a time"
+        print(line)
+        if phase.produces:
+            print("      -> " + phase.produces)
+        if phase.gate:
+            print("      STOPS, waits for " + phase.gate)
     return 0
 
 
@@ -143,5 +170,5 @@ def entrypoint():
 
 
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
-            "step": cmd_step, "provider": cmd_provider,
+            "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
             "--help": cmd_help, "-h": cmd_help}

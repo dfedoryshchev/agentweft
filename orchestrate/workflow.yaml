@@ -1,0 +1,63 @@
+# the workflow i run on my own product, brought over as it is.
+#
+# it is a phase list, a named agent per job, and two places where it stops and
+# waits for me. over there it lives as prose that the agents are told to read;
+# here it is at least a file that can be parsed. nothing enforces it yet.
+#
+# what is actually gone: the names. the product, the client, the hostnames, and
+# the model names - a tier means something to any provider, "opus" does not.
+#
+# what is NOT gone, and i am not going to pretend otherwise: the opinions. every
+# prompt in here still assumes an endpoint layer, a mapper, a real database
+# behind the integration tests, and a coverage number i picked for one codebase.
+# that is the next job, not this one.
+
+name: feature development
+
+# who runs the whole thing. not a phase, and not something you launch.
+lead: lead
+
+phases:
+  - name: research
+    agents: [doc-researcher, business-analyst, product-qa]
+    produces: a feature doc with requirements and scope boundaries in it
+
+  - name: planning
+    agents:
+      - {agent: code-reviewer, personality: refactor-advocate}
+      - {agent: code-reviewer, personality: minimalist}
+      - architect
+    produces: one plan, with the two reviewers' conflicts already resolved
+    gate: user
+
+  - name: feature doc
+    agents: [product-qa, architect, code-reviewer]
+    produces: the same doc, after three roles have been through it
+
+  - name: tests
+    agents: [test-qa, product-qa]
+    produces: every test the feature needs, all of them failing
+
+  - name: implementation
+    agents: [developer]
+    produces: the whole feature in one pass, not a half of it
+
+  - name: technical review
+    agents:
+      - requirements-qa
+      - {agent: code-reviewer, personality: refactor-advocate}
+      - {agent: code-reviewer, personality: minimalist}
+      - architect
+    produces: a technical report - approved, or a list of fixes
+    loop: 5
+
+  - name: product review
+    agents: [e2e-flows, e2e-consistency, product-qa]
+    produces: a product report, written against the running app
+    # they drive the same browser, so they cannot go at once
+    sequential: true
+
+  - name: delivery
+    agents: [doc-updater]
+    produces: docs brought up to date, and the change committed
+    gate: user
