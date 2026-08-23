@@ -82,6 +82,7 @@ the examples run on a fake provider, so that works with no key and no setup.
 - `docs/mcp.md` - reading the runs from an agent, and feeding a flow context
 - `docs/journal.md` - the journal, the rollup, and --resume
 - `docs/architecture.md` - what the code is doing
+- `docs/orchestrate.md` - the workflow layer, and why it is in here
 
 ## where it came from
 
