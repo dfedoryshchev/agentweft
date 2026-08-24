@@ -14,8 +14,9 @@ other one and two agents driving one tab is nobody's test.
 
 ## Before you start
 
-The app has to be running and the migrations applied. If it is not, stop and say
-so - do not report a broken journey that is really a broken environment.
+The app has to be running, and whatever setup it needs has to be done already.
+If it is not, stop and say so - do not report a broken journey that is really a
+broken environment.
 
 ## Your job
 

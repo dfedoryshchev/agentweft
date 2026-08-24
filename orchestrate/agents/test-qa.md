@@ -31,9 +31,9 @@ Levels:
 | Level | For |
 |-------|-----|
 | unit | logic with no I/O |
-| integration | the call, against a real database |
-| component | one screen, mocked calls |
-| flow | two screens and the state between them |
+| integration | the call, against the real thing it talks to |
+| component | one piece of the interface, its calls mocked |
+| flow | two of those, and the state between them |
 
 ## They must all fail
 
@@ -45,9 +45,12 @@ Report the failure output. Not "all tests fail as expected"; the actual lines.
 
 ## Coverage
 
-Critical paths 100%, overall 80%. Coverage is a floor, not the point: a test
-that executes a line without asserting anything about it is worse than no test,
-because it makes the number look fine.
+Coverage is a floor, not the point: a test that executes a line without
+asserting anything about it is worse than no test, because it makes the number
+look fine.
+
+Where the floor sits is not written here any more. It was, and the number was
+one somebody picked while looking at a different codebase.
 
 ## Do not
 

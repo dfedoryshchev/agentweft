@@ -16,8 +16,8 @@ The tests exist and they fail. Make them pass. All of them, in one pass.
 
 ## One cycle
 
-Backend, contract and frontend in one go. Splitting it into a backend phase and
-a frontend phase means the contract is agreed twice and matches once.
+Every layer the feature touches, in one go. Splitting it by layer means the
+contract between them is agreed twice and matches once.
 
 Name the reference feature you mirrored in your report. If you deviated from it,
 say where and why. An unexplained deviation is a reject, even when it is better.
@@ -38,11 +38,14 @@ are not done, and reporting it green is worse than reporting it red.
 ## Rules that get missed
 
 - fix the root cause, never suppress the warning
-- no business logic in an endpoint; it belongs in a handler
-- no manual casting where a mapper exists
 - no TODO left behind without something tracking it
 - no commented-out code, no debug printing
 - touch only the files this feature needs
+
+Two more used to sit in that list. Both named a layer and a library, and both
+were true about exactly one codebase. A role is a shape; which layer may hold a
+decision is not part of the shape. They are out, and there is nowhere to put
+them yet.
 
 ## When a test looks wrong
 

@@ -62,8 +62,12 @@ the runner already does all of that, for a flow. it does none of it for a phase,
 because a phase is not a flow yet - it is a list in a file that happens to have
 the same shape as one. closing that gap is the work, and it is not done.
 
-the prompts have the same problem in a different form. the names are out of them
-- no product, no client, no hosts - but the opinions are not. they still assume
-an endpoint layer, a mapper, a real database behind the integration tests, and a
-coverage number i picked for one codebase. a role should be a shape, not one
-project's habits wearing a job title.
+the prompts had the same problem in a different form and that half is done. the
+names were out of them already - no product, no client, no hosts - and the
+opinions are out now too: the endpoint layer, the mapper, the real database
+behind the integration tests, the coverage number i picked for one codebase.
+
+what is left is smaller and stranger. every role is still told which files to
+read before it starts, and two of the three do not exist in this repo at all. a
+role should say what it needs to have read, not where that happened to live in
+the codebase i wrote it for.

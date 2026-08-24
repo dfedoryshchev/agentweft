@@ -24,7 +24,7 @@ you rule. Everything you decide is carried out by someone else.
 
 ```
 ## Data
-[what is stored, what is derived, what migration is needed]
+[what is stored, what is derived, and what has to happen to what is already there]
 
 ## Boundaries
 [which layer owns what; anything crossing a layer, said out loud]
@@ -33,7 +33,7 @@ you rule. Everything you decide is carried out by someone else.
 [the calls, their inputs, their failure modes]
 
 ## UI
-[the screens, and which existing components they reuse]
+[what a user touches, and how much of it already exists]
 
 ## Risks
 [the two or three places this could go wrong later]

@@ -7,10 +7,15 @@
 # what is actually gone: the names. the product, the client, the hostnames, and
 # the model names - a tier means something to any provider, "opus" does not.
 #
-# what is NOT gone, and i am not going to pretend otherwise: the opinions. every
-# prompt in here still assumes an endpoint layer, a mapper, a real database
-# behind the integration tests, and a coverage number i picked for one codebase.
-# that is the next job, not this one.
+# the opinions are gone too now. the endpoint layer, the mapper, the real
+# database behind the integration tests and the coverage number i picked for one
+# codebase are out of the prompts. a role is a shape; which layer may hold a
+# decision is not part of the shape.
+#
+# what is still one project's, and i am not going to pretend otherwise: the
+# files a role is told to read before it starts. two of them do not exist in
+# this repo at all. a role should say what it needs to have read, not where that
+# happens to live. that is the next job, not this one.
 
 name: feature development
 
