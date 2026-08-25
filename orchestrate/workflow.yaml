@@ -26,6 +26,8 @@ phases:
   - name: research
     agents: [doc-researcher, business-analyst, product-qa]
     produces: a feature doc with requirements and scope boundaries in it
+    entry: a request, in the words the person asking used
+    exit: nothing in the requirements is still a question waiting on an answer
 
   - name: planning
     agents:
@@ -33,19 +35,27 @@ phases:
       - {agent: code-reviewer, personality: minimalist}
       - architect
     produces: one plan, with the two reviewers' conflicts already resolved
+    entry: the feature doc exists and its scope boundary is agreed
+    exit: every disagreement between the two reviewers has a ruling
     gate: user
 
   - name: feature doc
     agents: [product-qa, architect, code-reviewer]
     produces: the same doc, after three roles have been through it
+    entry: the plan came back approved from the gate
+    exit: each of the three left it changed, or said why it did not
 
   - name: tests
     agents: [test-qa, product-qa]
     produces: every test the feature needs, all of them failing
+    entry: the acceptance section of the doc is final
+    exit: every acceptance line has a test, and every new test fails
 
   - name: implementation
     agents: [developer]
     produces: the whole feature in one pass, not a half of it
+    entry: the suite is red, and red for the missing feature
+    exit: lint, build and test all pass, and their real output is in the report
 
   - name: technical review
     agents:
@@ -54,15 +64,21 @@ phases:
       - {agent: code-reviewer, personality: minimalist}
       - architect
     produces: a technical report - approved, or a list of fixes
+    entry: the suite is green
+    exit: the loop closed on approved, or it ran five times and became mine
     loop: 5
 
   - name: product review
     agents: [e2e-flows, e2e-consistency, product-qa]
     produces: a product report, written against the running app
+    entry: the app is running, with whatever setup it needs done
+    exit: every journey in the doc walked, each one pass or fail
     # they drive the same browser, so they cannot go at once
     sequential: true
 
   - name: delivery
     agents: [doc-updater]
     produces: docs brought up to date, and the change committed
+    entry: both reviews came back approved
+    exit: nothing in the docs still describes the old behaviour
     gate: user

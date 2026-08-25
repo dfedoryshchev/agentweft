@@ -115,8 +115,12 @@ def cmd_workflow():
         if phase.sequential:
             line += "  one at a time"
         print(line)
+        if phase.entry:
+            print("      in:  " + phase.entry)
         if phase.produces:
-            print("      -> " + phase.produces)
+            print("      ->   " + phase.produces)
+        if phase.exit:
+            print("      out: " + phase.exit)
         if phase.gate:
             print("      STOPS, waits for " + phase.gate)
     return 0

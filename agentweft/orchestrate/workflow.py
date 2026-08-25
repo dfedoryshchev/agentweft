@@ -44,13 +44,26 @@ class Agent(object):
 
 
 class Phase(object):
-    __slots__ = ("name", "agents", "produces", "gate", "loop", "sequential", "raw")
+    __slots__ = ("name", "agents", "produces", "entry", "exit", "gate", "loop",
+                 "sequential", "raw")
 
     def __init__(self, raw):
         self.raw = raw
         self.name = raw["name"]
         self.agents = [Agent(a) for a in raw.get("agents") or []]
         self.produces = raw.get("produces", "")
+        # what has to be true to start, and what has to be true to be done.
+        # `produces` is the artifact; these two are the conditions around it,
+        # which is a different question - a phase can produce its doc and still
+        # not be finished with it.
+        #
+        # NOTHING CHECKS EITHER OF THESE. they are prose, and prose is the weak
+        # kind of criterion: it only binds an agent that reads it and agrees.
+        # writing them down is still worth it, because over there they were not
+        # written down at all - the entry condition was me looking at the thing
+        # and deciding it was ready.
+        self.entry = raw.get("entry", "")
+        self.exit = raw.get("exit", "")
         # who it stops for. "user" is the only answer so far and it is the whole
         # reason the thing is usable: full autonomy between two known points.
         self.gate = raw.get("gate", "")
@@ -85,6 +98,14 @@ class Workflow(object):
             if p.name == name:
                 return p
         raise KeyError(name)
+
+    def uncriteried(self):
+        """phases missing an entry or an exit condition.
+
+        not an error and not raised anywhere. it is here so the gap is
+        countable instead of being something you notice by reading.
+        """
+        return [p for p in self.phases if not p.entry or not p.exit]
 
 
 def load(path=None):

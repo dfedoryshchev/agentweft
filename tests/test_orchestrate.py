@@ -56,3 +56,22 @@ def test_a_phase_that_does_not_loop_reads_as_one_pass():
     wf = workflow.load()
     assert wf.phase("implementation").loop == 1
     assert wf.phase("technical review").loop == 5
+
+
+def test_every_phase_says_what_it_needs_and_what_done_looks_like():
+    wf = workflow.load()
+    assert wf.uncriteried() == [], [p.name for p in wf.uncriteried()]
+
+
+def test_entry_and_exit_are_not_the_same_thing_as_produces():
+    tests = workflow.load().phase("tests")
+    assert tests.produces == "every test the feature needs, all of them failing"
+    assert tests.entry == "the acceptance section of the doc is final"
+    assert tests.exit == "every acceptance line has a test, and every new test fails"
+
+
+def test_a_phase_with_no_criteria_reads_as_empty_not_as_an_error():
+    bare = workflow.Phase({"name": "x"})
+    assert bare.entry == ""
+    assert bare.exit == ""
+    assert workflow.Workflow({"phases": [{"name": "x"}]}).uncriteried()[0].name == "x"
