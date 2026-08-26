@@ -58,6 +58,7 @@ def cmd_help():
   python run.py provider         is each configured provider usable
   python run.py step <flow> <role>   one step, reading stdin, writing nothing
   python run.py workflow          the phase list, and where it stops
+  python run.py vocab             flow words against phase words, counted
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -126,6 +127,20 @@ def cmd_workflow():
     return 0
 
 
+def cmd_vocab():
+    """python run.py vocab - the flow vocabulary against the phase one.
+
+    the docs say a phase is a flow. this prints the arithmetic behind that:
+    what both sides have a name for, what only one of them does, and the two
+    words that mean different things depending on which file you are in.
+    """
+    from agentweft.orchestrate import compare
+
+    for line in compare.report():
+        print(line)
+    return 0
+
+
 def cmd_provider():
     """is everything configured actually usable, without spending anything."""
     from agentweft import providers
@@ -175,4 +190,4 @@ def entrypoint():
 
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
-            "--help": cmd_help, "-h": cmd_help}
+            "vocab": cmd_vocab, "--help": cmd_help, "-h": cmd_help}

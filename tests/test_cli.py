@@ -29,3 +29,10 @@ def test_step_without_a_role_says_so(capsys):
 def test_show_still_works_with_a_flow(capsys):
     assert run(["run.py", "show", "weekly-digest"]) == 0
     assert "weekly digest" in capsys.readouterr().out
+
+
+def test_vocab_prints_the_two_vocabularies(capsys):
+    assert run(["run.py", "vocab"]) == 0
+    out = capsys.readouterr().out
+    assert "one idea, two names" in out
+    assert "step.gates" in out and "phase.gate" in out

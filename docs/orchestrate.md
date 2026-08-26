@@ -52,6 +52,50 @@ out which one is the part worth doing in public.
 - **`sequential`** is for phases whose agents cannot run at once, because they
   share something outside the process.
 
+## how much alike, exactly
+
+"a phase is a flow" is a claim i made by reading two files and noticing they
+looked the same. this counts it instead:
+
+    python run.py vocab
+
+it lines the two vocabularies up: every key a flow file may use against every
+key the workflow file actually uses, which of them are one idea under two
+names, which exist on one side only, and which words are spelled the same on
+both sides while meaning different things. then the same questions asked of the
+files in this repo - how many units, how many named jobs, how many conditions
+are written down, and how many of those anything checks.
+
+two things fell out of it that i had not seen by reading.
+
+**the vocabularies are not asked the same way.** the flow loader publishes the
+keys it accepts and complains about the rest, so its vocabulary is a fact about
+the code. the workflow loader takes whatever is in the file and says nothing,
+so the only way to find out what a phase may say is to go and read one. that is
+why `phase_vocabulary()` reads the file and `flow_vocabulary()` does not.
+
+**`gate` means two opposite things.** on a step it is a program that fails the
+run. on a phase it is a person the run waits for. one of them is a check and
+the other is a stop, and they are the same five letters in two files i keep
+open at once.
+
+the counts are the argument, not the prose:
+
+    conditions in prose         19 invariants     16 entry and exit lines
+    of those, something checks  3 of 19           none of 16
+    something executes it       20 of 20 steps    0 of 8 phases
+
+`unmapped()` is the part that keeps it honest. every key on both sides has to
+be placed in the map, a test fails while one is not, so a key added to either
+file stays visible until someone says what the other side calls it.
+
+which side gives: 8 ideas have a name on both sides, 17 exist only as a flow
+key and 5 only as a phase key, and nearly everything flow-only is machinery
+while nearly everything phase-only is a word. a word moves in an afternoon and
+a runner does not, so i expect the phase file to be the one that gives. that is
+an expectation. nothing has decided it, and until something does both files
+stay as they are.
+
 ## what it does not do yet
 
 nothing here enforces anything. it reads `orchestrate/workflow.yaml` and tells
