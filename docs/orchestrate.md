@@ -79,6 +79,12 @@ run. on a phase it is a person the run waits for. one of them is a check and
 the other is a stop, and they are the same five letters in two files i keep
 open at once.
 
+the second of those is the one word that has since moved. a step can now say
+`pause: user`, and the runner stops there, writes a handoff and waits to be
+told to carry on - `docs/journal.md` has the shape of it. it is spelled
+`pause` and not `gate` because `gate` on a step was already taken by the
+program, and one file using one word for two opposite things is enough.
+
 the counts are the argument, not the prose:
 
     conditions in prose         19 invariants     16 entry and exit lines
@@ -89,18 +95,27 @@ the counts are the argument, not the prose:
 be placed in the map, a test fails while one is not, so a key added to either
 file stays visible until someone says what the other side calls it.
 
-which side gives: 8 ideas have a name on both sides, 17 exist only as a flow
-key and 5 only as a phase key, and nearly everything flow-only is machinery
+which side gives: 9 ideas have a name on both sides, 17 exist only as a flow
+key and 4 only as a phase key, and nearly everything flow-only is machinery
 while nearly everything phase-only is a word. a word moves in an afternoon and
-a runner does not, so i expect the phase file to be the one that gives. that is
-an expectation. nothing has decided it, and until something does both files
-stay as they are.
+a runner does not, so i expect the phase file to be the one that gives.
+
+that is still an expectation, but it now has one data point under it. the stop
+that waits for a person was a phase-only word when this was first counted; it
+is a pair now, because the flow side grew `pause` and the runner does the
+parking. it took an afternoon, which is what the expectation said it would.
+one word is not a decision, and both files still say what they said.
 
 ## what it does not do yet
 
 nothing here enforces anything. it reads `orchestrate/workflow.yaml` and tells
-you what it says. no phase is executed, no gate parks a run, no budget is
-charged, and no entry or exit criterion is checked.
+you what it says. no phase is executed, no phase's gate parks anything, no
+budget is charged, and no entry or exit criterion is checked.
+
+the parking is worth being exact about, because it is the one thing that has
+crossed. a run parks now, and nothing in this file makes it happen: a step says
+`pause` and the runner reads it. `gate: user` in `workflow.yaml` is still prose
+that nothing reads. what moved was the idea, not the file.
 
 the runner already does all of that, for a flow. it does none of it for a phase,
 because a phase is not a flow yet - it is a list in a file that happens to have

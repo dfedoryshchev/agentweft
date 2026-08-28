@@ -62,7 +62,9 @@ def cmd_help():
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
---resume  pick up the last failed run of that flow where it died""")
+--resume  pick up the last run of that flow that did not finish. one that died
+          starts again at the step that died; one that parked for a person
+          carries on at the step after it""")
     return 0
 
 

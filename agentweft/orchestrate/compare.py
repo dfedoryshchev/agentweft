@@ -13,10 +13,14 @@ changes that - it is the thing that says how big the job is.
 what the count says so far, and it is an expectation and not a decision: the
 flow side is nearly all machinery and the phase side is nearly all vocabulary.
 the words the phase side has that the flow side does not - a group of jobs with
-a name, a stop that waits for a person, the same prompt twice with a fixed
-position - are afternoons of work. the machinery is not. so i expect the phase
-file to be the one that gives. nothing here has decided that, and until
-something does, both files stay exactly as they are.
+a name, the same prompt twice with a fixed position - are afternoons of work.
+the machinery is not. so i expect the phase file to be the one that gives.
+
+one word has gone that way since, and it is the first evidence either way: the
+stop that waits for a person is a flow key now, `pause`, and the runner parks
+on it. it took an afternoon, as expected. nothing here decided that and nothing
+here did it; this file only stopped being able to say the flow side has no word
+for stopping on purpose.
 """
 import textwrap
 
@@ -73,6 +77,12 @@ MAP = (
     Pair("step.on_redo", "phase.loop",
          "going round again. the flow names who to go back to and the router "
          "counts the trips; the phase names a number and nothing counts."),
+    Pair("step.pause", "phase.gate",
+         "where it stops on purpose and waits for a person. the phase side had "
+         "the word first and nothing read it; the flow side does it - the "
+         "runner writes a handoff and returns, and --resume carries on past "
+         "the step it parked on. two words for it because `gate` on a step was "
+         "already taken by a program."),
 
     # only the flow has a word for it
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
@@ -113,9 +123,6 @@ MAP = (
          "a named group of jobs. a flow has nothing between the flow and the "
          "step, so the group IS the flow."),
     Pair("", "phase.agents", "the jobs in the group. on the flow side those are steps."),
-    Pair("", "phase.gate",
-         "where it parks and waits for a person. the flow side can stop, but "
-         "only by failing; it has no word for stopping on purpose."),
     Pair("", "agent.personality",
          "the same prompt twice from a fixed position. a flow wanting that "
          "needs a second prompt file."),
@@ -347,6 +354,8 @@ def report(wf=None):
         "is a mechanism while almost everything on the phase-only side is a "
         "word. a word can be moved in an afternoon and a runner cannot, so i "
         "expect the phase file to be the one that gives. that is an "
-        "expectation. nothing here has decided it, and nothing here has done "
-        "it.", indent=2))
+        "expectation. nothing here has decided it. one word has moved that way "
+        "since - the stop that waits for a person, which the flow side now "
+        "spells `pause` - and it took an afternoon, which is one data point "
+        "and not a decision.", indent=2))
     return out

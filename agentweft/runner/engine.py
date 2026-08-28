@@ -11,6 +11,7 @@ from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
 from agentweft.guardrails import defaults, gates, promises
 from agentweft.mcp import context, preflight
+from agentweft.orchestrate import park
 
 NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
@@ -136,6 +137,21 @@ def write_index(line):
     index.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def resume_command(flow, run_id):
+    """the line a person types to carry on after a park.
+
+    it goes in the handoff, so it has to work as printed: the switches this run
+    was started with come along, or the command in front of them is one they
+    have to debug before they can use it.
+    """
+    out = ["python run.py", flow, "--resume", run_id]
+    if "--force" in sys.argv:
+        out.append("--force")
+    if "--flows" in sys.argv:
+        out = out + ["--flows", sys.argv[sys.argv.index("--flows") + 1]]
+    return " ".join(out)
+
+
 def next_run_path(flow):
     runs = Path("runs")
     runs.mkdir(exist_ok=True)
@@ -175,6 +191,13 @@ class Run(object):
         for s in self.fm.steps:
             if s.get("prompt", s["role"] + ".md") == step:
                 return s.get("preflight")
+        return None
+
+    def pause_for(self, step):
+        """who the run waits for once this step is done, if anyone."""
+        for s in self.fm.steps:
+            if s.get("prompt", s["role"] + ".md") == step:
+                return s.get("pause")
         return None
 
     def gates_for(self, step):
@@ -296,9 +319,16 @@ def main():
     out = EMPTY
     todo = steps(flow)
     if pick_up:
-        failed = resume.last_failure(fm["name"])
-        if failed:
-            todo = resume.remaining(todo, failed[0])
+        stopped = resume.last_stop(fm["name"])
+        if stopped:
+            # a step that died produced nothing, so it runs again. a step that
+            # parked produced its output and passed its checks, so the thing
+            # that was missing was the person, and the run carries on past it.
+            todo = (resume.after(todo, stopped.step) if stopped.parked
+                    else resume.remaining(todo, stopped.step))
+            if not todo:
+                print("nothing left after " + stopped.step + " in " + pick_up)
+                return
             before = steps(flow)[:len(steps(flow)) - len(todo)]
             if before:
                 out = Handoff(before[-1][:-3], resume.step_output(pick_up, before[-1]))
@@ -384,8 +414,24 @@ def main():
             return
 
         nxt = route.next(step, out)
+        waiting = run.pause_for(step)
         if out.verdict == "redo" and nxt:
             print("sent back to " + nxt)
+        elif waiting and nxt:
+            # parking is a person letting the work through, so there has to be
+            # work to let through: never on the last step, which has nothing
+            # behind it to hold up. a redo takes the branch above instead - the
+            # work is going round again, so there is nothing to let through
+            # yet.
+            note = park.write(run_id, fm["name"], step, waiting,
+                              [(name, secs) for name, secs, _ in timings],
+                              resume.after(steps(flow), step),
+                              resume_command(flow, run_id))
+            print("parked at " + step + ", waiting for " + waiting)
+            print("it needs you: " + str(note))
+            write_index("PARKED  " + flow + "  at " + step)
+            journal(fm["name"], "parked at " + step, started, run_id)
+            return
         step = nxt
 
     broken = promises.failures(out.output, fm.promises.invariants)

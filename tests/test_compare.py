@@ -52,9 +52,11 @@ def test_the_map_places_each_term_on_the_side_that_owns_it():
 
 
 def test_the_sides_are_not_the_same_size():
-    assert len(compare.pairs()) == 8
+    # phase.gate left the phase-only column when the flow side grew a word for
+    # stopping on purpose. the counts are the argument, so they move with it.
+    assert len(compare.pairs()) == 9
     assert len(compare.flow_only()) == 17
-    assert len(compare.phase_only()) == 5
+    assert len(compare.phase_only()) == 4
 
 
 def test_two_words_mean_different_things_depending_on_the_file():
