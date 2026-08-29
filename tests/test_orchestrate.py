@@ -75,3 +75,58 @@ def test_a_phase_with_no_criteria_reads_as_empty_not_as_an_error():
     assert bare.entry == ""
     assert bare.exit == ""
     assert workflow.Workflow({"phases": [{"name": "x"}]}).uncriteried()[0].name == "x"
+
+
+def named(raw):
+    """the agent name out of either node shape, without parsing it."""
+    return raw["agent"] if isinstance(raw, dict) else raw
+
+
+def test_a_phase_keeps_its_agents_in_the_order_the_file_gives_them():
+    wf = workflow.load()
+    for phase in wf.phases:
+        assert [a.name for a in phase.agents] == \
+            [named(a) for a in phase.raw.get("agents") or []], phase.name
+
+
+def test_the_seats_in_a_review_read_in_the_order_the_file_seats_them():
+    seats = workflow.load().phase("technical review").agents
+    assert [str(a) for a in seats] == [
+        "requirements-qa",
+        "code-reviewer (refactor-advocate)",
+        "code-reviewer (minimalist)",
+        "architect",
+    ]
+
+
+def test_a_mapping_and_a_plain_string_share_one_order():
+    """planning writes two seats as mappings and the third as a bare string.
+
+    a seat's place is where it is in the file, not which of the two shapes it
+    was written in.
+    """
+    planning = workflow.load().phase("planning")
+    assert [isinstance(a, dict) for a in planning.raw["agents"]] == \
+        [True, True, False]
+    assert [str(a) for a in planning.agents] == [
+        "code-reviewer (refactor-advocate)",
+        "code-reviewer (minimalist)",
+        "architect",
+    ]
+
+
+def test_the_distinct_agents_are_in_first_seen_order_not_sorted():
+    names = workflow.load().agents()
+    assert names[:5] == ["doc-researcher", "business-analyst", "product-qa",
+                         "code-reviewer", "architect"]
+    assert names != sorted(names)
+
+
+def test_an_agent_asked_for_twice_keeps_the_place_the_first_phase_gave_it():
+    # product-qa is in four phases and stays where research put it
+    assert workflow.load().agents().index("product-qa") == 2
+    wf = workflow.Workflow({"phases": [
+        {"name": "one", "agents": ["b", "a"]},
+        {"name": "two", "agents": ["a", "c"]},
+    ]})
+    assert wf.agents() == ["b", "a", "c"]
