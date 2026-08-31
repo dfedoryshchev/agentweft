@@ -538,3 +538,69 @@ evals score now. two cases, fixed inboxes, promises as the assertion, and a
 number at the end. i ran the digest cases against the prompt i had in january
 and the one i have now, and the january one scores better on one case. i have
 been improving it by feel for five months.
+
+## 2026-08-31
+
+august. i now have two of everything.
+
+no july entry. july happened - the readme rewrite, step timings in the run
+record, the preflight thing that flags an edit inside a hot blast radius - i
+just did not write any of it down.
+
+the first days of august were tidying. the examples run clean from a fresh
+clone, and two fixes. one was a missing argument printing a traceback at you,
+which reads like the tool broke rather than the call. the other was worse:
+every eval case has said `provider: fake` since the day i wrote them, nothing
+ever read it, and so every eval run went to the flow's real provider and
+charged me for it. the file said one thing and the run did another. that is
+twice this year after the timeout in may, and neither one ever failed while
+doing it.
+
+the rest of the month was one thing. i brought the workflow layer i run on my
+own product into this repo. it is not a runner: eight phases, a named agent
+per job, twenty seats across eleven distinct agents, and two points where the
+whole thing stops and waits for me. over there it lives as prose the agents
+are told to read. here it is at least a file that parses.
+
+what it collided with is the vocabulary that was already in here. this repo
+has flows, steps, roles and gates. that file has phases, agents, personalities
+and gates. a phase is an ordered list of named jobs that produces something
+and gets checked, which is what i have been calling a flow since last may. so
+there are now two words for the ordered list, two for the named job, two
+loaders for two file formats that are both a list of steps with roles, and one
+word, `gate`, meaning a program that fails the run on one side and a person
+the run waits for on the other. those are not two names for one idea, they are
+opposites, in two files i keep open at once.
+
+so i counted it instead of asserting it. nine ideas have a name on both sides,
+seventeen exist only as a flow key and four only as a phase key. sixteen entry
+and exit conditions are written down on the phase side and nothing checks any
+of them, which is still better than over there, where the entry condition was
+me looking at the thing and deciding it was ready. and the row i cannot argue
+with: twenty of twenty steps get executed by something, none of the eight
+phases do.
+
+that is the honest split. what is real is that the phase file parses, that the
+prompts no longer carry one codebase's opinions - the endpoint layer, the
+mapper, the database behind the integration tests, a coverage number i picked
+while looking at something else - and that the distance between the two halves
+is a number now instead of an impression. the rest of that side only parses.
+
+one word has moved. a step can say `pause: user`, and the runner stops there,
+writes a handoff a person can act on, and resume carries on after that step
+rather than at it, because nothing failed. the phase file has had that word
+since it came over and still nothing reads it. moving it took an afternoon,
+which is what i said a word would cost. one word is a data point, not a
+decision.
+
+the decision is the part that is unresolved. a phase is a flow, so i should
+not have both, and i have not worked out which one gives. the flow-only keys
+are machinery and the phase-only keys are words, and a word moves in an
+afternoon while a runner does not, so i expect the phase file to be the one
+that goes.
+
+the thing i did not expect to find: two reviewers arguing from fixed positions
+is the same trick i wrote down here in july last year, and i have built it
+twice without noticing, once as roles that argue and once as one agent named
+twice with a personality each. two of everything is a cost everywhere else
+this month. that one is not.
