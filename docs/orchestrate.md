@@ -20,9 +20,15 @@ prompt, that produces something and gets checked. that is one shape with two
 names, kept in two places, and the only honest difference between them was that
 one of them could actually run.
 
-publishing them separately would have meant maintaining the same idea twice
-while calling it two ideas. folding it in means one of them has to give. working
-out which one is the part worth doing in public.
+so a phase loads as a flow now. the file's words are translated into flow words,
+the flow loader validates what comes out, and what you get back is a `FlowSpec`
+like any other. a seat is a step, `entry` and `exit` and `produces` are the
+three promises, and `gate: user` is a `pause` on the last step. the repo used to
+hold two loaders, two validators and two object models for one shape; it holds
+one of each now, and this file was the argument for doing it.
+
+that is a change of representation and nothing else. no phase ran before and
+none runs now.
 
 ## the shape
 
@@ -79,7 +85,7 @@ run. on a phase it is a person the run waits for. one of them is a check and
 the other is a stop, and they are the same five letters in two files i keep
 open at once.
 
-the second of those is the one word that has since moved. a step can now say
+the second of those is the one word that moved first. a step can say
 `pause: user`, and the runner stops there, writes a handoff and waits to be
 told to carry on - `docs/journal.md` has the shape of it. it is spelled
 `pause` and not `gate` because `gate` on a step was already taken by the
@@ -87,24 +93,58 @@ program, and one file using one word for two opposite things is enough.
 
 the counts are the argument, not the prose:
 
+    loaded as                   7 flow specs      8 flow specs, translated
     conditions in prose         19 invariants     16 entry and exit lines
     of those, something checks  3 of 19           none of 16
     something executes it       20 of 20 steps    0 of 8 phases
 
+the bottom two rows did not move when the merge landed, and that is the best
+evidence it was a merge and not a rewrite. an exit line is an invariant now and
+still nothing checks it: the checker knows three shapes and no exit line in the
+file is any of them, so one vocabulary bought a shared word and not a check.
+
 `unmapped()` is the part that keeps it honest. every key on both sides has to
 be placed in the map, a test fails while one is not, so a key added to either
-file stays visible until someone says what the other side calls it.
+file stays visible until someone says what the other side calls it. the map is
+now held against the loader's own translation table by a second test, so it
+cannot quietly describe a merge that is not the one happening.
 
-which side gives: 9 ideas have a name on both sides, 17 exist only as a flow
-key and 4 only as a phase key, and nearly everything flow-only is machinery
-while nearly everything phase-only is a word. a word moves in an afternoon and
-a runner does not, so i expect the phase file to be the one that gives.
+## which side gave
 
-that is still an expectation, but it now has one data point under it. the stop
-that waits for a person was a phase-only word when this was first counted; it
-is a pair now, because the flow side grew `pause` and the runner does the
-parking. it took an afternoon, which is what the expectation said it would.
-one word is not a decision, and both files still say what they said.
+7 ideas have a name on both sides, 19 exist only as a flow key and 6 only as a
+phase key. i expected the phase file to give, on the grounds that its words
+were words and the flow side's were machinery, and a word moves in an
+afternoon. the words that could move have: `name` and `agents` are pairs now
+because a phase is a flow spec, and `pause` went the same way earlier.
+
+what is left will not go that way. five things the file says have no flow word
+at all:
+
+- **several different roles at the same time.** `fanout` is one role in many
+  copies, which is the other kind of many. `sequential` is the only mark the
+  phase file makes, and it marks the exception.
+- **`lead`**, the prompt that runs the whole thing and does not implement. a
+  flow's lead is the runner, which is code.
+- **`personality`**, the same prompt twice from a fixed position. a step
+  carries a role, not a stance.
+- **`loop`**, the number of times round. a flow names who a verdict sends the
+  work back to, and the engine hands the router the number of trips itself.
+- **an ordered list of flows, and its name.** a flow spec says nothing about
+  what runs after it.
+
+every one of those would be a new key on the loader the runner actually uses,
+read by nothing. that is the flow side giving, not the phase file, and a runner
+does not move in an afternoon. the expectation was wrong in the interesting
+direction, and the count is what showed it.
+
+two of the nine pairs did not survive either. `loop` and `sequential` looked
+like pairs while both sides were only being described; a translation has to
+pick a word, and for those two there was none to pick.
+
+the file keeps its own words, and it should. its header is a running account of
+what was and was not taken out of it on the way over, and rewriting it into
+flow vocabulary would throw away the evidence that what came over came over
+whole. whether it stays a dialect for good is not settled here.
 
 ## what it does not do yet
 
@@ -113,13 +153,15 @@ you what it says. no phase is executed, no phase's gate parks anything, no
 budget is charged, and no entry or exit criterion is checked.
 
 the parking is worth being exact about, because it is the one thing that has
-crossed. a run parks now, and nothing in this file makes it happen: a step says
-`pause` and the runner reads it. `gate: user` in `workflow.yaml` is still prose
-that nothing reads. what moved was the idea, not the file.
+crossed. a run parks now: a step says `pause` and the runner reads it. a
+phase's `gate: user` becomes that same word on the last step of the spec the
+phase loads as - and it still parks nothing, because nothing hands that spec to
+the runner. the translation is real. the run is not.
 
-the runner already does all of that, for a flow. it does none of it for a phase,
-because a phase is not a flow yet - it is a list in a file that happens to have
-the same shape as one. closing that gap is the work, and it is not done.
+what is missing is not a shape any more. a phase is a flow spec; what it has
+not got is anything that runs it. that is a smaller gap than the one this
+section used to describe, and a different kind of one - it was a modelling
+problem and it is a wiring problem now. it is still not done.
 
 the prompts had the same problem in a different form and that half is done. the
 names were out of them already - no product, no client, no hosts - and the

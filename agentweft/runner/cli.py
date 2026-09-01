@@ -102,9 +102,10 @@ def cmd_step():
 def cmd_workflow():
     """python run.py workflow - print the phase list i brought over.
 
-    it reads and it prints. nothing here runs a phase: the runner executes a
-    flow, and a phase is not a flow yet. this is so the file is at least
-    visible from the outside instead of being a diagram i remember.
+    it reads and it prints. a phase loads as a flow spec now, and that changed
+    nothing about running one: the runner executes a flow it is asked for, and
+    nothing asks it for these. this is so the file is at least visible from the
+    outside instead of being a diagram i remember.
     """
     from agentweft.orchestrate import workflow
 
@@ -133,8 +134,9 @@ def cmd_vocab():
     """python run.py vocab - the flow vocabulary against the phase one.
 
     the docs say a phase is a flow. this prints the arithmetic behind that:
-    what both sides have a name for, what only one of them does, and the two
-    words that mean different things depending on which file you are in.
+    what both sides have a name for, what only one of them does, the two words
+    that mean different things depending on which file you are in, and what
+    the merge could not carry across.
     """
     from agentweft.orchestrate import compare
 

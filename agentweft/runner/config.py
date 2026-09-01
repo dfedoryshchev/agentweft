@@ -1,35 +1,12 @@
 import datetime
 
-import yaml
-
-from agentweft.flow import spec
+from agentweft.flow import reader, spec
 
 from .prompts import flow_path
 
 
-class OrderedLoader(yaml.SafeLoader):
-    pass
-
-
-def _no_dupes(loader, node, deep=False):
-    # safe_load quietly keeps the LAST of two identical keys, so a flow.yaml
-    # with two "steps:" blocks loses the first one and the run order changes
-    # under you with nothing in the output to say why
-    seen = {}
-    for k, v in node.value:
-        key = loader.construct_object(k, deep=deep)
-        if key in seen:
-            raise yaml.YAMLError("duplicate key in flow.yaml: " + str(key))
-        seen[key] = loader.construct_object(v, deep=deep)
-    return seen
-
-
-OrderedLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dupes)
-
-
 def config(flow):
-    raw = yaml.load(flow_path(flow, "flow.yaml").read_text(), OrderedLoader)
-    return spec.load(raw)
+    return spec.load(reader.read(flow_path(flow, "flow.yaml").read_text()))
 
 
 def fanout_step(flow):

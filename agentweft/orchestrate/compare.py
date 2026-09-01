@@ -6,21 +6,20 @@ until someone asks how much alike. this counts it: every key each side accepts,
 which of them are one idea under two names, which exist on one side only, and
 which words are spelled the same on both sides while meaning different things.
 
-it compares and it prints. it merges nothing. the runner still runs a flow and
-still does not know what a phase is, and this module is not the thing that
-changes that - it is the thing that says how big the job is.
+it was only an argument when i wrote it. the merge has happened in the code
+since - a phase is translated into flow words and loaded by the flow loader -
+so MAP is now held against `workflow.TRANSLATION` and `workflow.RESIDUE` by a
+test, and the table has to keep agreeing with what the loader really does.
 
-what the count says so far, and it is an expectation and not a decision: the
-flow side is nearly all machinery and the phase side is nearly all vocabulary.
-the words the phase side has that the flow side does not - a group of jobs with
-a name, the same prompt twice with a fixed position - are afternoons of work.
-the machinery is not. so i expect the phase file to be the one that gives.
+doing it took two entries out of the shared column. `loop` and `sequential`
+read like pairs while both sides were only being described; a translation has
+to pick a word, and for those two there was none to pick.
 
-one word has gone that way since, and it is the first evidence either way: the
-stop that waits for a person is a flow key now, `pause`, and the runner parks
-on it. it took an afternoon, as expected. nothing here decided that and nothing
-here did it; this file only stopped being able to say the flow side has no word
-for stopping on purpose.
+what is left over is the finding, and it is the reverse of what this file used
+to predict. the words the phase side has and the flow side does not are not
+afternoons of work any more. taking them would mean four or five new keys on
+the loader the runner actually uses, none of which anything would read. that
+is the flow side giving, not the phase side.
 """
 import textwrap
 
@@ -52,12 +51,13 @@ class Pair(object):
 # key added to either side stays visible until someone says what the other side
 # calls it - which is the question this whole file exists to keep asking.
 MAP = (
-    Pair("flow.name", "workflow.name",
-         "the whole thing's name, and the only word that means the same on "
-         "both sides."),
-    Pair("flow.steps", "workflow.phases",
-         "the ordered list. one of them is walked by the runner, the other is "
-         "walked by me reading it."),
+    Pair("flow.name", "phase.name",
+         "what the unit is called. these paired up when a phase became a flow "
+         "spec: the name that used to belong to the group now names the flow "
+         "the group turned into."),
+    Pair("flow.steps", "phase.agents",
+         "the ordered list of jobs. it was the loader that made this a pair - "
+         "the seats in a phase ARE the steps in the spec it loads as."),
     Pair("step.role", "agent.agent",
          "the named job. a step has exactly one; a phase holds a list of them."),
     Pair("promises.outputs", "phase.produces",
@@ -69,14 +69,9 @@ MAP = (
          "a condition that has to hold first, which is the stronger of the two "
          "and the one nothing reads."),
     Pair("promises.invariants", "phase.exit",
-         "what has to be true about the result. three shapes of invariant have "
-         "a checker; an exit line has none."),
-    Pair("step.workers", "phase.sequential",
-         "the same axis from opposite ends. a step that fans out says how many "
-         "at once; a phase says only that it cannot."),
-    Pair("step.on_redo", "phase.loop",
-         "going round again. the flow names who to go back to and the router "
-         "counts the trips; the phase names a number and nothing counts."),
+         "what has to be true about the result. an exit line is an invariant "
+         "now and it is still not checked: the checker knows three shapes and "
+         "no exit line in the file is any of them."),
     Pair("step.pause", "phase.gate",
          "where it stops on purpose and waits for a person. the phase side had "
          "the word first and nothing read it; the flow side does it - the "
@@ -85,6 +80,16 @@ MAP = (
          "already taken by a program."),
 
     # only the flow has a word for it
+    Pair("step.workers", "",
+         "how many at once. it read as `sequential`'s pair until the merge "
+         "asked which flow word a phase becomes: a step that fans out says how "
+         "many copies of ONE role run together, and a phase means several "
+         "different ones."),
+    Pair("step.on_redo", "",
+         "going round again. it read as `loop`'s pair for the same reason and "
+         "broke the same way - a flow names who a verdict sends the work back "
+         "to, and the engine hands the router the number of trips, so there is "
+         "nowhere for a phase's count to go."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),
@@ -115,14 +120,22 @@ MAP = (
     Pair("step.provider", "", "who answers this one step."),
     Pair("step.preflight", "", "what to do when a step touches a risky file."),
 
-    # only the phase has a word for it
+    # only the phase has a word for it. these are RESIDUE, which is what the
+    # merge could not carry, and a test holds the two lists together.
     Pair("", "workflow.lead",
          "the one that runs the whole thing and does not implement. the flow's "
          "lead is the runner, which is code and not a prompt."),
-    Pair("", "phase.name",
-         "a named group of jobs. a flow has nothing between the flow and the "
-         "step, so the group IS the flow."),
-    Pair("", "phase.agents", "the jobs in the group. on the flow side those are steps."),
+    Pair("", "workflow.phases",
+         "an ordered list of flows. a flow spec says nothing about what runs "
+         "after it, so the sequence the phases sit in has no flow word."),
+    Pair("", "workflow.name",
+         "what that sequence is called. `flow.name` names one phase now, and "
+         "there is nothing left to name the whole."),
+    Pair("", "phase.loop",
+         "how many times round before it is a person's problem."),
+    Pair("", "phase.sequential",
+         "the mark that a phase's agents cannot work at the same time, which "
+         "is the only place the file says they usually do."),
     Pair("", "agent.personality",
          "the same prompt twice from a fixed position. a flow wanting that "
          "needs a second prompt file."),
@@ -143,23 +156,12 @@ def flow_vocabulary():
 def phase_vocabulary(wf=None):
     """every key the workflow file actually uses.
 
-    the asymmetry starts here and it is worth saying out loud. the flow loader
-    publishes what it accepts and complains about anything else, so the flow
-    vocabulary can be read off the code. the workflow loader takes whatever is
-    in the file and says nothing, so the only way to ask what a phase may say
-    is to go and read one.
+    it is `workflow.terms()` and nothing else. the loader has to know which
+    words the file uses in order to translate them, so it is the one that
+    knows; asking it beats keeping a second walk over the same file here,
+    which is the mistake this whole module is about.
     """
-    wf = wf or workflow.load()
-    out = ["workflow." + k for k in wf.raw]
-    for phase in wf.phases:
-        for key in phase.raw:
-            if "phase." + key not in out:
-                out.append("phase." + key)
-        for agent in phase.agents:
-            for key in agent.raw:
-                if "agent." + key not in out:
-                    out.append("agent." + key)
-    return out
+    return workflow.terms(wf)
 
 
 def unmapped(wf=None):
@@ -272,6 +274,9 @@ def census(wf=None):
                   if [k for k in p.raw if k in ("max_calls", "max_tokens", "timeout")]]
 
     return [
+        Row("loaded as",
+            str(len(specs)) + " flow specs",
+            str(len(wf.phases)) + " flow specs, translated"),
         Row("ordered units",
             str(len(steps)) + " steps in " + str(len(specs)) + " flows",
             str(len(wf.phases)) + " phases"),
@@ -308,7 +313,14 @@ def _wrapped(text, indent=6):
 
 
 def _beside(term, note):
-    """the term, then its note in the column to the right of it."""
+    """the term, then its note in the column to the right of it.
+
+    a term too wide for the column takes a line of its own. two of the things
+    the merge could not carry are named by a pair of keys, and running the
+    note straight on from the second one reads as one long word.
+    """
+    if len(term) >= 22:
+        return "  " + term + "\n" + _wrapped(note, indent=24)
     return textwrap.fill(note, width=78, initial_indent="  " + term.ljust(22),
                          subsequent_indent=" " * 24)
 
@@ -341,21 +353,27 @@ def report(wf=None):
                    + ", ".join(right))
 
     out.append("")
+    out.append("what the merge could not carry  (" + str(len(workflow.RESIDUE)) + ")")
+    for miss in workflow.RESIDUE:
+        out.append(_beside(", ".join(miss.terms), miss.why))
+
+    out.append("")
     out.append("what is in the repo")
     for row in census(wf):
         out.append("  " + row.label.ljust(28) + row.flow.ljust(34) + row.phase)
 
     out.append("")
-    out.append("which side gives")
+    out.append("which side gave")
     out.append(_wrapped(
-        str(len(both)) + " ideas have a name on both sides. " + str(len(one))
+        str(len(both)) + " ideas have a name on both sides, " + str(len(one))
         + " exist only as a flow key and " + str(len(other))
-        + " only as a phase key, and almost everything on the flow-only side "
-        "is a mechanism while almost everything on the phase-only side is a "
-        "word. a word can be moved in an afternoon and a runner cannot, so i "
-        "expect the phase file to be the one that gives. that is an "
-        "expectation. nothing here has decided it. one word has moved that way "
-        "since - the stop that waits for a person, which the flow side now "
-        "spells `pause` - and it took an afternoon, which is one data point "
-        "and not a decision.", indent=2))
+        + " only as a phase key. the merge has happened in the code and it "
+        "answered this question the other way round from the way it was asked: "
+        "the phase words that could become flow words have, and every one "
+        "still in the list above would cost the FLOW side a new key that "
+        "nothing reads. that is the runner giving, not the file, and a runner "
+        "does not move in an afternoon. two of the pairs did not survive being "
+        "translated at all. the file keeps its own words, and it should - its "
+        "header is the record of what was and was not taken out of it on the "
+        "way over here.", indent=2))
     return out

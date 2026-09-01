@@ -52,11 +52,13 @@ def test_the_map_places_each_term_on_the_side_that_owns_it():
 
 
 def test_the_sides_are_not_the_same_size():
-    # phase.gate left the phase-only column when the flow side grew a word for
-    # stopping on purpose. the counts are the argument, so they move with it.
-    assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 17
-    assert len(compare.phase_only()) == 4
+    # the counts are the argument, so they move with it. the merge moved them
+    # twice: `name` and `agents` became pairs when a phase started loading as
+    # a flow spec, and `loop` and `sequential` stopped being pairs, because a
+    # translation has to pick a flow word and for those two there is none.
+    assert len(compare.pairs()) == 7
+    assert len(compare.flow_only()) == 19
+    assert len(compare.phase_only()) == 6
 
 
 def test_two_words_mean_different_things_depending_on_the_file():
@@ -65,7 +67,10 @@ def test_two_words_mean_different_things_depending_on_the_file():
     # a step's gates are a program that fails the run; a phase's gate is a
     # person it waits for. same word, and only one of them checks anything.
     assert found["gate"] == (["step.gates"], ["phase.gate"])
-    assert found["name"] == (["flow.name"], ["workflow.name", "phase.name"])
+    # `flow.name` is a phase's name now. what it stopped being is the name of
+    # the whole sequence, which is why workflow.name is on the other side of
+    # this collision instead of being the pair it used to be.
+    assert found["name"] == (["flow.name"], ["phase.name", "workflow.name"])
 
 
 def test_one_word_used_by_both_sides_for_one_idea_is_agreement_not_collision():
@@ -102,9 +107,36 @@ def test_the_census_says_which_side_runs():
     assert rows["checks that are programs"].phase == "none"
 
 
-def test_the_report_names_the_problem_without_solving_it():
+def test_the_report_says_what_the_merge_carried_and_what_it_did_not():
     text = "\n".join(compare.report())
     assert "one idea, two names" in text
     assert "the same word for two things" in text
-    assert "which side gives" in text
-    assert "nothing here has decided it" in text
+    assert "which side gave" in text
+    # the report has to keep naming the price, not just the result
+    assert "what the merge could not carry" in text
+    for miss in workflow.RESIDUE:
+        for term in miss.terms:
+            assert term in text, term
+
+
+def test_the_table_says_what_the_loader_does():
+    """MAP was prose beside the loader; now the loader is the thing it maps.
+
+    every translated word is a pair here, and every word the translation left
+    behind is on the phase-only side of it. the two lists cannot drift apart
+    without this failing.
+    """
+    pairs = dict((p.phase, p.flow) for p in compare.MAP)
+    for phase_term, flow_term in workflow.TRANSLATION:
+        assert pairs.get(phase_term) == flow_term, phase_term
+    for miss in workflow.RESIDUE:
+        for term in miss.terms:
+            assert term in pairs, term
+            assert pairs[term] == "", term
+
+
+def test_the_census_says_both_sides_load_as_the_same_thing():
+    rows = by_label(compare.census())
+    wf = workflow.load()
+    assert rows["loaded as"].phase == str(len(wf.phases)) + " flow specs, translated"
+    assert rows["loaded as"].flow.endswith("flow specs")

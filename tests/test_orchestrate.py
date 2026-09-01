@@ -1,6 +1,10 @@
 import sys
 
+import pytest
+import yaml
+
 sys.path.insert(0, ".")
+from agentweft.flow import spec
 from agentweft.orchestrate import workflow
 
 
@@ -130,3 +134,98 @@ def test_an_agent_asked_for_twice_keeps_the_place_the_first_phase_gave_it():
         {"name": "two", "agents": ["a", "c"]},
     ]})
     assert wf.agents() == ["b", "a", "c"]
+
+
+def test_a_phase_is_a_flow_spec():
+    """the whole row. every phase goes through the flow loader and passes it."""
+    for phase in workflow.load().phases:
+        assert isinstance(phase.spec, spec.FlowSpec), phase.name
+        assert spec.check(workflow.as_flow(phase.raw)) == [], phase.name
+
+
+def test_the_seats_are_the_steps():
+    for phase in workflow.load().phases:
+        assert [s["role"] for s in phase.spec.steps] == \
+            [a.name for a in phase.agents], phase.name
+
+
+def test_a_phase_that_stops_pauses_on_its_last_step():
+    """`gate: user` is a flow word now, and the word is `pause`.
+
+    it goes on the last step because a phase stops after its jobs are done,
+    and it is not spelled `gate` there because `gate` on a step is a program.
+    """
+    for name in ("planning", "delivery"):
+        steps = workflow.load().phase(name).spec.steps
+        assert steps[-1]["pause"] == "user", name
+        assert [s for s in steps[:-1] if s.get("pause")] == [], name
+
+
+def test_a_phase_that_does_not_stop_has_no_pause_anywhere():
+    for phase in workflow.load().phases:
+        if not phase.gate:
+            assert [s for s in phase.spec.steps if s.get("pause")] == [], phase.name
+
+
+def test_the_criteria_are_promises_now():
+    tests = workflow.load().phase("tests")
+    assert tests.spec.promises.inputs == tests.entry
+    assert tests.spec.promises.outputs == tests.produces
+    assert tests.spec.promises.invariants == [tests.exit]
+
+
+def test_an_exit_line_became_an_invariant_and_is_still_not_checked():
+    """the merge made them one vocabulary. it did not make them checkable.
+
+    the checker knows three shapes and no exit line in the file is any of
+    them, so this says none of them can be checked rather than pretending the
+    translation bought something it did not.
+    """
+    from agentweft.guardrails import promises
+
+    lines = [p.exit for p in workflow.load().phases if p.exit]
+    assert len(lines) == 8
+    assert [ok for _, ok, _ in promises.check("", lines)] == [None] * 8
+
+
+def test_the_stance_does_not_reach_the_step():
+    planning = workflow.load().phase("planning")
+    assert [a.personality for a in planning.agents] == \
+        ["refactor-advocate", "minimalist", ""]
+    assert [sorted(s) for s in planning.spec.steps] == \
+        [["role"], ["role"], ["pause", "role"]]
+
+
+def test_nothing_in_the_file_arrives_unplaced():
+    assert workflow.unplaced() == []
+
+
+def test_a_new_phase_key_is_unplaced_until_it_is_translated_or_named():
+    wf = workflow.Workflow({"name": "x", "lead": "lead",
+                            "phases": [{"name": "p", "cadence": "weekly"}]})
+    assert workflow.unplaced(wf) == ["phase.cadence"]
+
+
+def test_what_did_not_translate_is_named_and_says_why():
+    words = workflow.terms()
+    translated = [phase for phase, _ in workflow.TRANSLATION]
+    for miss in workflow.RESIDUE:
+        assert miss.why.strip()
+        for term in miss.terms:
+            assert term in words, term
+            assert term not in translated, term
+
+
+def test_the_same_reader_refuses_a_duplicate_key(tmp_path):
+    """safe_load keeps the LAST of two identical keys and says nothing.
+
+    the flow file has been read by a loader that refuses them for months;
+    this one was read by safe_load until both files started sharing a reader,
+    so a phase with two `agents:` blocks quietly lost one of them.
+    """
+    path = tmp_path / "workflow.yaml"
+    path.write_text("name: x\nlead: lead\nphases:\n  - name: p\n"
+                    "    agents: [a]\n    agents: [b]\n", encoding="utf-8")
+    assert yaml.safe_load(path.read_text())["phases"][0]["agents"] == ["b"]
+    with pytest.raises(yaml.YAMLError):
+        workflow.load(path)
