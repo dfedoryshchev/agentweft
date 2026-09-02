@@ -125,8 +125,9 @@ at all:
   phase file makes, and it marks the exception.
 - **`lead`**, the prompt that runs the whole thing and does not implement. a
   flow's lead is the runner, which is code.
-- **`personality`**, the same prompt twice from a fixed position. a step
-  carries a role, not a stance.
+- **`personality`**, the same prompt twice from a fixed position. the second
+  prompt file has a home now that a role's words are a library, but a step
+  still names a role and nothing names a stance.
 - **`loop`**, the number of times round. a flow names who a verdict sends the
   work back to, and the engine hands the router the number of trips itself.
 - **an ordered list of flows, and its name.** a flow spec says nothing about

@@ -7,5 +7,3 @@ here is a test and a patch. check the order was kept:
 
 then the same for: the test fails on the unpatched code, and the patch is the
 smallest thing that turns it green.
-
-do not improve the patch. do not restate it.

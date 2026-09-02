@@ -6,8 +6,3 @@
 - anything counted wrong, fix the count
 - if two findings are the same thing, merge them
 - if you drop everything, print "nothing to report"
-
-start your reply with one line, exactly one of:
-
-    VERDICT: ok
-    VERDICT: redo

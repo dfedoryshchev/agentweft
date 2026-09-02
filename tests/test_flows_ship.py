@@ -18,10 +18,16 @@ def test_every_shipped_flow_parses():
         assert spec.steps
 
 
-def test_every_step_has_a_prompt_file_that_exists():
+def test_every_step_resolves_to_a_prompt():
+    """from the flow's own file, or from the role library, or both.
+
+    it used to be a file-exists check on the flow folder. a role the library
+    writes for does not need a file there any more, so what has to hold is
+    that the step ends up with something to send.
+    """
     for name in flows_in("flows"):
         for step in runner.steps(name):
-            assert prompts.flow_path(name, step).exists(), (name, step)
+            assert prompts.read(name, step).strip(), (name, step)
 
 
 def test_every_flow_declares_what_it_promises():
@@ -37,7 +43,7 @@ def test_the_examples_parse_too():
             spec = runner.config(name)
             assert spec.steps
             for step in runner.steps(name):
-                assert prompts.flow_path(name, step).exists(), (name, step)
+                assert prompts.read(name, step).strip(), (name, step)
     finally:
         prompts.FLOW_ROOT[0] = "flows"
 

@@ -29,11 +29,14 @@ the examples run on a fake provider, so that works with no key and no setup.
 
     flows/weekly-digest/
       flow.yaml       the spec: steps, promises, limits
-      planner.md      one file per role
+      planner.md      what this flow asks of the role
       worker.md
       merge.md
       reviewer.md
       instructions.md rules for this flow only
+
+what a role IS lives once, in `roles/library/`, and is appended to whichever
+flow uses it. a flow with nothing to add to a role does not need a file for it.
 
     name: weekly digest
     steps:

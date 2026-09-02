@@ -4,6 +4,10 @@ copy `flows/_template` and rename it. that is most of it.
 
     cp -r flows/_template flows/my-flow
 
+it is three files, not six. `planner`, `reviewer` and `verify` come from
+`roles/library/`, so a flow only writes a role file when it has something to
+say that the role does not already say everywhere else.
+
 ## 1. say what it is for, in one line
 
 put it at the top of `instructions.md`. if you cannot write that line the flow
@@ -19,8 +23,13 @@ the middle of the input and never recovers.
 ## 3. keep the shared rules out
 
 do not put "markdown only" in your role prompts. it is already in
-`fragments/`. only put rules in `instructions.md` that are true for this flow
-and not for the others.
+`fragments/`. do not write the verdict block into your reviewer either; that
+is in `roles/library/reviewer.md` and it gets appended for you. only put rules
+in `instructions.md` that are true for this flow and not for the others.
+
+a test fails if a flow prompt repeats a line the library already says, which
+is there because i pasted that block into five files before writing this
+sentence.
 
 ## 4. give the reviewer something to disagree with
 

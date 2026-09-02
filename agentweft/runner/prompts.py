@@ -16,10 +16,25 @@ def substitute(text):
 
 
 def read(flow, name):
-    f = open(flow_path(flow, name))
-    text = f.read()
-    f.close()
-    return text
+    """this flow's words for the role, then the library's words for the role.
+
+    the flow goes first because it says what the material is, and the library
+    last because it says how to answer - which is where every flow had already
+    put it by hand. a flow with nothing of its own to add needs no file at
+    all, which is the point: the role is the library's, the flow only differs.
+    """
+    from agentweft.roles import resolver
+
+    own = flow_path(flow, name)
+    shared = resolver.role_prompt(name)
+    if not own.exists():
+        if not shared:
+            raise FileNotFoundError(str(own))
+        return shared
+    text = own.read_text(encoding="utf-8")
+    if not shared:
+        return text
+    return text.rstrip("\n") + "\n\n" + shared
 
 FLOW_ROOT = ["flows"]
 ENV_KEYS = ("INBOX", "LOGS", "WATCH")

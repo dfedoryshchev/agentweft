@@ -81,9 +81,10 @@ RESIDUE = (
             "hands the router the number of trips itself, so the count in the "
             "file has nowhere to land."),
     Missing(("agent.personality",),
-            "the same prompt twice from a fixed position. a step carries a "
-            "role, not a stance, and a flow that wanted two stances would "
-            "need two prompt files."),
+            "the same prompt twice from a fixed position. the second prompt "
+            "file has somewhere to live now that a role's words are a library "
+            "rather than a copy per flow; what is still missing is the word. "
+            "a step names a role, and nothing in a flow file names a stance."),
     Missing(("workflow.lead",),
             "the prompt that runs the whole thing and does not implement. a "
             "flow's lead is the runner, which is code, so there is nothing "

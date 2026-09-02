@@ -137,8 +137,9 @@ MAP = (
          "the mark that a phase's agents cannot work at the same time, which "
          "is the only place the file says they usually do."),
     Pair("", "agent.personality",
-         "the same prompt twice from a fixed position. a flow wanting that "
-         "needs a second prompt file."),
+         "the same prompt twice from a fixed position. the second prompt file "
+         "has a home now that roles have a library; the flow side still has "
+         "no word for which stance a step takes."),
 )
 
 

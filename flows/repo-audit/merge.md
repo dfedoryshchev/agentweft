@@ -6,5 +6,3 @@ here are notes on several files. stitch them into one picture.
 - the pieces, one line each
 - where the risk is: files doing two jobs, files everything depends on, files
   nobody would notice breaking
-
-do not add anything that is not in the notes.
