@@ -69,6 +69,9 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - **gates are programs, not prompts.** a regex either matched or it did not.
   the `command` gate runs anything with a cli, so a check does not have to be
   code in here.
+- **a step says which class of model, not which one.** `model: high` on the
+  reviewer and `mid` on the planner. the ids live in the environment, because a
+  version string in a file is right for about a quarter.
 - **every run is written down.** one line per run, every step's output on disk,
   and a run that dies can be picked up where it fell over.
 - **nothing costs money without a cap.** a flow declares its own ceiling and

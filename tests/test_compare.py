@@ -56,9 +56,14 @@ def test_the_sides_are_not_the_same_size():
     # twice: `name` and `agents` became pairs when a phase started loading as
     # a flow spec, and `loop` and `sequential` stopped being pairs, because a
     # translation has to pick a flow word and for those two there is none.
-    assert len(compare.pairs()) == 7
+    #
+    # the tier moved them a third time, and in both columns at once. `model`
+    # became the eighth pair, and reading it meant opening the agent files,
+    # which is where the two words that pushed the phase-only side from 6 to 8
+    # had been sitting all along.
+    assert len(compare.pairs()) == 8
     assert len(compare.flow_only()) == 19
-    assert len(compare.phase_only()) == 6
+    assert len(compare.phase_only()) == 8
 
 
 def test_two_words_mean_different_things_depending_on_the_file():
@@ -69,8 +74,11 @@ def test_two_words_mean_different_things_depending_on_the_file():
     assert found["gate"] == (["step.gates"], ["phase.gate"])
     # `flow.name` is a phase's name now. what it stopped being is the name of
     # the whole sequence, which is why workflow.name is on the other side of
-    # this collision instead of being the pair it used to be.
-    assert found["name"] == (["flow.name"], ["phase.name", "workflow.name"])
+    # this collision instead of being the pair it used to be. `agent.name` is
+    # the third: a file saying which role it is for, where the flow side's
+    # answer is the file's own name and there is no key at all.
+    assert found["name"] == (["flow.name"],
+                             ["phase.name", "workflow.name", "agent.name"])
 
 
 def test_one_word_used_by_both_sides_for_one_idea_is_agreement_not_collision():

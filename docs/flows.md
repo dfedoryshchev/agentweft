@@ -21,6 +21,7 @@ about it, which is the point: adding a flow should not mean editing python.
     steps:
       - role: planner
         prompt: planner.md
+        model: mid
       - role: worker
         prompt: worker.md
         fanout: true
@@ -28,6 +29,7 @@ about it, which is the point: adding a flow should not mean editing python.
         prompt: merge.md
       - role: reviewer
         prompt: reviewer.md
+        model: high
     schedule: sunday
     timeout: 420
     retries: 3
@@ -36,6 +38,13 @@ about it, which is the point: adding a flow should not mean editing python.
 `steps` runs in order. each step gets the previous step's output appended to
 its prompt, which is the whole chaining mechanism. there is no structured
 handoff and so far it has not needed one.
+
+`model` on a step is a TIER - `high`, `mid` or `low` - and never a model id.
+the planner is cheap and the reviewer is not, and that is a fact about the
+steps rather than about whichever model is current this quarter. which id a
+tier resolves to lives in the environment; `providers.md` has the mapping. a
+step that says nothing gets whatever the flow's provider is configured with,
+which is the normal case.
 
 `fanout: true` on a step means the step before it produced a list, one line
 each, and every line gets its own call instead of the whole list going to one

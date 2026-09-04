@@ -46,7 +46,13 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
          "context")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
-              "gates", "provider", "preflight", "pause")
+              "gates", "provider", "preflight", "pause", "model")
+
+# `model` on a step is a tier, not an id. the workflow file's header says the
+# model names came out of the imported prompts on the way over, because a tier
+# means something to any provider and a version string means something to one
+# of them for about a quarter. a flow file naming one would put them back.
+TIERS = ("high", "mid", "low")
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
@@ -73,6 +79,9 @@ def check(raw):
         for key in step:
             if key not in STEP_KNOWN:
                 bad.append("step " + str(i) + ": unknown key " + str(key))
+        if step.get("model") and step["model"] not in TIERS:
+            bad.append("step " + str(i) + ": model should be one of "
+                       + ", ".join(TIERS))
     return bad
 
 

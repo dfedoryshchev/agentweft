@@ -18,12 +18,24 @@ nothing executed a phase before and nothing executes one now; what moved is
 which model the file is read into.
 
 what did not come across is in RESIDUE, and it is the half worth having. to
-take those the FLOW side would have to grow four or five keys that nothing
-reads, on the loader the runner actually uses - which is the flow side giving,
-not the phase side, and the opposite of what i expected when i first counted
-the two vocabularies. doing the merge also cost two of the nine ideas i had
-called shared: `loop` and `sequential` looked like pairs until a translation
-had to pick a word for them, and there was no word to pick.
+take those the FLOW side would have to grow keys that nothing reads, on the
+loader the runner actually uses - which is the flow side giving, not the phase
+side, and the opposite of what i expected when i first counted the two
+vocabularies. doing the merge also cost two of the nine ideas i had called
+shared: `loop` and `sequential` looked like pairs until a translation had to
+pick a word for them, and there was no word to pick.
+
+`model` is the exception and it is the one worth pointing at. the seats have
+declared a tier since they arrived and nothing read it, so the tier was a
+comment. it is a step key now, the checker knows it, and a provider chooses on
+it - the first word off this file that costs the flow side a key something
+READS rather than a key that documents an intention. that is what the rest of
+RESIDUE is still waiting to be.
+
+reading it meant opening a second file. a seat is one line in workflow.yaml
+and everything about the seat is in the agent's own frontmatter, which no part
+of this module had ever parsed, so `terms()` was answering for half the phase
+side and `misnamed()` did not need to exist yet.
 
 the file itself keeps its own words. its header is a running account of what
 was and was not taken out of it on the way over, and rewriting it into flow
@@ -51,7 +63,25 @@ TRANSLATION = (
     ("phase.exit", "promises.invariants"),
     ("phase.gate", "step.pause"),
     ("agent.agent", "step.role"),
+    ("agent.model", "step.model"),
 )
+
+
+def frontmatter(path):
+    """the yaml block at the top of a prompt file, or {} when there is none.
+
+    read by the same loader the spec files get, so two `model:` lines in one
+    header are refused here too rather than the last one quietly winning.
+    """
+    if not path.exists():
+        return {}
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return {}
+    parts = text.split("---", 2)
+    if len(parts) < 3:
+        return {}
+    return reader.read(parts[1]) or {}
 
 
 class Missing(object):
@@ -93,6 +123,16 @@ RESIDUE = (
             "an ordered list of flows, and what that list is called. a flow "
             "spec says nothing about what runs after it, so the sequence the "
             "phases sit in has no flow word, and neither does its name."),
+    Missing(("agent.tools",),
+            "what the seat is allowed to touch. every agent file grants a "
+            "list and nothing reads it; the flow side has no word for a grant "
+            "at all, and a step that declared one today would be refused by "
+            "the checker."),
+    Missing(("agent.name",),
+            "the prompt file saying which role it is for. a flow's prompt "
+            "file has no frontmatter - the role is the file's NAME, which is "
+            "the whole of the flow side's answer and the reason a step's role "
+            "is derived by slicing `.md` off it."),
 )
 
 
@@ -108,9 +148,28 @@ class Agent(object):
         self.name = raw["agent"]
         self.personality = raw.get("personality", "")
 
+    def declared(self):
+        """what the seat's own file says about it.
+
+        workflow.yaml names the seat and the agent's frontmatter is everything
+        else about it - which is a second file, and the vocabulary walk did
+        not open it until the tier needed a reader.
+        """
+        return frontmatter(self.prompt())
+
     def step(self):
-        """the seat as a flow step. the stance does not come with it."""
-        return {"role": self.name}
+        """the seat as a flow step. the stance does not come with it.
+
+        the tier does. `model: high` in an agent's frontmatter is the same
+        idea as `model: high` on a step, so now that a step has the word there
+        is somewhere for it to land - and it is the first thing the file
+        declares that the runner will actually read.
+        """
+        out = {"role": self.name}
+        tier = self.declared().get("model")
+        if tier:
+            out["model"] = tier
+        return out
 
     def prompt(self):
         return root() / "agents" / (self.name + ".md")
@@ -230,6 +289,24 @@ class Workflow(object):
         return [p for p in self.phases if not p.entry or not p.exit]
 
 
+def misnamed(wf=None):
+    """seats whose own file introduces itself as somebody else.
+
+    it costs something now that a seat's tier is read off that file: a copy of
+    an agent with the old `name:` left in its header answers for the wrong
+    seat and nothing says so. countable rather than raised, the same as
+    `uncriteried()` - it is a gap in the files, not a failure of the loader.
+    """
+    wf = wf or load()
+    out = []
+    for phase in wf.phases:
+        for agent in phase.agents:
+            said = agent.declared().get("name")
+            if said and said != agent.name:
+                out.append(agent)
+    return out
+
+
 def terms(wf=None):
     """every term the workflow file actually uses.
 
@@ -238,6 +315,10 @@ def terms(wf=None):
     the code. this one takes whatever the file says, so its vocabulary is a
     fact about the file, and the only way to ask what a phase may say is to go
     and read one.
+
+    read TWO, since the tier. a seat is named in workflow.yaml and described
+    in its own prompt's frontmatter, and a vocabulary that only opened the
+    first file was reporting half of what the phase side can say.
     """
     wf = wf or load()
     out = ["workflow." + k for k in wf.raw]
@@ -246,7 +327,7 @@ def terms(wf=None):
             if "phase." + key not in out:
                 out.append("phase." + key)
         for agent in phase.agents:
-            for key in agent.raw:
+            for key in list(agent.raw) + list(agent.declared()):
                 if "agent." + key not in out:
                     out.append("agent." + key)
     return out

@@ -39,11 +39,20 @@ def register(cls):
     return cls
 
 
-def build(config):
+def build(config, tier=""):
+    """the provider a step talks to, and which class of model it should ask for.
+
+    the tier is not part of the provider block on purpose. the block says HOW
+    to ask - which provider, which url, how many tokens - and the tier says
+    what to ask FOR, and it is declared by whoever declared the step. a
+    provider that has nothing to choose between ignores it.
+    """
     name = (config or {}).get("provider", "cli")
     if name not in registry:
         raise ValueError("unknown provider: " + str(name) + ". there is: "
                          + ", ".join(sorted(registry)))
     opts = dict(config or {})
     opts.pop("provider", None)
+    if tier:
+        opts["tier"] = tier
     return registry[name](**opts)

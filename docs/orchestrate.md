@@ -57,6 +57,9 @@ none runs now.
 - **`loop`** caps how many times a phase repeats before it is a person's problem.
 - **`sequential`** is for phases whose agents cannot run at once, because they
   share something outside the process.
+- **the agent's own file** carries the rest of what a seat is, in frontmatter:
+  `model:` is the tier it wants and `tools:` is what it may touch. the tier is
+  read; the grant is not, yet.
 
 ## how much alike, exactly
 
@@ -79,6 +82,12 @@ keys it accepts and complains about the rest, so its vocabulary is a fact about
 the code. the workflow loader takes whatever is in the file and says nothing,
 so the only way to find out what a phase may say is to go and read one. that is
 why `phase_vocabulary()` reads the file and `flow_vocabulary()` does not.
+
+it reads two files now. a seat is one line in `workflow.yaml` and everything
+about the seat is in the agent's own frontmatter, which nothing here had ever
+parsed - so the vocabulary was answering for half the phase side and did not
+say so. opening the second file is what the tier needed and it is where the two
+words that grew the phase-only column came from.
 
 **`gate` means two opposite things.** on a step it is a program that fails the
 run. on a phase it is a person the run waits for. one of them is a check and
@@ -111,13 +120,22 @@ cannot quietly describe a merge that is not the one happening.
 
 ## which side gave
 
-7 ideas have a name on both sides, 19 exist only as a flow key and 6 only as a
+8 ideas have a name on both sides, 19 exist only as a flow key and 8 only as a
 phase key. i expected the phase file to give, on the grounds that its words
 were words and the flow side's were machinery, and a word moves in an
 afternoon. the words that could move have: `name` and `agents` are pairs now
 because a phase is a flow spec, and `pause` went the same way earlier.
 
-what is left will not go that way. five things the file says have no flow word
+**`model` is the eighth pair and it is the one that cost something.** every
+agent file has declared a tier since the day they arrived - `model: high` on
+line 3 - and nothing read it, so it was a comment with a colon in it. a step
+has the word now: the checker takes it, refuses anything that is not `high`,
+`mid` or `low`, and a provider resolves it to whichever id the environment
+holds for that tier. that is the first phase word to become a flow key
+something READS. everything else the merge has carried was already a word the
+runner had.
+
+what is left will not go that way. seven things the file says have no flow word
 at all:
 
 - **several different roles at the same time.** `fanout` is one role in many
@@ -132,11 +150,26 @@ at all:
   work back to, and the engine hands the router the number of trips itself.
 - **an ordered list of flows, and its name.** a flow spec says nothing about
   what runs after it.
+- **`tools`**, what a seat is allowed to touch. every agent grants a list and
+  nothing reads it; the flow side has no word for a grant at all.
+- **`name` in an agent's own frontmatter**, the file saying which role it is
+  for. a flow's prompt file has no frontmatter - the role is the file's NAME,
+  which is the whole of the flow side's answer, and it is why a step's role is
+  derived by slicing `.md` off it.
+
+the last two are new here only in the sense that nothing had opened the file
+they live in. they were always being said.
 
 every one of those would be a new key on the loader the runner actually uses,
-read by nothing. that is the flow side giving, not the phase file, and a runner
-does not move in an afternoon. the expectation was wrong in the interesting
-direction, and the count is what showed it.
+read by nothing - which is exactly what `model` was NOT, and the difference is
+the test for whether a word is worth carrying. that is the flow side giving,
+not the phase file, and a runner does not move in an afternoon. the expectation
+was wrong in the interesting direction, and the count is what showed it.
+
+the tier also bought a check nobody had asked for. something is read off the
+agent file now, so a copy of one with the old `name:` left in its header
+answers for the wrong seat, and `misnamed()` counts those the way
+`uncriteried()` counts a phase with no exit line. it is empty today.
 
 two of the nine pairs did not survive either. `loop` and `sequential` looked
 like pairs while both sides were only being described; a translation has to
@@ -149,9 +182,15 @@ whole. whether it stays a dialect for good is not settled here.
 
 ## what it does not do yet
 
-nothing here enforces anything. it reads `orchestrate/workflow.yaml` and tells
-you what it says. no phase is executed, no phase's gate parks anything, no
-budget is charged, and no entry or exit criterion is checked.
+nothing here enforces anything. it reads `orchestrate/workflow.yaml` and the
+agent files beside it and tells you what they say. no phase is executed, no
+phase's gate parks anything, no budget is charged, and no entry or exit
+criterion is checked.
+
+one thing is read for real rather than printed, and it is worth keeping the
+line between them sharp: a seat's `model:` becomes a step key that the checker
+validates and a provider acts on. what it does not do is run the phase that
+step belongs to. the tier crossed; the phase still has nothing to execute it.
 
 the parking is worth being exact about, because it is the one thing that has
 crossed. a run parks now: a step says `pause` and the runner reads it. a

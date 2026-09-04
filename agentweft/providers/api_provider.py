@@ -5,6 +5,11 @@ import httpx
 from .base import Provider, Reply, register
 
 
+def env_for(tier):
+    """the variable a tier reads. `high` -> MODEL_HIGH."""
+    return "MODEL_" + tier.upper()
+
+
 @register
 class ApiProvider(Provider):
     """http, no sdk. the model id comes from config or the environment and is
@@ -14,7 +19,19 @@ class ApiProvider(Provider):
     name = "api"
 
     def _model(self):
-        return self.opts.get("model") or os.environ.get("MODEL", "")
+        """the id it was given, then the tier's id, then the one model there is.
+
+        a named model wins because naming one has already answered the question
+        a tier asks. either way the id lives in the environment: a tier buys a
+        second place to look, not a place to write a version string down.
+        """
+        named = self.opts.get("model")
+        if named:
+            return named
+        tier = self.opts.get("tier")
+        if tier:
+            return os.environ.get(env_for(tier), "") or os.environ.get("MODEL", "")
+        return os.environ.get("MODEL", "")
 
     def ask(self, prompt, timeout=None):
         key = os.environ.get("API_KEY", "")
@@ -44,5 +61,9 @@ class ApiProvider(Provider):
         if not os.environ.get("API_KEY"):
             return False, "no API_KEY set"
         if not self._model():
+            tier = self.opts.get("tier")
+            if tier:
+                return False, ("no model for tier " + tier + " (config, "
+                               + env_for(tier) + " or MODEL)")
             return False, "no model configured (config or MODEL)"
         return True, self._model()

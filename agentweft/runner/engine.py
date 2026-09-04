@@ -183,9 +183,15 @@ class Run(object):
         self.provider = pinned or providers.build(fm.get("provider") or {})
         self.by_step = {}
         for s in fm.steps:
-            if s.get("provider"):
-                self.by_step[s.get("prompt", s["role"] + ".md")] = \
-                    pinned or providers.build(s["provider"])
+            # a step gets its own provider when it names one, and now also
+            # when it only names a tier. the tier has to reach something that
+            # can act on it, and the flow's provider is shared - handing it a
+            # tier would give it to every step that has not asked for one.
+            if not s.get("provider") and not s.get("model"):
+                continue
+            conf = s.get("provider") or fm.get("provider") or {}
+            self.by_step[s.get("prompt", s["role"] + ".md")] = \
+                pinned or providers.build(conf, tier=s.get("model", ""))
 
     def preflight_for(self, step):
         for s in self.fm.steps:

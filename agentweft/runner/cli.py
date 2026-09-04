@@ -146,7 +146,13 @@ def cmd_vocab():
 
 
 def cmd_provider():
-    """is everything configured actually usable, without spending anything."""
+    """is everything configured actually usable, without spending anything.
+
+    a tier counts as configuration. a step asking for `high` resolves a
+    different model from the same provider block, so it is a different answer
+    to "is this usable" and it gets its own line - otherwise a flow with no
+    MODEL_HIGH anywhere passes this and fails at the step.
+    """
     from agentweft import providers
 
     from .config import config
@@ -159,16 +165,21 @@ def cmd_provider():
             spec = config(name)
         except Exception:
             continue
-        configs = [spec.get("provider") or {}]
-        configs += [s["provider"] for s in spec.steps if s.get("provider")]
-        for c in configs:
-            key = str(sorted((c or {}).items()))
+        configs = [(spec.get("provider") or {}, "")]
+        for s in spec.steps:
+            if not s.get("provider") and not s.get("model"):
+                continue
+            configs.append((s.get("provider") or spec.get("provider") or {},
+                            s.get("model", "")))
+        for c, tier in configs:
+            key = str(sorted((c or {}).items())) + " " + tier
             if key in seen:
                 continue
             seen[key] = True
-            p = providers.build(c or {})
+            p = providers.build(c or {}, tier=tier)
             ok, detail = p.check()
-            print(("  ok   " if ok else "  FAIL ") + p.name + "  " + detail)
+            print(("  ok   " if ok else "  FAIL ") + p.name
+                  + (" " + tier if tier else "") + "  " + detail)
     return 0
 
 

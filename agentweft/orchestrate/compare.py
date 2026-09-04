@@ -78,6 +78,12 @@ MAP = (
          "runner writes a handoff and returns, and --resume carries on past "
          "the step it parked on. two words for it because `gate` on a step was "
          "already taken by a program."),
+    Pair("step.model", "agent.model",
+         "which class of model answers, spelled the same on both sides and "
+         "never a version string. it is the only phase word so far that cost "
+         "the flow side a key something READS: the checker takes it and a "
+         "provider chooses on it, where the rest of the residue would only "
+         "have documented an intention."),
 
     # only the flow has a word for it
     Pair("step.workers", "",
@@ -140,6 +146,15 @@ MAP = (
          "the same prompt twice from a fixed position. the second prompt file "
          "has a home now that roles have a library; the flow side still has "
          "no word for which stance a step takes."),
+    Pair("", "agent.tools",
+         "what the seat may touch. every agent file grants a list, nothing "
+         "reads it, and the flow side has no word for a grant at all - a step "
+         "declaring one today would be refused by the checker."),
+    Pair("", "agent.name",
+         "the prompt file saying which role it is for. a flow's prompt file "
+         "has no frontmatter: the role is the file's NAME, which is the whole "
+         "of the flow side's answer and the reason a step's role is derived "
+         "by slicing `.md` off it."),
 )
 
 

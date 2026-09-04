@@ -189,11 +189,18 @@ def test_an_exit_line_became_an_invariant_and_is_still_not_checked():
 
 
 def test_the_stance_does_not_reach_the_step():
+    """the tier crossed and the stance did not, and the difference is the word.
+
+    a step has `model` now, so a seat's tier translates into it. nothing in a
+    flow file names a stance, so `personality` still has nowhere to land and
+    the two reviewers arrive as one repeated step.
+    """
     planning = workflow.load().phase("planning")
     assert [a.personality for a in planning.agents] == \
         ["refactor-advocate", "minimalist", ""]
     assert [sorted(s) for s in planning.spec.steps] == \
-        [["role"], ["role"], ["pause", "role"]]
+        [["model", "role"], ["model", "role"], ["model", "pause", "role"]]
+    assert planning.spec.steps[0] == planning.spec.steps[1]
 
 
 def test_nothing_in_the_file_arrives_unplaced():
