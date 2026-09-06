@@ -61,9 +61,14 @@ def test_the_sides_are_not_the_same_size():
     # became the eighth pair, and reading it meant opening the agent files,
     # which is where the two words that pushed the phase-only side from 6 to 8
     # had been sitting all along.
-    assert len(compare.pairs()) == 8
+    #
+    # the grant is the fourth move and the first that only goes one way.
+    # `tools` was one of those two words; it is the ninth pair now, so the
+    # phase-only side gives it back and drops to 7. the flow side does not
+    # grow: `step.tools` is a new key, but it arrives inside a pair.
+    assert len(compare.pairs()) == 9
     assert len(compare.flow_only()) == 19
-    assert len(compare.phase_only()) == 8
+    assert len(compare.phase_only()) == 7
 
 
 def test_two_words_mean_different_things_depending_on_the_file():
@@ -106,6 +111,15 @@ def test_the_census_says_how_much_of_it_is_prose():
     # exit line is
     assert rows["of those, something checks"].flow == "3 of 19"
     assert rows["of those, something checks"].phase == "none of 16"
+
+
+def test_the_census_counts_the_grant_on_both_sides():
+    """the sharpest thing the grant produced is a row where the two sides are
+    opposite: every seat declares one, no step in the repo does. the word
+    crossed; the files that could use it have not moved yet."""
+    rows = by_label(compare.census())
+    assert rows["declares a tool grant"].flow == "0 of 20 steps"
+    assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 
 def test_the_census_says_which_side_runs():

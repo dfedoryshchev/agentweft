@@ -58,8 +58,9 @@ none runs now.
 - **`sequential`** is for phases whose agents cannot run at once, because they
   share something outside the process.
 - **the agent's own file** carries the rest of what a seat is, in frontmatter:
-  `model:` is the tier it wants and `tools:` is what it may touch. the tier is
-  read; the grant is not, yet.
+  `model:` is the tier it wants and `tools:` is what it may touch. both are
+  read now, and both become step keys. what is still only in that file is
+  `personality`, and the `name:` line saying which seat the file is for.
 
 ## how much alike, exactly
 
@@ -105,7 +106,13 @@ the counts are the argument, not the prose:
     loaded as                   7 flow specs      8 flow specs, translated
     conditions in prose         19 invariants     16 entry and exit lines
     of those, something checks  3 of 19           none of 16
+    declares a tool grant       0 of 20 steps     20 of 20 seats
     something executes it       20 of 20 steps    0 of 8 phases
+
+the grant row is the only one where the two sides are opposites, and it is the
+one to watch. every seat says what it may touch and no step in the repo does,
+which is what a word looks like the day after it crossed and before anything
+started using it on the other side.
 
 the bottom two rows did not move when the merge landed, and that is the best
 evidence it was a merge and not a rewrite. an exit line is an invariant now and
@@ -120,7 +127,7 @@ cannot quietly describe a merge that is not the one happening.
 
 ## which side gave
 
-8 ideas have a name on both sides, 19 exist only as a flow key and 8 only as a
+9 ideas have a name on both sides, 19 exist only as a flow key and 7 only as a
 phase key. i expected the phase file to give, on the grounds that its words
 were words and the flow side's were machinery, and a word moves in an
 afternoon. the words that could move have: `name` and `agents` are pairs now
@@ -132,8 +139,23 @@ line 3 - and nothing read it, so it was a comment with a colon in it. a step
 has the word now: the checker takes it, refuses anything that is not `high`,
 `mid` or `low`, and a provider resolves it to whichever id the environment
 holds for that tier. that is the first phase word to become a flow key
-something READS. everything else the merge has carried was already a word the
+something READS. everything else the merge had carried was already a word the
 runner had.
+
+**`tools` is the ninth, off the same line of the same files, and it is the one
+that had to be sized honestly.** the architect grants itself `[read, grep]` and
+then argues it in prose a few lines down - "you are deliberately given no shell
+and no write access" - so the boundary was written twice in one file and read
+neither time. it is a step key now: the checker refuses a tool it has no name
+for, the grant goes into the step's prompt, and what comes back is read against
+it by `guardrails/boundary.py`.
+
+what it is NOT is enforcement, and that was the whole risk in carrying the
+word. nothing in the runner is in the path of a tool call - a provider takes a
+prompt and returns text - so there is no call to intercept and a finding is a
+record, not a stop. `docs/guardrails.md` has the exact shape. a phase word that
+crossed as something narrower than it sounds is still worth more than one that
+crossed as a key nothing reads; the trap is letting the doc round it up.
 
 what is left will not go that way. seven things the file says have no flow word
 at all:
@@ -150,26 +172,30 @@ at all:
   work back to, and the engine hands the router the number of trips itself.
 - **an ordered list of flows, and its name.** a flow spec says nothing about
   what runs after it.
-- **`tools`**, what a seat is allowed to touch. every agent grants a list and
-  nothing reads it; the flow side has no word for a grant at all.
 - **`name` in an agent's own frontmatter**, the file saying which role it is
   for. a flow's prompt file has no frontmatter - the role is the file's NAME,
   which is the whole of the flow side's answer, and it is why a step's role is
   derived by slicing `.md` off it.
 
-the last two are new here only in the sense that nothing had opened the file
-they live in. they were always being said.
+that last one is new here only in the sense that nothing had opened the file it
+lives in. it was always being said - and so was `tools`, which is why the
+phase-only column went up to 8 when the agent files were first read and back
+down to 7 as soon as one of the two words found a reader.
 
 every one of those would be a new key on the loader the runner actually uses,
-read by nothing - which is exactly what `model` was NOT, and the difference is
-the test for whether a word is worth carrying. that is the flow side giving,
-not the phase file, and a runner does not move in an afternoon. the expectation
-was wrong in the interesting direction, and the count is what showed it.
+read by nothing - which is exactly what `model` and `tools` are NOT, and the
+difference is the test for whether a word is worth carrying. that is the flow
+side giving, not the phase file, and a runner does not move in an afternoon.
+the expectation was wrong in the interesting direction, and the count is what
+showed it.
 
-the tier also bought a check nobody had asked for. something is read off the
-agent file now, so a copy of one with the old `name:` left in its header
-answers for the wrong seat, and `misnamed()` counts those the way
-`uncriteried()` counts a phase with no exit line. it is empty today.
+the two of them also bought two checks nobody had asked for, both of them
+gaps in the FILES rather than failures of the loader, both counted the way
+`uncriteried()` counts a phase with no exit line, and both empty today.
+`misnamed()` is the tier's: something is read off the agent file now, so a copy
+of one with the old `name:` left in its header answers for the wrong seat.
+`ungranted()` is the grant's: a seat with no `tools:` line becomes a step with
+no boundary on it, and the check then has nothing to hold the output against.
 
 two of the nine pairs did not survive either. `loop` and `sequential` looked
 like pairs while both sides were only being described; a translation has to
@@ -187,10 +213,16 @@ agent files beside it and tells you what they say. no phase is executed, no
 phase's gate parks anything, no budget is charged, and no entry or exit
 criterion is checked.
 
-one thing is read for real rather than printed, and it is worth keeping the
-line between them sharp: a seat's `model:` becomes a step key that the checker
-validates and a provider acts on. what it does not do is run the phase that
-step belongs to. the tier crossed; the phase still has nothing to execute it.
+two things are read for real rather than printed, and it is worth keeping the
+line between them sharp. a seat's `model:` becomes a step key that the checker
+validates and a provider acts on. a seat's `tools:` becomes a step key that the
+checker validates, that the runner puts into the step's prompt, and that
+`guardrails/boundary.py` holds the answer against - which is a check on the
+output and not a fence around the call, because nothing in this repo is in the
+path of a tool call the model makes.
+
+what neither of them does is run the phase the step belongs to. the tier and
+the grant crossed; the phase still has nothing to execute it.
 
 the parking is worth being exact about, because it is the one thing that has
 crossed. a run parks now: a step says `pause` and the runner reads it. a

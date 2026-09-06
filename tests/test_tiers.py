@@ -121,9 +121,11 @@ def test_the_cli_is_handed_a_command_and_the_tier_changes_nothing(monkeypatch):
 
 
 def test_the_agent_file_tier_arrives_as_a_flow_step():
+    """the tier only. the grant rides along in the same dict now, and what
+    the whole step looks like is pinned where the grant is tested."""
     seat = workflow.Agent("architect")
     assert seat.declared()["model"] == "high"
-    assert seat.step() == {"role": "architect", "model": "high"}
+    assert seat.step()["model"] == "high"
 
 
 def test_an_agent_with_no_file_declares_nothing():

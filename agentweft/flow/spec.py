@@ -46,13 +46,21 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
          "context")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
-              "gates", "provider", "preflight", "pause", "model")
+              "gates", "provider", "preflight", "pause", "model", "tools")
 
 # `model` on a step is a tier, not an id. the workflow file's header says the
 # model names came out of the imported prompts on the way over, because a tier
 # means something to any provider and a version string means something to one
 # of them for about a quarter. a flow file naming one would put them back.
 TIERS = ("high", "mid", "low")
+
+# `tools` on a step is what it is allowed to touch, and these are the six words
+# the imported agent files have been granting each other since they arrived.
+# the list is closed on purpose: a grant nothing has a name for is not a
+# narrower grant, it is a word this repo cannot check anything against, and it
+# would sit in a file looking like a boundary. `guardrails/boundary.py` is what
+# reads a grant; this is only the vocabulary it and the flow files share.
+GRANTS = ("read", "grep", "write", "edit", "shell", "browser")
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
@@ -82,6 +90,17 @@ def check(raw):
         if step.get("model") and step["model"] not in TIERS:
             bad.append("step " + str(i) + ": model should be one of "
                        + ", ".join(TIERS))
+        # `is not None` rather than truthiness: `tools: []` is a step saying it
+        # may touch nothing, which is a boundary and not a missing one.
+        if step.get("tools") is not None:
+            if not isinstance(step["tools"], list):
+                bad.append("step " + str(i) + ": tools should be a list")
+            else:
+                for tool in step["tools"]:
+                    if tool not in GRANTS:
+                        bad.append("step " + str(i) + ": no such tool "
+                                   + str(tool) + ". there is: "
+                                   + ", ".join(GRANTS))
     return bad
 
 

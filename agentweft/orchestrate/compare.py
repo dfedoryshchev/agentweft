@@ -17,9 +17,14 @@ to pick a word, and for those two there was none to pick.
 
 what is left over is the finding, and it is the reverse of what this file used
 to predict. the words the phase side has and the flow side does not are not
-afternoons of work any more. taking them would mean four or five new keys on
-the loader the runner actually uses, none of which anything would read. that
-is the flow side giving, not the phase side.
+afternoons of work any more. taking the rest would mean new keys on the loader
+the runner actually uses, none of which anything would read. that is the flow
+side giving, not the phase side.
+
+two have gone the other way since, and they are the two that arrived with
+something that reads them: `model` and `tools`. that is the test everything
+still on the phase-only side keeps failing, and it is a better one than
+counting them.
 """
 import textwrap
 
@@ -80,10 +85,16 @@ MAP = (
          "already taken by a program."),
     Pair("step.model", "agent.model",
          "which class of model answers, spelled the same on both sides and "
-         "never a version string. it is the only phase word so far that cost "
-         "the flow side a key something READS: the checker takes it and a "
+         "never a version string. it was the first phase word that cost the "
+         "flow side a key something READS: the checker takes it and a "
          "provider chooses on it, where the rest of the residue would only "
          "have documented an intention."),
+    Pair("step.tools", "agent.tools",
+         "what the job may touch. the second word to cost a key that is read, "
+         "and the one to be careful about: the checker refuses a tool it has "
+         "no name for, the grant goes out in the prompt, and the output is "
+         "held against it afterwards. nothing is intercepted, because nothing "
+         "here is in the path of a tool call."),
 
     # only the flow has a word for it
     Pair("step.workers", "",
@@ -146,10 +157,6 @@ MAP = (
          "the same prompt twice from a fixed position. the second prompt file "
          "has a home now that roles have a library; the flow side still has "
          "no word for which stance a step takes."),
-    Pair("", "agent.tools",
-         "what the seat may touch. every agent file grants a list, nothing "
-         "reads it, and the flow side has no word for a grant at all - a step "
-         "declaring one today would be refused by the checker."),
     Pair("", "agent.name",
          "the prompt file saying which role it is for. a flow's prompt file "
          "has no frontmatter: the role is the file's NAME, which is the whole "
@@ -284,6 +291,8 @@ def census(wf=None):
     gates = [g for s in gated for g in s["gates"]]
 
     seats = [a for p in wf.phases for a in p.agents]
+    granted = [s for s in steps if s.get("tools") is not None]
+    seats_granted = [a for a in seats if a.declared().get("tools") is not None]
     widths = sorted(len(p.agents) for p in wf.phases)
     conditions = [c for p in wf.phases for c in (p.entry, p.exit) if c]
     phase_caps = [p for p in wf.phases
@@ -313,6 +322,12 @@ def census(wf=None):
         Row("checks that are programs",
             str(len(gates)) + " gates on " + str(len(gated)) + " steps",
             "none"),
+        # the one row where the two sides are the exact opposite of each
+        # other. the word crossed; neither set of files has moved because of
+        # it, and this is where that will show up when one of them does.
+        Row("declares a tool grant",
+            str(len(granted)) + " of " + str(len(steps)) + " steps",
+            str(len(seats_granted)) + " of " + str(len(seats)) + " seats"),
         Row("declares a spend ceiling",
             str(len(capped)) + " of " + str(len(specs)) + " flows, rest default",
             str(len(phase_caps)) + " of " + str(len(wf.phases))

@@ -9,7 +9,7 @@ from agentweft.roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
-from agentweft.guardrails import defaults, gates, promises
+from agentweft.guardrails import boundary, defaults, gates, promises
 from agentweft.mcp import context, preflight
 from agentweft.orchestrate import park
 
@@ -206,6 +206,18 @@ class Run(object):
                 return s.get("pause")
         return None
 
+    def grant_for(self, step):
+        """what this step may touch, or None when it did not say.
+
+        None and [] are different answers and both of them are returned as
+        they are: `boundary` treats the first as no boundary declared and the
+        second as a boundary that allows nothing.
+        """
+        for s in self.fm.steps:
+            if s.get("prompt", s["role"] + ".md") == step:
+                return s.get("tools")
+        return None
+
     def gates_for(self, step):
         for s in self.fm.steps:
             if s.get("prompt", s["role"] + ".md") == step:
@@ -224,6 +236,11 @@ class Run(object):
         began = _t.time()
         role = step[:-3]
         prompt = load_prompt(self.flow, step, self.by_role[role])
+        # the grant goes out with the role's own rules, before whatever this
+        # particular call is about. it is the only half of a boundary that can
+        # happen before the answer exists, and a step that was never told its
+        # grant is one this cannot fairly hold to it afterwards.
+        prompt = prompt + boundary.as_prompt(self.grant_for(step))
         if extra:
             prompt = prompt + extra
         prompt = prompt + previous.as_prompt()
@@ -405,6 +422,22 @@ def main():
                             started)
                     write_index("REFUSED  " + flow + "  " + hot[0][0])
                     return
+
+        # the boundary check reads what came back against what the step was
+        # granted. it does not stop the run and it is not meant to: nothing
+        # here was in the path of the thing it is reporting, so a stop would
+        # be theatre. it is written down beside the gate results instead.
+        crossed = boundary.check(out.output, run.grant_for(step))
+        if crossed:
+            print("boundary: " + step + " came back with " + str(len(crossed))
+                  + " thing(s) it was not granted")
+            for mark, line in crossed:
+                print("  " + mark.what + "  " + line[:60])
+            step_dir = Path("runs") / run_id
+            step_dir.mkdir(parents=True, exist_ok=True)
+            with open(step_dir / "boundary.md", "a") as bf:
+                bf.write("## " + step + "\n")
+                bf.write(boundary.as_note(crossed))
 
         blocked = route.gate(step, out)
         if blocked:

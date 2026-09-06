@@ -189,18 +189,50 @@ def test_an_exit_line_became_an_invariant_and_is_still_not_checked():
 
 
 def test_the_stance_does_not_reach_the_step():
-    """the tier crossed and the stance did not, and the difference is the word.
+    """the tier and the grant crossed and the stance did not.
 
-    a step has `model` now, so a seat's tier translates into it. nothing in a
-    flow file names a stance, so `personality` still has nowhere to land and
+    a step has `model` and `tools` now, so both of those translate. nothing in
+    a flow file names a stance, so `personality` still has nowhere to land and
     the two reviewers arrive as one repeated step.
     """
     planning = workflow.load().phase("planning")
     assert [a.personality for a in planning.agents] == \
         ["refactor-advocate", "minimalist", ""]
     assert [sorted(s) for s in planning.spec.steps] == \
-        [["model", "role"], ["model", "role"], ["model", "pause", "role"]]
+        [["model", "role", "tools"], ["model", "role", "tools"],
+         ["model", "pause", "role", "tools"]]
     assert planning.spec.steps[0] == planning.spec.steps[1]
+
+
+def test_the_seats_grant_arrives_as_a_flow_step():
+    seat = workflow.Agent("architect")
+    assert seat.declared()["tools"] == ["read", "grep"]
+    assert seat.step() == {"role": "architect", "model": "high",
+                           "tools": ["read", "grep"]}
+
+
+def test_every_seat_says_what_it_may_touch():
+    """a seat that grants nothing has no boundary, and nothing would say so.
+
+    countable rather than raised, the same as `uncriteried()` and `misnamed()`.
+    every seat in the file declares one today.
+    """
+    assert workflow.ungranted() == []
+
+
+def test_a_seat_whose_file_grants_nothing_is_countable(tmp_path):
+    (tmp_path / "agents").mkdir()
+    (tmp_path / "agents" / "architect.md").write_text(
+        "---\nname: architect\nmodel: high\n---\n", encoding="utf-8")
+    was = workflow.ROOT[0]
+    workflow.ROOT[0] = str(tmp_path)
+    try:
+        wf = workflow.Workflow({"name": "x",
+                                "phases": [{"name": "p", "agents": ["architect"]}]})
+        assert [a.name for a in workflow.ungranted(wf)] == ["architect"]
+        assert wf.phases[0].spec.steps[0] == {"role": "architect", "model": "high"}
+    finally:
+        workflow.ROOT[0] = was
 
 
 def test_nothing_in_the_file_arrives_unplaced():

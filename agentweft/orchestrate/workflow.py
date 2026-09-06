@@ -25,17 +25,26 @@ vocabularies. doing the merge also cost two of the nine ideas i had called
 shared: `loop` and `sequential` looked like pairs until a translation had to
 pick a word for them, and there was no word to pick.
 
-`model` is the exception and it is the one worth pointing at. the seats have
-declared a tier since they arrived and nothing read it, so the tier was a
-comment. it is a step key now, the checker knows it, and a provider chooses on
-it - the first word off this file that costs the flow side a key something
-READS rather than a key that documents an intention. that is what the rest of
-RESIDUE is still waiting to be.
+`model` was the exception and `tools` is the second one. the seats have
+declared both since they arrived and nothing read either, so both were
+comments. they are step keys now, the checker knows them, and something acts
+on each - a provider chooses on the tier, and `guardrails/boundary.py` holds a
+step's output against its grant. those are the two words off this file that
+cost the flow side a key something READS rather than a key that documents an
+intention. that is what the rest of RESIDUE is still waiting to be.
 
-reading it meant opening a second file. a seat is one line in workflow.yaml
+the grant is the sharper of the two, because it is the one that could have
+been oversold. what crossed is a declaration and a check on the answer, not a
+sandbox: this runner is not in the path of the model's tool calls at all, so
+the grant goes out in the prompt and the evidence is read on the way back. the
+word is worth carrying anyway - it was already written twice in every agent
+file, once in yaml and once in prose - but only if the line between declaring
+and preventing is kept where it is.
+
+reading them meant opening a second file. a seat is one line in workflow.yaml
 and everything about the seat is in the agent's own frontmatter, which no part
 of this module had ever parsed, so `terms()` was answering for half the phase
-side and `misnamed()` did not need to exist yet.
+side and `misnamed()` and `ungranted()` did not need to exist yet.
 
 the file itself keeps its own words. its header is a running account of what
 was and was not taken out of it on the way over, and rewriting it into flow
@@ -64,6 +73,7 @@ TRANSLATION = (
     ("phase.gate", "step.pause"),
     ("agent.agent", "step.role"),
     ("agent.model", "step.model"),
+    ("agent.tools", "step.tools"),
 )
 
 
@@ -123,11 +133,6 @@ RESIDUE = (
             "an ordered list of flows, and what that list is called. a flow "
             "spec says nothing about what runs after it, so the sequence the "
             "phases sit in has no flow word, and neither does its name."),
-    Missing(("agent.tools",),
-            "what the seat is allowed to touch. every agent file grants a "
-            "list and nothing reads it; the flow side has no word for a grant "
-            "at all, and a step that declared one today would be refused by "
-            "the checker."),
     Missing(("agent.name",),
             "the prompt file saying which role it is for. a flow's prompt "
             "file has no frontmatter - the role is the file's NAME, which is "
@@ -160,15 +165,23 @@ class Agent(object):
     def step(self):
         """the seat as a flow step. the stance does not come with it.
 
-        the tier does. `model: high` in an agent's frontmatter is the same
-        idea as `model: high` on a step, so now that a step has the word there
-        is somewhere for it to land - and it is the first thing the file
-        declares that the runner will actually read.
+        the tier and the grant do. `model: high` and `tools: [read, grep]` in
+        an agent's frontmatter are the same two ideas as `model` and `tools`
+        on a step, so now that a step has both words there is somewhere for
+        them to land - and they are the only things the file declares that the
+        runner actually reads.
+
+        a grant of nothing is a grant. `tools: []` is a seat saying it may
+        touch nothing, which is why this asks whether the key is there rather
+        than whether the list has anything in it.
         """
+        said = self.declared()
         out = {"role": self.name}
-        tier = self.declared().get("model")
+        tier = said.get("model")
         if tier:
             out["model"] = tier
+        if said.get("tools") is not None:
+            out["tools"] = said["tools"]
         return out
 
     def prompt(self):
@@ -305,6 +318,20 @@ def misnamed(wf=None):
             if said and said != agent.name:
                 out.append(agent)
     return out
+
+
+def ungranted(wf=None):
+    """seats whose own file never says what they may touch.
+
+    it costs something now that a grant is read off that file and becomes a
+    step key: a seat with no `tools:` line gets a step with no boundary on it,
+    and the boundary check has nothing to hold the output against. countable
+    rather than raised, the same as `uncriteried()` and `misnamed()` - it is a
+    gap in the files, not a failure of the loader. it is empty today.
+    """
+    wf = wf or load()
+    return [a for p in wf.phases for a in p.agents
+            if a.declared().get("tools") is None]
 
 
 def terms(wf=None):

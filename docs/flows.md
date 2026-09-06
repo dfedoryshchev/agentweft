@@ -30,6 +30,7 @@ about it, which is the point: adding a flow should not mean editing python.
       - role: reviewer
         prompt: reviewer.md
         model: high
+        tools: [read, grep]
     schedule: sunday
     timeout: 420
     retries: 3
@@ -45,6 +46,14 @@ steps rather than about whichever model is current this quarter. which id a
 tier resolves to lives in the environment; `providers.md` has the mapping. a
 step that says nothing gets whatever the flow's provider is configured with,
 which is the normal case.
+
+`tools` on a step is what it may touch: any of `read`, `grep`, `write`,
+`edit`, `shell`, `browser`, and the checker refuses a word that is not one of
+those. it is a BOUNDARY CHECK, not a sandbox, and `guardrails.md` is exact
+about the difference - the grant is put into the step's prompt and the step's
+answer is read back against it. a step that says nothing has declared no
+boundary and nothing is checked; `tools: []` is a step saying it may touch
+nothing, which is a boundary and does get checked.
 
 `fanout: true` on a step means the step before it produced a list, one line
 each, and every line gets its own call instead of the whole list going to one

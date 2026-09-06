@@ -46,8 +46,15 @@ the prompts are told the same rules, but being told is not being checked.
 `defaults.py` exists because a flow saying nothing about cost used to mean no
 limit at all.
 
-none of it is a prompt. that is the whole design: a control that can be talked
-out of it is not a control.
+none of those is a prompt. that is the whole design: a control that can be
+talked out of it is not a control.
+
+`boundary.py` is the one thing in here that is half a prompt, and it is filed
+under a different word for that reason. a step's `tools` grant goes out with
+the role's rules and the answer is read back against it, because the model's
+tool calls happen somewhere this runner is not. it is a check, it produces a
+record, and it does not stop a run - `docs/guardrails.md` is exact about why
+that is the design rather than the shortfall.
 
 ## gates
 
