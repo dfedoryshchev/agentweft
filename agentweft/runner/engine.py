@@ -269,6 +269,7 @@ def run_steps(run, names, note=EMPTY):
 
 
 def run_fanout(run, plan):
+    began = time.time()
     tasks = [l for l in plan.output.split("\n") if "|" in l]
 
     def one(task):
@@ -282,7 +283,9 @@ def run_fanout(run, plan):
     width = min(run.width_for("worker"), len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
-    return Handoff("worker", "\n\n".join(parts), meta={"tasks": len(tasks)})
+    return Handoff("worker", "\n\n".join(parts),
+                   meta={"tasks": len(tasks),
+                         "seconds": round(time.time() - began, 1)})
 
 
 def run_once(flow, provider=None):
@@ -298,9 +301,8 @@ def run_once(flow, provider=None):
     while step:
         if run.fan and step == run.fan + ".md":
             out = run_fanout(run, out)
-            step = route.next(step, out)
-            continue
-        out = run.step(step, previous=out)
+        else:
+            out = run.step(step, previous=out)
         if not out:
             break
         step = route.next(step, out)
@@ -362,18 +364,17 @@ def main():
     while step:
         if fan and step == fan + ".md":
             out = run_fanout(run, out)
-            step = route.next(step, out)
-            continue
-        extra = ""
-        if step == "planner.md" and fm.get("context"):
-            risk_text, why = context.risk_map(fm.get("context"))
-            if why:
-                print("no risk map: " + why)
-            extra = extra + context.as_prompt(risk_text)
-        if seen and step == "planner.md":
-            extra = "\n\nthe last run was " + seen + \
-                ". only tell me what is different since then."
-        out = run.step(step, previous=out, extra=extra)
+        else:
+            extra = ""
+            if step == "planner.md" and fm.get("context"):
+                risk_text, why = context.risk_map(fm.get("context"))
+                if why:
+                    print("no risk map: " + why)
+                extra = extra + context.as_prompt(risk_text)
+            if seen and step == "planner.md":
+                extra = "\n\nthe last run was " + seen + \
+                    ". only tell me what is different since then."
+            out = run.step(step, previous=out, extra=extra)
         step_dir = Path("runs") / run_id
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
