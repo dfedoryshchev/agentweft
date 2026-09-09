@@ -604,3 +604,51 @@ is the same trick i wrote down here in july last year, and i have built it
 twice without noticing, once as roles that argue and once as one agent named
 twice with a personality each. two of everything is a cost everywhere else
 this month. that one is not.
+
+## 2026-09-09
+
+the specifics do not belong in the roles.
+
+the opinions came out of the prompts in august and i thought that was the end
+of it. what is left is smaller and i keep almost not seeing it. eight of the
+eleven agent files carry a MANDATORY PRE-WORK list, seven of those name a file
+path, and between them they name three: `docs/architecture.md`,
+`docs/patterns.md`, `docs/testing.md`. two of the three do not exist in this
+repo.
+
+the third one is the interesting one. `docs/architecture.md` does exist here,
+and it is about the flow spec, the resolver, the engine and the providers.
+those are this repo's layers, not the layers the architect was written to rule
+on. a missing path fails in front of you; a path that resolves to the wrong
+document does not, and the role reports as though it did the reading. that is
+the same shape as the eval provider in august: the file said one thing and the
+run did another, and nothing was ever red.
+
+it is not only the doc list. doc-researcher is told to `grep -r` across `src/`
+and `web/src/`, and neither directory is here. doc-updater's propose-only list
+names the same two shared docs plus "the checklists" and "the lessons file",
+which are not paths at all, just things that existed in the codebase it was
+written for.
+
+nothing reads any of it. `frontmatter()` splits an agent file on `---` and
+reads the yaml block; `name`, `model` and `tools` are the only keys anything
+asks for, and the body goes nowhere. so a pre-work list is a sentence addressed
+to whoever runs the prompt. it survived the strip because the strip was hunting
+opinions, and an address is not an opinion.
+
+deleting it is not the fix. a role does need to have read the layering rules
+before it rules on a layer, and test-qa is right that skipping its first item
+produces tests that pass in isolation and pin nothing. what is wrong is which
+half of the sentence the role owns. the role should name what it needs to have
+READ - the layering rules, how features are normally built here, the test
+layout - and something outside the role should say where that lives in this
+codebase. the library already works that way: four role files under
+`roles/library/`, and not one of them names a path.
+
+the coverage section in test-qa is the precedent for how it should feel. the
+number came out, and what replaced it says the number was one somebody picked
+while looking at a different codebase. a path wants the same treatment, except
+it cannot just leave a hole, because unlike the number the requirement behind
+it is real. one file per project, beside the workflow, is the obvious home for
+the other half. what the roles are allowed to say has to be settled before that
+file can have any keys, and that is this note and not the next one.
