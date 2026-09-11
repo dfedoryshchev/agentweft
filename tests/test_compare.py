@@ -122,6 +122,18 @@ def test_the_census_counts_the_grant_on_both_sides():
     assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 
+def test_the_census_counts_the_paths_a_prompt_names_itself():
+    """the other row where the two sides are opposite, and this one is a
+
+    defect rather than a gap: a flow's prompt names nothing outside itself, and
+    17 of the 20 seats name a path that was true of one codebase. that count is
+    what `project.yml` exists to take to zero, and nothing takes it there yet.
+    """
+    rows = by_label(compare.census())
+    assert rows["names a path in its prose"].flow == "0 of 20 steps"
+    assert rows["names a path in its prose"].phase == "17 of 20 seats"
+
+
 def test_the_census_says_which_side_runs():
     rows = by_label(compare.census())
     assert rows["something executes it"].flow == "20 of 20 steps"

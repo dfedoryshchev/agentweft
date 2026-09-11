@@ -1,0 +1,68 @@
+# project.yml - what agentweft needs to know about THIS codebase.
+#
+# agentweft ships the shapes: the roles, the phases, the gates, the tool
+# grants, the model tiers. none of them mention a stack, a folder or a number,
+# and that is what makes them worth shipping.
+#
+# everything specific goes here, in one file beside the workflow. copy this to
+# project.yml, answer it for your own repo, and keep it in your repo rather
+# than in the prompts.
+#
+# nothing reads it yet. it is a format and a loader, and the loader refuses a
+# word it has no name for - a typo in a file like this would otherwise sit here
+# looking exactly like a rule.
+
+project:
+  name: example-app
+  stack: [python, react]
+
+# per-role MANDATORY PRE-WORK. the role says what it needs to have read; this
+# says where that lives here.
+#
+# a role naming its own paths only works in the codebase it was written in, and
+# it fails quietly rather than loudly: a missing file stops in front of you, a
+# path that resolves to the wrong document is read and reported as done.
+read_first:
+  architect: [docs/architecture.md, docs/patterns.md]
+  developer: [docs/patterns.md, docs/architecture.md]
+  test-qa: [docs/testing.md]
+  doc-researcher: [docs/architecture.md]
+
+# PROSE, and weak by nature. it goes into a prompt, so it can be read, agreed
+# with, and then not done, and nothing here will know. write it anyway - most
+# of what a codebase believes has no program behind it - but do not mistake a
+# line in this block for a rule that holds.
+standards:
+  forbidden:
+    - "warning suppression - fix the cause the warning is pointing at"
+    - "a new dependency pulled in without it being asked for"
+  immediate_reject:
+    - "business logic in an endpoint"
+    - "a test that asserts nothing"
+
+# NUMBERS. a floor, not the point: a test that executes a line without
+# asserting anything about it moves this and pins nothing.
+#
+# whatever you put here is a number somebody picked while looking at one
+# codebase, which is the whole reason it is in this file and not in a role.
+coverage:
+  critical: 100
+  overall: 80
+
+# PROGRAMS, and the strong half of the file. argv and an exit code, no opinion
+# involved, nothing to agree with.
+#
+# a list rather than one string on purpose: there is no shell in the middle, so
+# nothing gets word-split or glob-expanded on the way.
+gates:
+  tests: ["pytest", "-q"]
+  lint: ["ruff", "check"]
+
+# which class of model answers, and what the job may touch. a tier, never a
+# version string - a tier means something to any provider and a version string
+# means something to one of them for about a quarter.
+roles:
+  architect: {model: high, tools: [read, grep]}
+  developer: {model: high, tools: [read, write, edit, shell]}
+  test-qa: {model: high, tools: [read, grep, write, shell]}
+  doc-researcher: {model: low, tools: [read, grep]}

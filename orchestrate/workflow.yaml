@@ -15,7 +15,12 @@
 # what is still one project's, and i am not going to pretend otherwise: the
 # files a role is told to read before it starts. two of them do not exist in
 # this repo at all. a role should say what it needs to have read, not where that
-# happens to live. that is the next job, not this one.
+# happens to live.
+#
+# the other half of that sentence has a home now: project.example.yml, beside
+# this file, one per project. it is a format and a loader and nothing more - the
+# agents below still name their own paths, and they will until something reads
+# it.
 
 name: feature development
 

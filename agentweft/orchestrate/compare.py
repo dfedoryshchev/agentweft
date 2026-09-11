@@ -267,17 +267,20 @@ def census(wf=None):
     say, which is the half that turns "these look alike" into numbers.
     """
     from agentweft.guardrails import promises
-    from agentweft.runner import cli
+    from agentweft.runner import cli, prompts
     from agentweft.runner.config import config
 
+    from . import project
+
     wf = wf or workflow.load()
-    specs = []
+    loaded = []
     for name in cli.flows():
         try:
-            specs.append(config(name))
+            loaded.append((name, config(name)))
         except Exception:
             # a broken flow.yaml is `run.py list`'s problem, not this one's
             continue
+    specs = [sp for _, sp in loaded]
     steps = [s for sp in specs for s in sp.steps]
     roles = sorted(set(s["role"] for s in steps))
     invariants = [i for sp in specs for i in sp.promises.invariants]
@@ -289,6 +292,15 @@ def census(wf=None):
               if sp.get("max_calls") is not None or sp.get("max_tokens") is not None]
     gated = [s for s in steps if s.get("gates")]
     gates = [g for s in gated for g in s["gates"]]
+
+    sent = []
+    for name, sp in loaded:
+        for s in sp.steps:
+            try:
+                sent.append(prompts.read(name, s.get("prompt", s["role"] + ".md")))
+            except FileNotFoundError:
+                continue
+    pathy_steps = [t for t in sent if project.in_prose(t)]
 
     seats = [a for p in wf.phases for a in p.agents]
     granted = [s for s in steps if s.get("tools") is not None]
@@ -328,6 +340,13 @@ def census(wf=None):
         Row("declares a tool grant",
             str(len(granted)) + " of " + str(len(steps)) + " steps",
             str(len(seats_granted)) + " of " + str(len(seats)) + " seats"),
+        # what `project.yml` is for, as a number. a prompt naming a path only
+        # works in the codebase it was written in, and a path that resolves to
+        # the wrong document is read rather than refused. the flow side never
+        # had the problem: its prompts name nothing outside themselves.
+        Row("names a path in its prose",
+            str(len(pathy_steps)) + " of " + str(len(sent)) + " steps",
+            str(len(project.hardcoded(wf))) + " of " + str(len(seats)) + " seats"),
         Row("declares a spend ceiling",
             str(len(capped)) + " of " + str(len(specs)) + " flows, rest default",
             str(len(phase_caps)) + " of " + str(len(wf.phases))
