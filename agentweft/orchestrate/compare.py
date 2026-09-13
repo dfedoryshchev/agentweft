@@ -303,6 +303,8 @@ def census(wf=None):
     pathy_steps = [t for t in sent if project.in_prose(t)]
 
     seats = [a for p in wf.phases for a in p.agents]
+    proj = project.read() if project.path().exists() else None
+    sourced = [a for a in seats if proj is not None and proj.read_first(a.name)]
     granted = [s for s in steps if s.get("tools") is not None]
     seats_granted = [a for a in seats if a.declared().get("tools") is not None]
     widths = sorted(len(p.agents) for p in wf.phases)
@@ -347,6 +349,12 @@ def census(wf=None):
         Row("names a path in its prose",
             str(len(pathy_steps)) + " of " + str(len(sent)) + " steps",
             str(len(project.hardcoded(wf))) + " of " + str(len(seats)) + " seats"),
+        # a bare 0 here would read as unwired rather than as a repo that ships
+        # no project.yml on purpose (`project.example.yml` is the copy to make).
+        Row("reads its pre-work",
+            "n/a, no such file for a flow",
+            (str(len(sourced)) + " of " + str(len(seats)) + " seats" if proj is not None
+             else "0 of " + str(len(seats)) + " seats, no project.yml here")),
         Row("declares a spend ceiling",
             str(len(capped)) + " of " + str(len(specs)) + " flows, rest default",
             str(len(phase_caps)) + " of " + str(len(wf.phases))

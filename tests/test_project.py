@@ -203,6 +203,39 @@ def test_the_paths_named_in_prose_are_the_three_the_note_found():
     ]
 
 
+def test_pre_work_prefers_the_project_over_the_seats_own_prose():
+    """the project's order, not the alphabetical order prose falls into.
+
+    developer's prompt names `docs/patterns.md` first and `docs/architecture.md`
+    second; `in_prose()` sorts, so reading the prose back would lose that. the
+    project's answer is the one meant to win, in the order it gives it.
+    """
+    developer = workflow.Agent("developer")
+    assert project.in_prose(developer.prompt().read_text(encoding="utf-8")) == \
+        ["docs/architecture.md", "docs/patterns.md"]
+    assert project.pre_work(developer, example()) == \
+        ["docs/patterns.md", "docs/architecture.md"]
+
+
+def test_pre_work_falls_back_to_the_seats_own_prose_when_the_project_says_nothing():
+    analyst = workflow.Agent("business-analyst")
+    proj = example()
+    assert proj.read_first("business-analyst") == []
+    assert project.pre_work(analyst, proj) == ["docs/architecture.md"]
+
+
+def test_pre_work_with_no_project_is_the_seats_own_prose():
+    architect = workflow.Agent("architect")
+    assert project.pre_work(architect, None) == \
+        ["docs/architecture.md", "docs/patterns.md"]
+
+
+def test_pre_work_is_empty_when_neither_side_says_anything():
+    consistency = workflow.Agent("e2e-consistency")
+    assert project.pre_work(consistency, example()) == []
+    assert project.pre_work(consistency, None) == []
+
+
 def test_two_of_those_three_do_not_exist_here_and_the_third_is_the_wrong_document():
     import pathlib
 

@@ -240,6 +240,22 @@ def read(p=None):
     return load(reader.read(p.read_text(encoding="utf-8")) or {})
 
 
+def pre_work(agent, proj=None):
+    """what one seat is actually handed to read first.
+
+    -> `proj`'s own answer when it has one, in the order it gives it. the
+    seat's own prose otherwise, found the way `hardcoded()` finds it: a
+    project silent about a role is not a project with nothing to read, it is
+    one nobody has answered for yet.
+    """
+    said = proj.read_first(agent.name) if proj is not None else []
+    if said:
+        return said
+    if not agent.prompt().exists():
+        return []
+    return in_prose(agent.prompt().read_text(encoding="utf-8"))
+
+
 def hardcoded(wf=None):
     """seats whose own prompt names a path. -> the seats, in workflow order.
 

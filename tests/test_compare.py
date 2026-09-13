@@ -134,6 +134,17 @@ def test_the_census_counts_the_paths_a_prompt_names_itself():
     assert rows["names a path in its prose"].phase == "17 of 20 seats"
 
 
+def test_the_census_says_whether_a_seat_reads_its_pre_work_from_the_project():
+    """zero said in words, because this repo ships no project.yml of its own.
+
+    a bare 0 in that column reads as a wiring that is broken rather than as a
+    repo that has nothing to answer yet.
+    """
+    rows = by_label(compare.census())
+    assert rows["reads its pre-work"].phase == \
+        "0 of 20 seats, no project.yml here"
+
+
 def test_the_census_says_which_side_runs():
     rows = by_label(compare.census())
     assert rows["something executes it"].flow == "20 of 20 steps"
