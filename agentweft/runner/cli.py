@@ -59,6 +59,7 @@ def cmd_help():
   python run.py step <flow> <role>   one step, reading stdin, writing nothing
   python run.py workflow          the phase list, and where it stops
   python run.py vocab             flow words against phase words, counted
+  python run.py states            the phase list as states and transitions
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -145,6 +146,20 @@ def cmd_vocab():
     return 0
 
 
+def cmd_states():
+    """python run.py states - the phase list as states and transitions.
+
+    `workflow` prints the file in the order it is written, which is the order
+    it is read in. this prints what that order becomes once the gate and the
+    loop are part of it: where a run can be, and which event moves it on.
+    """
+    from agentweft.orchestrate import machine
+
+    for line in machine.report():
+        print(line)
+    return 0
+
+
 def cmd_provider():
     """is everything configured actually usable, without spending anything.
 
@@ -205,4 +220,5 @@ def entrypoint():
 
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
-            "vocab": cmd_vocab, "--help": cmd_help, "-h": cmd_help}
+            "vocab": cmd_vocab, "states": cmd_states, "--help": cmd_help,
+            "-h": cmd_help}
