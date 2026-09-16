@@ -12,7 +12,8 @@ LIBRARY = Path(__file__).resolve().parent / "library"
 FRAGMENTS = ["role-header", "no-preamble", "header"]
 # some rules only make sense for one role
 EXTRA = {"reviewer": ["reviewer-only"], "verify": ["reviewer-only"],
-         "worker": ["multi-file"], "patcher": ["multi-file"]}
+         "judge": ["reviewer-only"], "worker": ["multi-file"],
+         "patcher": ["multi-file"]}
 
 
 def _read(names):

@@ -11,7 +11,7 @@ from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
 from agentweft.guardrails import boundary, defaults, gates, promises
 from agentweft.mcp import context, preflight
-from agentweft.orchestrate import park
+from agentweft.orchestrate import park, synthesise
 
 NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
@@ -176,6 +176,7 @@ class Run(object):
         self.retries = int(settings.get("retries", flow=fm))
         self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
+        self.produced = {}
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.
@@ -218,6 +219,20 @@ class Run(object):
                 return s.get("tools")
         return None
 
+    def reports_for(self, step):
+        """the reports a step said it judges, in the order it named them.
+
+        a name that has produced nothing in this process is left out rather
+        than sent empty: a resumed run starts in the middle, and a real name
+        over an empty report is worse than one report fewer.
+        """
+        for s in self.fm.steps:
+            if s.get("prompt", s["role"] + ".md") != step:
+                continue
+            return [synthesise.Report(r, self.produced[r])
+                    for r in (s.get("reports") or []) if self.produced.get(r)]
+        return []
+
     def gates_for(self, step):
         for s in self.fm.steps:
             if s.get("prompt", s["role"] + ".md") == step:
@@ -243,9 +258,12 @@ class Run(object):
         prompt = prompt + boundary.as_prompt(self.grant_for(step))
         if extra:
             prompt = prompt + extra
-        prompt = prompt + previous.as_prompt()
+        reports = self.reports_for(step)
+        prompt = prompt + (synthesise.brief(reports) if reports
+                           else previous.as_prompt())
         text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step,
                             provider=self.by_step.get(step, self.provider))
+        self.produced[role] = text
         used = self.by_step.get(step, self.provider)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
@@ -283,9 +301,13 @@ def run_fanout(run, plan):
     width = min(run.width_for("worker"), len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
-    return Handoff("worker", "\n\n".join(parts),
-                   meta={"tasks": len(tasks),
-                         "seconds": round(time.time() - began, 1)})
+    out = Handoff("worker", "\n\n".join(parts),
+                  meta={"tasks": len(tasks),
+                        "seconds": round(time.time() - began, 1)})
+    # every task went through Run.step, so what it recorded is whichever one
+    # finished last. the joined output is what the step actually produced.
+    run.produced["worker"] = out.output
+    return out
 
 
 def run_once(flow, provider=None):

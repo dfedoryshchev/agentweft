@@ -127,7 +127,7 @@ cannot quietly describe a merge that is not the one happening.
 
 ## which side gave
 
-9 ideas have a name on both sides, 19 exist only as a flow key and 7 only as a
+9 ideas have a name on both sides, 20 exist only as a flow key and 7 only as a
 phase key. i expected the phase file to give, on the grounds that its words
 were words and the flow side's were machinery, and a word moves in an
 afternoon. the words that could move have: `name` and `agents` are pairs now
@@ -156,6 +156,29 @@ prompt and returns text - so there is no call to intercept and a finding is a
 record, not a stop. `docs/guardrails.md` has the exact shape. a phase word that
 crossed as something narrower than it sounds is still worth more than one that
 crossed as a key nothing reads; the trap is letting the doc round it up.
+
+**the conflict table is the first thing to cross that is not a word at all.**
+the architect has been the final judge since the day the file arrived - "when
+the reviewers disagree, you decide", then six situations in a markdown table
+with the ruling each one gets - and nothing had ever read that table. a flow
+step can say `reports: [a, b]` now, which is the reports it is handed rather
+than whatever ran last, and that table goes out with them, read off
+`agents/architect.md` rather than copied into python. the count above went from
+19 to 20 because `reports` is a flow key with nothing to pair with: the
+architect names the three reports it judges in its own prose, which is the same
+shape as the paths `hardcoded()` counts, the wiring written where only a model
+can read it. `docs/flows.md` has the key and `roles/library/judge.md` has the
+role.
+
+it is worth being exact about what the judge is, because the repo already had a
+fan-in and this is not it. `merge` takes one role's fanned-out parts and is told
+not to add anything that was not already in one of them, which is the right
+instruction for stitching and disqualifying for judging: deciding between two
+reports is something neither of them said. the other half of `synthesise.py` is
+reading the answer back - the verdict, the rulings, and whether the section for
+what was refused is there at all, since the file says that one is not optional.
+most of what the file asks for still cannot be checked by anything, and those
+are named in `UNCHECKED` rather than left to look as though they passed.
 
 what is left will not go that way. seven things the file says have no flow word
 at all:

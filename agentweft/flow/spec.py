@@ -46,7 +46,8 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
          "context")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
-              "gates", "provider", "preflight", "pause", "model", "tools")
+              "gates", "provider", "preflight", "pause", "model", "tools",
+              "reports")
 
 # `model` on a step is a tier, not an id. the workflow file's header says the
 # model names came out of the imported prompts on the way over, because a tier
@@ -80,6 +81,7 @@ def check(raw):
         want = TYPES.get(key)
         if want and not isinstance(raw[key], want):
             bad.append(key + " should be " + want.__name__)
+    earlier = []
     for i, step in enumerate(raw.get("steps") or []):
         if not isinstance(step, dict) or "role" not in step:
             bad.append("step " + str(i) + " has no role")
@@ -101,6 +103,16 @@ def check(raw):
                         bad.append("step " + str(i) + ": no such tool "
                                    + str(tool) + ". there is: "
                                    + ", ".join(GRANTS))
+        if step.get("reports") is not None:
+            if not isinstance(step["reports"], list):
+                bad.append("step " + str(i) + ": reports should be a list")
+            else:
+                for name in step["reports"]:
+                    if name not in earlier:
+                        bad.append("step " + str(i) + ": reports " + str(name)
+                                   + ", which is not a role before it. there "
+                                   "is: " + (", ".join(earlier) or "nothing"))
+        earlier.append(step["role"])
     return bad
 
 

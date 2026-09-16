@@ -19,7 +19,8 @@ def flow_prompts(root="flows"):
 
 
 def test_the_library_keeps_the_roles_that_repeat():
-    assert resolver.library_roles() == ["merge", "planner", "reviewer", "verify"]
+    assert resolver.library_roles() == ["judge", "merge", "planner", "reviewer",
+                                        "verify"]
 
 
 def test_no_flow_repeats_a_line_the_library_already_says():

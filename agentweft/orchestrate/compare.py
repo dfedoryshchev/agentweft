@@ -129,6 +129,15 @@ MAP = (
          "one role, many copies, one per task the step before listed. a phase "
          "is plural the other way - several different roles at once - and the "
          "flow side has no word for that."),
+    Pair("step.reports", "",
+         "the reports one step is handed, named by the steps that wrote them, "
+         "instead of whatever ran last. it is the fan-in for the other kind of "
+         "many: `fanout` is one role in copies and `merge` stitches those back "
+         "together, while this is several different roles' work reaching one "
+         "step that has to decide between them. the phase side is not getting "
+         "a key for it either - the architect names its three inputs in its "
+         "own prose, which is the same shape as the paths `hardcoded()` "
+         "counts: the wiring written where only a model can read it."),
     Pair("step.must_produce", "",
          "a string the output has to contain, checked by the router. it is "
          "`produces` with teeth."),

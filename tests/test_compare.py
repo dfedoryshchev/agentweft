@@ -66,8 +66,12 @@ def test_the_sides_are_not_the_same_size():
     # `tools` was one of those two words; it is the ninth pair now, so the
     # phase-only side gives it back and drops to 7. the flow side does not
     # grow: `step.tools` is a new key, but it arrives inside a pair.
+    #
+    # `reports` is the fifth and it is the flow side growing on its own.
+    # nothing came across for it: the architect names the three reports it
+    # judges in its own prose, so there is no phase key to pair with.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 19
+    assert len(compare.flow_only()) == 20
     assert len(compare.phase_only()) == 7
 
 

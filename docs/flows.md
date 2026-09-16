@@ -37,8 +37,8 @@ about it, which is the point: adding a flow should not mean editing python.
     workers: 4
 
 `steps` runs in order. each step gets the previous step's output appended to
-its prompt, which is the whole chaining mechanism. there is no structured
-handoff and so far it has not needed one.
+its prompt unless it says otherwise, which is the whole chaining mechanism.
+there is no structured handoff and so far it has not needed one.
 
 `model` on a step is a TIER - `high`, `mid` or `low` - and never a model id.
 the planner is cheap and the reviewer is not, and that is a fact about the
@@ -60,6 +60,16 @@ each, and every line gets its own call instead of the whole list going to one
 worker. the results come back in whatever order they finish, so a fanout step
 almost always wants a merge step after it.
 
+`reports: [worker, reviewer]` on a step names the steps whose output it is
+handed, instead of only the one before it. it is the other kind of many:
+`fanout` is one role in copies and `merge` stitches those copies back together,
+while a step with `reports` is given several different roles' work and has to
+decide between them. each report arrives under the name of the step that wrote
+it, because a judge that cannot tell whose report is whose can only average
+them. the conflict table out of `orchestrate/agents/architect.md` goes with
+them, and `roles/library/judge.md` is what the role itself is told. a name that
+is not a role earlier in the same flow is refused by the checker.
+
 `schedule` is checked before anything runs. `python run.py weekly-digest
 --force` ignores it.
 
@@ -69,6 +79,10 @@ almost always wants a merge step after it.
   the work. keeping it honest about that is most of the prompt.
 - **worker** does the work from the plan.
 - **merge** stitches fanout results back into one thing.
+- **judge** is handed several reports that disagree and answers with one
+  verdict. it is not merge with more inputs: merge is told to add nothing that
+  was not already in one of the parts, and deciding between two reports is
+  exactly something neither of them said.
 - **reviewer** did not write the output and says so in its prompt. it can
   answer `VERDICT: redo`, and then the work is done again - through the same
   steps, fanout included - and handed back to the reviewer. twice at most.

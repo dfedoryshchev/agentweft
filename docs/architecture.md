@@ -23,9 +23,13 @@ threaded through five functions. `Run.step()` is the only place a step becomes
 a call. a step returns a `Handoff` - role, output, verdict, meta - not a string,
 because the reviewer's verdict was being smuggled through the text.
 
-fanout is the one branch: if a step is marked `fanout`, the previous step's
-output is split into lines and each one gets its own worker, up to `workers`
-at a time.
+fanout is the one branch in how a step is run: if a step is marked `fanout`,
+the previous step's output is split into lines and each one gets its own
+worker, up to `workers` at a time.
+
+`reports` is the one branch in what a step is handed. a step that names the
+reports it judges gets those steps' output under their own names, assembled by
+`orchestrate/synthesise.py`, instead of whatever ran immediately before it.
 
 ## providers
 
