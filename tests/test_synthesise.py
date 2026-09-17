@@ -144,6 +144,43 @@ def test_a_ruling_with_nothing_behind_it_is_a_fault():
     assert synthesise.faults(v) == ["no rule in the table behind: they disagreed"]
 
 
+CITED = a_judgement("they disagreed -> i picked one -> vibes")
+
+
+def test_a_table_that_did_not_parse_is_its_own_complaint(tmp_path):
+    """the ruling check goes quiet when there are no rules, so an empty table
+    has to be able to say why it is empty. the header is the only way in, and
+    renaming a column is enough to lose the whole thing."""
+    real = (workflow.root() / "agents"
+            / synthesise.JUDGE).read_text(encoding="utf-8")
+    (tmp_path / "agents").mkdir()
+    (tmp_path / "agents" / synthesise.JUDGE).write_text(
+        real.replace(synthesise.HEAD, "| Situation | Decision |"),
+        encoding="utf-8")
+    was = workflow.ROOT[0]
+    workflow.ROOT[0] = str(tmp_path)
+    try:
+        assert synthesise.table() == []
+        bad = synthesise.faults(synthesise.read(CITED))
+        assert [f for f in bad if f.startswith("the conflict table")]
+    finally:
+        workflow.ROOT[0] = was
+
+
+def test_a_missing_agent_file_is_still_not_a_complaint(tmp_path):
+    """the other empty table is a stance and stays one. a checkout without
+    `orchestrate/` has a judge; what it has not got is the six rulings, and
+    holding a judgement against rules nobody shipped would be the complaint
+    landing on whoever is least able to answer it."""
+    was = workflow.ROOT[0]
+    workflow.ROOT[0] = str(tmp_path)
+    try:
+        assert synthesise.table() == []
+        assert synthesise.faults(synthesise.read(CITED)) == []
+    finally:
+        workflow.ROOT[0] = was
+
+
 def test_both_have_a_point_is_not_a_ruling():
     """the file names that phrase itself, so this does too."""
     v = synthesise.read(GOOD.replace("drop it", "both have a point"))

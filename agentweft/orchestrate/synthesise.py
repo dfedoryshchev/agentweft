@@ -23,6 +23,13 @@ the reports under their own names, with the table, and what comes back is read
 for the shape the file asks for. the half of that file nothing can check is in
 UNCHECKED, because a requirement quietly skipped reads exactly like one that
 passed.
+
+the table can also fail to arrive, and that is two different events wearing one
+empty list. a checkout without `orchestrate/` never had the six rulings and is
+not asked about them. a file that is present with a header this cannot find was
+meant to be read, and while it says nothing the ruling check simply stops
+firing and every citation passes for want of anything to hold it against, which
+is the same quiet skip one paragraph up. `unparsed()` is the difference.
 """
 import re
 
@@ -102,6 +109,21 @@ def table(path=None):
         if cells and cells[0].strip("-"):
             out.append(Rule(cells[0], cells[1]))
     return out
+
+
+def unparsed(path=None):
+    """a conflict table that is there and did not read. -> complaints.
+
+    the other empty table, and not the same thing at all. an absent file is
+    answered above and is a stance. this is the one nothing intended: the file
+    is present and readable and the line the table is found by is not in it,
+    so a renamed column is enough to lose all six rulings without a word.
+    """
+    path = path or (workflow.root() / "agents" / JUDGE)
+    if not path.exists() or table(path):
+        return []
+    return ["the conflict table did not parse. " + path.name + " is there, "
+            "and the line it is found by is not: " + HEAD]
 
 
 class Report(object):
@@ -255,8 +277,10 @@ def faults(v, rules=None):
     same as the answer being right - UNCHECKED is the rest of the file, and it
     is the larger half.
     """
+    # only when this read the file itself. a caller that supplied rules has
+    # already said what the table is, and the one on disk is not its question.
+    bad = unparsed() if rules is None else []
     rules = table() if rules is None else rules
-    bad = []
     if not v.verdict():
         bad.append("no verdict. it is one of: " + ", ".join(sorted(ROUTER)))
     if not v.rulings:
