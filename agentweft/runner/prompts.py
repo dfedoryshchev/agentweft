@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 
-def load_prompt(flow, name, rules):
-    text = read(flow, name) + "\n\n" + rules
+def load_prompt(flow, name, rules, role=None):
+    text = read(flow, name, role) + "\n\n" + rules
     return substitute(text)
 
 
@@ -15,18 +15,22 @@ def substitute(text):
     return text
 
 
-def read(flow, name):
+def read(flow, name, role=None):
     """this flow's words for the role, then the library's words for the role.
 
     the flow goes first because it says what the material is, and the library
     last because it says how to answer - which is where every flow had already
     put it by hand. a flow with nothing of its own to add needs no file at
     all, which is the point: the role is the library's, the flow only differs.
+
+    `name` is the file the flow's own words are in and `role` is what the step
+    said it is. the library answers to the role: two files for one role are
+    two sets of flow words and one contract.
     """
     from agentweft.roles import resolver
 
     own = flow_path(flow, name)
-    shared = resolver.role_prompt(name)
+    shared = resolver.role_prompt(role + ".md" if role else name)
     if not own.exists():
         if not shared:
             raise FileNotFoundError(str(own))

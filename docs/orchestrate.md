@@ -196,9 +196,9 @@ at all:
 - **an ordered list of flows, and its name.** a flow spec says nothing about
   what runs after it.
 - **`name` in an agent's own frontmatter**, the file saying which role it is
-  for. a flow's prompt file has no frontmatter - the role is the file's NAME,
-  which is the whole of the flow side's answer, and it is why a step's role is
-  derived by slicing `.md` off it.
+  for. a flow's prompt file has no frontmatter and says nothing at all about
+  its role - the step in `flow.yaml` is what names one, and the file is only
+  where the words for it are kept.
 
 that last one is new here only in the sense that nothing had opened the file it
 lives in. it was always being said - and so was `tools`, which is why the

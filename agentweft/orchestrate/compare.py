@@ -168,9 +168,9 @@ MAP = (
          "no word for which stance a step takes."),
     Pair("", "agent.name",
          "the prompt file saying which role it is for. a flow's prompt file "
-         "has no frontmatter: the role is the file's NAME, which is the whole "
-         "of the flow side's answer and the reason a step's role is derived "
-         "by slicing `.md` off it."),
+         "has no frontmatter and says nothing at all about its role: the step "
+         "in flow.yaml is what names one, and the file is only where the "
+         "words for it are kept."),
 )
 
 
@@ -306,7 +306,7 @@ def census(wf=None):
     for name, sp in loaded:
         for s in sp.steps:
             try:
-                sent.append(prompts.read(name, s.get("prompt", s["role"] + ".md")))
+                sent.append(prompts.read(name, spec.step_id(s), s["role"]))
             except FileNotFoundError:
                 continue
     pathy_steps = [t for t in sent if project.in_prose(t)]

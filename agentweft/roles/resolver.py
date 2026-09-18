@@ -50,10 +50,11 @@ def library_roles():
 def role_prompt(name):
     """what the library says about a role, or "" when it says nothing.
 
-    `name` is the prompt's file name, which is the role's name in every flow
-    that does not point a step at some other file. a role the library has
-    never heard of is not an error - most of what a worker is told is about
-    the flow it is in, and there is nothing to hoist.
+    `name` is a file in the library, so it is the ROLE's name and not the
+    step's prompt file; the caller is the one that knows which role a step
+    declared. a role the library has never heard of is not an error - most of
+    what a worker is told is about the flow it is in, and there is nothing to
+    hoist.
     """
     path = LIBRARY / name
     if not path.exists():

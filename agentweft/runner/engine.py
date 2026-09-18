@@ -9,6 +9,7 @@ from agentweft.roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
+from agentweft.flow.spec import step_id
 from agentweft.guardrails import boundary, defaults, gates, promises
 from agentweft.mcp import context, preflight
 from agentweft.orchestrate import park, synthesise
@@ -191,19 +192,26 @@ class Run(object):
             if not s.get("provider") and not s.get("model"):
                 continue
             conf = s.get("provider") or fm.get("provider") or {}
-            self.by_step[s.get("prompt", s["role"] + ".md")] = \
+            self.by_step[step_id(s)] = \
                 pinned or providers.build(conf, tier=s.get("model", ""))
+
+    def role_for(self, step):
+        """the role this step declared, which the file name only usually says."""
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                return s["role"]
+        raise KeyError("no step called " + step + " in " + str(self.fm.name))
 
     def preflight_for(self, step):
         for s in self.fm.steps:
-            if s.get("prompt", s["role"] + ".md") == step:
+            if step_id(s) == step:
                 return s.get("preflight")
         return None
 
     def pause_for(self, step):
         """who the run waits for once this step is done, if anyone."""
         for s in self.fm.steps:
-            if s.get("prompt", s["role"] + ".md") == step:
+            if step_id(s) == step:
                 return s.get("pause")
         return None
 
@@ -215,7 +223,7 @@ class Run(object):
         second as a boundary that allows nothing.
         """
         for s in self.fm.steps:
-            if s.get("prompt", s["role"] + ".md") == step:
+            if step_id(s) == step:
                 return s.get("tools")
         return None
 
@@ -227,7 +235,7 @@ class Run(object):
         over an empty report is worse than one report fewer.
         """
         for s in self.fm.steps:
-            if s.get("prompt", s["role"] + ".md") != step:
+            if step_id(s) != step:
                 continue
             return [synthesise.Report(r, self.produced[r])
                     for r in (s.get("reports") or []) if self.produced.get(r)]
@@ -235,13 +243,13 @@ class Run(object):
 
     def gates_for(self, step):
         for s in self.fm.steps:
-            if s.get("prompt", s["role"] + ".md") == step:
+            if step_id(s) == step:
                 return [gates.build(g) for g in (s.get("gates") or [])]
         return []
 
-    def width_for(self, role):
+    def width_for(self, step):
         for s in self.fm.steps:
-            if s["role"] == role:
+            if step_id(s) == step:
                 return int(settings.get("workers", step=s, flow=self.fm))
         return 1
 
@@ -249,8 +257,8 @@ class Run(object):
         import time as _t
 
         began = _t.time()
-        role = step[:-3]
-        prompt = load_prompt(self.flow, step, self.by_role[role])
+        role = self.role_for(step)
+        prompt = load_prompt(self.flow, step, self.by_role[role], role)
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its
@@ -279,7 +287,7 @@ def run_steps(run, names, note=EMPTY):
     that skips the fanout is not the same flow."""
     out = note
     for step in names:
-        if run.fan and step == run.fan + ".md":
+        if step == run.fan:
             out = run_fanout(run, out)
             continue
         out = run.step(step, previous=out)
@@ -289,24 +297,25 @@ def run_steps(run, names, note=EMPTY):
 def run_fanout(run, plan):
     began = time.time()
     tasks = [l for l in plan.output.split("\n") if "|" in l]
+    role = run.role_for(run.fan)
 
     def one(task):
-        return run.step("worker.md",
+        return run.step(run.fan,
                         extra="\n\nyour task, only this one:\n\n" + task).output
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
     # planner 1, workers N, reviewer 1. the fanned out step is the only one
     # that gets to be plural, and it says so itself.
-    width = min(run.width_for("worker"), len(tasks)) or 1
+    width = min(run.width_for(run.fan), len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
-    out = Handoff("worker", "\n\n".join(parts),
+    out = Handoff(role, "\n\n".join(parts),
                   meta={"tasks": len(tasks),
                         "seconds": round(time.time() - began, 1)})
     # every task went through Run.step, so what it recorded is whichever one
     # finished last. the joined output is what the step actually produced.
-    run.produced["worker"] = out.output
+    run.produced[role] = out.output
     return out
 
 
@@ -321,7 +330,7 @@ def run_once(flow, provider=None):
     out = EMPTY
     step = steps(flow)[0]
     while step:
-        if run.fan and step == run.fan + ".md":
+        if step == run.fan:
             out = run_fanout(run, out)
         else:
             out = run.step(step, previous=out)
@@ -378,13 +387,13 @@ def main():
                 return
             before = steps(flow)[:len(steps(flow)) - len(todo)]
             if before:
-                out = Handoff(before[-1][:-3], resume.step_output(pick_up, before[-1]))
+                out = Handoff(run.role_for(before[-1]),
+                              resume.step_output(pick_up, before[-1]))
             print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
-    fan = fanout_step(flow)
     step = todo[0]
     while step:
-        if fan and step == fan + ".md":
+        if step == run.fan:
             out = run_fanout(run, out)
         else:
             extra = ""

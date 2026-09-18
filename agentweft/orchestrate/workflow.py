@@ -135,9 +135,9 @@ RESIDUE = (
             "phases sit in has no flow word, and neither does its name."),
     Missing(("agent.name",),
             "the prompt file saying which role it is for. a flow's prompt "
-            "file has no frontmatter - the role is the file's NAME, which is "
-            "the whole of the flow side's answer and the reason a step's role "
-            "is derived by slicing `.md` off it."),
+            "file has no frontmatter and says nothing at all about its role - "
+            "the step in flow.yaml is what names one, and the file is only "
+            "where the words for it are kept."),
 )
 
 

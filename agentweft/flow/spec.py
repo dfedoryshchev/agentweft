@@ -41,6 +41,17 @@ class FlowSpec(object):
         return self.raw[key]
 
 
+def step_id(step):
+    """what a step is called outside flow.yaml: the file its words live in.
+
+    a role is what a step IS and the prompt file is only where its words
+    happen to live, so one role can be two steps with a file each. the file
+    name is what tells those two apart, which is why it is the name the
+    runner, the router and the run directory all use.
+    """
+    return step.get("prompt", step["role"] + ".md")
+
+
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",

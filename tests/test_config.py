@@ -18,7 +18,7 @@ def test_step_files_are_md():
 
 
 def test_only_the_digest_fans_out():
-    assert runner.fanout_step("weekly-digest") == "worker"
+    assert runner.fanout_step("weekly-digest") == "worker.md"
     assert runner.fanout_step("ops-check") is None
 
 

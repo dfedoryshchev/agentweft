@@ -10,9 +10,10 @@ def config(flow):
 
 
 def fanout_step(flow):
+    """-> the fanned-out step, named the way every other step is named."""
     for s in config(flow).steps:
         if s.get("fanout"):
-            return s["role"]
+            return spec.step_id(s)
     return None
 
 
@@ -24,7 +25,7 @@ def verdict(text):
 
 
 def steps(flow):
-    return [s.get("prompt", s["role"] + ".md") for s in config(flow).steps]
+    return [spec.step_id(s) for s in config(flow).steps]
 
 
 def due(fm):

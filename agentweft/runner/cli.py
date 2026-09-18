@@ -79,6 +79,7 @@ def cmd_step():
 
     import os
 
+    from agentweft.flow.spec import step_id
     from agentweft.roles import resolver
 
     from . import prompts
@@ -92,10 +93,12 @@ def cmd_step():
     by_role = resolver.resolve(spec.raw, prompts.flow_path(flow),
                                spec.promises.as_prompt())
     run = Run(flow, spec, by_role)
+    step = next((step_id(s) for s in spec.steps if s["role"] == role),
+                role + ".md")
     previous = ""
     if not os.isatty(0):
         previous = sys.stdin.read()
-    out = run.step(role + ".md", previous=Handoff("stdin", previous))
+    out = run.step(step, previous=Handoff("stdin", previous))
     print(out.output)
     return 0
 

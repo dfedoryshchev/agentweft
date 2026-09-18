@@ -7,21 +7,32 @@ straight line had a special case bolted onto the side of it.
 
 so: the flow says where a verdict sends you, and the runner asks instead of
 walking a list.
+
+a step is named here by the file its words are in, because that is the only
+name that tells two steps of the same role apart. `on_redo` names a ROLE
+though - it is a person writing down who has to go again - so it is looked up
+rather than turned into a file name.
 """
+from agentweft.flow.spec import step_id
 
 
 class Router(object):
     def __init__(self, spec, cap=2):
-        self.order = [s.get("prompt", s["role"] + ".md") for s in spec.steps]
+        self.order = [step_id(s) for s in spec.steps]
+        self.roles = {step_id(s): s["role"] for s in spec.steps}
+        step_for_role = {}
+        for s in spec.steps:
+            step_for_role.setdefault(s["role"], step_id(s))
         self.on_redo = {}
         for s in spec.steps:
             target = s.get("on_redo")
             if target:
-                self.on_redo[s.get("prompt", s["role"] + ".md")] = target + ".md"
+                self.on_redo[step_id(s)] = \
+                    step_for_role.get(target, target + ".md")
         self.must = {}
         for s in spec.steps:
             if s.get("must_produce"):
-                self.must[s.get("prompt", s["role"] + ".md")] = s["must_produce"]
+                self.must[step_id(s)] = s["must_produce"]
         self.cap = cap
         self.sent_back = 0
 
@@ -50,6 +61,6 @@ class Router(object):
         # nothing declared, so back to whoever produced the thing being judged
         i = self.order.index(step)
         for earlier in reversed(self.order[:i]):
-            if earlier.startswith("worker"):
+            if self.roles.get(earlier, "").startswith("worker"):
                 return earlier
         return self.order[0] if i else None
