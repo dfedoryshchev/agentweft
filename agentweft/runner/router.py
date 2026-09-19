@@ -12,6 +12,14 @@ a step is named here by the file its words are in, because that is the only
 name that tells two steps of the same role apart. `on_redo` names a ROLE
 though - it is a person writing down who has to go again - so it is looked up
 rather than turned into a file name.
+
+two steps can answer to that role, and then the lookup has to pick one. it
+picks the last one BEFORE the step sending the work away, which is the answer
+this file already gives when nothing is declared at all: `_back_to` walks
+backwards for a worker. a redo is work going back the way it came, so the one
+it goes back to is the nearest, not the earliest. a target with nothing behind
+it is a role the run has not reached, which has no nearest, so that one stays
+the flow's first step of the role.
 """
 from agentweft.flow.spec import step_id
 
@@ -20,15 +28,16 @@ class Router(object):
     def __init__(self, spec, cap=2):
         self.order = [step_id(s) for s in spec.steps]
         self.roles = {step_id(s): s["role"] for s in spec.steps}
-        step_for_role = {}
+        first_for_role = {}
         for s in spec.steps:
-            step_for_role.setdefault(s["role"], step_id(s))
+            first_for_role.setdefault(s["role"], step_id(s))
         self.on_redo = {}
-        for s in spec.steps:
+        for i, s in enumerate(spec.steps):
             target = s.get("on_redo")
             if target:
                 self.on_redo[step_id(s)] = \
-                    step_for_role.get(target, target + ".md")
+                    self._earlier(i, lambda role: role == target) \
+                    or first_for_role.get(target, target + ".md")
         self.must = {}
         for s in spec.steps:
             if s.get("must_produce"):
@@ -60,7 +69,12 @@ class Router(object):
     def _back_to(self, step):
         # nothing declared, so back to whoever produced the thing being judged
         i = self.order.index(step)
-        for earlier in reversed(self.order[:i]):
-            if self.roles.get(earlier, "").startswith("worker"):
-                return earlier
-        return self.order[0] if i else None
+        return self._earlier(i, lambda role: role.startswith("worker")) \
+            or (self.order[0] if i else None)
+
+    def _earlier(self, i, fits):
+        """-> the last step before the one at i whose role fits, or None."""
+        for step in reversed(self.order[:i]):
+            if fits(self.roles.get(step, "")):
+                return step
+        return None

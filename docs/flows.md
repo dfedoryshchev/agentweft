@@ -40,6 +40,15 @@ about it, which is the point: adding a flow should not mean editing python.
 its prompt unless it says otherwise, which is the whole chaining mechanism.
 there is no structured handoff and so far it has not needed one.
 
+`role` is what a step IS and `prompt` is only where its words are kept, so one
+role can be two steps with a file each. that is how a flow runs a reviewer
+twice from two fixed positions - one told to cut, one told to say what is
+missing - and it is worth doing because one reviewer asked for a balanced view
+gives you a balanced view. both steps get the role's contract out of
+`roles/library/`; what differs is the flow's own file. a pair like that wants
+a step after it that ends the argument, which is `reports` below.
+`examples/personas` is the whole shape in four steps.
+
 `model` on a step is a TIER - `high`, `mid` or `low` - and never a model id.
 the planner is cheap and the reviewer is not, and that is a fact about the
 steps rather than about whichever model is current this quarter. which id a
@@ -67,8 +76,16 @@ while a step with `reports` is given several different roles' work and has to
 decide between them. each report arrives under the name of the step that wrote
 it, because a judge that cannot tell whose report is whose can only average
 them. the conflict table out of `orchestrate/agents/architect.md` goes with
-them, and `roles/library/judge.md` is what the role itself is told. a name that
-is not a role earlier in the same flow is refused by the checker.
+them, and `roles/library/judge.md` is what the role itself is told.
+
+a name in that list is a ROLE or a STEP. a role stands for every step that
+declared it, a step stands for itself and is its prompt file without the
+`.md`, and in a flow whose files are named after their roles the two are the
+same word. so `reports: [reviewer]` over one reviewer is the one report it has
+always been, and over a pair of them it is both, under a name each - which is
+the only form a judge can do anything with. `reports: [reviewer-minimalist]`
+names one of the pair. the same step named twice arrives once. a name that is
+neither a role nor a step earlier in the same flow is refused by the checker.
 
 `schedule` is checked before anything runs. `python run.py weekly-digest
 --force` ignores it.

@@ -52,6 +52,30 @@ def step_id(step):
     return step.get("prompt", step["role"] + ".md")
 
 
+def step_name(step):
+    """what a step is called by another step: its file, without the `.md`.
+
+    `reports:` is a list a person writes next to a role, and a role has never
+    carried an extension there. so the step's name in that list does not carry
+    one either, and a flow whose file is named after its role reads the same
+    word both ways.
+    """
+    name = step_id(step)
+    return name[:-3] if name.endswith(".md") else name
+
+
+def steps_named(steps, name):
+    """-> the steps `name` stands for, in flow order.
+
+    a ROLE stands for every step that declared it, which is what makes a pair
+    of personas addressable as the pair they are: the reviewer that was told
+    to cut and the reviewer that was told to expand are both the reviewer, and
+    a judge that was handed one of them is judging nothing. a STEP's own name
+    stands for that one step, for a flow that wants a single stance judged.
+    """
+    return [s for s in steps if s["role"] == name or step_name(s) == name]
+
+
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
@@ -121,9 +145,12 @@ def check(raw):
                 for name in step["reports"]:
                     if name not in earlier:
                         bad.append("step " + str(i) + ": reports " + str(name)
-                                   + ", which is not a role before it. there "
-                                   "is: " + (", ".join(earlier) or "nothing"))
-        earlier.append(step["role"])
+                                   + ", which is not a role or a step before "
+                                   "it. there is: "
+                                   + (", ".join(earlier) or "nothing"))
+        for name in (step["role"], step_name(step)):
+            if name not in earlier:
+                earlier.append(name)
     return bad
 
 

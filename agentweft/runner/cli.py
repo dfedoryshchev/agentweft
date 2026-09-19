@@ -56,7 +56,7 @@ def cmd_help():
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
   python run.py provider         is each configured provider usable
-  python run.py step <flow> <role>   one step, reading stdin, writing nothing
+  python run.py step <flow> <role-or-step>   one step, nothing written down
   python run.py workflow          the phase list, and where it stops
   python run.py vocab             flow words against phase words, counted
   python run.py states            the phase list as states and transitions
@@ -70,16 +70,20 @@ def cmd_help():
 
 
 def cmd_step():
-    """python run.py step <flow> <role> - one step, nothing written down.
+    """python run.py step <flow> <role-or-step> - one step, nothing written.
 
     debugging a prompt meant running the whole flow and paying for all of it.
+
+    a role is enough while it is one step, and a role run twice is the case
+    where it is not: `reviewer` is then the first of the pair and the other
+    one is only reachable by its own name.
     """
-    if not need(3, "python run.py step <flow> <role>"):
+    if not need(3, "python run.py step <flow> <role-or-step>"):
         return 1
 
     import os
 
-    from agentweft.flow.spec import step_id
+    from agentweft.flow.spec import step_id, steps_named
     from agentweft.roles import resolver
 
     from . import prompts
@@ -88,13 +92,13 @@ def cmd_step():
     from .handoff import Handoff
 
     load_env()
-    flow, role = sys.argv[2], sys.argv[3]
+    flow, name = sys.argv[2], sys.argv[3]
     spec = config(flow)
     by_role = resolver.resolve(spec.raw, prompts.flow_path(flow),
                                spec.promises.as_prompt())
     run = Run(flow, spec, by_role)
-    step = next((step_id(s) for s in spec.steps if s["role"] == role),
-                role + ".md")
+    named = steps_named(spec.steps, name)
+    step = step_id(named[0]) if named else name + ".md"
     previous = ""
     if not os.isatty(0):
         previous = sys.stdin.read()

@@ -238,7 +238,7 @@ def test_a_step_cannot_judge_a_report_nobody_wrote():
         spec.load({"name": "x", "steps": [
             {"role": "worker"},
             {"role": "judge", "reports": ["workr"]}]})
-    assert "reports workr, which is not a role before it" in str(e.value)
+    assert "reports workr, which is not a role or a step before it" in str(e.value)
     assert "there is: worker" in str(e.value)
 
 
@@ -384,11 +384,13 @@ def test_a_report_that_has_not_run_is_left_out_rather_than_sent_empty():
     # asked about are the spec's, not that file's
     run = engine.Run("code-review", fm, {"worker": "", "reviewer": "", "judge": ""},
                      provider={"provider": "fake"})
-    run.produced["reviewer"] = "only this one ran"
+    # what a step produced is filed under the step, so two of one role are two
+    # reports; `reports: [reviewer]` is still the name a flow writes
+    run.produced["reviewer.md"] = "only this one ran"
     assert [r.source for r in run.reports_for("judge.md")] == ["reviewer"]
     # a step that gave up produced the empty string, which is a name over
     # nothing rather than a report
-    run.produced["worker"] = ""
+    run.produced["worker.md"] = ""
     assert [r.source for r in run.reports_for("judge.md")] == ["reviewer"]
     assert run.reports_for("worker.md") == []
     assert run.reports_for("nobody.md") == []

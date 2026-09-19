@@ -19,6 +19,9 @@ these name theirs instead. the underscore keeps them out of the flow list.
 - **watch** - planner, worker, reviewer. the shape most of the real flows
   ended up in: something decides what the work is, something does it, something
   that did not do it says whether it is right.
+- **personas** - the reviewer twice, from two fixed positions, and a judge
+  that is handed both reports and has to decide. one role, two prompt files,
+  and `reports: [worker, reviewer]` on the step that ends the argument.
 
 ## what they do not show
 

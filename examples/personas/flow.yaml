@@ -1,0 +1,21 @@
+name: personas
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer-minimalist.md
+  - role: reviewer
+    prompt: reviewer-maximalist.md
+  - role: judge
+    prompt: judge.md
+    reports: [worker, reviewer]
+promises:
+  inputs: a folder of text files
+  outputs: one list, and what was cut from it and why
+  invariants:
+    - every line names a file
+    - what was dropped is said, not just dropped
+timeout: 120
+journal: false
+provider:
+  provider: fake

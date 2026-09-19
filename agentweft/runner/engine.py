@@ -9,7 +9,7 @@ from agentweft.roles import resolver
 
 from .config import config, due, fanout_step, steps, verdict
 from agentweft import providers
-from agentweft.flow.spec import step_id
+from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import boundary, defaults, gates, promises
 from agentweft.mcp import context, preflight
 from agentweft.orchestrate import park, synthesise
@@ -230,15 +230,29 @@ class Run(object):
     def reports_for(self, step):
         """the reports a step said it judges, in the order it named them.
 
+        a name is a role or a step, and a role is every step that declared it:
+        a role run twice from two fixed positions arrives as two reports under
+        a name each, which is the only form a judge can do anything with.
+
         a name that has produced nothing in this process is left out rather
         than sent empty: a resumed run starts in the middle, and a real name
-        over an empty report is worse than one report fewer.
+        over an empty report is worse than one report fewer. a step named
+        twice, once by its role and once by itself, is sent once - the same
+        text under two headings is the judge being told to weigh it heavier.
         """
         for s in self.fm.steps:
             if step_id(s) != step:
                 continue
-            return [synthesise.Report(r, self.produced[r])
-                    for r in (s.get("reports") or []) if self.produced.get(r)]
+            out = []
+            seen = []
+            for name in (s.get("reports") or []):
+                for other in steps_named(self.fm.steps, name):
+                    wrote = self.produced.get(step_id(other))
+                    if not wrote or step_id(other) in seen:
+                        continue
+                    seen.append(step_id(other))
+                    out.append(synthesise.Report(step_name(other), wrote))
+            return out
         return []
 
     def gates_for(self, step):
@@ -271,7 +285,7 @@ class Run(object):
                            else previous.as_prompt())
         text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step,
                             provider=self.by_step.get(step, self.provider))
-        self.produced[role] = text
+        self.produced[step] = text
         used = self.by_step.get(step, self.provider)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
@@ -315,7 +329,7 @@ def run_fanout(run, plan):
                         "seconds": round(time.time() - began, 1)})
     # every task went through Run.step, so what it recorded is whichever one
     # finished last. the joined output is what the step actually produced.
-    run.produced[role] = out.output
+    run.produced[run.fan] = out.output
     return out
 
 
