@@ -5,17 +5,65 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft import runner
+from agentweft.flow import reader, spec
 from agentweft.roles import resolver
 from agentweft.runner import prompts
 
+NL = chr(10)
+VERDICT = [l.strip() for l in resolver.role_prompt("reviewer.md").split(NL)
+           if l.strip()][0]
 
-def flow_prompts(root="flows"):
-    """every prompt file in every flow, template included."""
+PERSONAS = ("name: personas" + NL
+            + "steps:" + NL
+            + "  - role: worker" + NL
+            + "    prompt: worker.md" + NL
+            + "  - role: reviewer" + NL
+            + "    prompt: reviewer-minimalist.md" + NL
+            + "  - role: reviewer" + NL
+            + "    prompt: reviewer-maximalist.md" + NL)
+
+
+def declared_roles(folder):
+    """-> prompt file -> the role the flow's own steps say it is."""
+    fm = spec.load(reader.read((folder / "flow.yaml").read_text(encoding="utf-8")))
+    return {spec.step_id(step): step["role"] for step in fm.steps}
+
+
+def library_repeats(root="flows"):
+    """-> "<file>: <line>", once per prompt line its role already gets anyway.
+
+    the lookup goes through flow.yaml because the file name is not the role:
+    a role can be two files, and neither of them has to be called after it.
+    """
+    found = []
     for folder in sorted(pathlib.Path(root).iterdir()):
         if not folder.is_dir():
             continue
+        roles = declared_roles(folder)
         for path in sorted(folder.glob("*.md")):
-            yield path
+            role = roles.get(path.name)
+            if role is None:
+                continue
+            shared = [l.strip()
+                      for l in resolver.role_prompt(role + ".md").split(NL)
+                      if l.strip()]
+            for line in path.read_text(encoding="utf-8").split(NL):
+                if line.strip() and line.strip() in shared:
+                    found.append(str(path) + ": " + line.strip())
+    return found
+
+
+def a_flow(tmp_path, minimalist, maximalist):
+    root = tmp_path / "flows"
+    folder = root / "personas"
+    folder.mkdir(parents=True)
+    (folder / "flow.yaml").write_text(PERSONAS, encoding="utf-8")
+    (folder / "instructions.md").write_text("review what you are given." + NL,
+                                            encoding="utf-8")
+    (folder / "worker.md").write_text("do the work." + NL, encoding="utf-8")
+    (folder / "reviewer-minimalist.md").write_text(minimalist, encoding="utf-8")
+    (folder / "reviewer-maximalist.md").write_text(maximalist, encoding="utf-8")
+    return root
 
 
 def test_the_library_keeps_the_roles_that_repeat():
@@ -31,14 +79,23 @@ def test_no_flow_repeats_a_line_the_library_already_says():
     the class that actually grew - the verdict block, which had been pasted
     into five reviewers and forgotten in the sixth.
     """
-    repeats = []
-    for path in flow_prompts():
-        shared = [l.strip() for l in resolver.role_prompt(path.name).split("\n")
-                  if l.strip()]
-        for line in path.read_text(encoding="utf-8").split("\n"):
-            if line.strip() and line.strip() in shared:
-                repeats.append(str(path) + ": " + line.strip())
-    assert repeats == []
+    assert library_repeats() == []
+
+
+def test_a_persona_file_is_checked_against_the_words_its_role_already_says(
+        tmp_path):
+    """a second file for one role is not named after the role, so looking the
+    library up by the file name asks it about a name it has never heard of and
+    gets back nothing to compare with."""
+    assert resolver.role_prompt("reviewer-minimalist.md") == ""
+    root = a_flow(tmp_path,
+                  "# reviewer, minimalist" + NL + NL + VERDICT + NL,
+                  "# reviewer, maximalist" + NL + NL + "say what is missing."
+                  + NL)
+    found = library_repeats(root)
+    assert len(found) == 1, found
+    assert "reviewer-minimalist.md" in found[0]
+    assert found[0].endswith(": " + VERDICT)
 
 
 def test_a_role_the_library_has_no_words_for_is_the_flows_own():
