@@ -16,6 +16,9 @@ steps:
       - gate: regex
         pattern: "^FAIL "
         present: false
+      - gate: command
+        command: ["python", "-m", "pytest", "-q"]
+        expect: 0
 promises:
   inputs: a bug report and the file it is probably in
   outputs: a failing test, then a patch, then the test passing
