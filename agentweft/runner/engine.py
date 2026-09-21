@@ -333,6 +333,29 @@ def run_fanout(run, plan):
     return out
 
 
+def check_step(run, route, step, out, run_dir=None):
+    """what a step has to get past once it has produced something.
+
+    -> (the gate that failed, why the router will not go on), either of them
+    "" when it did not happen. the results are written down when there is a
+    run to write them into; a scored run has nowhere to write and still has to
+    be stopped by them.
+    """
+    results = [g.run(out.output) for g in run.gates_for(step)]
+    for r in results:
+        print("  " + repr(r))
+    if results and run_dir is not None:
+        run_dir.mkdir(parents=True, exist_ok=True)
+        with open(run_dir / "gates.md", "a") as gf:
+            gf.write("## " + step + NEWLINE)
+            for r in results:
+                gf.write(repr(r) + NEWLINE)
+    failed = [r for r in results if not r.ok]
+    if failed:
+        return failed[0].gate, ""
+    return "", route.gate(step, out) or ""
+
+
 def run_once(flow, provider=None):
     """run a flow and hand back what it produced plus what it cost. the eval
     harness wants the output, not the printing, and it wants to say which
@@ -348,7 +371,8 @@ def run_once(flow, provider=None):
             out = run_fanout(run, out)
         else:
             out = run.step(step, previous=out)
-        if not out:
+        failed, blocked = check_step(run, route, step, out)
+        if failed or blocked or not out:
             break
         step = route.next(step, out)
     return out.output, run.budget
@@ -432,24 +456,13 @@ def main():
             journal(fm["name"], "over budget at " + step, started)
             return
 
-        checks = run.gates_for(step)
-        results = [g.run(out.output) for g in checks]
-        for r in results:
-            print("  " + repr(r))
-        if results:
-            step_dir = Path("runs") / run_id
-            step_dir.mkdir(parents=True, exist_ok=True)
-            with open(step_dir / "gates.md", "a") as gf:
-                gf.write("## " + step + "\n")
-                for r in results:
-                    gf.write(repr(r) + "\n")
-        failed_gates = [r for r in results if not r.ok]
-        if failed_gates:
+        failed, blocked = check_step(run, route, step, out, run_dir=step_dir)
+        if failed:
             # a gate is not advice. it was failing the STEP, which meant the
             # run carried on and wrote the output anyway.
             print("gate failed at " + step + ", stopping")
-            write_index("GATE  " + flow + "  " + failed_gates[0].gate + " at " + step)
-            journal(fm["name"], "gate " + failed_gates[0].gate + " failed at " + step,
+            write_index("GATE  " + flow + "  " + failed + " at " + step)
+            journal(fm["name"], "gate " + failed + " failed at " + step,
                     started)
             return
 
@@ -485,7 +498,6 @@ def main():
                 bf.write("## " + step + "\n")
                 bf.write(boundary.as_note(crossed))
 
-        blocked = route.gate(step, out)
         if blocked:
             print(blocked + " - not going on")
             out = Handoff(out.role, "", verdict="redo", meta={"blocked": blocked})
