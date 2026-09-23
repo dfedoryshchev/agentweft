@@ -21,7 +21,8 @@ make the first one do the second.
             pattern: "TODO"
             present: false
 
-results print under the step and land in the journal.
+results print under the step and land in `runs/<run id>/gates.md`. the journal
+only hears about a gate that failed, because that one stops the run.
 
 ## the three
 

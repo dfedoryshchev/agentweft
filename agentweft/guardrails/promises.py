@@ -56,3 +56,7 @@ def check(text, invariants):
 
 def failures(text, invariants):
     return [(inv, detail) for inv, ok, detail in check(text, invariants) if ok is False]
+
+
+def unchecked(text, invariants):
+    return [inv for inv, ok, _detail in check(text, invariants) if ok is None]

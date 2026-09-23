@@ -535,6 +535,9 @@ def main():
     for inv, detail in broken:
         print("promise broken: " + inv + " (" + detail + ")")
         write_index("BROKE  " + flow + "  " + inv)
+    skipped = promises.unchecked(out.output, fm.promises.invariants)
+    for inv in skipped:
+        print("promise not checked: " + inv)
 
     path = next_run_path(flow)
     f = open(path, "w")
@@ -554,6 +557,8 @@ def main():
             status = "ok (resumed)"
         if broken:
             status = "ok, " + str(len(broken)) + " promise(s) broken"
+        if skipped:
+            status = status + ", " + str(len(skipped)) + " promise(s) not checked"
         f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow).name
                 + "  " + status + "  "
                 + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
