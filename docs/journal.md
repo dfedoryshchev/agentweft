@@ -91,6 +91,27 @@ handoff is written. there is nothing behind that step for a person to hold up.
 and every recent run as resources. see `docs/mcp.md`. that turned out to be the
 half of mcp i use.
 
+## why, not just what
+
+the journal says a run failed at the reviewer. it cannot say why the reviewer
+is there, or why the retry count is three. `agentweft/orchestrate/decisions.py`
+keeps that: one entry per decision, the decision as a heading and the reason
+under it.
+
+    # decisions
+
+    ## 2026-09-24 14:03  keep three retries
+
+    the provider's limit resets each minute, and three spans it.
+
+it is a file in the codebase being worked on, not under `runs/`, so it goes
+through review and history like the code it explains. `record(root, decided,
+why)` appends to `<root>/decisions.md` and refuses an entry with no why;
+`read(root)` gives every entry back, oldest first. entries are never
+rewritten - a decision that turned out wrong gets a later one saying so.
+
+nothing in the runner writes to it yet.
+
 ## what it does not do
 
 a resumed run writes its own journal line. so a run that failed and was picked
