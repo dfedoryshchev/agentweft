@@ -37,7 +37,7 @@ def library_repeats(root="flows"):
     """
     found = []
     for folder in sorted(pathlib.Path(root).iterdir()):
-        if not folder.is_dir():
+        if not (folder / "flow.yaml").is_file():
             continue
         roles = declared_roles(folder)
         for path in sorted(folder.glob("*.md")):
@@ -79,7 +79,7 @@ def test_no_flow_repeats_a_line_the_library_already_says():
     the class that actually grew - the verdict block, which had been pasted
     into five reviewers and forgotten in the sixth.
     """
-    assert library_repeats() == []
+    assert library_repeats() + library_repeats("examples") == []
 
 
 def test_a_persona_file_is_checked_against_the_words_its_role_already_says(
