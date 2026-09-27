@@ -36,6 +36,12 @@ def test_every_flow_declares_what_it_promises():
         assert spec.promises.invariants, name
 
 
+def test_only_the_per_diff_flow_stays_out_of_the_journal():
+    off = [name for name in flows_in("flows")
+           if runner.config(name).get("journal", True) is False]
+    assert off == ["code-review"]
+
+
 def test_the_examples_parse_too():
     prompts.FLOW_ROOT[0] = "examples"
     try:

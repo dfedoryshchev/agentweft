@@ -29,4 +29,3 @@ promises:
 max_calls: 9
 timeout: 300
 retries: 2
-journal: false

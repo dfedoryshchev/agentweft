@@ -25,4 +25,3 @@ context:
 max_calls: 26
 max_tokens: 250000
 timeout: 300
-journal: false

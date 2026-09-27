@@ -23,4 +23,5 @@ role names, and the fact that fragments/ and skills/ both feed every prompt.
 ## code
 
 - python 3, no frameworks
-- pyyaml is the only dependency and i would like it to stay that way
+- pyyaml and httpx are the only dependencies (httpx is for the api provider)
+  and i would like it to stay that way

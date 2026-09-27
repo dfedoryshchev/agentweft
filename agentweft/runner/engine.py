@@ -400,6 +400,10 @@ def main():
     except ValueError as e:
         print(flow + "/flow.yaml is wrong: " + str(e))
         return 1
+    if pick_up and not fm.get("journal", True):
+        print(flow + " has journal: false, so a run that finished is never "
+              "written down and --resume cannot tell it from one that stopped")
+        return 1
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")

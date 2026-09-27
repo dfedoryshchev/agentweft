@@ -114,6 +114,50 @@ def test_what_the_parked_step_produced_is_read_back_as_utf8(tmp_path, monkeypatc
     assert resume.step_output("demo-1", "reviewer.md") == smart
 
 
+def test_a_flow_that_does_not_journal_is_not_resumed(tmp_path, monkeypatch,
+                                                    capsys):
+    """it journals a stop and never the clean run after it, so a resume would
+    pick a finished run back up at a step that had since gone through."""
+    from agentweft.runner import prompts
+
+    flow = tmp_path / "flows" / "quiet"
+    flow.mkdir(parents=True)
+    for step in ["worker.md", "reviewer.md"]:
+        (flow / step).write_text("# step\n\ndo the thing.\n", encoding="utf-8")
+    (flow / "instructions.md").write_text("two steps, both answer.\n",
+                                          encoding="utf-8")
+    (flow / "flow.yaml").write_text(
+        "name: quiet\n"
+        "steps:\n"
+        "  - role: worker\n"
+        "    prompt: worker.md\n"
+        "  - role: reviewer\n"
+        "    prompt: reviewer.md\n"
+        "promises:\n"
+        "  invariants:\n"
+        "    - every line names a file\n"
+        "timeout: 120\n"
+        "journal: false\n"
+        "provider:\n"
+        "  provider: fake\n"
+        '  reply: "VERDICT: ok\\n\\n- notes.md | changed | moved\\n"\n',
+        encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
+    engine.journal("quiet", "failed at reviewer.md", datetime.datetime.now())
+    monkeypatch.setattr(sys, "argv", ["run.py", "quiet", "--force",
+                                      "--flows", "flows"])
+    engine.main()
+    capsys.readouterr()
+
+    monkeypatch.setattr(sys, "argv", ["run.py", "quiet", "--force", "--flows",
+                                      "flows", "--resume"])
+    engine.main()
+    said = capsys.readouterr().out
+    assert "picking" not in said
+    assert "journal: false" in said
+
+
 def test_a_step_that_left_nothing_behind_reads_as_empty(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert resume.step_output("demo-1", "gone.md") == ""

@@ -13,6 +13,9 @@ step, as it is produced.
 
 flows that run several times an hour set `journal: false` - code-review does.
 they still write their step outputs, they just stay out of the weekly number.
+they cannot be resumed: a run that finished is never written down, so the
+journal cannot tell it from the last one that stopped, and `--resume` says so
+instead of picking a finished run back up.
 
 ## the week
 
