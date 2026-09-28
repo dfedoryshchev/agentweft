@@ -121,9 +121,12 @@ file is any of them, so one vocabulary bought a shared word and not a check.
 
 `unmapped()` is the part that keeps it honest. every key on both sides has to
 be placed in the map, a test fails while one is not, so a key added to either
-file stays visible until someone says what the other side calls it. the map is
-now held against the loader's own translation table by a second test, so it
-cannot quietly describe a merge that is not the one happening.
+file stays visible until someone says what the other side calls it. the
+phase side of the map is read off the loader's own translation table and its
+list of what did not translate, so it cannot describe a merge that is not the
+one happening. it used to be a second copy of both, held level by a test, and
+`run.py vocab` printed the untranslated words twice with two different
+explanations of each.
 
 ## which side gave
 

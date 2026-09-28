@@ -163,25 +163,22 @@ def test_the_report_says_what_the_merge_carried_and_what_it_did_not():
     assert "which side gave" in text
     # the report has to keep naming the price, not just the result
     assert "what the merge could not carry" in text
+    labels = [line.strip().split("  ")[0].split(", ")
+              for line in text.split("\n") if line.startswith("  ")]
     for miss in workflow.RESIDUE:
         for term in miss.terms:
             assert term in text, term
+            assert sum(term in label for label in labels) == 1, term
 
 
-def test_the_table_says_what_the_loader_does():
-    """MAP was prose beside the loader; now the loader is the thing it maps.
-
-    every translated word is a pair here, and every word the translation left
-    behind is on the phase-only side of it. the two lists cannot drift apart
-    without this failing.
-    """
-    pairs = dict((p.phase, p.flow) for p in compare.MAP)
-    for phase_term, flow_term in workflow.TRANSLATION:
-        assert pairs.get(phase_term) == flow_term, phase_term
-    for miss in workflow.RESIDUE:
-        for term in miss.terms:
-            assert term in pairs, term
-            assert pairs[term] == "", term
+def test_every_translated_word_has_a_note_and_every_note_a_word():
+    """the pairs are read off the loader's table, so the only thing left to
+    drift is the notes: a word the loader starts translating prints bare, and
+    a note for a word it stopped translating prints nowhere."""
+    translated = [phase for phase, _ in workflow.TRANSLATION]
+    assert sorted(compare.CROSSED) == sorted(translated)
+    for pair in compare.pairs():
+        assert pair.note.strip(), pair.phase
 
 
 def test_the_census_says_both_sides_load_as_the_same_thing():

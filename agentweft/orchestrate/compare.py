@@ -8,8 +8,10 @@ which words are spelled the same on both sides while meaning different things.
 
 it was only an argument when i wrote it. the merge has happened in the code
 since - a phase is translated into flow words and loaded by the flow loader -
-so MAP is now held against `workflow.TRANSLATION` and `workflow.RESIDUE` by a
-test, and the table has to keep agreeing with what the loader really does.
+and for a while this file kept its own copy of that translation, held against
+`workflow.TRANSLATION` and `workflow.RESIDUE` by a test. the phase column is
+read off those two now. what is written here is the flow-only side, which
+nothing else lists, and the notes.
 
 doing it took two entries out of the shared column. `loop` and `sequential`
 read like pairs while both sides were only being described; a translation has
@@ -51,52 +53,52 @@ class Pair(object):
         return bool(self.flow) and bool(self.phase)
 
 
-# every term in flow_vocabulary() and phase_vocabulary() has to appear here
-# exactly once. unmapped() is what enforces that, and a test fails on it, so a
-# key added to either side stays visible until someone says what the other side
-# calls it - which is the question this whole file exists to keep asking.
-MAP = (
-    Pair("flow.name", "phase.name",
-         "what the unit is called. these paired up when a phase became a flow "
-         "spec: the name that used to belong to the group now names the flow "
-         "the group turned into."),
-    Pair("flow.steps", "phase.agents",
-         "the ordered list of jobs. it was the loader that made this a pair - "
-         "the seats in a phase ARE the steps in the spec it loads as."),
-    Pair("step.role", "agent.agent",
-         "the named job. a step has exactly one; a phase holds a list of them."),
-    Pair("promises.outputs", "phase.produces",
-         "what comes out, in prose, on both sides, and neither is checked "
-         "against the output. `outputs` at least gets printed by `show`; only "
-         "the invariants reach a prompt."),
-    Pair("promises.inputs", "phase.entry",
-         "what it starts from. the flow describes the input; the phase states "
-         "a condition that has to hold first, which is the stronger of the two "
-         "and the one nothing reads."),
-    Pair("promises.invariants", "phase.exit",
-         "what has to be true about the result. an exit line is an invariant "
-         "now and it is still not checked: the checker knows three shapes and "
-         "no exit line in the file is any of them."),
-    Pair("step.pause", "phase.gate",
-         "where it stops on purpose and waits for a person. the phase side had "
-         "the word first and nothing read it; the flow side does it - the "
-         "runner writes a handoff and returns, and --resume carries on past "
-         "the step it parked on. two words for it because `gate` on a step was "
-         "already taken by a program."),
-    Pair("step.model", "agent.model",
-         "which class of model answers, spelled the same on both sides and "
-         "never a version string. it was the first phase word that cost the "
-         "flow side a key something READS: the checker takes it and a "
-         "provider chooses on it, where the rest of the residue would only "
-         "have documented an intention."),
-    Pair("step.tools", "agent.tools",
-         "what the job may touch. the second word to cost a key that is read, "
-         "and the one to be careful about: the checker refuses a tool it has "
-         "no name for, the grant goes out in the prompt, and the output is "
-         "held against it afterwards. nothing is intercepted, because nothing "
-         "here is in the path of a tool call."),
+# what each translated word means on both sides. which flow word it became is
+# `workflow.TRANSLATION`'s to say, not this table's.
+CROSSED = {
+    "phase.name":
+        "what the unit is called. these paired up when a phase became a flow "
+        "spec: the name that used to belong to the group now names the flow "
+        "the group turned into.",
+    "phase.agents":
+        "the ordered list of jobs. it was the loader that made this a pair - "
+        "the seats in a phase ARE the steps in the spec it loads as.",
+    "agent.agent":
+        "the named job. a step has exactly one; a phase holds a list of them.",
+    "phase.produces":
+        "what comes out, in prose, on both sides, and neither is checked "
+        "against the output. `outputs` at least gets printed by `show`; only "
+        "the invariants reach a prompt.",
+    "phase.entry":
+        "what it starts from. the flow describes the input; the phase states "
+        "a condition that has to hold first, which is the stronger of the two "
+        "and the one nothing reads.",
+    "phase.exit":
+        "what has to be true about the result. an exit line is an invariant "
+        "now and it is still not checked: the checker knows three shapes and "
+        "no exit line in the file is any of them.",
+    "phase.gate":
+        "where it stops on purpose and waits for a person. the phase side had "
+        "the word first and nothing read it; the flow side does it - the "
+        "runner writes a handoff and returns, and --resume carries on past "
+        "the step it parked on. two words for it because `gate` on a step was "
+        "already taken by a program.",
+    "agent.model":
+        "which class of model answers, spelled the same on both sides and "
+        "never a version string. it was the first phase word that cost the "
+        "flow side a key something READS: the checker takes it and a "
+        "provider chooses on it, where the rest of the residue would only "
+        "have documented an intention.",
+    "agent.tools":
+        "what the job may touch. the second word to cost a key that is read, "
+        "and the one to be careful about: the checker refuses a tool it has "
+        "no name for, the grant goes out in the prompt, and the output is "
+        "held against it afterwards. nothing is intercepted, because nothing "
+        "here is in the path of a tool call.",
+}
 
-    # only the flow has a word for it
+
+FLOW_ONLY = (
     Pair("step.workers", "",
          "how many at once. it read as `sequential`'s pair until the merge "
          "asked which flow word a phase becomes: a step that fans out says how "
@@ -145,33 +147,18 @@ MAP = (
          "a check that is a program. the phase side has no program anywhere."),
     Pair("step.provider", "", "who answers this one step."),
     Pair("step.preflight", "", "what to do when a step touches a risky file."),
-
-    # only the phase has a word for it. these are RESIDUE, which is what the
-    # merge could not carry, and a test holds the two lists together.
-    Pair("", "workflow.lead",
-         "the one that runs the whole thing and does not implement. the flow's "
-         "lead is the runner, which is code and not a prompt."),
-    Pair("", "workflow.phases",
-         "an ordered list of flows. a flow spec says nothing about what runs "
-         "after it, so the sequence the phases sit in has no flow word."),
-    Pair("", "workflow.name",
-         "what that sequence is called. `flow.name` names one phase now, and "
-         "there is nothing left to name the whole."),
-    Pair("", "phase.loop",
-         "how many times round before it is a person's problem."),
-    Pair("", "phase.sequential",
-         "the mark that a phase's agents cannot work at the same time, which "
-         "is the only place the file says they usually do."),
-    Pair("", "agent.personality",
-         "the same prompt twice from a fixed position. the second prompt file "
-         "has a home now that roles have a library; the flow side still has "
-         "no word for which stance a step takes."),
-    Pair("", "agent.name",
-         "the prompt file saying which role it is for. a flow's prompt file "
-         "has no frontmatter and says nothing at all about its role: the step "
-         "in flow.yaml is what names one, and the file is only where the "
-         "words for it are kept."),
 )
+
+
+# every term in flow_vocabulary() and phase_vocabulary() has to appear here
+# exactly once. unmapped() is what enforces that, and a test fails on it, so a
+# key added to either side stays visible until someone says what the other side
+# calls it - which is the question this whole file exists to keep asking.
+MAP = (tuple(Pair(flow, phase, CROSSED.get(phase, ""))
+             for phase, flow in workflow.TRANSLATION)
+       + FLOW_ONLY
+       + tuple(Pair("", term, miss.why)
+               for miss in workflow.RESIDUE for term in miss.terms))
 
 
 def flow_vocabulary():
@@ -409,20 +396,16 @@ def report(wf=None):
         out.append(_beside(pair.flow, pair.note))
 
     out.append("")
-    out.append("only a phase has a word for it  (" + str(len(other)) + ")")
-    for pair in other:
-        out.append(_beside(pair.phase, pair.note))
+    out.append("only a phase has a word for it: what the merge could not carry"
+               "  (" + str(len(other)) + ")")
+    for miss in workflow.RESIDUE:
+        out.append(_beside(", ".join(miss.terms), miss.why))
 
     out.append("")
     out.append("the same word for two things")
     for word, left, right in collisions():
         out.append("  " + word + ": " + ", ".join(left) + "  vs  "
                    + ", ".join(right))
-
-    out.append("")
-    out.append("what the merge could not carry  (" + str(len(workflow.RESIDUE)) + ")")
-    for miss in workflow.RESIDUE:
-        out.append(_beside(", ".join(miss.terms), miss.why))
 
     out.append("")
     out.append("what is in the repo")
