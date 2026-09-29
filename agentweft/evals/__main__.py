@@ -21,9 +21,10 @@ def main():
     for path in cases:
         case = harness.load_case(path)
         started = time.time()
-        out, budget = harness.run_flow_for(flow, case)
+        out, budget, stopped = harness.run_flow_for(flow, case)
         results.append((case["name"],
-                        harness.score(spec, out, budget, time.time() - started)))
+                        harness.score(spec, out, budget, stopped,
+                                      time.time() - started)))
     print(harness.table(flow, results))
     if "--no-save" not in sys.argv:
         harness.save_scores(flow, results)

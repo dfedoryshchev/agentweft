@@ -357,9 +357,9 @@ def check_step(run, route, step, out, run_dir=None):
 
 
 def run_once(flow, provider=None):
-    """run a flow and hand back what it produced plus what it cost. the eval
-    harness wants the output, not the printing, and it wants to say which
-    provider the whole thing runs on."""
+    """run a flow and hand back what it produced, what it cost, and why it
+    stopped short ("" when it did not). the eval harness wants the output, not
+    the printing, and it wants to say which provider the whole thing runs on."""
     fm = config(flow)
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     run = Run(flow, fm, by_role, provider=provider)
@@ -372,10 +372,14 @@ def run_once(flow, provider=None):
         else:
             out = run.step(step, previous=out)
         failed, blocked = check_step(run, route, step, out)
-        if failed or blocked or not out:
-            break
+        if failed:
+            return out.output, run.budget, "gate " + failed + " failed at " + step
+        if blocked:
+            return out.output, run.budget, blocked
+        if not out:
+            return out.output, run.budget, "nothing came out of " + step
         step = route.next(step, out)
-    return out.output, run.budget
+    return out.output, run.budget, ""
 
 
 def main():

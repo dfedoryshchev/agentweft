@@ -59,7 +59,7 @@ def go(tmp_path, monkeypatch, body, answers, name):
     monkeypatch.setattr(engine, "call", fake_call)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(root)])
     monkeypatch.chdir(tmp_path)
-    out, budget = harness.run_flow_for(
+    out, budget, stopped = harness.run_flow_for(
         name, {"inbox": tmp_path, "provider": {"provider": "fake"}})
     return asked, out
 

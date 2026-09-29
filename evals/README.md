@@ -9,7 +9,8 @@ a case is a folder under `evals/<flow>/cases/`: an `inbox/` of files and a
 not deterministic and a golden file would be wrong by wednesday.
 
 what a case asserts is the flow's own promises - the same invariants the runner
-already checks - plus what it cost.
+already checks - plus that the run got to the end, plus what it cost. a run
+stopped by a gate, or by a step that produced nothing, loses that one.
 
 ## the comparison
 

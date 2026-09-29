@@ -35,7 +35,9 @@ def load_case(path):
 
 
 def run_flow_for(flow, case):
-    """point the flow at the case's inputs and run it. -> (output, budget).
+    """point the flow at the case's inputs and run it.
+
+    -> (output, budget, why it stopped short or "").
 
     the case says which provider, and it has to win: the cases have declared
     `provider: fake` since the day they were written and nothing read it, so
@@ -56,12 +58,17 @@ def run_flow_for(flow, case):
                 os.environ[k] = v
 
 
-def score(spec, output, budget=None, seconds=None):
+def score(spec, output, budget=None, stopped="", seconds=None):
     """a case does not have an expected output; it has promises that either
-    held or did not."""
+    held or did not, and a run that got to the end or did not.
+
+    the second one is a row of its own because the text cannot say it: a gate
+    on the last step leaves that step's text behind, and an empty text keeps
+    every promise there is."""
     from agentweft.guardrails import promises
 
-    rows = []
+    rows = [{"invariant": "the run got to the end", "ok": not stopped,
+             "detail": stopped or "every step ran"}]
     for inv, ok, detail in promises.check(output, spec.promises.invariants):
         rows.append({"invariant": inv, "ok": ok, "detail": detail})
     checked = [r for r in rows if r["ok"] is not None]
