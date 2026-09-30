@@ -652,3 +652,63 @@ it cannot just leave a hole, because unlike the number the requirement behind
 it is real. one file per project, beside the workflow, is the obvious home for
 the other half. what the roles are allowed to say has to be settled before that
 file can have any keys, and that is this note and not the next one.
+
+## 2026-09-30
+
+september. one system again, with a smaller asterisk than i expected.
+
+the first thing i did was the thing august could not decide. a phase loads as
+a flow now: the phase file's words are translated into flow words and the flow
+loader validates what comes out. two loaders, two validators and two object
+models went down to one of each on the first of the month. the last copy went
+this week - the vocab table was keeping its own version of the translation,
+held level with the loader's by a test, and printing the untranslated words
+twice with two explanations each. it reads them off the loader now.
+
+i said in august the phase file would give, because its keys were words and a
+word moves in an afternoon. it went the other way round. the phase words that
+could cross did - `name`, `agents`, `pause`, and then `model` and `tools`,
+which are the two that cost the flow side a key something actually reads. a
+tier picks which model answers. a grant goes into the prompt and the answer is
+held against it afterwards, which is a check on the output and not a fence
+round the call, because nothing in here is in the path of a tool call. the
+seven words left over would each be a new flow key read by nothing, so the
+runner is what said no, and the phase file keeps its dialect.
+
+the persona trick is built once now instead of twice. a role and the file its
+words live in are separate things, so a reviewer can be two steps with a
+prompt each, and a judge step is handed both reports under their own names and
+decides. the word `personality` did not cross to do it. the shape did.
+
+the specifics went where the note earlier this month said they would: one
+`project.yml` per project, and a seat's pre-work is the project's answer when
+it has one. `standards` is prose, `coverage` is numbers, `gates` are programs,
+and only the last kind cannot be agreed with and then not done.
+
+one dead end, eight days long. i tried the phase list as a state machine, and
+eight phases came out as fourteen states, which was interesting and not useful:
+only one phase has a loop, and picking the next step off a verdict is what the
+router has done since january. reverted.
+
+the rest of the month was the same bug in different clothes, and it is the one
+from may and august. a fanned-out step skipped preflight, so the blast-radius
+guard never ran on the only flow that asks for it. a scored eval run skipped
+every gate the flow declares. a promise nothing could check was not reported at
+all, which on the shipped flows is sixteen of nineteen. a conflict table whose
+header had drifted read as empty and passed every ruling. fix-with-test's last
+step was a model saying the test passes now; it runs the test. none of those
+was ever red. the suite also cannot reach a real provider any more, and the
+guard that stops it has a test of its own, because a guard that never fires
+looks exactly like one that works.
+
+the asterisk: one system is true of the two halves, not of the runner. there
+are still two step loops in `engine.py`, the one a person runs and the one the
+evals run, and three of this month's silent passes lived in the gap between
+them. gates are shared now. preflight and the boundary check still only run on
+the first one. and no phase executes. a phase is a flow spec with nothing
+handing it to the runner, which is a wiring problem, and not the same problem
+august had.
+
+the decision log is the other thing worth having. the journal said what
+happened and nothing said why. one entry per decision now, and an entry with no
+reason is refused.
