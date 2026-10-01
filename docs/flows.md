@@ -90,6 +90,17 @@ neither a role nor a step earlier in the same flow is refused by the checker.
 `schedule` is checked before anything runs. `python run.py weekly-digest
 --force` ignores it.
 
+`workdir` is the directory the run works in, and `--workdir <dir>` on the
+command line beats it. a run that names neither works where `run.py` was
+started, and a relative path is resolved against that same directory. it is
+made absolute once, before the first step is asked anything, and a place that
+is not a directory stops the run right there. the run holds the result as
+`Run.workdir` and writes it to `runs/<run-id>/workdir`, so `--resume` carries
+on in the place the run started in, whatever the flow file says by then; a
+resume told `--workdir` somewhere else is refused. nothing runs a process
+there yet: the `command` gate still runs from wherever `run.py` was started,
+and `runs/` is still written there too.
+
 ## what each role is for
 
 - **planner** reads the source and decides what the work is. it does not do

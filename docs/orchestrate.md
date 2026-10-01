@@ -130,7 +130,7 @@ explanations of each.
 
 ## which side gave
 
-9 ideas have a name on both sides, 20 exist only as a flow key and 7 only as a
+9 ideas have a name on both sides, 21 exist only as a flow key and 7 only as a
 phase key. i expected the phase file to give, on the grounds that its words
 were words and the flow side's were machinery, and a word moves in an
 afternoon. the words that could move have: `name` and `agents` are pairs now
@@ -171,7 +171,8 @@ than whatever ran last, and that table goes out with them, read off
 architect names the three reports it judges in its own prose, which is the same
 shape as the paths `hardcoded()` counts, the wiring written where only a model
 can read it. `docs/flows.md` has the key and `roles/library/judge.md` has the
-role.
+role. `workdir` took the count to 21 the same way: a phase has no word for the
+directory a run works in.
 
 it is worth being exact about what the judge is, because the repo already had a
 fan-in and this is not it. `merge` takes one role's fanned-out parts and is told

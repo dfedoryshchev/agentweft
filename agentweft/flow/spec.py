@@ -79,7 +79,7 @@ def steps_named(steps, name):
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
-         "context")
+         "context", "workdir")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports")
@@ -100,7 +100,7 @@ GRANTS = ("read", "grep", "write", "edit", "shell", "browser")
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
-         "max_tokens": int, "journal": bool, "name": str}
+         "max_tokens": int, "journal": bool, "name": str, "workdir": str}
 
 
 def check(raw):

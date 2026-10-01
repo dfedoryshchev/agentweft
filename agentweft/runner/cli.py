@@ -52,6 +52,7 @@ def cmd_show():
 def cmd_help():
     print("""usage:
   python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
+                       [--workdir <dir>]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
@@ -64,7 +65,9 @@ def cmd_help():
 --force   ignore the schedule
 --resume  pick up the last run of that flow that did not finish. one that died
           starts again at the step that died; one that parked for a person
-          carries on at the step after it""")
+          carries on at the step after it
+--workdir the directory the run works in, over the flow's own `workdir`.
+          a resumed run stays in the one it started in""")
     return 0
 
 

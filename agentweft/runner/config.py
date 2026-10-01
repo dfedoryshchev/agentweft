@@ -1,4 +1,5 @@
 import datetime
+from pathlib import Path
 
 from agentweft.flow import reader, spec
 
@@ -15,6 +16,22 @@ def fanout_step(flow):
         if s.get("fanout"):
             return spec.step_id(s)
     return None
+
+
+def where(fm, given=None):
+    """-> the directory a run works in, absolute, and checked to be there.
+
+    the place a person named beats the flow file's, and a run that names none
+    works where it was started. a relative path is made absolute here, once, so
+    nothing later has to know what directory the process happened to be in.
+    """
+    named = given or fm.get("workdir") or "."
+    path = Path(named).resolve()
+    if not path.exists():
+        raise ValueError("workdir " + str(named) + ": no such directory")
+    if not path.is_dir():
+        raise ValueError("workdir " + str(named) + ": not a directory")
+    return path
 
 
 def verdict(text):

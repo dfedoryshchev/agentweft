@@ -70,8 +70,10 @@ def test_the_sides_are_not_the_same_size():
     # `reports` is the fifth and it is the flow side growing on its own.
     # nothing came across for it: the architect names the three reports it
     # judges in its own prose, so there is no phase key to pair with.
+    #
+    # `workdir` is the sixth, the same way: a phase names no place to work in.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 20
+    assert len(compare.flow_only()) == 21
     assert len(compare.phase_only()) == 7
 
 

@@ -77,6 +77,12 @@ def step_output(run_id, step):
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
+def workdir(run_id):
+    """-> the place that run worked in, or "" for a run that never said."""
+    p = Path("runs") / run_id / "workdir"
+    return p.read_text(encoding="utf-8").strip() if p.exists() else ""
+
+
 def runs_for(flow):
     runs = Path("runs")
     if not runs.exists():

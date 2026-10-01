@@ -124,6 +124,10 @@ FLOW_ONLY = (
          "a comment with a key on it. the workflow file keeps its notes in "
          "yaml comments, where nothing can reach them either."),
     Pair("flow.context", "", "the tool a planner asks before it plans."),
+    Pair("flow.workdir", "",
+         "the directory a run works in, made absolute and checked before the "
+         "first call. a phase has no word for a place: its agents name their "
+         "own paths in their prompts."),
     Pair("step.prompt", "",
          "which file the step sends. an agent's prompt is its own name plus "
          ".md, so it cannot be pointed anywhere else."),

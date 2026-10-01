@@ -7,7 +7,7 @@ from pathlib import Path
 
 from agentweft.roles import resolver
 
-from .config import config, due, fanout_step, steps, verdict
+from .config import config, due, fanout_step, steps, verdict, where
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import boundary, defaults, gates, promises
@@ -169,10 +169,11 @@ class Run(object):
     """everything a step needs, built once. fm and by_role were being threaded
     through five functions just so two of them could read a timeout."""
 
-    def __init__(self, flow, fm, by_role, provider=None):
+    def __init__(self, flow, fm, by_role, provider=None, workdir=None):
         self.flow = flow
         self.fm = fm
         self.by_role = by_role
+        self.workdir = where(fm, workdir)
         self.timeout = int(settings.get("timeout", flow=fm))
         self.retries = int(settings.get("retries", flow=fm))
         self.workers = int(settings.get("workers", flow=fm))
@@ -412,7 +413,23 @@ def main():
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
         return
-    run = Run(flow, fm, by_role)
+    named = None
+    if "--workdir" in sys.argv:
+        i = sys.argv.index("--workdir")
+        if len(sys.argv) <= i + 1:
+            print("--workdir needs a directory")
+            return 1
+        named = sys.argv[i + 1]
+    started_in = resume.workdir(pick_up) if pick_up else ""
+    try:
+        if started_in and named and where(fm, named) != Path(started_in):
+            print(pick_up + " was working in " + started_in + ", not "
+                  + named + ". a run carries on where it started")
+            return 1
+        run = Run(flow, fm, by_role, workdir=started_in or named)
+    except ValueError as e:
+        print(str(e))
+        return 1
     route = router.Router(fm, cap=2)
     started = datetime.datetime.now()
     run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
@@ -437,6 +454,9 @@ def main():
                               resume.step_output(pick_up, before[-1]))
             print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
+    (Path("runs") / run_id).mkdir(parents=True, exist_ok=True)
+    (Path("runs") / run_id / "workdir").write_text(str(run.workdir),
+                                                   encoding="utf-8")
     step = todo[0]
     while step:
         if step == run.fan:
@@ -554,7 +574,8 @@ def main():
     print("saved " + str(path))
 
     save_state(flow, {"last_run": path.name,
-                      "at": datetime.datetime.now().isoformat()})
+                      "at": datetime.datetime.now().isoformat(),
+                      "workdir": str(run.workdir)})
 
     # code-review runs per diff, several times an hour. it drowns the weekly
     # rollup and none of it is interesting a day later.
