@@ -56,6 +56,11 @@ class Router(object):
             return "step " + step + " did not produce " + want
         return None
 
+    def out_of_redos(self, handoff):
+        """a redo the cap will not send anywhere. asked before `next`, which
+        is what spends the cap."""
+        return handoff.verdict == "redo" and self.sent_back >= self.cap
+
     def next(self, step, handoff):
         """-> the next step, or None when there is nothing left."""
         if handoff.verdict == "redo" and self.sent_back < self.cap:

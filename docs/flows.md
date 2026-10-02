@@ -113,7 +113,9 @@ and `runs/` is still written there too.
   exactly something neither of them said.
 - **reviewer** did not write the output and says so in its prompt. it can
   answer `VERDICT: redo`, and then the work is done again - through the same
-  steps, fanout included - and handed back to the reviewer. twice at most.
+  steps, fanout included - and handed back to the reviewer. twice at most: a
+  redo after that parks the run at the reviewer for a person, the same park a
+  `pause` gives (see `journal.md`), with the reason in its `handoff.md`.
 
 ## the rules every role gets
 

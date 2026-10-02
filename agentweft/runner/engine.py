@@ -538,24 +538,32 @@ def main():
             journal(fm["name"], "failed at " + step, started)
             return
 
+        stuck = route.out_of_redos(out)
         nxt = route.next(step, out)
-        waiting = run.pause_for(step)
-        if out.verdict == "redo" and nxt:
+        waiting = run.pause_for(step) or ("user" if stuck else None)
+        if out.verdict == "redo" and nxt and not stuck:
             print("sent back to " + nxt)
-        elif waiting and nxt:
+        elif stuck or (waiting and nxt):
             # parking is a person letting the work through, so there has to be
             # work to let through: never on the last step, which has nothing
             # behind it to hold up. a redo takes the branch above instead - the
             # work is going round again, so there is nothing to let through
-            # yet.
+            # yet. a redo with none left is the exception: the reviewer did
+            # not let it through, and the last step is where it most often
+            # says so.
+            why = ""
+            if stuck:
+                why = (step + " still asks for a redo, and the work has gone"
+                       " back " + str(route.cap) + " times already,")
             note = park.write(run_id, fm["name"], step, waiting,
                               [(name, secs) for name, secs, _ in timings],
                               resume.after(steps(flow), step),
-                              resume_command(flow, run_id))
+                              resume_command(flow, run_id), why=why)
             print("parked at " + step + ", waiting for " + waiting)
             print("it needs you: " + str(note))
             write_index("PARKED  " + flow + "  at " + step)
-            journal(fm["name"], "parked at " + step, started, run_id)
+            journal(fm["name"], "parked at " + step, started,
+                    ("out of redos  " if stuck else "") + run_id)
             return
         step = nxt
 

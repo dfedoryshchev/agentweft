@@ -19,20 +19,25 @@ from pathlib import Path
 FILE = "handoff.md"
 
 
-def lines(run_id, flow, step, who, done, left, command):
+def lines(run_id, flow, step, who, done, left, command, why=None):
     """the handoff as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
     it stopped, why it stopped, and what to do about it. the last one is a
-    command to type, not a description of one.
+    command to type, not a description of one. `why` is for a stop the flow
+    did not ask for.
     """
     out = ["# parked: " + run_id, ""]
     out.append("waiting for    " + who)
     out.append("flow           " + flow)
     out.append("stopped after  " + step)
     out.append("")
-    out.append("nothing failed. " + step + " finished and its checks passed. the flow")
-    out.append("asks for " + who + " here, so the rest of it has not run.")
+    if why:
+        out.append(why)
+        out.append("so the rest of it has not run.")
+    else:
+        out.append("nothing failed. " + step + " finished and its checks passed. the flow")
+        out.append("asks for " + who + " here, so the rest of it has not run.")
     out.append("")
     out.append("ran")
     for name, seconds in done:
@@ -51,7 +56,7 @@ def lines(run_id, flow, step, who, done, left, command):
     return out
 
 
-def write(run_id, flow, step, who, done, left, command, runs=None):
+def write(run_id, flow, step, who, done, left, command, runs=None, why=None):
     """write the handoff beside the step outputs, and hand back the path.
 
     the same folder as trace.md and gates.md. everything one run left behind
@@ -61,6 +66,6 @@ def write(run_id, flow, step, who, done, left, command, runs=None):
     folder = (runs or Path("runs")) / run_id
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / FILE
-    body = lines(run_id, flow, step, who, done, left, command)
+    body = lines(run_id, flow, step, who, done, left, command, why)
     path.write_text("\n".join(body) + "\n", encoding="utf-8")
     return path
