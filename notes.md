@@ -712,3 +712,41 @@ august had.
 the decision log is the other thing worth having. the journal said what
 happened and nothing said why. one entry per decision now, and an entry with no
 reason is refused.
+
+## 2026-10-02
+
+the rules that were prose, and the rules that were programs.
+
+for about ten years most of the rules i have worked under were documents. you
+MUST read the testing doc first. no warning suppressions. the test fails before
+the fix goes in. i agreed with every one of them, and how much of each held
+depended on the week.
+
+the prompts in here are the same kind of thing. eight of the role files under
+`orchestrate/agents/` open with a MANDATORY PRE-WORK list that names a path.
+test-qa's first item is `docs/testing.md`, which this repo does not have, and
+nothing would know either way. a model says it read the doc. so does a person.
+
+the other kind is an exit code. the closing step of fix-with-test runs
+`python -m pytest -q` and wants 0. nobody gets to agree with that.
+
+red before green is the clearest case, because that rule is in fix-with-test
+three times and only one copy is a program. the worker prompt asks for it. the
+`must_produce` marker checks the words `FAILS:` are in the answer. the red-test
+gate checks the same words again. all three read what the model said about the
+test, not the test. the green half runs the suite; the red half is still a
+sentence checked for itself.
+
+the invariants are the same split at a larger size. every one goes into the
+prompt, and across the shipped flows `promises.py` can check three of twenty.
+the runner prints `promise not checked` for the other seventeen now instead of
+staying quiet, which is the honest version of a doc nobody reads back.
+
+`project.yml` puts the split in its key names: `standards` is prose, `gates`
+are programs. right now the `gates` block has a loader and nothing that runs
+it, so for the moment it is a list of promises too.
+
+prose does not go away. most of what a codebase believes has no program behind
+it and never will. the work is taking each rule that has a yes or no answer,
+moving it to the column with the exit code, and being plain about which column
+everything else is still in.
