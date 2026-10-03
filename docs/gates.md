@@ -29,7 +29,9 @@ only hears about a gate that failed, because that one stops the run.
 - **regex** - `pattern`, and `present: false` to require it is absent.
 - **length** - `max_lines`, `min_lines`.
 - **command** - `command: [...]`, with `{file}` replaced by a temp file holding
-  the output. passes when the exit code matches `expect` (default 0).
+  the output. passes when the exit code matches `expect` (default 0). it runs
+  in the run's `workdir` (see `docs/flows.md`), so it can check the work
+  itself and not only what the step said about it.
 
 ## why command matters
 

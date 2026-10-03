@@ -259,7 +259,8 @@ class Run(object):
     def gates_for(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
-                return [gates.build(g) for g in (s.get("gates") or [])]
+                return [gates.build(g, where=self.workdir)
+                        for g in (s.get("gates") or [])]
         return []
 
     def width_for(self, step):

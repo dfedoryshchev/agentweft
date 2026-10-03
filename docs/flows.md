@@ -97,9 +97,9 @@ made absolute once, before the first step is asked anything, and a place that
 is not a directory stops the run right there. the run holds the result as
 `Run.workdir` and writes it to `runs/<run-id>/workdir`, so `--resume` carries
 on in the place the run started in, whatever the flow file says by then; a
-resume told `--workdir` somewhere else is refused. nothing runs a process
-there yet: the `command` gate still runs from wherever `run.py` was started,
-and `runs/` is still written there too.
+resume told `--workdir` somewhere else is refused. the `command` gate runs its
+command there, so a suite in that directory is a gate on its exit code.
+`runs/` is still written where `run.py` was started.
 
 ## what each role is for
 

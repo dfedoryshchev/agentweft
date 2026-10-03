@@ -25,6 +25,7 @@ class Result(object):
 
 class Gate(object):
     name = "gate"
+    where = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -47,11 +48,12 @@ def register(cls):
     return cls
 
 
-def build(config):
+def build(config, where=None):
     """{"gate": "regex", ...} -> a Gate. unknown names are an error, not a skip.
 
     the argument was called `spec`, which in this repo means a FlowSpec. it is
-    a dict of gate options and nothing to do with a spec.
+    a dict of gate options and nothing to do with a spec. `where` is the
+    directory the run works in, for the gates that run something there.
     """
     name = config.get("gate")
     if name not in registry:
@@ -59,4 +61,6 @@ def build(config):
                          + ", ".join(sorted(registry)))
     opts = dict(config)
     opts.pop("gate")
-    return registry[name](**opts)
+    g = registry[name](**opts)
+    g.where = where
+    return g
