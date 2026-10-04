@@ -295,10 +295,10 @@ the file argues with itself on purpose, and the section names are the argument:
 
 anything under `standards:` can be ignored. anything under `gates:` cannot.
 
-what it does NOT do yet is the same answer as everything else on this page:
-nothing reads it. no role takes its pre-work from it, no gate takes its numbers
-from it, and no reject rule is checked against anything. what exists is the
-format and a loader that refuses a word it has no name for, the way `flow.yaml`
+what it does NOT do yet is most of it. one gate takes its numbers from it:
+`coverage` holds a report to the `coverage:` floor (see `docs/gates.md`). no
+role takes its pre-work from it, and no reject rule is checked against
+anything. the rest is the format and a loader that refuses a word it has no name for, the way `flow.yaml`
 has for months - `project.yml: roles: architect: no such tool shel. there is:
 read, grep, write, edit, shell, browser`. a tier is `spec.TIERS` and a grant is
 `spec.GRANTS`, borrowed rather than restated, because a second list of what
@@ -307,4 +307,4 @@ read, grep, write, edit, shell, browser`. a tier is `spec.TIERS` and a grant is
 `run.py vocab` carries the count it exists to bring down. 17 of the 20 seats
 name a path in their own prose; 0 of the 20 steps on the flow side do, because
 a flow's prompt names nothing outside itself. that row is the gap, and it does
-not move until something reads the file.
+not move until a seat's pre-work comes from the file.

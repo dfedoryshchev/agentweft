@@ -24,7 +24,7 @@ make the first one do the second.
 results print under the step and land in `runs/<run id>/gates.md`. the journal
 only hears about a gate that failed, because that one stops the run.
 
-## the three
+## the five
 
 - **regex** - `pattern`, and `present: false` to require it is absent.
 - **length** - `max_lines`, `min_lines`.
@@ -32,6 +32,31 @@ only hears about a gate that failed, because that one stops the run.
   the output. passes when the exit code matches `expect` (default 0). it runs
   in the run's `workdir` (see `docs/flows.md`), so it can check the work
   itself and not only what the step said about it.
+- **red-test** - `marker` (default `FAILS:`) has to be in the output, or with
+  `red: false` has to be gone from it.
+- **coverage** - a cobertura xml report, `report` (default `coverage.xml`, read
+  in the run's `workdir`), held to a floor from `project.yml` (see
+  `docs/orchestrate.md`). `floor` names which one, `overall` (default) or
+  `critical`; `critical` needs `paths`, the file patterns it covers. it counts
+  lines, not branches, and a line is covered if any copy of it in the report
+  was hit. it runs nothing, so the command that writes the report goes in a
+  command gate before it. no `project.yml`, or one with no number for the
+  floor, is a failure and not a pass.
+
+## the number is not in the flow
+
+    gates:
+      - gate: command
+        command: ["python", "-m", "pytest", "-q", "--cov", "--cov-report=xml"]
+      - gate: coverage
+      - gate: coverage
+        floor: critical
+        paths: ["billing/*"]
+
+the flow says which report and which floor. what the floor IS comes from
+`coverage:` in `project.yml`, and a number written on the gate is refused.
+test-qa used to carry it as a sentence, where it could be read, agreed with and
+then not met. it is a check now.
 
 ## why command matters
 
