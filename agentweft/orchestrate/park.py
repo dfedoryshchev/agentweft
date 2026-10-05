@@ -14,7 +14,7 @@ file the person being waited for has to read. the runner is what calls it.
 the runner already has a Handoff and that is a different thing: what one step
 passes to the next, machine to machine. this is what a run passes to a person.
 """
-from pathlib import Path
+from agentweft.runner import state
 
 FILE = "handoff.md"
 
@@ -63,7 +63,7 @@ def write(run_id, flow, step, who, done, left, command, runs=None, why=None):
     stays in one place, and the person being waited for gets one path to look
     at rather than a mechanism of its own to learn.
     """
-    folder = (runs or Path("runs")) / run_id
+    folder = (runs or state.RUNS) / run_id
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / FILE
     body = lines(run_id, flow, step, who, done, left, command, why)

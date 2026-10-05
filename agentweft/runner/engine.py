@@ -24,6 +24,7 @@ from .prompts import flow_path, load_prompt, read
 from . import resume, router
 from .settings import get as setting  # noqa: F401
 from . import settings
+from . import state
 from .state import load_state, save_state
 
 from pathlib import Path
@@ -117,8 +118,8 @@ def items(text):
 def journal(flow_name, status, started, extra=""):
     """the only place a journal line gets written. there were three, and the
     failure one had drifted into a different column order."""
-    runs = Path("runs")
-    runs.mkdir(exist_ok=True)
+    runs = state.RUNS
+    runs.mkdir(parents=True, exist_ok=True)
     secs = int((datetime.datetime.now() - started).total_seconds())
     with open(runs / "journal.md", "a") as f:
         f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + flow_name + "  "
@@ -127,8 +128,8 @@ def journal(flow_name, status, started, extra=""):
 
 
 def write_index(line):
-    index = Path("runs") / "index.md"
-    index.parent.mkdir(exist_ok=True)
+    index = state.RUNS / "index.md"
+    index.parent.mkdir(parents=True, exist_ok=True)
     lines = []
     if index.exists():
         lines = [l for l in index.read_text(encoding="utf-8").split("\n")
@@ -154,8 +155,8 @@ def resume_command(flow, run_id):
 
 
 def next_run_path(flow):
-    runs = Path("runs")
-    runs.mkdir(exist_ok=True)
+    runs = state.RUNS
+    runs.mkdir(parents=True, exist_ok=True)
     day = datetime.date.today().isoformat()
     stem = flow + "-" + day
     n = 1
@@ -455,8 +456,8 @@ def main():
                               resume.step_output(pick_up, before[-1]))
             print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
-    (Path("runs") / run_id).mkdir(parents=True, exist_ok=True)
-    (Path("runs") / run_id / "workdir").write_text(str(run.workdir),
+    (state.RUNS / run_id).mkdir(parents=True, exist_ok=True)
+    (state.RUNS / run_id / "workdir").write_text(str(run.workdir),
                                                    encoding="utf-8")
     step = todo[0]
     while step:
@@ -473,7 +474,7 @@ def main():
                 extra = "\n\nthe last run was " + seen + \
                     ". only tell me what is different since then."
             out = run.step(step, previous=out, extra=extra)
-        step_dir = Path("runs") / run_id
+        step_dir = state.RUNS / run_id
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
         timings.append((step, out.meta.get("seconds", 0), out.meta.get("cached")))
@@ -521,7 +522,7 @@ def main():
                   + " thing(s) it was not granted")
             for mark, line in crossed:
                 print("  " + mark.what + "  " + line[:60])
-            step_dir = Path("runs") / run_id
+            step_dir = state.RUNS / run_id
             step_dir.mkdir(parents=True, exist_ok=True)
             with open(step_dir / "boundary.md", "a") as bf:
                 bf.write("## " + step + "\n")
@@ -533,8 +534,6 @@ def main():
 
         if not out:
             print("run stopped at " + step)
-            runs = Path("runs")
-            runs.mkdir(exist_ok=True)
             write_index("FAILED  " + flow + "  at " + step)
             journal(fm["name"], "failed at " + step, started)
             return
@@ -559,7 +558,8 @@ def main():
             note = park.write(run_id, fm["name"], step, waiting,
                               [(name, secs) for name, secs, _ in timings],
                               resume.after(steps(flow), step),
-                              resume_command(flow, run_id), why=why)
+                              resume_command(flow, run_id), runs=state.RUNS,
+                              why=why)
             print("parked at " + step + ", waiting for " + waiting)
             print("it needs you: " + str(note))
             write_index("PARKED  " + flow + "  at " + step)
@@ -589,7 +589,7 @@ def main():
     # code-review runs per diff, several times an hour. it drowns the weekly
     # rollup and none of it is interesting a day later.
     if fm.get("journal", True):
-        f = open(Path("runs") / "journal.md", "a")
+        f = open(state.RUNS / "journal.md", "a")
         status = "ok"
         if pick_up:
             status = "ok (resumed)"
@@ -605,7 +605,7 @@ def main():
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 
-    trace = Path("runs") / run_id / "trace.md"
+    trace = state.RUNS / run_id / "trace.md"
     lines = ["# " + run_id, ""]
     for name, secs, cached in timings:
         lines.append("  " + name.ljust(16) + str(secs) + "s"

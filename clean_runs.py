@@ -1,9 +1,10 @@
 import sys
-from pathlib import Path
+
+from agentweft.runner import state
 
 # runs/ is already at 80 files and i have had this a week
 
-runs = Path("runs")
+runs = state.RUNS
 keep = int(sys.argv[1]) if len(sys.argv) > 1 else 30
 KEEP_NAMES = ("index.md", "journal.md", "last-step.md")
 

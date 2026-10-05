@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.providers import cli_provider
+from agentweft.runner import state
 
 
 def refuse(what):
@@ -27,3 +28,8 @@ def no_real_provider():
             run=refuse("the cli provider's subprocess.run"),
             TimeoutExpired=subprocess.TimeoutExpired))
         yield
+
+
+@pytest.fixture(autouse=True)
+def runs_of_its_own(tmp_path, monkeypatch):
+    monkeypatch.setattr(state, "RUNS", tmp_path / "runs")

@@ -1,11 +1,12 @@
 import datetime
 import sys
 from collections import Counter
-from pathlib import Path
+
+from agentweft.runner import state
 
 # what did the week actually do. reads runs/journal.md, one line per run.
 
-journal = Path("runs") / "journal.md"
+journal = state.RUNS / "journal.md"
 if not journal.exists():
     print("no journal yet")
     raise SystemExit(0)

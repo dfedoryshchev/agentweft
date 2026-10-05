@@ -5,9 +5,9 @@ that died, because that step produced nothing. a run that parked for a person
 is picked up AFTER the step it parked on, because that step finished and the
 only thing missing was the person.
 """
-from pathlib import Path
+from . import state
 
-JOURNAL = Path("runs") / "journal.md"
+JOURNAL = None
 
 # the journal statuses that mean "this run did not finish", and what kind of
 # not-finishing each one is. anything else on the line is a run that ended, and
@@ -37,10 +37,11 @@ class Stop(object):
 
 def last_stop(flow_name):
     """-> Stop for the most recent unfinished run of this flow, or None."""
-    if not JOURNAL.exists():
+    journal = JOURNAL or state.RUNS / "journal.md"
+    if not journal.exists():
         return None
     found = None
-    for line in JOURNAL.read_text().split("\n"):
+    for line in journal.read_text().split("\n"):
         if not line.strip():
             continue
         parts = [p for p in line.split("  ") if p]
@@ -73,18 +74,18 @@ def step_output(run_id, step):
     # with the platform default, which on this machine is cp1252. a digest with
     # a single smart quote in it came back as a UnicodeDecodeError, and only
     # ever on resume, which is the least convenient place to find out.
-    p = Path("runs") / run_id / step
+    p = state.RUNS / run_id / step
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
 def workdir(run_id):
     """-> the place that run worked in, or "" for a run that never said."""
-    p = Path("runs") / run_id / "workdir"
+    p = state.RUNS / run_id / "workdir"
     return p.read_text(encoding="utf-8").strip() if p.exists() else ""
 
 
 def runs_for(flow):
-    runs = Path("runs")
+    runs = state.RUNS
     if not runs.exists():
         return []
     return sorted(p.name for p in runs.iterdir() if p.is_dir() and p.name.startswith(flow + "-"))

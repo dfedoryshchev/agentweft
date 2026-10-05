@@ -6,7 +6,8 @@ handling is how i ended up with pydantic and jinja in here twice.
 """
 import subprocess
 import sys
-from pathlib import Path
+
+from agentweft.runner import state
 
 from . import transport
 
@@ -25,7 +26,7 @@ def resources():
             "mimeType": "text/plain"},
            {"uri": "flows://gates", "name": "gate results, most recent runs",
             "mimeType": "text/markdown"}]
-    runs = Path("runs")
+    runs = state.RUNS
     if runs.exists():
         for d in sorted((p for p in runs.iterdir() if p.is_dir()), reverse=True)[:20]:
             out.append({"uri": "flows://run/" + d.name, "name": d.name,
@@ -35,10 +36,10 @@ def resources():
 
 def read_resource(uri):
     if uri == "flows://journal":
-        p = Path("runs") / "journal.md"
+        p = state.RUNS / "journal.md"
         return p.read_text(encoding="utf-8") if p.exists() else ""
     if uri == "flows://gates":
-        runs = Path("runs")
+        runs = state.RUNS
         if not runs.exists():
             return "nothing yet"
         parts = []
@@ -52,7 +53,7 @@ def read_resource(uri):
                            text=True, timeout=60)
         return r.stdout or "nothing yet"
     if uri.startswith("flows://run/"):
-        d = Path("runs") / uri[len("flows://run/"):]
+        d = state.RUNS / uri[len("flows://run/"):]
         if not d.is_dir():
             raise ValueError("no such run: " + uri)
         parts = []

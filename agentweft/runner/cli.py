@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from . import state
 from .config import config
 from .prompts import FLOW_ROOT
 
@@ -194,7 +195,7 @@ def cmd_provider():
 
 
 def cmd_spend():
-    journal = Path("runs") / "journal.md"
+    journal = state.RUNS / "journal.md"
     if not journal.exists():
         print("no runs yet")
         return 0

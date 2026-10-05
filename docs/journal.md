@@ -9,7 +9,9 @@ every run appends one line to `runs/journal.md`:
     2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011
 
 and every step's output lands under `runs/<flow>-<date>-<time>/`, one file per
-step, as it is produced.
+step, as it is produced. `runs/` is the one beside `run.py`, not one in the
+directory the run was started from, so `--resume`, `rollup.py` and the mcp
+server find the same records from anywhere.
 
 flows that run several times an hour set `journal: false` - code-review does.
 they still write their step outputs, they just stay out of the weekly number.

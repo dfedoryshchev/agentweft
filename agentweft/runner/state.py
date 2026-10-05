@@ -8,6 +8,7 @@ HERE = Path(__file__).resolve().parent.parent
 
 STATE = HERE / "state.json"
 STATE_DIR = HERE / "state"
+RUNS = HERE.parent / "runs"
 
 
 def _path(flow):

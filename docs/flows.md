@@ -99,7 +99,9 @@ is not a directory stops the run right there. the run holds the result as
 on in the place the run started in, whatever the flow file says by then; a
 resume told `--workdir` somewhere else is refused. the `command` gate runs its
 command there, so a suite in that directory is a gate on its exit code.
-`runs/` is still written where `run.py` was started.
+`runs/` is not part of the place: it is always the one beside `run.py` in the
+agentweft checkout, whichever directory the run was started from or works in,
+so a run pointed at another repo leaves no run records in that repo's tree.
 
 ## what each role is for
 
