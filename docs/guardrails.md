@@ -1,9 +1,9 @@
 # guardrails
 
-three things stop a flow doing something stupid. none of them are prompts,
+four things stop a flow doing something stupid. none of them are prompts,
 which is the point - a prompt asking nicely is not a control.
 
-a fourth one does not stop anything and says so on the tin. it is last, and
+a fifth one does not stop anything and says so on the tin. it is last, and
 the reason it is in here at all is at the bottom.
 
 ## the spend cap
@@ -42,6 +42,28 @@ a green tick you cannot trust is worse than no tick.
 a step can be required to have produced something before the next one runs.
 fix-with-test uses it: the patcher does not run until the worker has actually
 shown a failing test. red before green is the flow, not a preference.
+
+## the files that brief the model
+
+a `cli` step starts its model in the run's place, and a model cli can take
+what it finds there as instructions or config: a `CLAUDE.md` or `AGENTS.md`
+at any depth, the `.claude/` directory, a `.mcp.json`. so a step that writes
+one of those has written the next step's instructions, and the next step's
+prompt says nothing about it.
+
+the run takes a digest of those files when it starts, and before every step
+whose model is started in the place it takes another. anything written,
+edited or removed in between and the step does not start: the run stops with
+`refused at <step>, the place changed` in the journal, a `REFUSED` line in
+the index, and the files named on stdout. `guardrails/briefing.py` is the
+list.
+
+what was there at the start is what the run was pointed at, and it is not
+questioned. a step on the `api` or `fake` provider sends text and reads
+nothing in the place, so it is never refused for this. every start takes its
+own digest, `--resume` included, so a file a step wrote before a park is
+something the person who carried the run on has let through. `.git/` is not
+walked, and nothing above the place is looked at.
 
 ## the boundary check, which is not a sandbox
 

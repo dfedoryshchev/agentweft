@@ -10,7 +10,7 @@ from agentweft.roles import resolver
 from .config import config, due, fanout_step, steps, verdict, where
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
-from agentweft.guardrails import boundary, defaults, gates, promises
+from agentweft.guardrails import boundary, briefing, defaults, gates, promises
 from agentweft.mcp import context, preflight
 from agentweft.orchestrate import park, synthesise
 
@@ -183,8 +183,10 @@ class Run(object):
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.
-        pinned = providers.build(provider) if provider else None
-        self.provider = pinned or providers.build(fm.get("provider") or {})
+        pinned = providers.build(provider, where=self.workdir) \
+            if provider else None
+        self.provider = pinned or providers.build(fm.get("provider") or {},
+                                                  where=self.workdir)
         self.by_step = {}
         for s in fm.steps:
             # a step gets its own provider when it names one, and now also
@@ -195,7 +197,26 @@ class Run(object):
                 continue
             conf = s.get("provider") or fm.get("provider") or {}
             self.by_step[step_id(s)] = \
-                pinned or providers.build(conf, tier=s.get("model", ""))
+                pinned or providers.build(conf, tier=s.get("model", ""),
+                                          where=self.workdir)
+        self.briefed = briefing.digest(self.workdir)
+
+    def refused(self, step):
+        """why this step may not start, or "" when it may.
+
+        a step whose model is started in the place reads the instruction
+        files lying there, so one written after the run started is the
+        previous step steering this one. a step that only sends text reads
+        nothing there and is never refused for it.
+        """
+        if not self.by_step.get(step, self.provider).reads_place:
+            return ""
+        moved = briefing.changed(self.briefed, briefing.digest(self.workdir))
+        if not moved:
+            return ""
+        return (", ".join(moved) + " changed in " + str(self.workdir)
+                + " since the run started, and " + step
+                + " would start its model there and read it")
 
     def role_for(self, step):
         """the role this step declared, which the file name only usually says."""
@@ -370,6 +391,9 @@ def run_once(flow, provider=None):
     out = EMPTY
     step = steps(flow)[0]
     while step:
+        refused = run.refused(step)
+        if refused:
+            return out.output, run.budget, "refused at " + step + ": " + refused
         if step == run.fan:
             out = run_fanout(run, out)
         else:
@@ -461,6 +485,13 @@ def main():
                                                    encoding="utf-8")
     step = todo[0]
     while step:
+        refused = run.refused(step)
+        if refused:
+            print("refused at " + step + ": " + refused)
+            write_index("REFUSED  " + flow + "  " + step)
+            journal(fm["name"], "refused at " + step + ", the place changed",
+                    started)
+            return
         if step == run.fan:
             out = run_fanout(run, out)
         else:

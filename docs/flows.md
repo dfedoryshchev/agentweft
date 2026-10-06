@@ -98,7 +98,10 @@ is not a directory stops the run right there. the run holds the result as
 `Run.workdir` and writes it to `runs/<run-id>/workdir`, so `--resume` carries
 on in the place the run started in, whatever the flow file says by then; a
 resume told `--workdir` somewhere else is refused. the `command` gate runs its
-command there, so a suite in that directory is a gate on its exit code.
+command there, so a suite in that directory is a gate on its exit code, and
+the `cli` provider starts its command there, so a model that edits files edits
+the place and not whatever directory `run.py` happened to be started from.
+that last part has a guard of its own, in `guardrails.md`.
 `runs/` is not part of the place: it is always the one beside `run.py` in the
 agentweft checkout, whichever directory the run was started from or works in,
 so a run pointed at another repo leaves no run records in that repo's tree.

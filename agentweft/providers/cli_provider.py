@@ -9,11 +9,14 @@ class CliProvider(Provider):
     """the original. shells out to the cli, which is how this started."""
 
     name = "cli"
+    reads_place = True
 
     def ask(self, prompt, timeout=None):
         argv = [self.opts.get("command", "claude"), "-p", prompt]
         try:
-            r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+            r = subprocess.run(argv, capture_output=True, text=True,
+                               cwd=str(self.where) if self.where else None,
+                               timeout=timeout)
         except FileNotFoundError:
             return Reply("", detail=argv[0] + " is not on PATH")
         except subprocess.TimeoutExpired:

@@ -8,7 +8,9 @@ a provider answers a prompt. that is the whole interface:
 ## the three
 
 - **cli** (default) - shells out to a command, `claude` unless you say
-  otherwise. how this started and still what i run.
+  otherwise. how this started and still what i run. the command is started in
+  the run's place (`workdir`, see `flows.md`), so it reads and edits files
+  there.
 - **api** - plain http, no sdk. reads `API_KEY`, `API_URL` and `MODEL` (or
   `MODEL_HIGH` and friends, see tiers) from the environment. the model id is
   never written down in the source, because a version string in a file is a
