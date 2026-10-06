@@ -24,7 +24,7 @@ make the first one do the second.
 results print under the step and land in `runs/<run id>/gates.md`. the journal
 only hears about a gate that failed, because that one stops the run.
 
-## the five
+## the six
 
 - **regex** - `pattern`, and `present: false` to require it is absent.
 - **length** - `max_lines`, `min_lines`.
@@ -42,6 +42,26 @@ only hears about a gate that failed, because that one stops the run.
   was hit. it runs nothing, so the command that writes the report goes in a
   command gate before it. no `project.yml`, or one with no number for the
   floor, is a failure and not a pass.
+- **reject** - the `immediate_reject` rules in `project.yml` that carry a
+  `pattern`, searched for in the output with `^` and `$` meaning a line, as in
+  `regex`. a match
+  fails the step and names the rule. it takes no options: a pattern written on
+  the gate is refused. it reads what the step produced, not the working tree,
+  so it belongs on a step whose output is the change. no `project.yml`, or one
+  where no rule has a pattern, is a failure and not a pass.
+
+## a rule is checked only if it has a pattern
+
+    standards:
+      immediate_reject:
+        - "business logic in an endpoint"
+        - rule: "a debugger left in"
+          pattern: 'breakpoint\(\)|pdb\.set_trace\('
+
+the first is a sentence and stays one: no pattern means it, so it is still only
+asked for. the second is the same kind of rule with a program behind it, and
+the gate passes saying how many rules it checked and how many it could only
+ask for, so the split stays visible.
 
 ## the number is not in the flow
 

@@ -294,11 +294,13 @@ the file argues with itself on purpose, and the section names are the argument:
 - `gates:` are PROGRAMS. argv, an exit code, nothing to agree with.
 
 anything under `standards:` can be ignored. anything under `gates:` cannot.
+the one way across is an `immediate_reject` rule that carries a `pattern`.
 
-what it does NOT do yet is most of it. one gate takes its numbers from it:
-`coverage` holds a report to the `coverage:` floor (see `docs/gates.md`). no
-role takes its pre-work from it, and no reject rule is checked against
-anything. the rest is the format and a loader that refuses a word it has no name for, the way `flow.yaml`
+what it does NOT do yet is most of it. two gates read it: `coverage` holds a
+report to the `coverage:` floor, and `reject` checks a step's output against
+the reject rules that have a pattern (see `docs/gates.md`). no role takes its
+pre-work from it, and a reject rule with no pattern is still only a sentence.
+the rest is the format and a loader that refuses a word it has no name for, the way `flow.yaml`
 has for months - `project.yml: roles: architect: no such tool shel. there is:
 read, grep, write, edit, shell, browser`. a tier is `spec.TIERS` and a grant is
 `spec.GRANTS`, borrowed rather than restated, because a second list of what

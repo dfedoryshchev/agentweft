@@ -42,6 +42,7 @@ REQUIRED = ("project",)
 KNOWN = ("project", "read_first", "standards", "coverage", "gates", "roles")
 PROJECT_KNOWN = ("name", "stack")
 STANDARDS_KNOWN = ("forbidden", "immediate_reject")
+REJECT_KNOWN = ("rule", "pattern")
 COVERAGE_KNOWN = ("critical", "overall")
 ROLE_KNOWN = ("model", "tools")
 
@@ -85,7 +86,18 @@ class Project(object):
         return list(self._block("read_first", role) or [])
 
     def standards(self, kind):
-        return list(self._block("standards", kind) or [])
+        """-> the prose, a checked rule's sentence included, so a role still
+
+        hears every rule and not only the ones nothing can check.
+        """
+        return [s["rule"] if isinstance(s, dict) else s
+                for s in self._block("standards", kind) or []]
+
+    def rejects(self):
+        """-> (rule, pattern) for the immediate_reject rules a gate can check."""
+        return [(s["rule"], s["pattern"])
+                for s in self._block("standards", "immediate_reject") or []
+                if isinstance(s, dict)]
 
     def coverage(self, kind):
         return self._block("coverage", kind)
@@ -142,9 +154,38 @@ def _check_standards(bad, block):
     if not _mapping(bad, "standards", block):
         return
     _unknown(bad, "standards: ", block, STANDARDS_KNOWN)
-    for key in STANDARDS_KNOWN:
-        if block.get(key) is not None:
-            _strings(bad, "standards: " + key, block[key])
+    if block.get("forbidden") is not None:
+        _strings(bad, "standards: forbidden", block["forbidden"])
+    rules = block.get("immediate_reject")
+    if rules is None:
+        return
+    where = "standards: immediate_reject"
+    if not isinstance(rules, list):
+        bad.append(where + " should be a list")
+        return
+    for rule in rules:
+        if isinstance(rule, dict):
+            _check_reject(bad, where, rule)
+        elif not isinstance(rule, str):
+            bad.append(where + ": " + str(rule) + " should be str")
+
+
+def _check_reject(bad, where, rule):
+    if not isinstance(rule.get("rule"), str):
+        bad.append(where + ": missing rule")
+        return
+    where += ": " + rule["rule"]
+    _unknown(bad, where + ": ", rule, REJECT_KNOWN)
+    pattern = rule.get("pattern")
+    if pattern is None:
+        bad.append(where + ": missing pattern")
+    elif not isinstance(pattern, str):
+        bad.append(where + ": pattern should be str")
+    else:
+        try:
+            re.compile(pattern)
+        except re.error as e:
+            bad.append(where + ": pattern does not compile, " + str(e))
 
 
 def _check_coverage(bad, block):

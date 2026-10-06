@@ -156,6 +156,39 @@ def test_the_pre_work_and_the_standards_are_lists_of_strings():
         ["standards: unknown key style"]
 
 
+def test_a_reject_rule_can_carry_a_pattern_and_stays_prose_too():
+    p = project.load({"project": {"name": "x"}, "standards": {"immediate_reject": [
+        "business logic in an endpoint",
+        {"rule": "a debugger left in", "pattern": r"breakpoint\(\)"},
+    ]}})
+    assert p.standards("immediate_reject") == \
+        ["business logic in an endpoint", "a debugger left in"]
+    assert p.rejects() == [("a debugger left in", r"breakpoint\(\)")]
+
+
+def test_the_example_has_a_reject_rule_that_is_checked():
+    assert example().rejects()
+
+
+def test_a_reject_rule_with_a_pattern_is_refused_when_it_cannot_be_checked():
+    def said(*rules):
+        return project.check({"project": {"name": "x"},
+                              "standards": {"immediate_reject": list(rules)}})
+    assert said({"rule": "x"}) == ["standards: immediate_reject: x: missing pattern"]
+    assert said({"pattern": "x"}) == ["standards: immediate_reject: missing rule"]
+    assert said({"rule": "x", "pattern": "("})[0].startswith(
+        "standards: immediate_reject: x: pattern does not compile")
+    assert said({"rule": "x", "pattern": "y", "files": "*.py"}) == \
+        ["standards: immediate_reject: x: unknown key files"]
+    assert said({"rule": "x", "pattern": 3}) == \
+        ["standards: immediate_reject: x: pattern should be str"]
+    assert said(3) == ["standards: immediate_reject: 3 should be str"]
+    # forbidden is still prose only
+    assert project.check({"project": {"name": "x"}, "standards": {
+        "forbidden": [{"rule": "x", "pattern": "y"}]}}) == \
+        ["standards: forbidden: {'rule': 'x', 'pattern': 'y'} should be str"]
+
+
 def test_the_whole_file_is_refused_at_once_in_the_flow_loaders_words():
     with pytest.raises(ValueError) as caught:
         project.load({"conventions": {}, "coverage": {"overall": 120}})

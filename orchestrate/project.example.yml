@@ -32,6 +32,10 @@ read_first:
 # with, and then not done, and nothing here will know. write it anyway - most
 # of what a codebase believes has no program behind it - but do not mistake a
 # line in this block for a rule that holds.
+#
+# the one exception: an immediate_reject rule that carries a `pattern` is
+# checked by the `reject` gate against what a step produced, and a match fails
+# the step. most rules have no pattern that means them, so most stay sentences.
 standards:
   forbidden:
     - "warning suppression - fix the cause the warning is pointing at"
@@ -39,6 +43,8 @@ standards:
   immediate_reject:
     - "business logic in an endpoint"
     - "a test that asserts nothing"
+    - rule: "a debugger left in"
+      pattern: 'breakpoint\(\)|pdb\.set_trace\('
 
 # NUMBERS. a floor, not the point: a test that executes a line without
 # asserting anything about it moves this and pins nothing.
