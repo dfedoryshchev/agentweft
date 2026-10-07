@@ -497,7 +497,8 @@ def main():
         else:
             extra = ""
             if step == "planner.md" and fm.get("context"):
-                risk_text, why = context.risk_map(fm.get("context"))
+                risk_text, why = context.risk_map(fm.get("context"),
+                                                  where=run.workdir)
                 if why:
                     print("no risk map: " + why)
                 extra = extra + context.as_prompt(risk_text)

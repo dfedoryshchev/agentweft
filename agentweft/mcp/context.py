@@ -14,18 +14,44 @@ from .client import Client
 DEFAULT_TOOL = "hotspots"
 
 
-def risk_map(config):
-    """-> (text, detail). empty text means carry on without it."""
-    command = (config or {}).get("command")
+def risk_map(config, where=None):
+    """-> (text, detail). empty text means carry on without it, and the
+    detail says why.
+
+    the server runs in `where`, the run's place, so a relative `dir` in the
+    arguments means the directory the run works on. the tool's own schema is
+    read first: a server is not obliged to refuse a call that leaves out a
+    required argument, and one that ranks the files under a `dir` it was not
+    given answers with an empty ranking, which looks like no risk at all.
+    """
+    config = config or {}
+    command = config.get("command")
     if not command:
         return "", "no server configured"
-    client = Client(command, timeout=int((config or {}).get("timeout", 60)))
-    tool = (config or {}).get("tool", DEFAULT_TOOL)
-    text, err = client.call_tool(tool, (config or {}).get("arguments"))
+    arguments = config.get("arguments") or {}
+    if not isinstance(arguments, dict):
+        return "", "context: arguments should be a mapping"
+    client = Client(command, timeout=int(config.get("timeout", 60)), cwd=where)
+    tool = config.get("tool", DEFAULT_TOOL)
+
+    # advisory. a flow does not fail because a side channel is down.
+    tools, err = client.list_tools()
     if err:
-        # advisory. a flow does not fail because a side channel is down.
         return "", err
-    return text or "", ""
+    if tool not in tools:
+        return "", ("the server has no tool " + tool + ". there is: "
+                    + ", ".join(tools))
+    missing = [a for a in tools[tool].get("required") or [] if a not in arguments]
+    if missing:
+        return "", (tool + " needs " + ", ".join(missing)
+                    + ", and the context block does not give it")
+
+    text, err = client.call_tool(tool, arguments)
+    if err:
+        return "", err
+    if not (text or "").strip():
+        return "", tool + " answered with nothing"
+    return text, ""
 
 
 def as_prompt(text):

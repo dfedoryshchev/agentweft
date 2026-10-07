@@ -57,7 +57,7 @@ def go(tmp_path, monkeypatch, body, answers, name):
         return answers.get(step, "nothing to report"), False
 
     monkeypatch.setattr(engine, "call", fake_call)
-    monkeypatch.setattr(engine.context, "risk_map", lambda conf: (RANKING, ""))
+    monkeypatch.setattr(engine.context, "risk_map", lambda conf, where=None: (RANKING, ""))
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(root)])
     monkeypatch.setattr(sys, "argv",
                         ["run.py", name, "--force", "--flows", str(root)])

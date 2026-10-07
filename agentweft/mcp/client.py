@@ -14,9 +14,10 @@ from . import transport
 
 
 class Client(object):
-    def __init__(self, command, timeout=60):
+    def __init__(self, command, timeout=60, cwd=None):
         self.command = command
         self.timeout = timeout
+        self.cwd = cwd
         self._id = 0
 
     def _next_id(self):
@@ -30,7 +31,7 @@ class Client(object):
         payload = "".join(transport.dumps(m) for m in messages)
         try:
             r = subprocess.run(self.command, input=payload, capture_output=True,
-                               text=True, timeout=self.timeout)
+                               text=True, timeout=self.timeout, cwd=self.cwd)
         except FileNotFoundError:
             return [{"error": {"message": self.command[0] + " is not on PATH"}}]
         except subprocess.TimeoutExpired:
@@ -58,8 +59,24 @@ class Client(object):
         last, err = self._last(self._session(msgs))
         if err:
             return None, err
-        content = last.get("result", {}).get("content") or []
-        return "".join(c.get("text", "") for c in content), ""
+        result = last.get("result", {})
+        text = "".join(c.get("text", "") for c in result.get("content") or [])
+        # a tool that failed answers with a result, not a protocol error, and
+        # its text is the reason. read as an answer it becomes the ranking.
+        if result.get("isError"):
+            return None, text or name + " failed"
+        return text, ""
+
+    def list_tools(self):
+        """-> ({name: inputSchema}, err)."""
+        msgs = self.handshake() + [
+            {"jsonrpc": "2.0", "id": self._next_id(), "method": "tools/list",
+             "params": {}}]
+        last, err = self._last(self._session(msgs))
+        if err:
+            return None, err
+        tools = last.get("result", {}).get("tools") or []
+        return dict((t.get("name"), t.get("inputSchema") or {}) for t in tools), ""
 
     def read_resource(self, uri):
         msgs = self.handshake() + [

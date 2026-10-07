@@ -36,14 +36,25 @@ a flow can name a tool server it wants context from:
     context:
       command: ["some-tool", "mcp"]
       tool: hotspots
+      arguments: {dir: "."}
 
 before the planner runs, the client starts that server, calls the tool, and
 appends the answer to the planner's prompt. for repo-audit that is a ranking of
 which files are risky to touch, so the plan comes out ordered by blast radius
 instead of by whatever got read first.
 
-it is advisory on purpose. if the server is missing or slow the run says so and
-carries on - a flow does not fail because a side channel is down.
+`arguments` go to the tool as they are written. the server runs in the run's
+`workdir` (see `docs/flows.md`), so a relative `dir` means the directory the
+run works on. before the call the client reads the tool's schema from
+`tools/list`, and an argument the schema requires that the block leaves out is
+named, rather than sent: a server is not obliged to refuse that call, and one
+that ranks the files under a `dir` it was never given ranks nothing and answers
+with an empty list, which reads exactly like a codebase with no risk in it.
+
+it is advisory on purpose. if the server is missing or slow, does not have the
+tool, is missing an argument, answers with nothing, or says the tool failed, the
+run prints `no risk map:` and why, and carries on - a flow does not fail because
+a side channel is down.
 
 nothing in here knows which tool it is talking to. anything speaking the same
 protocol works.
