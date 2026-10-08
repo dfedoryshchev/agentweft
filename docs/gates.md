@@ -33,7 +33,13 @@ only hears about a gate that failed, because that one stops the run.
   in the run's `workdir` (see `docs/flows.md`), so it can check the work
   itself and not only what the step said about it.
 - **red-test** - `marker` (default `FAILS:`) has to be in the output, or with
-  `red: false` has to be gone from it.
+  `red: false` has to be gone from it. with `command: [...]` that is only the
+  claim: the step names its test on a `TEST:` line, the file has to exist in
+  the run's `workdir`, and the command runs there with `{test}` replaced by
+  it. red passes on `expect` (default 1, a pytest run with a failing test) and
+  on nothing else, so a test that passes, was never written, or was not
+  collected is not red. `red: false` wants exit 0. without a command the pass
+  says nothing was run.
 - **coverage** - a cobertura xml report, `report` (default `coverage.xml`, read
   in the run's `workdir`), held to a floor from `project.yml` (see
   `docs/orchestrate.md`). `floor` names which one, `overall` (default) or

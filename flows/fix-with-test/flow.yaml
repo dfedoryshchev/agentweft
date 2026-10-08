@@ -6,6 +6,7 @@ steps:
     gates:
       - gate: red-test
         red: true
+        command: ["python", "-m", "pytest", "-q", "{test}"]
   - role: patcher
     prompt: patcher.md
     on_redo: worker
