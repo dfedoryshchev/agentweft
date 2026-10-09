@@ -10,7 +10,8 @@ from agentweft.roles import resolver
 from .config import config, due, fanout_step, steps, verdict, where
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
-from agentweft.guardrails import boundary, briefing, defaults, gates, promises
+from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
+                                  promises)
 from agentweft.mcp import context, preflight
 from agentweft.orchestrate import park, synthesise
 
@@ -200,6 +201,21 @@ class Run(object):
                 pinned or providers.build(conf, tier=s.get("model", ""),
                                           where=self.workdir)
         self.briefed = briefing.digest(self.workdir)
+        self.fence = fence.at(self.workdir, own=state.RUNS)
+
+    def fenced(self, step):
+        """what is gone or changed that git cannot give back, or "" for none.
+
+        the fence was taken when the run started, so a file an earlier step
+        created is this run's own and free to touch.
+        """
+        hit = self.fence.crossed() if self.fence is not None else []
+        if not hit:
+            return ""
+        return (", ".join(p + " (" + what + ")" for p, what in hit)
+                + " in " + str(self.workdir) + " by the time " + step
+                + " finished. they were there before the run and git has no"
+                " copy of them")
 
     def refused(self, step):
         """why this step may not start, or "" when it may.
@@ -398,6 +414,9 @@ def run_once(flow, provider=None):
             out = run_fanout(run, out)
         else:
             out = run.step(step, previous=out)
+        fenced = run.fenced(step)
+        if fenced:
+            return out.output, run.budget, "fenced at " + step + ": " + fenced
         failed, blocked = check_step(run, route, step, out)
         if failed:
             return out.output, run.budget, "gate " + failed + " failed at " + step
@@ -510,6 +529,21 @@ def main():
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
         timings.append((step, out.meta.get("seconds", 0), out.meta.get("cached")))
+
+        fenced = run.fenced(step)
+        if fenced:
+            print("fenced at " + step + ": " + fenced)
+            note = park.write(run_id, fm["name"], step, "user",
+                              [(name, secs) for name, secs, _ in timings],
+                              resume.after(steps(flow), step),
+                              resume_command(flow, run_id), runs=state.RUNS,
+                              why=fenced + ",")
+            print("parked at " + step + ", waiting for user")
+            print("it needs you: " + str(note))
+            write_index("PARKED  " + flow + "  at " + step)
+            journal(fm["name"], "parked at " + step, started,
+                    "fenced  " + run_id)
+            return
 
         spent = run.budget.over()
         if spent:

@@ -298,7 +298,8 @@ the one way across is an `immediate_reject` rule that carries a `pattern`.
 
 what it does NOT do yet is most of it. two gates read it: `coverage` holds a
 report to the `coverage:` floor, and `reject` checks a step's output against
-the reject rules that have a pattern (see `docs/gates.md`). no role takes its
+the reject rules that have a pattern (see `docs/gates.md`). a `fence:` block
+turns on the scope fence for every run (see `docs/guardrails.md`). no role takes its
 pre-work from it, and a reject rule with no pattern is still only a sentence.
 the rest is the format and a loader that refuses a word it has no name for, the way `flow.yaml`
 has for months - `project.yml: roles: architect: no such tool shel. there is:

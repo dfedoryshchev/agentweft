@@ -1,6 +1,6 @@
 # guardrails
 
-four things stop a flow doing something stupid. none of them are prompts,
+five things stop a flow doing something stupid. none of them are prompts,
 which is the point - a prompt asking nicely is not a control.
 
 a fifth one does not stop anything and says so on the tin. it is last, and
@@ -66,6 +66,42 @@ nothing in the place, so it is never refused for this. every start takes its
 own digest, `--resume` included, so a file a step wrote before a park is
 something the person who carried the run on has let through. `.git/` is not
 walked, and nothing above the place is looked at.
+
+## the scope fence
+
+    # project.yml
+    fence:
+      skip: ["**/__pycache__/**", ".pytest_cache/**"]
+
+the rule is recoverability, not permission. a file git tracks can be put back
+from git, and a file this run created did not exist before it, so a step may
+touch both. a file that was in the run's place before the run started and
+that git does not track has no copy anywhere: a `.env`, a local fixture, work
+nobody has committed. that is the one case the fence is for.
+
+the run lists the untracked files in the place when it starts, ignored ones
+included, and keeps a digest of each. after every step it asks `git status`
+again and compares. one of those files changed, removed or now tracked (a
+`git add` is as much a hazard for a `.env` as an edit) and the run parks:
+`fenced at <step>` and the files on stdout, the files again in the handoff, a
+`PARKED` line in the index, `parked at <step>` in the journal. `--resume`
+carries on after that step, and takes a fresh list, so what the person has
+looked at and let through is the new starting point. a scored run stops with
+`fenced at <step>` as its reason.
+
+the block being in `project.yml` is the switch: no block, no fence, and
+`fence: {}` is a fence that skips nothing. a bare `fence:` is refused rather
+than read either way. `skip` takes git globs relative to the place, for the
+things a test run rewrites every time. a place git knows nothing about with a
+fence declared is refused before the first step, because there is nothing to
+tell a file git can restore from one it cannot. the run's own `runs/` folder
+is left out when it sits inside the place.
+
+it is the boundary only. nothing intercepts a tool call; it compares before
+and after, so it catches mistakes and not a determined agent with a shell,
+which can write outside the place or into a skipped path. it is not a security
+boundary. the gates a step runs are commands in the same place, and what they
+touch shows up at the next step's check, and after the last step at none.
 
 ## the boundary check, which is not a sandbox
 

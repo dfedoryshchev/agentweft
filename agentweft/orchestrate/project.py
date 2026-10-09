@@ -39,8 +39,10 @@ from agentweft.flow import reader, spec
 from . import workflow
 
 REQUIRED = ("project",)
-KNOWN = ("project", "read_first", "standards", "coverage", "gates", "roles")
+KNOWN = ("project", "read_first", "standards", "coverage", "gates", "roles",
+         "fence")
 PROJECT_KNOWN = ("name", "stack")
+FENCE_KNOWN = ("skip",)
 STANDARDS_KNOWN = ("forbidden", "immediate_reject")
 REJECT_KNOWN = ("rule", "pattern")
 COVERAGE_KNOWN = ("critical", "overall")
@@ -107,6 +109,13 @@ class Project(object):
 
     def role(self, name):
         return dict(self._block("roles", name) or {})
+
+    def fence(self):
+        """-> the globs the fence skips, or None when the file declares no
+        fence. an empty list is a fence that skips nothing."""
+        if self.raw.get("fence") is None:
+            return None
+        return list(self.raw["fence"].get("skip") or [])
 
 
 def _strings(bad, where, value):
@@ -240,9 +249,18 @@ def _check_roles(bad, block):
                                    + ". there is: " + ", ".join(spec.GRANTS))
 
 
+def _check_fence(bad, block):
+    if not _mapping(bad, "fence", block):
+        return
+    _unknown(bad, "fence: ", block, FENCE_KNOWN)
+    if block.get("skip") is not None:
+        _strings(bad, "fence: skip", block["skip"])
+
+
 CHECKS = (("project", _check_project), ("read_first", _check_read_first),
           ("standards", _check_standards), ("coverage", _check_coverage),
-          ("gates", _check_gates), ("roles", _check_roles))
+          ("gates", _check_gates), ("roles", _check_roles),
+          ("fence", _check_fence))
 
 
 def check(raw):
@@ -256,6 +274,10 @@ def check(raw):
         # leaving it out and would otherwise pass.
         if raw.get(key) is None:
             bad.append("missing " + key)
+    # the one block whose presence is the switch, so a bare `fence:` would
+    # otherwise read as a fence and run as none.
+    if "fence" in raw and raw["fence"] is None:
+        bad.append("fence: should be a mapping, {} for one that skips nothing")
     _unknown(bad, "", raw, KNOWN)
     for key, checker in CHECKS:
         if raw.get(key) is not None:

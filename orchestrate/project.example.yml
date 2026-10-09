@@ -8,9 +8,9 @@
 # project.yml, answer it for your own repo, and keep it in your repo rather
 # than in the prompts.
 #
-# nothing reads it yet. it is a format and a loader, and the loader refuses a
-# word it has no name for - a typo in a file like this would otherwise sit here
-# looking exactly like a rule.
+# the coverage and reject gates and the fence act on parts of it. the rest is
+# only read by its loader, which refuses a word it has no name for - a typo in
+# a file like this would otherwise sit here looking exactly like a rule.
 
 project:
   name: example-app
@@ -72,3 +72,15 @@ roles:
   developer: {model: high, tools: [read, write, edit, shell]}
   test-qa: {model: high, tools: [read, grep, write, shell]}
   doc-researcher: {model: low, tools: [read, grep]}
+
+# the files nobody can put back. what git tracks can be restored and what the
+# run made is its own, so neither is fenced; a file that was in the run's place
+# before it started and that git does not track - a .env, a local fixture,
+# uncommitted work - is. a step that changes, removes or `git add`s one parks
+# the run for a person. it catches mistakes; it is not a sandbox.
+#
+# the block being here is the switch, and `fence: {}` is a fence that skips
+# nothing. skip takes git globs relative to the place, for what a test run
+# rewrites every time and nobody would miss.
+fence:
+  skip: ["**/__pycache__/**", ".pytest_cache/**"]
