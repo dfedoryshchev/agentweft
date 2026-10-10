@@ -1,0 +1,28 @@
+name: tare-gate
+steps:
+  - role: worker
+    prompt: worker.md
+    provider:
+      provider: fake
+      file: examples/_drafts/unsourced.md
+  - role: reviewer
+    prompt: reviewer.md
+    provider:
+      provider: fake
+      file: examples/_drafts/sourced.md
+    gates:
+      - gate: command
+        command: ["dotnet", "run", "--project", "../tare/src/Tare.Cli",
+                  "-c", "Release", "--", "analyze", "{file}",
+                  "--fail-on", "slop"]
+        timeout: 300
+promises:
+  inputs: a log file
+  outputs: what happened, a paragraph per finding
+  invariants:
+    - every number says which record it came from
+    - a number nothing backs is cut, and the cut is said
+timeout: 120
+journal: false
+provider:
+  provider: fake

@@ -93,6 +93,11 @@ not know or care what it is - it looks at the exit code.
 that is the whole extension point of this repo. if you want a check i have not
 thought of, you do not write a plugin, you write a program.
 
+`examples/tare-gate` is the one you can run: tare checks a written-up
+draft for claims nobody sourced, and its exit codes already say passed, could
+not run and refused (0, 1, 2), so the gate is a `command:` line and nothing
+else.
+
 fix-with-test is where it earns it. the closing step used to be a model reading
 its own patch and saying the test passes now; it is `python -m pytest -q` and
 an exit code, and a non-zero one stops the run.
