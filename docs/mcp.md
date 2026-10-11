@@ -81,6 +81,9 @@ hot file is a prompt. a number and a comparison is a control.
 it needs a `context:` block on the flow, because without a ranking there is
 nothing to check against, and with no ranking nothing is ever flagged.
 
+a `command` gate reads the same ranking to pick between a short test command
+and a long one (`docs/gates.md`).
+
 ## it is hand rolled
 
 about a hundred lines of dict handling over line delimited json. i have twice

@@ -181,6 +181,7 @@ class Run(object):
         self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
         self.produced = {}
+        self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.
@@ -297,7 +298,7 @@ class Run(object):
     def gates_for(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
-                return [gates.build(g, where=self.workdir)
+                return [gates.build(g, where=self.workdir, ranking=self.ranking)
                         for g in (s.get("gates") or [])]
         return []
 
@@ -520,6 +521,7 @@ def main():
                                                   where=run.workdir)
                 if why:
                     print("no risk map: " + why)
+                run.ranking = risk_text
                 extra = extra + context.as_prompt(risk_text)
             if seen and step == "planner.md":
                 extra = "\n\nthe last run was " + seen + \

@@ -31,7 +31,8 @@ only hears about a gate that failed, because that one stops the run.
 - **command** - `command: [...]`, with `{file}` replaced by a temp file holding
   the output. passes when the exit code matches `expect` (default 0). it runs
   in the run's `workdir` (see `docs/flows.md`), so it can check the work
-  itself and not only what the step said about it.
+  itself and not only what the step said about it. a `cold:` block gives it
+  a shorter command for a change the risk map says is small (below).
 - **red-test** - `marker` (default `FAILS:`) has to be in the output, or with
   `red: false` has to be gone from it. with `command: [...]` that is only the
   claim: the step names its test on a `TEST:` line, the file has to exist in
@@ -101,3 +102,33 @@ else.
 fix-with-test is where it earns it. the closing step used to be a model reading
 its own patch and saying the test passes now; it is `python -m pytest -q` and
 an exit code, and a non-zero one stops the run.
+
+## the short suite or the long one
+
+    context:
+      command: ["some-tool", "mcp"]
+      tool: hotspots
+      arguments: {dir: "."}
+    steps:
+      - role: patcher
+        prompt: patcher.md
+        gates:
+          - gate: command
+            command: ["python", "-m", "pytest", "-q"]
+            cold:
+              command: ["python", "-m", "pytest", "-q", "-m", "not slow"]
+              threshold: 0.7
+
+`command` is the long one. the files the step names are checked against the
+ranking the `context:` block brought back (see `docs/mcp.md`), the same way
+preflight checks them: when it names at least one and none is at `threshold`
+(default 0.7), `cold`'s command runs instead. one hot file and the long one
+runs. so does a run with no ranking - the server was down, the flow has no
+`context:`, the step ran before the planner fetched it, the run was picked up
+past the planner with `--resume`, or it is an eval run, which fetches none -
+and a step that names no file at all, because none of those says the change
+is small. `expect` and `{file}` mean the same for both commands, and the
+result says which one ran and why.
+
+it reads the files the step SAYS it touched, not the diff, so a step that
+edits a hot file without naming it gets the short suite.
