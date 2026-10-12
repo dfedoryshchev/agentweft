@@ -8,7 +8,7 @@
     "4 reviewer.md ok"
   ],
   "journal": [
-    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<day>-2.md  5 calls, ~2257 tokens (cli x5)"
+    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<day>-2.md  5 calls, ~2299 tokens (cli x5)"
   ],
   "index": [
     "repo-audit-<day>-2.md  repo-audit  4 steps"

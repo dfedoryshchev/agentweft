@@ -26,6 +26,28 @@ def test_every_role_gets_the_shared_fragments():
         assert "never invent a number" in rules
 
 
+def _composed(flow):
+    from agentweft.runner import prompts
+    cfg = runner.config(flow)
+    by_role = resolver.resolve(cfg.raw, runner.flow_path(flow), cfg.promises.as_prompt())
+    return {step["role"]: prompts.load_prompt(flow, step["prompt"], by_role[step["role"]],
+                                              step["role"])
+            for step in cfg.raw["steps"]}
+
+
+def test_a_reviewer_keeps_what_it_is_unsure_of_and_marks_it():
+    reviewer = _composed("code-review")["reviewer"]
+    assert "leave it out" not in reviewer
+    assert "mark it unsure" in reviewer
+    assert "do not drop it" in reviewer
+
+
+def test_a_worker_is_still_told_never_to_invent():
+    worker = _composed("code-review")["worker"]
+    assert "never invent a number, a name or a date" in worker
+    assert "leave it out" not in worker
+
+
 def test_only_the_judging_roles_get_the_extra_block():
     cfg = runner.config("weekly-digest")
     by_role = resolver.resolve(cfg.raw, runner.flow_path("weekly-digest"))
