@@ -31,5 +31,7 @@ def no_real_provider():
 
 
 @pytest.fixture(autouse=True)
-def runs_of_its_own(tmp_path, monkeypatch):
+def runs_and_state_of_its_own(tmp_path, monkeypatch):
     monkeypatch.setattr(state, "RUNS", tmp_path / "runs")
+    monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(state, "STATE", tmp_path / "state.json")
