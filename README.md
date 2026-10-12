@@ -104,7 +104,7 @@ that are none of your business.
 it does not reimplement tools. it orchestrates agents that already have them -
 a cli, or anything speaking mcp - and governs what they are allowed to do:
 budgets, promises, gates, and a preflight that can refuse an edit inside a hot
-blast radius. that is the deliberate scope, not a gap.
+blast radius or park the run for a person to make it. that is the deliberate scope, not a gap.
 
 which is also why a step's `tools:` is a boundary check and not a sandbox. the
 tool call happens somewhere this is not, so the grant is declared, said, and

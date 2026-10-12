@@ -7,7 +7,7 @@ when it is being helpful, and nothing downstream stops it.
 
 so: before a step that is going to touch files, check what it is about to touch
 against the ranking. above the threshold it is flagged, and the flow can be set
-to refuse rather than flag.
+to refuse rather than flag, or to park the run so a person makes the edit.
 
 this is the half of the idea that is not a prompt. a prompt asking an agent to
 be careful about a hot file is a prompt. this is a number and a comparison.

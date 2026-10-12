@@ -98,6 +98,8 @@ TIERS = ("high", "mid", "low")
 # reads a grant; this is only the vocabulary it and the flow files share.
 GRANTS = ("read", "grep", "write", "edit", "shell", "browser")
 
+PREFLIGHT_MODES = ("flag", "refuse", "park")
+
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
          "max_tokens": int, "journal": bool, "name": str, "workdir": str}
@@ -138,6 +140,11 @@ def check(raw):
                         bad.append("step " + str(i) + ": no such tool "
                                    + str(tool) + ". there is: "
                                    + ", ".join(GRANTS))
+        pre = step.get("preflight")
+        if isinstance(pre, dict) and \
+                pre.get("mode", "flag") not in PREFLIGHT_MODES:
+            bad.append("step " + str(i) + ": preflight mode should be one of "
+                       + ", ".join(PREFLIGHT_MODES))
         if step.get("reports") is not None:
             if not isinstance(step["reports"], list):
                 bad.append("step " + str(i) + ": reports should be a list")

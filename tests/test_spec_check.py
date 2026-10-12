@@ -63,6 +63,20 @@ def test_granting_nothing_is_a_thing_a_step_can_say():
     assert spec.check({"name": "x", "steps": [{"role": "w", "tools": []}]}) == []
 
 
+@pytest.mark.parametrize("mode", ["flag", "refuse", "park"])
+def test_each_preflight_mode_loads(mode):
+    assert spec.check({"name": "x", "steps": [
+        {"role": "w", "preflight": {"mode": mode}}]}) == []
+
+
+def test_a_preflight_mode_nothing_acts_on_is_refused():
+    """`mode: pause` would load and then behave as `flag`, which is the one
+    answer that lets the run walk on into the file it was meant to stop at."""
+    bad = spec.check({"name": "x", "steps": [
+        {"role": "w", "preflight": {"mode": "pause"}}]})
+    assert bad == ["step 0: preflight mode should be one of flag, refuse, park"]
+
+
 def test_every_shipped_flow_passes_its_own_check():
     from agentweft import runner
     for flow in ["weekly-digest", "ops-check", "summarise-and-check",

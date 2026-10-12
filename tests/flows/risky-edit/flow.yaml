@@ -1,0 +1,16 @@
+name: risky-edit
+steps:
+  - role: planner
+    prompt: planner.md
+  - role: worker
+    prompt: worker.md
+    preflight:
+      mode: park
+      threshold: 0.7
+  - role: reviewer
+    prompt: reviewer.md
+context:
+  command: ["not-a-real-server"]
+  tool: hotspots
+max_calls: 6
+timeout: 300

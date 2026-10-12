@@ -69,12 +69,18 @@ planner weights by it, mostly. a step can be made to check rather than trust:
       - role: worker
         prompt: worker.md
         preflight:
-          mode: flag       # or refuse
+          mode: flag       # or refuse, or park
           threshold: 0.7
 
 before the run moves on, the files the step said it would touch are checked
 against the ranking. `flag` prints them and carries on. `refuse` stops the run
-and writes `refused at <step>, hot blast radius` to the journal.
+and writes `refused at <step>, hot blast radius` to the journal. `park` stops it
+the way a `pause:` does: the step's output stays in `runs/<id>/<step>`, the
+handoff names each hot file with its score, the step's line in `steps.jsonl`
+says `parked`, the journal says `parked at <step>`, and `--resume` carries on
+after that step with whatever that file holds by then. so a person owns the
+risky edit, rather than the agent making it or declining it. any other `mode`
+is refused when the flow loads.
 
 this is the part that is not a prompt. asking an agent to be careful about a
 hot file is a prompt. a number and a comparison is a control.

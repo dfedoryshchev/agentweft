@@ -649,6 +649,24 @@ def main():
                             started)
                     write_index("REFUSED  " + flow + "  " + hot[0][0])
                     return
+                if mode == "park":
+                    why = (step + " touches " + ", ".join(
+                        p + " (" + str(s) + ")" for p, s in hot)
+                        + ", at or above the " + str(run.preflight_for(step).get(
+                            "threshold", preflight.DEFAULT_THRESHOLD))
+                        + " the risk map counts as hot,")
+                    trail.close(entry, "parked", why=why.rstrip(","))
+                    note = park.write(run_id, fm["name"], step, "user",
+                                      [(name, secs) for name, secs, _ in timings],
+                                      resume.after(steps(flow), step),
+                                      resume_command(flow, run_id),
+                                      runs=state.RUNS, why=why)
+                    print("parked at " + step + ", waiting for user")
+                    print("it needs you: " + str(note))
+                    write_index("PARKED  " + flow + "  at " + step)
+                    journal(fm["name"], "parked at " + step, started,
+                            "hot blast radius  " + run_id)
+                    return
 
         # the boundary check reads what came back against what the step was
         # granted. it does not stop the run and it is not meant to: nothing

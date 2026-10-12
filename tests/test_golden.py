@@ -29,6 +29,7 @@ HERE = Path(__file__).resolve().parent
 GOLDEN = HERE / "golden"
 REPO = HERE.parent
 FLOWS = REPO / "flows"
+TEST_FLOWS = HERE / "flows"
 MODEL = "model-in-replay"
 
 
@@ -137,6 +138,13 @@ CASES = {
                       2: ["- rent.md: due on the 1st\n"]},
         "merge.md": [DIGEST],
         "reviewer.md": ["VERDICT: redo\n\ngarden.md was never in the plan\n"]}},
+    ("risky-edit", "hot-park"): {
+        "flows": TEST_FLOWS,
+        "ranking": "src/hooks.ts 0.94\nsrc/util.ts 0.11\n",
+        "answers": {
+            "planner.md": ["src/hooks.ts: the retry loop lives there\n"],
+            "worker.md": ["edited src/hooks.ts: the retry loop backs off "
+                          "before the third call\n"]}},
 }
 
 
@@ -204,7 +212,7 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     for rel, text in (case.get("place") or {}).items():
         (place / rel).write_bytes(text.encode("utf-8"))
     monkeypatch.chdir(place)
-    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(case.get("flows", FLOWS))])
     monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", flow, "--force"])
     for key in list(os.environ):
@@ -213,9 +221,12 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("MODEL", MODEL)
     for key in prompts.ENV_KEYS:
         monkeypatch.setenv(key, "inbox")
-    # the risk map is a server the place would have to be running; none is
+    # the risk map is a server the place would have to be running; none is,
+    # so a case that needs a ranking carries the one the server would answer
+    ranked = (case["ranking"], "") if case.get("ranking") \
+        else ("", "no server in a replay")
     monkeypatch.setattr(engine.context, "risk_map",
-                        lambda config, where=None: ("", "no server in a replay"))
+                        lambda config, where=None: ranked)
 
     script = Script(case["answers"], place)
     real_step = engine.Run.step
