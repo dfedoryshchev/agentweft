@@ -29,6 +29,45 @@ def test_the_threshold_is_respected():
     assert preflight.check("src/hooks.ts", RANKING, threshold=0.99) == []
 
 
+PKG = "pkg/a.py 0.9" + chr(10) + "pkg/b.py 0.2"
+
+
+def test_a_backslash_step_finds_a_forward_slash_ranking():
+    assert preflight.check("i will rewrite pkg\\a.py", PKG) == [("pkg/a.py", 0.9)]
+
+
+def test_a_backslash_ranking_is_found_by_a_forward_slash_step():
+    ranking = "pkg\\a.py 0.9"
+    assert preflight.check("i will rewrite pkg/a.py", ranking) == [("pkg\\a.py", 0.9)]
+
+
+def test_mixed_separators_in_one_path_still_match():
+    ranking = "pkg/sub/a.py 0.9"
+    assert preflight.check("editing pkg\\sub/a.py", ranking) == [("pkg/sub/a.py", 0.9)]
+
+
+def test_a_leading_dot_backslash_still_matches():
+    assert preflight.check("editing .\\pkg\\a.py", PKG) == [("pkg/a.py", 0.9)]
+
+
+def test_a_backslash_cold_file_is_not_flagged():
+    assert preflight.check("touching pkg\\b.py only", PKG) == []
+
+
+def test_files_mentioned_finds_each_path_once():
+    found = preflight.files_mentioned("first src/hooks.ts, then README.md")
+    assert found == {"src/hooks.ts", "README.md"}
+
+
+def test_files_mentioned_counts_one_path_spelled_both_ways_once():
+    assert preflight.files_mentioned("pkg\\a.py and pkg/a.py") == {"pkg/a.py"}
+
+
+def test_files_mentioned_on_nothing_is_empty():
+    assert preflight.files_mentioned("") == set()
+    assert preflight.files_mentioned(None) == set()
+
+
 def test_the_warning_names_the_file_and_asks_for_a_reason():
     text = preflight.as_warning(preflight.check("src/hooks.ts", RANKING))
     assert "src/hooks.ts" in text

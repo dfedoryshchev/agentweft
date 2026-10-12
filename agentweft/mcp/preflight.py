@@ -39,8 +39,12 @@ def files_mentioned(text):
     for m in re.finditer(r"[\w./\\-]+\.[A-Za-z]{1,5}\b", text or ""):
         token = m.group(0).strip(".")
         if "." in token and not token.startswith("."):
-            found.add(token)
+            found.add(_slashes(token))
     return found
+
+
+def _slashes(path):
+    return path.replace(chr(92), "/")
 
 
 def check(text, ranking_text, threshold=DEFAULT_THRESHOLD):
@@ -51,7 +55,8 @@ def check(text, ranking_text, threshold=DEFAULT_THRESHOLD):
     hot = []
     for path in files_mentioned(text):
         for known, score in ranking.items():
-            if known.endswith(path) or path.endswith(known):
+            same = _slashes(known)
+            if same.endswith(path) or path.endswith(same):
                 if score >= threshold:
                     hot.append((known, score))
                 break
