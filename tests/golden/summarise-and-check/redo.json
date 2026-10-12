@@ -8,7 +8,7 @@
     "4 reviewer.md ok"
   ],
   "journal": [
-    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<day>-2.md  4 calls, ~1895 tokens (cli x4)"
+    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<day>-2.md  4 calls, ~1987 tokens (cli x4)"
   ],
   "index": [
     "summarise-and-check-<day>-2.md  summarise-and-check  2 steps"

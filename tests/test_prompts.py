@@ -48,6 +48,45 @@ def test_a_worker_is_still_told_never_to_invent():
     assert "leave it out" not in worker
 
 
+def _reviewer_flows():
+    import pathlib
+    out = []
+    for folder in sorted(pathlib.Path("flows").iterdir()):
+        if folder.name.startswith("_") or not (folder / "flow.yaml").is_file():
+            continue
+        if any(s["role"] == "reviewer" for s in runner.config(folder.name).raw["steps"]):
+            out.append(folder.name)
+    return out
+
+
+def test_every_reviewer_is_asked_to_run_what_it_suspects():
+    from agentweft.runner.config import asks_for_verdict
+    flows = _reviewer_flows()
+    assert "code-review" in flows
+    for flow in flows:
+        reviewer = _composed(flow)["reviewer"]
+        assert "run it" in reviewer, flow
+        assert "the command you ran and what it printed" in reviewer, flow
+        assert "under each finding" in reviewer, flow
+        assert asks_for_verdict(reviewer), flow
+
+
+def test_a_finding_with_no_command_is_kept_and_marked_unsure():
+    for flow in _reviewer_flows():
+        reviewer = _composed(flow)["reviewer"]
+        assert "a finding you could not run stays in, marked unsure" in reviewer, flow
+
+
+def test_a_code_reviewer_tries_the_inputs_the_tests_do_not():
+    reviewer = _composed("code-review")["reviewer"]
+    for said in ("for each changed function",
+                 "very large and very small numbers",
+                 "empty and very long text",
+                 "non-ASCII text written to a file and to a pipe",
+                 "a missing or malformed file"):
+        assert said in reviewer, said
+
+
 def test_only_the_judging_roles_get_the_extra_block():
     cfg = runner.config("weekly-digest")
     by_role = resolver.resolve(cfg.raw, runner.flow_path("weekly-digest"))

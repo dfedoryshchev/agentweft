@@ -7,7 +7,7 @@
     "3 reviewer.md ok"
   ],
   "journal": [
-    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<day>-2.md  3 calls, ~1617 tokens (cli x3)"
+    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<day>-2.md  3 calls, ~1662 tokens (cli x3)"
   ],
   "index": [
     "ops-check-<day>-2.md  ops-check  3 steps"
