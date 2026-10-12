@@ -27,9 +27,8 @@ promises:
     - every line names a file
 max_calls: 20
 max_tokens: 120000
+# read on a sunday, not friday: friday me is too tired to decide anything
 schedule: sunday
 timeout: 420
 retries: 3
 workers: 4
-temperature: 0.1
-note: "read on a sunday, not friday: friday me is too tired to decide anything"

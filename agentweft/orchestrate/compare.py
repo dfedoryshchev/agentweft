@@ -117,12 +117,6 @@ FLOW_ONLY = (
     Pair("flow.max_tokens", "", "the ceiling on tokens, charged per step as it goes."),
     Pair("flow.journal", "", "whether the run is written down. no phase is."),
     Pair("flow.provider", "", "who answers. a phase names an agent and leaves it there."),
-    Pair("flow.temperature", "",
-         "the loader accepts it and nothing reads it, so it documents an "
-         "intention rather than setting one."),
-    Pair("flow.note", "",
-         "a comment with a key on it. the workflow file keeps its notes in "
-         "yaml comments, where nothing can reach them either."),
     Pair("flow.context", "", "the tool a planner asks before it plans."),
     Pair("flow.workdir", "",
          "the directory a run works in, made absolute and checked before the "

@@ -18,7 +18,8 @@ EXTRA = {"reviewer": ["reviewer-only"], "verify": ["reviewer-only"],
 
 def _read(names):
     frag = HERE / "fragments"
-    return "".join((frag / (n + ".md")).read_text() for n in names)
+    return "".join((frag / (n + ".md")).read_text(encoding="utf-8")
+                   for n in names)
 
 
 def skill_rules():
@@ -29,7 +30,7 @@ def skill_rules():
     if not skills.exists():
         return out
     for skill in sorted(skills.iterdir()):
-        text = (skill / "SKILL.md").read_text()
+        text = (skill / "SKILL.md").read_text(encoding="utf-8")
         if text.startswith("---"):
             text = text.split("---", 2)[2]
         out = out + text

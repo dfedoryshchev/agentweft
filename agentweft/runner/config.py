@@ -7,7 +7,8 @@ from .prompts import flow_path
 
 
 def config(flow):
-    return spec.load(reader.read(flow_path(flow, "flow.yaml").read_text()))
+    return spec.load(reader.read(flow_path(flow, "flow.yaml").read_text(
+        encoding="utf-8")))
 
 
 def fanout_step(flow):

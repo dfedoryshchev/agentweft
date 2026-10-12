@@ -26,6 +26,7 @@ class RedTestGate(Gate):
     """
 
     name = "red-test"
+    options = ("marker", "red", "command", "timeout", "expect")
 
     def run(self, text):
         marker = self.opts.get("marker", "FAILS:")

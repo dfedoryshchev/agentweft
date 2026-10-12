@@ -4,6 +4,7 @@ the steps have lived in flow.yaml since september. this adds the part that says
 what the thing is FOR, so a run can be judged against something other than my
 memory of what it used to look like.
 """
+import difflib
 
 
 class Promises(object):
@@ -78,11 +79,13 @@ def steps_named(steps, name):
 
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
-         "temperature", "journal", "note", "max_calls", "max_tokens", "provider",
-         "context", "workdir")
+         "journal", "max_calls", "max_tokens", "provider", "context", "workdir")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports")
+PROMISES_KNOWN = ("inputs", "outputs", "invariants")
+CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
+PREFLIGHT_KNOWN = ("mode", "threshold")
 
 # `model` on a step is a tier, not an id. the workflow file's header says the
 # model names came out of the imported prompts on the way over, because a tier
@@ -105,6 +108,56 @@ TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
          "max_tokens": int, "journal": bool, "name": str, "workdir": str}
 
 
+def meant(word, known):
+    """-> ", did you mean <the closest known word>?", or "" when none is close."""
+    near = difflib.get_close_matches(str(word), list(known), n=1)
+    return ", did you mean " + near[0] + "?" if near else ""
+
+
+def unknown(key, known):
+    return "unknown key " + str(key) + meant(key, known)
+
+
+def block(where, value, known):
+    """-> complaints about a nested mapping such as `context:`."""
+    if not isinstance(value, dict):
+        return [where + " should be a mapping"]
+    return [where + ": " + unknown(k, known) for k in value if k not in known]
+
+
+def check_gates(at, gates):
+    """-> complaints about a step's `gates:`, made before the step is paid for.
+
+    `gates.build` refuses the same names, but only once the step has run.
+    """
+    # here and not at the top: the coverage and reject gates read project.yml
+    # through orchestrate, which loads this module
+    from agentweft.guardrails.gates import registry
+
+    if not isinstance(gates, list):
+        return [at + "gates should be a list"]
+    bad = []
+    for j, g in enumerate(gates):
+        if not isinstance(g, dict):
+            bad.append(at + "gate " + str(j) + " should be a mapping")
+            continue
+        name = g.get("gate")
+        if name is None:
+            bad.append(at + "gate " + str(j) + " has no gate name")
+            continue
+        if name not in registry:
+            bad.append(at + "no such gate " + str(name) + meant(name, registry)
+                       + ". there is: " + ", ".join(sorted(registry)))
+            continue
+        takes = registry[name].options
+        for k in g:
+            if k != "gate" and k not in takes:
+                bad.append(at + "gate " + str(name) + " has no option " + str(k)
+                           + meant(k, takes)
+                           + ". it takes: " + (", ".join(takes) or "nothing"))
+    return bad
+
+
 def check(raw):
     """-> list of complaints. a typo in flow.yaml used to just do nothing."""
     bad = []
@@ -113,19 +166,33 @@ def check(raw):
             bad.append("missing " + key)
     for key in raw:
         if key not in KNOWN:
-            bad.append("unknown key " + str(key))
+            bad.append(unknown(key, KNOWN))
             continue
         want = TYPES.get(key)
         if want and not isinstance(raw[key], want):
             bad.append(key + " should be " + want.__name__)
+    if raw.get("promises") is not None:
+        more = block("promises", raw["promises"], PROMISES_KNOWN)
+        bad.extend(more)
+        inv = raw["promises"].get("invariants") if not more else None
+        if inv is not None and not isinstance(inv, list):
+            bad.append("promises: invariants should be a list")
+    if raw.get("context") is not None:
+        bad.extend(block("context", raw["context"], CONTEXT_KNOWN))
     earlier = []
     for i, step in enumerate(raw.get("steps") or []):
         if not isinstance(step, dict) or "role" not in step:
             bad.append("step " + str(i) + " has no role")
             continue
+        at = "step " + str(i) + ": "
         for key in step:
             if key not in STEP_KNOWN:
-                bad.append("step " + str(i) + ": unknown key " + str(key))
+                bad.append(at + unknown(key, STEP_KNOWN))
+        if step.get("gates") is not None:
+            bad.extend(check_gates(at, step["gates"]))
+        if step.get("preflight") is not None:
+            pre = step["preflight"]
+            bad.extend(at + c for c in block("preflight", pre, PREFLIGHT_KNOWN))
         if step.get("model") and step["model"] not in TIERS:
             bad.append("step " + str(i) + ": model should be one of "
                        + ", ".join(TIERS))

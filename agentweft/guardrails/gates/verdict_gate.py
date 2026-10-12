@@ -22,6 +22,7 @@ class VerdictGate(Gate):
     """
 
     name = "verdict"
+    options = ("passes",)
 
     def run(self, text):
         want = self.opts.get("passes", 1)

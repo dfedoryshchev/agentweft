@@ -23,6 +23,7 @@ class CommandGate(Gate):
     """
 
     name = "command"
+    options = ("command", "expect", "timeout", "cold")
 
     def pick(self, text):
         """-> (argv, why), argv None when `cold` cannot be run."""

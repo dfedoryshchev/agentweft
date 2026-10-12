@@ -8,6 +8,7 @@ class RegexGate(Gate):
     """must match, or must not match. the two cover most of what i want."""
 
     name = "regex"
+    options = ("pattern", "present")
 
     def run(self, text):
         pattern = self.opts.get("pattern", "")

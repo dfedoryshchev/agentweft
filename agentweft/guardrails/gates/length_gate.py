@@ -6,6 +6,7 @@ class LengthGate(Gate):
     """the digest that ran to four pages is why this exists."""
 
     name = "length"
+    options = ("max_lines", "min_lines")
 
     def run(self, text):
         lines = [l for l in text.split("\n") if l.strip()]

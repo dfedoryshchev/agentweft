@@ -30,6 +30,9 @@ under it, and its line in `steps.jsonl` says `"ungated": true` (see
 had no gates or never got as far as the check, and the file could not say
 which.
 
+a gate name that is not one of the seven below, or an option the gate does not
+read, is refused when the flow loads, before any step is paid for.
+
 ## the seven
 
 - **regex** - `pattern`, and `present: false` to require it is absent.

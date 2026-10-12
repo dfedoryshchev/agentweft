@@ -25,6 +25,7 @@ class CoverageGate(Gate):
     """
 
     name = "coverage"
+    options = KNOWN
 
     def run(self, text):
         odd = [k for k in self.opts if k not in KNOWN]

@@ -72,8 +72,11 @@ def test_the_sides_are_not_the_same_size():
     # judges in its own prose, so there is no phase key to pair with.
     #
     # `workdir` is the sixth, the same way: a phase names no place to work in.
+    #
+    # the seventh is the flow side shrinking: `temperature` and `note` were
+    # keys the loader took and nothing read, and the loader refuses them now.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 21
+    assert len(compare.flow_only()) == 19
     assert len(compare.phase_only()) == 7
 
 

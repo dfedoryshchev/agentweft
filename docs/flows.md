@@ -77,6 +77,12 @@ takes a task, saying so, since it has none to give.
     retries: 3
     workers: 4
 
+a key nothing reads is refused when the flow loads, with the key it was
+probably meant to be: at the top, on a step, inside `promises`, `context`,
+`preflight`, and on a gate, where an unknown gate name is refused with the list
+of the ones there are. a misspelt gate used to load and fail only after its
+step had run and been paid for.
+
 `steps` runs in order. each step gets the previous step's output appended to
 its prompt unless it says otherwise, which is the whole chaining mechanism.
 there is no structured handoff and so far it has not needed one.
@@ -107,8 +113,8 @@ nothing, which is a boundary and does get checked.
 
 `fanout: true` on a step means the step before it produced a list, one line
 each, and every line gets its own call instead of the whole list going to one
-worker. the results come back in whatever order they finish, so a fanout step
-almost always wants a merge step after it.
+worker. the calls run side by side and the results are joined in the order
+of the list, so a fanout step almost always wants a merge step after it.
 
 `reports: [worker, reviewer]` on a step names the steps whose output it is
 handed, instead of only the one before it. it is the other kind of many:

@@ -25,6 +25,7 @@ class Result(object):
 
 class Gate(object):
     name = "gate"
+    options = ()
     where = None
     ranking = ""
     earlier = ()
