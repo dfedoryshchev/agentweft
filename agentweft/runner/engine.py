@@ -424,12 +424,29 @@ def fanned_verdict(parts):
 
 
 def run_fanout(run, plan):
+    """-> the fanned step's tasks, one per line of the plan, run side by side.
+
+    a redo arrives here carrying the reviewer's words, not a plan. the tasks
+    are still the planner's, so the plan that fed the first pass is kept and
+    each of its tasks goes again with the reviewer's finding beside it.
+    """
     began = time.time()
-    tasks = [l for l in plan.output.split("\n") if "|" in l]
     role = run.role_for(run.fan)
+    kept = getattr(run, "plan", None)
+    back = EMPTY
+    if plan.verdict == "redo" and kept is not None:
+        back, plan = plan, kept
+    else:
+        run.plan = plan
+    tasks = [l for l in plan.output.split("\n") if "|" in l]
+    if not tasks:
+        return Handoff(role, "", meta={
+            "tasks": 0, "seconds": round(time.time() - began, 1),
+            "why": run.fan + " is fanned out one task per line with a | in it,"
+                   " and what " + plan.role + " handed it has none"})
 
     def one(i):
-        return run.step(run.fan,
+        return run.step(run.fan, previous=back,
                         extra="\n\nyour task, only this one:\n\n" + tasks[i],
                         task=i + 1)
 
@@ -507,7 +524,8 @@ def run_once(flow, provider=None):
         if fenced:
             return out.output, run.budget, "fenced at " + step + ": " + fenced
         if not out:
-            return out.output, run.budget, "nothing came out of " + step
+            return out.output, run.budget, \
+                out.meta.get("why") or "nothing came out of " + step
         failed, blocked = check_step(run, route, step, out)
         if failed:
             return out.output, run.budget, "gate " + failed + " failed at " + step
@@ -688,8 +706,9 @@ def main():
                 # an empty answer is checked before any gate: a gate handed
                 # nothing reports on nothing, and that report reads as the
                 # reason the run stopped
-                print("run stopped at " + step)
-                return stop(stops.NO_ANSWER, nothing_why(step, entry),
+                why = out.meta.get("why")
+                print("run stopped at " + step + (": " + why if why else ""))
+                return stop(stops.NO_ANSWER, why or nothing_why(step, entry),
                             "failed", entry,
                             index="FAILED  " + flow + "  at " + step)
 

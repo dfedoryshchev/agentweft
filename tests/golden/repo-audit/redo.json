@@ -1,24 +1,27 @@
 {
-  "exit": 2,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
     "2 worker.md ok -> merge.md",
     "3 merge.md ok -> reviewer.md",
     "4 reviewer.md redo -> worker.md",
-    "5 worker.md failed"
+    "5 worker.md ok -> merge.md",
+    "6 merge.md ok -> reviewer.md",
+    "7 reviewer.md ok"
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
-    "<time>  repo-audit  failed at worker.md  <secs>s  repo-audit-<run>  no answer  5 calls, 600 tokens counted (input 500, output 100) (cli x5)  nothing came out of worker.md"
+    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180) (cli x9)"
   ],
   "index": [
-    "FAILED  repo-audit  at worker.md"
+    "repo-audit-<day>-1.md  repo-audit  4 steps"
   ],
   "handoff": [],
   "files": [
     "index.md",
     "journal.md",
+    "repo-audit-<day>-1.md",
     "repo-audit-<run>/gates.md",
     "repo-audit-<run>/merge.md",
     "repo-audit-<run>/planner.md",
@@ -29,7 +32,8 @@
     "repo-audit-<run>/steps/003-merge.md",
     "repo-audit-<run>/steps/004-reviewer.md",
     "repo-audit-<run>/steps/005-worker.md",
-    "repo-audit-<run>/why.md",
+    "repo-audit-<run>/steps/006-merge.md",
+    "repo-audit-<run>/steps/007-reviewer.md",
     "repo-audit-<run>/workdir",
     "repo-audit-<run>/worker.md"
   ],
@@ -196,26 +200,125 @@
       "time": "<time>",
       "step": "worker.md",
       "from": "reviewer.md",
-      "to": null,
+      "to": "merge.md",
       "provider": "cli",
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": null,
       "tokens": {
-        "counted": false
+        "counted": true,
+        "input": 200,
+        "output": 40,
+        "cache_read": 0,
+        "cache_creation": 0
       },
-      "cost": null,
+      "cost": 0.02,
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
       "gates": [],
-      "ungated": null,
-      "outcome": "failed",
-      "cause": "no answer",
-      "why": "nothing came out of worker.md",
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
       "file": "steps/005-worker.md",
-      "tasks": [],
+      "tasks": [
+        {
+          "task": 1,
+          "tokens": {
+            "counted": true,
+            "input": 100,
+            "output": 20,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "cost": 0.01,
+          "seconds": "<seconds>",
+          "cached": false,
+          "retries": {},
+          "session": "worker-1-2",
+          "model_reported": "model-in-replay"
+        },
+        {
+          "task": 2,
+          "tokens": {
+            "counted": true,
+            "input": 100,
+            "output": 20,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "cost": 0.01,
+          "seconds": "<seconds>",
+          "cached": false,
+          "retries": {},
+          "session": "worker-2-2",
+          "model_reported": "model-in-replay"
+        }
+      ],
+      "handoff": null
+    },
+    {
+      "seq": 6,
+      "time": "<time>",
+      "step": "merge.md",
+      "from": "worker.md",
+      "to": "reviewer.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "merge-2",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/006-merge.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 7,
+      "time": "<time>",
+      "step": "reviewer.md",
+      "from": "merge.md",
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "reviewer-2",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/007-reviewer.md",
+      "tasks": null,
       "handoff": null
     }
   ],
@@ -227,6 +330,13 @@
     "started reviewer.md",
     "sent back to worker.md",
     "started worker.md",
-    "run stopped at worker.md"
+    "started merge.md",
+    "started reviewer.md",
+    "promise not checked: every claim names a file",
+    "promise not checked: nothing is claimed about a file that was not read",
+    "saved <tmp>/runs/repo-audit-<day>-1.md",
+    "VERDICT: ok",
+    "app.py parses argv and calls run().",
+    "config.py loads settings.yml and has no defaults, which is the risk."
   ]
 }

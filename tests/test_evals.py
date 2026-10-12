@@ -68,7 +68,8 @@ def test_a_run_that_stops_early_is_not_scored_on_the_empty_text(monkeypatch):
     r = scored(monkeypatch)
     assert r["passed"] < r["checked"]
     assert [row["detail"] for row in r["rows"] if row["ok"] is False] == [
-        "nothing came out of worker.md"]
+        "worker.md is fanned out one task per line with a | in it, and what"
+        " planner handed it has none"]
 
 
 def test_scoring_counts_only_what_can_be_checked():

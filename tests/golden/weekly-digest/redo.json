@@ -1,24 +1,27 @@
 {
-  "exit": 2,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
     "2 worker.md ok -> merge.md",
     "3 merge.md ok -> reviewer.md",
     "4 reviewer.md redo -> worker.md  PASS length  PASS regex",
-    "5 worker.md failed"
+    "5 worker.md ok -> merge.md",
+    "6 merge.md ok -> reviewer.md",
+    "7 reviewer.md ok  PASS length  PASS regex"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  failed at worker.md  <secs>s  weekly-digest-<run>  no answer  5 calls, 600 tokens counted (input 500, output 100) (cli x5)  nothing came out of worker.md"
+    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180) (cli x9)"
   ],
   "index": [
-    "FAILED  weekly-digest  at worker.md"
+    "weekly-digest-<day>-1.md  weekly-digest  4 steps"
   ],
   "handoff": [],
   "files": [
     "index.md",
     "journal.md",
+    "weekly-digest-<day>-1.md",
     "weekly-digest-<run>/gates.md",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
@@ -29,7 +32,8 @@
     "weekly-digest-<run>/steps/003-merge.md",
     "weekly-digest-<run>/steps/004-reviewer.md",
     "weekly-digest-<run>/steps/005-worker.md",
-    "weekly-digest-<run>/why.md",
+    "weekly-digest-<run>/steps/006-merge.md",
+    "weekly-digest-<run>/steps/007-reviewer.md",
     "weekly-digest-<run>/workdir",
     "weekly-digest-<run>/worker.md"
   ],
@@ -207,26 +211,136 @@
       "time": "<time>",
       "step": "worker.md",
       "from": "reviewer.md",
-      "to": null,
+      "to": "merge.md",
       "provider": "cli",
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": null,
       "tokens": {
-        "counted": false
+        "counted": true,
+        "input": 200,
+        "output": 40,
+        "cache_read": 0,
+        "cache_creation": 0
       },
-      "cost": null,
+      "cost": 0.02,
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
       "gates": [],
-      "ungated": null,
-      "outcome": "failed",
-      "cause": "no answer",
-      "why": "nothing came out of worker.md",
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
       "file": "steps/005-worker.md",
-      "tasks": [],
+      "tasks": [
+        {
+          "task": 1,
+          "tokens": {
+            "counted": true,
+            "input": 100,
+            "output": 20,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "cost": 0.01,
+          "seconds": "<seconds>",
+          "cached": false,
+          "retries": {},
+          "session": "worker-1-2",
+          "model_reported": "model-in-replay"
+        },
+        {
+          "task": 2,
+          "tokens": {
+            "counted": true,
+            "input": 100,
+            "output": 20,
+            "cache_read": 0,
+            "cache_creation": 0
+          },
+          "cost": 0.01,
+          "seconds": "<seconds>",
+          "cached": false,
+          "retries": {},
+          "session": "worker-2-2",
+          "model_reported": "model-in-replay"
+        }
+      ],
+      "handoff": null
+    },
+    {
+      "seq": 6,
+      "time": "<time>",
+      "step": "merge.md",
+      "from": "worker.md",
+      "to": "reviewer.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "merge-2",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/006-merge.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 7,
+      "time": "<time>",
+      "step": "reviewer.md",
+      "from": "merge.md",
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "reviewer-2",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [
+        {
+          "gate": "length",
+          "ok": true,
+          "detail": "7 lines"
+        },
+        {
+          "gate": "regex",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "ungated": false,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/007-reviewer.md",
+      "tasks": null,
       "handoff": null
     }
   ],
@@ -239,6 +353,17 @@
     "  PASS regex",
     "sent back to worker.md",
     "started worker.md",
-    "run stopped at worker.md"
+    "started merge.md",
+    "started reviewer.md",
+    "  PASS length - 7 lines",
+    "  PASS regex",
+    "saved <tmp>/runs/weekly-digest-<day>-1.md",
+    "## VERDICT: ok",
+    "## changed",
+    "  - notes.md: the plan moved to friday",
+    "## needs me",
+    "  - rent.md: due on the 1st",
+    "## can wait",
+    "  - garden.md: order seeds in march"
   ]
 }

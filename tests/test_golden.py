@@ -108,11 +108,16 @@ CASES = {
         "reviewer.md": ["VERDICT: ok\n\n" + AUDIT]}},
     ("repo-audit", "redo"): {"answers": {
         "planner.md": [AUDIT_PLAN],
-        "worker.md": {1: ["app.py parses argv and calls run().\n"],
-                      2: ["config.py loads settings.yml, no defaults.\n"]},
-        "merge.md": [AUDIT],
+        "worker.md": {1: ["app.py parses argv and calls run().\n",
+                          "app.py parses argv and calls run().\n"],
+                      2: ["config.py loads settings.yml, no defaults.\n",
+                          "config.py loads settings.yml (port, log_dir), "
+                          "no defaults.\n"]},
+        "merge.md": ["app.py parses argv and calls run().\n"
+                     "config.py loads settings.yml and has no defaults.\n",
+                     AUDIT],
         "reviewer.md": ["VERDICT: redo\n\nconfig.py: which settings were "
-                        "read is not said\n"]}},
+                        "read is not said\n", "VERDICT: ok\n\n" + AUDIT]}},
     ("summarise-and-check", "pass"): {"answers": {
         "worker.md": [SUMMARY],
         "reviewer.md": ["VERDICT: ok\n\n" + SUMMARY]}},
@@ -134,10 +139,13 @@ CASES = {
         "reviewer.md": ["VERDICT: ok\n\nhere is your digest\n\n" + DIGEST]}},
     ("weekly-digest", "redo"): {"answers": {
         "planner.md": [DIGEST_PLAN],
-        "worker.md": {1: ["- notes.md: the plan moved to friday\n"],
-                      2: ["- rent.md: due on the 1st\n"]},
-        "merge.md": [DIGEST],
-        "reviewer.md": ["VERDICT: redo\n\ngarden.md was never in the plan\n"]}},
+        "worker.md": {1: ["- notes.md: the plan moved to friday\n",
+                          "- notes.md: the plan moved to friday (line 3)\n"],
+                      2: ["- rent.md: due on the 1st\n",
+                          "- rent.md: due on the 1st (line 1)\n"]},
+        "merge.md": [DIGEST + "- garden.md: order seeds in march\n", DIGEST],
+        "reviewer.md": ["VERDICT: redo\n\ngarden.md was never in the plan\n",
+                        "VERDICT: ok\n\n" + DIGEST]}},
     ("risky-edit", "hot-park"): {
         "flows": TEST_FLOWS,
         "ranking": "src/hooks.ts 0.94\nsrc/util.ts 0.11\n",
