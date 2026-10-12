@@ -69,7 +69,7 @@ or crashed. the keys are always all there, in this order:
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
      "from": null, "to": "reviewer.md",
      "provider": "cli", "command": "claude", "model": "a-model",
-     "model_reported": "a-model-1",
+     "model_reported": "a-model-1", "model_choice": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
      "cost": 0.25, "session": "s-1", "seconds": 8.4, "cached": false,
@@ -90,6 +90,13 @@ or crashed. the keys are always all there, in this order:
 - `model` is the id the provider sends, null for one that sends none (the fake,
   or a cli command other than claude). `model_reported` is what the provider
   said answered.
+- `model_choice` is what this step's role was asked to run on, null when
+  nothing chose and the provider's own model answered:
+  `{"role": "reviewer", "asked": "low", "from": "run", "applies": true}`.
+  `from` is `run` (`--model-for`), `step` (its `model:`) or `flow` (`tiers:`);
+  `applies` is false when the provider cannot act on a model choice (the fake,
+  a cli command other than claude), so the choice is written down and was not
+  used.
 - `tokens` and `cost` are what the provider reported, summed over every go a
   retry took. `{"counted": false}` and a null cost mean it reported nothing:
   not zero, unknown. a cached answer sent nothing, so it costs 0 and is not

@@ -32,6 +32,13 @@ pointed at a task instead of a copy of the flow per task:
 
 the text goes where the flow wrote `{TASK}` (`docs/flows.md`).
 
+which model each role runs on is a switch on the run, not an edit to the flow:
+
+    python run.py code-review --force --model-for reviewer=low,worker=opus
+
+a tier or a model id per role; `docs/providers.md` has the order it wins in,
+and every step's line in `steps.jsonl` records what it was asked to run on.
+
 ## what a flow looks like
 
     flows/weekly-digest/

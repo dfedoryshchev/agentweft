@@ -19,6 +19,9 @@ class ApiProvider(Provider):
     def asks_for(self):
         return self._model() or None
 
+    def chooses_model(self):
+        return True
+
     def ask(self, prompt, timeout=None):
         key = os.environ.get("API_KEY", "")
         if not key:

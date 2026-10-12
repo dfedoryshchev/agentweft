@@ -65,6 +65,9 @@ class CliProvider(Provider):
         return (model_for(self.opts) or None) if is_claude(self.command) \
             else None
 
+    def chooses_model(self):
+        return is_claude(self.command)
+
     def argv(self, prompt):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for
         json, and never `--resume` or `--continue`: a carried-on session

@@ -79,7 +79,8 @@ def steps_named(steps, name):
 
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
-         "journal", "max_calls", "max_tokens", "provider", "context", "workdir")
+         "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
+         "tiers")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports")
@@ -225,6 +226,29 @@ def check(raw):
         for name in (step["role"], step_name(step)):
             if name not in earlier:
                 earlier.append(name)
+    bad.extend(check_tiers(raw))
+    return bad
+
+
+def check_tiers(raw):
+    """`tiers:` is a tier per role, held to the same rule as a step's own."""
+    chosen = raw.get("tiers")
+    if chosen is None:
+        return []
+    if not isinstance(chosen, dict):
+        return ["tiers should be a mapping of role to tier"]
+    known = []
+    for step in raw.get("steps") or []:
+        if isinstance(step, dict) and step.get("role") not in known:
+            known.append(step.get("role"))
+    bad = []
+    for role, tier in chosen.items():
+        if role not in known:
+            bad.append("tiers: no role called " + str(role) + ". there is: "
+                       + ", ".join(str(r) for r in known))
+        elif tier not in TIERS:
+            bad.append("tiers: " + str(role) + " should be one of "
+                       + ", ".join(TIERS))
     return bad
 
 

@@ -122,6 +122,9 @@ FLOW_ONLY = (
          "the directory a run works in, made absolute and checked before the "
          "first call. a phase has no word for a place: its agents name their "
          "own paths in their prompts."),
+    Pair("flow.tiers", "",
+         "a tier per role, under a step's own `model`. a phase has no word "
+         "for it: each agent carries its tier in its own file."),
     Pair("step.prompt", "",
          "which file the step sends. an agent's prompt is its own name plus "
          ".md, so it cannot be pointed anywhere else."),

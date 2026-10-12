@@ -207,6 +207,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "command": p.command,
             "model": p.asks_for(),
             "model_reported": last(one, "model") if one else None,
+            "model_choice": getattr(p, "choice", None),
             "tokens": said["tokens"],
             "cost": said["cost"],
             "session": last(one, "session") if one else None,

@@ -105,6 +105,32 @@ it is the same word the workflow layer's agents have always used in their
 frontmatter (`docs/orchestrate.md`), and that is not a coincidence - it is
 where the word came from.
 
+## a model per role
+
+a flow can give a tier to a role rather than to each step:
+
+    tiers:
+      reviewer: low
+
+and a run can say which model each role uses without the flow being edited:
+
+    python run.py code-review --force --model-for reviewer=low,worker=opus
+
+the flag can be given more than once. a value is a tier (`high`, `mid`,
+`low`, resolved as above) or a model id, handed to the provider as typed - the
+flow file still never holds an id. a role the flow does not have, a role given
+twice or a role with no model is refused before anything is asked, and the
+refusal lists the roles there are. a role run at two steps gets the model at
+both, and a fanned-out role at every task.
+
+which one wins, highest first: `--model-for`, the step's own `model:`, the
+flow's `tiers:`, then whatever the provider would have used anyway. a tier from
+`--model-for` also wins over a `model` named inside a `provider:` block; a tier
+from the step or the flow does not, as above. a resumed run keeps the models it
+was started with and refuses a different `--model-for`. every step's line in
+`steps.jsonl` says what was asked for, where, and whether the provider could
+act on it (`docs/journal.md`).
+
 ## where a setting comes from
 
 step, then flow, then environment, then the default in `runner/settings.py`.

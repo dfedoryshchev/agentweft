@@ -83,6 +83,12 @@ CASES = {
                       ONE_FINDING],
         "reviewer.md": ["VERDICT: redo\n\nthe finding on app.py has no line\n",
                         "VERDICT: ok\n\n" + ONE_FINDING]}},
+    ("code-review", "model-map"): {
+        "args": ["--model-for", "worker=low,reviewer=opus"],
+        "env": {"MODEL_LOW": "low-in-replay"},
+        "answers": {
+            "worker.md": [ONE_FINDING],
+            "reviewer.md": ["VERDICT: ok\n\n" + ONE_FINDING]}},
     ("fix-with-test", "pass"): {"place": {"calc.py": BUGGY},
                                 "args": ["--task", BUG], "task": BUG,
                                 "answers": FIXES},
@@ -246,6 +252,8 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         if key.startswith("MODEL_"):
             monkeypatch.delenv(key)
     monkeypatch.setenv("MODEL", MODEL)
+    for key, value in case.get("env", {}).items():
+        monkeypatch.setenv(key, value)
     for key in prompts.ENV_KEYS:
         monkeypatch.setenv(key, "inbox")
     # the risk map is a server the place would have to be running; none is,

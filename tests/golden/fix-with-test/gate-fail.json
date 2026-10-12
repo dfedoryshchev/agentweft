@@ -34,6 +34,7 @@
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
+      "model_choice": null,
       "tokens": {
         "counted": true,
         "input": 100,

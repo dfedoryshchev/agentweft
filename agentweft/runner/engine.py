@@ -26,7 +26,7 @@ from . import errors
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import resume, router
+from . import models, resume, router
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -198,8 +198,9 @@ class Run(object):
     through five functions just so two of them could read a timeout."""
 
     def __init__(self, flow, fm, by_role, provider=None, workdir=None,
-                 task=None):
+                 task=None, chosen=None):
         self.flow = flow
+        self.chosen = dict(chosen or {})
         self.fm = fm
         self.task_text = task
         self.by_role = by_role
@@ -225,12 +226,25 @@ class Run(object):
             # when it only names a tier. the tier has to reach something that
             # can act on it, and the flow's provider is shared - handing it a
             # tier would give it to every step that has not asked for one.
-            if not s.get("provider") and not s.get("model"):
+            asked, source = models.choose(s, fm, self.chosen)
+            if not s.get("provider") and not asked:
                 continue
-            conf = s.get("provider") or fm.get("provider") or {}
-            self.by_step[step_id(s)] = \
-                pinned or providers.build(conf, tier=s.get("model", ""),
-                                          where=self.workdir)
+            if pinned:
+                self.by_step[step_id(s)] = pinned
+                continue
+            conf = dict(s.get("provider") or fm.get("provider") or {})
+            tier = ""
+            if asked and models.is_tier(asked):
+                tier = asked
+                if source == "run":
+                    conf.pop("model", None)
+            elif asked:
+                conf["model"] = asked
+            p = providers.build(conf, tier=tier, where=self.workdir)
+            if asked:
+                p.choice = {"role": s["role"], "asked": asked, "from": source,
+                            "applies": p.chooses_model()}
+            self.by_step[step_id(s)] = p
         self.briefed = briefing.digest(self.workdir)
         self.fence = fence.at(self.workdir, own=state.RUNS)
 
@@ -578,6 +592,18 @@ def main():
                             task.given(sys.argv),
                             task.saved(state.RUNS / pick_up) if pick_up else None,
                             pick_up)
+        chosen = models.parse(models.pairs(sys.argv))
+        kept = models.load(state.RUNS / pick_up) if pick_up else {}
+        if pick_up and chosen and chosen != kept:
+            print(pick_up + " was started with " + (models.said(kept) or
+                                                    "no models chosen")
+                  + ", not " + models.said(chosen)
+                  + ". a run carries on with the models it started with")
+            return 1
+        chosen = chosen or kept
+        wrong = models.unknown(chosen, fm)
+        if wrong:
+            raise ValueError(wrong)
     except ValueError as e:
         print(str(e))
         return 1
@@ -598,7 +624,8 @@ def main():
             print(pick_up + " was working in " + started_in + ", not "
                   + named + ". a run carries on where it started")
             return 1
-        run = Run(flow, fm, by_role, workdir=started_in or named, task=asked)
+        run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
+                  chosen=chosen)
     except ValueError as e:
         print(str(e))
         return 1
@@ -633,6 +660,7 @@ def main():
                                                    encoding="utf-8")
     if asked is not None:
         task.save(state.RUNS / run_id, asked)
+    models.save(state.RUNS / run_id, chosen)
     trail = trace.Trail(state.RUNS / run_id,
                         after=trace.last_seq(state.RUNS / pick_up)
                         if pick_up else 0)

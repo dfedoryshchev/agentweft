@@ -133,6 +133,10 @@ class Provider(object):
         """-> the model id this provider sends with a prompt, None for none."""
         return None
 
+    def chooses_model(self):
+        """-> whether a model asked for by name or tier can reach the call."""
+        return False
+
     def check(self):
         """-> (ok, detail). is this thing usable right now."""
         return True, "no check implemented"

@@ -75,8 +75,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # the seventh is the flow side shrinking: `temperature` and `note` were
     # keys the loader took and nothing read, and the loader refuses them now.
+    #
+    # `tiers` is the eighth, and grows it again: a tier per role, where each
+    # agent file carries its own and there is no phase-wide word for it.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 19
+    assert len(compare.flow_only()) == 20
     assert len(compare.phase_only()) == 7
 
 

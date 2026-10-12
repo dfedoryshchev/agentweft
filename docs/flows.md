@@ -101,7 +101,9 @@ the planner is cheap and the reviewer is not, and that is a fact about the
 steps rather than about whichever model is current this quarter. which id a
 tier resolves to lives in the environment; `providers.md` has the mapping. a
 step that says nothing gets whatever the flow's provider is configured with,
-which is the normal case.
+which is the normal case. `tiers:` at the top of the flow gives a tier to a
+role at every step it runs, under a step's own `model`, and `--model-for` on
+the run is over both (`providers.md`, "a model per role").
 
 `tools` on a step is what it may touch: any of `read`, `grep`, `write`,
 `edit`, `shell`, `browser`, and the checker refuses a word that is not one of

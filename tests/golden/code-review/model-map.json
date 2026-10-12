@@ -1,0 +1,113 @@
+{
+  "exit": 0,
+  "raised": null,
+  "path": [
+    "1 worker.md ok -> reviewer.md",
+    "2 reviewer.md ok"
+  ],
+  "journal": [],
+  "index": [
+    "code-review-<day>-1.md  code-review  2 steps"
+  ],
+  "handoff": [],
+  "files": [
+    "code-review-<day>-1.md",
+    "code-review-<run>/gates.md",
+    "code-review-<run>/models",
+    "code-review-<run>/reviewer.md",
+    "code-review-<run>/steps.jsonl",
+    "code-review-<run>/steps/001-worker.md",
+    "code-review-<run>/steps/002-reviewer.md",
+    "code-review-<run>/workdir",
+    "code-review-<run>/worker.md",
+    "index.md"
+  ],
+  "steps": [
+    {
+      "seq": 1,
+      "time": "<time>",
+      "step": "worker.md",
+      "from": null,
+      "to": "reviewer.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "low-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": {
+        "role": "worker",
+        "asked": "low",
+        "from": "run",
+        "applies": true
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "worker-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/001-worker.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "reviewer.md",
+      "from": "worker.md",
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "opus",
+      "model_reported": "model-in-replay",
+      "model_choice": {
+        "role": "reviewer",
+        "asked": "opus",
+        "from": "run",
+        "applies": true
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "reviewer-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-reviewer.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null
+    }
+  ],
+  "printed": [
+    "started worker.md",
+    "started reviewer.md",
+    "promise not checked: every finding names a file and a line",
+    "promise not checked: a finding is a problem, not a preference",
+    "promise not checked: nothing is reported that the diff does not show",
+    "saved <tmp>/runs/code-review-<day>-1.md",
+    "VERDICT: ok",
+    "- [high] app.py:12 the loop reads one past the end of items"
+  ]
+}

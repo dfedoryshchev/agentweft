@@ -42,6 +42,7 @@
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
+      "model_choice": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -74,6 +75,7 @@
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": null,
+      "model_choice": null,
       "tokens": {
         "counted": true,
         "input": 200,
@@ -139,6 +141,7 @@
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
+      "model_choice": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -171,6 +174,7 @@
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
+      "model_choice": null,
       "tokens": {
         "counted": true,
         "input": 100,

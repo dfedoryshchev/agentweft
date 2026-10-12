@@ -58,6 +58,7 @@ def cmd_help():
   python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
                        [--workdir <dir>]
                        [--task "<text>" | --task-file <path>]
+                       [--model-for <role>=<model>,...]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
@@ -78,7 +79,10 @@ def cmd_help():
           with one does not start without it. a resumed run keeps the task
           it started with
 --task-file  the same, read from a UTF-8 file. for anything longer than a
-          line""")
+          line
+--model-for  the model one role runs on for this run: a tier (high, mid,
+          low) or a model id, over the step's and the flow's own. a resumed
+          run keeps the ones it started with""")
     return 0
 
 
