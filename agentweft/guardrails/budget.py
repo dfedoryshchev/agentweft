@@ -7,7 +7,12 @@ fine right up until a prompt bug puts it in a loop.
 a provider that says what a call used is charged exactly that, split the way
 it said it. one that says nothing is charged an estimate from the length of
 the text. the two are kept apart: a total with an estimate in it says so.
+
+the fan-out charges one budget from every worker thread, so a charge is taken
+whole or not at all: a total read by one thread and written back by it after
+another has charged is a call that never happened.
 """
+import threading
 
 
 class OverBudget(Exception):
@@ -40,6 +45,7 @@ class Budget(object):
         # failed goes the provider gave no usage for, by error kind. they are
         # charged as calls and as 0 tokens, which is not the same as free
         self.unreported = {}
+        self.lock = threading.Lock()
 
     def charge(self, prompt, answer, provider="cli", error=None):
         """one go at a model.
@@ -48,6 +54,10 @@ class Budget(object):
         `error` is the kind of failure when the go failed, None when it
         answered.
         """
+        with self.lock:
+            return self._charge(prompt, answer, provider, error)
+
+    def _charge(self, prompt, answer, provider, error):
         usage = getattr(answer, "usage", None)
         if usage is not None:
             self.counted["input"] += usage.input_tokens
