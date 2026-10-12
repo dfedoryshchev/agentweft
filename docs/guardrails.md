@@ -30,7 +30,8 @@ the cache is the run's own: a redo inside a run gets the answer it already
 paid for, a second run or a second eval case asks again.
 
 the two are never added into one number without saying so. the journal line
-of a run that finished or stopped carries one of:
+of a run that finished or stopped carries one of these, with its money after
+the tokens (see the next section):
 
     3 calls, 360 tokens counted (input 300, output 60) (cli x3)
     1 call, 12850 tokens counted (input 12810 incl. cache_read 12000 and cache_creation 800, output 40 incl. reasoning 25) (cli x1)
@@ -42,6 +43,58 @@ of a run that finished or stopped carries one of:
 a large cached prompt on every step is a run that has grown. when it trips,
 the reason names both halves, `token cap: 105 > 100 (90 counted: input 90,
 output 0, + ~15 estimated)`. `max_calls` counts every go, failed ones included.
+
+## what it cost in money
+
+the tokens go through a price table, `prices.yaml`: USD per million tokens,
+per model. the copy that ships is `agentweft/guardrails/prices.yaml`, and its
+header says the page it was copied from and the day. a `prices.yaml` in the
+directory you run from is read instead, and `PRICES=<path>` names one
+anywhere. a table with a rate missing, negative or not a number is refused
+with the model and the rate named.
+
+    claude-opus-5-5:
+      input: 4
+      cache_write_5m: 5
+      cache_write_1h: 8
+      cache_read: 0.20
+      output: 20
+
+the model that answered is priced, not the one asked for, which can be an
+alias. input, cache reads, five-minute cache writes, one-hour cache writes and
+output each have their own rate; reasoning is part of output and paid once.
+`over` and `above` price a model whose rate depends on how long a request's
+prompt is, and web searches are priced per search.
+
+a call is left unpriced, with the reason, never priced at zero:
+
+- the model is not in the table (or no model was named at all)
+- cache writes came without their five-minute / one-hour split
+- fast mode, or US-only inference, which the table has no rates for
+- a tiered model whose usage is a sum of requests past the threshold: the
+  `claude` cli reports one block per session, and the threshold is per request
+- two models in one answer with no usage per model
+
+the journal line carries the money after the tokens:
+
+    3 calls, 360 tokens counted (input 300, output 60), $0.0006 priced, reported $0.0006 (cli x3)
+    1 call, 1800 tokens counted (input 1000, output 800), $0.0050 priced, reported $0.0066, they differ by $0.0016 (cli x1)
+    3 calls, 1000020 tokens counted (input 1000020, output 0), $1.0000 priced + unpriced: m-other x2 (cli x3)
+    1 call, ~1100000 tokens estimated, ~$1.5000 priced (cli x1)
+    1 call, ~15 tokens estimated, unpriced: no model named x1 (fake x1)
+
+`priced` is the table's figure and `reported` is what the provider said
+(`claude`'s `total_cost_usd`); both are printed and neither replaces the
+other. when they disagree past the fourth decimal the line says by how much,
+which is how a stale table shows up. a priced total with an unpriced call in
+it shows the part it could price and names the rest. an estimated run is
+priced from its estimate and carries `~`. money is shown to four places,
+rounded half up, and anything above zero that rounds to nothing is
+`<$0.0001`.
+
+every step's line in `steps.jsonl` carries `priced` beside `cost`, and the
+eval scores carry `usd`, `usd_estimated` and `reported_usd`, so a comparison
+of two runs can be read as money per result.
 
 ## the promises
 

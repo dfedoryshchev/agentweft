@@ -45,6 +45,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -78,6 +79,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -111,6 +113,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "worker-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -144,6 +147,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,

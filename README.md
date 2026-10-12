@@ -95,7 +95,9 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - **nothing costs money without a cap.** a flow declares its own ceiling and
   the run stops at it, mid flow, keeping what it has. it is charged what the
   provider counted, every retry included, and a total with an estimate in it
-  says so.
+  says so. a dated price table you can edit turns the tokens into money,
+  printed beside what the provider said it cost; a model the table does not
+  list says it has no price instead of costing nothing.
 
 ## docs
 
@@ -103,7 +105,7 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - `docs/flows.md` - how a flow is put together
 - `docs/writing-a-flow.md` - adding one
 - `docs/gates.md` - checks that are programs
-- `docs/guardrails.md` - spend caps and promises
+- `docs/guardrails.md` - spend caps, prices and promises
 - `docs/providers.md` - cli, http, fake
 - `docs/mcp.md` - reading the runs from an agent, and feeding a flow context
 - `docs/journal.md` - the journal, the per-step trace, the rollup, and --resume

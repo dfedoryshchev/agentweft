@@ -12,6 +12,7 @@ of the same flow differ only in the time, the ids and the seconds.
 import datetime
 import json
 import time
+from decimal import Decimal
 
 from .task import FILE as TASK
 
@@ -78,6 +79,23 @@ def cost(attempts):
     return round(sum(costs), 6)
 
 
+def priced(attempts, model=None):
+    """USD by the price table, None when any reply was not counted or could
+    not be priced. `model` is the id asked for, for a reply that names none."""
+    from agentweft.guardrails import prices
+
+    if attempts and all(a.cached for a in attempts):
+        return 0
+    replies = [r for a in attempts if not a.cached for r in a.replies]
+    if not replies or any(r.usage is None for r in replies):
+        return None
+    table = prices.load()
+    total = prices.Priced(Decimal(0))
+    for r in replies:
+        total = total + prices.of_reply(table, r, asked=model)
+    return prices.stored(total.usd)
+
+
 def retries(attempts):
     out = {}
     for a in attempts:
@@ -100,8 +118,9 @@ def seconds(attempts):
     return round(max(a.started + a.took() for a in attempts) - start, 1)
 
 
-def facts(attempts):
+def facts(attempts, model=None):
     return {"tokens": tokens(attempts), "cost": cost(attempts),
+            "priced": priced(attempts, model),
             "seconds": seconds(attempts),
             "cached": bool(attempts) and all(a.cached for a in attempts),
             "retries": retries(attempts)}
@@ -186,14 +205,14 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
     attempts = entry.attempts
     first = attempts[0] if attempts else None
     p = entry.provider
-    said = facts(attempts)
+    said = facts(attempts, p.asks_for())
     one = attempts[0] if len(attempts) == 1 and not entry.fanned else None
     tasks = None
     if entry.fanned:
         tasks = []
         for a in attempts:
             task = {"task": a.task}
-            task.update(facts([a]))
+            task.update(facts([a], p.asks_for()))
             task["session"] = last(a, "session")
             task["model_reported"] = last(a, "model")
             tasks.append(task)
@@ -210,6 +229,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "model_choice": getattr(p, "choice", None),
             "tokens": said["tokens"],
             "cost": said["cost"],
+            "priced": said["priced"],
             "session": last(one, "session") if one else None,
             "seconds": said["seconds"],
             "cached": said["cached"],

@@ -8,7 +8,7 @@
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
+    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)"
   ],
   "index": [
     "fix-with-test-<day>-1.md  fix-with-test  3 steps"
@@ -49,6 +49,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -88,6 +89,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "patcher-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -127,6 +129,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "verify-1",
       "seconds": "<seconds>",
       "cached": false,

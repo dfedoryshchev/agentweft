@@ -9,7 +9,7 @@
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)"
+    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)"
   ],
   "index": [
     "weekly-digest-<day>-1.md  weekly-digest  4 steps"
@@ -51,6 +51,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -84,6 +85,7 @@
         "cache_creation": 0
       },
       "cost": 0.02,
+      "priced": null,
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -106,6 +108,7 @@
             "cache_creation": 0
           },
           "cost": 0.01,
+          "priced": null,
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
@@ -122,6 +125,7 @@
             "cache_creation": 0
           },
           "cost": 0.01,
+          "priced": null,
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
@@ -150,6 +154,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "merge-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -183,6 +188,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,

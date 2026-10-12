@@ -31,12 +31,17 @@ besides the text:
   `gen_ai.usage.*` names). their `input_tokens` INCLUDES cache reads and cache
   writes, which anthropic's own `input_tokens` does not, so the two differ by
   the cache. `cache_read_input_tokens` and `cache_creation_input_tokens` are
-  parts of that total, not additions to it.
+  parts of that total, not additions to it. `usage.requests` is how many
+  requests the block sums: 1 from the api provider, None from `claude`, whose
+  block covers every request its session made.
 - `cost` - USD, as the provider stated it. `claude` reports `total_cost_usd`;
-  the api provider reports none.
+  the api provider reports none. it is kept beside the money the price table
+  gives (`guardrails.md`), never in place of it.
 - `session` - `claude`'s `session_id`.
 - `model` - the model that answered: the keys of `claude`'s `modelUsage`
   (comma-joined when more than one did), or the api response's `model`.
+- `models` - when more than one model answered a `claude` call, the usage of
+  each, from `modelUsage`, so each is priced at its own rates; None otherwise.
 - `retryable` - whether going again can help, from the http status behind a
   failure (429, 5xx), a timeout, or a missing binary; None when unknown.
   the runner goes again only on True, asks once on False, and reads the

@@ -12,7 +12,7 @@
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180) (cli x9)"
+    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)"
   ],
   "index": [
     "weekly-digest-<day>-1.md  weekly-digest  4 steps"
@@ -57,6 +57,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -90,6 +91,7 @@
         "cache_creation": 0
       },
       "cost": 0.02,
+      "priced": null,
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -112,6 +114,7 @@
             "cache_creation": 0
           },
           "cost": 0.01,
+          "priced": null,
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
@@ -128,6 +131,7 @@
             "cache_creation": 0
           },
           "cost": 0.01,
+          "priced": null,
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
@@ -156,6 +160,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "merge-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -189,6 +194,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -233,6 +239,7 @@
         "cache_creation": 0
       },
       "cost": 0.02,
+      "priced": null,
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -255,6 +262,7 @@
             "cache_creation": 0
           },
           "cost": 0.01,
+          "priced": null,
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
@@ -271,6 +279,7 @@
             "cache_creation": 0
           },
           "cost": 0.01,
+          "priced": null,
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
@@ -299,6 +308,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "merge-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -332,6 +342,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,

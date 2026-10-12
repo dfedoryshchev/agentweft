@@ -21,13 +21,18 @@ class Usage(object):
     `input_tokens` does not, so the two numbers named the same thing differ by
     the whole cache. cache read and cache write are parts of the input total,
     never added to it again.
+
+    `requests` is how many requests the block sums, None when the provider
+    did not say: the claude cli reports one block for a whole session.
     """
 
     __slots__ = ("raw", "input_tokens", "output_tokens", "cache_read_input_tokens",
-                 "cache_creation_input_tokens", "reasoning_output_tokens")
+                 "cache_creation_input_tokens", "reasoning_output_tokens",
+                 "requests")
 
-    def __init__(self, raw):
+    def __init__(self, raw, requests=None):
         self.raw = raw
+        self.requests = requests
         self.cache_read_input_tokens = count(raw.get("cache_read_input_tokens"))
         self.cache_creation_input_tokens = count(
             raw.get("cache_creation_input_tokens"))
@@ -39,9 +44,9 @@ class Usage(object):
         self.reasoning_output_tokens = thinking if isinstance(thinking, int) else None
 
     @classmethod
-    def of(cls, raw):
+    def of(cls, raw, requests=None):
         """-> Usage, or None when there is no usage block to read."""
-        return cls(raw) if isinstance(raw, dict) else None
+        return cls(raw, requests) if isinstance(raw, dict) else None
 
     def as_otel(self):
         out = {"gen_ai.usage.input_tokens": self.input_tokens,
@@ -63,14 +68,16 @@ class Reply(object):
     provider stated it. `retryable` is the provider's own word on whether going
     again can help, None when it has none. `outage` is set when the account's
     own limit refused the call: when the provider said it resets, or
-    "unknown".
+    "unknown". `models` is the usage per model when more than one answered,
+    None otherwise.
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
-                 "retryable", "outage")
+                 "retryable", "outage", "models")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
-                 session=None, model=None, retryable=None, outage=None):
+                 session=None, model=None, retryable=None, outage=None,
+                 models=None):
         self.text = text
         self.cached = cached
         self.detail = detail
@@ -80,6 +87,7 @@ class Reply(object):
         self.model = model
         self.retryable = retryable
         self.outage = outage
+        self.models = models
 
     def __bool__(self):
         return bool(self.text)

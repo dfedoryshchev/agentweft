@@ -92,7 +92,12 @@ def score(spec, output, budget=None, stopped="", seconds=None):
         rows.append({"invariant": inv, "ok": ok, "detail": detail})
     checked = [r for r in rows if r["ok"] is not None]
     passed = len([r for r in checked if r["ok"]])
+    money = budget.money() if hasattr(budget, "money") else {}
     return {"rows": rows, "passed": passed, "checked": len(checked),
+            "usd": money.get("usd"),
+            "usd_estimated": money.get("estimated", False),
+            "reported_usd": money.get("reported_usd"),
+            "spent": budget.spent() if hasattr(budget, "spent") else "",
             "skipped": len(rows) - len(checked),
             "calls": getattr(budget, "calls", 0),
             "tokens": getattr(budget, "tokens", 0),
@@ -112,7 +117,9 @@ def save_scores(flow, results):
     if LAST.exists():
         blob = json.loads(LAST.read_text(encoding="utf-8"))
     blob[flow] = {name: {"passed": r["passed"], "checked": r["checked"],
-                         "calls": r["calls"], "tokens": r["tokens"]}
+                         "calls": r["calls"], "tokens": r["tokens"],
+                         "usd": r.get("usd"),
+                         "usd_estimated": r.get("usd_estimated", False)}
                   for name, r in results}
     LAST.write_text(json.dumps(blob, indent=2), encoding="utf-8")
 
@@ -157,7 +164,8 @@ def table(flow, results):
                    + " promises, " + str(r["calls"]) + " calls, "
                    + ("" if r.get("metered") == "counted" else "~")
                    + str(r["tokens"]) + " tokens "
-                   + r.get("metered", "estimated"))
+                   + r.get("metered", "estimated")
+                   + (", " + r["spent"] if r.get("spent") else ""))
         for row in r["rows"]:
             if row["ok"] is False:
                 out.append("      FAIL " + row["invariant"] + " - " + row["detail"])

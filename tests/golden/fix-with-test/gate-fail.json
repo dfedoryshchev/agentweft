@@ -6,7 +6,7 @@
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  1 call, 120 tokens counted (input 100, output 20) (cli x1)  red-test: no FAILS: line, so the test never failed"
+    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  red-test: no FAILS: line, so the test never failed"
   ],
   "index": [
     "GATE  fix-with-test  red-test at worker.md"
@@ -43,6 +43,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,

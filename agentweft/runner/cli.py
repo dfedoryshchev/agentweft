@@ -220,17 +220,12 @@ def cmd_provider():
 
 
 def cmd_spend():
-    """the last twenty runs that say what they spent: finished and stopped
-    alike, since a run that stopped short was paid for all the same."""
-    from . import stops
+    """the last twenty runs that say what they spent, finished and stopped
+    alike since a run that stopped short was paid for all the same, then the
+    same runs per flow and per provider."""
+    from . import spend
 
-    journal = state.RUNS / "journal.md"
-    if not journal.exists():
-        print("no runs yet")
-        return 0
-    spent = [line for line in journal.read_text(encoding="utf-8").split("\n")
-             if stops.read(line) is not None and stops.read(line).spend]
-    for line in spent[-20:]:
+    for line in spend.report(state.RUNS):
         print(line)
     return 0
 

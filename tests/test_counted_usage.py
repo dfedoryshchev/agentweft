@@ -98,7 +98,8 @@ def test_cache_and_reasoning_are_parts_of_the_totals_never_added_again():
     assert b.tokens == 12850
     assert b.summary() == ("1 call, 12850 tokens counted (input 12810 incl."
                            " cache_read 12000 and cache_creation 800, output 40"
-                           " incl. reasoning 25) (cli x1)")
+                           " incl. reasoning 25), unpriced: no model named x1"
+                           " (cli x1)")
 
 
 def test_a_reply_with_nothing_reported_is_estimated_at_chars_over_four():
@@ -107,14 +108,16 @@ def test_a_reply_with_nothing_reported_is_estimated_at_chars_over_four():
     assert (b.tokens, b.estimated, b.estimated_calls) == (15, 15, 1)
     assert b.counted == dict.fromkeys(b.counted, 0)
     assert b.metered() == "estimated"
-    assert b.summary() == "1 call, ~15 tokens estimated (cli x1)"
+    assert b.summary() == ("1 call, ~15 tokens estimated, unpriced: no model"
+                           " named x1 (cli x1)")
 
 
 def test_the_old_text_only_charge_is_still_an_estimate():
     b = Budget()
     b.charge("x" * 40, "y" * 20, provider="fake")
     assert (b.tokens, b.metered()) == (15, "estimated")
-    assert b.summary() == "1 call, ~15 tokens estimated (fake x1)"
+    assert b.summary() == ("1 call, ~15 tokens estimated, unpriced: no model"
+                           " named x1 (fake x1)")
 
 
 def test_a_usage_block_with_fields_missing_is_counted_as_far_as_it_goes():
@@ -142,8 +145,8 @@ def test_a_mixed_run_says_how_many_calls_were_estimated():
     b.charge("x" * 40, Reply("y" * 20), provider="fake")
     assert b.metered() == "mixed: 2 estimated calls"
     assert b.summary() == ("3 calls, mixed: 2 estimated calls, 120 tokens"
-                           " counted (input 100, output 20) + ~30 estimated"
-                           " (cli x1, fake x2)")
+                           " counted (input 100, output 20) + ~30 estimated,"
+                           " unpriced: no model named x3 (cli x1, fake x2)")
 
 
 def test_one_estimated_call_is_singular():

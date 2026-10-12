@@ -354,15 +354,17 @@ class Run(object):
                 return int(settings.get("workers", step=s, flow=self.fm))
         return 1
 
-    def charge(self, prompt, answer, provider):
+    def charge(self, prompt, answer, provider, model=None):
         """every go the answer took, the failed ones too: each was paid for."""
         replies = getattr(answer, "replies", None)
         if replies is None:
-            self.budget.charge(prompt, answer[0], provider=provider)
+            self.budget.charge(prompt, answer[0], provider=provider,
+                               model=model)
             return
         for reply in replies:
             error = None if reply else kind_of(reply).__name__.lower()
-            self.budget.charge(prompt, reply, provider=provider, error=error)
+            self.budget.charge(prompt, reply, provider=provider, error=error,
+                               model=model)
 
     def ask(self, prompt, step, used):
         """a redo re-runs most of a flow unchanged, so inside one run the same
@@ -413,14 +415,14 @@ class Run(object):
             answer = tried.answered(self.ask(prompt, step, used))
         except Outage as e:
             refused = tried.answered(Answer("", False, e.replies, e.retries))
-            self.charge(prompt, refused, used.name)
+            self.charge(prompt, refused, used.name, used.asks_for())
             raise
         text, cached = answer
         self.produced[step] = text
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
-            self.charge(prompt, answer, used.name)
+            self.charge(prompt, answer, used.name, used.asks_for())
         return Handoff(role, text, verdict(text, asked=asked),
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,

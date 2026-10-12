@@ -8,7 +8,7 @@
   ],
   "journal": [
     "<time>  ops-check  running  <secs>s  ops-check-<run>",
-    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
+    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)"
   ],
   "index": [
     "ops-check-<day>-1.md  ops-check  3 steps"
@@ -48,6 +48,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -81,6 +82,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -114,6 +116,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,

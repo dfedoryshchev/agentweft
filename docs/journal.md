@@ -6,15 +6,19 @@ every run appends a `running` line to `runs/journal.md` before its first
 step, and one more line when it ends:
 
     2026-01-22 09:14  weekly digest  running  0s  weekly-digest-2026-01-22-091402
-    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-091402  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)
-    2026-01-22 18:02  ops-check  failed at reviewer.md  11s  ops-check-2026-01-22-180207  gate failed  3 calls, ~900 tokens estimated (cli x3)  regex: no line starts with "- ["
-    2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011  parked  1 call, ~300 tokens estimated (cli x1)  waiting for user
+    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-091402  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100), $0.0010 priced, reported $0.0010 (cli x5)
+    2026-01-22 18:02  ops-check  failed at reviewer.md  11s  ops-check-2026-01-22-180207  gate failed  3 calls, ~900 tokens estimated, unpriced: no model named x3 (cli x3)  regex: no line starts with "- ["
+    2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011  parked  1 call, ~300 tokens estimated, unpriced: no model named x1 (cli x1)  waiting for user
 
 the columns are split by two spaces: when the run started, the flow, how it
 ended, how long it took, the run id. a finished run then has the file it
 saved and what it spent; a stopped run has its cause, what it spent and why.
-what it spent is counted, estimated or mixed (see "the spend cap" in
-`guardrails.md`); `python run.py spend` prints the last twenty lines that say.
+what it spent is counted, estimated or mixed, then its money: what the price
+table makes of it and what the provider said (see "the spend cap" and "what it
+cost in money" in `guardrails.md`). `python run.py spend` prints the last
+twenty lines that say, then those runs per flow and per provider, read from
+their `steps.jsonl`; a run whose steps were never counted says `estimated only:
+no counts, no money` instead of adding up to nothing.
 
 a run saves its output as `runs/<flow>-<day>-<n>.md`, and the first run of a
 day is `-1`.
@@ -72,7 +76,8 @@ or crashed. the keys are always all there, in this order:
      "model_reported": "a-model-1", "model_choice": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
-     "cost": 0.25, "session": "s-1", "seconds": 8.4, "cached": false,
+     "cost": 0.25, "priced": 0.25, "session": "s-1", "seconds": 8.4,
+     "cached": false,
      "retries": {}, "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
      "ungated": false,
@@ -100,7 +105,8 @@ or crashed. the keys are always all there, in this order:
 - `tokens` and `cost` are what the provider reported, summed over every go a
   retry took. `{"counted": false}` and a null cost mean it reported nothing:
   not zero, unknown. a cached answer sent nothing, so it costs 0 and is not
-  counted.
+  counted. `priced` is the same tokens through the price table, null when a
+  go was not counted or the table could not price it.
 - `retries` is the goes that failed, by cause (`{"transient": 2}`); null on a
   crash, where nothing knows how many there were.
 - `gates` is `[]` for a step that declares none, and also for one whose line
@@ -121,7 +127,8 @@ or crashed. the keys are always all there, in this order:
   `--task-file`, kept beside the line as `runs/<run-id>/task.md`; null when it
   was not. the text is not on the line, so a long task is written once.
 - a fanned-out step is one line: the totals at the top and a `tasks` list with
-  each task's own seconds, tokens, cost, session and retries, in plan order.
+  each task's own seconds, tokens, cost, priced, session and retries, in plan
+  order.
   the gates judged the joined output, so they are on the line, not the tasks.
 - `handoff` is reserved and null for now.
 

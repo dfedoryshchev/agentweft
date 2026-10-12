@@ -47,7 +47,8 @@ class ApiProvider(Provider):
                          retryable=again(r.status_code))
         data = r.json()
         parts = [b.get("text", "") for b in data.get("content", [])]
-        return Reply("".join(parts), usage=Usage.of(data.get("usage")),
+        return Reply("".join(parts),
+                     usage=Usage.of(data.get("usage"), requests=1),
                      model=data.get("model") or None)
 
     def check(self):

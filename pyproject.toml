@@ -21,4 +21,5 @@ agentweft = "agentweft.runner.cli:entrypoint"
 include = ["agentweft*"]
 
 [tool.setuptools.package-data]
-agentweft = ["fragments/*.md", "roles/library/*.md", "skills/*/SKILL.md"]
+agentweft = ["fragments/*.md", "roles/library/*.md", "skills/*/SKILL.md",
+             "guardrails/prices.yaml"]

@@ -1,0 +1,115 @@
+# what a model charges, in USD per million tokens.
+#
+# copied from https://platform.claude.com/docs/en/about-claude/pricing on
+# 2026-10-12, the claude api's own list prices: no batch discount, no fast
+# mode, no US-only inference, no negotiated rate. prices move. when they do,
+# edit this file, or keep a prices.yaml of your own in the directory you run
+# from (or name one in PRICES) and that one is read instead of this one.
+#
+# a model that is not in here is reported with no price, never as free. the
+# model ids are the ones the api and the claude cli report; `ids` lists the
+# other names the same model answers to.
+#
+# cache_write_5m and cache_write_1h are the two cache lifetimes, priced apart
+# because they are billed apart. `over` is a prompt length (input, cache
+# reads and writes included) above which a request pays the `above` rates.
+
+source: https://platform.claude.com/docs/en/about-claude/pricing
+checked: 2026-10-12
+web_search_per_1000: 10
+
+models:
+  claude-fable-5-1:
+    input: 10
+    cache_write_5m: 12.50
+    cache_write_1h: 20
+    cache_read: 0.25
+    output: 50
+  claude-fable-5:
+    input: 10
+    cache_write_5m: 12.50
+    cache_write_1h: 20
+    cache_read: 1
+    output: 50
+  claude-opus-5-5:
+    input: 4
+    cache_write_5m: 5
+    cache_write_1h: 8
+    cache_read: 0.20
+    output: 20
+  claude-opus-5:
+    input: 5
+    cache_write_5m: 6.25
+    cache_write_1h: 10
+    cache_read: 0.50
+    output: 25
+  claude-opus-4-8:
+    input: 5
+    cache_write_5m: 6.25
+    cache_write_1h: 10
+    cache_read: 0.50
+    output: 25
+  claude-opus-4-7:
+    input: 5
+    cache_write_5m: 6.25
+    cache_write_1h: 10
+    cache_read: 0.50
+    output: 25
+  claude-opus-4-6:
+    input: 5
+    cache_write_5m: 6.25
+    cache_write_1h: 10
+    cache_read: 0.50
+    output: 25
+  claude-opus-4-5:
+    ids: [claude-opus-4-5-20251101]
+    input: 5
+    cache_write_5m: 6.25
+    cache_write_1h: 10
+    cache_read: 0.50
+    output: 25
+  claude-sonnet-5-5:
+    input: 2
+    cache_write_5m: 2.50
+    cache_write_1h: 4
+    cache_read: 0.10
+    output: 10
+  claude-sonnet-5:
+    input: 2
+    cache_write_5m: 2.50
+    cache_write_1h: 4
+    cache_read: 0.20
+    output: 10
+  claude-sonnet-4-6:
+    input: 3
+    cache_write_5m: 3.75
+    cache_write_1h: 6
+    cache_read: 0.30
+    output: 15
+  claude-sonnet-4-5:
+    ids: [claude-sonnet-4-5-20250929]
+    input: 3
+    cache_write_5m: 3.75
+    cache_write_1h: 6
+    cache_read: 0.30
+    output: 15
+  claude-haiku-5-5:
+    input: 0.10
+    cache_write_5m: 0.125
+    cache_write_1h: 0.20
+    cache_read: 0.01
+    output: 0.50
+    over: 100000
+    above:
+      input: 0.50
+      cache_write_5m: 0.625
+      cache_write_1h: 1
+      cache_read: 0.05
+      output: 2.50
+  claude-haiku-4-5:
+    ids: [claude-haiku-4-5-20251001]
+    input: 1
+    cache_write_5m: 1.25
+    cache_write_1h: 2
+    cache_read: 0.10
+    output: 5

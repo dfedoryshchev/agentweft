@@ -24,6 +24,46 @@ def answered(stdout):
     return None
 
 
+PER_MODEL = (("input_tokens", "inputTokens"), ("output_tokens", "outputTokens"),
+             ("cache_read_input_tokens", "cacheReadInputTokens"),
+             ("cache_creation_input_tokens", "cacheCreationInputTokens"))
+
+
+def per_model(models, usage):
+    """-> {model: Usage} when more than one model answered, else None.
+
+    `modelUsage` has no cache lifetime per model, so one is given only when
+    the whole answer wrote to one lifetime; otherwise a model's cache writes
+    stay unsplit and are not priced.
+    """
+    if not isinstance(models, dict) or len(models) < 2:
+        return None
+    usage = usage if isinstance(usage, dict) else {}
+    said = usage.get("cache_creation")
+    one = None
+    if isinstance(said, dict):
+        five = said.get("ephemeral_5m_input_tokens") or 0
+        hour = said.get("ephemeral_1h_input_tokens") or 0
+        if not (five and hour):
+            one = "ephemeral_1h_input_tokens" if hour \
+                else "ephemeral_5m_input_tokens"
+    out = {}
+    for name, block in models.items():
+        block = block if isinstance(block, dict) else {}
+        raw = {ours: block.get(theirs) for ours, theirs in PER_MODEL}
+        for key in ("speed", "inference_geo"):
+            if key in usage:
+                raw[key] = usage[key]
+        raw["server_tool_use"] = {"web_search_requests":
+                                  block.get("webSearchRequests")}
+        if one:
+            raw["cache_creation"] = {
+                "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 0,
+                one: block.get("cacheCreationInputTokens") or 0}
+        out[name] = Usage(raw)
+    return out
+
+
 USAGE_LIMIT = "usage_limit_reached"
 
 
@@ -118,7 +158,8 @@ class CliProvider(Provider):
                     cost=cost if isinstance(cost, (int, float)) else None,
                     session=data.get("session_id") or None,
                     model=", ".join(sorted(models)) if isinstance(models, dict)
-                    and models else None)
+                    and models else None,
+                    models=per_model(models, data.get("usage")))
         text = data.get("result")
         if data.get("is_error") or r.returncode != 0:
             why = text if isinstance(text, str) and text.strip() else \

@@ -74,8 +74,11 @@ that reads stdin, writes nothing down, and prints what came back.
 
     python run.py spend
 
-the last runs, one line each. `python rollup.py` is the wider view, and takes
-`--flow x` and `--failed`.
+the last runs, one line each, then the same runs per flow and per provider:
+tokens, the money the price table gives them, and what the provider said they
+cost. the table is `agentweft/guardrails/prices.yaml`, dated; keep a
+`prices.yaml` of your own where you run when the prices move. `python
+rollup.py` is the wider view, and takes `--flow x` and `--failed`.
 
 ## next
 

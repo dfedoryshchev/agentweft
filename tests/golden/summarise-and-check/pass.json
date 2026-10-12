@@ -7,7 +7,7 @@
   ],
   "journal": [
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
-    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40) (cli x2)"
+    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)"
   ],
   "index": [
     "summarise-and-check-<day>-1.md  summarise-and-check  2 steps"
@@ -45,6 +45,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -78,6 +79,7 @@
         "cache_creation": 0
       },
       "cost": 0.01,
+      "priced": null,
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
