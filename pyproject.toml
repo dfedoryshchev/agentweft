@@ -19,3 +19,6 @@ agentweft = "agentweft.runner.cli:entrypoint"
 
 [tool.setuptools.packages.find]
 include = ["agentweft*"]
+
+[tool.setuptools.package-data]
+agentweft = ["fragments/*.md", "roles/library/*.md", "skills/*/SKILL.md"]
