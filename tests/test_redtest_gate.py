@@ -1,9 +1,12 @@
 import json
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.guardrails import gates
+from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
 
 NL = chr(10)
@@ -124,6 +127,191 @@ def test_the_claim_is_still_required_when_the_test_is_run(tmp_path):
     r = red(tmp_path).run("TEST: test_bug.py")
     assert not r
     assert "no FAILS: line" in r.detail
+
+
+def test_a_node_id_is_run_as_named_once_its_file_is_there(tmp_path):
+    (tmp_path / "tests").mkdir()
+    a_test(tmp_path / "tests", "raise SystemExit(1)")
+    seen = tmp_path / "argv.txt"
+    g = gates.build({"gate": "red-test", "command": [
+        sys.executable, "-c",
+        "import sys; open(sys.argv[2], 'w').write(sys.argv[1]);"
+        " raise SystemExit(1)", "{test}", str(seen)]}, where=tmp_path)
+    r = g.run("FAILS: x" + NL + "TEST: tests/test_bug.py::test_it")
+    assert r, r.detail
+    assert seen.read_text() == "tests/test_bug.py::test_it"
+
+
+NODE_RUN = [sys.executable, "-c", "raise SystemExit(1)", "{test}"]
+
+
+def test_a_node_id_with_a_class_and_parameters_is_red(tmp_path):
+    a_test(tmp_path, "")
+    for named in ("test_bug.py::TestIt::test_it",
+                  "test_bug.py::test_it[a-b]",
+                  "test_bug.py::test_it[x::y]",
+                  "`test_bug.py::test_it`"):
+        r = red(tmp_path, command=NODE_RUN).run(
+            "FAILS: x" + NL + "TEST: " + named)
+        assert r, named + ": " + r.detail
+
+
+def test_a_node_id_whose_file_was_never_written_is_not_red(tmp_path):
+    r = red(tmp_path).run("FAILS: x" + NL + "TEST: test_bug.py::test_it")
+    assert not r
+    assert "test_bug.py is not in" in r.detail
+    assert "never written" in r.detail
+
+
+def test_a_node_id_outside_the_place_is_refused(tmp_path):
+    (tmp_path / "work").mkdir()
+    a_test(tmp_path, "raise SystemExit(1)", "outside.py")
+    r = red(tmp_path / "work").run(
+        "FAILS: x" + NL + "TEST: ../outside.py::test_it")
+    assert not r
+    assert "outside" in r.detail
+
+
+def test_a_node_id_naming_a_directory_is_not_a_test_file(tmp_path):
+    (tmp_path / "tests").mkdir()
+    r = red(tmp_path).run("FAILS: x" + NL + "TEST: tests::test_it")
+    assert not r
+    assert "never written" in r.detail
+
+
+@pytest.mark.skipif(sys.platform != "win32",
+                    reason="a backslash only separates paths on windows")
+def test_a_node_id_with_windows_separators_is_red_on_windows(tmp_path):
+    (tmp_path / "tests").mkdir()
+    a_test(tmp_path / "tests", "")
+    r = red(tmp_path, command=NODE_RUN).run(
+        "FAILS: x" + NL + "TEST: tests\\test_bug.py::test_it")
+    assert r, r.detail
+
+
+@pytest.mark.parametrize("off", [False, "false", "False", "FALSE", "0", 0,
+                                 "no", "off", " false "])
+def test_red_false_in_any_spelling_wants_the_marker_gone(off):
+    g = gates.build({"gate": "red-test", "red": off})
+    assert g.run("patched it, 1 passed")
+    r = g.run("patched it" + NL + "FAILS: KeyError: 'id'")
+    assert not r
+    assert "still there after the patch" in r.detail
+
+
+@pytest.mark.parametrize("on", [True, "true", "True", "1", 1, "yes", "on"])
+def test_red_true_in_any_spelling_wants_the_marker(on):
+    g = gates.build({"gate": "red-test", "red": on})
+    assert g.run("FAILS: KeyError: 'id'")
+    assert not g.run("patched it, 1 passed")
+
+
+@pytest.mark.parametrize("odd", ["maybe", "", None, 2, "red"])
+def test_a_red_that_is_neither_true_nor_false_fails(odd):
+    r = gates.build({"gate": "red-test", "red": odd}).run("FAILS: x")
+    assert not r
+    assert "true or false" in r.detail
+
+
+def test_red_false_as_a_string_wants_exit_0(tmp_path):
+    a_test(tmp_path, "pass")
+    r = red(tmp_path, red="false").run("patched" + NL + "TEST: test_bug.py")
+    assert r, r.detail
+    assert "exit 0" in r.detail
+
+
+def test_red_false_fails_on_a_test_that_is_still_red(tmp_path):
+    a_test(tmp_path, "raise SystemExit(1)")
+    r = red(tmp_path, red=False).run("patched" + NL + "TEST: test_bug.py")
+    assert not r
+    assert "wanted 0" in r.detail
+
+
+def recorded(where, seen, code):
+    return gates.build({"gate": "red-test", "red": False, "command": [
+        sys.executable, "-c",
+        "import sys; open(sys.argv[2], 'w').write(sys.argv[1]);"
+        " raise SystemExit(" + str(code) + ")", "{test}", str(seen)]},
+        where=where, earlier=["FAILS: x" + NL + "TEST: test_bug.py::test_it"])
+
+
+def test_green_with_no_test_named_runs_the_one_an_earlier_step_named(tmp_path):
+    a_test(tmp_path, "")
+    seen = tmp_path / "argv.txt"
+    r = recorded(tmp_path, seen, 0).run("patched it")
+    assert r, r.detail
+    assert seen.read_text() == "test_bug.py::test_it"
+
+
+def test_green_runs_the_test_it_names_over_the_earlier_one(tmp_path):
+    a_test(tmp_path, "")
+    a_test(tmp_path, "", "test_other.py")
+    seen = tmp_path / "argv.txt"
+    r = recorded(tmp_path, seen, 0).run("patched" + NL + "TEST: test_other.py")
+    assert r, r.detail
+    assert seen.read_text() == "test_other.py"
+
+
+def test_the_earlier_test_is_still_held_to_green(tmp_path):
+    a_test(tmp_path, "")
+    r = recorded(tmp_path, tmp_path / "argv.txt", 1).run("patched it")
+    assert not r
+    assert "wanted 0" in r.detail
+
+
+def test_the_newest_earlier_step_naming_a_test_wins(tmp_path):
+    a_test(tmp_path, "pass", "test_old.py")
+    a_test(tmp_path, "pass", "test_new.py")
+    g = gates.build({"gate": "red-test", "red": False, "command": RUN},
+                    where=tmp_path,
+                    earlier=["TEST: test_old.py", "TEST: test_new.py",
+                             "no test named here"])
+    (tmp_path / "test_old.py").unlink()
+    assert g.run("patched it"), "ran test_old.py, not test_new.py"
+
+
+def test_no_test_named_here_or_earlier_is_still_no_test_line(tmp_path):
+    a_test(tmp_path, "pass")
+    g = gates.build({"gate": "red-test", "red": False, "command": RUN},
+                    where=tmp_path, earlier=["patched it", ""])
+    r = g.run("patched it")
+    assert not r
+    assert "no TEST: line" in r.detail
+
+
+def test_a_red_gate_does_not_borrow_an_earlier_test(tmp_path):
+    a_test(tmp_path, "raise SystemExit(1)")
+    g = gates.build({"gate": "red-test", "command": RUN}, where=tmp_path,
+                    earlier=["FAILS: x" + NL + "TEST: test_bug.py"])
+    r = g.run("FAILS: x")
+    assert not r
+    assert "no TEST: line" in r.detail
+
+
+def test_a_run_hands_its_gates_what_the_earlier_steps_produced():
+    fm = runner.config("fix-with-test")
+    by_role = resolver.resolve(fm.raw, runner.flow_path("fix-with-test"))
+    run = runner.Run("fix-with-test", fm, by_role)
+    run.produced["worker.md"] = "TEST: tests/test_a.py"
+    run.produced["patcher.md"] = "patched it"
+    built = run.gates_for("patcher.md")
+    assert built and all(g.earlier == ["TEST: tests/test_a.py"]
+                         for g in built)
+
+
+@pytest.mark.parametrize("answer", ["", "   ", NL + NL, " " + NL + "\t"])
+@pytest.mark.parametrize("want", [True, False])
+def test_an_empty_answer_is_an_answer_of_nothing(answer, want):
+    r = gates.build({"gate": "red-test", "red": want}).run(answer)
+    assert not r
+    assert r.detail == "the step answered nothing"
+
+
+def test_an_empty_answer_runs_nothing(tmp_path):
+    a_test(tmp_path, "raise SystemExit(1)")
+    r = red(tmp_path).run("")
+    assert not r
+    assert r.detail == "the step answered nothing"
 
 
 def test_a_missing_runner_fails_rather_than_raising(tmp_path):

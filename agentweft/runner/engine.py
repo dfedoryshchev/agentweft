@@ -298,7 +298,9 @@ class Run(object):
     def gates_for(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
-                return [gates.build(g, where=self.workdir, ranking=self.ranking)
+                earlier = [t for k, t in self.produced.items() if k != step]
+                return [gates.build(g, where=self.workdir, ranking=self.ranking,
+                                    earlier=earlier)
                         for g in (s.get("gates") or [])]
         return []
 

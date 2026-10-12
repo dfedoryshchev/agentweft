@@ -10,13 +10,16 @@ steps:
   - role: patcher
     prompt: patcher.md
     on_redo: worker
+    gates:
+      - gate: red-test
+        red: false
+        command: ["python", "-m", "pytest", "-q", "{test}"]
   - role: verify
     prompt: verify.md
     on_redo: patcher
     gates:
-      - gate: regex
-        pattern: "^FAIL "
-        present: false
+      - gate: verdict
+        passes: 3
       - gate: command
         command: ["python", "-m", "pytest", "-q"]
         expect: 0

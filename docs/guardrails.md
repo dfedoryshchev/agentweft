@@ -42,8 +42,9 @@ a green tick you cannot trust is worse than no tick.
 a step can be required to have produced something before the next one runs.
 fix-with-test uses it, and that only proves the words `FAILS:` are there. the
 patcher waits on the `red-test` gate, which runs the test the worker named in
-the run's place and wants it to fail (see `docs/gates.md`). red before green
-is the flow, not a preference.
+the run's place and wants it to fail (see `docs/gates.md`), and after the patch
+the same gate with `red: false` runs it again and wants it to pass. red before
+green is the flow, not a preference.
 
 ## the files that brief the model
 

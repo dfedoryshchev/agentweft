@@ -24,9 +24,16 @@ make the first one do the second.
 results print under the step and land in `runs/<run id>/gates.md`. the journal
 only hears about a gate that failed, because that one stops the run.
 
-## the six
+## the seven
 
 - **regex** - `pattern`, and `present: false` to require it is absent.
+- **verdict** - an answer of `PASS` and `FAIL` lines. a line that starts with
+  `FAIL` fails the step in any list shape (`- FAIL:`, `1. FAIL`, `**FAIL**`,
+  any case), and so does one that starts with a word that is not a verdict
+  (`UNVERIFIED`, `CANNOT CHECK`, `UNKNOWN`): a check nobody could do has not
+  passed. what is left needs `passes` lines starting with `PASS` (default 1),
+  so an answer in prose, or one that leaves a check out, fails too. an empty
+  answer fails as `the step answered nothing`.
 - **length** - `max_lines`, `min_lines`.
 - **command** - `command: [...]`, with `{file}` replaced by a temp file holding
   the output. passes when the exit code matches `expect` (default 0). it runs
@@ -35,12 +42,18 @@ only hears about a gate that failed, because that one stops the run.
   a shorter command for a change the risk map says is small (below).
 - **red-test** - `marker` (default `FAILS:`) has to be in the output, or with
   `red: false` has to be gone from it. with `command: [...]` that is only the
-  claim: the step names its test on a `TEST:` line, the file has to exist in
-  the run's `workdir`, and the command runs there with `{test}` replaced by
-  it. red passes on `expect` (default 1, a pytest run with a failing test) and
-  on nothing else, so a test that passes, was never written, or was not
-  collected is not red. `red: false` wants exit 0. without a command the pass
-  says nothing was run.
+  claim: the step names its test on a `TEST:` line, as a file or as
+  `file::name` (whatever the command takes to run one test; only the part
+  before `::` is looked for), the file has to exist in the run's `workdir`,
+  and the command runs there with `{test}` replaced by the whole line. red
+  passes on `expect` (default 1, a pytest run with a failing test) and on
+  nothing else, so a test that passes, was never written, or was not
+  collected is not red. `red: false` (or `"false"`, `no`, `0`) wants exit 0,
+  and a step with no `TEST:` line of its own is held to the one the newest
+  earlier step in the run named (red never borrows one: the step that says a
+  test fails names it). a `red` that is neither true nor false fails. without a command the pass
+  says nothing was run. an empty answer fails as `the step answered nothing`,
+  not as a test that never failed.
 - **coverage** - a cobertura xml report, `report` (default `coverage.xml`, read
   in the run's `workdir`), held to a floor from `project.yml` (see
   `docs/orchestrate.md`). `floor` names which one, `overall` (default) or
@@ -101,7 +114,10 @@ else.
 
 fix-with-test is where it earns it. the closing step used to be a model reading
 its own patch and saying the test passes now; it is `python -m pytest -q` and
-an exit code, and a non-zero one stops the run.
+an exit code, and a non-zero one stops the run. a `red: false` gate runs the
+test the patcher names, or the worker's when it names none, and the verify
+answer goes through
+`verdict` with `passes: 3`, one for each thing it is asked to check.
 
 ## the short suite or the long one
 
