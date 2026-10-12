@@ -41,7 +41,7 @@ def last_stop(flow_name):
     if not journal.exists():
         return None
     found = None
-    for line in journal.read_text().split("\n"):
+    for line in journal.read_text(encoding="utf-8").split("\n"):
         if not line.strip():
             continue
         parts = [p for p in line.split("  ") if p]

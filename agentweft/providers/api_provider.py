@@ -2,12 +2,7 @@ import os
 
 import httpx
 
-from .base import Provider, Reply, register
-
-
-def env_for(tier):
-    """the variable a tier reads. `high` -> MODEL_HIGH."""
-    return "MODEL_" + tier.upper()
+from .base import Provider, Reply, Usage, again, env_for, model_for, register
 
 
 @register
@@ -19,19 +14,7 @@ class ApiProvider(Provider):
     name = "api"
 
     def _model(self):
-        """the id it was given, then the tier's id, then the one model there is.
-
-        a named model wins because naming one has already answered the question
-        a tier asks. either way the id lives in the environment: a tier buys a
-        second place to look, not a place to write a version string down.
-        """
-        named = self.opts.get("model")
-        if named:
-            return named
-        tier = self.opts.get("tier")
-        if tier:
-            return os.environ.get(env_for(tier), "") or os.environ.get("MODEL", "")
-        return os.environ.get("MODEL", "")
+        return model_for(self.opts)
 
     def ask(self, prompt, timeout=None):
         key = os.environ.get("API_KEY", "")
@@ -50,12 +33,15 @@ class ApiProvider(Provider):
                            headers={"x-api-key": key,
                                     "content-type": "application/json"})
         except httpx.HTTPError as e:
-            return Reply("", detail=str(e)[:200])
+            lost = isinstance(e, (httpx.TimeoutException, httpx.NetworkError))
+            return Reply("", detail=str(e)[:200], retryable=True if lost else None)
         if r.status_code >= 400:
-            return Reply("", detail=str(r.status_code) + " " + r.text[:160])
+            return Reply("", detail=str(r.status_code) + " " + r.text[:160],
+                         retryable=again(r.status_code))
         data = r.json()
         parts = [b.get("text", "") for b in data.get("content", [])]
-        return Reply("".join(parts))
+        return Reply("".join(parts), usage=Usage.of(data.get("usage")),
+                     model=data.get("model") or None)
 
     def check(self):
         if not os.environ.get("API_KEY"):

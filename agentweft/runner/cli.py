@@ -199,7 +199,7 @@ def cmd_spend():
     if not journal.exists():
         print("no runs yet")
         return 0
-    for line in journal.read_text().split("\n")[-20:]:
+    for line in journal.read_text(encoding="utf-8").split("\n")[-20:]:
         if "calls" in line:
             print(line)
     return 0

@@ -37,7 +37,7 @@ def load_env():
     # not worth a dependency for six lines
     if not os.path.exists(".env"):
         return
-    for line in open(".env"):
+    for line in open(".env", encoding="utf-8"):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
@@ -122,7 +122,7 @@ def journal(flow_name, status, started, extra=""):
     runs = state.RUNS
     runs.mkdir(parents=True, exist_ok=True)
     secs = int((datetime.datetime.now() - started).total_seconds())
-    with open(runs / "journal.md", "a") as f:
+    with open(runs / "journal.md", "a", encoding="utf-8") as f:
         f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + flow_name + "  "
                 + status + "  " + str(secs) + "s"
                 + ("  " + extra if extra else "") + NEWLINE)
@@ -387,7 +387,7 @@ def check_step(run, route, step, out, run_dir=None):
         print("  " + repr(r))
     if results and run_dir is not None:
         run_dir.mkdir(parents=True, exist_ok=True)
-        with open(run_dir / "gates.md", "a") as gf:
+        with open(run_dir / "gates.md", "a", encoding="utf-8") as gf:
             gf.write("## " + step + NEWLINE)
             for r in results:
                 gf.write(repr(r) + NEWLINE)
@@ -592,7 +592,7 @@ def main():
                 print("  " + mark.what + "  " + line[:60])
             step_dir = state.RUNS / run_id
             step_dir.mkdir(parents=True, exist_ok=True)
-            with open(step_dir / "boundary.md", "a") as bf:
+            with open(step_dir / "boundary.md", "a", encoding="utf-8") as bf:
                 bf.write("## " + step + "\n")
                 bf.write(boundary.as_note(crossed))
 
@@ -645,7 +645,7 @@ def main():
         print("promise not checked: " + inv)
 
     path = next_run_path(flow)
-    f = open(path, "w")
+    f = open(path, "w", encoding="utf-8")
     f.write(out.output)
     f.close()
     print("saved " + str(path))
@@ -657,7 +657,7 @@ def main():
     # code-review runs per diff, several times an hour. it drowns the weekly
     # rollup and none of it is interesting a day later.
     if fm.get("journal", True):
-        f = open(state.RUNS / "journal.md", "a")
+        f = open(state.RUNS / "journal.md", "a", encoding="utf-8")
         status = "ok"
         if pick_up:
             status = "ok (resumed)"

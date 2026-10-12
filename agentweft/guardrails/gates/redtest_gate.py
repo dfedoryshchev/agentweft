@@ -55,6 +55,7 @@ class RedTestGate(Gate):
 
         try:
             r = subprocess.run(argv, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
                                cwd=str(place),
                                timeout=int(self.opts.get("timeout", 120)))
         except FileNotFoundError:

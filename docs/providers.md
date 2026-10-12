@@ -2,7 +2,7 @@
 
 a provider answers a prompt. that is the whole interface:
 
-    ask(prompt, timeout) -> Reply(text, detail)
+    ask(prompt, timeout) -> Reply(text, detail, usage, cost, session, model, retryable)
     check() -> (ok, detail)
 
 ## the three
@@ -10,12 +10,40 @@ a provider answers a prompt. that is the whole interface:
 - **cli** (default) - shells out to a command, `claude` unless you say
   otherwise. how this started and still what i run. the command is started in
   the run's place (`workdir`, see `flows.md`), so it reads and edits files
-  there.
+  there. `claude` is called as `claude -p --output-format json` (plus
+  `--model`, see tiers) with the prompt on stdin, because Windows caps a
+  command line at about 32k characters; it is never passed `--resume` or
+  `--continue`, so what a call reports is that call. any other command is
+  called as `<command> -p <prompt>` and its stdout is the answer, as before.
+  output is read as UTF-8 either way.
 - **api** - plain http, no sdk. reads `API_KEY`, `API_URL` and `MODEL` (or
   `MODEL_HIGH` and friends, see tiers) from the environment. the model id is
   never written down in the source, because a version string in a file is a
   thing that rots quietly and then surprises you.
 - **fake** - replays canned text. see below.
+
+## what an answer carries
+
+besides the text:
+
+- `usage` - the tokens the provider counted. `usage.raw` is its block exactly
+  as sent; beside it are the OpenTelemetry GenAI totals (`as_otel()` gives the
+  `gen_ai.usage.*` names). their `input_tokens` INCLUDES cache reads and cache
+  writes, which anthropic's own `input_tokens` does not, so the two differ by
+  the cache. `cache_read_input_tokens` and `cache_creation_input_tokens` are
+  parts of that total, not additions to it.
+- `cost` - USD, as the provider stated it. `claude` reports `total_cost_usd`;
+  the api provider reports none.
+- `session` - `claude`'s `session_id`.
+- `model` - the model that answered: the keys of `claude`'s `modelUsage`
+  (comma-joined when more than one did), or the api response's `model`.
+- `retryable` - whether going again can help, from the http status behind a
+  failure (429, 5xx), a timeout, or a missing binary; None when unknown.
+
+any of these is None when the provider did not say. that is not zero: **fake**,
+a command other than `claude`, and an error that came back without a usage
+block all report nothing, and `reply.counted` is False for them. a `claude`
+error that did report usage keeps it, because the attempt was still paid for.
 
 ## choosing one
 
@@ -65,9 +93,11 @@ tier reads it. a `model` named inside a `provider:` block wins over both,
 because naming one has already answered the question the tier was asking.
 
 the tier is a model choice, so it means something to the **api** provider and
-nothing to the other two. **cli** is handed a command, and which flag that
-command takes for a model is not ours to guess; **fake** answers from a file.
-both carry the tier and neither acts on it.
+to **cli** when the command is `claude`, which gets the resolved id as
+`--model <id>` (no id anywhere, no flag: the cli's own default answers). any
+other command is handed as it is, because which flag it takes for a model is
+not ours to guess; **fake** answers from a file. those two carry the tier and
+do not act on it.
 
 it is the same word the workflow layer's agents have always used in their
 frontmatter (`docs/orchestrate.md`), and that is not a coincidence - it is

@@ -58,6 +58,7 @@ class CommandGate(Gate):
 
         try:
             r = subprocess.run(argv, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
                                cwd=str(self.where) if self.where else None,
                                timeout=int(self.opts.get("timeout", 60)))
         except FileNotFoundError:

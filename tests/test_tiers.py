@@ -95,12 +95,12 @@ def test_the_check_says_which_tier_it_could_not_resolve(monkeypatch):
     assert "MODEL_HIGH" in detail
 
 
-def test_the_cli_is_handed_a_command_and_the_tier_changes_nothing(monkeypatch):
+def test_a_command_other_than_claude_is_handed_no_model(monkeypatch):
     """a tier is a model choice and the cli provider is given a command.
 
-    there is no flag here that is ours to add - the command is whatever the
-    flow named - so the tier is carried and not used, and that is written down
-    rather than left to be discovered.
+    claude's model flag is known (`test_reply_cost.py`). for any other command
+    there is no flag here that is ours to add, so the tier is carried and not
+    used, and that is written down rather than left to be discovered.
     """
     seen = []
 
