@@ -4,9 +4,13 @@
 
 every run appends one line to `runs/journal.md`:
 
-    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-1.md
+    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)
     2026-01-22 18:02  ops-check  failed at reviewer.md  11s
     2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011
+
+a run that finished ends its line with what it spent, counted, estimated or
+mixed (see "the spend cap" in `guardrails.md`); `python run.py spend` prints
+the ones among the last twenty lines.
 
 and every step's output lands under `runs/<flow>-<date>-<time>/`, one file per
 step, as it is produced. `runs/` is the one beside `run.py`, not one in the

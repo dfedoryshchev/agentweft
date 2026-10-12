@@ -6,7 +6,7 @@
     "2 reviewer.md ok"
   ],
   "journal": [
-    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<day>-2.md  2 calls, ~1006 tokens (cli x2)"
+    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<day>-2.md  2 calls, 240 tokens counted (input 200, output 40) (cli x2)"
   ],
   "index": [
     "summarise-and-check-<day>-2.md  summarise-and-check  2 steps"

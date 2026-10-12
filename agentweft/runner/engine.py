@@ -329,6 +329,16 @@ class Run(object):
                 return int(settings.get("workers", step=s, flow=self.fm))
         return 1
 
+    def charge(self, prompt, answer, provider):
+        """every go the answer took, the failed ones too: each was paid for."""
+        replies = getattr(answer, "replies", None)
+        if replies is None:
+            self.budget.charge(prompt, answer[0], provider=provider)
+            return
+        for reply in replies:
+            error = None if reply else classify(reply.detail).__name__.lower()
+            self.budget.charge(prompt, reply, provider=provider, error=error)
+
     def taken(self):
         """-> the goes made since this was last asked, for the trace line."""
         out, self.attempts = self.attempts, []
@@ -355,15 +365,16 @@ class Run(object):
                            else previous.as_prompt())
         tried = trace.Attempt(task)
         self.attempts.append(tried)
-        text, cached = tried.answered(
+        answer = tried.answered(
             call(prompt, timeout=self.timeout, cap=self.retries, step=step,
                  provider=self.by_step.get(step, self.provider)))
+        text, cached = answer
         self.produced[step] = text
         used = self.by_step.get(step, self.provider)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
-            self.budget.charge(prompt, text, provider=used.name)
+            self.charge(prompt, answer, used.name)
         return Handoff(role, text, verdict(text, asked=asked),
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,

@@ -7,7 +7,7 @@
     "3 verify.md ok  PASS verdict  PASS command"
   ],
   "journal": [
-    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<day>-2.md  3 calls, ~1573 tokens (cli x3)"
+    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<day>-2.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
   ],
   "index": [
     "fix-with-test-<day>-2.md  fix-with-test  3 steps"

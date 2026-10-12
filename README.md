@@ -79,7 +79,9 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - **every run is written down.** one line per run, every step's output on disk,
   and a run that dies can be picked up where it fell over.
 - **nothing costs money without a cap.** a flow declares its own ceiling and
-  the run stops at it, mid flow, keeping what it has.
+  the run stops at it, mid flow, keeping what it has. it is charged what the
+  provider counted, every retry included, and a total with an estimate in it
+  says so.
 
 ## docs
 

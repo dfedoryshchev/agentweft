@@ -77,6 +77,8 @@ def score(spec, output, budget=None, stopped="", seconds=None):
             "skipped": len(rows) - len(checked),
             "calls": getattr(budget, "calls", 0),
             "tokens": getattr(budget, "tokens", 0),
+            "metered": budget.metered() if hasattr(budget, "metered")
+            else "estimated",
             "seconds": int(seconds or 0)}
 
 
@@ -133,8 +135,10 @@ def table(flow, results):
         total_p = total_p + r["passed"]
         total_c = total_c + r["checked"]
         out.append("  " + name.ljust(20) + str(r["passed"]) + "/" + str(r["checked"])
-                   + " promises, " + str(r["calls"]) + " calls, ~"
-                   + str(r["tokens"]) + " tokens")
+                   + " promises, " + str(r["calls"]) + " calls, "
+                   + ("" if r.get("metered") == "counted" else "~")
+                   + str(r["tokens"]) + " tokens "
+                   + r.get("metered", "estimated"))
         for row in r["rows"]:
             if row["ok"] is False:
                 out.append("      FAIL " + row["invariant"] + " - " + row["detail"])

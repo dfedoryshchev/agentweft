@@ -8,7 +8,7 @@
     "4 reviewer.md ok  PASS length  PASS regex"
   ],
   "journal": [
-    "<time>  weekly digest  ok  <secs>s  weekly-digest-<day>-2.md  5 calls, ~2619 tokens (cli x5)"
+    "<time>  weekly digest  ok  <secs>s  weekly-digest-<day>-2.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)"
   ],
   "index": [
     "weekly-digest-<day>-2.md  weekly-digest  4 steps"

@@ -166,8 +166,8 @@ class Script(object):
         self.now.step, self.now.task = step, task
 
     def run(self, argv, **kw):
-        # the journal's token estimate is the prompt's length, and a checkout
-        # with CRLF endings would make it differ from a Linux one
+        # a checkout with CRLF endings would send a different prompt than a
+        # Linux one, which the counted usage below would never show
         assert "\r" not in (kw.get("input") or ""), "a prompt kept a CR"
         step, task = self.now.step, self.now.task
         planned = self.answers.get(step)

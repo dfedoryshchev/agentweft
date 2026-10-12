@@ -16,9 +16,30 @@ checked after every step. over it and the run stops, writes `over budget at
 the defaults in `guardrails/defaults.py` - no cap is the wrong default for the
 thing that spends money.
 
-token counts are characters over four. that is a guess and it is meant to be:
-i want to know when a run is ten times bigger than usual, not what it cost to
-the penny.
+every go at a model is charged, the failed ones a retry went through too. a
+provider that reports usage (see `providers.md`) is charged exactly what it
+reported, kept split the way it reported it, under the OpenTelemetry GenAI
+names: `input`, `output`, `cache_read`, `cache_write`, `reasoning`. `input`
+already includes `cache_read` and `cache_write`, and `output` already includes
+`reasoning`, so the run's total is input plus output and nothing is counted
+twice. a provider that reports nothing - fake, a command other than `claude` -
+is charged characters over four, a guess meant only to say when a run is ten
+times bigger than usual. a failed go with no usage is charged as a call and 0
+tokens, tagged with the kind of failure. a cached answer is not charged.
+
+the two are never added into one number without saying so. the journal line
+ends with one of:
+
+    3 calls, 360 tokens counted (input 300, output 60) (cli x3)
+    1 call, 12850 tokens counted (input 12810 incl. cache_read 12000 and cache_write 800, output 40 incl. reasoning 25) (cli x1)
+    3 calls, ~1591 tokens estimated (fake x3)
+    3 calls, mixed: 2 estimated calls, 120 tokens counted (input 100, output 20) + ~30 estimated (cli x1, fake x2)
+    3 calls, 55 tokens counted (input 50, output 5), 2 failed calls charged 0 (transient x2) (cli x3)
+
+`max_tokens` reads that same total, cache reads included: a run that re-reads
+a large cached prompt on every step is a run that has grown. when it trips,
+the reason names both halves, `token cap: 105 > 100 (90 counted: input 90,
+output 0, + ~15 estimated)`. `max_calls` counts every go, failed ones included.
 
 ## the promises
 

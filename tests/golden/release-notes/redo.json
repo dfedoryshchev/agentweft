@@ -8,7 +8,7 @@
     "4 reviewer.md ok"
   ],
   "journal": [
-    "<time>  release-notes  ok, 3 promise(s) not checked  <secs>s  release-notes-<day>-2.md  4 calls, ~2022 tokens (cli x4)"
+    "<time>  release-notes  ok, 3 promise(s) not checked  <secs>s  release-notes-<day>-2.md  4 calls, 480 tokens counted (input 400, output 80) (cli x4)"
   ],
   "index": [
     "release-notes-<day>-2.md  release-notes  2 steps"
