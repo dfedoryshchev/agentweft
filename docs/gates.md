@@ -24,6 +24,12 @@ make the first one do the second.
 results print under the step and land in `runs/<run id>/gates.md`. the journal
 only hears about a gate that failed, because that one stops the run.
 
+a step with no gates gets its heading in `gates.md` too, with `no gates`
+under it, and its line in `steps.jsonl` says `"ungated": true` (see
+`docs/journal.md`). without it, a step missing from `gates.md` could have
+had no gates or never got as far as the check, and the file could not say
+which.
+
 ## the seven
 
 - **regex** - `pattern`, and `present: false` to require it is absent.

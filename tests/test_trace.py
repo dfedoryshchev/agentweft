@@ -36,7 +36,8 @@ def test_a_step_records_seconds_and_provider(monkeypatch):
 
 KEYS = ["seq", "time", "step", "from", "to", "provider", "command", "model",
         "model_reported", "tokens", "cost", "session", "seconds", "cached",
-        "retries", "gates", "outcome", "why", "file", "tasks", "handoff"]
+        "retries", "gates", "ungated", "outcome", "why", "file", "tasks",
+        "handoff"]
 
 # an en dash, a CJK word and a Cyrillic letter: cp1252 has the first under
 # another byte and no byte at all for the rest
@@ -314,6 +315,86 @@ def test_numbering_carries_on_past_a_line_cut_short(tmp_path):
                                        encoding="utf-8")
     t = trace.Trail(tmp_path)
     assert t.open("b.md", [], None, None).seq == 5
+
+
+def gate_notes(folder):
+    return (folder / "gates.md").read_text(encoding="utf-8")
+
+
+def test_a_step_with_no_gates_leaves_a_line_saying_so(tmp_path, monkeypatch,
+                                                      fake_cli):
+    a_flow(tmp_path, monkeypatch, "two",
+           ["worker\ngates:\n  - gate: length\n    max_lines: 5", "reviewer"])
+    fake_cli(answer("did the thing\n"), answer("VERDICT: ok\n\nfine\n"))
+    engine.main()
+    [folder] = folders(tmp_path)
+    assert gate_notes(folder) == ("## worker.md\nPASS length - 1 lines\n"
+                                  "## reviewer.md\nno gates\n")
+    first, second = lines(folder)
+    assert (first["gates"] != [], first["ungated"]) == (True, False)
+    assert (second["gates"], second["ungated"]) == ([], True)
+
+
+def test_a_fanned_out_step_with_no_gates_says_so_once(tmp_path, monkeypatch,
+                                                      fake_cli):
+    a_flow(tmp_path, monkeypatch, "wide",
+           ["planner", "worker\nfanout: true\nworkers: 2", "merge"])
+    fake_cli(answer("a.py | look at a\nb.py | look at b\n"))
+    engine.main()
+    [folder] = folders(tmp_path)
+    assert gate_notes(folder) == ("## planner.md\nno gates\n"
+                                  "## worker.md\nno gates\n"
+                                  "## merge.md\nno gates\n")
+    assert [l["ungated"] for l in lines(folder)] == [True, True, True]
+
+
+def test_a_failed_gate_is_not_ungated_and_the_run_stops_before_the_next(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "gated",
+           ["worker\ngates:\n  - gate: length\n    max_lines: 1", "reviewer"])
+    fake_cli(answer("one\ntwo\n"))
+    engine.main()
+    [folder] = folders(tmp_path)
+    assert gate_notes(folder) == \
+        "## worker.md\nFAIL length - 2 lines, cap is 1\n"
+    [line] = lines(folder)
+    assert line["ungated"] is False
+
+
+def test_a_line_closed_before_the_gates_ran_does_not_claim_either(
+        tmp_path, monkeypatch):
+    """refused, over budget and crashed lines never reached the check, so
+    `gates: []` there says nothing about what the step declares."""
+    a_flow(tmp_path, monkeypatch, "moved",
+           ["worker", "reviewer\ngates:\n  - gate: length\n    max_lines: 5"],
+           tail=FAKE)
+    monkeypatch.setattr(engine.Run, "refused", lambda self, step:
+                        "AGENTS.md changed" if step == "reviewer.md" else "")
+    engine.main()
+    [folder] = folders(tmp_path)
+    got = lines(folder)
+    assert [(l["outcome"], l["ungated"]) for l in got] == \
+        [("ok", True), ("refused", None)]
+    assert gate_notes(folder) == "## worker.md\nno gates\n"
+
+
+def test_a_resumed_run_writes_its_own_no_gate_line(tmp_path, monkeypatch,
+                                                   fake_cli):
+    a_flow(tmp_path, monkeypatch, "picked", ["worker", "reviewer"])
+    no_waiting(monkeypatch)
+    fake_cli(answer("worked\n"), answer(""), answer(""), answer(""))
+    engine.main()
+    [first] = folders(tmp_path)
+    fake_cli(answer("VERDICT: ok\n\nfine\n"))
+    monkeypatch.setattr(engine, "CACHE", {})
+    monkeypatch.setattr(sys, "argv", ["run.py", "picked", "--force",
+                                      "--resume", first.name])
+    engine.main()
+    # both runs can land in one folder when they start in the same second
+    notes = "".join(gate_notes(f) for f in folders(tmp_path))
+    assert notes.count("## reviewer.md\nno gates\n") == 2
+    assert notes.endswith("## reviewer.md\nno gates\n")
+    assert every_line(tmp_path)[-1]["ungated"] is True
 
 
 def test_the_server_reads_a_run_with_its_step_files(tmp_path, monkeypatch):

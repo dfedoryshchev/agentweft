@@ -15,6 +15,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "summarise-and-check-<run>/gates.md",
     "summarise-and-check-<run>/reviewer.md",
     "summarise-and-check-<run>/steps.jsonl",
     "summarise-and-check-<run>/steps/001-worker.md",
@@ -47,6 +48,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/001-worker.md",
@@ -76,6 +78,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/002-reviewer.md",

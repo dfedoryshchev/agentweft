@@ -57,6 +57,7 @@
           "detail": "red, exit 1"
         }
       ],
+      "ungated": false,
       "outcome": "ok",
       "why": null,
       "file": "steps/001-worker.md",
@@ -92,6 +93,7 @@
           "detail": "green, exit 0"
         }
       ],
+      "ungated": false,
       "outcome": "ok",
       "why": null,
       "file": "steps/002-patcher.md",
@@ -132,6 +134,7 @@
           "detail": "exit 0"
         }
       ],
+      "ungated": false,
       "outcome": "ok",
       "why": null,
       "file": "steps/003-verify.md",

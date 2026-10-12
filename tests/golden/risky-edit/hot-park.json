@@ -32,6 +32,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "risky-edit-<run>/gates.md",
     "risky-edit-<run>/handoff.md",
     "risky-edit-<run>/planner.md",
     "risky-edit-<run>/steps.jsonl",
@@ -64,6 +65,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/001-planner.md",
@@ -93,6 +95,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "parked",
       "why": "worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
       "file": "steps/002-worker.md",

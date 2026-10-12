@@ -54,6 +54,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/001-planner.md",
@@ -83,6 +84,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/002-worker.md",
@@ -145,6 +147,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/003-merge.md",
@@ -185,6 +188,7 @@
           "detail": ""
         }
       ],
+      "ungated": false,
       "outcome": "ok",
       "why": null,
       "file": "steps/004-reviewer.md",

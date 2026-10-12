@@ -53,6 +53,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/001-planner.md",
@@ -82,6 +83,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/002-worker.md",
@@ -144,6 +146,7 @@
       "cached": false,
       "retries": {},
       "gates": [],
+      "ungated": true,
       "outcome": "ok",
       "why": null,
       "file": "steps/003-merge.md",
@@ -184,6 +187,7 @@
           "detail": "matched here is|as an ai|i hope this and should not have"
         }
       ],
+      "ungated": false,
       "outcome": "gate failed",
       "why": "gate regex failed at reviewer.md",
       "file": "steps/004-reviewer.md",

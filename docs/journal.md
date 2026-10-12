@@ -35,6 +35,7 @@ or crashed. the keys are always all there, in this order:
      "cost": 0.25, "session": "s-1", "seconds": 8.4, "cached": false,
      "retries": {}, "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
+     "ungated": false,
      "outcome": "ok", "why": null, "file": "steps/001-worker.md",
      "tasks": null, "handoff": null}
 
@@ -54,7 +55,12 @@ or crashed. the keys are always all there, in this order:
   counted.
 - `retries` is the goes that failed, by cause (`{"transient": 2}`); null on a
   crash, where nothing knows how many there were.
-- `gates` is `[]` for a step that declares none.
+- `gates` is `[]` for a step that declares none, and also for one whose line
+  was closed before its gates were checked (refused, fenced, over budget,
+  crashed). `ungated` tells them apart: `true` when the gates were checked and
+  the step had none, `false` when it had some and `gates` holds what they
+  said, null when the check never ran. `gates.md` says the same: an ungated
+  step gets its heading and a `no gates` line under it.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `over budget`,
   `gate failed`, `failed`, `crashed`. `why` is the reason the run had in hand
   when it stopped there, null when it went on.

@@ -124,7 +124,7 @@ class Entry(object):
     """a line that has a number and a file but not yet an outcome."""
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
-                 "fanned", "gates")
+                 "fanned", "gates", "ungated")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.seq = seq
@@ -135,6 +135,7 @@ class Entry(object):
         self.file = file
         self.fanned = fanned
         self.gates = []
+        self.ungated = None
 
 
 class Trail(object):
@@ -201,6 +202,7 @@ def line(entry, outcome, why=None, to=None):
             "retries": said["retries"],
             "gates": [{"gate": g.gate, "ok": bool(g.ok), "detail": g.detail}
                       for g in entry.gates],
+            "ungated": entry.ungated,
             "outcome": outcome,
             "why": why,
             "file": entry.file,

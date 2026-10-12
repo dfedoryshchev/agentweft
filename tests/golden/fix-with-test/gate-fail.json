@@ -50,6 +50,7 @@
           "detail": "no FAILS: line, so the test never failed"
         }
       ],
+      "ungated": false,
       "outcome": "gate failed",
       "why": "gate red-test failed at worker.md",
       "file": "steps/001-worker.md",

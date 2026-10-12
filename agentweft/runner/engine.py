@@ -427,17 +427,23 @@ def check_step(run, route, step, out, run_dir=None):
     "" when it did not happen. the results are written down when there is a
     run to write them into; a scored run has nowhere to write and still has to
     be stopped by them.
+
+    a step that declares no gates gets a `no gates` line of its own, so the
+    record tells a step that had none from one that passed them.
     """
     results = [g.run(out.output) for g in run.gates_for(step)]
     out.meta["gates"] = results
+    out.meta["ungated"] = not results
     for r in results:
         print("  " + repr(r))
-    if results and run_dir is not None:
+    if run_dir is not None:
         run_dir.mkdir(parents=True, exist_ok=True)
         with open(run_dir / "gates.md", "a", encoding="utf-8") as gf:
             gf.write("## " + step + NEWLINE)
             for r in results:
                 gf.write(repr(r) + NEWLINE)
+            if not results:
+                gf.write("no gates" + NEWLINE)
     failed = [r for r in results if not r.ok]
     if failed:
         return failed[0].gate, ""
@@ -621,6 +627,7 @@ def main():
 
         failed, blocked = check_step(run, route, step, out, run_dir=step_dir)
         entry.gates = out.meta.get("gates", [])
+        entry.ungated = out.meta.get("ungated")
         if failed:
             # a gate is not advice. it was failing the STEP, which meant the
             # run carried on and wrote the output anyway.
