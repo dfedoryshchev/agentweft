@@ -43,7 +43,6 @@ def a_flow(tmp_path, monkeypatch, gate=None):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
     monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", "wide", "--force"])
 
 

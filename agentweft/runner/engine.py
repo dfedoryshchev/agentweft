@@ -59,14 +59,12 @@ def retry(fn, cap=3, sleep=time.sleep):
         if ok:
             return out
         tries = tries + 1
-        print("cli failed, waiting " + str(wait) + "s")
-        sleep(wait)
-        wait = wait * 2
+        if tries < cap:
+            print("cli failed, waiting " + str(wait) + "s")
+            sleep(wait)
+            wait = wait * 2
     print("giving up")
     return ""
-
-
-CACHE = {}
 
 
 class Answer(tuple):
@@ -81,11 +79,6 @@ class Answer(tuple):
 
 
 def call(prompt, timeout=None, cap=3, step="?", provider=None):
-    # the same planner prompt twice in one evening is the same answer. a redo
-    # re-runs the whole flow and most of it has not changed.
-    if prompt in CACHE:
-        print("step " + step + " came from the cache")
-        return Answer(CACHE[prompt], True)
     p = provider or providers.build({})
     heard = []
     failed = {}
@@ -110,7 +103,6 @@ def call(prompt, timeout=None, cap=3, step="?", provider=None):
         return False, reply.text
 
     answer = retry(once, cap)
-    CACHE[prompt] = answer
     return Answer(answer, False, heard, failed)
 
 
@@ -214,6 +206,7 @@ class Run(object):
         self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
         self.produced = {}
+        self.answers = {}
         self.attempts = []
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
@@ -354,6 +347,22 @@ class Run(object):
             error = None if reply else kind_of(reply).__name__.lower()
             self.budget.charge(prompt, reply, provider=provider, error=error)
 
+    def ask(self, prompt, step, used):
+        """a redo re-runs most of a flow unchanged, so inside one run the same
+        prompt to the same provider is the same answer. the answers are the
+        run's own: a second run or a second eval case handed the first one's
+        answer was scored on work it never did. an answer given up on is not
+        kept, so the next time it is asked again."""
+        key = (used, prompt)
+        if key in self.answers:
+            print("step " + step + " came from the cache")
+            return Answer(self.answers[key], True)
+        answer = call(prompt, timeout=self.timeout, cap=self.retries,
+                      step=step, provider=used)
+        if answer[0]:
+            self.answers[key] = answer[0]
+        return answer
+
     def taken(self):
         """-> the goes made since this was last asked, for the trace line."""
         out, self.attempts = self.attempts, []
@@ -382,9 +391,7 @@ class Run(object):
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
         try:
-            answer = tried.answered(
-                call(prompt, timeout=self.timeout, cap=self.retries,
-                     step=step, provider=used))
+            answer = tried.answered(self.ask(prompt, step, used))
         except Outage as e:
             refused = tried.answered(Answer("", False, e.replies, e.retries))
             self.charge(prompt, refused, used.name)

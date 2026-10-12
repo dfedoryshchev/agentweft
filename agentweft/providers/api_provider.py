@@ -22,7 +22,7 @@ class ApiProvider(Provider):
     def ask(self, prompt, timeout=None):
         key = os.environ.get("API_KEY", "")
         if not key:
-            return Reply("", detail="no API_KEY set")
+            return Reply("", detail="no API_KEY set", retryable=False)
         url = self.opts.get("url") or os.environ.get("API_URL", "")
         body = {"model": self._model(),
                 "max_tokens": int(self.opts.get("max_tokens", 4096)),
@@ -36,8 +36,9 @@ class ApiProvider(Provider):
                            headers={"x-api-key": key,
                                     "content-type": "application/json"})
         except httpx.HTTPError as e:
-            lost = isinstance(e, (httpx.TimeoutException, httpx.NetworkError))
-            return Reply("", detail=str(e)[:200], retryable=True if lost else None)
+            lost = isinstance(e, (httpx.TimeoutException, httpx.NetworkError,
+                                  httpx.RemoteProtocolError))
+            return Reply("", detail=str(e)[:200], retryable=lost)
         if r.status_code >= 400:
             return Reply("", detail=str(r.status_code) + " " + r.text[:160],
                          retryable=again(r.status_code))

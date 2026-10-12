@@ -127,7 +127,6 @@ def a_run(tmp_path, monkeypatch, reply):
         "  reply: " + json.dumps(reply) + "\n",
         encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
     monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")
     monkeypatch.setattr(state, "STATE", tmp_path / "state.json")

@@ -55,7 +55,6 @@ def a_flow(tmp_path, monkeypatch, name, steps, tail=CLAUDE, args=()):
                                        encoding="utf-8")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", name, "--force"] + list(args))
     monkeypatch.setattr(resume, "JOURNAL", None)
 
@@ -126,7 +125,6 @@ def test_the_first_saved_run_of_a_day_is_1(tmp_path, monkeypatch, capsys):
     day = datetime.date.today().isoformat()
     assert (state.RUNS / ("once-" + day + "-1.md")).exists()
     assert not (state.RUNS / ("once-" + day + "-2.md")).exists()
-    monkeypatch.setattr(engine, "CACHE", {})
     assert engine.main() == 0
     assert (state.RUNS / ("once-" + day + "-2.md")).exists()
 
@@ -212,7 +210,6 @@ def test_a_resumed_outage_runs_the_step_it_parked_on_again(
     engine.main()
     first = the_folder().name
     cli = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"))
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", "fix", "--force", "--resume",
                                       first])
     assert engine.main() == 0

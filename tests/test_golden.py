@@ -221,7 +221,6 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         (place / rel).write_bytes(text.encode("utf-8"))
     monkeypatch.chdir(place)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(case.get("flows", FLOWS))])
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", flow, "--force"])
     for key in list(os.environ):
         if key.startswith("MODEL_"):

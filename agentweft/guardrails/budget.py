@@ -23,9 +23,9 @@ class OverBudget(Exception):
 CHARS_PER_TOKEN = 4
 
 # named after the OpenTelemetry GenAI usage attributes. `input` is the whole
-# input, cache_read and cache_write INCLUDED, and `output` includes reasoning:
+# input, cache_read and cache_creation INCLUDED, and `output` includes reasoning:
 # those three are parts of the two totals and are never added to them again.
-SPLIT = ("input", "output", "cache_read", "cache_write", "reasoning")
+SPLIT = ("input", "output", "cache_read", "cache_creation", "reasoning")
 
 
 def plural(n, what):
@@ -63,7 +63,7 @@ class Budget(object):
             self.counted["input"] += usage.input_tokens
             self.counted["output"] += usage.output_tokens
             self.counted["cache_read"] += usage.cache_read_input_tokens
-            self.counted["cache_write"] += usage.cache_creation_input_tokens
+            self.counted["cache_creation"] += usage.cache_creation_input_tokens
             self.counted["reasoning"] += usage.reasoning_output_tokens or 0
             self.counted_calls += 1
         elif error:
@@ -93,7 +93,7 @@ class Budget(object):
         if not parts:
             return (str(n) + " counted: input " + str(c["input"])
                     + ", output " + str(c["output"]))
-        inside = [k + " " + str(c[k]) for k in ("cache_read", "cache_write")
+        inside = [k + " " + str(c[k]) for k in ("cache_read", "cache_creation")
                   if c[k]]
         out = "input " + str(c["input"]) \
             + (" incl. " + " and ".join(inside) if inside else "")

@@ -73,7 +73,6 @@ def a_flow(tmp_path, monkeypatch, name, steps, tail=CLAUDE, args=()):
                                        encoding="utf-8")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", name, "--force"] + list(args))
 
 
@@ -225,8 +224,6 @@ def test_a_resumed_run_carries_on_numbering_where_the_first_stopped(
     [first] = folders(tmp_path)
     assert [l["seq"] for l in lines(first)] == [1, 2]
     fake_cli(answer("VERDICT: ok\n\nfine\n"))
-    # a resume is a new process, with nothing cached
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", "picked", "--force",
                                       "--resume", first.name])
     engine.main()
@@ -384,7 +381,6 @@ def test_a_resumed_run_writes_its_own_no_gate_line(tmp_path, monkeypatch,
     engine.main()
     [first] = folders(tmp_path)
     fake_cli(answer("VERDICT: ok\n\nfine\n"))
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", "picked", "--force",
                                       "--resume", first.name])
     engine.main()

@@ -130,7 +130,6 @@ def test_the_engine_hands_the_risk_map_the_runs_place(tmp_path, monkeypatch):
 
     monkeypatch.setattr(engine.context, "risk_map", risk_map)
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
     monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")
     monkeypatch.setattr(state, "STATE", tmp_path / "state.json")

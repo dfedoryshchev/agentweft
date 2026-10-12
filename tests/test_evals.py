@@ -40,7 +40,6 @@ def scored(monkeypatch, reply=None):
     """a real case through the real flow, scored the way the harness scores it."""
     from agentweft.runner import engine
 
-    monkeypatch.setattr(engine, "CACHE", {})
     case = harness.load_case(harness.cases_for("weekly-digest")[0])
     if reply is not None:
         case["provider"] = {"provider": "fake", "reply": reply}

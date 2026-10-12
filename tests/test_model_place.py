@@ -37,7 +37,6 @@ def a_model(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=run, TimeoutExpired=subprocess.TimeoutExpired))
-    monkeypatch.setattr(engine, "CACHE", {})
     return log
 
 

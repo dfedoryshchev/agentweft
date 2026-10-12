@@ -72,7 +72,6 @@ def test_naming_the_verdict_in_passing_is_not_asking_for_one():
 
 
 def a_run(monkeypatch, reply):
-    monkeypatch.setattr(engine, "CACHE", {})
     fm = runner.config("summarise-and-check")
     by_role = resolver.resolve(fm.raw, runner.flow_path("summarise-and-check"))
     return runner.Run("summarise-and-check", fm, by_role,
@@ -145,7 +144,6 @@ def a_flow(tmp_path, monkeypatch, name, review, fan=False):
         (flow / (role + ".md")).write_text("# " + role + NL + NL + "do it."
                                            + NL, encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
     monkeypatch.setattr(sys, "argv", ["run.py", name, "--force",
                                       "--flows", "flows"])

@@ -54,7 +54,6 @@ def a_flow(tmp_path, monkeypatch, name, steps, tail=CLAUDE, args=()):
                                        encoding="utf-8")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
-    monkeypatch.setattr(engine, "CACHE", {})
     monkeypatch.setattr(sys, "argv", ["run.py", name, "--force"] + list(args))
 
 
@@ -86,7 +85,7 @@ def test_a_reply_with_usage_is_charged_exactly_that():
     b.charge("a prompt nobody measures", counted({"input_tokens": 7,
                                                   "output_tokens": 3}))
     assert b.counted == {"input": 7, "output": 3, "cache_read": 0,
-                         "cache_write": 0, "reasoning": 0}
+                         "cache_creation": 0, "reasoning": 0}
     assert (b.calls, b.tokens, b.estimated, b.metered()) == \
         (1, 10, 0, "counted")
 
@@ -95,10 +94,10 @@ def test_cache_and_reasoning_are_parts_of_the_totals_never_added_again():
     b = Budget()
     b.charge("p", counted(HEAVY))
     assert b.counted == {"input": 12810, "output": 40, "cache_read": 12000,
-                         "cache_write": 800, "reasoning": 25}
+                         "cache_creation": 800, "reasoning": 25}
     assert b.tokens == 12850
     assert b.summary() == ("1 call, 12850 tokens counted (input 12810 incl."
-                           " cache_read 12000 and cache_write 800, output 40"
+                           " cache_read 12000 and cache_creation 800, output 40"
                            " incl. reasoning 25) (cli x1)")
 
 
@@ -123,7 +122,7 @@ def test_a_usage_block_with_fields_missing_is_counted_as_far_as_it_goes():
     b.charge("x" * 4000, counted({"output_tokens": 5}))
     b.charge("x" * 4000, counted({}))
     assert b.counted == {"input": 0, "output": 5, "cache_read": 0,
-                         "cache_write": 0, "reasoning": 0}
+                         "cache_creation": 0, "reasoning": 0}
     # a block that was sent is a count, even an empty one: no estimate
     assert (b.tokens, b.estimated_calls, b.metered()) == (5, 0, "counted")
 
@@ -217,7 +216,7 @@ def test_a_step_on_a_provider_that_counts_is_charged_its_count(
     out, budget, stopped = engine.run_once("metered")
     assert stopped == ""
     assert budget.counted == {"input": 12810, "output": 40,
-                              "cache_read": 12000, "cache_write": 800,
+                              "cache_read": 12000, "cache_creation": 800,
                               "reasoning": 25}
     assert (budget.calls, budget.metered()) == (1, "counted")
 

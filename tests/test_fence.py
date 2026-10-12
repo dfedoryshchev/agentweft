@@ -154,7 +154,6 @@ def a_run(tmp_path, monkeypatch, does="", fenced=True):
 
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=run, TimeoutExpired=subprocess.TimeoutExpired))
-    monkeypatch.setattr(engine, "CACHE", {})
 
     flow = tmp_path / "flows" / "fenced"
     flow.mkdir(parents=True)

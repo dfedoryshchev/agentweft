@@ -39,6 +39,8 @@ besides the text:
   (comma-joined when more than one did), or the api response's `model`.
 - `retryable` - whether going again can help, from the http status behind a
   failure (429, 5xx), a timeout, or a missing binary; None when unknown.
+  the runner goes again only on True, asks once on False, and reads the
+  failure's words only when it is None.
 
 any of these is None when the provider did not say. that is not zero: **fake**,
 a command other than `claude`, and an error that came back without a usage

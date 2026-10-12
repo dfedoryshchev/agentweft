@@ -19,19 +19,21 @@ thing that spends money.
 every go at a model is charged, the failed ones a retry went through too. a
 provider that reports usage (see `providers.md`) is charged exactly what it
 reported, kept split the way it reported it, under the OpenTelemetry GenAI
-names: `input`, `output`, `cache_read`, `cache_write`, `reasoning`. `input`
-already includes `cache_read` and `cache_write`, and `output` already includes
+names: `input`, `output`, `cache_read`, `cache_creation`, `reasoning`. `input`
+already includes `cache_read` and `cache_creation`, and `output` already includes
 `reasoning`, so the run's total is input plus output and nothing is counted
 twice. a provider that reports nothing - fake, a command other than `claude` -
 is charged characters over four, a guess meant only to say when a run is ten
 times bigger than usual. a failed go with no usage is charged as a call and 0
-tokens, tagged with the kind of failure. a cached answer is not charged.
+tokens, tagged with the kind of failure. a cached answer is not charged, and
+the cache is the run's own: a redo inside a run gets the answer it already
+paid for, a second run or a second eval case asks again.
 
 the two are never added into one number without saying so. the journal line
 of a run that finished or stopped carries one of:
 
     3 calls, 360 tokens counted (input 300, output 60) (cli x3)
-    1 call, 12850 tokens counted (input 12810 incl. cache_read 12000 and cache_write 800, output 40 incl. reasoning 25) (cli x1)
+    1 call, 12850 tokens counted (input 12810 incl. cache_read 12000 and cache_creation 800, output 40 incl. reasoning 25) (cli x1)
     3 calls, ~1591 tokens estimated (fake x3)
     3 calls, mixed: 2 estimated calls, 120 tokens counted (input 100, output 20) + ~30 estimated (cli x1, fake x2)
     3 calls, 55 tokens counted (input 50, output 5), 2 failed calls charged 0 (transient x2) (cli x3)

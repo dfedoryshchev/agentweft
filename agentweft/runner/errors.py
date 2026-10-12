@@ -1,4 +1,9 @@
-"""what kind of wrong it was. the runner only retries one of these."""
+"""what kind of wrong it was. the runner only retries one of these.
+
+a reply that says whether going again can help is taken at its word. the
+markers below are for a provider that has no such field, a plain command
+that only prints text.
+"""
 import datetime
 import re
 
@@ -62,9 +67,16 @@ def classify(stderr):
 
 def kind_of(reply):
     """-> the kind of a failed reply: its own word for an outage first, then
-    what its text reads as."""
+    its own word on whether going again can help, and only when it has
+    neither, what its text reads as. a test log with "500" in it is not a
+    server error."""
     if getattr(reply, "outage", None):
         return Outage
+    again = getattr(reply, "retryable", None)
+    if again is True:
+        return Transient
+    if again is False:
+        return Fatal
     return classify(getattr(reply, "detail", ""))
 
 
