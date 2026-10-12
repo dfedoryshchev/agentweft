@@ -101,3 +101,9 @@ resume possible: `--resume` finds the last failed run in the journal, works out
 which steps are left, and hands the step before it whatever it produced last
 time. without the outputs on disk resume could tell you where it died and
 nothing else.
+
+`runs/<run-id>/steps.jsonl` is one json line per step run, written by
+`runner/trace.py` whatever the step's fate: who answered, what it was counted
+at and cost, the gate verdicts, what happened next and why. each pass's output
+is kept as `steps/<seq>-<step>.md` beside it, so a redo does not lose the pass
+before it. `docs/journal.md` has the fields.

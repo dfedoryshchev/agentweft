@@ -59,7 +59,7 @@ def lines(run_id, flow, step, who, done, left, command, why=None):
 def write(run_id, flow, step, who, done, left, command, runs=None, why=None):
     """write the handoff beside the step outputs, and hand back the path.
 
-    the same folder as trace.md and gates.md. everything one run left behind
+    the same folder as steps.jsonl and gates.md. everything one run left behind
     stays in one place, and the person being waited for gets one path to look
     at rather than a mechanism of its own to learn.
     """

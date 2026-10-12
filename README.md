@@ -90,7 +90,7 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - `docs/guardrails.md` - spend caps and promises
 - `docs/providers.md` - cli, http, fake
 - `docs/mcp.md` - reading the runs from an agent, and feeding a flow context
-- `docs/journal.md` - the journal, the rollup, and --resume
+- `docs/journal.md` - the journal, the per-step trace, the rollup, and --resume
 - `docs/architecture.md` - what the code is doing
 - `docs/orchestrate.md` - the workflow layer, and why it is in here
 

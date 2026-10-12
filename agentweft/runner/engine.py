@@ -27,6 +27,7 @@ from . import resume, router
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
+from . import trace
 from .state import load_state, save_state
 
 from pathlib import Path
@@ -64,16 +65,30 @@ def retry(fn, cap=3, sleep=time.sleep):
 CACHE = {}
 
 
+class Answer(tuple):
+    """(text, cached), the pair call has always handed back, plus every reply
+    it took to get there and how many goes failed, by cause."""
+
+    def __new__(cls, text, cached, replies=(), retries=None):
+        self = tuple.__new__(cls, (text, cached))
+        self.replies = list(replies)
+        self.retries = retries or {}
+        return self
+
+
 def call(prompt, timeout=None, cap=3, step="?", provider=None):
     # the same planner prompt twice in one evening is the same answer. a redo
     # re-runs the whole flow and most of it has not changed.
     if prompt in CACHE:
         print("step " + step + " came from the cache")
-        return CACHE[prompt], True
+        return Answer(CACHE[prompt], True)
     p = provider or providers.build({})
+    heard = []
+    failed = {}
 
     def once():
         reply = p.ask(prompt, timeout=timeout)
+        heard.append(reply)
         if reply:
             return True, reply.text
         kind = classify(reply.detail)
@@ -82,11 +97,13 @@ def call(prompt, timeout=None, cap=3, step="?", provider=None):
         if kind is Fatal:
             # going again will not help and it still costs
             raise Fatal(reply.detail)
+        cause = kind.__name__.lower()
+        failed[cause] = failed.get(cause, 0) + 1
         return False, reply.text
 
     answer = retry(once, cap)
     CACHE[prompt] = answer
-    return answer, False
+    return Answer(answer, False, heard, failed)
 
 
 SEV = ("high", "med", "low")
@@ -182,6 +199,7 @@ class Run(object):
         self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
         self.produced = {}
+        self.attempts = []
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
@@ -311,7 +329,12 @@ class Run(object):
                 return int(settings.get("workers", step=s, flow=self.fm))
         return 1
 
-    def step(self, step, previous=EMPTY, extra=""):
+    def taken(self):
+        """-> the goes made since this was last asked, for the trace line."""
+        out, self.attempts = self.attempts, []
+        return out
+
+    def step(self, step, previous=EMPTY, extra="", task=None):
         import time as _t
 
         began = _t.time()
@@ -330,8 +353,11 @@ class Run(object):
         reports = self.reports_for(step)
         prompt = prompt + (synthesise.brief(reports) if reports
                            else previous.as_prompt())
-        text, cached = call(prompt, timeout=self.timeout, cap=self.retries, step=step,
-                            provider=self.by_step.get(step, self.provider))
+        tried = trace.Attempt(task)
+        self.attempts.append(tried)
+        text, cached = tried.answered(
+            call(prompt, timeout=self.timeout, cap=self.retries, step=step,
+                 provider=self.by_step.get(step, self.provider)))
         self.produced[step] = text
         used = self.by_step.get(step, self.provider)
         if not cached:
@@ -371,9 +397,10 @@ def run_fanout(run, plan):
     tasks = [l for l in plan.output.split("\n") if "|" in l]
     role = run.role_for(run.fan)
 
-    def one(task):
+    def one(i):
         return run.step(run.fan,
-                        extra="\n\nyour task, only this one:\n\n" + task)
+                        extra="\n\nyour task, only this one:\n\n" + tasks[i],
+                        task=i + 1)
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
@@ -381,7 +408,7 @@ def run_fanout(run, plan):
     # that gets to be plural, and it says so itself.
     width = min(run.width_for(run.fan), len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
-        parts = list(pool.map(one, tasks))
+        parts = list(pool.map(one, range(len(tasks))))
     out = Handoff(role, "\n\n".join(p.output for p in parts),
                   verdict=fanned_verdict(parts),
                   meta={"tasks": len(tasks),
@@ -402,6 +429,7 @@ def check_step(run, route, step, out, run_dir=None):
     be stopped by them.
     """
     results = [g.run(out.output) for g in run.gates_for(step)]
+    out.meta["gates"] = results
     for r in results:
         print("  " + repr(r))
     if results and run_dir is not None:
@@ -501,6 +529,7 @@ def main():
     timings = []
     risk_text = ""
     out = EMPTY
+    came_from = None
     todo = steps(flow)
     if pick_up:
         stopped = resume.last_stop(fm["name"])
@@ -517,42 +546,58 @@ def main():
             if before:
                 out = Handoff(run.role_for(before[-1]),
                               resume.step_output(pick_up, before[-1]))
+                came_from = before[-1]
             print("picking " + pick_up + " up at " + todo[0])
     seen = load_state(flow).get("last_run")
     (state.RUNS / run_id).mkdir(parents=True, exist_ok=True)
     (state.RUNS / run_id / "workdir").write_text(str(run.workdir),
                                                    encoding="utf-8")
+    trail = trace.Trail(state.RUNS / run_id,
+                        after=trace.last_seq(state.RUNS / pick_up)
+                        if pick_up else 0)
     step = todo[0]
     while step:
+        used = run.by_step.get(step, run.provider)
         refused = run.refused(step)
         if refused:
             print("refused at " + step + ": " + refused)
+            trail.close(trail.open(step, [], used, came_from), "refused",
+                        why=refused)
             write_index("REFUSED  " + flow + "  " + step)
             journal(fm["name"], "refused at " + step + ", the place changed",
                     started)
             return
-        if step == run.fan:
-            out = run_fanout(run, out)
-        else:
-            extra = ""
-            if step == "planner.md" and fm.get("context"):
-                risk_text, why = context.risk_map(fm.get("context"),
-                                                  where=run.workdir)
-                if why:
-                    print("no risk map: " + why)
-                run.ranking = risk_text
-                extra = extra + context.as_prompt(risk_text)
-            if seen and step == "planner.md":
-                extra = "\n\nthe last run was " + seen + \
-                    ". only tell me what is different since then."
-            out = run.step(step, previous=out, extra=extra)
+        try:
+            if step == run.fan:
+                out = run_fanout(run, out)
+            else:
+                extra = ""
+                if step == "planner.md" and fm.get("context"):
+                    risk_text, why = context.risk_map(fm.get("context"),
+                                                      where=run.workdir)
+                    if why:
+                        print("no risk map: " + why)
+                    run.ranking = risk_text
+                    extra = extra + context.as_prompt(risk_text)
+                if seen and step == "planner.md":
+                    extra = "\n\nthe last run was " + seen + \
+                        ". only tell me what is different since then."
+                out = run.step(step, previous=out, extra=extra)
+        except BaseException as e:
+            trail.close(trail.open(step, run.taken(), used, came_from,
+                                   fanned=step == run.fan),
+                        "crashed", why=type(e).__name__ + ": " + str(e))
+            raise
         step_dir = state.RUNS / run_id
         step_dir.mkdir(parents=True, exist_ok=True)
         (step_dir / step).write_text(out.output, encoding="utf-8")
         timings.append((step, out.meta.get("seconds", 0), out.meta.get("cached")))
+        entry = trail.open(step, run.taken(), used, came_from,
+                           output=out.output, fanned=step == run.fan)
 
         fenced = run.fenced(step)
         if fenced:
+            trail.close(entry, "parked", why=fenced)
             print("fenced at " + step + ": " + fenced)
             note = park.write(run_id, fm["name"], step, "user",
                               [(name, secs) for name, secs, _ in timings],
@@ -569,15 +614,19 @@ def main():
         spent = run.budget.over()
         if spent:
             print("stopping: " + spent)
+            trail.close(entry, "over budget", why=spent)
             write_index("OVER  " + flow + "  " + spent)
             journal(fm["name"], "over budget at " + step, started)
             return
 
         failed, blocked = check_step(run, route, step, out, run_dir=step_dir)
+        entry.gates = out.meta.get("gates", [])
         if failed:
             # a gate is not advice. it was failing the STEP, which meant the
             # run carried on and wrote the output anyway.
             print("gate failed at " + step + ", stopping")
+            trail.close(entry, "gate failed",
+                        why="gate " + failed + " failed at " + step)
             write_index("GATE  " + flow + "  " + failed + " at " + step)
             journal(fm["name"], "gate " + failed + " failed at " + step,
                     started)
@@ -594,6 +643,8 @@ def main():
                 for path, score in hot:
                     print("  " + path + "  " + str(score))
                 if mode == "refuse":
+                    trail.close(entry, "refused", why="hot blast radius: "
+                                + ", ".join(p for p, _ in hot))
                     journal(fm["name"], "refused at " + step + ", hot blast radius",
                             started)
                     write_index("REFUSED  " + flow + "  " + hot[0][0])
@@ -621,6 +672,8 @@ def main():
 
         if not out:
             print("run stopped at " + step)
+            trail.close(entry, "failed",
+                        why=blocked or "nothing came out of " + step)
             write_index("FAILED  " + flow + "  at " + step)
             journal(fm["name"], "failed at " + step, started)
             return
@@ -649,10 +702,15 @@ def main():
                               why=why)
             print("parked at " + step + ", waiting for " + waiting)
             print("it needs you: " + str(note))
+            trail.close(entry, "parked",
+                        why=why.rstrip(",") or "waiting for " + waiting)
             write_index("PARKED  " + flow + "  at " + step)
             journal(fm["name"], "parked at " + step, started,
                     ("out of redos  " if stuck else "") + run_id)
             return
+        trail.close(entry, "redo" if out.verdict == "redo" and nxt else "ok",
+                    to=nxt)
+        came_from = step
         step = nxt
 
     broken = promises.failures(out.output, fm.promises.invariants)
@@ -691,16 +749,6 @@ def main():
         f.close()
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
-
-    trace = state.RUNS / run_id / "trace.md"
-    lines = ["# " + run_id, ""]
-    for name, secs, cached in timings:
-        lines.append("  " + name.ljust(16) + str(secs) + "s"
-                     + ("  (cached)" if cached else ""))
-    lines.append("")
-    lines.append("  total " + str(int((datetime.datetime.now() - started).total_seconds()))
-                 + "s, " + run.budget.summary())
-    trace.write_text(NEWLINE.join(lines) + NEWLINE, encoding="utf-8")
 
     if flow == "weekly-digest":
         for section in out.output.split("## "):

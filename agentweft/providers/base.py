@@ -118,12 +118,17 @@ class Provider(object):
     name = "provider"
     reads_place = False
     where = None
+    command = None
 
     def __init__(self, **opts):
         self.opts = opts
 
     def ask(self, prompt, timeout=None):
         raise NotImplementedError
+
+    def asks_for(self):
+        """-> the model id this provider sends with a prompt, None for none."""
+        return None
 
     def check(self):
         """-> (ok, detail). is this thing usable right now."""

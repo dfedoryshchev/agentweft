@@ -31,16 +31,24 @@ class CliProvider(Provider):
     name = "cli"
     reads_place = True
 
+    @property
+    def command(self):
+        return self.opts.get("command", "claude")
+
+    def asks_for(self):
+        return (model_for(self.opts) or None) if is_claude(self.command) \
+            else None
+
     def argv(self, prompt):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for
         json, and never `--resume` or `--continue`: a carried-on session
         reports the whole session's usage, not this call's. any other command
         is called the way it always was."""
-        cmd = self.opts.get("command", "claude")
+        cmd = self.command
         if not is_claude(cmd):
             return [cmd, "-p", prompt], None
         argv = [cmd, "-p", "--output-format", "json"]
-        model = model_for(self.opts)
+        model = self.asks_for()
         if model:
             argv = argv + ["--model", model]
         # Windows caps a whole command line at about 32k characters, and a
@@ -95,7 +103,7 @@ class CliProvider(Provider):
         return Reply(text, **said)
 
     def check(self):
-        cmd = self.opts.get("command", "claude")
+        cmd = self.command
         if shutil.which(cmd) is None:
             return False, cmd + " is not on PATH"
         return True, cmd

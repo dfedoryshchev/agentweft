@@ -57,8 +57,9 @@ def read_resource(uri):
         if not d.is_dir():
             raise ValueError("no such run: " + uri)
         parts = []
-        for f in sorted(d.iterdir()):
-            parts.append("## " + f.name + "\n\n" + f.read_text(encoding="utf-8"))
+        for f in sorted(p for p in d.rglob("*") if p.is_file()):
+            parts.append("## " + f.relative_to(d).as_posix() + "\n\n"
+                         + f.read_text(encoding="utf-8"))
         return "\n\n".join(parts)
     raise ValueError("no such resource: " + uri)
 

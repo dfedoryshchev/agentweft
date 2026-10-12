@@ -15,7 +15,8 @@ outputs, and start one of a small list of flows.
 **resources**
 
 - `flows://journal` - the run journal
-- `flows://run/<run-id>` - every step of one run, concatenated
+- `flows://run/<run-id>` - every file one run left, its per-pass step files
+  and `steps.jsonl` included, concatenated
 
 **tools**
 

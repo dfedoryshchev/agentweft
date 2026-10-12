@@ -19,6 +19,57 @@ they cannot be resumed: a run that finished is never written down, so the
 journal cannot tell it from the last one that stopped, and `--resume` says so
 instead of picking a finished run back up.
 
+## what each step did
+
+the journal line is the run. `runs/<run-id>/steps.jsonl` is the steps: one
+json line every time a step runs, a redo's second pass included, written
+whatever happened next - the run went on, sent the work back, parked, stopped
+or crashed. the keys are always all there, in this order:
+
+    {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
+     "from": null, "to": "reviewer.md",
+     "provider": "cli", "command": "claude", "model": "a-model",
+     "model_reported": "a-model-1",
+     "tokens": {"counted": true, "input": 12, "output": 4,
+                "cache_read": 2, "cache_creation": 0},
+     "cost": 0.25, "session": "s-1", "seconds": 8.4, "cached": false,
+     "retries": {}, "gates": [{"gate": "length", "ok": true,
+                               "detail": "1 lines"}],
+     "outcome": "ok", "why": null, "file": "steps/001-worker.md",
+     "tasks": null, "handoff": null}
+
+(one line on disk; wrapped here.)
+
+- `seq` counts the steps run, from 1. a resumed run carries on from the last
+  number of the run it picked up, so the two files read as one sequence.
+- `from` is the step whose output this one was handed, `to` the one the run
+  went to next: null when nothing came before, and when the run ended or
+  stopped here.
+- `model` is the id the provider sends, null for one that sends none (the fake,
+  or a cli command other than claude). `model_reported` is what the provider
+  said answered.
+- `tokens` and `cost` are what the provider reported, summed over every go a
+  retry took. `{"counted": false}` and a null cost mean it reported nothing:
+  not zero, unknown. a cached answer sent nothing, so it costs 0 and is not
+  counted.
+- `retries` is the goes that failed, by cause (`{"transient": 2}`); null on a
+  crash, where nothing knows how many there were.
+- `gates` is `[]` for a step that declares none.
+- `outcome` is one of `ok`, `redo`, `parked`, `refused`, `over budget`,
+  `gate failed`, `failed`, `crashed`. `why` is the reason the run had in hand
+  when it stopped there, null when it went on.
+- `file` is what this pass produced, `steps/<seq>-<step>.md`. a redo's second
+  review is a second file, so the finding that sent the work back is still
+  there. `<step>` beside it is still the last pass, the one `--resume` reads.
+  a step that crashed or was refused before it ran has no file.
+- a fanned-out step is one line: the totals at the top and a `tasks` list with
+  each task's own seconds, tokens, cost, session and retries, in plan order.
+  the gates judged the joined output, so they are on the line, not the tasks.
+- `handoff` is reserved and null for now.
+
+the time, the seconds and the session are the only parts that differ between
+two runs of the same flow on the same answers.
+
 ## the week
 
     python rollup.py
