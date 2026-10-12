@@ -1,18 +1,31 @@
 import os
 from pathlib import Path
 
+from .task import MARK
 
-def load_prompt(flow, name, rules, role=None):
+
+def load_prompt(flow, name, rules, role=None, task=None):
     text = read(flow, name, role) + "\n\n" + rules
-    return substitute(text)
+    return substitute(text, task)
 
 
-def substitute(text):
+def substitute(text, task=None):
     """{INBOX} and friends. string.Template with $ would mean escaping every
-    dollar in a prompt, and safe_substitute swallows typos, so: explicit."""
+    dollar in a prompt, and safe_substitute swallows typos, so: explicit.
+
+    the task goes in last, so a task that quotes {INBOX} reaches the model as
+    it was written.
+    """
     for key in ENV_KEYS:
         text = text.replace("{" + key + "}", os.environ.get(key, ""))
-    return text
+    return put_task(text, task)
+
+
+def put_task(text, task):
+    """{TASK}, on its own because the runner reads a prompt between the two."""
+    if task is None:
+        return text
+    return text.replace(MARK, task)
 
 
 def read(flow, name, role=None):

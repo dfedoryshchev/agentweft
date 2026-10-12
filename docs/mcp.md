@@ -20,10 +20,13 @@ outputs, and start one of a small list of flows.
 
 **tools**
 
-- `run_flow(flow)` - runs it with `--force` and returns what it printed. a
-  run that did not finish leads with what its exit code means: it could not
+- `run_flow(flow, task?)` - runs it with `--force` and returns what it printed.
+  a run that did not finish leads with what its exit code means: it could not
   start (1), it stopped before the end (2, the journal says why), or it was
-  interrupted (130)
+  interrupted (130). a `task` goes to the run as a UTF-8 `--task-file`,
+  deleted once the run ends (`runs/<id>/task.md` keeps it). a flow that takes
+  a task and got none, or got one it has no place for, answers with run.py's
+  one-line refusal
 
 ## the allowlist
 

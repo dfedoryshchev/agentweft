@@ -2,6 +2,8 @@
 
 here is a bug. do not fix it.
 
+{TASK}
+
 write the smallest test that fails because of it, and write it into the file
 it goes in. the test must fail on the code as it stands right now - if you
 cannot make it fail, say so and stop, because then i have described the bug

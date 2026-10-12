@@ -8,6 +8,11 @@ a case is a folder under `evals/<flow>/cases/`: an `inbox/` of files and a
 `case.yaml` saying what has to hold. there is no expected output. the output is
 not deterministic and a golden file would be wrong by wednesday.
 
+a case for a flow that takes a task (`{TASK}` in its words) gives it as
+`task: <text>` in case.yaml or, for anything longer, a UTF-8 `task.md` in the
+case folder; not both. a case missing the task its flow needs, or giving one
+to a flow with no place for it, scores as a run that did not get to the end.
+
 what a case asserts is the flow's own promises - the same invariants the runner
 already checks - plus that the run got to the end, plus what it cost. a run
 stopped by a gate, or by a step that produced nothing, loses that one.

@@ -99,7 +99,8 @@ def run_it(tmp_path, monkeypatch, answers, fixes=True):
     monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
     monkeypatch.setattr(sys, "argv", ["run.py", "fix-with-test", "--force",
                                       "--flows", str(FLOWS),
-                                      "--workdir", "project"])
+                                      "--workdir", "project",
+                                      "--task", "add(1, 2) returns -1"])
     engine.main()
     written = "".join((p / "gates.md").read_text(encoding="utf-8")
                       for p in (tmp_path / "runs").iterdir()

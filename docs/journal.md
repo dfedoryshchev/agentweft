@@ -78,7 +78,7 @@ or crashed. the keys are always all there, in this order:
      "ungated": false,
      "outcome": "ok", "cause": null, "why": null,
      "file": "steps/001-worker.md",
-     "tasks": null, "handoff": null}
+     "task_file": "task.md", "tasks": null, "handoff": null}
 
 (one line on disk; wrapped here.)
 
@@ -110,6 +110,9 @@ or crashed. the keys are always all there, in this order:
   review is a second file, so the finding that sent the work back is still
   there. `<step>` beside it is still the last pass, the one `--resume` reads.
   a step that crashed or was refused before it ran has no file.
+- `task_file` is `task.md` when the run was given a task with `--task` or
+  `--task-file`, kept beside the line as `runs/<run-id>/task.md`; null when it
+  was not. the text is not on the line, so a long task is written once.
 - a fanned-out step is one line: the totals at the top and a `tasks` list with
   each task's own seconds, tokens, cost, session and retries, in plan order.
   the gates judged the joined output, so they are on the line, not the tasks.

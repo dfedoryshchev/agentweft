@@ -24,14 +24,24 @@ def cases_for(flow):
 
 
 def load_case(path):
+    """a case's `task` is a `task:` line in case.yaml or, for anything longer,
+    a task.md beside it, and None for a case whose flow takes none."""
     cfg = {}
     f = path / "case.yaml"
     if f.exists():
-        cfg = yaml.safe_load(f.read_text()) or {}
+        cfg = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+    task = cfg.get("task")
+    md = path / "task.md"
+    if md.is_file():
+        if task is not None:
+            raise ValueError(path.name + " has a task.md and a task: in "
+                             "case.yaml. keep one")
+        task = md.read_bytes().decode("utf-8")
     return {"name": path.name, "path": path,
             "inbox": path / cfg.get("inbox", "inbox"),
             "provider": cfg.get("provider") or {},
-            "expect": cfg.get("expect") or {}}
+            "expect": cfg.get("expect") or {},
+            "task": task}
 
 
 def run_flow_for(flow, case):
@@ -43,13 +53,22 @@ def run_flow_for(flow, case):
     `provider: fake` since the day they were written and nothing read it, so
     every eval run was calling the flow's real provider and charging for it.
     """
-    from agentweft.runner import engine
+    from agentweft.runner import engine, task
+    from agentweft.runner.config import config
+    from agentweft.runner.prompts import flow_path
 
+    # the same refusal run.py gives, as the reason the run did not finish:
+    # a task-taking flow run without one would be scored on an empty ask
+    try:
+        asked = task.settle(flow, task.places(flow_path(flow), config(flow)),
+                            case.get("task"))
+    except ValueError as e:
+        return "", None, str(e)
     old = {k: os.environ.get(k) for k in ("INBOX", "LOGS", "WATCH")}
     for k in old:
         os.environ[k] = str(case["inbox"])
     try:
-        return engine.run_once(flow, provider=case.get("provider"))
+        return engine.run_once(flow, provider=case.get("provider"), task=asked)
     finally:
         for k, v in old.items():
             if v is None:

@@ -13,6 +13,8 @@ import datetime
 import json
 import time
 
+from .task import FILE as TASK
+
 FILE = "steps.jsonl"
 FOLDER = "steps"
 
@@ -149,6 +151,7 @@ class Trail(object):
         self.folder = folder
         self.seq = max(after, last_seq(folder))
         self.unclosed = []
+        self.task_file = TASK if (folder / TASK).is_file() else None
 
     def open(self, step, attempts, provider, came_from, output=None,
              fanned=False):
@@ -170,7 +173,8 @@ class Trail(object):
         if entry in self.unclosed:
             self.unclosed.remove(entry)
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(line(entry, outcome, why, to, cause),
+            f.write(json.dumps(line(entry, outcome, why, to, cause,
+                                    self.task_file),
                                ensure_ascii=False) + "\n")
 
     def still_open(self):
@@ -178,7 +182,7 @@ class Trail(object):
         return self.unclosed[-1] if self.unclosed else None
 
 
-def line(entry, outcome, why=None, to=None, cause=None):
+def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
     attempts = entry.attempts
     first = attempts[0] if attempts else None
     p = entry.provider
@@ -216,5 +220,6 @@ def line(entry, outcome, why=None, to=None, cause=None):
             "cause": cause,
             "why": why,
             "file": entry.file,
+            "task_file": task_file,
             "tasks": tasks,
             "handoff": None}

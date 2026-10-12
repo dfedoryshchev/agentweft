@@ -13,7 +13,48 @@ about it, which is the point: adding a flow should not mean editing python.
       worker.md
       merge.md
       reviewer.md
-      instructions.md    rules that apply to this flow only
+      instructions.md    rules that apply to this flow only. may be left out
+
+## the task a run is given
+
+a flow that works on whatever it is pointed at says where that goes by writing
+`{TASK}` in its own words:
+
+    # worker
+
+    here is a bug. do not fix it.
+
+    {TASK}
+
+then one flow serves every bug:
+
+    python run.py fix-with-test --task "add(1, 2) returns -1"
+    python run.py fix-with-test --task-file bug.md
+
+`--task-file` is read as UTF-8, a byte order mark dropped. the text goes in
+exactly where `{TASK}` is and nowhere else: in a step's own file it reaches
+that step, in `instructions.md` it reaches every step. a fanned-out flow that
+names it in `planner.md` hands it to the planner, and the workers get the
+plan. `{INBOX}` and friends are put in first, so a task that quotes one keeps
+it as written.
+
+the run is refused, before anything is called or written, when:
+
+- the flow has no `{TASK}` and a task was given: it would go nowhere
+- the flow has one and no task was given: a worker told "here is a bug" with
+  no bug answers anyway
+- both switches are given, or the task is empty, or the file is missing or
+  not UTF-8
+
+the task is kept as `runs/<id>/task.md`, every `steps.jsonl` line names it
+(`"task_file": "task.md"`, null for a run without one), and a parked run's
+`handoff.md` carries its first line. `--resume` carries on with it, so the
+command in the handoff needs no `--task`; a resume told a different one is
+refused. `python run.py show <flow>` says which files take it.
+
+the mcp `run_flow` tool takes an optional `task`, an eval case gives one as
+`task:` in case.yaml or a `task.md` beside it, and `cron.py` skips a flow that
+takes a task, saying so, since it has none to give.
 
 ## flow.yaml
 

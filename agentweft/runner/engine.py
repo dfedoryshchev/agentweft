@@ -31,6 +31,7 @@ from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
 from . import stops
+from . import task
 from . import trace
 from .state import load_state, save_state
 
@@ -196,9 +197,11 @@ class Run(object):
     """everything a step needs, built once. fm and by_role were being threaded
     through five functions just so two of them could read a timeout."""
 
-    def __init__(self, flow, fm, by_role, provider=None, workdir=None):
+    def __init__(self, flow, fm, by_role, provider=None, workdir=None,
+                 task=None):
         self.flow = flow
         self.fm = fm
+        self.task_text = task
         self.by_role = by_role
         self.workdir = where(fm, workdir)
         self.timeout = int(settings.get("timeout", flow=fm))
@@ -374,9 +377,11 @@ class Run(object):
         began = _t.time()
         role = self.role_for(step)
         prompt = load_prompt(self.flow, step, self.by_role[role], role)
-        # read before anything is appended: what an earlier step produced can
-        # carry its own verdict line, and that does not ask this one for one
+        # read before anything is appended or the task is put in: what an
+        # earlier step produced, or a task quoting a review, can carry its own
+        # verdict line, and that does not ask this one for one
         asked = asks_for_verdict(prompt)
+        prompt = prompts.put_task(prompt, self.task_text)
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its
@@ -505,13 +510,13 @@ def check_step(run, route, step, out, run_dir=None):
     return "", route.gate(step, out) or ""
 
 
-def run_once(flow, provider=None):
+def run_once(flow, provider=None, task=None):
     """run a flow and hand back what it produced, what it cost, and why it
     stopped short ("" when it did not). the eval harness wants the output, not
     the printing, and it wants to say which provider the whole thing runs on."""
     fm = config(flow)
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
-    run = Run(flow, fm, by_role, provider=provider)
+    run = Run(flow, fm, by_role, provider=provider, task=task)
     route = router.Router(fm, cap=2)
     out = EMPTY
     step = steps(flow)[0]
@@ -568,6 +573,14 @@ def main():
         print(flow + " has journal: false, so a run that finished is never "
               "written down and --resume cannot tell it from one that stopped")
         return 1
+    try:
+        asked = task.settle(flow, task.places(flow_path(flow), fm),
+                            task.given(sys.argv),
+                            task.saved(state.RUNS / pick_up) if pick_up else None,
+                            pick_up)
+    except ValueError as e:
+        print(str(e))
+        return 1
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
@@ -585,7 +598,7 @@ def main():
             print(pick_up + " was working in " + started_in + ", not "
                   + named + ". a run carries on where it started")
             return 1
-        run = Run(flow, fm, by_role, workdir=started_in or named)
+        run = Run(flow, fm, by_role, workdir=started_in or named, task=asked)
     except ValueError as e:
         print(str(e))
         return 1
@@ -618,6 +631,8 @@ def main():
     (state.RUNS / run_id).mkdir(parents=True, exist_ok=True)
     (state.RUNS / run_id / "workdir").write_text(str(run.workdir),
                                                    encoding="utf-8")
+    if asked is not None:
+        task.save(state.RUNS / run_id, asked)
     trail = trace.Trail(state.RUNS / run_id,
                         after=trace.last_seq(state.RUNS / pick_up)
                         if pick_up else 0)

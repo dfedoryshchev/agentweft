@@ -4,8 +4,10 @@ hand rolled. the protocol is a handful of methods over line delimited json on
 stdin and stdout, and pulling in a dependency to write forty lines of dict
 handling is how i ended up with pydantic and jinja in here twice.
 """
+import os
 import subprocess
 import sys
+import tempfile
 
 from agentweft.runner import state
 
@@ -69,20 +71,38 @@ def tools():
              "description": "run one of the flows and return what it produced. "
                             "allowed: " + ", ".join(ALLOWED),
              "inputSchema": {"type": "object",
-                             "properties": {"flow": {"type": "string"}},
+                             "properties": {
+                                 "flow": {"type": "string"},
+                                 "task": {"type": "string",
+                                          "description": "what the run is "
+                                          "for, for a flow that takes one"}},
                              "required": ["flow"]}}]
 
 
-def run_flow(name):
+def run_flow(name, task=None):
     if name not in ALLOWED:
         return ("not allowed: " + str(name) + ". this server can run: "
                 + ", ".join(ALLOWED))
+    if task is not None and not isinstance(task, str):
+        return "task should be text, not " + type(task).__name__
 
-    # this used to hand back whatever run.py had printed by the time the pipe
-    # buffer filled, which for the digest is the planner and nothing else. the
-    # client saw a plan and called it the answer.
-    r = subprocess.run([sys.executable, "run.py", name, "--force"],
-                       capture_output=True, text=True, timeout=900)
+    argv = [sys.executable, "run.py", name, "--force"]
+    held = None
+    if task is not None:
+        # a file, not --task: argv goes through the platform's encoding and
+        # its length limit, and a task is often a pasted report
+        fd, held = tempfile.mkstemp(suffix=".md")
+        with os.fdopen(fd, "wb") as f:
+            f.write(task.encode("utf-8"))
+        argv = argv + ["--task-file", held]
+    try:
+        # this used to hand back whatever run.py had printed by the time the
+        # pipe buffer filled, which for the digest is the planner and nothing
+        # else. the client saw a plan and called it the answer.
+        r = subprocess.run(argv, capture_output=True, text=True, timeout=900)
+    finally:
+        if held:
+            os.remove(held)
     out = (r.stdout or "") + (r.stderr or "")
     if r.returncode in EXITS:
         return EXITS[r.returncode] + " (exit " + str(r.returncode) + "):\n\n" + out
@@ -117,8 +137,10 @@ def handle(msg):
         name = params.get("name")
         if name != "run_flow":
             raise ValueError("unknown tool: " + str(name))
-        flow = params.get("arguments", {}).get("flow", "")
-        return {"content": [{"type": "text", "text": run_flow(flow)}]}
+        args = params.get("arguments", {})
+        return {"content": [{"type": "text",
+                             "text": run_flow(args.get("flow", ""),
+                                              args.get("task"))}]}
     if method == "resources/read":
         uri = msg.get("params", {}).get("uri", "")
         return {"contents": [{"uri": uri, "mimeType": "text/markdown",

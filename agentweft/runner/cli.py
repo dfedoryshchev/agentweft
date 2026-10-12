@@ -1,9 +1,9 @@
 import sys
 from pathlib import Path
 
-from . import state
+from . import state, task
 from .config import config
-from .prompts import FLOW_ROOT
+from .prompts import FLOW_ROOT, flow_path
 
 
 def flows():
@@ -47,6 +47,9 @@ def cmd_show():
         print("  out: " + spec.promises.outputs)
     for i in spec.promises.invariants:
         print("  always: " + i)
+    where = task.places(flow_path(name), spec)
+    if where:
+        print("  task: " + task.MARK + " in " + ", ".join(where))
     return 0
 
 
@@ -54,6 +57,7 @@ def cmd_help():
     print("""usage:
   python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
                        [--workdir <dir>]
+                       [--task "<text>" | --task-file <path>]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
@@ -68,7 +72,13 @@ def cmd_help():
           starts again at the step that died; one that parked for a person
           carries on at the step after it
 --workdir the directory the run works in, over the flow's own `workdir`.
-          a resumed run stays in the one it started in""")
+          a resumed run stays in the one it started in
+--task    what this run is for: a bug, a feature, a question. it goes where
+          the flow wrote {TASK}, and a flow without one refuses it. a flow
+          with one does not start without it. a resumed run keeps the task
+          it started with
+--task-file  the same, read from a UTF-8 file. for anything longer than a
+          line""")
     return 0
 
 
@@ -96,10 +106,15 @@ def cmd_step():
 
     load_env()
     flow, name = sys.argv[2], sys.argv[3]
+    try:
+        asked = task.given(sys.argv)
+    except ValueError as e:
+        print(str(e))
+        return 1
     spec = config(flow)
     by_role = resolver.resolve(spec.raw, prompts.flow_path(flow),
                                spec.promises.as_prompt())
-    run = Run(flow, spec, by_role)
+    run = Run(flow, spec, by_role, task=asked)
     named = steps_named(spec.steps, name)
     step = step_id(named[0]) if named else name + ".md"
     previous = ""

@@ -15,23 +15,30 @@ the runner already has a Handoff and that is a different thing: what one step
 passes to the next, machine to machine. this is what a run passes to a person.
 """
 from agentweft.runner import state
+from agentweft.runner.task import FILE as TASK, saved
 
 FILE = "handoff.md"
 
 
 def lines(run_id, flow, step, who, done, left, command, why=None,
-          again=False):
+          again=False, task=None):
     """the handoff as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
     it stopped, why it stopped, and what to do about it. the last one is a
     command to type, not a description of one. `why` is for a stop the flow
     did not ask for. `again` is a step that produced nothing, so carrying on
-    runs it again rather than handing on what it made.
+    runs it again rather than handing on what it made. `task` is what the run
+    was pointed at; its first line is enough to tell two parked runs of one
+    flow apart.
     """
     out = ["# parked: " + run_id, ""]
     out.append("waiting for    " + who)
     out.append("flow           " + flow)
+    if task is not None:
+        out.append("task           " + task.strip().split("\n")[0])
+        out.append("               all of it is in runs/" + run_id + "/"
+                   + TASK + ", and --resume carries on with it")
     out.append(("stopped at     " if again else "stopped after  ") + step)
     out.append("")
     if why:
@@ -72,6 +79,7 @@ def write(run_id, flow, step, who, done, left, command, runs=None, why=None,
     folder = (runs or state.RUNS) / run_id
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / FILE
-    body = lines(run_id, flow, step, who, done, left, command, why, again)
+    body = lines(run_id, flow, step, who, done, left, command, why, again,
+                 saved(folder))
     path.write_text("\n".join(body) + "\n", encoding="utf-8")
     return path

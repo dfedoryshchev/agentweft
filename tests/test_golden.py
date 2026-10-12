@@ -58,6 +58,22 @@ AUDIT_PLAN = ("app.py | the entry point\n"
 AUDIT = ("app.py parses argv and calls run().\n"
          "config.py loads settings.yml and has no defaults, which is the risk.\n")
 
+BUG = "add(1, 2) returns -1"
+# a report pasted from a non-English tracker: cp1252 has no byte for most of it
+BUG_REPORT = ("add(1, 2) " + chr(0x2192) + " -1\n\n" + chr(0x41f) + chr(0x440)
+              + chr(0x438) + chr(0x43c) + chr(0x435) + chr(0x440) + ": "
+              + chr(0x6f22) + chr(0x5b57) + "\n")
+FIXES = {
+    "worker.md": [say("FAILS: assert -1 == 3\nTEST: test_calc.py\n\n"
+                      + TEST, {"test_calc.py": TEST})],
+    "patcher.md": [say("TEST: test_calc.py\n\n-    return a - b\n"
+                       "+    total = a + b\n+    return total\n",
+                       {"calc.py": FIXED})],
+    "verify.md": ["PASS the test is written before the patch\n"
+                  "PASS the test fails on the unpatched code\n"
+                  "PASS the patch is the smallest thing that turns it "
+                  "green\n"]}
+
 CASES = {
     ("code-review", "pass"): {"answers": {
         "worker.md": [ONE_FINDING],
@@ -67,18 +83,18 @@ CASES = {
                       ONE_FINDING],
         "reviewer.md": ["VERDICT: redo\n\nthe finding on app.py has no line\n",
                         "VERDICT: ok\n\n" + ONE_FINDING]}},
-    ("fix-with-test", "pass"): {"place": {"calc.py": BUGGY}, "answers": {
-        "worker.md": [say("FAILS: assert -1 == 3\nTEST: test_calc.py\n\n"
-                          + TEST, {"test_calc.py": TEST})],
-        "patcher.md": [say("TEST: test_calc.py\n\n-    return a - b\n"
-                           "+    total = a + b\n+    return total\n",
-                           {"calc.py": FIXED})],
-        "verify.md": ["PASS the test is written before the patch\n"
-                      "PASS the test fails on the unpatched code\n"
-                      "PASS the patch is the smallest thing that turns it "
-                      "green\n"]}},
-    ("fix-with-test", "gate-fail"): {"place": {"calc.py": BUGGY}, "answers": {
+    ("fix-with-test", "pass"): {"place": {"calc.py": BUGGY},
+                                "args": ["--task", BUG], "task": BUG,
+                                "answers": FIXES},
+    ("fix-with-test", "task-file"): {"place": {"calc.py": BUGGY,
+                                               "bug.md": BUG_REPORT},
+                                     "args": ["--task-file", "bug.md"],
+                                     "task": BUG_REPORT, "answers": FIXES},
+    ("fix-with-test", "gate-fail"): {"place": {"calc.py": BUGGY},
+                                     "args": ["--task", BUG], "task": BUG,
+                                     "answers": {
         "worker.md": ["could not make it fail: add(1, 2) looks right to me\n"]}},
+    ("code-review", "task-refused"): {"args": ["--task", BUG], "answers": {}},
     ("ops-check", "pass"): {"answers": {
         "planner.md": ["- app.log: the nightly export\n"],
         "worker.md": ["- [high] app.log: ERROR nightly-export failed: "
@@ -167,6 +183,7 @@ class Script(object):
         self.answers = answers
         self.place = place
         self.asked = {}
+        self.prompts = []
         self.lock = threading.Lock()
         self.now = threading.local()
 
@@ -178,6 +195,8 @@ class Script(object):
         # Linux one, which the counted usage below would never show
         assert "\r" not in (kw.get("input") or ""), "a prompt kept a CR"
         step, task = self.now.step, self.now.task
+        with self.lock:
+            self.prompts.append((step, kw.get("input") or ""))
         planned = self.answers.get(step)
         if isinstance(planned, dict):
             planned = planned.get(task)
@@ -221,7 +240,8 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         (place / rel).write_bytes(text.encode("utf-8"))
     monkeypatch.chdir(place)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(case.get("flows", FLOWS))])
-    monkeypatch.setattr(sys, "argv", ["run.py", flow, "--force"])
+    monkeypatch.setattr(sys, "argv", ["run.py", flow, "--force"]
+                        + case.get("args", []))
     for key in list(os.environ):
         if key.startswith("MODEL_"):
             monkeypatch.delenv(key)
@@ -255,6 +275,11 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         raised = type(e).__name__ + ": " + str(e)
     printed = capsys.readouterr().out
     assert script.unused() == [], "answers the run never asked for"
+    if case.get("task"):
+        # fix-with-test names worker.md for its task; the steps after it work
+        # from what the worker handed on
+        for step, prompt in script.prompts:
+            assert (case["task"] in prompt) == (step == "worker.md"), step
     got = normalise(record(tmp_path / "runs", code, raised, printed), tmp_path)
     # sorted again once the stamps are out: "<flow>-<day>-1.md" against the
     # run folder "<flow>-<day>-<time>/" orders by the hour the run started in
@@ -272,6 +297,8 @@ def text_lines(path):
 def record(runs, code, raised, printed):
     steps = []
     handoff = []
+    # a run refused before it started leaves no runs folder at all
+    runs.mkdir(parents=True, exist_ok=True)
     for folder in sorted(p for p in runs.iterdir() if p.is_dir()):
         steps = steps + [json.loads(l) for l in text_lines(folder / trace.FILE)]
         handoff = handoff + text_lines(folder / "handoff.md")

@@ -47,6 +47,16 @@ says whether each configured provider is usable, without spending anything.
 `INBOX=./inbox` is already in `.env.example`, along with `LOGS` and `WATCH` for
 the flows that read those.
 
+a flow that works on whatever you point it at takes the task on the command
+line, so one flow serves every bug:
+
+    python run.py fix-with-test --workdir ../my-project --task "add(1, 2) returns -1"
+    python run.py fix-with-test --workdir ../my-project --task-file bug.md
+
+a flow says where the task goes by writing `{TASK}` in its own words; one that
+has no `{TASK}` refuses a task, and one that has it will not start without
+one. `docs/flows.md` has the rest.
+
 ## 6. when it dies halfway
 
     python run.py weekly-digest --resume

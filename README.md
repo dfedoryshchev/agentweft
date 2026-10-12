@@ -25,6 +25,13 @@ it started as a pile of prompts i was pasting into a terminal twice a week.
 the examples run on a fake provider, so that works with no key and no setup.
 `docs/quickstart.md` goes further.
 
+pointed at a task instead of a copy of the flow per task:
+
+    python run.py fix-with-test --workdir ../my-project --task "add(1, 2) returns -1"
+    python run.py fix-with-test --workdir ../my-project --task-file bug.md
+
+the text goes where the flow wrote `{TASK}` (`docs/flows.md`).
+
 ## what a flow looks like
 
     flows/weekly-digest/

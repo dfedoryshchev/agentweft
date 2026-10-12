@@ -1,0 +1,169 @@
+{
+  "exit": 0,
+  "raised": null,
+  "path": [
+    "1 worker.md ok -> patcher.md  PASS red-test",
+    "2 patcher.md ok -> verify.md  PASS red-test",
+    "3 verify.md ok  PASS verdict  PASS command"
+  ],
+  "journal": [
+    "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
+    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
+  ],
+  "index": [
+    "fix-with-test-<day>-1.md  fix-with-test  3 steps"
+  ],
+  "handoff": [],
+  "files": [
+    "fix-with-test-<day>-1.md",
+    "fix-with-test-<run>/gates.md",
+    "fix-with-test-<run>/patcher.md",
+    "fix-with-test-<run>/steps.jsonl",
+    "fix-with-test-<run>/steps/001-worker.md",
+    "fix-with-test-<run>/steps/002-patcher.md",
+    "fix-with-test-<run>/steps/003-verify.md",
+    "fix-with-test-<run>/task.md",
+    "fix-with-test-<run>/verify.md",
+    "fix-with-test-<run>/workdir",
+    "fix-with-test-<run>/worker.md",
+    "index.md",
+    "journal.md"
+  ],
+  "steps": [
+    {
+      "seq": 1,
+      "time": "<time>",
+      "step": "worker.md",
+      "from": null,
+      "to": "patcher.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "worker-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [
+        {
+          "gate": "red-test",
+          "ok": true,
+          "detail": "red, exit 1"
+        }
+      ],
+      "ungated": false,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/001-worker.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "patcher.md",
+      "from": "worker.md",
+      "to": "verify.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "patcher-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [
+        {
+          "gate": "red-test",
+          "ok": true,
+          "detail": "green, exit 0"
+        }
+      ],
+      "ungated": false,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-patcher.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "verify.md",
+      "from": "patcher.md",
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "verify-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [
+        {
+          "gate": "verdict",
+          "ok": true,
+          "detail": "3 PASS, no FAIL"
+        },
+        {
+          "gate": "command",
+          "ok": true,
+          "detail": "exit 0"
+        }
+      ],
+      "ungated": false,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/003-verify.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null
+    }
+  ],
+  "printed": [
+    "started worker.md",
+    "  PASS red-test - red, exit 1",
+    "started patcher.md",
+    "  PASS red-test - green, exit 0",
+    "started verify.md",
+    "  PASS verdict - 3 PASS, no FAIL",
+    "  PASS command - exit 0",
+    "promise not checked: the test is written before the patch",
+    "promise not checked: the test fails on the unpatched code",
+    "promise not checked: the patch is the smallest thing that turns it green",
+    "saved <tmp>/runs/fix-with-test-<day>-1.md",
+    "PASS the test is written before the patch",
+    "PASS the test fails on the unpatched code",
+    "PASS the patch is the smallest thing that turns it green"
+  ]
+}

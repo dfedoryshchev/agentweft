@@ -66,6 +66,7 @@
       "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     },
@@ -97,6 +98,7 @@
       "cause": null,
       "why": null,
       "file": "steps/002-worker.md",
+      "task_file": null,
       "tasks": [
         {
           "task": 1,
@@ -161,6 +163,7 @@
       "cause": null,
       "why": null,
       "file": "steps/003-merge.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     },
@@ -192,6 +195,7 @@
       "cause": null,
       "why": null,
       "file": "steps/004-reviewer.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     },
@@ -223,6 +227,7 @@
       "cause": null,
       "why": null,
       "file": "steps/005-worker.md",
+      "task_file": null,
       "tasks": [
         {
           "task": 1,
@@ -287,6 +292,7 @@
       "cause": null,
       "why": null,
       "file": "steps/006-merge.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     },
@@ -318,6 +324,7 @@
       "cause": null,
       "why": null,
       "file": "steps/007-reviewer.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     }

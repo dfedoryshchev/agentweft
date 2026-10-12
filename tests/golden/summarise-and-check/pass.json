@@ -54,6 +54,7 @@
       "cause": null,
       "why": null,
       "file": "steps/001-worker.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     },
@@ -85,6 +86,7 @@
       "cause": null,
       "why": null,
       "file": "steps/002-reviewer.md",
+      "task_file": null,
       "tasks": null,
       "handoff": null
     }

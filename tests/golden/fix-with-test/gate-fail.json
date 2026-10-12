@@ -16,6 +16,7 @@
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",
+    "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/why.md",
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
@@ -57,6 +58,7 @@
       "cause": "gate failed",
       "why": "red-test: no FAILS: line, so the test never failed",
       "file": "steps/001-worker.md",
+      "task_file": "task.md",
       "tasks": null,
       "handoff": null
     }

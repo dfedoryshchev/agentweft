@@ -22,6 +22,7 @@
     "fix-with-test-<run>/steps/001-worker.md",
     "fix-with-test-<run>/steps/002-patcher.md",
     "fix-with-test-<run>/steps/003-verify.md",
+    "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/verify.md",
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
@@ -63,6 +64,7 @@
       "cause": null,
       "why": null,
       "file": "steps/001-worker.md",
+      "task_file": "task.md",
       "tasks": null,
       "handoff": null
     },
@@ -100,6 +102,7 @@
       "cause": null,
       "why": null,
       "file": "steps/002-patcher.md",
+      "task_file": "task.md",
       "tasks": null,
       "handoff": null
     },
@@ -142,6 +145,7 @@
       "cause": null,
       "why": null,
       "file": "steps/003-verify.md",
+      "task_file": "task.md",
       "tasks": null,
       "handoff": null
     }
