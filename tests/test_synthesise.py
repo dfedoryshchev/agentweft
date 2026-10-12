@@ -322,7 +322,7 @@ def test_a_step_that_names_its_reports_is_handed_all_of_them(tmp_path, monkeypat
     ran immediately before it, and the judge needs the ones that disagree.
     """
     sent = go(tmp_path, monkeypatch, FLAT,
-              {"worker.md": "a.py is fine", "reviewer.md": "a.py is not fine",
+              {"worker.md": "a.py is fine", "reviewer.md": "VERDICT: ok" + NL + "a.py is not fine",
                "judge.md": RULED})
     judge = sent["judge.md"]
     assert "--- worker ---" in judge
@@ -338,7 +338,7 @@ def test_the_report_it_judges_does_not_arrive_twice(tmp_path, monkeypatch):
     again unlabelled. the same text twice, once with a name on it and once
     without, is the judge being told to weigh one of them heavier."""
     sent = go(tmp_path, monkeypatch, FLAT,
-              {"worker.md": "a.py is fine", "reviewer.md": "a.py is not fine",
+              {"worker.md": "a.py is fine", "reviewer.md": "VERDICT: ok" + NL + "a.py is not fine",
                "judge.md": RULED})
     assert "here is what reviewer produced" not in sent["judge.md"]
     assert sent["judge.md"].count("a.py is not fine") == 1
@@ -350,7 +350,7 @@ def test_the_judge_gets_the_library_words_and_answers_in_them(tmp_path,
                                                               monkeypatch):
     """the flow ships no judge.md, so every word it gets is the library's."""
     sent = go(tmp_path, monkeypatch, FLAT,
-              {"worker.md": "a.py is fine", "reviewer.md": "a.py is not fine",
+              {"worker.md": "a.py is fine", "reviewer.md": "VERDICT: ok" + NL + "a.py is not fine",
                "judge.md": RULED})
     assert "VERDICT: redo" in sent["judge.md"]
     assert "you are allowed to say the work is wrong" in sent["judge.md"]

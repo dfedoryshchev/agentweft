@@ -23,6 +23,8 @@ the flow's first step of the role.
 """
 from agentweft.flow.spec import step_id
 
+from .config import VERDICTS
+
 
 class Router(object):
     def __init__(self, spec, cap=2):
@@ -54,7 +56,22 @@ class Router(object):
         want = self.must.get(step)
         if want and want not in handoff.output:
             return "step " + step + " did not produce " + want
-        return None
+        return self.unread(step, handoff)
+
+    def unread(self, step, handoff):
+        """a step told to answer ok or redo that answered something else. only
+        redo is acted on, so any other word would walk on as an ok.
+
+        an empty answer is left to the check that stops a run on nothing.
+        """
+        if not handoff.meta.get("asked") or not handoff.output \
+                or handoff.verdict in VERDICTS:
+            return None
+        asked = "step " + step + " was asked for a verdict and "
+        if not handoff.verdict:
+            return asked + "its answer has no verdict line"
+        return (asked + 'answered "' + handoff.verdict + '", which is neither '
+                + " nor ".join(VERDICTS))
 
     def out_of_redos(self, handoff):
         """a redo the cap will not send anywhere. asked before `next`, which

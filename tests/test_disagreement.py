@@ -33,9 +33,11 @@ WORKER = ("a.py - reads the flow file" + NL
           + "b.py - walks the steps" + NL
           + "the folder is where the runner lives")
 DECISION = "drop the lines that name no file"
-MINIMAL = ("two of the three lines name a file and one does not." + NL
+MINIMAL = ("VERDICT: ok" + NL
+           + "two of the three lines name a file and one does not." + NL
            + DECISION + ".")
-MAXIMAL = "keep all three lines, and say what each of them is for."
+MAXIMAL = ("VERDICT: ok" + NL
+           + "keep all three lines, and say what each of them is for.")
 
 JUDGEMENT = NL.join([
     "VERDICT: ok",

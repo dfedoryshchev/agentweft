@@ -121,6 +121,12 @@ so a run pointed at another repo leaves no run records in that repo's tree.
   steps, fanout included - and handed back to the reviewer. twice at most: a
   redo after that parks the run at the reviewer for a person, the same park a
   `pause` gives (see `journal.md`), with the reason in its `handoff.md`.
+  the verdict is the first line of the answer, read whatever its case and
+  without a closing full stop. a step whose prompt carries the verdict block
+  (a reviewer, a judge) and answers anything but ok or redo, or has no verdict
+  line, stops the run there with what it said quoted: only redo is acted on,
+  so anything else would walk on as if it were ok. a step that was never
+  told to give a verdict goes on without one.
 
 ## the rules every role gets
 

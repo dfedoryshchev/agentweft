@@ -91,8 +91,9 @@ RULED = NL.join(["VERDICT: ok", "", "## Rulings",
                  "## Deliberately not fixing", "- nothing else was raised", ""])
 
 ANSWERS = {"worker.md": "a.py has six functions",
-           "reviewer-minimalist.md": "four of them can go",
-           "reviewer-maximalist.md": "keep all six and name them better",
+           "reviewer-minimalist.md": "VERDICT: ok" + NL + "four of them can go",
+           "reviewer-maximalist.md": "VERDICT: ok" + NL
+                                     + "keep all six and name them better",
            "judge.md": RULED}
 
 

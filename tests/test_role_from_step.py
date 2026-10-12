@@ -129,7 +129,8 @@ def test_the_role_library_answers_to_the_role_not_to_the_file_name(tmp_path,
 
 def test_one_role_can_be_two_steps_with_a_prompt_file_each(tmp_path,
                                                            monkeypatch):
-    asked, sent = go(tmp_path, monkeypatch, BOTH, "both")
+    asked, sent = go(tmp_path, monkeypatch, BOTH, "both",
+                     {"reviewer-minimalist.md": "VERDICT: ok"})
     assert asked == ["worker.md", "reviewer-minimalist.md",
                      "reviewer-maximalist.md"]
     assert MINIMAL.strip() in sent["reviewer-minimalist.md"][0]

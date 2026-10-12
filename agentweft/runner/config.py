@@ -34,11 +34,27 @@ def where(fm, given=None):
     return path
 
 
-def verdict(text):
+VERDICTS = ("ok", "redo")
+
+
+def asks_for_verdict(prompt):
+    """-> whether a step's own words tell it to answer with a verdict line.
+
+    the contract is the two lines the library gives a reviewer and a judge, so
+    a prompt that only mentions a verdict in passing has not asked for one.
+    """
+    return any(line.strip() in ("VERDICT: " + w for w in VERDICTS)
+               for line in prompt.split("\n"))
+
+
+def verdict(text, asked=False):
+    """-> the word on a `VERDICT:` first line, lower case and without the full
+    stop. a step not asked for one and without the line is "ok"; a step asked
+    for one and without it is "", which is no answer at all."""
     first = text.strip().split("\n")[0].strip()
-    if first.startswith("VERDICT:"):
-        return first.split(":", 1)[1].strip()
-    return "ok"
+    if first.upper().startswith("VERDICT:"):
+        return first.split(":", 1)[1].strip().rstrip(".!").strip().lower()
+    return "" if asked else "ok"
 
 
 def steps(flow):

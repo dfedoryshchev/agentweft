@@ -32,7 +32,7 @@ def test_the_case_provider_beats_the_flows():
     assert [p.name for p in run.by_step.values()] == ["fake"]
 
 
-DIGEST = ("## what changed" + chr(10) + "- a.md | changed | x" + chr(10)
+DIGEST = ("VERDICT: ok" + chr(10) + chr(10) + "## what changed" + chr(10) + "- a.md | changed | x" + chr(10)
           + chr(10) + "## needs me" + chr(10) + "- b.md | needs-me | y" + chr(10))
 
 

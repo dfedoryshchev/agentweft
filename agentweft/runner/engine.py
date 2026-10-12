@@ -7,7 +7,8 @@ from pathlib import Path
 
 from agentweft.roles import resolver
 
-from .config import config, due, fanout_step, steps, verdict, where
+from .config import (VERDICTS, asks_for_verdict, config, due, fanout_step,
+                     steps, verdict, where)
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
@@ -316,6 +317,9 @@ class Run(object):
         began = _t.time()
         role = self.role_for(step)
         prompt = load_prompt(self.flow, step, self.by_role[role], role)
+        # read before anything is appended: what an earlier step produced can
+        # carry its own verdict line, and that does not ask this one for one
+        asked = asks_for_verdict(prompt)
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its
@@ -334,9 +338,10 @@ class Run(object):
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
             self.budget.charge(prompt, text, provider=used.name)
-        return Handoff(role, text, verdict(text),
+        return Handoff(role, text, verdict(text, asked=asked),
                        meta={"seconds": round(_t.time() - began, 1),
-                             "cached": cached, "provider": used.name})
+                             "cached": cached, "provider": used.name,
+                             "asked": asked})
 
 
 def run_steps(run, names, note=EMPTY):
@@ -351,6 +356,16 @@ def run_steps(run, names, note=EMPTY):
     return out
 
 
+def fanned_verdict(parts):
+    """-> one verdict for every task of a fanned-out step: the first word the
+    router cannot read, else redo if any task asked for one, else ok."""
+    words = [p.verdict for p in parts]
+    for word in words:
+        if word not in VERDICTS:
+            return word
+    return "redo" if "redo" in words else "ok"
+
+
 def run_fanout(run, plan):
     began = time.time()
     tasks = [l for l in plan.output.split("\n") if "|" in l]
@@ -358,7 +373,7 @@ def run_fanout(run, plan):
 
     def one(task):
         return run.step(run.fan,
-                        extra="\n\nyour task, only this one:\n\n" + task).output
+                        extra="\n\nyour task, only this one:\n\n" + task)
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
@@ -367,9 +382,11 @@ def run_fanout(run, plan):
     width = min(run.width_for(run.fan), len(tasks)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
         parts = list(pool.map(one, tasks))
-    out = Handoff(role, "\n\n".join(parts),
+    out = Handoff(role, "\n\n".join(p.output for p in parts),
+                  verdict=fanned_verdict(parts),
                   meta={"tasks": len(tasks),
-                        "seconds": round(time.time() - began, 1)})
+                        "seconds": round(time.time() - began, 1),
+                        "asked": any(p.meta.get("asked") for p in parts)})
     # every task went through Run.step, so what it recorded is whichever one
     # finished last. the joined output is what the step actually produced.
     run.produced[run.fan] = out.output
