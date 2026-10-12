@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 2,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
@@ -9,7 +9,8 @@
     "5 worker.md failed"
   ],
   "journal": [
-    "<time>  weekly digest  failed at worker.md  <secs>s"
+    "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
+    "<time>  weekly digest  failed at worker.md  <secs>s  weekly-digest-<run>  no answer  5 calls, 600 tokens counted (input 500, output 100) (cli x5)  nothing came out of worker.md"
   ],
   "index": [
     "FAILED  weekly-digest  at worker.md"
@@ -28,6 +29,7 @@
     "weekly-digest-<run>/steps/003-merge.md",
     "weekly-digest-<run>/steps/004-reviewer.md",
     "weekly-digest-<run>/steps/005-worker.md",
+    "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir",
     "weekly-digest-<run>/worker.md"
   ],
@@ -57,6 +59,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
       "tasks": null,
@@ -87,6 +90,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-worker.md",
       "tasks": [
@@ -150,6 +154,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/003-merge.md",
       "tasks": null,
@@ -191,6 +196,7 @@
       ],
       "ungated": false,
       "outcome": "redo",
+      "cause": null,
       "why": null,
       "file": "steps/004-reviewer.md",
       "tasks": null,
@@ -215,8 +221,9 @@
       "cached": false,
       "retries": {},
       "gates": [],
-      "ungated": true,
+      "ungated": null,
       "outcome": "failed",
+      "cause": "no answer",
       "why": "nothing came out of worker.md",
       "file": "steps/005-worker.md",
       "tasks": [],
@@ -224,9 +231,14 @@
     }
   ],
   "printed": [
+    "started planner.md",
+    "started worker.md",
+    "started merge.md",
+    "started reviewer.md",
     "  PASS length - 2 lines",
     "  PASS regex",
     "sent back to worker.md",
+    "started worker.md",
     "run stopped at worker.md"
   ]
 }

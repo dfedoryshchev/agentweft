@@ -1,11 +1,12 @@
 {
-  "exit": null,
+  "exit": 2,
   "raised": null,
   "path": [
     "1 worker.md gate failed  FAIL red-test"
   ],
   "journal": [
-    "<time>  fix-with-test  gate red-test failed at worker.md  <secs>s"
+    "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
+    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  1 call, 120 tokens counted (input 100, output 20) (cli x1)  red-test: no FAILS: line, so the test never failed"
   ],
   "index": [
     "GATE  fix-with-test  red-test at worker.md"
@@ -15,6 +16,7 @@
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",
+    "fix-with-test-<run>/why.md",
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
     "index.md",
@@ -52,13 +54,15 @@
       ],
       "ungated": false,
       "outcome": "gate failed",
-      "why": "gate red-test failed at worker.md",
+      "cause": "gate failed",
+      "why": "red-test: no FAILS: line, so the test never failed",
       "file": "steps/001-worker.md",
       "tasks": null,
       "handoff": null
     }
   ],
   "printed": [
+    "started worker.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at worker.md, stopping"
   ]

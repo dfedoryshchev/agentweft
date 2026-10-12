@@ -105,7 +105,13 @@ def cmd_step():
     previous = ""
     if not os.isatty(0):
         previous = sys.stdin.read()
-    out = run.step(step, previous=Handoff("stdin", previous))
+    from .errors import Outage
+
+    try:
+        out = run.step(step, previous=Handoff("stdin", previous))
+    except Outage as e:
+        print("provider outage: limit reached, resets " + e.resets)
+        return 2
     print(out.output)
     return 0
 
@@ -195,13 +201,18 @@ def cmd_provider():
 
 
 def cmd_spend():
+    """the last twenty runs that say what they spent: finished and stopped
+    alike, since a run that stopped short was paid for all the same."""
+    from . import stops
+
     journal = state.RUNS / "journal.md"
     if not journal.exists():
         print("no runs yet")
         return 0
-    for line in journal.read_text(encoding="utf-8").split("\n")[-20:]:
-        if "calls" in line:
-            print(line)
+    spent = [line for line in journal.read_text(encoding="utf-8").split("\n")
+             if stops.read(line) is not None and stops.read(line).spend]
+    for line in spent[-20:]:
+        print(line)
     return 0
 
 

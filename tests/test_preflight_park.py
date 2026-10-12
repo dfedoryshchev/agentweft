@@ -97,7 +97,7 @@ def test_park_stops_before_the_next_step_and_says_so(tmp_path, monkeypatch,
     said = capsys.readouterr().out
     assert "parked at worker.md, waiting for user" in said
     assert "parked at worker.md" in journal()
-    assert "hot blast radius" in journal()
+    assert "src/hooks.ts (0.94)" in journal()
     assert "PARKED  hotpark  at worker.md" in index()
 
 
@@ -158,11 +158,12 @@ def test_each_mode_stops_its_own_way_on_the_same_hot_step(tmp_path,
         here.mkdir()
         monkeypatch.setattr(state, "RUNS", here / "runs")
         asked = go(here, monkeypatch, mode)
-        stops[mode] = (steps_asked(asked)[-1], journal().split("  ")[2])
-    assert stops["flag"] == ("reviewer.md", "ok")
-    assert stops["refuse"] == ("worker.md",
-                               "refused at worker.md, hot blast radius")
-    assert stops["park"] == ("worker.md", "parked at worker.md")
+        last = journal().strip().split(NL)[-1].split("  ")
+        stops[mode] = (steps_asked(asked)[-1], last[2],
+                       last[5] if len(last) > 7 else None)
+    assert stops["flag"] == ("reviewer.md", "ok", None)
+    assert stops["refuse"] == ("worker.md", "failed at worker.md", "refused")
+    assert stops["park"] == ("worker.md", "parked at worker.md", "parked")
 
 
 def test_a_resumed_park_carries_on_with_what_the_parked_step_wrote(
@@ -176,6 +177,6 @@ def test_a_resumed_park_carries_on_with_what_the_parked_step_wrote(
     assert "only touch src/util.ts after all" in asked[0][1]
     assert "picking " + run_dir.name + " up at reviewer.md" \
         in capsys.readouterr().out
-    lines = journal().strip().split(NL)
+    lines = [l for l in journal().strip().split(NL) if "  running  " not in l]
     assert "parked at worker.md" in lines[0]
     assert "ok (resumed)" in lines[1]

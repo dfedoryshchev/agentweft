@@ -1,8 +1,10 @@
 import concurrent.futures
 import datetime
 import os
+import re
 import sys
 import time
+import traceback
 from pathlib import Path
 
 from agentweft.roles import resolver
@@ -20,13 +22,15 @@ NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
-from .errors import Fatal, classify
+from . import errors
+from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
 from . import resume, router
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
+from . import stops
 from . import trace
 from .state import load_state, save_state
 
@@ -91,7 +95,7 @@ def call(prompt, timeout=None, cap=3, step="?", provider=None):
         heard.append(reply)
         if reply:
             return True, reply.text
-        kind = classify(reply.detail)
+        kind = kind_of(reply)
         print("step " + step + " failed (" + kind.__name__.lower() + "): "
               + reply.detail)
         if kind is Fatal:
@@ -99,6 +103,10 @@ def call(prompt, timeout=None, cap=3, step="?", provider=None):
             raise Fatal(reply.detail)
         cause = kind.__name__.lower()
         failed[cause] = failed.get(cause, 0) + 1
+        if kind is Outage:
+            raise Outage(reply.detail,
+                         reply.outage or errors.resets(reply.detail),
+                         replies=heard, retries=failed)
         return False, reply.text
 
     answer = retry(once, cap)
@@ -134,16 +142,18 @@ def items(text):
     return out
 
 
-def journal(flow_name, status, started, extra=""):
+def journal(flow_name, status, started, run=None, cause=None, spend=None,
+            why=None, saved=None):
     """the only place a journal line gets written. there were three, and the
-    failure one had drifted into a different column order."""
+    failure one had drifted into a different column order. the shapes are in
+    `stops`, which is also what reads them back."""
+    secs = int((datetime.datetime.now() - started).total_seconds())
+    text = stops.line(started, flow_name, status, secs, run, cause, spend,
+                      why, saved)
     runs = state.RUNS
     runs.mkdir(parents=True, exist_ok=True)
-    secs = int((datetime.datetime.now() - started).total_seconds())
     with open(runs / "journal.md", "a", encoding="utf-8") as f:
-        f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + flow_name + "  "
-                + status + "  " + str(secs) + "s"
-                + ("  " + extra if extra else "") + NEWLINE)
+        f.write(text + NEWLINE)
 
 
 def write_index(line):
@@ -174,15 +184,20 @@ def resume_command(flow, run_id):
 
 
 def next_run_path(flow):
+    """-> runs/<flow>-<day>-<n>.md, n one past the day's highest saved run.
+
+    the run's own folder, <flow>-<day>-<time>, starts with the same stem, so
+    counting everything that did made the first run of a day number two.
+    """
     runs = state.RUNS
     runs.mkdir(parents=True, exist_ok=True)
     day = datetime.date.today().isoformat()
     stem = flow + "-" + day
-    n = 1
-    for f in runs.iterdir():
-        if f.name.startswith(stem):
-            n = n + 1
-    return runs / (stem + "-" + str(n) + ".md")
+    saved = re.compile(re.escape(stem) + r"-(\d+)\.md$")
+    taken = [int(m.group(1)) for m in (saved.match(f.name)
+                                       for f in runs.iterdir()
+                                       if f.is_file()) if m]
+    return runs / (stem + "-" + str(max(taken + [0]) + 1) + ".md")
 
 
 class Run(object):
@@ -336,7 +351,7 @@ class Run(object):
             self.budget.charge(prompt, answer[0], provider=provider)
             return
         for reply in replies:
-            error = None if reply else classify(reply.detail).__name__.lower()
+            error = None if reply else kind_of(reply).__name__.lower()
             self.budget.charge(prompt, reply, provider=provider, error=error)
 
     def taken(self):
@@ -365,12 +380,17 @@ class Run(object):
                            else previous.as_prompt())
         tried = trace.Attempt(task)
         self.attempts.append(tried)
-        answer = tried.answered(
-            call(prompt, timeout=self.timeout, cap=self.retries, step=step,
-                 provider=self.by_step.get(step, self.provider)))
+        used = self.by_step.get(step, self.provider)
+        try:
+            answer = tried.answered(
+                call(prompt, timeout=self.timeout, cap=self.retries,
+                     step=step, provider=used))
+        except Outage as e:
+            refused = tried.answered(Answer("", False, e.replies, e.retries))
+            self.charge(prompt, refused, used.name)
+            raise
         text, cached = answer
         self.produced[step] = text
-        used = self.by_step.get(step, self.provider)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
@@ -475,20 +495,24 @@ def run_once(flow, provider=None):
         refused = run.refused(step)
         if refused:
             return out.output, run.budget, "refused at " + step + ": " + refused
-        if step == run.fan:
-            out = run_fanout(run, out)
-        else:
-            out = run.step(step, previous=out)
+        try:
+            if step == run.fan:
+                out = run_fanout(run, out)
+            else:
+                out = run.step(step, previous=out)
+        except Outage as e:
+            return (out.output, run.budget, "provider outage at " + step
+                    + ": " + outage_why(e))
         fenced = run.fenced(step)
         if fenced:
             return out.output, run.budget, "fenced at " + step + ": " + fenced
+        if not out:
+            return out.output, run.budget, "nothing came out of " + step
         failed, blocked = check_step(run, route, step, out)
         if failed:
             return out.output, run.budget, "gate " + failed + " failed at " + step
         if blocked:
             return out.output, run.budget, blocked
-        if not out:
-            return out.output, run.budget, "nothing came out of " + step
         step = route.next(step, out)
     return out.output, run.budget, ""
 
@@ -522,7 +546,7 @@ def main():
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     if not due(fm) and "--force" not in sys.argv:
         print(flow + " is not due today, use --force")
-        return
+        return stops.EXIT_OK
     named = None
     if "--workdir" in sys.argv:
         i = sys.argv.index("--workdir")
@@ -558,7 +582,7 @@ def main():
                     else resume.remaining(todo, stopped.step))
             if not todo:
                 print("nothing left after " + stopped.step + " in " + pick_up)
-                return
+                return stops.EXIT_OK
             before = steps(flow)[:len(steps(flow)) - len(todo)]
             if before:
                 out = Handoff(run.role_for(before[-1]),
@@ -572,19 +596,58 @@ def main():
     trail = trace.Trail(state.RUNS / run_id,
                         after=trace.last_seq(state.RUNS / pick_up)
                         if pick_up else 0)
+    if fm.get("journal", True):
+        journal(fm["name"], stops.RUNNING, started, run=run_id)
     step = todo[0]
-    while step:
-        used = run.by_step.get(step, run.provider)
-        refused = run.refused(step)
-        if refused:
-            print("refused at " + step + ": " + refused)
-            trail.close(trail.open(step, [], used, came_from), "refused",
-                        why=refused)
-            write_index("REFUSED  " + flow + "  " + step)
-            journal(fm["name"], "refused at " + step + ", the place changed",
-                    started)
-            return
-        try:
+    used = run.provider
+
+    def stop(cause, why, outcome, entry=None, index=None, waiting=None,
+             told=None):
+        """every way a run ends short goes out through here: the step's line
+        and why.md say why, a handoff is left when someone is waited for, and
+        the journal line carries the cause and what the run spent.
+
+        -> the exit code.
+        """
+        at = step or came_from or todo[-1]
+        if entry is None and step:
+            entry = trail.open(step, run.taken(), used, came_from,
+                               fanned=step == run.fan)
+        if entry is not None:
+            trail.close(entry, outcome, why=why, cause=cause)
+        folder = state.RUNS / run_id
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "why.md").write_text(
+            "stopped at " + at + NEWLINE + "cause      " + cause + NEWLINE
+            + NEWLINE + why + NEWLINE, encoding="utf-8")
+        if waiting:
+            again = cause == stops.OUTAGE
+            left = (resume.remaining if again else resume.after)(steps(flow),
+                                                                 at)
+            note = park.write(run_id, fm["name"], at, waiting,
+                              [(name, secs) for name, secs, _ in timings],
+                              left, resume_command(flow, run_id),
+                              runs=state.RUNS,
+                              why=why + "," if told is None else told,
+                              again=again)
+            print("parked at " + at + ", waiting for " + waiting)
+            print("it needs you: " + str(note))
+        if index:
+            write_index(index)
+        journal(fm["name"], stops.status(cause, at), started, run=run_id,
+                cause=cause, spend=run.budget.summary(), why=why)
+        return stops.exit_code(cause)
+
+    try:
+        while step:
+            used = run.by_step.get(step, run.provider)
+            refused = run.refused(step)
+            if refused:
+                print("refused at " + step + ": " + refused)
+                return stop(stops.REFUSED, refused, "refused",
+                            entry=trail.open(step, [], used, came_from),
+                            index="REFUSED  " + flow + "  " + step)
+            print("started " + step)
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
@@ -600,155 +663,169 @@ def main():
                     extra = "\n\nthe last run was " + seen + \
                         ". only tell me what is different since then."
                 out = run.step(step, previous=out, extra=extra)
-        except BaseException as e:
-            trail.close(trail.open(step, run.taken(), used, came_from,
-                                   fanned=step == run.fan),
-                        "crashed", why=type(e).__name__ + ": " + str(e))
-            raise
-        step_dir = state.RUNS / run_id
-        step_dir.mkdir(parents=True, exist_ok=True)
-        (step_dir / step).write_text(out.output, encoding="utf-8")
-        timings.append((step, out.meta.get("seconds", 0), out.meta.get("cached")))
-        entry = trail.open(step, run.taken(), used, came_from,
-                           output=out.output, fanned=step == run.fan)
-
-        fenced = run.fenced(step)
-        if fenced:
-            trail.close(entry, "parked", why=fenced)
-            print("fenced at " + step + ": " + fenced)
-            note = park.write(run_id, fm["name"], step, "user",
-                              [(name, secs) for name, secs, _ in timings],
-                              resume.after(steps(flow), step),
-                              resume_command(flow, run_id), runs=state.RUNS,
-                              why=fenced + ",")
-            print("parked at " + step + ", waiting for user")
-            print("it needs you: " + str(note))
-            write_index("PARKED  " + flow + "  at " + step)
-            journal(fm["name"], "parked at " + step, started,
-                    "fenced  " + run_id)
-            return
-
-        spent = run.budget.over()
-        if spent:
-            print("stopping: " + spent)
-            trail.close(entry, "over budget", why=spent)
-            write_index("OVER  " + flow + "  " + spent)
-            journal(fm["name"], "over budget at " + step, started)
-            return
-
-        failed, blocked = check_step(run, route, step, out, run_dir=step_dir)
-        entry.gates = out.meta.get("gates", [])
-        entry.ungated = out.meta.get("ungated")
-        if failed:
-            # a gate is not advice. it was failing the STEP, which meant the
-            # run carried on and wrote the output anyway.
-            print("gate failed at " + step + ", stopping")
-            trail.close(entry, "gate failed",
-                        why="gate " + failed + " failed at " + step)
-            write_index("GATE  " + flow + "  " + failed + " at " + step)
-            journal(fm["name"], "gate " + failed + " failed at " + step,
-                    started)
-            return
-
-        hot = []
-        if fm.get("context") and run.preflight_for(step):
-            hot = preflight.check(out.output, risk_text,
-                                  threshold=float(run.preflight_for(step).get(
-                                      "threshold", preflight.DEFAULT_THRESHOLD)))
-            if hot:
-                mode = run.preflight_for(step).get("mode", "flag")
-                print("preflight: " + str(len(hot)) + " hot file(s) in that step")
-                for path, score in hot:
-                    print("  " + path + "  " + str(score))
-                if mode == "refuse":
-                    trail.close(entry, "refused", why="hot blast radius: "
-                                + ", ".join(p for p, _ in hot))
-                    journal(fm["name"], "refused at " + step + ", hot blast radius",
-                            started)
-                    write_index("REFUSED  " + flow + "  " + hot[0][0])
-                    return
-                if mode == "park":
-                    why = (step + " touches " + ", ".join(
-                        p + " (" + str(s) + ")" for p, s in hot)
-                        + ", at or above the " + str(run.preflight_for(step).get(
-                            "threshold", preflight.DEFAULT_THRESHOLD))
-                        + " the risk map counts as hot,")
-                    trail.close(entry, "parked", why=why.rstrip(","))
-                    note = park.write(run_id, fm["name"], step, "user",
-                                      [(name, secs) for name, secs, _ in timings],
-                                      resume.after(steps(flow), step),
-                                      resume_command(flow, run_id),
-                                      runs=state.RUNS, why=why)
-                    print("parked at " + step + ", waiting for user")
-                    print("it needs you: " + str(note))
-                    write_index("PARKED  " + flow + "  at " + step)
-                    journal(fm["name"], "parked at " + step, started,
-                            "hot blast radius  " + run_id)
-                    return
-
-        # the boundary check reads what came back against what the step was
-        # granted. it does not stop the run and it is not meant to: nothing
-        # here was in the path of the thing it is reporting, so a stop would
-        # be theatre. it is written down beside the gate results instead.
-        crossed = boundary.check(out.output, run.grant_for(step))
-        if crossed:
-            print("boundary: " + step + " came back with " + str(len(crossed))
-                  + " thing(s) it was not granted")
-            for mark, line in crossed:
-                print("  " + mark.what + "  " + line[:60])
             step_dir = state.RUNS / run_id
             step_dir.mkdir(parents=True, exist_ok=True)
-            with open(step_dir / "boundary.md", "a", encoding="utf-8") as bf:
-                bf.write("## " + step + "\n")
-                bf.write(boundary.as_note(crossed))
+            (step_dir / step).write_text(out.output, encoding="utf-8")
+            timings.append((step, out.meta.get("seconds", 0),
+                            out.meta.get("cached")))
+            entry = trail.open(step, run.taken(), used, came_from,
+                               output=out.output, fanned=step == run.fan)
 
-        if blocked:
-            print(blocked + " - not going on")
-            out = Handoff(out.role, "", verdict="redo", meta={"blocked": blocked})
+            fenced = run.fenced(step)
+            if fenced:
+                print("fenced at " + step + ": " + fenced)
+                return stop(stops.PARKED, fenced, "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user")
 
-        if not out:
-            print("run stopped at " + step)
-            trail.close(entry, "failed",
-                        why=blocked or "nothing came out of " + step)
-            write_index("FAILED  " + flow + "  at " + step)
-            journal(fm["name"], "failed at " + step, started)
-            return
+            spent = run.budget.over()
+            if spent:
+                print("stopping: " + spent)
+                return stop(stops.BUDGET, spent, "over budget", entry,
+                            index="OVER  " + flow + "  " + spent)
 
-        stuck = route.out_of_redos(out)
-        nxt = route.next(step, out)
-        waiting = run.pause_for(step) or ("user" if stuck else None)
-        if out.verdict == "redo" and nxt and not stuck:
-            print("sent back to " + nxt)
-        elif stuck or (waiting and nxt):
-            # parking is a person letting the work through, so there has to be
-            # work to let through: never on the last step, which has nothing
-            # behind it to hold up. a redo takes the branch above instead - the
-            # work is going round again, so there is nothing to let through
-            # yet. a redo with none left is the exception: the reviewer did
-            # not let it through, and the last step is where it most often
-            # says so.
-            why = ""
-            if stuck:
-                why = (step + " still asks for a redo, and the work has gone"
-                       " back " + str(route.cap) + " times already,")
-            note = park.write(run_id, fm["name"], step, waiting,
-                              [(name, secs) for name, secs, _ in timings],
-                              resume.after(steps(flow), step),
-                              resume_command(flow, run_id), runs=state.RUNS,
-                              why=why)
-            print("parked at " + step + ", waiting for " + waiting)
-            print("it needs you: " + str(note))
-            trail.close(entry, "parked",
-                        why=why.rstrip(",") or "waiting for " + waiting)
-            write_index("PARKED  " + flow + "  at " + step)
-            journal(fm["name"], "parked at " + step, started,
-                    ("out of redos  " if stuck else "") + run_id)
-            return
-        trail.close(entry, "redo" if out.verdict == "redo" and nxt else "ok",
-                    to=nxt)
-        came_from = step
-        step = nxt
+            if not out:
+                # an empty answer is checked before any gate: a gate handed
+                # nothing reports on nothing, and that report reads as the
+                # reason the run stopped
+                print("run stopped at " + step)
+                return stop(stops.NO_ANSWER, nothing_why(step, entry),
+                            "failed", entry,
+                            index="FAILED  " + flow + "  at " + step)
 
+            failed, blocked = check_step(run, route, step, out,
+                                         run_dir=step_dir)
+            entry.gates = out.meta.get("gates", [])
+            entry.ungated = out.meta.get("ungated")
+            if failed:
+                # a gate is not advice. it was failing the STEP, which meant the
+                # run carried on and wrote the output anyway.
+                print("gate failed at " + step + ", stopping")
+                return stop(stops.GATE, gate_why(out.meta["gates"]),
+                            "gate failed", entry,
+                            index="GATE  " + flow + "  " + failed + " at "
+                            + step)
+
+            hot = []
+            if fm.get("context") and run.preflight_for(step):
+                hot = preflight.check(out.output, risk_text,
+                                      threshold=float(run.preflight_for(step).get(
+                                          "threshold", preflight.DEFAULT_THRESHOLD)))
+                if hot:
+                    mode = run.preflight_for(step).get("mode", "flag")
+                    print("preflight: " + str(len(hot)) + " hot file(s) in that step")
+                    for path, score in hot:
+                        print("  " + path + "  " + str(score))
+                    if mode == "refuse":
+                        return stop(stops.REFUSED, "hot blast radius: "
+                                    + ", ".join(p for p, _ in hot), "refused",
+                                    entry, index="REFUSED  " + flow + "  "
+                                    + hot[0][0])
+                    if mode == "park":
+                        why = (step + " touches " + ", ".join(
+                            p + " (" + str(s) + ")" for p, s in hot)
+                            + ", at or above the " + str(run.preflight_for(step).get(
+                                "threshold", preflight.DEFAULT_THRESHOLD))
+                            + " the risk map counts as hot")
+                        return stop(stops.PARKED, why, "parked", entry,
+                                    index="PARKED  " + flow + "  at " + step,
+                                    waiting="user")
+
+            # the boundary check reads what came back against what the step was
+            # granted. it does not stop the run and it is not meant to: nothing
+            # here was in the path of the thing it is reporting, so a stop would
+            # be theatre. it is written down beside the gate results instead.
+            crossed = boundary.check(out.output, run.grant_for(step))
+            if crossed:
+                print("boundary: " + step + " came back with " + str(len(crossed))
+                      + " thing(s) it was not granted")
+                for mark, line in crossed:
+                    print("  " + mark.what + "  " + line[:60])
+                step_dir = state.RUNS / run_id
+                step_dir.mkdir(parents=True, exist_ok=True)
+                with open(step_dir / "boundary.md", "a", encoding="utf-8") as bf:
+                    bf.write("## " + step + "\n")
+                    bf.write(boundary.as_note(crossed))
+
+            if blocked:
+                print(blocked + " - not going on")
+                return stop(stops.GATE, blocked, "gate failed", entry,
+                            index="FAILED  " + flow + "  at " + step)
+
+            stuck = route.out_of_redos(out)
+            nxt = route.next(step, out)
+            waiting = run.pause_for(step) or ("user" if stuck else None)
+            if out.verdict == "redo" and nxt and not stuck:
+                print("sent back to " + nxt)
+            elif stuck or (waiting and nxt):
+                # parking is a person letting the work through, so there has to be
+                # work to let through: never on the last step, which has nothing
+                # behind it to hold up. a redo takes the branch above instead - the
+                # work is going round again, so there is nothing to let through
+                # yet. a redo with none left is the exception: the reviewer did
+                # not let it through, and the last step is where it most often
+                # says so.
+                why = ""
+                if stuck:
+                    why = (step + " still asks for a redo, and the work has gone"
+                           " back " + str(route.cap) + " times already,")
+                return stop(stops.PARKED,
+                            why.rstrip(",") or "waiting for " + waiting,
+                            "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting=waiting, told=why)
+            trail.close(entry, "redo" if out.verdict == "redo" and nxt else "ok",
+                        to=nxt)
+            came_from = step
+            step = nxt
+        return finish(flow, fm, run, out, started, run_id, pick_up)
+    except BaseException as e:
+        cause = stops.of(e)
+        if cause == stops.EXCEPTION:
+            traceback.print_exc()
+        at = step or came_from or todo[-1]
+        if cause == stops.OUTAGE:
+            print("provider outage at " + at + ": " + outage_why(e))
+            return stop(cause, outage_why(e), "parked", trail.still_open(),
+                        index="PARKED  " + flow + "  at " + at,
+                        waiting="the limit to reset")
+        if cause == stops.INTERRUPT:
+            why = "interrupted while " + at + " was running"
+        else:
+            why = type(e).__name__ + ": " + str(e)
+        print("stopped at " + at + ": " + why)
+        return stop(cause, why, "crashed", trail.still_open(),
+                    index=("INTERRUPTED  " if cause == stops.INTERRUPT
+                           else "CRASHED  ") + flow + "  at " + at)
+
+
+def outage_why(e):
+    return ("limit reached, resets " + e.resets + "; the provider said: "
+            + e.detail)
+
+
+def gate_why(results):
+    """-> the first failed gate, and what it said."""
+    for r in results:
+        if not r.ok:
+            return r.gate + (": " + r.detail if r.detail else " failed")
+    return "a gate failed"
+
+
+def nothing_why(step, entry):
+    """-> what the provider said about the goes that came back empty."""
+    said = [r.detail for a in entry.attempts for r in a.replies
+            if not r and r.detail]
+    goes = sum(len(a.replies) for a in entry.attempts)
+    out = "nothing came out of " + step
+    if said:
+        out = out + " in " + str(goes) + (" go" if goes == 1 else " goes") \
+            + "; the provider said: " + said[-1]
+    return out
+
+
+def finish(flow, fm, run, out, started, run_id, pick_up):
+    """the end of a run that got through every step. -> the exit code."""
     broken = promises.failures(out.output, fm.promises.invariants)
     for inv, detail in broken:
         print("promise broken: " + inv + " (" + detail + ")")
@@ -770,7 +847,6 @@ def main():
     # code-review runs per diff, several times an hour. it drowns the weekly
     # rollup and none of it is interesting a day later.
     if fm.get("journal", True):
-        f = open(state.RUNS / "journal.md", "a", encoding="utf-8")
         status = "ok"
         if pick_up:
             status = "ok (resumed)"
@@ -778,11 +854,8 @@ def main():
             status = "ok, " + str(len(broken)) + " promise(s) broken"
         if skipped:
             status = status + ", " + str(len(skipped)) + " promise(s) not checked"
-        f.write(started.strftime("%Y-%m-%d %H:%M") + "  " + config(flow).name
-                + "  " + status + "  "
-                + str(int((datetime.datetime.now() - started).total_seconds())) + "s  "
-                + path.name + "  " + run.budget.summary() + "\n")
-        f.close()
+        journal(fm["name"], status, started, run=run_id, saved=path.name,
+                spend=run.budget.summary())
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 
@@ -800,7 +873,8 @@ def main():
             print("- " + line)
     else:
         print(out.output)
+    return stops.EXIT_OK
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

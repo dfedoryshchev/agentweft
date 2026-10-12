@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
@@ -7,15 +7,17 @@
     "3 reviewer.md ok"
   ],
   "journal": [
-    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<day>-2.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
+    "<time>  ops-check  running  <secs>s  ops-check-<run>",
+    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
   ],
   "index": [
-    "ops-check-<day>-2.md  ops-check  3 steps"
+    "ops-check-<day>-1.md  ops-check  3 steps"
   ],
   "handoff": [],
   "files": [
     "index.md",
     "journal.md",
+    "ops-check-<day>-1.md",
     "ops-check-<run>/gates.md",
     "ops-check-<run>/planner.md",
     "ops-check-<run>/reviewer.md",
@@ -24,8 +26,7 @@
     "ops-check-<run>/steps/002-worker.md",
     "ops-check-<run>/steps/003-reviewer.md",
     "ops-check-<run>/workdir",
-    "ops-check-<run>/worker.md",
-    "ops-check-<day>-2.md"
+    "ops-check-<run>/worker.md"
   ],
   "steps": [
     {
@@ -53,6 +54,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
       "tasks": null,
@@ -83,6 +85,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-worker.md",
       "tasks": null,
@@ -113,6 +116,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/003-reviewer.md",
       "tasks": null,
@@ -120,10 +124,13 @@
     }
   ],
   "printed": [
+    "started planner.md",
+    "started worker.md",
+    "started reviewer.md",
     "promise not checked: never says something is fine",
     "promise not checked: nothing is reported that the logs do not contain",
     "promise not checked: every finding keeps the raw line",
-    "saved <tmp>/runs/ops-check-<day>-2.md",
+    "saved <tmp>/runs/ops-check-<day>-1.md",
     "- [high] app.log: ERROR nightly-export failed: disk full"
   ]
 }

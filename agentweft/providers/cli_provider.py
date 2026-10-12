@@ -24,6 +24,32 @@ def answered(stdout):
     return None
 
 
+USAGE_LIMIT = "usage_limit_reached"
+
+
+def limit(data, why):
+    """-> when the account's limit resets, "unknown" when it did not say, or
+    None when this error is not that limit.
+
+    claude names the kind in `api_error` and the reset, as an epoch, in
+    `api_error_params.rate_limit_info.resetsAt`. a 429 alone is not enough:
+    a short throttle is a 429 too, and that one is worth going again for.
+    an error result without the field is read by its words.
+    """
+    from agentweft.runner import errors
+
+    if data.get("api_error") == USAGE_LIMIT:
+        params = data.get("api_error_params")
+        info = params.get("rate_limit_info") if isinstance(params, dict) \
+            else None
+        at = errors.when(info.get("resetsAt")) if isinstance(info, dict) \
+            else None
+        return at or errors.resets(why)
+    if errors.classify(why) is errors.Outage:
+        return errors.resets(why)
+    return None
+
+
 @register
 class CliProvider(Provider):
     """the original. shells out to the cli, which is how this started."""
@@ -96,8 +122,10 @@ class CliProvider(Provider):
                 (data.get("subtype") or "error")
             if r.returncode != 0:
                 why = why + " (exit " + str(r.returncode) + ")"
-            return Reply("", detail=why[:200],
-                         retryable=again(data.get("api_error_status")), **said)
+            outage = limit(data, why)
+            return Reply("", detail=why[:200], outage=outage,
+                         retryable=False if outage
+                         else again(data.get("api_error_status")), **said)
         if not isinstance(text, str) or not text:
             return Reply("", detail="an empty answer", **said)
         return Reply(text, **said)

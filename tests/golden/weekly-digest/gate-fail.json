@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 2,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
@@ -8,7 +8,8 @@
     "4 reviewer.md gate failed  PASS length  FAIL regex"
   ],
   "journal": [
-    "<time>  weekly digest  gate regex failed at reviewer.md  <secs>s"
+    "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
+    "<time>  weekly digest  failed at reviewer.md  <secs>s  weekly-digest-<run>  gate failed  5 calls, 600 tokens counted (input 500, output 100) (cli x5)  regex: matched here is|as an ai|i hope this and should not have"
   ],
   "index": [
     "GATE  weekly-digest  regex at reviewer.md"
@@ -26,6 +27,7 @@
     "weekly-digest-<run>/steps/002-worker.md",
     "weekly-digest-<run>/steps/003-merge.md",
     "weekly-digest-<run>/steps/004-reviewer.md",
+    "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir",
     "weekly-digest-<run>/worker.md"
   ],
@@ -55,6 +57,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
       "tasks": null,
@@ -85,6 +88,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-worker.md",
       "tasks": [
@@ -148,6 +152,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/003-merge.md",
       "tasks": null,
@@ -189,13 +194,18 @@
       ],
       "ungated": false,
       "outcome": "gate failed",
-      "why": "gate regex failed at reviewer.md",
+      "cause": "gate failed",
+      "why": "regex: matched here is|as an ai|i hope this and should not have",
       "file": "steps/004-reviewer.md",
       "tasks": null,
       "handoff": null
     }
   ],
   "printed": [
+    "started planner.md",
+    "started worker.md",
+    "started merge.md",
+    "started reviewer.md",
     "  PASS length - 8 lines",
     "  FAIL regex - matched here is|as an ai|i hope this and should not have",
     "gate failed at reviewer.md, stopping"

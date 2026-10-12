@@ -19,18 +19,20 @@ from agentweft.runner import state
 FILE = "handoff.md"
 
 
-def lines(run_id, flow, step, who, done, left, command, why=None):
+def lines(run_id, flow, step, who, done, left, command, why=None,
+          again=False):
     """the handoff as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
     it stopped, why it stopped, and what to do about it. the last one is a
     command to type, not a description of one. `why` is for a stop the flow
-    did not ask for.
+    did not ask for. `again` is a step that produced nothing, so carrying on
+    runs it again rather than handing on what it made.
     """
     out = ["# parked: " + run_id, ""]
     out.append("waiting for    " + who)
     out.append("flow           " + flow)
-    out.append("stopped after  " + step)
+    out.append(("stopped at     " if again else "stopped after  ") + step)
     out.append("")
     if why:
         out.append(why)
@@ -47,16 +49,20 @@ def lines(run_id, flow, step, who, done, left, command, why=None):
     for name in left or ["nothing"]:
         out.append("  " + name)
     out.append("")
-    out.append("what " + step + " produced is in runs/" + run_id + "/" + step)
-    out.append("read it before carrying on. that file is what the next step gets handed,")
-    out.append("so editing it is how you change what the rest of the run works from.")
+    if again:
+        out.append(step + " produced nothing, so it runs again when you carry on.")
+    else:
+        out.append("what " + step + " produced is in runs/" + run_id + "/" + step)
+        out.append("read it before carrying on. that file is what the next step gets handed,")
+        out.append("so editing it is how you change what the rest of the run works from.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command)
     return out
 
 
-def write(run_id, flow, step, who, done, left, command, runs=None, why=None):
+def write(run_id, flow, step, who, done, left, command, runs=None, why=None,
+          again=False):
     """write the handoff beside the step outputs, and hand back the path.
 
     the same folder as steps.jsonl and gates.md. everything one run left behind
@@ -66,6 +72,6 @@ def write(run_id, flow, step, who, done, left, command, runs=None, why=None):
     folder = (runs or state.RUNS) / run_id
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / FILE
-    body = lines(run_id, flow, step, who, done, left, command, why)
+    body = lines(run_id, flow, step, who, done, left, command, why, again)
     path.write_text("\n".join(body) + "\n", encoding="utf-8")
     return path

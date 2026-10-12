@@ -11,8 +11,8 @@ the reason it is in here at all is at the bottom.
     max_calls: 20
     max_tokens: 120000
 
-checked after every step. over it and the run stops, writes `over budget at
-<step>` to the journal, and keeps what it has. a flow that says nothing gets
+checked after every step. over it and the run stops, writes `failed at <step>`
+with the cause `budget` to the journal, and keeps what it has. a flow that says nothing gets
 the defaults in `guardrails/defaults.py` - no cap is the wrong default for the
 thing that spends money.
 
@@ -28,7 +28,7 @@ times bigger than usual. a failed go with no usage is charged as a call and 0
 tokens, tagged with the kind of failure. a cached answer is not charged.
 
 the two are never added into one number without saying so. the journal line
-ends with one of:
+of a run that finished or stopped carries one of:
 
     3 calls, 360 tokens counted (input 300, output 60) (cli x3)
     1 call, 12850 tokens counted (input 12810 incl. cache_read 12000 and cache_write 800, output 40 incl. reasoning 25) (cli x1)
@@ -78,8 +78,8 @@ prompt says nothing about it.
 the run takes a digest of those files when it starts, and before every step
 whose model is started in the place it takes another. anything written,
 edited or removed in between and the step does not start: the run stops with
-`refused at <step>, the place changed` in the journal, a `REFUSED` line in
-the index, and the files named on stdout. `guardrails/briefing.py` is the
+`failed at <step>` and the cause `refused` in the journal, the files named in
+its why, a `REFUSED` line in the index, and the files named on stdout. `guardrails/briefing.py` is the
 list.
 
 what was there at the start is what the run was pointed at, and it is not

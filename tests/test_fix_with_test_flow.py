@@ -160,5 +160,11 @@ def test_an_unverified_answer_from_verify_stops_the_run(tmp_path,
 def test_an_empty_worker_answer_is_reported_as_nothing(tmp_path, monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {"worker.md": ""})
     assert asked == ["worker.md"]
-    assert "the step answered nothing" in written
+    # the run stops on the empty answer itself, before the red-test gate can
+    # report on an answer that never came
+    assert written == ""
+    journal = (tmp_path / "runs" / "journal.md").read_text(encoding="utf-8")
+    assert "  failed at worker.md  " in journal
+    assert "  no answer  " in journal
+    assert "nothing came out of worker.md" in journal
     assert "never failed" not in written

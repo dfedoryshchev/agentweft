@@ -105,7 +105,8 @@ def test_a_journal_line_outside_cp1252_is_written_and_read_back(cp1252,
     resume read it back as something that matched no flow."""
     name = "digest-" + SAID
     engine.journal(name, "failed at worker.md", datetime.datetime.now(),
-                   "calls 1")
+                   run="digest-1", cause="no answer", spend="1 call",
+                   why="nothing came out of worker.md")
     stop = resume.last_stop(name)
     assert stop is not None and stop.step == "worker.md"
     cli.cmd_spend()

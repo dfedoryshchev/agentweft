@@ -39,7 +39,8 @@ def a_parked_journal(tmp_path, monkeypatch, step="reviewer.md",
     """
     monkeypatch.chdir(tmp_path)
     engine.journal("demo flow", "parked at " + step, datetime.datetime.now(),
-                   run_id)
+                   run=run_id, cause="parked", spend="1 call",
+                   why="waiting for user")
     monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
 
 
@@ -85,14 +86,14 @@ def test_after_is_everything_when_the_step_is_unknown():
 def test_the_parked_line_keeps_the_run_id_for_the_person_reading_it(tmp_path,
                                                                     monkeypatch):
     """the step is what the resume arithmetic runs on. the run id is which
-    folder to go and look in, and it rides in the last column rather than
-    coming back as part of the Stop.
+    folder to go and look in, and it rides in the column after the seconds
+    rather than coming back as part of the Stop.
     """
     a_parked_journal(tmp_path, monkeypatch)
     line = (tmp_path / "runs" / "journal.md").read_text().strip()
     assert line.split("  ")[1] == "demo flow"
     assert line.split("  ")[2] == "parked at reviewer.md"
-    assert line.split("  ")[-1] == "demo-flow-2026-08-30-152241"
+    assert line.split("  ")[4] == "demo-flow-2026-08-30-152241"
 
 
 def test_the_run_to_pick_up_is_the_newest_one_of_that_flow(tmp_path, monkeypatch):

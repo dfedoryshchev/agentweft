@@ -1,12 +1,13 @@
 {
-  "exit": null,
+  "exit": 2,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
     "2 worker.md parked"
   ],
   "journal": [
-    "<time>  risky-edit  parked at worker.md  <secs>s  hot blast radius  risky-edit-<run>"
+    "<time>  risky-edit  running  <secs>s  risky-edit-<run>",
+    "<time>  risky-edit  parked at worker.md  <secs>s  risky-edit-<run>  parked  2 calls, 240 tokens counted (input 200, output 40) (cli x2)  worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot"
   ],
   "index": [
     "PARKED  risky-edit  at worker.md"
@@ -38,6 +39,7 @@
     "risky-edit-<run>/steps.jsonl",
     "risky-edit-<run>/steps/001-planner.md",
     "risky-edit-<run>/steps/002-worker.md",
+    "risky-edit-<run>/why.md",
     "risky-edit-<run>/workdir",
     "risky-edit-<run>/worker.md"
   ],
@@ -67,6 +69,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
       "tasks": null,
@@ -97,6 +100,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "parked",
+      "cause": "parked",
       "why": "worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
       "file": "steps/002-worker.md",
       "tasks": null,
@@ -104,6 +108,8 @@
     }
   ],
   "printed": [
+    "started planner.md",
+    "started worker.md",
     "preflight: 1 hot file(s) in that step",
     "  src/hooks.ts  0.94",
     "parked at worker.md, waiting for user",

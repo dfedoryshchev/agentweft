@@ -84,9 +84,18 @@ def run_flow(name):
     r = subprocess.run([sys.executable, "run.py", name, "--force"],
                        capture_output=True, text=True, timeout=900)
     out = (r.stdout or "") + (r.stderr or "")
+    if r.returncode in EXITS:
+        return EXITS[r.returncode] + " (exit " + str(r.returncode) + "):\n\n" + out
     if r.returncode != 0:
-        return "the run failed:\n\n" + out
+        return "the run failed (exit " + str(r.returncode) + "):\n\n" + out
     return out
+
+
+# what run.py's exit code means. a stop is not always a failure: a park is a
+# run waiting for someone, and the client should not read it as broken.
+EXITS = {1: "the run could not start",
+         2: "the run stopped before the end",
+         130: "the run was interrupted"}
 
 
 def handle(msg):

@@ -278,7 +278,8 @@ def test_a_run_over_two_kinds_of_provider_says_mixed_in_the_journal(
     fake_cli(answer("did it\n", usage={"input_tokens": 100,
                                        "output_tokens": 20}))
     engine.main()
-    [line] = journal().strip().split("\n")
+    running, line = journal().strip().split("\n")
+    assert "  running  " in running
     assert line.endswith(" (cli x1, fake x1)")
     assert "2 calls, mixed: 1 estimated call, 120 tokens counted" \
            " (input 100, output 20) + ~" in line
@@ -323,7 +324,8 @@ def test_the_cap_is_exact_at_the_boundary_through_the_engine(
              answer("VERDICT: ok\n\nfine\n", usage={"output_tokens": 1}))
     engine.main()
     assert "OVER  edge  token cap: 12851 > 12850" in index()
-    assert "over budget at reviewer.md" in journal()
+    assert "  failed at reviewer.md  " in journal()
+    assert "  budget  " in journal()
 
 
 def test_the_eval_table_drops_the_tilde_only_for_a_counted_total():

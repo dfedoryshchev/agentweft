@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 worker.md ok -> reviewer.md",
@@ -8,15 +8,17 @@
     "4 reviewer.md ok"
   ],
   "journal": [
-    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<day>-2.md  4 calls, 480 tokens counted (input 400, output 80) (cli x4)"
+    "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
+    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80) (cli x4)"
   ],
   "index": [
-    "summarise-and-check-<day>-2.md  summarise-and-check  2 steps"
+    "summarise-and-check-<day>-1.md  summarise-and-check  2 steps"
   ],
   "handoff": [],
   "files": [
     "index.md",
     "journal.md",
+    "summarise-and-check-<day>-1.md",
     "summarise-and-check-<run>/gates.md",
     "summarise-and-check-<run>/reviewer.md",
     "summarise-and-check-<run>/steps.jsonl",
@@ -25,8 +27,7 @@
     "summarise-and-check-<run>/steps/003-worker.md",
     "summarise-and-check-<run>/steps/004-reviewer.md",
     "summarise-and-check-<run>/workdir",
-    "summarise-and-check-<run>/worker.md",
-    "summarise-and-check-<day>-2.md"
+    "summarise-and-check-<run>/worker.md"
   ],
   "steps": [
     {
@@ -54,6 +55,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-worker.md",
       "tasks": null,
@@ -84,6 +86,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "redo",
+      "cause": null,
       "why": null,
       "file": "steps/002-reviewer.md",
       "tasks": null,
@@ -114,6 +117,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/003-worker.md",
       "tasks": null,
@@ -144,6 +148,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/004-reviewer.md",
       "tasks": null,
@@ -151,10 +156,14 @@
     }
   ],
   "printed": [
+    "started worker.md",
+    "started reviewer.md",
     "sent back to worker.md",
+    "started worker.md",
+    "started reviewer.md",
     "promise not checked: every claim points at a line in the source",
     "promise not checked: anything that could not be backed is listed under deleted",
-    "saved <tmp>/runs/summarise-and-check-<day>-2.md",
+    "saved <tmp>/runs/summarise-and-check-<day>-1.md",
     "VERDICT: ok",
     "notes.md: the plan moved to friday (line 3)",
     "deleted: nothing, every line was backed"

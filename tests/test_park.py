@@ -122,8 +122,8 @@ def test_a_redo_past_the_cap_parks_instead_of_walking_on(tmp_path, monkeypatch):
     run_dir, line = a_stubborn_reviewer(tmp_path, monkeypatch, "stubborn",
                                         after=("merge",))
     assert line.split("  ")[2] == "parked at reviewer.md"
-    assert "out of redos" in line
-    assert line.split("  ")[-1] == run_dir.name
+    assert "still asks for a redo" in line
+    assert line.split("  ")[4] == run_dir.name
     assert not (run_dir / "merge.md").exists()
     handoff = (run_dir / park.FILE).read_text(encoding="utf-8")
     assert "stopped after  reviewer.md" in handoff

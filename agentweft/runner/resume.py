@@ -5,34 +5,34 @@ that died, because that step produced nothing. a run that parked for a person
 is picked up AFTER the step it parked on, because that step finished and the
 only thing missing was the person.
 """
-from . import state
+from . import state, stops
 
 JOURNAL = None
 
-# the journal statuses that mean "this run did not finish", and what kind of
-# not-finishing each one is. anything else on the line is a run that ended, and
-# ending clears whatever was owed before it.
-STOPS = (("failed at ", "failed"), ("parked at ", "parked"))
-
 
 class Stop(object):
-    """where a run stopped, and whether stopping was the point.
+    """where a run stopped, why, and whether stopping was the point.
 
     a failure and a park are both "did not finish", and the journal only had a
     word for the first one until the flow could park. keeping them apart is the
     whole difference between rerunning a step and carrying on past it.
+
+    an outage is written as a park, because the run is waiting, but what it
+    waits on is the provider: the step it parked on got no answer and runs
+    again.
     """
 
-    __slots__ = ("kind", "step", "when")
+    __slots__ = ("kind", "step", "when", "cause")
 
-    def __init__(self, kind, step, when):
+    def __init__(self, kind, step, when, cause=None):
         self.kind = kind
         self.step = step
         self.when = when
+        self.cause = cause
 
     @property
     def parked(self):
-        return self.kind == "parked"
+        return self.kind == "parked" and self.cause != stops.OUTAGE
 
 
 def last_stop(flow_name):
@@ -41,16 +41,17 @@ def last_stop(flow_name):
     if not journal.exists():
         return None
     found = None
-    for line in journal.read_text(encoding="utf-8").split("\n"):
-        if not line.strip():
+    for text in journal.read_text(encoding="utf-8").split("\n"):
+        line = stops.read(text)
+        if line is None or line.flow != flow_name:
             continue
-        parts = [p for p in line.split("  ") if p]
-        if len(parts) < 3 or parts[1] != flow_name:
+        if line.kind == "running":
+            # says a run began, not how it ended. one that died without a
+            # word leaves the stop before it where it was
             continue
-        for prefix, kind in STOPS:
-            if parts[2].startswith(prefix):
-                found = Stop(kind, parts[2][len(prefix):], parts[0])
-                break
+        if line.kind == "stop":
+            found = Stop("parked" if line.parked else "failed", line.step,
+                         line.when, line.cause)
         else:
             # a later good run means there is nothing to pick up
             found = None

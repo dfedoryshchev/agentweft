@@ -2,15 +2,51 @@
 
 ## what gets written
 
-every run appends one line to `runs/journal.md`:
+every run appends a `running` line to `runs/journal.md` before its first
+step, and one more line when it ends:
 
-    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)
-    2026-01-22 18:02  ops-check  failed at reviewer.md  11s
-    2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011
+    2026-01-22 09:14  weekly digest  running  0s  weekly-digest-2026-01-22-091402
+    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-091402  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)
+    2026-01-22 18:02  ops-check  failed at reviewer.md  11s  ops-check-2026-01-22-180207  gate failed  3 calls, ~900 tokens estimated (cli x3)  regex: no line starts with "- ["
+    2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011  parked  1 call, ~300 tokens estimated (cli x1)  waiting for user
 
-a run that finished ends its line with what it spent, counted, estimated or
-mixed (see "the spend cap" in `guardrails.md`); `python run.py spend` prints
-the ones among the last twenty lines.
+the columns are split by two spaces: when the run started, the flow, how it
+ended, how long it took, the run id. a finished run then has the file it
+saved and what it spent; a stopped run has its cause, what it spent and why.
+what it spent is counted, estimated or mixed (see "the spend cap" in
+`guardrails.md`); `python run.py spend` prints the last twenty lines that say.
+
+a run saves its output as `runs/<flow>-<day>-<n>.md`, and the first run of a
+day is `-1`.
+
+## why a run stopped
+
+a run that stops short says `parked at <step>` when it is waiting for someone
+and `failed at <step>` otherwise, and its cause is one of a fixed list:
+
+- `gate failed` - a gate failed the step, or the step did not give the router
+  what the flow requires of it (an output it must contain, a verdict it can
+  read). the why is the gate and what it said.
+- `refused` - the step was not allowed to start (the place changed under it)
+  or its output was refused (a preflight in `refuse` mode).
+- `parked` - the flow asked for a person, a preflight parked, the work ran out
+  of redos, or files git cannot give back were changed.
+- `provider outage` - the account's own limit refused the call: a session,
+  weekly or usage limit. the run parks after that one call, never retries and
+  never hands the empty answer to a gate; the why and `handoff.md` say when
+  the provider said it resets, or `unknown`.
+- `budget` - the call or token cap.
+- `exception` - something raised; the traceback is printed as well.
+- `interrupt` - Ctrl-C.
+- `no answer` - the step came back empty after its retries. the why carries
+  the last thing the provider said.
+
+the same cause and why go on the step's line in `steps.jsonl` and into
+`runs/<run-id>/why.md`. a cause off the list is refused where the line is
+written, and `rollup.py` refuses one it finds.
+
+`run.py` exits 0 when the run finished (or was not due), 1 when it could not
+start, 2 when it stopped, and 130 on an interrupt.
 
 and every step's output lands under `runs/<flow>-<date>-<time>/`, one file per
 step, as it is produced. `runs/` is the one beside `run.py`, not one in the
@@ -40,7 +76,8 @@ or crashed. the keys are always all there, in this order:
      "retries": {}, "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
      "ungated": false,
-     "outcome": "ok", "why": null, "file": "steps/001-worker.md",
+     "outcome": "ok", "cause": null, "why": null,
+     "file": "steps/001-worker.md",
      "tasks": null, "handoff": null}
 
 (one line on disk; wrapped here.)
@@ -66,7 +103,8 @@ or crashed. the keys are always all there, in this order:
   said, null when the check never ran. `gates.md` says the same: an ungated
   step gets its heading and a `no gates` line under it.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `over budget`,
-  `gate failed`, `failed`, `crashed`. `why` is the reason the run had in hand
+  `gate failed`, `failed`, `crashed`. `cause` is the run's stop cause from the
+  list above, null when it went on. `why` is the reason the run had in hand
   when it stopped there, null when it went on.
 - `file` is what this pass produced, `steps/<seq>-<step>.md`. a redo's second
   review is a second file, so the finding that sent the work back is still
@@ -84,17 +122,22 @@ two runs of the same flow on the same answers.
 
     python rollup.py
 
-reads the journal for the last 7 days: runs, failures, average duration, per
-flow.
+reads the journal for the last 7 days: runs, stops and average duration per
+flow, stops per cause, and any run that wrote `running` and never wrote how it
+ended (the process was killed). `--failed` keeps only the runs that stopped.
 
 ## when a run dies
 
     python run.py weekly-digest --resume
 
-finds the most recent failed run for that flow in the journal, works out which
-steps are left, and hands the first of them whatever the step before it
-produced last time. that is why the step outputs are on disk - without them
-resume could tell you where it died and nothing more.
+finds the most recent run of that flow that stopped short, whatever the cause,
+works out which steps are left, and hands the first of them whatever the step
+before it produced last time. that is why the step outputs are on disk -
+without them resume could tell you where it died and nothing more. a
+`running` line is skipped: it says a run began, not how it ended.
+
+a provider outage is written as a park, but the step it parked on got no
+answer, so carrying on runs that step again.
 
     python run.py weekly-digest --resume weekly-digest-2026-01-22-1
 

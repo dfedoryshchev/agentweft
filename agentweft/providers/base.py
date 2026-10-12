@@ -61,14 +61,16 @@ class Reply(object):
     say, which is not the same as zero: a provider that reports nothing has to
     be estimated, and a zero would read as free. `cost` is in USD as the
     provider stated it. `retryable` is the provider's own word on whether going
-    again can help, None when it has none.
+    again can help, None when it has none. `outage` is set when the account's
+    own limit refused the call: when the provider said it resets, or
+    "unknown".
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
-                 "retryable")
+                 "retryable", "outage")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
-                 session=None, model=None, retryable=None):
+                 session=None, model=None, retryable=None, outage=None):
         self.text = text
         self.cached = cached
         self.detail = detail
@@ -77,6 +79,7 @@ class Reply(object):
         self.session = session
         self.model = model
         self.retryable = retryable
+        self.outage = outage
 
     def __bool__(self):
         return bool(self.text)

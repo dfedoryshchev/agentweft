@@ -248,8 +248,11 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         raised = type(e).__name__ + ": " + str(e)
     printed = capsys.readouterr().out
     assert script.unused() == [], "answers the run never asked for"
-    return normalise(record(tmp_path / "runs", code, raised, printed),
-                     tmp_path)
+    got = normalise(record(tmp_path / "runs", code, raised, printed), tmp_path)
+    # sorted again once the stamps are out: "<flow>-<day>-1.md" against the
+    # run folder "<flow>-<day>-<time>/" orders by the hour the run started in
+    got["files"] = sorted(got["files"])
+    return got
 
 
 def text_lines(path):

@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 worker.md ok -> patcher.md  PASS red-test",
@@ -7,13 +7,15 @@
     "3 verify.md ok  PASS verdict  PASS command"
   ],
   "journal": [
-    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<day>-2.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
+    "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
+    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60) (cli x3)"
   ],
   "index": [
-    "fix-with-test-<day>-2.md  fix-with-test  3 steps"
+    "fix-with-test-<day>-1.md  fix-with-test  3 steps"
   ],
   "handoff": [],
   "files": [
+    "fix-with-test-<day>-1.md",
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/patcher.md",
     "fix-with-test-<run>/steps.jsonl",
@@ -23,7 +25,6 @@
     "fix-with-test-<run>/verify.md",
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
-    "fix-with-test-<day>-2.md",
     "index.md",
     "journal.md"
   ],
@@ -59,6 +60,7 @@
       ],
       "ungated": false,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-worker.md",
       "tasks": null,
@@ -95,6 +97,7 @@
       ],
       "ungated": false,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-patcher.md",
       "tasks": null,
@@ -136,6 +139,7 @@
       ],
       "ungated": false,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/003-verify.md",
       "tasks": null,
@@ -143,14 +147,17 @@
     }
   ],
   "printed": [
+    "started worker.md",
     "  PASS red-test - red, exit 1",
+    "started patcher.md",
     "  PASS red-test - green, exit 0",
+    "started verify.md",
     "  PASS verdict - 3 PASS, no FAIL",
     "  PASS command - exit 0",
     "promise not checked: the test is written before the patch",
     "promise not checked: the test fails on the unpatched code",
     "promise not checked: the patch is the smallest thing that turns it green",
-    "saved <tmp>/runs/fix-with-test-<day>-2.md",
+    "saved <tmp>/runs/fix-with-test-<day>-1.md",
     "PASS the test is written before the patch",
     "PASS the test fails on the unpatched code",
     "PASS the patch is the smallest thing that turns it green"

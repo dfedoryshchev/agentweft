@@ -148,6 +148,7 @@ class Trail(object):
     def __init__(self, folder, after=0):
         self.folder = folder
         self.seq = max(after, last_seq(folder))
+        self.unclosed = []
 
     def open(self, step, attempts, provider, came_from, output=None,
              fanned=False):
@@ -159,17 +160,25 @@ class Trail(object):
             path = self.folder / kept
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(output, encoding="utf-8")
-        return Entry(self.seq, step, attempts, provider, came_from, kept,
-                     fanned)
+        entry = Entry(self.seq, step, attempts, provider, came_from, kept,
+                      fanned)
+        self.unclosed.append(entry)
+        return entry
 
-    def close(self, entry, outcome, why=None, to=None):
+    def close(self, entry, outcome, why=None, to=None, cause=None):
         self.folder.mkdir(parents=True, exist_ok=True)
+        if entry in self.unclosed:
+            self.unclosed.remove(entry)
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(line(entry, outcome, why, to),
+            f.write(json.dumps(line(entry, outcome, why, to, cause),
                                ensure_ascii=False) + "\n")
 
+    def still_open(self):
+        """-> the entry opened and not yet given an outcome, or None."""
+        return self.unclosed[-1] if self.unclosed else None
 
-def line(entry, outcome, why=None, to=None):
+
+def line(entry, outcome, why=None, to=None, cause=None):
     attempts = entry.attempts
     first = attempts[0] if attempts else None
     p = entry.provider
@@ -204,6 +213,7 @@ def line(entry, outcome, why=None, to=None):
                       for g in entry.gates],
             "ungated": entry.ungated,
             "outcome": outcome,
+            "cause": cause,
             "why": why,
             "file": entry.file,
             "tasks": tasks,

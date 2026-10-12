@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 worker.md ok -> reviewer.md",
@@ -7,10 +7,11 @@
   ],
   "journal": [],
   "index": [
-    "code-review-<day>-2.md  code-review  2 steps"
+    "code-review-<day>-1.md  code-review  2 steps"
   ],
   "handoff": [],
   "files": [
+    "code-review-<day>-1.md",
     "code-review-<run>/gates.md",
     "code-review-<run>/reviewer.md",
     "code-review-<run>/steps.jsonl",
@@ -18,7 +19,6 @@
     "code-review-<run>/steps/002-reviewer.md",
     "code-review-<run>/workdir",
     "code-review-<run>/worker.md",
-    "code-review-<day>-2.md",
     "index.md"
   ],
   "steps": [
@@ -47,6 +47,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-worker.md",
       "tasks": null,
@@ -77,6 +78,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-reviewer.md",
       "tasks": null,
@@ -84,10 +86,12 @@
     }
   ],
   "printed": [
+    "started worker.md",
+    "started reviewer.md",
     "promise not checked: every finding names a file and a line",
     "promise not checked: a finding is a problem, not a preference",
     "promise not checked: nothing is reported that the diff does not show",
-    "saved <tmp>/runs/code-review-<day>-2.md",
+    "saved <tmp>/runs/code-review-<day>-1.md",
     "VERDICT: ok",
     "- [high] app.py:12 the loop reads one past the end of items"
   ]

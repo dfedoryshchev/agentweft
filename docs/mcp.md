@@ -20,7 +20,10 @@ outputs, and start one of a small list of flows.
 
 **tools**
 
-- `run_flow(flow)` - runs it with `--force` and returns what it printed
+- `run_flow(flow)` - runs it with `--force` and returns what it printed. a
+  run that did not finish leads with what its exit code means: it could not
+  start (1), it stopped before the end (2, the journal says why), or it was
+  interrupted (130)
 
 ## the allowlist
 
@@ -74,7 +77,8 @@ planner weights by it, mostly. a step can be made to check rather than trust:
 
 before the run moves on, the files the step said it would touch are checked
 against the ranking. `flag` prints them and carries on. `refuse` stops the run
-and writes `refused at <step>, hot blast radius` to the journal. `park` stops it
+and writes `failed at <step>` to the journal, with the cause `refused` and the
+why `hot blast radius: <files>`. `park` stops it
 the way a `pause:` does: the step's output stays in `runs/<id>/<step>`, the
 handoff names each hot file with its score, the step's line in `steps.jsonl`
 says `parked`, the journal says `parked at <step>`, and `--resume` carries on

@@ -1,13 +1,10 @@
 import json
 import sys
 
-import pytest
-
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.mcp import server
 from agentweft.runner import engine, prompts, trace
-from agentweft.runner.errors import Fatal
 from agentweft.runner.handoff import Handoff
 
 
@@ -36,8 +33,8 @@ def test_a_step_records_seconds_and_provider(monkeypatch):
 
 KEYS = ["seq", "time", "step", "from", "to", "provider", "command", "model",
         "model_reported", "tokens", "cost", "session", "seconds", "cached",
-        "retries", "gates", "ungated", "outcome", "why", "file", "tasks",
-        "handoff"]
+        "retries", "gates", "ungated", "outcome", "cause", "why", "file",
+        "tasks", "handoff"]
 
 # an en dash, a CJK word and a Cyrillic letter: cp1252 has the first under
 # another byte and no byte at all for the rest
@@ -168,7 +165,8 @@ def test_a_failed_gate_writes_the_line_of_the_step_it_stopped(
     engine.main()
     [line] = lines(folders(tmp_path)[0])
     assert line["outcome"] == "gate failed" and line["to"] is None
-    assert line["why"] == "gate length failed at worker.md"
+    assert line["cause"] == "gate failed"
+    assert line["why"] == "length: 2 lines, cap is 1"
     assert line["gates"] == [{"gate": "length", "ok": False,
                               "detail": "2 lines, cap is 1"}]
     assert line["file"] == "steps/001-worker.md"
@@ -285,16 +283,16 @@ def test_a_fanned_out_step_is_one_line_with_a_task_each(tmp_path,
     assert got[0]["tasks"] is None
 
 
-def test_a_crash_mid_step_is_written_before_it_goes_on_up(tmp_path,
-                                                          monkeypatch,
-                                                          fake_cli, cp1252):
+def test_a_crash_mid_step_is_written_down_and_the_run_exits_2(tmp_path,
+                                                              monkeypatch,
+                                                              fake_cli, cp1252):
     a_flow(tmp_path, monkeypatch, "broke", ["worker", "reviewer"])
     fake_cli(answer("worked\n"), (1, b"", ("unauthorized " + SAID)
                                   .encode("utf-8")))
-    with pytest.raises(Fatal):
-        engine.main()
+    assert engine.main() == 2
     got = lines(folders(tmp_path)[0])
     assert [l["outcome"] for l in got] == ["ok", "crashed"]
+    assert got[1]["cause"] == "exception"
     assert got[1]["why"] == "Fatal: unauthorized " + SAID
     assert got[1]["file"] is None
 
@@ -392,7 +390,8 @@ def test_a_resumed_run_writes_its_own_no_gate_line(tmp_path, monkeypatch,
     engine.main()
     # both runs can land in one folder when they start in the same second
     notes = "".join(gate_notes(f) for f in folders(tmp_path))
-    assert notes.count("## reviewer.md\nno gates\n") == 2
+    # the first run's empty reviewer stopped before its gates were checked
+    assert notes.count("## reviewer.md\nno gates\n") == 1
     assert notes.endswith("## reviewer.md\nno gates\n")
     assert every_line(tmp_path)[-1]["ungated"] is True
 

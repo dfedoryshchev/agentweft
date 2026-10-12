@@ -125,7 +125,8 @@ def test_a_step_that_leaves_instructions_does_not_steer_the_next(
     said = capsys.readouterr().out
     assert "refused" in said and "AGENTS.md" in said
     journal = (state.RUNS / "journal.md").read_text(encoding="utf-8")
-    assert "refused at reviewer.md" in journal
+    assert "  failed at reviewer.md  " in journal
+    assert "  refused  " in journal and "AGENTS.md" in journal
     assert "REFUSED" in (state.RUNS / "index.md").read_text(encoding="utf-8")
 
 

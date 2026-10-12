@@ -1,5 +1,5 @@
 {
-  "exit": null,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
@@ -8,15 +8,17 @@
     "4 reviewer.md ok  PASS length  PASS regex"
   ],
   "journal": [
-    "<time>  weekly digest  ok  <secs>s  weekly-digest-<day>-2.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)"
+    "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
+    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100) (cli x5)"
   ],
   "index": [
-    "weekly-digest-<day>-2.md  weekly-digest  4 steps"
+    "weekly-digest-<day>-1.md  weekly-digest  4 steps"
   ],
   "handoff": [],
   "files": [
     "index.md",
     "journal.md",
+    "weekly-digest-<day>-1.md",
     "weekly-digest-<run>/gates.md",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
@@ -27,8 +29,7 @@
     "weekly-digest-<run>/steps/003-merge.md",
     "weekly-digest-<run>/steps/004-reviewer.md",
     "weekly-digest-<run>/workdir",
-    "weekly-digest-<run>/worker.md",
-    "weekly-digest-<day>-2.md"
+    "weekly-digest-<run>/worker.md"
   ],
   "steps": [
     {
@@ -56,6 +57,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
       "tasks": null,
@@ -86,6 +88,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-worker.md",
       "tasks": [
@@ -149,6 +152,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/003-merge.md",
       "tasks": null,
@@ -190,6 +194,7 @@
       ],
       "ungated": false,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/004-reviewer.md",
       "tasks": null,
@@ -197,9 +202,13 @@
     }
   ],
   "printed": [
+    "started planner.md",
+    "started worker.md",
+    "started merge.md",
+    "started reviewer.md",
     "  PASS length - 7 lines",
     "  PASS regex",
-    "saved <tmp>/runs/weekly-digest-<day>-2.md",
+    "saved <tmp>/runs/weekly-digest-<day>-1.md",
     "## VERDICT: ok",
     "## changed",
     "  - notes.md: the plan moved to friday",

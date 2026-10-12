@@ -1,28 +1,29 @@
 {
-  "exit": null,
+  "exit": 0,
   "raised": null,
   "path": [
     "1 worker.md ok -> reviewer.md",
     "2 reviewer.md ok"
   ],
   "journal": [
-    "<time>  release-notes  ok, 3 promise(s) not checked  <secs>s  release-notes-<day>-2.md  2 calls, 240 tokens counted (input 200, output 40) (cli x2)"
+    "<time>  release-notes  running  <secs>s  release-notes-<run>",
+    "<time>  release-notes  ok, 3 promise(s) not checked  <secs>s  release-notes-<run>  release-notes-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40) (cli x2)"
   ],
   "index": [
-    "release-notes-<day>-2.md  release-notes  2 steps"
+    "release-notes-<day>-1.md  release-notes  2 steps"
   ],
   "handoff": [],
   "files": [
     "index.md",
     "journal.md",
+    "release-notes-<day>-1.md",
     "release-notes-<run>/gates.md",
     "release-notes-<run>/reviewer.md",
     "release-notes-<run>/steps.jsonl",
     "release-notes-<run>/steps/001-worker.md",
     "release-notes-<run>/steps/002-reviewer.md",
     "release-notes-<run>/workdir",
-    "release-notes-<run>/worker.md",
-    "release-notes-<day>-2.md"
+    "release-notes-<run>/worker.md"
   ],
   "steps": [
     {
@@ -50,6 +51,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/001-worker.md",
       "tasks": null,
@@ -80,6 +82,7 @@
       "gates": [],
       "ungated": true,
       "outcome": "ok",
+      "cause": null,
       "why": null,
       "file": "steps/002-reviewer.md",
       "tasks": null,
@@ -87,10 +90,12 @@
     }
   ],
   "printed": [
+    "started worker.md",
+    "started reviewer.md",
     "promise not checked: no commit hashes",
     "promise not checked: no author names",
     "promise not checked: at most 20 lines",
-    "saved <tmp>/runs/release-notes-<day>-2.md",
+    "saved <tmp>/runs/release-notes-<day>-1.md",
     "VERDICT: ok",
     "## added",
     "- a --dry-run switch on the export",
