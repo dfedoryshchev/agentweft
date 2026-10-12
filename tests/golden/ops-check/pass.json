@@ -1,0 +1,125 @@
+{
+  "exit": null,
+  "raised": null,
+  "path": [
+    "1 planner.md ok -> worker.md",
+    "2 worker.md ok -> reviewer.md",
+    "3 reviewer.md ok"
+  ],
+  "journal": [
+    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<day>-2.md  3 calls, ~1591 tokens (cli x3)"
+  ],
+  "index": [
+    "ops-check-<day>-2.md  ops-check  3 steps"
+  ],
+  "handoff": [],
+  "files": [
+    "index.md",
+    "journal.md",
+    "ops-check-<run>/planner.md",
+    "ops-check-<run>/reviewer.md",
+    "ops-check-<run>/steps.jsonl",
+    "ops-check-<run>/steps/001-planner.md",
+    "ops-check-<run>/steps/002-worker.md",
+    "ops-check-<run>/steps/003-reviewer.md",
+    "ops-check-<run>/workdir",
+    "ops-check-<run>/worker.md",
+    "ops-check-<day>-2.md"
+  ],
+  "steps": [
+    {
+      "seq": 1,
+      "time": "<time>",
+      "step": "planner.md",
+      "from": null,
+      "to": "worker.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "planner-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "outcome": "ok",
+      "why": null,
+      "file": "steps/001-planner.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "worker.md",
+      "from": "planner.md",
+      "to": "reviewer.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "worker-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "outcome": "ok",
+      "why": null,
+      "file": "steps/002-worker.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "reviewer.md",
+      "from": "worker.md",
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "reviewer-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "outcome": "ok",
+      "why": null,
+      "file": "steps/003-reviewer.md",
+      "tasks": null,
+      "handoff": null
+    }
+  ],
+  "printed": [
+    "promise not checked: never says something is fine",
+    "promise not checked: nothing is reported that the logs do not contain",
+    "promise not checked: every finding keeps the raw line",
+    "saved <tmp>/runs/ops-check-<day>-2.md",
+    "- [high] app.log: ERROR nightly-export failed: disk full"
+  ]
+}

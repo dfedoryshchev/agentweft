@@ -1,0 +1,64 @@
+{
+  "exit": null,
+  "raised": null,
+  "path": [
+    "1 worker.md gate failed  FAIL red-test"
+  ],
+  "journal": [
+    "<time>  fix-with-test  gate red-test failed at worker.md  <secs>s"
+  ],
+  "index": [
+    "GATE  fix-with-test  red-test at worker.md"
+  ],
+  "handoff": [],
+  "files": [
+    "fix-with-test-<run>/gates.md",
+    "fix-with-test-<run>/steps.jsonl",
+    "fix-with-test-<run>/steps/001-worker.md",
+    "fix-with-test-<run>/workdir",
+    "fix-with-test-<run>/worker.md",
+    "index.md",
+    "journal.md"
+  ],
+  "steps": [
+    {
+      "seq": 1,
+      "time": "<time>",
+      "step": "worker.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "session": "worker-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [
+        {
+          "gate": "red-test",
+          "ok": false,
+          "detail": "no FAILS: line, so the test never failed"
+        }
+      ],
+      "outcome": "gate failed",
+      "why": "gate red-test failed at worker.md",
+      "file": "steps/001-worker.md",
+      "tasks": null,
+      "handoff": null
+    }
+  ],
+  "printed": [
+    "  FAIL red-test - no FAILS: line, so the test never failed",
+    "gate failed at worker.md, stopping"
+  ]
+}

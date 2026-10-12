@@ -10,6 +10,17 @@ from agentweft.providers import cli_provider
 from agentweft.runner import state
 
 
+def pytest_addoption(parser):
+    parser.addoption("--update-golden", action="store_true", default=False,
+                     help="write tests/golden/ from what the flows do now "
+                          "instead of comparing against it")
+
+
+@pytest.fixture
+def update_golden(request):
+    return request.config.getoption("--update-golden")
+
+
 def refuse(what):
     def refused(*args, **kw):
         pytest.fail(what + " was called from a test. a test talks to the fake "
