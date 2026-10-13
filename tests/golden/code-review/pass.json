@@ -100,5 +100,9 @@
     "saved <tmp>/runs/code-review-<day>-1.md",
     "VERDICT: ok",
     "- [high] app.py:12 the loop reads one past the end of items"
+  ],
+  "prompts": [
+    "reviewer.md go 1 6ae00a1017de7b10f97cc930f311083db64bd6d43c1b1319766809b757f15b52",
+    "worker.md go 1 30ec5eaae7438369f0a7d97479d83268998ba41ef74457fe67b7c326b0bad65c"
   ]
 }

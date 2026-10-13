@@ -107,5 +107,9 @@
     "started tester.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at tester.md, stopping"
+  ],
+  "prompts": [
+    "planner.md go 1 8983b9f9e1e68c5d046795692307cdcd50428f58743ca7575aa77ef1a8ad73a0",
+    "tester.md go 1 8429bdb13d057fc179be8f78b07fb82f9a66184d24615e4f14260cecaf1c30b6"
   ]
 }

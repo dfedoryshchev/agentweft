@@ -104,5 +104,9 @@
     "VERDICT: ok",
     "notes.md: the plan moved to friday (line 3)",
     "deleted: nothing, every line was backed"
+  ],
+  "prompts": [
+    "reviewer.md go 1 45f0027ac63f990b9220694d2737b012b273e08c4f0d838b1aeda5a5a3eb4f10",
+    "worker.md go 1 893626cce6830fa3895f13f4933d08050ad7658610bb8c7a8bceed0d2ffc3d55"
   ]
 }

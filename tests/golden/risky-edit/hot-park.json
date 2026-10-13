@@ -120,5 +120,9 @@
     "  src/hooks.ts  0.94",
     "parked at worker.md, waiting for user",
     "it needs you: <tmp>/runs/risky-edit-<run>/handoff.md"
+  ],
+  "prompts": [
+    "planner.md go 1 797b8b1b50166c62b92d4c12279bb9b73a760ff2caa72d29d421e7fe73b3d76a",
+    "worker.md go 1 a1d99ff611fa8c8bf62be67ce23b2638ab05c530743dac6d682ac78a6af38520"
   ]
 }

@@ -1,0 +1,22 @@
+{
+  "recorded": "2026-10-13T17:59:36",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "planner.md",
+      "task": null,
+      "go": 1,
+      "prompt": "486608a467986b1155cd260b37aae8d2f9818aefabc152738157c1c161d63d53",
+      "say": "VERDICT: ok\n\nnothing to report\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    }
+  ]
+}

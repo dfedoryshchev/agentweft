@@ -9,5 +9,6 @@
   "steps": [],
   "printed": [
     "code-review has no place for a task. a flow takes one by writing {TASK} where it should go: in instructions.md for every step, or in one step's own file for that step"
-  ]
+  ],
+  "prompts": []
 }

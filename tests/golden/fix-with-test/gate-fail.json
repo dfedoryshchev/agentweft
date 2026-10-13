@@ -69,5 +69,8 @@
     "started worker.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at worker.md, stopping"
+  ],
+  "prompts": [
+    "worker.md go 1 5d168c9f2b633c1894ae1eced89ad349d60a21de7e6c91e820b0bb077bc005cf"
   ]
 }

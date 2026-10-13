@@ -230,5 +230,12 @@
     "  - rent.md: due on the 1st",
     "## can wait",
     "  - garden.md: order seeds in march"
+  ],
+  "prompts": [
+    "merge.md go 1 3ec2633beac13929bb4818ff3f11a98f8cdd132248b7813c3ca50c2b2da7170a",
+    "planner.md go 1 cb82c2ab2fe3c24ab3f59699430e7c13aef59c8e1fbcbe4a9000489c8f53839b",
+    "reviewer.md go 1 c8dc4d8178203315b2fddf15ed6970628377cfa4036dfd30a60fb9aea1819326",
+    "worker.md task 1 go 1 d15edc47f10faa3b9f05ed43df4818cc05d93ce969e27f2e77a7bf9faf776bb6",
+    "worker.md task 2 go 1 68500f093c34dd9672fbabac8435a13a7815dc23606bb5833092f3b0b4f63fc0"
   ]
 }

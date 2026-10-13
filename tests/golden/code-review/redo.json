@@ -175,5 +175,11 @@
     "saved <tmp>/runs/code-review-<day>-1.md",
     "VERDICT: ok",
     "- [high] app.py:12 the loop reads one past the end of items"
+  ],
+  "prompts": [
+    "reviewer.md go 1 4e3225f58c181f8438981396c10b30094dd6467fd4a46852a229873537a15dfa",
+    "reviewer.md go 2 6ae00a1017de7b10f97cc930f311083db64bd6d43c1b1319766809b757f15b52",
+    "worker.md go 1 30ec5eaae7438369f0a7d97479d83268998ba41ef74457fe67b7c326b0bad65c",
+    "worker.md go 2 3fd5dd255561129d887332a86705890e154d8bebe24612ea745a720c50ae63ec"
   ]
 }

@@ -17,6 +17,26 @@ what a case asserts is the flow's own promises - the same invariants the runner
 already checks - plus that the run got to the end, plus what it cost. a run
 stopped by a gate, or by a step that produced nothing, loses that one.
 
+## recorded cases
+
+a case with a `recording.json` beside its `case.yaml` is answered from it and
+calls nothing, so it runs offline and gives the same answers every time.
+
+    python -m agentweft.evals weekly-digest --case quiet-week --record
+
+runs the case's own provider and writes what it answered, over the old one.
+without `--case` every case of the flow is recorded. each call is kept under
+its step, its task when the step is fanned out, and which go it was, with a
+sha256 of the prompt it was sent and never the prompt itself. a replay stops
+the case, and the command exits 1 without saving the scores, when:
+
+- a prompt changed since it was recorded: `recording is stale: planner.md
+  prompt changed`. record it again once the change is meant
+- the run makes a call the recording has no answer for
+- the recording holds an answer the run never asked for
+
+a replayed case says `replayed` on its line of the table.
+
 ## the comparison
 
 the last scores are kept in `evals/.last.json` and every run prints what

@@ -141,5 +141,10 @@
     "promise not checked: every finding keeps the raw line",
     "saved <tmp>/runs/ops-check-<day>-1.md",
     "- [high] app.log: ERROR nightly-export failed: disk full"
+  ],
+  "prompts": [
+    "planner.md go 1 14c2967a2b5cbca1c5ee60eca050a2d9dd6fda89239a79dde53b984219f66fcf",
+    "reviewer.md go 1 cf87b8e21522f8c87b9aa6d610cfc855df8ee4ea13a01f272ed6ae5a4274bd8e",
+    "worker.md go 1 5d028dba920cdc6bbd48fadf04f1a23c964d93ed62910fe6fb085eb319b17967"
   ]
 }

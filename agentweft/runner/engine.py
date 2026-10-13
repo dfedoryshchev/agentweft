@@ -228,8 +228,12 @@ class Run(object):
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.
-        pinned = providers.build(provider, where=self.workdir) \
-            if provider else None
+        if isinstance(provider, providers.Provider):
+            pinned = provider
+            pinned.where = self.workdir
+        else:
+            pinned = providers.build(provider, where=self.workdir) \
+                if provider else None
         self.provider = pinned or providers.build(fm.get("provider") or {},
                                                   where=self.workdir)
         self.by_step = {}
@@ -423,6 +427,7 @@ class Run(object):
         tried = trace.Attempt(task)
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
+        used.at(step, task)
         try:
             answer = tried.answered(self.ask(prompt, step, used))
         except (Outage, Fatal) as e:

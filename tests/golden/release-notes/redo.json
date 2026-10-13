@@ -182,5 +182,11 @@
     "- a --dry-run switch on the export",
     "## fixed",
     "- the export no longer drops the last row"
+  ],
+  "prompts": [
+    "reviewer.md go 1 74a2d53c91efc2497580433e8a638d9831462b8a6b5db8ab704d9a39340b91bb",
+    "reviewer.md go 2 7e86adb143a992aa829bf26eb8acb99f235643e44573c5cf8abd98c7ccdb2352",
+    "worker.md go 1 db1565b6db2394571b548731a060432cf98f3f19148b9b8de7789cd4246334d2",
+    "worker.md go 2 a6ff53e9d037bf78017a9c903a83c5a905e341665f9c4cd560d9899b5f1ddbeb"
   ]
 }

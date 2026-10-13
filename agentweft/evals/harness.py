@@ -13,6 +13,8 @@ from pathlib import Path
 
 import yaml
 
+from . import recording
+
 ROOT = Path("evals")
 
 
@@ -37,14 +39,16 @@ def load_case(path):
             raise ValueError(path.name + " has a task.md and a task: in "
                              "case.yaml. keep one")
         task = md.read_bytes().decode("utf-8")
+    kept = path / recording.FILE
     return {"name": path.name, "path": path,
+            "recording": kept if kept.is_file() else None,
             "inbox": path / cfg.get("inbox", "inbox"),
             "provider": cfg.get("provider") or {},
             "expect": cfg.get("expect") or {},
             "task": task}
 
 
-def run_flow_for(flow, case):
+def run_flow_for(flow, case, record=False):
     """point the flow at the case's inputs and run it.
 
     -> (output, budget, why it stopped short or "").
@@ -52,7 +56,12 @@ def run_flow_for(flow, case):
     the case says which provider, and it has to win: the cases have declared
     `provider: fake` since the day they were written and nothing read it, so
     every eval run was calling the flow's real provider and charging for it.
+
+    a case with a recording beside it is answered from that and calls
+    nothing. `record` runs the case's provider and writes what it answered
+    there, over whatever was recorded before.
     """
+    from agentweft import providers
     from agentweft.runner import engine, task
     from agentweft.runner.config import config
     from agentweft.runner.prompts import flow_path
@@ -64,17 +73,36 @@ def run_flow_for(flow, case):
                             case.get("task"))
     except ValueError as e:
         return "", None, str(e)
+    pinned = case.get("provider")
+    replay = recorder = None
+    if record:
+        if not pinned:
+            return "", None, (case["name"] + " names no provider in "
+                              "case.yaml, so there is no one to record")
+        pinned = recorder = recording.Recorder(providers.build(pinned))
+    elif case.get("recording"):
+        pinned = replay = recording.Replay.load(case["recording"])
     old = {k: os.environ.get(k) for k in ("INBOX", "LOGS", "WATCH")}
     for k in old:
-        os.environ[k] = str(case["inbox"])
+        # the path is in the prompt, and a recording made on Windows has to
+        # hash the same on Linux
+        os.environ[k] = Path(case["inbox"]).as_posix()
     try:
-        return engine.run_once(flow, provider=case.get("provider"), task=asked)
+        out = engine.run_once(flow, provider=pinned, task=asked)
+    except recording.Mismatch as e:
+        return "", None, str(e)
     finally:
         for k, v in old.items():
             if v is None:
                 os.environ.pop(k, None)
             else:
                 os.environ[k] = v
+    if recorder is not None:
+        recorder.save(case["path"] / recording.FILE)
+    if replay is not None and replay.unused():
+        return out[0], out[1], (recording.PREFIX + "has answers the run never"
+                                " asked for: " + ", ".join(replay.unused()))
+    return out
 
 
 def score(spec, output, budget=None, stopped="", seconds=None):
@@ -116,11 +144,12 @@ def save_scores(flow, results):
     blob = {}
     if LAST.exists():
         blob = json.loads(LAST.read_text(encoding="utf-8"))
-    blob[flow] = {name: {"passed": r["passed"], "checked": r["checked"],
-                         "calls": r["calls"], "tokens": r["tokens"],
-                         "usd": r.get("usd"),
-                         "usd_estimated": r.get("usd_estimated", False)}
-                  for name, r in results}
+    blob.setdefault(flow, {}).update(
+        {name: {"passed": r["passed"], "checked": r["checked"],
+                "calls": r["calls"], "tokens": r["tokens"],
+                "usd": r.get("usd"),
+                "usd_estimated": r.get("usd_estimated", False)}
+         for name, r in results})
     LAST.write_text(json.dumps(blob, indent=2), encoding="utf-8")
 
 
@@ -165,7 +194,8 @@ def table(flow, results):
                    + ("" if r.get("metered") == "counted" else "~")
                    + str(r["tokens"]) + " tokens "
                    + r.get("metered", "estimated")
-                   + (", " + r["spent"] if r.get("spent") else ""))
+                   + (", " + r["spent"] if r.get("spent") else "")
+                   + (", replayed" if r.get("replayed") else ""))
         for row in r["rows"]:
             if row["ok"] is False:
                 out.append("      FAIL " + row["invariant"] + " - " + row["detail"])

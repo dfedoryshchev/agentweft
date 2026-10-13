@@ -277,5 +277,13 @@
     "VERDICT: ok",
     "- calc.py: mul(a, b) added",
     "- test_mul.py: mul(-2, 3) is -6"
+  ],
+  "prompts": [
+    "planner.md go 1 8983b9f9e1e68c5d046795692307cdcd50428f58743ca7575aa77ef1a8ad73a0",
+    "reviewer.md go 1 b9bf3b13f7fb80aa0f8f0b32f7d8e9d85c142cfe04812291e8b5473246534eb3",
+    "reviewer.md go 2 d18ed3d8463b2b9af1ff064eec73a56ff098d63ef2541670ce61cfca70fb802d",
+    "tester.md go 1 8429bdb13d057fc179be8f78b07fb82f9a66184d24615e4f14260cecaf1c30b6",
+    "worker.md go 1 5e6b4b6b0aa386e968c17c560841c23e2dbfbcc05bb5d44309713337ea5022cc",
+    "worker.md go 2 8f95b4c0d3c6f30cd6782114e7a9c3f2908d8d7aa5e816a1a7ce41b6d8658cc3"
   ]
 }

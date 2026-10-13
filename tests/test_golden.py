@@ -4,7 +4,9 @@ a replay runs the real `main()` over a shipped flow with the cli provider
 answering from a script instead of a process, and keeps what a person or the
 next run reads: the steps it took and where each one sent the work, every
 gate, the journal and index lines, the handoff, the files left behind and
-what it printed. times, run ids, seconds and the temp place are taken out
+what it printed, plus a sha256 of each prompt sent: the script answers by
+step and go, so without them an edited prompt replays the old answer and
+passes. times, run ids, seconds and the temp place are taken out
 first, so the same run on another day, machine or OS reads the same.
 
 `python -m pytest tests/test_golden.py --update-golden` rewrites the files.
@@ -13,6 +15,7 @@ import datetime
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -22,6 +25,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
+from agentweft.evals import recording
 from agentweft.providers import cli_provider
 from agentweft.runner import engine, prompts, trace
 
@@ -235,14 +239,13 @@ class Script(object):
         # Linux one, which the counted usage below would never show
         assert "\r" not in (kw.get("input") or ""), "a prompt kept a CR"
         step, task = self.now.step, self.now.task
-        with self.lock:
-            self.prompts.append((step, kw.get("input") or ""))
         planned = self.answers.get(step)
         if isinstance(planned, dict):
             planned = planned.get(task)
         with self.lock:
             n = self.asked.get((step, task), 0)
             self.asked[(step, task)] = n + 1
+            self.prompts.append((step, task, n + 1, kw.get("input") or ""))
         if not planned or n >= len(planned):
             raise AssertionError("the script has no answer " + str(n + 1)
                                  + " for " + step
@@ -320,12 +323,16 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     if case.get("task"):
         # fix-with-test names worker.md for its task; the steps after it work
         # from what the worker handed on
-        for step, prompt in script.prompts:
+        for step, _, _, prompt in script.prompts:
             assert (case["task"] in prompt) == (step == "worker.md"), step
     got = normalise(record(tmp_path / "runs", code, raised, printed), tmp_path)
     # sorted again once the stamps are out: "<flow>-<day>-1.md" against the
     # run folder "<flow>-<day>-<time>/" orders by the hour the run started in
     got["files"] = sorted(got["files"])
+    got["prompts"] = sorted(
+        recording.named(step, task, n) + " "
+        + recording.digest(scrub(prompt, tmp_path))
+        for step, task, n, prompt in script.prompts)
     return got
 
 
@@ -449,6 +456,27 @@ def test_every_shipped_flow_has_its_pass_path_pinned():
 def test_every_golden_file_has_a_replay_behind_it():
     on_disk = sorted((p.parent.name, p.stem) for p in GOLDEN.glob("*/*.json"))
     assert on_disk == sorted(CASES)
+
+
+@pytest.mark.parametrize("edit", [False, True], ids=["as-shipped", "edited"])
+def test_an_edited_prompt_does_not_replay_its_golden_silently(
+        edit, tmp_path, monkeypatch, capsys):
+    flows = tmp_path / "flows"
+    shutil.copytree(FLOWS / "code-review", flows / "code-review")
+    if edit:
+        worker = flows / "code-review" / "worker.md"
+        worker.write_bytes(worker.read_bytes() + b"\nname the file first.\n")
+    got = replay("code-review", dict(CASES[("code-review", "pass")],
+                                     flows=flows),
+                 tmp_path, monkeypatch, capsys)
+    if not edit:
+        compare("code-review", "pass", got, False)
+        return
+    with pytest.raises(AssertionError):
+        compare("code-review", "pass", got, False)
+    want = json.loads(golden_file("code-review", "pass").read_bytes())
+    assert [p for p in got["prompts"] if p not in want["prompts"]] == [
+        p for p in got["prompts"] if p.startswith("worker.md ")]
 
 
 SHIFT = datetime.timedelta(days=400, hours=13, minutes=17)

@@ -171,5 +171,10 @@
     "PASS the test is written before the patch",
     "PASS the test fails on the unpatched code",
     "PASS the patch is the smallest thing that turns it green"
+  ],
+  "prompts": [
+    "patcher.md go 1 fb453622af7148e1e6464a1ba2623fb75cc839aac2c6975b7130d3ca4e84cb98",
+    "verify.md go 1 be8e69b321d99ff513267acdb7a54393bf99e21b2aceddd17b22d43df5052d91",
+    "worker.md go 1 87953968509213720a2a9ceadfc0c9b64a57f90e2748742fdc156f8d16f96a08"
   ]
 }

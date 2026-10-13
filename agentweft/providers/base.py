@@ -137,6 +137,10 @@ class Provider(object):
     def ask(self, prompt, timeout=None):
         raise NotImplementedError
 
+    def at(self, step, task):
+        """the step about to ask, and the task when it is fanned out. only a
+        recording has any use for it."""
+
     def asks_for(self):
         """-> the model id this provider sends with a prompt, None for none."""
         return None
