@@ -13,6 +13,7 @@ steps:
     prompt: merge.md
   - role: reviewer
     prompt: reviewer.md
+    tools: [read, grep, shell]
 promises:
   inputs: a list of source files
   outputs: what the codebase does, and where the risk is

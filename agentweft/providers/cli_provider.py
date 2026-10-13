@@ -1,9 +1,61 @@
 import json
 import os
+import re
 import shutil
 import subprocess
 
 from .base import Provider, Reply, Usage, again, model_for, register
+
+# a grant word, as the built-in tools claude calls it by. the keys are
+# `spec.GRANTS` in its order, which a test holds them to.
+TOOLS = {"read": ("Read", "Glob"),
+         "grep": ("Grep",),
+         "write": ("Write",),
+         "edit": ("Edit", "NotebookEdit"),
+         "shell": ("Bash", "PowerShell"),
+         "browser": ("WebFetch", "WebSearch")}
+
+# a grant with none of these only looks, and runs `--restricted`.
+ACTS = ("write", "edit", "shell")
+
+# below 2.1.295 `--tools` and `--restricted` miss the built-in tools that
+# register after launch, so the fence fails open.
+FLOOR = (2, 1, 295)
+
+NO_TRAILER = {"attribution": {"commit": "", "pr": "", "sessionUrl": False}}
+
+
+def version_of(text):
+    """-> (major, minor, patch) from what `claude --version` prints, or None."""
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)", text or "")
+    return tuple(int(n) for n in m.groups()) if m else None
+
+
+def dotted(version):
+    return ".".join(str(n) for n in version)
+
+
+def fence(grant):
+    """-> the flags that hold a `claude` step to its grant.
+
+    `--tools` is the fence: a tool it does not name is not there. under
+    `dontAsk` anything that would prompt is denied, so the granted tools are
+    also pre-approved with `--allowedTools`, which on its own fences nothing.
+    `--tools` does not reach MCP tools, so those are denied by name. only the
+    user's own settings load, which keeps the place's `.claude/` hooks, `env`
+    and key helper out without switching off hooks the run passes in itself.
+    """
+    tools = [t for word, names in TOOLS.items() if word in grant
+             for t in names]
+    out = ["--tools", ",".join(tools)]
+    if tools:
+        out = out + ["--allowedTools", ",".join(tools)]
+    out = out + ["--permission-mode", "dontAsk", "--strict-mcp-config",
+                 "--disallowedTools", "mcp__*", "--disable-slash-commands"]
+    if any(word in grant for word in ACTS):
+        return out + ["--setting-sources", "user"]
+    # restricted already loads no user, project or local settings file
+    return out + ["--restricted"]
 
 
 def is_claude(command):
@@ -96,10 +148,51 @@ class CliProvider(Provider):
 
     name = "cli"
     reads_place = True
+    seen_version = None
+    version_said = ""
 
     @property
     def command(self):
         return self.opts.get("command", "claude")
+
+    def version(self):
+        """-> the cli's version, None when it could not be read. asked once
+        per provider, and only of `claude`."""
+        if self.seen_version is not None or self.version_said:
+            return self.seen_version
+        cmd = self.command
+        try:
+            r = subprocess.run([cmd, "--version"], capture_output=True,
+                               encoding="utf-8", errors="replace", timeout=30)
+            said = (r.stdout or "").strip()
+            self.seen_version = version_of(said) if r.returncode == 0 else None
+            self.version_said = said or ("exit " + str(r.returncode))
+        except (OSError, subprocess.TimeoutExpired) as e:
+            self.version_said = str(e) or type(e).__name__
+        return self.seen_version
+
+    def refuses(self):
+        if self.grant is None or not is_claude(self.command):
+            return ""
+        v = self.version()
+        if v is None:
+            return ("could not read the version of " + self.command + " ("
+                    + self.version_said[:80] + "), and a step with tools needs "
+                    + dotted(FLOOR) + " or later")
+        if v < FLOOR:
+            return (self.command + " is " + dotted(v) + ", and a step with "
+                    "tools needs " + dotted(FLOOR) + " or later: below it "
+                    "--tools and --restricted miss the tools that register "
+                    "after launch")
+        return ""
+
+    def granted(self):
+        if self.grant is None or not is_claude(self.command):
+            return Provider.granted(self)
+        return {"tools": list(self.grant), "enforced": True,
+                "argv": self.argv("")[0][1:],
+                "cli_version": dotted(self.seen_version)
+                if self.seen_version else None}
 
     def asks_for(self):
         return (model_for(self.opts) or None) if is_claude(self.command) \
@@ -112,11 +205,17 @@ class CliProvider(Provider):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for
         json, and never `--resume` or `--continue`: a carried-on session
         reports the whole session's usage, not this call's. any other command
-        is called the way it always was."""
+        is called the way it always was, grant or none: which flags it takes
+        is not ours to guess."""
         cmd = self.command
         if not is_claude(cmd):
             return [cmd, "-p", prompt], None
         argv = [cmd, "-p", "--output-format", "json"]
+        if not self.opts.get("co_author"):
+            argv = argv + ["--settings",
+                           json.dumps(NO_TRAILER, separators=(",", ":"))]
+        if self.grant is not None:
+            argv = argv + fence(self.grant)
         model = self.asks_for()
         if model:
             argv = argv + ["--model", model]
@@ -125,6 +224,9 @@ class CliProvider(Provider):
         return argv, prompt
 
     def ask(self, prompt, timeout=None):
+        refused = self.refuses()
+        if refused:
+            return Reply("", detail=refused, retryable=False)
         argv, stdin = self.argv(prompt)
         try:
             # the platform default is cp1252 on Windows, and a reply decoded
@@ -175,7 +277,43 @@ class CliProvider(Provider):
         return Reply(text, **said)
 
     def check(self):
+        """-> (ok, detail). for `claude`: its version against the floor, whether
+        it is logged in, and the model a step would ask for. nothing here
+        makes a model call."""
         cmd = self.command
         if shutil.which(cmd) is None:
             return False, cmd + " is not on PATH"
-        return True, cmd
+        if not is_claude(cmd):
+            return True, cmd
+        v = self.version()
+        if v is None:
+            return False, "could not read " + cmd + " --version: " \
+                + self.version_said[:80]
+        ok, said = True, [cmd + " " + dotted(v)]
+        if v < FLOOR:
+            ok = False
+            said.append("below " + dotted(FLOOR) + ", so a step with tools is "
+                        "refused")
+        logged, how = self.login()
+        ok = ok and logged
+        said.append(how)
+        said.append("model " + (self.asks_for() or "the cli's default"))
+        return ok, ", ".join(said)
+
+    def login(self):
+        """-> (logged in, what to say). the account itself is never repeated."""
+        try:
+            r = subprocess.run([self.command, "auth", "status"],
+                               capture_output=True, encoding="utf-8",
+                               errors="replace", timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return False, "could not ask whether it is logged in: " + str(e)
+        if r.returncode != 0:
+            return False, "not logged in"
+        try:
+            data = json.loads(r.stdout)
+        except ValueError:
+            data = None
+        method = data.get("authMethod") if isinstance(data, dict) else None
+        return True, "logged in" + (" (" + method + ")"
+                                    if isinstance(method, str) else "")

@@ -73,7 +73,7 @@ or crashed. the keys are always all there, in this order:
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
      "from": null, "to": "reviewer.md",
      "provider": "cli", "command": "claude", "model": "a-model",
-     "model_reported": "a-model-1", "model_choice": null,
+     "model_reported": "a-model-1", "model_choice": null, "grant": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
      "cost": 0.25, "priced": 0.25, "session": "s-1", "seconds": 8.4,
@@ -102,6 +102,14 @@ or crashed. the keys are always all there, in this order:
   `applies` is false when the provider cannot act on a model choice (the fake,
   a cli command other than claude), so the choice is written down and was not
   used.
+- `grant` is null for a step that declared no `tools`. otherwise it is the
+  grant and what was done with it: `{"tools": ["read"], "enforced": true,
+  "argv": [...], "cli_version": "2.1.296"}`. `argv` is the command line
+  `claude` was started with, minus the command itself (the prompt goes on
+  stdin, so nothing of it is in there), which pins the permission mode and
+  every flag the grant became; `cli_version` is what `claude --version` said.
+  `enforced` is false, `argv` and `cli_version` null, for a provider that was
+  handed nothing (the fake, the api, a cli command other than claude).
 - `tokens` and `cost` are what the provider reported, summed over every go a
   retry took. `{"counted": false}` and a null cost mean it reported nothing:
   not zero, unknown. a cached answer sent nothing, so it costs 0 and is not

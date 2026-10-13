@@ -37,6 +37,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -71,6 +72,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -109,7 +140,7 @@
     "- the export no longer drops the last row"
   ],
   "prompts": [
-    "reviewer.md go 1 7e86adb143a992aa829bf26eb8acb99f235643e44573c5cf8abd98c7ccdb2352",
+    "reviewer.md go 1 a68ba087a0d3c73098c0e4532036bbd49f4619d2c04e7f339349f4cdac88f153",
     "worker.md go 1 db1565b6db2394571b548731a060432cf98f3f19148b9b8de7789cd4246334d2"
   ]
 }

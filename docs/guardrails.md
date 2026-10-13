@@ -205,8 +205,14 @@ text back, so there is no call here to catch and nothing to refuse. that is a
 statement about THIS layer, not about the whole repo - the mcp server does own
 a tool it publishes, and it has an allowlist on it because it can.
 
-so a grant is two halves, and both are honest about which they are:
+so a grant is three halves when the cli is `claude`, and two for anything
+else, and each is honest about which it is:
 
+- with `claude`, the grant is handed to the cli as its own permission flags,
+  and the cli's permission layer is what holds the step to it
+  (`providers.md`, "a grant reaches the cli"). this runner passes config; it
+  still sees no tool call. a cli below the version that applies those flags
+  to every built-in tool refuses the step before it starts.
 - the grant is put into the step's prompt, next to the role's own rules. that
   is asking, and asking is the weakest thing in here.
 - what comes back is read against it. that is `guardrails/boundary.py`, it is
@@ -214,7 +220,7 @@ so a grant is two halves, and both are honest about which they are:
   finding goes to stdout and to `runs/<run-id>/boundary.md` beside the gate
   results.
 
-it does not stop the run, and that is deliberate rather than unfinished. the
+the check does not stop the run, and that is deliberate rather than unfinished. the
 thing being reported has already happened somewhere this code was not; a stop
 after the fact would look like prevention and buy a record. so it buys the
 record and says so.

@@ -126,11 +126,11 @@ def test_the_census_says_how_much_of_it_is_prose():
 
 
 def test_the_census_counts_the_grant_on_both_sides():
-    """the sharpest thing the grant produced is a row where the two sides are
-    opposite: every seat declares one, no step in the repo does. the word
-    crossed; the files that could use it have not moved yet."""
+    """every seat declares one; of the steps, only the reviewers do, because
+    a reviewer that reproduces a finding has to be granted the shell it runs
+    the command in."""
     rows = by_label(compare.census())
-    assert rows["declares a tool grant"].flow == "0 of 24 steps"
+    assert rows["declares a tool grant"].flow == "7 of 24 steps"
     assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 

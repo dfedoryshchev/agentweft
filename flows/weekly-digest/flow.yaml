@@ -12,6 +12,7 @@ steps:
       provider: cli
   - role: reviewer
     prompt: reviewer.md
+    tools: [read, grep, shell]
     gates:
       - gate: length
         max_lines: 40

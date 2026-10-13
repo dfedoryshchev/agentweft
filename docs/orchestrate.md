@@ -106,13 +106,13 @@ the counts are the argument, not the prose:
     loaded as                   8 flow specs      8 flow specs, translated
     conditions in prose         22 invariants     16 entry and exit lines
     of those, something checks  4 of 22           none of 16
-    declares a tool grant       0 of 24 steps     20 of 20 seats
+    declares a tool grant       7 of 24 steps     20 of 20 seats
     something executes it       24 of 24 steps    0 of 8 phases
 
-the grant row is the only one where the two sides are opposites, and it is the
-one to watch. every seat says what it may touch and no step in the repo does,
-which is what a word looks like the day after it crossed and before anything
-started using it on the other side.
+the grant row is the one to watch. every seat says what it may touch; of the
+steps, the seven reviewers do, because a reviewer that reproduces a finding
+needs the shell it runs the command in granted to it, and a grant is now
+something the cli is handed rather than only asked for.
 
 the bottom two rows did not move when the merge landed, and that is the best
 evidence it was a merge and not a rewrite. an exit line is an invariant now and
@@ -244,10 +244,10 @@ criterion is checked.
 two things are read for real rather than printed, and it is worth keeping the
 line between them sharp. a seat's `model:` becomes a step key that the checker
 validates and a provider acts on. a seat's `tools:` becomes a step key that the
-checker validates, that the runner puts into the step's prompt, and that
-`guardrails/boundary.py` holds the answer against - which is a check on the
-output and not a fence around the call, because nothing in this repo is in the
-path of a tool call the model makes.
+checker validates, that the runner puts into the step's prompt, that `claude`
+is handed as its own permission flags, and that `guardrails/boundary.py` holds
+the answer against. the fence around the call, where there is one, is the
+cli's; nothing in this repo is in the path of a tool call the model makes.
 
 what neither of them does is run the phase the step belongs to. the tier and
 the grant crossed; the phase still has nothing to execute it.

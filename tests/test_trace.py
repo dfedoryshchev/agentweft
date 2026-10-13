@@ -32,7 +32,7 @@ def test_a_step_records_seconds_and_provider(monkeypatch):
 
 
 KEYS = ["seq", "time", "step", "from", "to", "provider", "command", "model",
-        "model_reported", "model_choice", "tokens", "cost", "priced", "session",
+        "model_reported", "model_choice", "grant", "tokens", "cost", "priced", "session",
         "seconds", "cached",
         "retries", "gates", "ungated", "outcome", "cause", "why", "file",
         "task_file", "tasks", "handoff"]

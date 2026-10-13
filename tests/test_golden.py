@@ -35,6 +35,7 @@ REPO = HERE.parent
 FLOWS = REPO / "flows"
 TEST_FLOWS = HERE / "flows"
 MODEL = "model-in-replay"
+VERSION = "2.1.296"
 
 
 def say(text, writes=None):
@@ -235,6 +236,9 @@ class Script(object):
         self.now.step, self.now.task = step, task
 
     def run(self, argv, **kw):
+        if argv[1:] == ["--version"]:
+            return types.SimpleNamespace(returncode=0, stderr="",
+                                         stdout=VERSION + " (Claude Code)\n")
         # a checkout with CRLF endings would send a different prompt than a
         # Linux one, which the counted usage below would never show
         assert "\r" not in (kw.get("input") or ""), "a prompt kept a CR"

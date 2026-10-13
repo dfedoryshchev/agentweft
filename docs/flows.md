@@ -107,11 +107,14 @@ the run is over both (`providers.md`, "a model per role").
 
 `tools` on a step is what it may touch: any of `read`, `grep`, `write`,
 `edit`, `shell`, `browser`, and the checker refuses a word that is not one of
-those. it is a BOUNDARY CHECK, not a sandbox, and `guardrails.md` is exact
-about the difference - the grant is put into the step's prompt and the step's
+those. it is not a sandbox of agentweft's own, and `guardrails.md` is exact
+about the difference - the grant is put into the step's prompt, handed to
+`claude` as the cli's own permission flags (`providers.md`), and the step's
 answer is read back against it. a step that says nothing has declared no
-boundary and nothing is checked; `tools: []` is a step saying it may touch
-nothing, which is a boundary and does get checked.
+boundary, nothing is passed and nothing is checked; `tools: []` is a step
+saying it may touch nothing, which is a boundary: `claude` gets no tools at
+all, and the answer is checked. every shipped reviewer is granted
+`[read, grep, shell]`, so it can run the command that reproduces a finding.
 
 `fanout: true` on a step means the step before it produced a list, one line
 each, and every line gets its own call instead of the whole list going to one

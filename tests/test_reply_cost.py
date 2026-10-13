@@ -15,6 +15,9 @@ USAGE = {"input_tokens": 2, "cache_creation_input_tokens": 8124,
          "output_tokens_details": {"thinking_tokens": 0},
          "service_tier": "standard"}
 
+NO_TRAILER = ["--settings", '{"attribution":{"commit":"","pr":"",'
+                            '"sessionUrl":false}}']
+
 
 def result(**over):
     """a `claude -p --output-format json` answer, trimmed to what is read."""
@@ -94,7 +97,8 @@ def test_the_prompt_goes_on_stdin_and_the_answer_is_asked_for_as_json(fake_cli):
     cli = fake_cli((0, result(), b""))
     claude().ask("say ok")
     call = cli.calls[0]
-    assert call["argv"] == ["claude", "-p", "--output-format", "json"]
+    assert call["argv"] == ["claude", "-p", "--output-format", "json"] \
+        + NO_TRAILER
     assert call["stdin"] == b"say ok"
 
 
@@ -143,7 +147,8 @@ def test_no_model_anywhere_leaves_the_choice_to_the_cli(fake_cli, monkeypatch):
 def test_claude_by_a_path_or_an_extension_is_still_claude(fake_cli, command):
     cli = fake_cli((0, result(), b""))
     providers.build({"provider": "cli", "command": command}).ask("x")
-    assert cli.calls[0]["argv"][1:] == ["-p", "--output-format", "json"]
+    assert cli.calls[0]["argv"][1:] == ["-p", "--output-format", "json"] \
+        + NO_TRAILER
 
 
 def test_another_command_keeps_plain_text_and_says_nothing_was_counted(fake_cli):

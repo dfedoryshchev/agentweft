@@ -29,7 +29,8 @@ def test_the_case_provider_beats_the_flows():
     spec = runner.config("weekly-digest")
     run = Run("weekly-digest", spec, {}, provider={"provider": "fake"})
     assert run.provider.name == "fake"
-    assert [p.name for p in run.by_step.values()] == ["fake"]
+    # the merge step names a provider and the reviewer carries a grant
+    assert [p.name for p in run.by_step.values()] == ["fake", "fake"]
 
 
 DIGEST = ("VERDICT: ok" + chr(10) + chr(10) + "## what changed" + chr(10) + "- a.md | changed | x" + chr(10)

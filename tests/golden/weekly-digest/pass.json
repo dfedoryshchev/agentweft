@@ -43,6 +43,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -77,6 +78,7 @@
       "model": "model-in-replay",
       "model_reported": null,
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 200,
@@ -146,6 +148,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -180,6 +183,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -234,7 +267,7 @@
   "prompts": [
     "merge.md go 1 3ec2633beac13929bb4818ff3f11a98f8cdd132248b7813c3ca50c2b2da7170a",
     "planner.md go 1 cb82c2ab2fe3c24ab3f59699430e7c13aef59c8e1fbcbe4a9000489c8f53839b",
-    "reviewer.md go 1 c8dc4d8178203315b2fddf15ed6970628377cfa4036dfd30a60fb9aea1819326",
+    "reviewer.md go 1 8da271908553415c33b694853891270dd92a94f536a17ad0264dfa9e1ba52020",
     "worker.md task 1 go 1 d15edc47f10faa3b9f05ed43df4818cc05d93ce969e27f2e77a7bf9faf776bb6",
     "worker.md task 2 go 1 68500f093c34dd9672fbabac8435a13a7815dc23606bb5833092f3b0b4f63fc0"
   ]

@@ -18,6 +18,7 @@ steps:
         timeout: 300
   - role: reviewer
     prompt: reviewer.md
+    tools: [read, grep, shell]
     on_redo: worker
 promises:
   inputs: a feature to build, and the spec it names

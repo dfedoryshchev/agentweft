@@ -130,9 +130,24 @@ class Provider(object):
     reads_place = False
     where = None
     command = None
+    grant = None
 
     def __init__(self, **opts):
         self.opts = opts
+
+    def granted(self):
+        """-> what the run record keeps about the step's grant: None when the
+        step declared none, else the grant and whether anything below this
+        process was handed it. here nothing was; a provider that passes it on
+        says so itself."""
+        if self.grant is None:
+            return None
+        return {"tools": list(self.grant), "enforced": False, "argv": None,
+                "cli_version": None}
+
+    def refuses(self):
+        """-> why a step on this provider may not be asked at all, or ""."""
+        return ""
 
     def ask(self, prompt, timeout=None):
         raise NotImplementedError
@@ -162,7 +177,7 @@ def register(cls):
     return cls
 
 
-def build(config, tier="", where=None):
+def build(config, tier="", where=None, grant=None):
     """the provider a step talks to, and which class of model it should ask for.
 
     the tier is not part of the provider block on purpose. the block says HOW
@@ -173,6 +188,10 @@ def build(config, tier="", where=None):
     `where` is the run's place, and it is not in the block either: the flow
     file says who answers, the run says where. None is the directory this
     process was started in.
+
+    `grant` is the step's `tools`, None when it declared none. it belongs to
+    the step for the same reason the tier does, so a step with a grant gets a
+    provider of its own.
     """
     name = (config or {}).get("provider", "cli")
     if name not in registry:
@@ -184,4 +203,5 @@ def build(config, tier="", where=None):
         opts["tier"] = tier
     p = registry[name](**opts)
     p.where = where
+    p.grant = list(grant) if grant is not None else None
     return p

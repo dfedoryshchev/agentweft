@@ -90,10 +90,14 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - **a step says which class of model, not which one.** `model: high` on the
   reviewer and `mid` on the planner. the ids live in the environment, because a
   version string in a file is right for about a quarter.
-- **a declared tool scope is checked, not enforced.** `tools: [read, grep]`
-  goes out in the prompt and what comes back is held against it. nothing here
-  is in the path of a tool call, so a finding is a note beside the run, not a
-  stop - and calling it a boundary check rather than a sandbox is the point.
+- **a declared tool scope goes to the cli that enforces it.** with `claude`,
+  `tools: [read, grep]` becomes the cli's own permission flags (`--tools`,
+  `--permission-mode dontAsk` and the rest, `docs/providers.md`), the run
+  record keeps what was passed, and a cli too old to hold the flags is refused
+  before the step. the grant also goes out in the prompt and what comes back
+  is held against it. agentweft is still not in the path of a tool call: the
+  cli enforces, this passes config and keeps the record. any other command
+  gets the prompt and the check only.
 - **every run is written down.** one line per run, every step's output on disk,
   and a run that dies can be picked up where it fell over.
 - **nothing costs money without a cap.** a flow declares its own ceiling and
@@ -128,10 +132,12 @@ a cli, or anything speaking mcp - and governs what they are allowed to do:
 budgets, promises, gates, and a preflight that can refuse an edit inside a hot
 blast radius or park the run for a person to make it. that is the deliberate scope, not a gap.
 
-which is also why a step's `tools:` is a boundary check and not a sandbox. the
-tool call happens somewhere this is not, so the grant is declared, said, and
-checked against the answer. what it buys is a record; what it does not buy is
-a stop, and a doc that blurred those two would be the worst thing in here.
+which is also why a step's `tools:` is not a sandbox of its own. the tool call
+happens somewhere this is not, so the grant is declared, said, handed to the
+cli when the cli is `claude`, and checked against the answer. the fence, where
+there is one, is the cli's permission layer; what agentweft adds is the record
+of what was asked for and what was passed, and a doc that blurred those two
+would be the worst thing in here.
 
 it is one person's tool that got useful. it is not a framework, it does not
 want to be, and if you need something with a plugin system you want a different

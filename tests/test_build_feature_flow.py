@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
+from agentweft.providers import cli_provider
 from agentweft.runner import engine, prompts, resume, state
 
 NL = chr(10)
@@ -47,6 +48,9 @@ def run_it(tmp_path, monkeypatch, answers, builds=True, before=BEFORE,
         return said[min(n, len(said) - 1)], False
 
     monkeypatch.setattr(engine, "call", fake_call)
+    # the reviewer's grant asks the cli its version before the step starts
+    monkeypatch.setattr(cli_provider.CliProvider, "version",
+                        lambda self: cli_provider.FLOOR)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
     monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")

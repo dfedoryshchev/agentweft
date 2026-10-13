@@ -55,6 +55,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -89,6 +90,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,

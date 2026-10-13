@@ -61,13 +61,28 @@ class FakeCli(object):
     name its encoding gets what that machine would give it.
     """
 
+    VERSION = (0, b"2.1.296 (Claude Code)\n", b"")
+    LOGGED_IN = (0, b'{"loggedIn": true, "authMethod": "claude.ai"}\n', b"")
+
     def __init__(self, *answers):
         self.answers = list(answers) or [(0, b"ok", b"")]
         self.calls = []
+        self.asides = []
+        self.version = self.VERSION
+        self.auth = self.LOGGED_IN
 
     def run(self, argv, **kw):
         text = kw.get("text") or kw.get("encoding")
         enc, errors = as_the_locale_would(kw)
+        aside = {("--version",): self.version,
+                 ("auth", "status"): self.auth}.get(tuple(argv[1:3]))
+        if aside is not None:
+            self.asides.append(list(argv))
+            code, out, err = aside
+            if text:
+                out, err = out.decode(enc, errors), err.decode(enc, errors)
+            return types.SimpleNamespace(returncode=code, stdout=out,
+                                         stderr=err)
         sent = kw.get("input")
         if text and sent is not None:
             sent = sent.encode(enc, errors)

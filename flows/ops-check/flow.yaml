@@ -6,6 +6,7 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+    tools: [read, grep, shell]
 schedule: daily
 max_calls: 8
 promises:

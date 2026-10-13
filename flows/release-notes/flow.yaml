@@ -4,6 +4,7 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+    tools: [read, grep, shell]
 promises:
   inputs: a git log
   outputs: notes a reader would care about, under added, changed and fixed

@@ -243,10 +243,15 @@ class Run(object):
             # can act on it, and the flow's provider is shared - handing it a
             # tier would give it to every step that has not asked for one.
             asked, source = models.choose(s, fm, self.chosen)
-            if not s.get("provider") and not asked:
+            grant = s.get("tools")
+            if not s.get("provider") and not asked and grant is None:
                 continue
             if pinned:
-                self.by_step[step_id(s)] = pinned
+                rebuild = grant is not None and \
+                    not isinstance(provider, providers.Provider)
+                self.by_step[step_id(s)] = providers.build(
+                    provider, where=self.workdir, grant=grant) if rebuild \
+                    else pinned
                 continue
             conf = dict(s.get("provider") or fm.get("provider") or {})
             tier = ""
@@ -256,7 +261,8 @@ class Run(object):
                     conf.pop("model", None)
             elif asked:
                 conf["model"] = asked
-            p = providers.build(conf, tier=tier, where=self.workdir)
+            p = providers.build(conf, tier=tier, where=self.workdir,
+                                grant=grant)
             if asked:
                 p.choice = {"role": s["role"], "asked": asked, "from": source,
                             "applies": p.chooses_model()}
@@ -285,8 +291,14 @@ class Run(object):
         files lying there, so one written after the run started is the
         previous step steering this one. a step that only sends text reads
         nothing there and is never refused for it.
+
+        a step whose provider cannot hold it to its grant is refused too.
         """
-        if not self.by_step.get(step, self.provider).reads_place:
+        used = self.by_step.get(step, self.provider)
+        held = used.refuses()
+        if held:
+            return held
+        if not used.reads_place:
             return ""
         moved = briefing.changed(self.briefed, briefing.digest(self.workdir))
         if not moved:

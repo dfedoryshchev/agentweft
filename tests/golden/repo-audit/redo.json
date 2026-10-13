@@ -49,6 +49,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -83,6 +84,7 @@
       "model": "model-in-replay",
       "model_reported": null,
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 200,
@@ -152,6 +154,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -186,6 +189,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -220,6 +253,7 @@
       "model": "model-in-replay",
       "model_reported": null,
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 200,
@@ -289,6 +323,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -323,6 +358,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -368,8 +433,8 @@
     "merge.md go 1 adad5ee87ef9734d7ab7882ff527ea348c23a7e93c3402716413fee86b9c83d0",
     "merge.md go 2 04ba316b729e2c8d2689db4c922e6a300456f398e43854f2edfcea599eefe0a8",
     "planner.md go 1 7cdedf662c0a6574439cec99f10b9d7e4648ad1bd44fce2f4d8f3ba1f6396b5e",
-    "reviewer.md go 1 9d00d474286c13aef56f9280b362f2fc0a17f7f8ae9aa4e9fc9e2243d447d40b",
-    "reviewer.md go 2 7162539753f6ae7195a3213648d48dba2e022bcea732732a343b38d4a098c7b5",
+    "reviewer.md go 1 711c0a1ff359ab68b8a996cc8318cd0ffafc96450b7615656dea64c1c7a39a62",
+    "reviewer.md go 2 ffa38835361c08a12c0987978098e3a2a6ba4a403015186c42060d0eb5ba9556",
     "worker.md task 1 go 1 86332cc4d2c8eb6441d3d49899e67aea3cb999b2bdc26ec1316d522ebda2ce69",
     "worker.md task 1 go 2 0a19c0ed9eb187151910a1d6e2e6231292f787b4a8f49b94a11f1f7ed8b8e5cf",
     "worker.md task 2 go 1 a8e8c5f5292cad541017845aeb2b82c11d9d028c8bd278456774f2edc25d4482",

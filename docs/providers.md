@@ -13,9 +13,11 @@ a provider answers a prompt. that is the whole interface:
   there. `claude` is called as `claude -p --output-format json` (plus
   `--model`, see tiers) with the prompt on stdin, because Windows caps a
   command line at about 32k characters; it is never passed `--resume` or
-  `--continue`, so what a call reports is that call. any other command is
-  called as `<command> -p <prompt>` and its stdout is the answer, as before.
-  output is read as UTF-8 either way.
+  `--continue`, so what a call reports is that call. it is also handed
+  `--settings` with the commit and pull request attribution off (below), and
+  a step with `tools` gets its grant as flags (below). any other command is
+  called as `<command> -p <prompt>` and its stdout is the answer, as before,
+  grant or none. output is read as UTF-8 either way.
 - **api** - plain http, no sdk. reads `API_KEY`, `API_URL` and `MODEL` (or
   `MODEL_HIGH` and friends, see tiers) from the environment. the model id is
   never written down in the source, because a version string in a file is a
@@ -136,6 +138,78 @@ was started with and refuses a different `--model-for`. every step's line in
 `steps.jsonl` says what was asked for, where, and whether the provider could
 act on it (`docs/journal.md`).
 
+## a grant reaches the cli
+
+a step's `tools` (`flows.md`) is handed to `claude` as the cli's own
+permission flags, so the cli's permission layer holds the step to it. this
+runner still sees no tool call; it passes config and records what it passed.
+
+each grant word is the built-in tools that do what it says:
+
+    read      Read, Glob
+    grep      Grep
+    write     Write
+    edit      Edit, NotebookEdit
+    shell     Bash, PowerShell
+    browser   WebFetch, WebSearch
+
+and a granted step is started with:
+
+- `--tools <the tools>`, the fence: a tool it does not name is not there.
+  `tools: []` is `--tools ""`, no tools at all.
+- `--allowedTools <the same tools>`. under `dontAsk` anything that would
+  prompt is denied, so a granted Bash or Edit has to be pre-approved to run at
+  all. on its own this flag fences nothing; `--tools` does.
+- `--permission-mode dontAsk`, pinned, because the mode a `-p` run starts in
+  otherwise depends on the host.
+- `--strict-mcp-config` and `--disallowedTools "mcp__*"`: `--tools` does not
+  reach MCP tools, so the place's `.mcp.json` is not loaded and no MCP tool is
+  left.
+- `--disable-slash-commands`, no skills or commands.
+- for a grant that only looks (no `write`, `edit` or `shell`), `--restricted`:
+  the command and code running tools and WebFetch are gone unless `--tools`
+  names them, the file tools stay inside the working directories, and no user,
+  project or local settings file is read.
+- for a grant that acts, `--setting-sources user`: the user's own settings
+  load and the place's `.claude/settings.json` and `settings.local.json`, with
+  their hooks, `env` and key helper, do not.
+
+`--settings '{"disableAllHooks":true}'` is not passed on purpose: it would
+turn off a hook the run hands over itself, and the place's hooks are already
+kept out by which settings sources load. `--bare` is not passed either: it
+authenticates only by API key.
+
+the floor is `claude` 2.1.295, the first release in which `--tools` and
+`--restricted` also apply to the built-in tools that register after launch;
+below it the fence fails open. so a step with a grant asks `claude --version`
+once and is refused before it starts, with the version in the reason, when the
+cli is older or says something that is not a version. a step without a grant
+is not held to it.
+
+the step's line in `steps.jsonl` keeps the grant, every flag it became (the
+command line minus the command; the prompt is on stdin) and the version
+(`journal.md`).
+
+every flag and setting above is checked against `claude --help` and the
+cli's own reference for 2.1.296. a command other than `claude` is handed
+none of this, because which flags it takes is not ours to guess: its grant is
+recorded as not enforced, and it gets the prompt and the after-the-fact check
+only (`guardrails.md`).
+
+### the attribution trailer
+
+`claude` adds a `Co-Authored-By` trailer to the commits it makes and a line to
+the pull requests it opens unless told otherwise. every `claude` call here is
+handed `--settings '{"attribution":{"commit":"","pr":"","sessionUrl":false}}'`,
+which turns all three off. a run that wants them sets it in the provider
+block:
+
+    provider:
+      provider: cli
+      co_author: true
+
+and `--settings` is then not passed at all, so the cli's own default answers.
+
 ## where a setting comes from
 
 step, then flow, then environment, then the default in `runner/settings.py`.
@@ -150,3 +224,9 @@ says whether each configured provider is usable right now, without spending
 anything. a tier gets its own line, because a step asking for `high` with no
 `MODEL_HIGH` and no `MODEL` behind it is a working provider block and a broken
 step.
+
+for `claude` the line says the version, whether it is logged in and how
+(`claude auth status`, by its exit code and its `authMethod`; the account is
+never printed), and the model a step would ask for, or the cli's default. a
+version below the floor fails the check, because every shipped reviewer
+carries a grant and would be refused. neither question makes a model call.

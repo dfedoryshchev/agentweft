@@ -4,6 +4,7 @@ steps:
     prompt: worker.md
   - role: reviewer
     prompt: reviewer.md
+    tools: [read, grep, shell]
 promises:
   inputs: a unified diff
   outputs: a list of findings, worst first

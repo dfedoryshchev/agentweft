@@ -44,6 +44,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -78,6 +79,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -112,6 +114,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -146,6 +178,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -180,6 +213,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -219,8 +282,8 @@
   ],
   "prompts": [
     "planner.md go 1 14c2967a2b5cbca1c5ee60eca050a2d9dd6fda89239a79dde53b984219f66fcf",
-    "reviewer.md go 1 fceca5d593295b479c8b15bde3ebd276af3318a5c5bdb7df263bbbb1c076bc9f",
-    "reviewer.md go 2 cf87b8e21522f8c87b9aa6d610cfc855df8ee4ea13a01f272ed6ae5a4274bd8e",
+    "reviewer.md go 1 fe71f96391715385e1dcb39f3ee7fc50442e6ab91cf11f2117a50df88c5b2c34",
+    "reviewer.md go 2 1bac65d2c02bb4554f6f40b391215e3b34a1a8c40caa52295f8c9168c6e837bd",
     "worker.md go 1 5d028dba920cdc6bbd48fadf04f1a23c964d93ed62910fe6fb085eb319b17967",
     "worker.md go 2 3b83e4417c9bacafd4ede66054be4cb279fdf0b890abdee36b43783f92c85583"
   ]

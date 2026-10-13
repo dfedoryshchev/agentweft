@@ -41,6 +41,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -75,6 +76,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -109,6 +140,7 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": null,
       "tokens": {
         "counted": true,
         "input": 100,
@@ -143,6 +175,36 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -181,8 +243,8 @@
     "deleted: nothing, every line was backed"
   ],
   "prompts": [
-    "reviewer.md go 1 2373a3ccdaa72c74e46214277e14905c64933ebafbcee7d788bc0eb6fdb8068c",
-    "reviewer.md go 2 45f0027ac63f990b9220694d2737b012b273e08c4f0d838b1aeda5a5a3eb4f10",
+    "reviewer.md go 1 f9dd3235e992a0b83ca044f0f3c964a081580ed0f3dc46dbc37d828c1ebc53bd",
+    "reviewer.md go 2 d3434fdf8d19543441d5251fdb2376c4438ceb495913dbee0c3262b27347fa4b",
     "worker.md go 1 893626cce6830fa3895f13f4933d08050ad7658610bb8c7a8bceed0d2ffc3d55",
     "worker.md go 2 b6cabf3f03078147dac28ae4d8257b5ece87068fa1c1b9ce028896a43d95fe49"
   ]
