@@ -7,17 +7,47 @@
   ],
   "journal": [
     "<time>  release-notes  running  <secs>s  release-notes-<run>",
-    "<time>  release-notes  ok, 3 promise(s) not checked  <secs>s  release-notes-<run>  release-notes-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)"
+    "<time>  release-notes  ok, 3 promise(s) not checked  <secs>s  release-notes-<run>  release-notes-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  release-notes-<run>/handoff.md"
   ],
   "index": [
     "release-notes-<day>-1.md  release-notes  2 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# release-notes release-notes-<run>: finished",
+    "release-notes ran worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: worker.md <secs>s -> reviewer.md <secs>s",
+    "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
+    "- finished",
+    "- record: runs/release-notes-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "release-notes-<day>-1.md",
     "release-notes-<run>/gates.md",
+    "release-notes-<run>/handoff.md",
     "release-notes-<run>/manifest.json",
     "release-notes-<run>/reviewer.md",
     "release-notes-<run>/steps.jsonl",
@@ -60,7 +90,18 @@
       "file": "steps/001-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -124,7 +165,18 @@
       "file": "steps/002-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -138,10 +190,16 @@
     "## added",
     "- a --dry-run switch on the export",
     "## fixed",
-    "- the export no longer drops the last row"
+    "- the export no longer drops the last row",
+    "# release-notes release-notes-<run>: finished",
+    "release-notes ran worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 a68ba087a0d3c73098c0e4532036bbd49f4619d2c04e7f339349f4cdac88f153",
-    "worker.md go 1 db1565b6db2394571b548731a060432cf98f3f19148b9b8de7789cd4246334d2"
+    "reviewer.md go 1 1d5c7eacefd1f3f1f1246786037c5fa27f35995e6da2941fc4a994cd0e8e374a",
+    "worker.md go 1 20771d84c73d036f1cd78a8a6d3fbd88d0fd49ea7a5f58206a40b62b1c00b379"
   ]
 }

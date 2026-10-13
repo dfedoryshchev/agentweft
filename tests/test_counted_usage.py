@@ -294,7 +294,9 @@ def test_a_run_over_two_kinds_of_provider_says_mixed_in_the_journal(
     engine.main()
     running, line = journal().strip().split("\n")
     assert "  running  " in running
-    assert line.endswith(" (cli x1, fake x1)")
+    spend, pointer = line.rsplit("  ", 1)
+    assert spend.endswith(" (cli x1, fake x1)")
+    assert pointer.endswith("/handoff.md")
     assert "2 calls, mixed: 1 estimated call, 120 tokens counted" \
            " (input 100, output 20) + ~" in line
 

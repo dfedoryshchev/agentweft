@@ -1,2 +1,3 @@
 - you are allowed to say the work is wrong. that is the job.
 - if you would only have phrased it differently, it is not wrong.
+- your VERIFIED lines are the commands you ran to check the work. an ok with none of them is a verdict nobody can check.

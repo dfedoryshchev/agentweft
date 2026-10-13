@@ -7,7 +7,7 @@ person's call rather than the agent's or nobody's.
 import json
 import sys
 
-from agentweft.runner import engine, prompts, resume, state, trace
+from agentweft.runner import engine, prompts, resume, state, stops as causes, trace
 
 NL = chr(10)
 RANKING = "src/hooks.ts 0.94" + NL + "src/util.ts 0.11" + NL
@@ -158,9 +158,8 @@ def test_each_mode_stops_its_own_way_on_the_same_hot_step(tmp_path,
         here.mkdir()
         monkeypatch.setattr(state, "RUNS", here / "runs")
         asked = go(here, monkeypatch, mode)
-        last = journal().strip().split(NL)[-1].split("  ")
-        stops[mode] = (steps_asked(asked)[-1], last[2],
-                       last[5] if len(last) > 7 else None)
+        last = causes.read(journal().strip().split(NL)[-1])
+        stops[mode] = (steps_asked(asked)[-1], last.status, last.cause)
     assert stops["flag"] == ("reviewer.md", "ok", None)
     assert stops["refuse"] == ("worker.md", "failed at worker.md", "refused")
     assert stops["park"] == ("worker.md", "parked at worker.md", "parked")

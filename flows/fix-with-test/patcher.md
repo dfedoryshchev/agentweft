@@ -13,5 +13,7 @@ name the test on its own line first, exactly as the worker named it:
 
     TEST: <the test, as the worker gave it>
 
-then the patch and nothing else. the test is run after you answer, and a test
-that still fails stops the run.
+then the patch, and nothing else before the handoff block. the test is run
+after you answer, and a test that still fails stops the run. in the block,
+VERIFIED carries the run that showed it green and the whole suite's result,
+and anything else you noticed and did not touch is a DOUBTS line.

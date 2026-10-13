@@ -8,15 +8,52 @@
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)"
+    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  fix-with-test-<run>/handoff.md"
   ],
   "index": [
     "fix-with-test-<day>-1.md  fix-with-test  3 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# fix-with-test fix-with-test-<run>: finished - add returns a + b; it subtracted",
+    "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) returns -1.",
+    "patcher did:",
+    "- add returns a + b; it subtracted",
+    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- patcher: nothing else calls add, so no caller was checked",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- worker.md: PASS red-test - red, exit 1 (python -m pytest -q test_calc.py)",
+    "- patcher.md: PASS red-test - green, exit 0 (python -m pytest -q test_calc.py)",
+    "- verify.md: PASS verdict - 3 PASS, no FAIL",
+    "- verify.md: PASS command - exit 0 (python -m pytest -q)",
+    "- red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py)",
+    "- worker verified: the test fails on the code as it stands | cmd: python -m pytest -q test_calc.py | saw: 1 failed -> unchecked: no transcript for this step",
+    "- patcher verified: 1 passed | cmd: python -m pytest -q test_calc.py | saw: 1 passed -> unchecked: no transcript for this step",
+    "- verify verified: the whole suite is green | cmd: python -m pytest -q | saw: 1 passed -> unchecked: no transcript for this step",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- nothing left unverified, or no step said",
+    "## carry forward",
+    "- task: add(1, 2) returns -1 (all of it in runs/fix-with-test-<run>/task.md)",
+    "- keep: the task - add(1, 2) is 3 (worker)",
+    "- already read: worker: calc.py:1-2 - the one function",
+    "## run",
+    "- steps: worker.md <secs>s -> patcher.md <secs>s -> verify.md <secs>s",
+    "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
+    "- finished",
+    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "fix-with-test-<day>-1.md",
     "fix-with-test-<run>/gates.md",
+    "fix-with-test-<run>/handoff.md",
     "fix-with-test-<run>/manifest.json",
     "fix-with-test-<run>/patcher.md",
     "fix-with-test-<run>/steps.jsonl",
@@ -70,7 +107,32 @@
       "file": "steps/001-worker.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "present",
+        "did": [
+          "add(1, 2) is -1: calc.py:2 returns a - b"
+        ],
+        "verified": [
+          {
+            "claim": "the test fails on the code as it stands",
+            "cmd": "python -m pytest -q test_calc.py",
+            "saw": "1 failed",
+            "backed": "unchecked",
+            "why": "no transcript for this step"
+          }
+        ],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [
+          "the task - add(1, 2) is 3"
+        ],
+        "tried": [],
+        "read": [
+          "calc.py:1-2 - the one function"
+        ],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -111,7 +173,30 @@
       "file": "steps/002-patcher.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "present",
+        "did": [
+          "add returns a + b; it subtracted"
+        ],
+        "verified": [
+          {
+            "claim": "1 passed",
+            "cmd": "python -m pytest -q test_calc.py",
+            "saw": "1 passed",
+            "backed": "unchecked",
+            "why": "no transcript for this step"
+          }
+        ],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [
+          "nothing else calls add, so no caller was checked"
+        ],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -157,7 +242,28 @@
       "file": "steps/003-verify.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "present",
+        "did": [
+          "the three promises hold"
+        ],
+        "verified": [
+          {
+            "claim": "the whole suite is green",
+            "cmd": "python -m pytest -q",
+            "saw": "1 passed",
+            "backed": "unchecked",
+            "why": "no transcript for this step"
+          }
+        ],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -174,11 +280,18 @@
     "saved <tmp>/runs/fix-with-test-<day>-1.md",
     "PASS the test is written before the patch",
     "PASS the test fails on the unpatched code",
-    "PASS the patch is the smallest thing that turns it green"
+    "PASS the patch is the smallest thing that turns it green",
+    "# fix-with-test fix-with-test-<run>: finished - add returns a + b; it subtracted",
+    "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) returns -1.",
+    "patcher did:",
+    "- add returns a + b; it subtracted",
+    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 b3d8f951dee04bdffeaab84d80a46789d448e96d1d82cb196e02349d1b5f7f28",
-    "verify.md go 1 be8e69b321d99ff513267acdb7a54393bf99e21b2aceddd17b22d43df5052d91",
-    "worker.md go 1 aa6957532c85cbd95ad5f89a00cd4ecadc27bbdc26bc10cd674f44db96eb6f50"
+    "patcher.md go 1 f2dcfc44ed8c52cc062b74663164fe3ea35017925044d8d370810e9c2f2e2a26",
+    "verify.md go 1 243579f7bb909cd502833a85c5b6c01c8e533b05110be89d2d8ba8f3fd1fa9b4",
+    "worker.md go 1 806bac4ca4558da195e96856b3d39346277bc271eb01d57272f0902b48207e29"
   ]
 }

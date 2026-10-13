@@ -30,6 +30,10 @@ under it, and its line in `steps.jsonl` says `"ungated": true` (see
 had no gates or never got as far as the check, and the file could not say
 which.
 
+a gate reads the answer without its HANDOFF block (`journal.md`, "what each
+step hands over"): the block is the step's account of the work, and a length
+cap or a pattern is about the work.
+
 a gate name that is not one of the seven below, or an option the gate does not
 read, is refused when the flow loads, before any step is paid for.
 

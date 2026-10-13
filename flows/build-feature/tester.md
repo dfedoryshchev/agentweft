@@ -20,4 +20,5 @@ say how they fail and where they are, each on its own line, before the tests:
     TEST: <the test file, relative to where you are>
 
 the test file is run after you answer, and a file that is not there or does
-not fail stops the run.
+not fail stops the run. in the handoff block, VERIFIED carries the run that
+showed them failing, and a behaviour the plan leaves open is a DOUBTS line.

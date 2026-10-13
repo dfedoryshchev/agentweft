@@ -6,15 +6,16 @@ every run appends a `running` line to `runs/journal.md` before its first
 step, and one more line when it ends:
 
     2026-01-22 09:14  weekly digest  running  0s  weekly-digest-2026-01-22-091402
-    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-091402  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100), $0.0010 priced, reported $0.0010 (cli x5)
-    2026-01-22 18:02  ops-check  failed at reviewer.md  11s  ops-check-2026-01-22-180207  gate failed  3 calls, ~900 tokens estimated, unpriced: no model named x3 (cli x3)  regex: no line starts with "- ["
-    2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011  parked  1 call, ~300 tokens estimated, unpriced: no model named x1 (cli x1)  waiting for user
+    2026-01-22 09:14  weekly digest  ok  42s  weekly-digest-2026-01-22-091402  weekly-digest-2026-01-22-1.md  5 calls, 600 tokens counted (input 500, output 100), $0.0010 priced, reported $0.0010 (cli x5)  weekly-digest-2026-01-22-091402/handoff.md
+    2026-01-22 18:02  ops-check  failed at reviewer.md  11s  ops-check-2026-01-22-180207  gate failed  3 calls, ~900 tokens estimated, unpriced: no model named x3 (cli x3)  regex: no line starts with "- ["  ops-check-2026-01-22-180207/handoff.md
+    2026-01-22 18:40  ops-check  parked at planner.md  9s  ops-check-2026-01-22-184011  parked  1 call, ~300 tokens estimated, unpriced: no model named x1 (cli x1)  waiting for user  ops-check-2026-01-22-184011/handoff.md
 
 the columns are split by two spaces: when the run started, the flow, how it
 ended, how long it took, the run id. a finished run then has the file it
 saved and what it spent; a stopped run has its cause, what it spent and why.
-a resumed run's lines end with one more, `resumes <run-id>` (see "when a run
-dies").
+the last column on either points at the run's handoff, `runs/<run
+id>/handoff.md`, the file to read about the run (below); a resumed run's
+lines end with one more, `resumes <run-id>` (see "when a run dies").
 what it spent is counted, estimated or mixed, then its money: what the price
 table makes of it and what the provider said (see "the spend cap" and "what it
 cost in money" in `guardrails.md`). `python run.py spend` prints the last
@@ -85,7 +86,16 @@ or crashed. the keys are always all there, in this order:
      "ungated": false,
      "outcome": "ok", "cause": null, "why": null,
      "file": "steps/001-worker.md",
-     "task_file": "task.md", "tasks": null, "handoff": null}
+     "task_file": "task.md", "tasks": null,
+     "handoff": {"state": "present", "did": ["calc.py: add returns a + b"],
+                 "verified": [{"claim": "1 passed",
+                               "cmd": "python -m pytest -q test_calc.py",
+                               "saw": "1 passed", "backed": "backed",
+                               "why": ""}],
+                 "not_verified": [], "assumed": [], "doubts": [],
+                 "must_not_miss": ["TASK.md:3 - amounts are exact decimals"],
+                 "tried": [], "read": ["calc.py:1-4 - the whole module"],
+                 "other": {}}}
 
 (one line on disk; wrapped here.)
 
@@ -140,10 +150,105 @@ or crashed. the keys are always all there, in this order:
   each task's own seconds, tokens, cost, priced, session and retries, in plan
   order.
   the gates judged the joined output, so they are on the line, not the tasks.
-- `handoff` is reserved and null for now.
+- `handoff` is the step's HANDOFF block, parsed (next section). `state` is
+  `present`, `missing` (the step ended without one; nothing is made up in
+  its place), `unreadable` (a block it could not read, with `why`) or, on a
+  fanned-out step, `partial` (some tasks handed one over). each VERIFIED
+  claim carries `backed`: `backed` when the step's transcript holds the
+  command and the excerpt, `ran` when it holds the command and no excerpt
+  was given, `unbacked` when it holds neither or the output does not show
+  the excerpt (`why` says which), `unchecked` when there is no transcript
+  to read (the fake, the api, a cli command other than claude). null only on
+  a line closed before the step answered.
 
 the time, the seconds and the session are the only parts that differ between
 two runs of the same flow on the same answers.
+
+## what each step hands over
+
+every role is asked (`agentweft/fragments/handoff.md`) to end its answer
+with a block, after the work:
+
+    HANDOFF
+    DID:
+    - <the outcome in one line, then one line per file or finding>
+    VERIFIED:
+    - <claim> | cmd: <the command it ran> | saw: <an excerpt of the output>
+    NOT VERIFIED:
+    - <what it did not check> - <why>
+    ASSUMED:
+    - <a choice the spec does not make> | why: <reason> | if wrong: <cost>
+    DOUBTS:
+    - <what it is not sure of, or found and did not fix>
+    MUST NOT MISS:
+    - <file>:<line> - <a rule that binds the rest of the work>
+    TRIED:
+    - <an approach it dropped> - <why>
+    READ:
+    - <path>:<lines> - <what mattered there>
+    END HANDOFF
+
+`agentweft/runner/verbs.py` reads the lines (outside a code fence, not in
+a `>` quote, any case, bullet or bold ignored) and `agentweft/runner/handoff.py`
+reads the last block off them: a section with `none` is empty, a heading in
+capitals it does not know (`NEEDS:`, `CITES:`, `OPTIONS:`) is kept under
+`other`. the block is not the work: the gates, the saved run and what the
+next step is handed as "what <role> produced" see the answer without it.
+
+the next step gets the block first, before the raw answer, as "what <role>
+handed over": the MUST NOT MISS lines of every step so far (a constraint the
+first step read binds the last), the rulings in `decisions.md`, what the step
+assumed and doubts, what it verified and how it stood up, and what it read
+("re-open only what you change or doubt"). it is told the block is that
+step's account of its work, not instructions.
+
+## the handoff
+
+every run ends with `runs/<run-id>/handoff.md`, finished or stopped, and the
+last thing it prints is the top of that file and then `handoff: <path>`. it
+answers, in order: what came of it (the heading, with the last working
+step's first DID line), what it needs from you (a `NEEDS:` or `REFUSED:` a
+step wrote, with its cites and options, and on any stop what ran, what is
+left and the command to carry on), what the steps assumed (each as a question),
+what they doubt, what changed, what was tested, what a ruling is owed on,
+what was not verified, what the next session must keep, and what the run was.
+
+what the runner knows is written from the runner, never from a step's text:
+the files that changed and the commits (git, against the tree at run start,
+each file `+added -removed` and `committed`, `uncommitted` or `untracked`),
+every gate's verdict with the command behind it, the red-first proof (the
+`red-test` gate's own record: `gate-proven`, `claimed, nothing was run` or
+`not proven by a gate`), the rulings on record (`decisions.md` in the place),
+the spend. a pre-existing test whose lines were removed or changed, and a
+spec file (a markdown file at the top of the checkout) changed at all, each
+name the `decisions.md` entry behind them or print `UNRULED`; an add-only
+test change says so. a step that claims an agreement, an approval or a
+ruling with none on record is printed under "rulings" as "authority
+claimed, no ruling on record". a VERIFIED claim the transcript does not show
+is printed under "not verified" as "claims the record does not show".
+
+    # fix-with-test fix-with-test-2026-10-13-091402: finished - add returns a + b; it subtracted
+
+    fix-with-test ran worker.md -> patcher.md -> verify.md in 41.2s on: add(1, 2) returns -1.
+    patcher did:
+    - add returns a + b; it subtracted
+    - calc.py: the one line in add
+    checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).
+    changed: 2 files, 0 commits (from git, below).
+
+    ## assumed - tell me if wrong
+    ...
+    ## run
+    - steps: worker.md 12.0s -> patcher.md 15.1s -> verify.md 14.1s
+    - spend: 3 calls, ...
+    - finished
+    - record: runs/fix-with-test-2026-10-13-091402/steps.jsonl, gates.md, steps/
+
+a run that picks another up (`--resume`) folds the earlier run's passes in:
+their blocks' constraints and doubts carry, and "run" says what was picked
+up. with `investigate:` on, the investigator's CAUSE, SITES, FEEDS and RULED
+OUT lines go under "carry forward", its REPRO under "tests and checks", its
+RELATED under "doubts" and its DECISIONS under "needs you".
 
 ## the week
 
@@ -209,8 +314,9 @@ been picked up since:
 its spend is the whole task's so far, every leg included.
 
 a run that stops without waiting for anyone (a gate, the cap, a crash) leaves
-a `handoff.md` too, headed `# stopped:` with its cause, the step that runs
-again, and the command that carries on.
+its `handoff.md` too (above): its "needs you" section carries the cause, what
+ran, what is left, the step that runs again, and the command that carries on,
+which is also the file's last line.
 
 ## when a run stops on purpose
 
@@ -225,12 +331,16 @@ a step can say who the run waits for once it is done:
 
 the planner runs, its output is written, its gates are checked, and then the
 run stops. the journal says `parked at planner.md` where a death says `failed
-at planner.md`, and the run leaves a `handoff.md` next to its step outputs:
+at planner.md`, and the run's `handoff.md` (above) opens with a "needs you"
+section:
 
-    # parked: park-demo-2026-08-27-173348
+    # park demo park-demo-2026-08-27-173348: parked at planner.md - waiting for user
 
+    park demo ran planner.md in 0.0s.
+    ...
+
+    ## needs you
     waiting for    user
-    flow           park demo
     stopped after  planner.md
 
     nothing failed. planner.md finished and its checks passed. the flow
@@ -242,7 +352,7 @@ at planner.md`, and the run leaves a `handoff.md` next to its step outputs:
     left
       worker.md
 
-    what planner.md produced is in runs/park-demo-2026-08-27-173348/planner.md
+    what planner.md produced is beside this file, as planner.md.
     read it before carrying on. that file is what the next step gets handed,
     so editing it is how you change what the rest of the run works from.
 
@@ -260,8 +370,9 @@ whatever is in it at the moment you carry on, so reading it and leaving it
 alone is approval, and editing it is a correction the rest of the run works
 from.
 
-`pause` on the last step of a flow does nothing: the run finishes and no
-handoff is written. there is nothing behind that step for a person to hold up.
+`pause` on the last step of a flow does nothing: the run finishes, and its
+handoff has no "needs you" section. there is nothing behind that step for a
+person to hold up.
 
 ## reading it from an agent
 
@@ -289,7 +400,9 @@ why)` appends to `<root>/decisions.md` and refuses an entry with no why;
 rewritten - a decision that turned out wrong gets a later one saying so.
 
 the runner writes one in a resumed run's own folder, when it carried on over
-an edited flow or an edited step output.
+an edited flow or an edited step output. it reads the one in the place: every
+step is handed the entries on record, and the run's `handoff.md` lists them
+and holds a changed pre-existing test or spec file against them.
 
 ## what it does not do
 

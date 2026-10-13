@@ -446,6 +446,7 @@ def test_the_journal_line_and_every_step_line_carry_the_money(
     assert engine.main() == 0
     line = (state.RUNS / "journal.md").read_text(encoding="utf-8") \
         .strip().split("\n")[-1]
+    line = line.rsplit("  ", 1)[0]
     assert line.endswith("3600 tokens counted (input 2000, output 1600),"
                          " $0.0100 priced, reported $0.0100 (cli x2)")
     [folder] = [p for p in state.RUNS.iterdir() if p.is_dir()]

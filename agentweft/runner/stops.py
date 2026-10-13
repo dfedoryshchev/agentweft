@@ -7,16 +7,19 @@ made up where the run stopped would be a bucket nobody reads.
 
 the journal has three shapes of line, the same first four columns in each:
 
-    <when>  <flow>  running  0s  <run id>
-    <when>  <flow>  failed at <step>  <secs>s  <run id>  <cause>  <spend>  <why>
-    <when>  <flow>  ok  <secs>s  <run id>  <saved as>  <spend>
+    <when>  <flow>  running  0s  <run id>  [resumes <origin>]
+    <when>  <flow>  failed at <step>  <secs>s  <run id>  <cause>  <spend>  <why>  <run id>/handoff.md  [resumes <origin>]
+    <when>  <flow>  ok  <secs>s  <run id>  <saved as>  <spend>  <run id>/handoff.md  [resumes <origin>]
 
 a stop is `parked at` when the run is waiting for someone, `failed at` for
 everything else. `<when>` is when the run started, on every line it writes.
 
-a resumed run gets an id of its own, so each of its lines ends with one more
-column, `resumes <run id>`: the run the task started as, however many times it
-has been picked up since. that is what ties one task's lines together.
+two columns can follow, each read off the end of the line by what it looks
+like, so a line written before either existed still reads: the run's handoff,
+`<run id>/handoff.md`, the file to read about it; and, on a resumed run,
+which gets an id of its own, `resumes <run id>`: the run the task started as,
+however many times it has been picked up since. that is what ties one task's
+lines together.
 """
 import datetime
 
@@ -81,10 +84,11 @@ def flat(text):
 
 
 RESUMES = "resumes "
+HANDOFF = "/handoff.md"
 
 
 def line(started, flow, state, secs, run=None, cause=None, spend=None,
-         why=None, saved=None, origin=None):
+         why=None, saved=None, handoff=None, origin=None):
     """-> one journal line, without its newline."""
     parts = [started.strftime(STAMP), flow, state, str(int(secs)) + "s"]
     if run:
@@ -94,6 +98,8 @@ def line(started, flow, state, secs, run=None, cause=None, spend=None,
                          flat(why) or cause]
     elif saved is not None:
         parts = parts + [saved, spend or "0 calls, 0 tokens"]
+    if handoff:
+        parts.append(handoff)
     if origin:
         parts.append(RESUMES + origin)
     return "  ".join(parts)
@@ -103,7 +109,7 @@ class Line(object):
     """one journal line, read back. what a column did not say is None."""
 
     __slots__ = ("when", "flow", "status", "secs", "run", "cause", "spend",
-                 "why", "saved", "step", "origin")
+                 "why", "saved", "step", "handoff", "origin")
 
     def __init__(self, when, flow, status, secs):
         self.when = when
@@ -111,7 +117,7 @@ class Line(object):
         self.status = status
         self.secs = secs
         self.run = self.cause = self.spend = self.why = None
-        self.saved = self.step = self.origin = None
+        self.saved = self.step = self.handoff = self.origin = None
 
     @property
     def kind(self):
@@ -128,15 +134,19 @@ class Line(object):
 def read(text):
     """-> Line, or None for a line too short to be one."""
     parts = [p.strip() for p in text.split("  ") if p.strip()]
+    origin = pointed = None
+    if len(parts) > 4 and parts[-1].startswith(RESUMES):
+        origin = parts.pop()[len(RESUMES):]
+    if len(parts) > 4 and parts[-1].endswith(HANDOFF):
+        pointed = parts.pop()
     if len(parts) < 4:
         if len(parts) < 3:
             return None
         parts.append("0s")
     out = Line(parts[0], parts[1], parts[2], parts[3])
+    out.handoff = pointed
+    out.origin = origin
     rest = parts[4:]
-    if len(rest) > 1 and rest[-1].startswith(RESUMES):
-        out.origin = rest[-1][len(RESUMES):]
-        rest = rest[:-1]
     if out.status == RUNNING:
         out.run = rest[0] if rest else None
         return out

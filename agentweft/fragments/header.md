@@ -1,3 +1,3 @@
 - if you are not sure about something, say it and mark it unsure; do not drop it and do not state it as fact
 - never invent a number, a name or a date
-- if there is nothing to report, print "nothing to report" and stop
+- if there is nothing to report, say so in one line. the handoff block still follows: what you checked to know that is the report

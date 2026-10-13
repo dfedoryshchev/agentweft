@@ -7,17 +7,47 @@
   ],
   "journal": [
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
-    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)"
+    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  summarise-and-check-<run>/handoff.md"
   ],
   "index": [
     "summarise-and-check-<day>-1.md  summarise-and-check  2 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# summarise-and-check summarise-and-check-<run>: finished",
+    "summarise-and-check ran worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: worker.md <secs>s -> reviewer.md <secs>s",
+    "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
+    "- finished",
+    "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "summarise-and-check-<day>-1.md",
     "summarise-and-check-<run>/gates.md",
+    "summarise-and-check-<run>/handoff.md",
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/reviewer.md",
     "summarise-and-check-<run>/steps.jsonl",
@@ -60,7 +90,18 @@
       "file": "steps/001-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -124,7 +165,18 @@
       "file": "steps/002-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -135,10 +187,16 @@
     "saved <tmp>/runs/summarise-and-check-<day>-1.md",
     "VERDICT: ok",
     "notes.md: the plan moved to friday (line 3)",
-    "deleted: nothing, every line was backed"
+    "deleted: nothing, every line was backed",
+    "# summarise-and-check summarise-and-check-<run>: finished",
+    "summarise-and-check ran worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 d3434fdf8d19543441d5251fdb2376c4438ceb495913dbee0c3262b27347fa4b",
-    "worker.md go 1 893626cce6830fa3895f13f4933d08050ad7658610bb8c7a8bceed0d2ffc3d55"
+    "reviewer.md go 1 09f82d49c491778bf649e54d15e468b462093bdeacbe11a30449d7c9376a0909",
+    "worker.md go 1 6e9c36530759622f8c672a23f5db8b5d40045f4c1d1c108c664dfa6fd170d477"
   ]
 }

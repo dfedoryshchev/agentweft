@@ -9,40 +9,32 @@ same thing on disk, which is to say nothing i could act on.
 this is the mechanism, and it is deliberately not the phase side's. no phase is
 executed here either and this module has never heard of one. it takes what a
 run knows - where it got to, what is left, who it waits for - and writes the
-file the person being waited for has to read. the runner is what calls it.
+section the person being waited for has to read. the runner is what calls it,
+and `runner/summary.py` is what writes the file it goes into: every run ends
+with one handoff.md, and this is its "needs you" section when the run stopped
+short, waiting for someone or not.
 
 the runner already has a Handoff and that is a different thing: what one step
 passes to the next, machine to machine. this is what a run passes to a person.
 """
-from agentweft.runner import state
-from agentweft.runner.task import FILE as TASK, saved
-
-FILE = "handoff.md"
 
 
-def lines(run_id, flow, step, who, done, left, command, why=None,
-          again=False, task=None, cause=None):
-    """the handoff as the lines it is written from.
+def lines(step, who, done, left, command, why=None, again=False, cause=None):
+    """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
     it stopped, why it stopped, and what to do about it. the last one is a
     command to type, not a description of one. `why` is for a stop the flow
     did not ask for. `again` is a step that produced nothing, so carrying on
-    runs it again rather than handing on what it made. `task` is what the run
-    was pointed at; its first line is enough to tell two parked runs of one
-    flow apart.
+    runs it again rather than handing on what it made.
 
     `who` is None for a run that stopped without waiting for anyone - a gate,
-    the cap, a crash. it still gets a handoff, under its `cause`: the step it
+    the cap, a crash. it gets the same section under its `cause`: the step it
     stopped at runs again when it is carried on.
     """
     if who is None:
-        return stopped(run_id, flow, step, cause, done, left, command, why,
-                       task)
-    out = ["# parked: " + run_id, ""]
-    out.append("waiting for    " + who)
-    out.append("flow           " + flow)
-    task_lines(out, run_id, task)
+        return stopped(step, cause, done, left, command, why)
+    out = ["waiting for    " + who]
     out.append(("stopped at     " if again else "stopped after  ") + step)
     out.append("")
     if why:
@@ -52,18 +44,11 @@ def lines(run_id, flow, step, who, done, left, command, why=None,
         out.append("nothing failed. " + step + " finished and its checks passed. the flow")
         out.append("asks for " + who + " here, so the rest of it has not run.")
     out.append("")
-    out.append("ran")
-    for name, seconds in done:
-        out.append("  " + name.ljust(16) + str(seconds) + "s")
-    out.append("")
-    out.append("left")
-    for name in left or ["nothing"]:
-        out.append("  " + name)
-    out.append("")
+    ran_and_left(out, done, left)
     if again:
         out.append(step + " produced nothing, so it runs again when you carry on.")
     else:
-        out.append("what " + step + " produced is in runs/" + run_id + "/" + step)
+        out.append("what " + step + " produced is beside this file, as " + step + ".")
         out.append("read it before carrying on. that file is what the next step gets handed,")
         out.append("so editing it is how you change what the rest of the run works from.")
     out.append("")
@@ -72,24 +57,7 @@ def lines(run_id, flow, step, who, done, left, command, why=None,
     return out
 
 
-def task_lines(out, run_id, task):
-    if task is not None:
-        out.append("task           " + task.strip().split("\n")[0])
-        out.append("               all of it is in runs/" + run_id + "/"
-                   + TASK + ", and --resume carries on with it")
-
-
-def stopped(run_id, flow, step, cause, done, left, command, why, task):
-    out = ["# stopped: " + run_id, ""]
-    out.append("cause          " + str(cause))
-    out.append("flow           " + flow)
-    task_lines(out, run_id, task)
-    out.append("stopped at     " + step)
-    out.append("")
-    if why:
-        out.append(why)
-    out.append("so the rest of it has not run.")
-    out.append("")
+def ran_and_left(out, done, left):
     out.append("ran")
     for name, seconds in done:
         out.append("  " + name.ljust(16) + str(seconds) + "s")
@@ -98,25 +66,19 @@ def stopped(run_id, flow, step, cause, done, left, command, why, task):
     for name in left or ["nothing"]:
         out.append("  " + name)
     out.append("")
+
+
+def stopped(step, cause, done, left, command, why):
+    out = ["cause          " + str(cause)]
+    out.append("stopped at     " + step)
+    out.append("")
+    if why:
+        out.append(why)
+    out.append("so the rest of it has not run.")
+    out.append("")
+    ran_and_left(out, done, left)
     out.append(step + " runs again when you carry on; the steps before it do not.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command)
     return out
-
-
-def write(run_id, flow, step, who, done, left, command, runs=None, why=None,
-          again=False, cause=None):
-    """write the handoff beside the step outputs, and hand back the path.
-
-    the same folder as steps.jsonl and gates.md. everything one run left behind
-    stays in one place, and the person being waited for gets one path to look
-    at rather than a mechanism of its own to learn.
-    """
-    folder = (runs or state.RUNS) / run_id
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / FILE
-    body = lines(run_id, flow, step, who, done, left, command, why, again,
-                 saved(folder), cause)
-    path.write_text("\n".join(body) + "\n", encoding="utf-8")
-    return path

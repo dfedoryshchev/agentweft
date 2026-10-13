@@ -7,15 +7,19 @@
   ],
   "journal": [
     "<time>  risky-edit  running  <secs>s  risky-edit-<run>",
-    "<time>  risky-edit  parked at worker.md  <secs>s  risky-edit-<run>  parked  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot"
+    "<time>  risky-edit  parked at worker.md  <secs>s  risky-edit-<run>  parked  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot  risky-edit-<run>/handoff.md"
   ],
   "index": [
     "PARKED  risky-edit  at worker.md"
   ],
   "handoff": [
-    "# parked: risky-edit-<run>",
+    "# risky-edit risky-edit-<run>: parked at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
+    "risky-edit ran planner.md -> worker.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## needs you",
     "waiting for    user",
-    "flow           risky-edit",
     "stopped after  worker.md",
     "worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot,",
     "so the rest of it has not run.",
@@ -24,9 +28,34 @@
     "  worker.md       <secs>s",
     "left",
     "  reviewer.md",
-    "what worker.md produced is in runs/risky-edit-<run>/worker.md",
+    "what worker.md produced is beside this file, as worker.md.",
     "read it before carrying on. that file is what the next step gets handed,",
     "so editing it is how you change what the rest of the run works from.",
+    "to carry on",
+    "  python run.py risky-edit --resume risky-edit-<run> --force",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- planner.md: no gates",
+    "- worker.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: planner.md",
+    "- handoff missing: worker.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: planner.md <secs>s -> worker.md <secs>s",
+    "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
+    "- stopped: parked at worker.md",
+    "- record: runs/risky-edit-<run>/steps.jsonl, gates.md, steps/",
     "to carry on",
     "  python run.py risky-edit --resume risky-edit-<run> --force"
   ],
@@ -78,7 +107,18 @@
       "file": "steps/001-planner.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -113,7 +153,18 @@
       "file": "steps/002-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -122,10 +173,30 @@
     "preflight: 1 hot file(s) in that step",
     "  src/hooks.ts  0.94",
     "parked at worker.md, waiting for user",
-    "it needs you: <tmp>/runs/risky-edit-<run>/handoff.md"
+    "# risky-edit risky-edit-<run>: parked at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
+    "risky-edit ran planner.md -> worker.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## needs you",
+    "waiting for    user",
+    "stopped after  worker.md",
+    "worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot,",
+    "so the rest of it has not run.",
+    "ran",
+    "  planner.md      <secs>s",
+    "  worker.md       <secs>s",
+    "left",
+    "  reviewer.md",
+    "what worker.md produced is beside this file, as worker.md.",
+    "read it before carrying on. that file is what the next step gets handed,",
+    "so editing it is how you change what the rest of the run works from.",
+    "to carry on",
+    "  python run.py risky-edit --resume risky-edit-<run> --force",
+    "handoff: <tmp>/runs/risky-edit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 797b8b1b50166c62b92d4c12279bb9b73a760ff2caa72d29d421e7fe73b3d76a",
-    "worker.md go 1 a1d99ff611fa8c8bf62be67ce23b2638ab05c530743dac6d682ac78a6af38520"
+    "planner.md go 1 febfe77b38fa313c9971a0ba65590c8d80f2f714325e840c6d7b2d26a07197a9",
+    "worker.md go 1 12a1392d12d5d6c91200d0e56abbf72731388c42ce95c7f9efd70df800890146"
   ]
 }

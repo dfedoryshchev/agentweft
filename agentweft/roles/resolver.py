@@ -7,9 +7,10 @@ HERE = Path(__file__).resolve().parent.parent
 # the role, so five reviewers carried the same block and the sixth quietly
 # did not.
 LIBRARY = Path(__file__).resolve().parent / "library"
-# output-rules and no-guessing live under skills/ now. the other three have
-# not earned the frontmatter yet.
-FRAGMENTS = ["role-header", "no-preamble", "header"]
+# output-rules and no-guessing live under skills/ now. the other four have
+# not earned the frontmatter yet. handoff goes last: it is the end of every
+# answer, and it is what the next step reads first.
+FRAGMENTS = ["role-header", "no-preamble", "header", "handoff"]
 # some rules only make sense for one role
 EXTRA = {"reviewer": ["reviewer-only"], "verify": ["reviewer-only"],
          "judge": ["reviewer-only"], "worker": ["multi-file"],

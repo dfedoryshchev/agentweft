@@ -7,7 +7,10 @@ produced is kept beside it as `steps/<seq>-<step>.md` and the line names that
 file, so a redo no longer writes over the review that asked for it.
 
 a line is the same shape every time and in the same key order, so two runs
-of the same flow differ only in the time, the ids and the seconds.
+of the same flow differ only in the time, the ids and the seconds. `handoff`
+is the step's HANDOFF block as `runner/handoff.py` parsed it, with each
+VERIFIED claim marked against the step's transcript; null only on a line
+closed before the step answered.
 """
 import datetime
 import json
@@ -145,7 +148,7 @@ class Entry(object):
     """a line that has a number and a file but not yet an outcome."""
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
-                 "fanned", "gates", "ungated")
+                 "fanned", "gates", "ungated", "handoff")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.seq = seq
@@ -157,6 +160,7 @@ class Entry(object):
         self.fanned = fanned
         self.gates = []
         self.ungated = None
+        self.handoff = None
 
 
 class Trail(object):
@@ -170,6 +174,7 @@ class Trail(object):
         self.folder = folder
         self.seq = max(after, last_seq(folder))
         self.unclosed = []
+        self.closed = []
         self.task_file = TASK if (folder / TASK).is_file() else None
 
     def open(self, step, attempts, provider, came_from, output=None,
@@ -191,6 +196,7 @@ class Trail(object):
         self.folder.mkdir(parents=True, exist_ok=True)
         if entry in self.unclosed:
             self.unclosed.remove(entry)
+        self.closed.append((entry, outcome))
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(line(entry, outcome, why, to, cause,
                                     self.task_file),
@@ -244,4 +250,4 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "file": entry.file,
             "task_file": task_file,
             "tasks": tasks,
-            "handoff": None}
+            "handoff": entry.handoff}

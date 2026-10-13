@@ -85,7 +85,9 @@ step had run and been paid for.
 
 `steps` runs in order. each step gets the previous step's output appended to
 its prompt unless it says otherwise, which is the whole chaining mechanism.
-there is no structured handoff and so far it has not needed one.
+on top of it goes the previous step's HANDOFF block, parsed: the constraints
+in force, what it assumed and doubts, what it verified and how, what it read
+(see "what each step hands over" in `journal.md`).
 
 `role` is what a step IS and `prompt` is only where its words are kept, so one
 role can be two steps with a file each. that is how a flow runs a reviewer

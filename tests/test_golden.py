@@ -69,16 +69,37 @@ BUG = "add(1, 2) returns -1"
 BUG_REPORT = ("add(1, 2) " + chr(0x2192) + " -1\n\n" + chr(0x41f) + chr(0x440)
               + chr(0x438) + chr(0x43c) + chr(0x435) + chr(0x440) + ": "
               + chr(0x6f22) + chr(0x5b57) + "\n")
+def block(did, verified, doubts="none", must="none", read="none"):
+    """the HANDOFF block every role is asked to end with, filled in."""
+    return ("\nHANDOFF\nDID:\n- " + did + "\nVERIFIED:\n- " + verified
+            + "\nNOT VERIFIED:\n- none\nASSUMED:\n- none\nDOUBTS:\n- "
+            + doubts + "\nMUST NOT MISS:\n- " + must + "\nTRIED:\n- none\n"
+            "READ:\n- " + read + "\nEND HANDOFF\n")
+
+
 FIXES = {
-    "worker.md": [say("FAILS: assert -1 == 3\nTEST: test_calc.py\n\n"
-                      + TEST, {"test_calc.py": TEST})],
+    "worker.md": [say("FAILS: assert -1 == 3\nTEST: test_calc.py\n\n" + TEST
+                      + block("add(1, 2) is -1: calc.py:2 returns a - b",
+                              "the test fails on the code as it stands | cmd:"
+                              " python -m pytest -q test_calc.py | saw: 1 failed",
+                              must="the task - add(1, 2) is 3",
+                              read="calc.py:1-2 - the one function"),
+                      {"test_calc.py": TEST})],
     "patcher.md": [say("TEST: test_calc.py\n\n-    return a - b\n"
-                       "+    total = a + b\n+    return total\n",
+                       "+    total = a + b\n+    return total\n"
+                       + block("add returns a + b; it subtracted",
+                               "1 passed | cmd: python -m pytest -q"
+                               " test_calc.py | saw: 1 passed",
+                               doubts="nothing else calls add, so no caller"
+                               " was checked"),
                        {"calc.py": FIXED})],
     "verify.md": ["PASS the test is written before the patch\n"
                   "PASS the test fails on the unpatched code\n"
                   "PASS the patch is the smallest thing that turns it "
-                  "green\n"]}
+                  "green\n"
+                  + block("the three promises hold",
+                          "the whole suite is green | cmd: python -m pytest"
+                          " -q | saw: 1 passed")]}
 
 FEATURE = "calc gets mul(a, b), which multiplies"
 ADD_ONLY = "def add(a, b):\n    return a + b\n"
@@ -379,6 +400,9 @@ STAMPS = (
     # the journal's run time and the handoff's per-step seconds
     (re.compile(r"(?<=  )\d+s(?=  |$)"), "<secs>s"),
     (re.compile(r"(?m)^(  \S+ +)\d+(\.\d+)?s$"), r"\1<secs>s"),
+    # the handoff's "ran ... in 4.2s" and "- steps: worker.md 1.3s -> ..."
+    (re.compile(r"(?<= in )\d+(\.\d+)?s(?= on:|\.)"), "<secs>s"),
+    (re.compile(r"(?<=\.md )\d+(\.\d+)?s(?= ->| \(|$)"), "<secs>s"),
 )
 CLOCKED = ("time", "seconds")
 

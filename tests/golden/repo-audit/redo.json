@@ -12,17 +12,58 @@
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
-    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)"
+    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)  repo-audit-<run>/handoff.md"
   ],
   "index": [
     "repo-audit-<day>-1.md  repo-audit  4 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# repo-audit repo-audit-<run>: finished",
+    "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- planner.md: no gates",
+    "- worker.md: no gates",
+    "- merge.md: no gates",
+    "- reviewer.md: no gates",
+    "- worker.md: no gates",
+    "- merge.md: no gates",
+    "- reviewer.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: planner.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: merge.md",
+    "- handoff missing: reviewer.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: merge.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
+    "- reviewer.md sent the work back: config.py: which settings were read is not said",
+    "- spend: 9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)",
+    "- finished",
+    "- record: runs/repo-audit-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "repo-audit-<day>-1.md",
     "repo-audit-<run>/gates.md",
+    "repo-audit-<run>/handoff.md",
     "repo-audit-<run>/manifest.json",
     "repo-audit-<run>/merge.md",
     "repo-audit-<run>/planner.md",
@@ -73,7 +114,18 @@
       "file": "steps/001-planner.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -143,7 +195,18 @@
           "model_reported": "model-in-replay"
         }
       ],
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -178,7 +241,18 @@
       "file": "steps/003-merge.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 4,
@@ -242,7 +316,18 @@
       "file": "steps/004-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 5,
@@ -312,7 +397,18 @@
           "model_reported": "model-in-replay"
         }
       ],
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 6,
@@ -347,7 +443,18 @@
       "file": "steps/006-merge.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 7,
@@ -411,7 +518,18 @@
       "file": "steps/007-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -429,17 +547,23 @@
     "saved <tmp>/runs/repo-audit-<day>-1.md",
     "VERDICT: ok",
     "app.py parses argv and calls run().",
-    "config.py loads settings.yml and has no defaults, which is the risk."
+    "config.py loads settings.yml and has no defaults, which is the risk.",
+    "# repo-audit repo-audit-<run>: finished",
+    "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 adad5ee87ef9734d7ab7882ff527ea348c23a7e93c3402716413fee86b9c83d0",
-    "merge.md go 2 04ba316b729e2c8d2689db4c922e6a300456f398e43854f2edfcea599eefe0a8",
-    "planner.md go 1 7cdedf662c0a6574439cec99f10b9d7e4648ad1bd44fce2f4d8f3ba1f6396b5e",
-    "reviewer.md go 1 711c0a1ff359ab68b8a996cc8318cd0ffafc96450b7615656dea64c1c7a39a62",
-    "reviewer.md go 2 ffa38835361c08a12c0987978098e3a2a6ba4a403015186c42060d0eb5ba9556",
-    "worker.md task 1 go 1 86332cc4d2c8eb6441d3d49899e67aea3cb999b2bdc26ec1316d522ebda2ce69",
-    "worker.md task 1 go 2 0a19c0ed9eb187151910a1d6e2e6231292f787b4a8f49b94a11f1f7ed8b8e5cf",
-    "worker.md task 2 go 1 a8e8c5f5292cad541017845aeb2b82c11d9d028c8bd278456774f2edc25d4482",
-    "worker.md task 2 go 2 1ddab6c00b65594721148cd3e6ebe690fdef1d3efa54ce21f8b21ac80ca62fb9"
+    "merge.md go 1 bd45d1b81722c8359bc8de7fdd89a19f0ff0ff4bd334976f5ca136ed9b5bcdc0",
+    "merge.md go 2 6170f0c002b0b22b7b7a3ec35d57d0ca90e5503d98e5cbed8c3e79b6108bbbb5",
+    "planner.md go 1 bf4b6a0d74ade581f4228e4778d860fbe14f3366bb5f34a2a160c74f59c50210",
+    "reviewer.md go 1 c03898eb7a8db3df71a31be8feca514c9ac7e339295aa6ac57d86671c6f96c5b",
+    "reviewer.md go 2 780a90c6b30098d5b7ecd3f28b56dffe3c6c1e89f437e7eb6b7ddf7424a75257",
+    "worker.md task 1 go 1 ee4a19ccfcd69b7070f175d28414370224dc7730c891311d7b96cf523e72c533",
+    "worker.md task 1 go 2 edda114761c099f33b610eaf395b1892d107a62dc8a5d31793c805d5b9235ede",
+    "worker.md task 2 go 1 b9705642c92065e4defd7633aba9a58f2080df319edb67f33ef43cafc09408ff",
+    "worker.md task 2 go 2 8016d0d7e44eea146d82219dbf05d0f17f91e76a0c81d35a93e251b890618eb0"
   ]
 }

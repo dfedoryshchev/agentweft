@@ -230,9 +230,11 @@ def test_a_parked_run_names_its_task_and_resumes_on_it_without_being_told(
     run(monkeypatch, "held", "--force", "--task", FOREIGN + "\nmore detail")
     [first] = folders(tmp_path)
     handoff = (first / "handoff.md").read_text(encoding="utf-8")
-    assert "task           " + FOREIGN + "\n" in handoff
-    assert "runs/" + first.name + "/task.md" in handoff
-    assert handoff.rstrip("\n").split("\n")[-2] == "to carry on"
+    assert "- task: " + FOREIGN + " (all of it in runs/" + first.name \
+        + "/task.md)\n" in handoff
+    assert " on: " + FOREIGN + ".\n" in handoff
+    needs = handoff.split("## needs you\n")[1].split("\n## ")[0]
+    assert needs.rstrip("\n").split("\n")[-2] == "to carry on"
 
     asked.clear()
     run(monkeypatch, "held", "--force", "--resume", first.name)
@@ -327,9 +329,16 @@ def test_one_step_on_its_own_takes_a_task_too(tmp_path, monkeypatch, capsys):
 
 
 def test_the_handoff_lines_leave_out_a_task_the_run_did_not_have():
-    text = "\n".join(park.lines("demo-1", "demo", "worker.md", "user", [], [],
-                                "python run.py demo --resume demo-1"))
-    assert "task " not in text
+    from agentweft.runner import summary
+
+    needs = park.lines("worker.md", "user", [], [],
+                       "python run.py demo --resume demo-1")
+    text = "\n".join(summary.build(
+        "demo-1", "demo", None, [], {"git": False}, [], "",
+        stopped={"cause": "parked", "why": "waiting for user",
+                 "at": "worker.md"}, needs=needs))
+    assert "task" not in text
+    assert "to carry on\n  python run.py demo --resume demo-1\n" in text
 
 
 def test_run_once_takes_a_task(tmp_path, monkeypatch):

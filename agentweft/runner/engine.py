@@ -21,7 +21,7 @@ from agentweft.orchestrate import decisions, park, synthesise
 NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
 
-from .handoff import EMPTY, Handoff
+from .handoff import EMPTY, Handoff, back, merge, parse, transcript, without
 from . import errors
 from . import investigate
 from .errors import Fatal, Outage, kind_of
@@ -32,6 +32,7 @@ from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
 from . import stops
+from . import summary
 from . import task
 from . import trace
 from .state import load_state, save_state
@@ -150,13 +151,13 @@ def items(text):
 
 
 def journal(flow_name, status, started, run=None, cause=None, spend=None,
-            why=None, saved=None, origin=None):
+            why=None, saved=None, origin=None, handoff=None):
     """the only place a journal line gets written. there were three, and the
     failure one had drifted into a different column order. the shapes are in
     `stops`, which is also what reads them back."""
     secs = int((datetime.datetime.now() - started).total_seconds())
     text = stops.line(started, flow_name, status, secs, run, cause, spend,
-                      why, saved, origin)
+                      why, saved, handoff, origin)
     runs = state.RUNS
     runs.mkdir(parents=True, exist_ok=True)
     with open(runs / "journal.md", "a", encoding="utf-8") as f:
@@ -272,6 +273,19 @@ class Run(object):
             self.by_step[step_id(s)] = p
         self.briefed = briefing.digest(self.workdir)
         self.fence = fence.at(self.workdir, own=state.RUNS)
+        self.tree = summary.tree(self.workdir)
+        # every MUST NOT MISS line any step handed over, as (role, line): a
+        # constraint read from the spec by the first step binds the last
+        self.constraints = []
+
+    def rulings(self):
+        """-> the decisions on record in the place, as lines."""
+        return [summary.stamp(d) for d in decisions.read(self.workdir)]
+
+    def keep(self, role, block):
+        for line in block.get("must_not_miss", []):
+            if (role, line) not in self.constraints:
+                self.constraints.append((role, line))
 
     def fenced(self, step):
         """what is gone or changed that git cannot give back, or "" for none.
@@ -455,7 +469,11 @@ class Run(object):
         reports = self.reports_for(step)
         if reports:
             prompt = prompt + synthesise.brief(reports)
-        elif not (block and previous.role == investigate.INVESTIGATOR):
+        elif block and previous.role == investigate.INVESTIGATOR:
+            # the investigator's findings are handed as its labelled lines;
+            # its account of how it got them still travels
+            prompt = prompt + previous.as_brief()
+        else:
             prompt = prompt + previous.as_prompt()
         tried = trace.Attempt(task)
         self.attempts.append(tried)
@@ -473,10 +491,13 @@ class Run(object):
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
             self.charge(prompt, answer, used.name, used.asks_for())
+        block = back(parse(text), transcript(trace.last(tried, "session")))
+        self.keep(role, block)
         return Handoff(role, text, verdict(text, asked=asked),
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,
-                             "asked": asked})
+                             "asked": asked, "rulings": self.rulings()},
+                       block=block, carried=list(self.constraints))
 
 
 def fanned_verdict(parts):
@@ -539,7 +560,10 @@ def run_fanout(run, plan):
                   verdict=fanned_verdict(parts),
                   meta={"tasks": len(tasks),
                         "seconds": round(time.time() - began, 1),
-                        "asked": any(p.meta.get("asked") for p in parts)})
+                        "asked": any(p.meta.get("asked") for p in parts),
+                        "rulings": run.rulings()},
+                  block=merge(p.block for p in parts),
+                  carried=list(run.constraints))
     # every task went through Run.step, so what it recorded is whichever one
     # finished last. the joined output is what the step actually produced.
     run.produced[run.fan] = out.output
@@ -556,8 +580,12 @@ def check_step(run, route, step, out, run_dir=None):
 
     a step that declares no gates gets a `no gates` line of its own, so the
     record tells a step that had none from one that passed them.
+
+    the gates read the answer without its HANDOFF block: the block is the
+    step's account of the work, and a length cap or a pattern is about the
+    work.
     """
-    results = [g.run(out.output) for g in run.gates_for(step)]
+    results = [g.run(without(out.output)) for g in run.gates_for(step)]
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:
@@ -600,6 +628,7 @@ def run_once(flow, provider=None, task=None, trail=None):
                           came_from, output=output, fanned=step == run.fan)
         entry.gates = out.meta.get("gates", []) if output is not None else []
         entry.ungated = out.meta.get("ungated") if output is not None else None
+        entry.handoff = out.block if output is not None else None
         kept.close(entry, outcome, why=why, to=to, cause=cause)
 
     while step:
@@ -773,15 +802,23 @@ def main():
     came_from = None
     todo = order[order.index(start):]
     origin = None
+    earlier = []
     if pick_up:
         origin = found.origin if found else pick_up
         before = order[:order.index(start)]
+        earlier = summary.passes_of(
+            state.RUNS / pick_up,
+            dict((step_id(s), s["role"]) for s in fm.steps), fm)
+        for p in earlier:
+            run.keep(p["role"], p["block"])
         if before:
             came_from = before[-1]
             held = found.step(came_from) if found else None
             source = (held or {}).get("in") or pick_up
             out = Handoff(run.role_for(came_from),
-                          resume.step_output(source, came_from))
+                          resume.step_output(source, came_from),
+                          meta={"rulings": run.rulings()},
+                          carried=list(run.constraints))
             if held and held.get("digest") and \
                     manifest.of_text(out.output) != held["digest"]:
                 print(came_from + " was edited after " + source
@@ -835,12 +872,24 @@ def main():
     used = run.provider
     wrote = set()
 
+    def leave(stopped=None, needs=None):
+        """write the run's handoff.md from what the runner knows, and hand
+        back (its path, its lines)."""
+        lines = summary.build(run_id, fm["name"], asked, passes(trail, run, fm),
+                              run.tree.changes(), decisions.read(run.workdir),
+                              run.budget.summary(), stopped=stopped,
+                              needs=needs, command=resume_command(flow, run_id),
+                              before=earlier, started=started,
+                              found=run.produced.get(investigate.STEP, ""))
+        return summary.write(state.RUNS / run_id, lines), lines
+
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None):
         """every way a run ends short goes out through here: the step's line
-        and why.md say why, a handoff is left when someone is waited for, and
-        the journal line carries the cause and what the run spent. `at` is
-        the step the run stopped at, when that is not the one that ran.
+        and why.md say why, handoff.md says all of it with a "needs you"
+        section when someone is waited for, and the journal line carries the
+        cause, what the run spent and where the handoff is. `at` is the step
+        the run stopped at, when that is not the one that ran.
 
         -> the exit code.
         """
@@ -865,29 +914,27 @@ def main():
             again = cause == stops.OUTAGE
             left = (resume.remaining if again else resume.after)(steps(flow),
                                                                  at)
-            note = park.write(run_id, fm["name"], at, waiting, done,
-                              left, resume_command(flow, run_id),
-                              runs=state.RUNS,
-                              why=why + "," if told is None else told,
-                              again=again)
+            needs = park.lines(at, waiting, done, left,
+                               resume_command(flow, run_id),
+                               why=why + "," if told is None else told,
+                               again=again)
             print("parked at " + at + ", waiting for " + waiting)
-            print("it needs you: " + str(note))
         else:
             told = why
             if cause == stops.BUDGET:
                 told = (why + NEWLINE + "raise max_calls or max_tokens in "
                         + flow + "/flow.yaml first: a resume starts at what"
                         " this run spent, and the edit needs --force.")
-            note = park.write(run_id, fm["name"], at, None, done,
-                              resume.remaining(steps(flow), at),
-                              resume_command(flow, run_id), runs=state.RUNS,
-                              why=told, cause=cause)
-            print("to carry on: " + str(note))
+            needs = park.lines(at, None, done, resume.remaining(steps(flow), at),
+                               resume_command(flow, run_id), why=told,
+                               cause=cause)
+        note = leave({"cause": cause, "why": why, "at": at}, needs)
         if index:
             write_index(index)
         journal(fm["name"], stops.status(cause, at), started, run=run_id,
                 cause=cause, spend=run.budget.summary(), why=why,
-                origin=origin)
+                origin=origin, handoff=run_id + "/" + summary.FILE)
+        show(note)
         return stops.exit_code(cause)
 
     try:
@@ -924,6 +971,7 @@ def main():
                             out.meta.get("cached")))
             entry = trail.open(step, run.taken(), used, came_from,
                                output=out.output, fanned=step == run.fan)
+            entry.handoff = out.block
 
             fenced = run.fenced(step)
             if fenced:
@@ -1052,8 +1100,8 @@ def main():
             record.save(run.budget)
             came_from = step
             step = nxt
-        return finish(flow, fm, run, out, started, run_id, pick_up, record,
-                      origin)
+        return finish(flow, fm, run, out, started, run_id, pick_up, leave,
+                      record, origin)
     except BaseException as e:
         cause = stops.of(e)
         if cause == stops.EXCEPTION:
@@ -1077,6 +1125,36 @@ def main():
 def outage_why(e):
     return ("limit reached, resets " + e.resets + "; the provider said: "
             + e.detail)
+
+
+def passes(trail, run, fm):
+    """-> every pass the trail closed, in the shape the handoff is built
+    from: its gates with their commands, its block, its outcome."""
+    out = []
+    for entry, outcome in trail.closed:
+        said = ""
+        if entry.file and (trail.folder / entry.file).is_file():
+            said = (trail.folder / entry.file).read_text(encoding="utf-8")
+        try:
+            role = run.role_for(entry.step)
+        except KeyError:
+            role = entry.step
+        commands = summary.gate_commands(fm, entry.step, said)
+        out.append(summary.a_pass(entry.step, role,
+                                  trace.seconds(entry.attempts), entry.handoff,
+                                  summary._gates(entry.gates, commands),
+                                  entry.ungated, outcome, said))
+    return out
+
+
+def show(note):
+    """the run's last words: the top of its handoff, then where the whole
+    of it is. the path is the last line so a person or a script scrolling up
+    from the end finds it first."""
+    path, lines = note
+    for line in summary.top(lines):
+        print(line)
+    print("handoff: " + str(path))
 
 
 def gate_why(results):
@@ -1111,18 +1189,24 @@ def new_run_id(flow, started):
     return run_id
 
 
-def finish(flow, fm, run, out, started, run_id, pick_up, record=None,
+def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
            origin=None):
-    """the end of a run that got through every step. -> the exit code."""
-    broken = promises.failures(out.output, fm.promises.invariants)
+    """the end of a run that got through every step. -> the exit code.
+
+    what is saved and printed is the last step's answer without its HANDOFF
+    block: the block is on the step's line and in handoff.md, which `leave`
+    writes and which is the run's last word.
+    """
+    body = without(out.output)
+    broken = promises.failures(body, fm.promises.invariants)
     for inv, detail in broken:
         print("promise broken: " + inv + " (" + detail + ")")
         write_index("BROKE  " + flow + "  " + inv)
-    skipped = promises.unchecked(out.output, fm.promises.invariants)
+    skipped = promises.unchecked(body, fm.promises.invariants)
     for inv in skipped:
         print("promise not checked: " + inv)
 
-    shown = out.output
+    shown = body
     aside = investigate.for_the_person(run.produced.get(investigate.STEP, ""))
     if aside:
         shown = shown.rstrip("\n") + "\n\n" + aside + "\n"
@@ -1139,7 +1223,7 @@ def finish(flow, fm, run, out, started, run_id, pick_up, record=None,
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 
     if flow == "weekly-digest":
-        for section in out.output.split("## "):
+        for section in body.split("## "):
             if not section.strip():
                 continue
             name = section.split("\n")[0]
@@ -1148,7 +1232,7 @@ def finish(flow, fm, run, out, started, run_id, pick_up, record=None,
                 print("  - " + it)
             print("")
     elif flow == "ops-check":
-        for line in by_severity(items(out.output)):
+        for line in by_severity(items(body)):
             print("- " + line)
     else:
         print(shown)
@@ -1157,6 +1241,7 @@ def finish(flow, fm, run, out, started, run_id, pick_up, record=None,
         record.finish(run.workdir, state.RUNS)
         record.save(run.budget)
 
+    note = leave()
     # last, so that anything above that raises is this run's only end line
     # rather than a second one after an `ok`.
     # code-review runs per diff, several times an hour. it drowns the weekly
@@ -1170,7 +1255,9 @@ def finish(flow, fm, run, out, started, run_id, pick_up, record=None,
         if skipped:
             status = status + ", " + str(len(skipped)) + " promise(s) not checked"
         journal(fm["name"], status, started, run=run_id, saved=path.name,
-                spend=run.budget.summary(), origin=origin)
+                spend=run.budget.summary(), origin=origin,
+                handoff=run_id + "/" + summary.FILE)
+    show(note)
     return stops.EXIT_OK
 
 

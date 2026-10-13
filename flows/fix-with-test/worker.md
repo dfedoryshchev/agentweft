@@ -15,5 +15,7 @@ say how it fails and where the tests are, each on its own line, before them:
     FAILS: <the error the unpatched code gives>
     TEST: <the test file, relative to where you are>
 
-then the tests and nothing else. the test file is run after you answer, and a
-file that is not there or does not fail stops the run.
+then the tests, and nothing else before the handoff block. the test file is
+run after you answer, and a file that is not there or does not fail stops
+the run. in the block, DID names the cause as you understand it, and
+VERIFIED carries the run that showed the first test failing.

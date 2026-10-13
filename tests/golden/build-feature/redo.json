@@ -11,15 +11,54 @@
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  ok, 2 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)"
+    "<time>  build-feature  ok, 2 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "build-feature-<day>-1.md  build-feature  4 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# build-feature build-feature-<run>: finished",
+    "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- planner.md: no gates",
+    "- tester.md: PASS red-test - red, exit 1 (python -m pytest -q test_mul.py)",
+    "- worker.md: PASS command - exit 0 (python -m pytest -q)",
+    "- reviewer.md: no gates",
+    "- worker.md: PASS command - exit 0 (python -m pytest -q)",
+    "- reviewer.md: no gates",
+    "- red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py)",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: planner.md",
+    "- handoff missing: tester.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
+    "## run",
+    "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
+    "- reviewer.md sent the work back: mul is not tried on a negative number",
+    "- spend: 6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)",
+    "- finished",
+    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "build-feature-<day>-1.md",
     "build-feature-<run>/gates.md",
+    "build-feature-<run>/handoff.md",
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/reviewer.md",
@@ -71,7 +110,18 @@
       "file": "steps/001-planner.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -112,7 +162,18 @@
       "file": "steps/002-tester.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -153,7 +214,18 @@
       "file": "steps/003-worker.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 4,
@@ -217,7 +289,18 @@
       "file": "steps/004-reviewer.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 5,
@@ -258,7 +341,18 @@
       "file": "steps/005-worker.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 6,
@@ -322,7 +416,18 @@
       "file": "steps/006-reviewer.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -341,14 +446,20 @@
     "saved <tmp>/runs/build-feature-<day>-1.md",
     "VERDICT: ok",
     "- calc.py: mul(a, b) added",
-    "- test_mul.py: mul(-2, 3) is -6"
+    "- test_mul.py: mul(-2, 3) is -6",
+    "# build-feature build-feature-<run>: finished",
+    "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 8983b9f9e1e68c5d046795692307cdcd50428f58743ca7575aa77ef1a8ad73a0",
-    "reviewer.md go 1 eb64901804120b6641b441a02d243e6c608b81e43887aff86868a152ed0bdd66",
-    "reviewer.md go 2 9aaa59ea14a4b2ab12bfa50ea7731b6b1928029cce7ccb5100099bd32a30cfa9",
-    "tester.md go 1 ed58a9d92fccdca027d22a68e2ad70d8f8deec1d11f8dcbc8d850d9c6712ab4c",
-    "worker.md go 1 c8367c8dfdb76b30bf71769c66055123aa1e835c8e06ca42f71946534598d239",
-    "worker.md go 2 0d4b6bfbd68f9caeb6138935586a7601003617f79bb1825ddc05502d3d98406a"
+    "planner.md go 1 8633cd051ee162b42fa66bf697a6742a78f2adb3ab99502612c69b6a6a007824",
+    "reviewer.md go 1 e50e4e409b3f03c62b2a15e1e7ac5e572cf0e996c033966fba106eb797fd48c0",
+    "reviewer.md go 2 8ad0cd8278dcc0c1e8b2d44e0789f33841e4bd606d5bdcc8cf8e108c52ba9353",
+    "tester.md go 1 37a81764e87c47adc75cf08da40d58edc9b0cafa947c931f8ce6843b98fbd3fa",
+    "worker.md go 1 6f2fba5e126c3d75216920726150b0b29c254d5c21b7ebf3574604672255d8e8",
+    "worker.md go 2 a0a8196080d23e350163b0e0466f3772b342da6c0021c54c51d305ffa219bd9c"
   ]
 }

@@ -125,7 +125,7 @@ def test_a_two_step_run_writes_one_line_per_step(tmp_path, monkeypatch,
                                "detail": "1 lines"}]
     assert (first["outcome"], first["why"]) == ("ok", None)
     assert first["file"] == "steps/001-worker.md"
-    assert first["tasks"] is None and first["handoff"] is None
+    assert first["tasks"] is None and first["handoff"]["state"] == "missing"
     assert len(first["time"]) == len("2026-01-01T00:00:00")
     # the reviewer declares no gates and still has its line, saying so
     assert second["gates"] == []

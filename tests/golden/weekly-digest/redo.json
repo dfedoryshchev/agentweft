@@ -12,17 +12,60 @@
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)"
+    "<time>  weekly digest  ok  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)  weekly-digest-<run>/handoff.md"
   ],
   "index": [
     "weekly-digest-<day>-1.md  weekly-digest  4 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# weekly digest weekly-digest-<run>: finished",
+    "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: 4 of 4 gates passed; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- planner.md: no gates",
+    "- worker.md: no gates",
+    "- merge.md: no gates",
+    "- reviewer.md: PASS length - 2 lines",
+    "- reviewer.md: PASS regex",
+    "- worker.md: no gates",
+    "- merge.md: no gates",
+    "- reviewer.md: PASS length - 7 lines",
+    "- reviewer.md: PASS regex",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: planner.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: merge.md",
+    "- handoff missing: reviewer.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: merge.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
+    "- reviewer.md sent the work back: garden.md was never in the plan",
+    "- spend: 9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)",
+    "- finished",
+    "- record: runs/weekly-digest-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "weekly-digest-<day>-1.md",
     "weekly-digest-<run>/gates.md",
+    "weekly-digest-<run>/handoff.md",
     "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
@@ -73,7 +116,18 @@
       "file": "steps/001-planner.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -143,7 +197,18 @@
           "model_reported": "model-in-replay"
         }
       ],
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -178,7 +243,18 @@
       "file": "steps/003-merge.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 4,
@@ -253,7 +329,18 @@
       "file": "steps/004-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 5,
@@ -323,7 +410,18 @@
           "model_reported": "model-in-replay"
         }
       ],
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 6,
@@ -358,7 +456,18 @@
       "file": "steps/006-merge.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 7,
@@ -433,7 +542,18 @@
       "file": "steps/007-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -456,17 +576,23 @@
     "## needs me",
     "  - rent.md: due on the 1st",
     "## can wait",
-    "  - garden.md: order seeds in march"
+    "  - garden.md: order seeds in march",
+    "# weekly digest weekly-digest-<run>: finished",
+    "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: 4 of 4 gates passed; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 3ec2633beac13929bb4818ff3f11a98f8cdd132248b7813c3ca50c2b2da7170a",
-    "merge.md go 2 7f8080ad5c31bbf8a7bcef5099a90d06900d549b340210f3d59443e009e795a4",
-    "planner.md go 1 cb82c2ab2fe3c24ab3f59699430e7c13aef59c8e1fbcbe4a9000489c8f53839b",
-    "reviewer.md go 1 4d1e34bfe694bb53d93000def667dd8f8ff44259d767f6b8c3fa0d8a23272421",
-    "reviewer.md go 2 8da271908553415c33b694853891270dd92a94f536a17ad0264dfa9e1ba52020",
-    "worker.md task 1 go 1 d15edc47f10faa3b9f05ed43df4818cc05d93ce969e27f2e77a7bf9faf776bb6",
-    "worker.md task 1 go 2 5ace1c6b6271986d0dab0581ac2c0b463105a1c7a4a709e2f416a1a5a927c68b",
-    "worker.md task 2 go 1 68500f093c34dd9672fbabac8435a13a7815dc23606bb5833092f3b0b4f63fc0",
-    "worker.md task 2 go 2 dc4c4f869eb9bd0338495265101040cdde1ac44160e24faedcf0c27cae7ecb14"
+    "merge.md go 1 3f5b20b94f0cd9439ac6432e336a4cbd6653863f9cb3406de86c95740b439913",
+    "merge.md go 2 ff04044ea292ecba57b48d72eaa285775cbd111a7b9c8ac0a6b16e965fc44aac",
+    "planner.md go 1 2d1f5717334935132d0f7c638b7ed4c20f55ff22ad165767fb34ae16ad4307a0",
+    "reviewer.md go 1 d022d7b23808ea076def1f47c04aa7b0fce7adf5da2d97a0b21c7c3d5b7ff423",
+    "reviewer.md go 2 a5f4b6932685b76bb8bf321217856ff9727869e626bc78b5643dfb259fd272e1",
+    "worker.md task 1 go 1 de874fefc33cd26fe531e727eeb83297057b15a97420a71dabc4232d03e1c64f",
+    "worker.md task 1 go 2 1e0bcca1f99df9227a9b21627d11414e5e4d8a926a392304d518dae470fbde4c",
+    "worker.md task 2 go 1 7e06b2a231c2fe48223752340650e1f5c6aacbc25cd5f03c2d7d8408212b58d6",
+    "worker.md task 2 go 2 ab633d0736006f99e18d71647768dd88c0debd4c590ab45675c4e15cbb6865fd"
   ]
 }

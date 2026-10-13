@@ -11,10 +11,45 @@
   "index": [
     "code-review-<day>-1.md  code-review  2 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# code-review code-review-<run>: finished",
+    "code-review ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
+    "- reviewer.md sent the work back: the finding on app.py has no line",
+    "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
+    "- finished",
+    "- record: runs/code-review-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "code-review-<day>-1.md",
     "code-review-<run>/gates.md",
+    "code-review-<run>/handoff.md",
     "code-review-<run>/manifest.json",
     "code-review-<run>/reviewer.md",
     "code-review-<run>/steps.jsonl",
@@ -60,7 +95,18 @@
       "file": "steps/001-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -124,7 +170,18 @@
       "file": "steps/002-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -159,7 +216,18 @@
       "file": "steps/003-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 4,
@@ -223,7 +291,18 @@
       "file": "steps/004-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -237,12 +316,18 @@
     "promise not checked: nothing is reported that the diff does not show",
     "saved <tmp>/runs/code-review-<day>-1.md",
     "VERDICT: ok",
-    "- [high] app.py:12 the loop reads one past the end of items"
+    "- [high] app.py:12 the loop reads one past the end of items",
+    "# code-review code-review-<run>: finished",
+    "code-review ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 203cff533f74ec349bee0e1da388c09235264358c58480abe148e9006230c555",
-    "reviewer.md go 2 966ee198a0c815136278480b95aa2264f98072ff0702a1b8571ee7a43ac92190",
-    "worker.md go 1 30ec5eaae7438369f0a7d97479d83268998ba41ef74457fe67b7c326b0bad65c",
-    "worker.md go 2 3fd5dd255561129d887332a86705890e154d8bebe24612ea745a720c50ae63ec"
+    "reviewer.md go 1 2b4dadbfcf589facdb4623dfc2fe3adba567be584d3f099f89972c0bf6625c3a",
+    "reviewer.md go 2 e4de63c5ebb76f9f98fed83022b52b3ec5eb9f21bfb33f6b70c13b5a204c7f17",
+    "worker.md go 1 38394ae43c3bc13c7bbf23ad03e10f9aa41920f8b1fe8d2fe652f446b7b92c80",
+    "worker.md go 2 4f466cc73444b712f224ea78e96c634e94dbd3b8f9bac0feb3ab4874425b8895"
   ]
 }

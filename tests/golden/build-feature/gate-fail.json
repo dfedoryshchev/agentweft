@@ -7,17 +7,19 @@
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  red-test: no FAILS: line, so the test never failed"
+    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  red-test: no FAILS: line, so the test never failed  build-feature-<run>/handoff.md"
   ],
   "index": [
     "GATE  build-feature  red-test at tester.md"
   ],
   "handoff": [
-    "# stopped: build-feature-<run>",
+    "# build-feature build-feature-<run>: gate failed at tester.md - red-test: no FAILS: line, so the test never failed",
+    "build-feature ran planner.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: 0 of 1 gates passed; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## needs you",
     "cause          gate failed",
-    "flow           build-feature",
-    "task           calc gets mul(a, b), which multiplies",
-    "               all of it is in runs/build-feature-<run>/task.md, and --resume carries on with it",
     "stopped at     tester.md",
     "red-test: no FAILS: line, so the test never failed",
     "so the rest of it has not run.",
@@ -29,6 +31,31 @@
     "  worker.md",
     "  reviewer.md",
     "tester.md runs again when you carry on; the steps before it do not.",
+    "to carry on",
+    "  python run.py build-feature --resume build-feature-<run> --force",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- planner.md: no gates",
+    "- tester.md: FAIL red-test - no FAILS: line, so the test never failed (python -m pytest -q test_mul.py)",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: planner.md",
+    "- handoff missing: tester.md",
+    "## carry forward",
+    "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
+    "## run",
+    "- steps: planner.md <secs>s -> tester.md <secs>s",
+    "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
+    "- stopped: gate failed at tester.md",
+    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force"
   ],
@@ -81,7 +108,18 @@
       "file": "steps/001-planner.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -122,7 +160,18 @@
       "file": "steps/002-tester.md",
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -130,10 +179,30 @@
     "started tester.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at tester.md, stopping",
-    "to carry on: <tmp>/runs/build-feature-<run>/handoff.md"
+    "# build-feature build-feature-<run>: gate failed at tester.md - red-test: no FAILS: line, so the test never failed",
+    "build-feature ran planner.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: 0 of 1 gates passed; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## needs you",
+    "cause          gate failed",
+    "stopped at     tester.md",
+    "red-test: no FAILS: line, so the test never failed",
+    "so the rest of it has not run.",
+    "ran",
+    "  planner.md      <secs>s",
+    "  tester.md       <secs>s",
+    "left",
+    "  tester.md",
+    "  worker.md",
+    "  reviewer.md",
+    "tester.md runs again when you carry on; the steps before it do not.",
+    "to carry on",
+    "  python run.py build-feature --resume build-feature-<run> --force",
+    "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 8983b9f9e1e68c5d046795692307cdcd50428f58743ca7575aa77ef1a8ad73a0",
-    "tester.md go 1 ed58a9d92fccdca027d22a68e2ad70d8f8deec1d11f8dcbc8d850d9c6712ab4c"
+    "planner.md go 1 8633cd051ee162b42fa66bf697a6742a78f2adb3ab99502612c69b6a6a007824",
+    "tester.md go 1 37a81764e87c47adc75cf08da40d58edc9b0cafa947c931f8ce6843b98fbd3fa"
   ]
 }

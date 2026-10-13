@@ -8,17 +8,49 @@
   ],
   "journal": [
     "<time>  ops-check  running  <secs>s  ops-check-<run>",
-    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)"
+    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  ops-check-<run>/handoff.md"
   ],
   "index": [
     "ops-check-<day>-1.md  ops-check  3 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# ops-check ops-check-<run>: finished",
+    "ops-check ran planner.md -> worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- planner.md: no gates",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: planner.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: planner.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
+    "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
+    "- finished",
+    "- record: runs/ops-check-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "ops-check-<day>-1.md",
     "ops-check-<run>/gates.md",
+    "ops-check-<run>/handoff.md",
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
     "ops-check-<run>/reviewer.md",
@@ -63,7 +95,18 @@
       "file": "steps/001-planner.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -98,7 +141,18 @@
       "file": "steps/002-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -162,7 +216,18 @@
       "file": "steps/003-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -173,11 +238,17 @@
     "promise not checked: nothing is reported that the logs do not contain",
     "promise not checked: every finding keeps the raw line",
     "saved <tmp>/runs/ops-check-<day>-1.md",
-    "- [high] app.log: ERROR nightly-export failed: disk full"
+    "- [high] app.log: ERROR nightly-export failed: disk full",
+    "# ops-check ops-check-<run>: finished",
+    "ops-check ran planner.md -> worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 14c2967a2b5cbca1c5ee60eca050a2d9dd6fda89239a79dde53b984219f66fcf",
-    "reviewer.md go 1 1bac65d2c02bb4554f6f40b391215e3b34a1a8c40caa52295f8c9168c6e837bd",
-    "worker.md go 1 5d028dba920cdc6bbd48fadf04f1a23c964d93ed62910fe6fb085eb319b17967"
+    "planner.md go 1 1841c9b29b5952d022a916e4be3d81835a6c765c88f6eb889033577c5a472dac",
+    "reviewer.md go 1 1d1853231158b62af8177640920d371c96b252300c1e11d5b04faba2125258fe",
+    "worker.md go 1 6f12fc4f52acbcbdf78ca9bc7d00ec63bc3664e187febf559fe48f38bef679f6"
   ]
 }

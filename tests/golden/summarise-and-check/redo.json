@@ -9,17 +9,52 @@
   ],
   "journal": [
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
-    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)"
+    "<time>  summarise-and-check  ok, 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  summarise-and-check-<run>/handoff.md"
   ],
   "index": [
     "summarise-and-check-<day>-1.md  summarise-and-check  2 steps"
   ],
-  "handoff": [],
+  "handoff": [
+    "# summarise-and-check summarise-and-check-<run>: finished",
+    "summarise-and-check ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## tests and checks",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- worker.md: no gates",
+    "- reviewer.md: no gates",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "- handoff missing: worker.md",
+    "- handoff missing: reviewer.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## run",
+    "- steps: worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
+    "- reviewer.md sent the work back: notes.md: no line is named",
+    "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
+    "- finished",
+    "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.md, steps/"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "summarise-and-check-<day>-1.md",
     "summarise-and-check-<run>/gates.md",
+    "summarise-and-check-<run>/handoff.md",
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/reviewer.md",
     "summarise-and-check-<run>/steps.jsonl",
@@ -64,7 +99,18 @@
       "file": "steps/001-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 2,
@@ -128,7 +174,18 @@
       "file": "steps/002-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 3,
@@ -163,7 +220,18 @@
       "file": "steps/003-worker.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     },
     {
       "seq": 4,
@@ -227,7 +295,18 @@
       "file": "steps/004-reviewer.md",
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
     }
   ],
   "printed": [
@@ -241,12 +320,18 @@
     "saved <tmp>/runs/summarise-and-check-<day>-1.md",
     "VERDICT: ok",
     "notes.md: the plan moved to friday (line 3)",
-    "deleted: nothing, every line was backed"
+    "deleted: nothing, every line was backed",
+    "# summarise-and-check summarise-and-check-<run>: finished",
+    "summarise-and-check ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 f9dd3235e992a0b83ca044f0f3c964a081580ed0f3dc46dbc37d828c1ebc53bd",
-    "reviewer.md go 2 d3434fdf8d19543441d5251fdb2376c4438ceb495913dbee0c3262b27347fa4b",
-    "worker.md go 1 893626cce6830fa3895f13f4933d08050ad7658610bb8c7a8bceed0d2ffc3d55",
-    "worker.md go 2 b6cabf3f03078147dac28ae4d8257b5ece87068fa1c1b9ce028896a43d95fe49"
+    "reviewer.md go 1 760c0bcd0874e3affd8f8dc28a996c653b3a5a353ef011e044ac6eb32ab84e16",
+    "reviewer.md go 2 09f82d49c491778bf649e54d15e468b462093bdeacbe11a30449d7c9376a0909",
+    "worker.md go 1 6e9c36530759622f8c672a23f5db8b5d40045f4c1d1c108c664dfa6fd170d477",
+    "worker.md go 2 1d5daea0b3a75c60e0811d3497d0a64e9105aed4449ea5df51147425b3d18562"
   ]
 }
