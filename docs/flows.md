@@ -116,6 +116,25 @@ saying it may touch nothing, which is a boundary: `claude` gets no tools at
 all, and the answer is checked. every shipped reviewer is granted
 `[read, grep, shell]`, so it can run the command that reproduces a finding.
 
+`investigate:` puts one step in front of the flow's own, `investigator.md`,
+which finds the cause of the task and everything it reaches before anything is
+written. `off` is the default and the flow exactly as it was. `cause` asks for
+`CAUSE:` (the line and why), `SITES:` (every place sharing the cause, one
+`file:function` a line, no code), `FEEDS:` (the commands and callers the
+change feeds), `RELATED:` (other defects seen on the way), `ROOTED: yes|no`,
+`RULED OUT:` and `REPRO:` (the command actually run). `plan` asks for all of
+that plus `TESTS:` per affected command and `DECISIONS:` for the person. the
+step is granted `[read, grep, shell]`, must produce `CAUSE:`, and stops the
+run there when no site has a file and a function or there is no `ROOTED:`
+line. `ROOTED: no, <what is unknown>` parks the run for a person instead of
+fixing a guess; editing that step's output and resuming is how to hand it the
+missing piece. every step after it is handed the labelled lines and nothing
+else, in place of the raw answer. `RELATED:` and `DECISIONS:` never reach the
+fix: they are added to the run's saved output. it takes the task, so a flow
+with `investigate:` on takes one. a flow file that writes `{SCOPE}` gets
+what a patch may touch there: what the test reaches when nothing was
+investigated, the named sites when something was (`fix-with-test/patcher.md`).
+
 `fanout: true` on a step means the step before it produced a list, one line
 each, and every line gets its own call instead of the whole list going to one
 worker. the calls run side by side and the results are joined in the order

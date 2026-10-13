@@ -15,7 +15,7 @@ anyway.
 """
 from pathlib import Path
 
-from agentweft.flow.spec import step_id
+from agentweft.flow.spec import INVESTIGATOR, investigating, step_id
 
 MARK = "{TASK}"
 FILE = "task.md"
@@ -73,6 +73,10 @@ def places(flow_dir, fm):
             continue
         if MARK in path.read_text(encoding="utf-8"):
             out.append(name)
+    # the one library role that takes the task, and it is only in a flow
+    # that asked for it with `investigate:`
+    if investigating(fm.raw) != "off" and INVESTIGATOR + ".md" not in out:
+        out.append(INVESTIGATOR + ".md")
     return out
 
 

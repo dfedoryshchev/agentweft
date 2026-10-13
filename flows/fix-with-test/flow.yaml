@@ -1,4 +1,5 @@
 name: fix-with-test
+investigate: off
 steps:
   - role: worker
     prompt: worker.md

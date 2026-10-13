@@ -23,6 +23,7 @@ from agentweft.guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff
 from . import errors
+from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
@@ -425,6 +426,11 @@ class Run(object):
         # earlier step produced, or a task quoting a review, can carry its own
         # verdict line, and that does not ask this one for one
         asked = asks_for_verdict(prompt)
+        found = self.produced.get(investigate.STEP, "") \
+            if step != investigate.STEP else ""
+        prompt = investigate.scope(prompt, found)
+        if step == investigate.STEP:
+            prompt = prompt + investigate.plan_words(self.fm)
         prompt = prompts.put_task(prompt, self.task_text)
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
@@ -433,9 +439,13 @@ class Run(object):
         prompt = prompt + boundary.as_prompt(self.grant_for(step))
         if extra:
             prompt = prompt + extra
+        block = investigate.handed(found)
+        prompt = prompt + block
         reports = self.reports_for(step)
-        prompt = prompt + (synthesise.brief(reports) if reports
-                           else previous.as_prompt())
+        if reports:
+            prompt = prompt + synthesise.brief(reports)
+        elif not (block and previous.role == investigate.INVESTIGATOR):
+            prompt = prompt + previous.as_prompt()
         tried = trace.Attempt(task)
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
@@ -576,6 +586,9 @@ def run_once(flow, provider=None, task=None):
             return out.output, run.budget, "gate " + failed + " failed at " + step
         if blocked:
             return out.output, run.budget, blocked
+        unproven = investigate.unrooted(step, out.output)
+        if unproven:
+            return out.output, run.budget, "parked at " + step + ": " + unproven
         step = route.next(step, out)
     return out.output, run.budget, ""
 
@@ -674,6 +687,9 @@ def main():
                               resume.step_output(pick_up, before[-1]))
                 came_from = before[-1]
             print("picking " + pick_up + " up at " + todo[0])
+        if investigate.on(fm) and investigate.STEP not in todo:
+            run.produced[investigate.STEP] = resume.step_output(
+                pick_up, investigate.STEP)
     seen = load_state(flow).get("last_run")
     (state.RUNS / run_id).mkdir(parents=True, exist_ok=True)
     (state.RUNS / run_id / "workdir").write_text(str(run.workdir),
@@ -852,6 +868,13 @@ def main():
                 return stop(stops.GATE, blocked, "gate failed", entry,
                             index="FAILED  " + flow + "  at " + step)
 
+            unproven = investigate.unrooted(step, out.output)
+            if unproven:
+                print(unproven)
+                return stop(stops.PARKED, unproven, "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user")
+
             stuck = route.out_of_redos(out)
             nxt = route.next(step, out)
             waiting = run.pause_for(step) or ("user" if stuck else None)
@@ -934,9 +957,13 @@ def finish(flow, fm, run, out, started, run_id, pick_up):
     for inv in skipped:
         print("promise not checked: " + inv)
 
+    shown = out.output
+    aside = investigate.for_the_person(run.produced.get(investigate.STEP, ""))
+    if aside:
+        shown = shown.rstrip("\n") + "\n\n" + aside + "\n"
     path = next_run_path(flow)
     f = open(path, "w", encoding="utf-8")
-    f.write(out.output)
+    f.write(shown)
     f.close()
     print("saved " + str(path))
 
@@ -959,7 +986,7 @@ def finish(flow, fm, run, out, started, run_id, pick_up):
         for line in by_severity(items(out.output)):
             print("- " + line)
     else:
-        print(out.output)
+        print(shown)
 
     # last, so that anything above that raises is this run's only end line
     # rather than a second one after an `ok`.

@@ -125,6 +125,10 @@ FLOW_ONLY = (
     Pair("flow.tiers", "",
          "a tier per role, under a step's own `model`. a phase has no word "
          "for it: each agent carries its tier in its own file."),
+    Pair("flow.investigate", "",
+         "a step put in front of the flow's own that finds the cause and the "
+         "sites it reaches before anything is written. a phase that wants one "
+         "names an agent for it, which is a step and not a switch."),
     Pair("step.prompt", "",
          "which file the step sends. an agent's prompt is its own name plus "
          ".md, so it cannot be pointed anywhere else."),

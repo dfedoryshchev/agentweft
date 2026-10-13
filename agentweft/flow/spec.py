@@ -80,7 +80,7 @@ def steps_named(steps, name):
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
-         "tiers")
+         "tiers", "investigate")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports")
@@ -103,6 +103,45 @@ TIERS = ("high", "mid", "low")
 GRANTS = ("read", "grep", "write", "edit", "shell", "browser")
 
 PREFLIGHT_MODES = ("flag", "refuse", "park")
+
+# `investigate:` puts one step in front of the flow's own that finds the cause
+# of the task and everything it reaches before anything is written. `cause` is
+# the cause and its sites, `plan` adds the tests to write and what the person
+# has to decide. the step's name is not `planner`, which already means a step
+# whose lines are fanned out and that is handed the risk map.
+INVESTIGATE = ("off", "cause", "plan")
+INVESTIGATOR = "investigator"
+# one site per line, `file:function`: a few anchors and not the code, which the
+# step after reads for itself
+SITES = r"^SITES:[ \t]*\n(?:[ \t]*-[ \t]+\S+:\S+.*\n?)+"
+ROOTED = r"^ROOTED:[ \t]*(yes|no)\b"
+
+
+def investigating(raw):
+    """-> the mode a flow asked for, "off" when it asked for none.
+
+    a bare `off` in yaml is read as false, so false is off as well.
+    """
+    value = raw.get("investigate")
+    if value is None or value is False:
+        return "off"
+    return value
+
+
+def investigator():
+    return {"role": INVESTIGATOR, "prompt": INVESTIGATOR + ".md",
+            "must_produce": "CAUSE:", "tools": ["read", "grep", "shell"],
+            "gates": [{"gate": "regex", "pattern": SITES},
+                      {"gate": "regex", "pattern": ROOTED}]}
+
+
+def with_investigator(raw):
+    """-> raw, with the investigator as its first step when it asked for one."""
+    if investigating(raw) not in INVESTIGATE[1:]:
+        return raw
+    out = dict(raw)
+    out["steps"] = [investigator()] + list(raw.get("steps") or [])
+    return out
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
@@ -226,7 +265,9 @@ def check(raw):
         for name in (step["role"], step_name(step)):
             if name not in earlier:
                 earlier.append(name)
-    bad.extend(check_tiers(raw))
+    if investigating(raw) not in INVESTIGATE:
+        bad.append("investigate should be one of " + ", ".join(INVESTIGATE))
+    bad.extend(check_tiers(with_investigator(raw)))
     return bad
 
 
@@ -256,4 +297,4 @@ def load(raw):
     bad = check(raw)
     if bad:
         raise ValueError("flow.yaml: " + "; ".join(bad))
-    return FlowSpec(raw)
+    return FlowSpec(with_investigator(raw))
