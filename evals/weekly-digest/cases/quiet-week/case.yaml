@@ -1,5 +1,22 @@
 inbox: inbox
 provider:
   provider: fake
+  reply: |
+    VERDICT: ok
+
+    ## needs me
+    - budget.md | needs-me | sign the renewal by friday
+
+    ## can wait
+    - notes.md | can-wait | nothing much happened
+    - empty.md | can-wait | the file is empty
 expect:
   invariants: all
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> worker.md
+      - worker.md ok -> merge.md
+      - merge.md ok -> reviewer.md
+      - reviewer.md ok  PASS length  PASS regex
+  calls: 6

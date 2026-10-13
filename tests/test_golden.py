@@ -26,6 +26,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.evals import recording
+from agentweft.evals import steps as took
 from agentweft.providers import cli_provider
 from agentweft.runner import engine, prompts, trace
 
@@ -353,16 +354,12 @@ def record(runs, code, raised, printed):
     # a run refused before it started leaves no runs folder at all
     runs.mkdir(parents=True, exist_ok=True)
     for folder in sorted(p for p in runs.iterdir() if p.is_dir()):
-        steps = steps + [json.loads(l) for l in text_lines(folder / trace.FILE)]
+        steps = steps + took.read(folder)
         handoff = handoff + text_lines(folder / "handoff.md")
     return {
         "exit": code,
         "raised": raised,
-        "path": [str(l["seq"]) + " " + l["step"] + " " + l["outcome"]
-                 + (" -> " + l["to"] if l["to"] else "")
-                 + "".join(("  PASS " if g["ok"] else "  FAIL ") + g["gate"]
-                           for g in l["gates"])
-                 for l in steps],
+        "path": [str(l["seq"]) + " " + took.said(l) for l in steps],
         "journal": text_lines(runs / "journal.md"),
         "index": text_lines(runs / "index.md"),
         "handoff": handoff,

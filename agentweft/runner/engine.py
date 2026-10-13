@@ -567,19 +567,36 @@ def check_step(run, route, step, out, run_dir=None):
     return "", route.gate(step, out) or ""
 
 
-def run_once(flow, provider=None, task=None):
+def run_once(flow, provider=None, task=None, trail=None):
     """run a flow and hand back what it produced, what it cost, and why it
     stopped short ("" when it did not). the eval harness wants the output, not
-    the printing, and it wants to say which provider the whole thing runs on."""
+    the printing, and it wants to say which provider the whole thing runs on.
+
+    `trail` is a folder to write the run's steps.jsonl into, the same lines a
+    run of `main` writes, for a case that asserts the steps it took."""
     fm = config(flow)
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     run = Run(flow, fm, by_role, provider=provider, task=task)
     route = router.Router(fm, cap=2)
+    kept = trace.Trail(trail) if trail is not None else None
     out = EMPTY
     step = steps(flow)[0]
+    came_from = None
+
+    def note(outcome, why=None, cause=None, to=None, output=None):
+        taken = run.taken()
+        if kept is None:
+            return
+        entry = kept.open(step, taken, run.by_step.get(step, run.provider),
+                          came_from, output=output, fanned=step == run.fan)
+        entry.gates = out.meta.get("gates", []) if output is not None else []
+        entry.ungated = out.meta.get("ungated") if output is not None else None
+        kept.close(entry, outcome, why=why, to=to, cause=cause)
+
     while step:
         refused = run.refused(step)
         if refused:
+            note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
         try:
             if step == run.fan:
@@ -587,23 +604,34 @@ def run_once(flow, provider=None, task=None):
             else:
                 out = run.step(step, previous=out)
         except Outage as e:
+            note("parked", outage_why(e), stops.OUTAGE)
             return (out.output, run.budget, "provider outage at " + step
                     + ": " + outage_why(e))
         fenced = run.fenced(step)
         if fenced:
+            note("parked", fenced, stops.PARKED, output=out.output)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
         if not out:
-            return out.output, run.budget, \
-                out.meta.get("why") or "nothing came out of " + step
+            why = out.meta.get("why") or "nothing came out of " + step
+            note("failed", why, stops.NO_ANSWER, output=out.output)
+            return out.output, run.budget, why
         failed, blocked = check_step(run, route, step, out)
-        if failed:
-            return out.output, run.budget, "gate " + failed + " failed at " + step
-        if blocked:
+        if failed or blocked:
+            why = gate_why(out.meta["gates"]) if failed else blocked
+            note("gate failed", why, stops.GATE, output=out.output)
+            if failed:
+                return (out.output, run.budget,
+                        "gate " + failed + " failed at " + step)
             return out.output, run.budget, blocked
         unproven = investigate.unrooted(step, out.output)
         if unproven:
+            note("parked", unproven, stops.PARKED, output=out.output)
             return out.output, run.budget, "parked at " + step + ": " + unproven
-        step = route.next(step, out)
+        nxt = route.next(step, out)
+        note("redo" if out.verdict == "redo" and nxt else "ok", to=nxt,
+             output=out.output)
+        came_from = step
+        step = nxt
     return out.output, run.budget, ""
 
 

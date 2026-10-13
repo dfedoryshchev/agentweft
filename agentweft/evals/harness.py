@@ -9,11 +9,12 @@ expected output, because the output is not deterministic and pretending it is
 would make this useless within a week.
 """
 import os
+import tempfile
 from pathlib import Path
 
 import yaml
 
-from . import recording
+from . import recording, steps
 
 ROOT = Path("evals")
 
@@ -48,10 +49,20 @@ def load_case(path):
             "task": task}
 
 
+class Ran(tuple):
+    """(output, budget, why it stopped short or ""), plus `steps`: the lines
+    of the run's steps.jsonl."""
+
+    def __new__(cls, out, budget, stopped, record=()):
+        self = tuple.__new__(cls, (out, budget, stopped))
+        self.steps = list(record)
+        return self
+
+
 def run_flow_for(flow, case, record=False):
     """point the flow at the case's inputs and run it.
 
-    -> (output, budget, why it stopped short or "").
+    -> a Ran: (output, budget, why it stopped short or ""), and its steps.
 
     the case says which provider, and it has to win: the cases have declared
     `provider: fake` since the day they were written and nothing read it, so
@@ -72,13 +83,13 @@ def run_flow_for(flow, case, record=False):
         asked = task.settle(flow, task.places(flow_path(flow), config(flow)),
                             case.get("task"))
     except ValueError as e:
-        return "", None, str(e)
+        return Ran("", None, str(e))
     pinned = case.get("provider")
     replay = recorder = None
     if record:
         if not pinned:
-            return "", None, (case["name"] + " names no provider in "
-                              "case.yaml, so there is no one to record")
+            return Ran("", None, (case["name"] + " names no provider in "
+                                  "case.yaml, so there is no one to record"))
         pinned = recorder = recording.Recorder(providers.build(pinned))
     elif case.get("recording"):
         pinned = replay = recording.Replay.load(case["recording"])
@@ -87,37 +98,49 @@ def run_flow_for(flow, case, record=False):
         # the path is in the prompt, and a recording made on Windows has to
         # hash the same on Linux
         os.environ[k] = Path(case["inbox"]).as_posix()
-    try:
-        out = engine.run_once(flow, provider=pinned, task=asked)
-    except recording.Mismatch as e:
-        return "", None, str(e)
-    finally:
-        for k, v in old.items():
-            if v is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = v
+    with tempfile.TemporaryDirectory() as folder:
+        try:
+            out = engine.run_once(flow, provider=pinned, task=asked,
+                                  trail=Path(folder))
+        except recording.Mismatch as e:
+            return Ran("", None, str(e), steps.read(Path(folder)))
+        finally:
+            for k, v in old.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        took = steps.read(Path(folder))
     if recorder is not None:
         recorder.save(case["path"] / recording.FILE)
     if replay is not None and replay.unused():
-        return out[0], out[1], (recording.PREFIX + "has answers the run never"
-                                " asked for: " + ", ".join(replay.unused()))
-    return out
+        return Ran(out[0], out[1], (recording.PREFIX + "has answers the run "
+                                    "never asked for: "
+                                    + ", ".join(replay.unused())), took)
+    return Ran(out[0], out[1], out[2], took)
 
 
-def score(spec, output, budget=None, stopped="", seconds=None):
+def score(spec, output, budget=None, stopped="", seconds=None, steps=(),
+          expect=None):
     """a case does not have an expected output; it has promises that either
     held or did not, and a run that got to the end or did not.
 
     the second one is a row of its own because the text cannot say it: a gate
     on the last step leaves that step's text behind, and an empty text keeps
-    every promise there is."""
+    every promise there is.
+
+    a case can also expect the steps the run took and how many calls it
+    made, held against `steps`, the run's own record of them."""
     from agentweft.guardrails import promises
+
+    from . import steps as took
 
     rows = [{"invariant": "the run got to the end", "ok": not stopped,
              "detail": stopped or "every step ran"}]
     for inv, ok, detail in promises.check(output, spec.promises.invariants):
         rows.append({"invariant": inv, "ok": ok, "detail": detail})
+    rows.extend(took.rows(expect or {}, steps,
+                          getattr(budget, "calls", 0)))
     checked = [r for r in rows if r["ok"] is not None]
     passed = len([r for r in checked if r["ok"]])
     money = budget.money() if hasattr(budget, "money") else {}

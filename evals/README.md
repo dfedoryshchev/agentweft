@@ -14,8 +14,47 @@ case folder; not both. a case missing the task its flow needs, or giving one
 to a flow with no place for it, scores as a run that did not get to the end.
 
 what a case asserts is the flow's own promises - the same invariants the runner
-already checks - plus that the run got to the end, plus what it cost. a run
+already checks - plus that the run got to the end, plus what it cost, plus
+the steps it took when the case says which (below). a run
 stopped by a gate, or by a step that produced nothing, loses that one.
+
+## the steps it took
+
+a right answer reached the wrong way scores like a right answer, so a case can
+also say which steps ran and how many calls the run made. both are read off
+the run's own `steps.jsonl`, never off what a step said:
+
+    expect:
+      invariants: all
+      steps:
+        match: strict
+        path:
+          - planner.md ok -> worker.md
+          - worker.md ok -> merge.md
+          - merge.md ok -> reviewer.md
+          - reviewer.md ok  PASS length  PASS regex
+      calls: 6
+
+a line of `path` is a pass at a step as the golden runs in `tests/golden/`
+write it, without the number: the step, its outcome, where it sent the work,
+then every gate it ran. it may stop at any word, so `reviewer.md` is any pass
+at the reviewer and `reviewer.md gate failed` one a gate stopped. `match` is
+one of the four trajectory match modes of agentevals, `strict` when not given:
+
+- `strict`: these passes in this order and no others
+- `unordered`: these passes and no others, in any order
+- `superset`: every one of these ran, and others may have too. a case that
+  passes only if the gate ran says it this way
+- `subset`: nothing ran that is not one of these, so a run that stopped
+  never went on past the step that stopped it
+
+each mode counts, so two `worker.md` lines want two passes at the worker. a
+case that fails one says the mode and the passes:
+
+    FAIL the steps it took (superset) - missing merge.md
+
+these hold the runner's own path - the steps, the redos, the gates - and
+not anything a model did inside a step.
 
 ## recorded cases
 

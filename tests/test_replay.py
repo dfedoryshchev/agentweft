@@ -222,8 +222,10 @@ def test_the_shipped_recorded_case_replays_what_it_does_live(monkeypatch):
     assert case["recording"] is not None
     live = dict(case, recording=None)
     spec = engine.config(FLOW)
-    want = harness.score(spec, *harness.run_flow_for(FLOW, live))
+    was = harness.run_flow_for(FLOW, live)
+    want = harness.score(spec, *was, steps=was.steps, expect=case["expect"])
     nothing_is_called(monkeypatch)
-    got = harness.score(spec, *harness.run_flow_for(FLOW, case))
+    now = harness.run_flow_for(FLOW, case)
+    got = harness.score(spec, *now, steps=now.steps, expect=case["expect"])
     assert got["rows"] == want["rows"]
     assert (got["calls"], got["tokens"]) == (want["calls"], want["tokens"])

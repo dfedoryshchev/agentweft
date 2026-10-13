@@ -33,11 +33,13 @@ def main():
     for path in cases:
         case = harness.load_case(path)
         started = time.time()
-        out, budget, stopped = harness.run_flow_for(flow, case, record=record)
+        ran = harness.run_flow_for(flow, case, record=record)
+        out, budget, stopped = ran
         if stopped.startswith(recording.PREFIX):
             unmatched.append(case["name"])
         scored = harness.score(spec, out, budget, stopped,
-                               time.time() - started)
+                               time.time() - started, steps=ran.steps,
+                               expect=case["expect"])
         scored["replayed"] = bool(case["recording"]) and not record
         results.append((case["name"], scored))
     print(harness.table(flow, results))
