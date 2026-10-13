@@ -26,7 +26,7 @@ def parse_ranking(text):
         if len(parts) < 2:
             continue
         try:
-            out[parts[0]] = float(parts[-1])
+            out[parts[0].rstrip(":")] = float(parts[-1])
         except ValueError:
             continue
     return out
