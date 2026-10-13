@@ -52,6 +52,19 @@ def load_env():
         os.environ[k] = v
 
 
+def console():
+    """a character the console has no byte for is printed as `?`.
+
+    a model answers in any script and a Windows console is often cp1252, so
+    printing an answer raised after the run's work was done and written down.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def retry(fn, cap=3, sleep=time.sleep):
     tries = 0
     wait = 2
@@ -92,11 +105,11 @@ def call(prompt, timeout=None, cap=3, step="?", provider=None):
         kind = kind_of(reply)
         print("step " + step + " failed (" + kind.__name__.lower() + "): "
               + reply.detail)
-        if kind is Fatal:
-            # going again will not help and it still costs
-            raise Fatal(reply.detail)
         cause = kind.__name__.lower()
         failed[cause] = failed.get(cause, 0) + 1
+        if kind is Fatal:
+            # going again will not help and it still costs
+            raise Fatal(reply.detail, replies=heard, retries=failed)
         if kind is Outage:
             raise Outage(reply.detail,
                          reply.outage or errors.resets(reply.detail),
@@ -207,7 +220,6 @@ class Run(object):
         self.workdir = where(fm, workdir)
         self.timeout = int(settings.get("timeout", flow=fm))
         self.retries = int(settings.get("retries", flow=fm))
-        self.workers = int(settings.get("workers", flow=fm))
         self.fan = fanout_step(flow)
         self.produced = {}
         self.answers = {}
@@ -413,7 +425,7 @@ class Run(object):
         used = self.by_step.get(step, self.provider)
         try:
             answer = tried.answered(self.ask(prompt, step, used))
-        except Outage as e:
+        except (Outage, Fatal) as e:
             refused = tried.answered(Answer("", False, e.replies, e.retries))
             self.charge(prompt, refused, used.name, used.asks_for())
             raise
@@ -427,18 +439,6 @@ class Run(object):
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,
                              "asked": asked})
-
-
-def run_steps(run, names, note=EMPTY):
-    """the redo path. same pipeline as the first pass, fanout included - a redo
-    that skips the fanout is not the same flow."""
-    out = note
-    for step in names:
-        if step == run.fan:
-            out = run_fanout(run, out)
-            continue
-        out = run.step(step, previous=out)
-    return out
 
 
 def fanned_verdict(parts):
@@ -564,6 +564,7 @@ def run_once(flow, provider=None, task=None):
 
 
 def main():
+    console()
     load_env()
     if "--flows" in sys.argv:
         prompts.FLOW_ROOT[0] = sys.argv[sys.argv.index("--flows") + 1]
@@ -672,14 +673,15 @@ def main():
     used = run.provider
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
-             told=None):
+             told=None, at=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, a handoff is left when someone is waited for, and
-        the journal line carries the cause and what the run spent.
+        the journal line carries the cause and what the run spent. `at` is
+        the step the run stopped at, when that is not the one that ran.
 
         -> the exit code.
         """
-        at = step or came_from or todo[-1]
+        at = at or step or came_from or todo[-1]
         if entry is None and step:
             entry = trail.open(step, run.taken(), used, came_from,
                                fanned=step == run.fan)
@@ -718,6 +720,7 @@ def main():
                             entry=trail.open(step, [], used, came_from),
                             index="REFUSED  " + flow + "  " + step)
             print("started " + step)
+            handed = out
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
@@ -759,10 +762,19 @@ def main():
                 # nothing reports on nothing, and that report reads as the
                 # reason the run stopped
                 why = out.meta.get("why")
-                print("run stopped at " + step + (": " + why if why else ""))
+                blamed = None
+                if (out.meta.get("tasks") == 0 and came_from
+                        and handed.verdict != "redo"):
+                    # the fanned step ran over nothing; what it was handed is
+                    # where the run went wrong, and where a resume starts
+                    blamed = came_from
+                    why = "no tasks: " + why
+                print("run stopped at " + (blamed or step)
+                      + (": " + why if why else ""))
                 return stop(stops.NO_ANSWER, why or nothing_why(step, entry),
                             "failed", entry,
-                            index="FAILED  " + flow + "  at " + step)
+                            index="FAILED  " + flow + "  at "
+                            + (blamed or step), at=blamed)
 
             failed, blocked = check_step(run, route, step, out,
                                          run_dir=step_dir)
@@ -915,19 +927,6 @@ def finish(flow, fm, run, out, started, run_id, pick_up):
                       "at": datetime.datetime.now().isoformat(),
                       "workdir": str(run.workdir)})
 
-    # code-review runs per diff, several times an hour. it drowns the weekly
-    # rollup and none of it is interesting a day later.
-    if fm.get("journal", True):
-        status = "ok"
-        if pick_up:
-            status = "ok (resumed)"
-        if broken:
-            status = "ok, " + str(len(broken)) + " promise(s) broken"
-        if skipped:
-            status = status + ", " + str(len(skipped)) + " promise(s) not checked"
-        journal(fm["name"], status, started, run=run_id, saved=path.name,
-                spend=run.budget.summary())
-
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 
     if flow == "weekly-digest":
@@ -944,6 +943,21 @@ def finish(flow, fm, run, out, started, run_id, pick_up):
             print("- " + line)
     else:
         print(out.output)
+
+    # last, so that anything above that raises is this run's only end line
+    # rather than a second one after an `ok`.
+    # code-review runs per diff, several times an hour. it drowns the weekly
+    # rollup and none of it is interesting a day later.
+    if fm.get("journal", True):
+        status = "ok"
+        if pick_up:
+            status = "ok (resumed)"
+        if broken:
+            status = "ok, " + str(len(broken)) + " promise(s) broken"
+        if skipped:
+            status = status + ", " + str(len(skipped)) + " promise(s) not checked"
+        journal(fm["name"], status, started, run=run_id, saved=path.name,
+                spend=run.budget.summary())
     return stops.EXIT_OK
 
 

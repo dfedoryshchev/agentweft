@@ -117,6 +117,9 @@ nothing, which is a boundary and does get checked.
 each, and every line gets its own call instead of the whole list going to one
 worker. the calls run side by side and the results are joined in the order
 of the list, so a fanout step almost always wants a merge step after it.
+a line is a task when it has a `|` in it. a list with none stops the run at
+the step that wrote it, `failed at <that step>` with `no tasks:` at the start
+of the why, and `--resume` asks that step again.
 
 `reports: [worker, reviewer]` on a step names the steps whose output it is
 handed, instead of only the one before it. it is the other kind of many:

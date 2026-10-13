@@ -174,12 +174,24 @@ def test_a_failed_go_the_provider_counted_is_charged_what_it_counted():
 
 
 def test_the_token_cap_trips_on_counted_tokens_only_past_the_cap():
-    b = Budget(max_tokens=12850)
+    b = Budget(max_tokens=850)
     b.charge("p", counted(HEAVY))
     assert b.over() is None
     b.charge("p", counted({"output_tokens": 1}))
-    assert b.over() == ("token cap: 12851 > 12850 (12851 counted:"
-                        " input 12810, output 41)")
+    assert b.over() == ("token cap: 851 > 850 (851 counted: input 10,"
+                        " cache_creation 800, output 41; cache_read 12000"
+                        " not counted)")
+
+
+def test_a_set_token_cap_leaves_cache_reads_out():
+    """a cache read is the same prompt read again at a tenth of the price. a
+    cap counting it trips on runs that cost next to nothing."""
+    b = Budget(max_tokens=1000)
+    b.charge("p", counted({"input_tokens": 100, "output_tokens": 50,
+                           "cache_read_input_tokens": 300000,
+                           "cache_creation_input_tokens": 200}))
+    assert b.over() is None
+    assert b.tokens == 300350
 
 
 def test_the_token_cap_names_both_halves_of_a_mixed_total():
@@ -306,27 +318,50 @@ def test_a_bare_pair_from_a_stand_in_call_is_one_estimated_call(
     assert run.budget.tokens >= 100
 
 
-def test_cache_reads_count_against_the_token_cap(tmp_path, monkeypatch,
-                                                 fake_cli):
+def test_cache_writes_count_against_the_token_cap(tmp_path, monkeypatch,
+                                                  fake_cli):
     """the prompt is a few dozen characters, so the estimate would never get
-    near the cap; what the provider read from its cache does."""
+    near the cap; what the provider wrote to its cache does."""
     a_flow(tmp_path, monkeypatch, "cached-heavy", ["worker", "reviewer"],
-           tail=CLAUDE + "max_tokens: 5000\n")
+           tail=CLAUDE + "max_tokens: 500\n")
     fake_cli(answer("did it\n", usage=HEAVY))
     engine.main()
-    assert ("OVER  cached-heavy  token cap: 12850 > 5000 (12850 counted:"
-            " input 12810, output 40)") in index()
+    assert ("OVER  cached-heavy  token cap: 850 > 500 (850 counted: input 10,"
+            " cache_creation 800, output 40; cache_read 12000 not counted)") \
+        in index()
+
+
+def test_an_ordinary_run_is_not_stopped_by_a_token_cap_it_never_set(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "ordinary", ["worker", "reviewer"])
+    fake_cli(answer("VERDICT: ok\n\ndid it\n",
+                    usage={"input_tokens": 100, "output_tokens": 500,
+                           "cache_read_input_tokens": 300000,
+                           "cache_creation_input_tokens": 20000}))
+    assert engine.main() == 0
+    assert "  budget  " not in journal()
+    assert "  ordinary  ok  " in journal()
 
 
 def test_the_cap_is_exact_at_the_boundary_through_the_engine(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "edge", ["worker", "reviewer"],
-           tail=CLAUDE + "max_tokens: 12850\n")
+           tail=CLAUDE + "max_tokens: 850\n")
     fake_cli(answer("did it\n", usage=HEAVY),
              answer("VERDICT: ok\n\nfine\n", usage={"output_tokens": 1}))
     engine.main()
-    assert "OVER  edge  token cap: 12851 > 12850" in index()
+    assert "OVER  edge  token cap: 851 > 850" in index()
     assert "  failed at reviewer.md  " in journal()
+    assert "  budget  " in journal()
+
+
+def test_a_budget_stop_exits_like_any_other_stop(tmp_path, monkeypatch,
+                                                 fake_cli):
+    a_flow(tmp_path, monkeypatch, "pricey", ["worker", "reviewer"],
+           tail=CLAUDE + "max_tokens: 5000\n")
+    fake_cli(answer("did it\n", usage={"input_tokens": 6000,
+                                       "output_tokens": 1}))
+    assert engine.main() == 2
     assert "  budget  " in journal()
 
 

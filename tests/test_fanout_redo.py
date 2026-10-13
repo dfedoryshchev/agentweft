@@ -8,7 +8,7 @@ import json
 import sys
 
 sys.path.insert(0, ".")
-from agentweft.runner import engine, prompts, trace
+from agentweft.runner import engine, prompts, resume, trace
 
 NL = chr(10)
 PLAN = "a.py | look at a" + NL + "b.py | look at b" + NL
@@ -155,13 +155,20 @@ def test_a_plan_with_no_tasks_stops_and_says_why(tmp_path, monkeypatch,
                                                  capsys):
     asked = go(tmp_path, monkeypatch, "nothing changed this week" + NL, [])
     assert steps_of(asked) == ["planner.md"]
-    assert journal(tmp_path) == "failed at worker.md"
+    assert journal(tmp_path) == "failed at planner.md"
     last = trail(tmp_path)[-1]
     assert last["step"] == "worker.md" and last["outcome"] == "failed"
     assert last["cause"] == "no answer"
+    assert last["why"].startswith("no tasks: ")
     assert "what planner handed it has none" in last["why"]
-    assert "run stopped at worker.md: worker.md is fanned out" \
+    assert "run stopped at planner.md: no tasks: worker.md is fanned out" \
         in capsys.readouterr().out
+    why = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()][0]
+    assert (why / "why.md").read_text(encoding="utf-8").startswith(
+        "stopped at planner.md\n")
+    stopped = resume.last_stop("fan-redo")
+    assert resume.remaining(engine.steps("fan-redo"), stopped.step)[0] == \
+        "planner.md"
 
 
 def test_the_first_pass_does_not_hand_the_workers_anything_but_their_task(

@@ -1,5 +1,5 @@
 from .config import config, due, fanout_step, steps, verdict
-from .engine import Run, call, main, retry, run_once, run_steps
+from .engine import Run, call, main, retry, run_once
 from .errors import BadPrompt, Fatal, Transient, classify
 from .handoff import EMPTY, Handoff
 from .prompts import flow_path, load_prompt, read
@@ -12,6 +12,6 @@ __all__ = [
     "BadPrompt", "EMPTY", "Fatal", "Handoff", "Router", "Run", "Stop",
     "Transient", "after", "call", "classify", "config", "due", "fanout_step",
     "flow_path", "last_failure", "last_stop", "load_prompt", "load_state",
-    "main", "read", "remaining", "retry", "run_once", "run_steps",
+    "main", "read", "remaining", "retry", "run_once",
     "save_state", "setting", "steps", "verdict",
 ]

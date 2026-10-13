@@ -211,6 +211,18 @@ def test_a_command_that_is_not_there_is_asked_once(tmp_path, monkeypatch,
     assert len(cli.calls) == 1 and slept == []
 
 
+def test_a_go_that_failed_for_good_is_still_charged(tmp_path, monkeypatch,
+                                                    fake_cli):
+    a_flow(tmp_path, monkeypatch, "refused", ["worker"], tail=CLAUDE)
+    slept_through(monkeypatch)
+    fake_cli((1, b"", b"overloaded"), (1, b"", b"invalid api key"))
+    run = run_for("refused")
+    with pytest.raises(errors.Fatal):
+        run.step("worker.md")
+    assert run.budget.calls == 2
+    assert run.budget.unreported == {"transient": 1, "fatal": 1}
+
+
 def test_the_api_provider_with_no_key_is_not_retried(monkeypatch):
     from agentweft.providers.api_provider import ApiProvider
 

@@ -1,4 +1,5 @@
 import datetime
+import io
 import json
 import os
 import sys
@@ -110,6 +111,38 @@ def test_a_journal_line_outside_cp1252_is_written_and_read_back(cp1252,
     assert stop is not None and stop.step == "worker.md"
     cli.cmd_spend()
     assert name in capsys.readouterr().out
+
+
+def end_lines(tmp_path):
+    text = (tmp_path / "runs" / "journal.md").read_text(encoding="utf-8")
+    return [l for l in text.split("\n") if l and "  running  " not in l]
+
+
+def test_an_answer_the_console_cannot_show_does_not_fail_a_finished_run(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch)
+    fake_cli(answer("VERDICT: ok\n\nmoved " + SAID + "\n"))
+    monkeypatch.setattr(sys, "stdout",
+                        io.TextIOWrapper(io.BytesIO(), encoding="cp1252"))
+    assert engine.main() == 0
+    [end] = end_lines(tmp_path)
+    assert "  wide  ok  " in end
+
+
+def test_a_run_that_breaks_after_its_last_step_writes_one_end_line(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch)
+    fake_cli(answer("VERDICT: ok\n\nthe last words\n"))
+
+    def shows(*args, **kw):
+        if "the last words" in " ".join(str(a) for a in args):
+            raise OSError("the console went away")
+        print(*args, **kw)
+
+    monkeypatch.setattr(engine, "print", shows, raising=False)
+    assert engine.main() == 2
+    [end] = end_lines(tmp_path)
+    assert "  exception  " in end
 
 
 def test_the_env_file_is_read_as_utf8(tmp_path, monkeypatch, cp1252):

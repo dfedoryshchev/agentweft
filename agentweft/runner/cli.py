@@ -39,7 +39,12 @@ def cmd_show():
     if not need(2, "python run.py show <flow>"):
         return 1
     name = sys.argv[2]
-    spec = config(name)
+    try:
+        spec = config(name)
+    except FileNotFoundError:
+        print("no flow called " + name + " in " + FLOW_ROOT[0]
+              + ". there is: " + ", ".join(flows()))
+        return 1
     print(spec.name)
     if spec.promises.inputs:
         print("  in:  " + spec.promises.inputs)
@@ -208,11 +213,11 @@ def cmd_provider():
             configs.append((s.get("provider") or spec.get("provider") or {},
                             s.get("model", "")))
         for c, tier in configs:
-            key = str(sorted((c or {}).items())) + " " + tier
+            p = providers.build(c or {}, tier=tier)
+            key = p.name + " " + str(sorted(p.opts.items()))
             if key in seen:
                 continue
             seen[key] = True
-            p = providers.build(c or {}, tier=tier)
             ok, detail = p.check()
             print(("  ok   " if ok else "  FAIL ") + p.name
                   + (" " + tier if tier else "") + "  " + detail)
@@ -230,12 +235,24 @@ def cmd_spend():
     return 0
 
 
+def command(name):
+    """-> the exit code of one of COMMANDS. `--flows` is read here, so it
+    names the folder for every command and not only for a run."""
+    if "--flows" in sys.argv:
+        i = sys.argv.index("--flows")
+        if len(sys.argv) <= i + 1:
+            print("--flows needs a directory")
+            return 1
+        FLOW_ROOT[0] = sys.argv[i + 1]
+    return COMMANDS[name]()
+
+
 def entrypoint():
     """what `agentweft` on the path calls."""
     from .engine import main as _main
 
     if len(sys.argv) > 1 and sys.argv[1] in COMMANDS:
-        return COMMANDS[sys.argv[1]]()
+        return command(sys.argv[1])
     return _main()
 
 

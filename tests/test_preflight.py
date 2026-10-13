@@ -63,6 +63,22 @@ def test_files_mentioned_counts_one_path_spelled_both_ways_once():
     assert preflight.files_mentioned("pkg\\a.py and pkg/a.py") == {"pkg/a.py"}
 
 
+def test_a_leading_dot_slash_is_dropped_not_turned_into_a_root():
+    assert preflight.files_mentioned("editing ./pkg/a.py.") == {"pkg/a.py"}
+    assert preflight.files_mentioned("then ../pkg/b.py") == {"pkg/b.py"}
+
+
+def test_a_path_matches_only_from_the_start_of_a_segment():
+    assert preflight.check("i will rewrite mysrc/hooks.ts", RANKING) == []
+    assert preflight.check("i will rewrite hooks.ts", RANKING) == \
+        [("src/hooks.ts", 0.94)]
+
+
+def test_a_ranked_path_inside_a_longer_one_is_found():
+    assert preflight.check("editing app/src/hooks.ts", RANKING) == \
+        [("src/hooks.ts", 0.94)]
+
+
 def test_files_mentioned_on_nothing_is_empty():
     assert preflight.files_mentioned("") == set()
     assert preflight.files_mentioned(None) == set()

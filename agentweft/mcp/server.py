@@ -36,6 +36,15 @@ def resources():
     return out
 
 
+def child(argv, timeout):
+    """a python process of this repo's, both ends of its pipe in utf-8: left
+    to the platform, each end picks the locale's, which cannot hold every
+    character a model or a flow name has."""
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    return subprocess.run(argv, capture_output=True, encoding="utf-8",
+                          errors="replace", env=env, timeout=timeout)
+
+
 def read_resource(uri):
     if uri == "flows://journal":
         p = state.RUNS / "journal.md"
@@ -51,8 +60,7 @@ def read_resource(uri):
                 parts.append("# " + d.name + "\n\n" + g.read_text(encoding="utf-8"))
         return "\n\n".join(parts) or "no gates have run yet"
     if uri == "flows://rollup":
-        r = subprocess.run([sys.executable, "rollup.py"], capture_output=True,
-                           text=True, timeout=60)
+        r = child([sys.executable, "rollup.py"], timeout=60)
         return r.stdout or "nothing yet"
     if uri.startswith("flows://run/"):
         d = state.RUNS / uri[len("flows://run/"):]
@@ -99,7 +107,7 @@ def run_flow(name, task=None):
         # this used to hand back whatever run.py had printed by the time the
         # pipe buffer filled, which for the digest is the planner and nothing
         # else. the client saw a plan and called it the answer.
-        r = subprocess.run(argv, capture_output=True, text=True, timeout=900)
+        r = child(argv, timeout=900)
     finally:
         if held:
             os.remove(held)

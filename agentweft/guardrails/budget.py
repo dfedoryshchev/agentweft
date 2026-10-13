@@ -169,8 +169,32 @@ class Budget(object):
 
     @property
     def tokens(self):
-        """what the token cap reads: everything counted plus the estimate."""
+        """everything counted plus the estimate."""
         return self.counted["input"] + self.counted["output"] + self.estimated
+
+    @property
+    def capped(self):
+        """what the token cap reads: the total without the cache reads.
+
+        a cache read is a prompt the provider already had, billed at a
+        fraction of an input token. on a cli run it is often most of the
+        count and little of the money, so a cap that counted it stopped cheap
+        runs.
+        """
+        return self.tokens - self.counted["cache_read"]
+
+    def capped_split(self):
+        c = self.counted
+        fresh = c["input"] - c["cache_read"] - c["cache_creation"]
+        parts = ["input " + str(fresh)]
+        if c["cache_creation"]:
+            parts.append("cache_creation " + str(c["cache_creation"]))
+        parts.append("output " + str(c["output"]))
+        out = (str(fresh + c["cache_creation"] + c["output"]) + " counted: "
+               + ", ".join(parts))
+        if c["cache_read"]:
+            out = out + "; cache_read " + str(c["cache_read"]) + " not counted"
+        return out
 
     def metered(self):
         """-> "counted", "estimated" or "mixed: N estimated calls"."""
@@ -178,12 +202,9 @@ class Budget(object):
             return "mixed: " + plural(self.estimated_calls, "estimated call")
         return "counted" if self.counted_calls else "estimated"
 
-    def split(self, parts=True):
+    def split(self):
         c = self.counted
         n = c["input"] + c["output"]
-        if not parts:
-            return (str(n) + " counted: input " + str(c["input"])
-                    + ", output " + str(c["output"]))
         inside = [k + " " + str(c[k]) for k in ("cache_read", "cache_creation")
                   if c[k]]
         out = "input " + str(c["input"]) \
@@ -196,14 +217,14 @@ class Budget(object):
     def over(self):
         if self.max_calls and self.calls > self.max_calls:
             return "call cap: " + str(self.calls) + " > " + str(self.max_calls)
-        if self.max_tokens and self.tokens > self.max_tokens:
+        if self.max_tokens and self.capped > self.max_tokens:
             why = []
             if self.counted_calls:
-                why.append(self.split(parts=False))
+                why.append(self.capped_split())
             if self.estimated_calls:
                 why.append(("+ " if why else "") + "~" + str(self.estimated)
                            + " estimated")
-            return ("token cap: " + str(self.tokens) + " > "
+            return ("token cap: " + str(self.capped) + " > "
                     + str(self.max_tokens) + " (" + ", ".join(why) + ")")
         return None
 

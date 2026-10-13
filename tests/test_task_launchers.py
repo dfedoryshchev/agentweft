@@ -132,6 +132,26 @@ def test_tools_call_passes_the_task_through(monkeypatch):
     assert seen == b"only the rent"
 
 
+def test_what_the_run_printed_comes_back_as_it_was_said(monkeypatch):
+    """run.py on a cp1252 machine, piped: it writes in the encoding it was
+    told to, else cp1252, and the server reads in the one it names, else
+    cp1252. a character with no cp1252 byte crashed the print."""
+
+    def run(argv, **kw):
+        told = (kw.get("env") or {}).get("PYTHONIOENCODING", "cp1252")
+        try:
+            said, code = ("saw " + FOREIGN + "\n").encode(told), 0
+        except UnicodeEncodeError:
+            said, code = b"UnicodeEncodeError\n", 2
+        out = said.decode(kw.get("encoding") or "cp1252",
+                          kw.get("errors") or "strict")
+        return types.SimpleNamespace(returncode=code, stdout=out, stderr="")
+
+    monkeypatch.setattr(server, "subprocess", types.SimpleNamespace(
+        run=run, TimeoutExpired=subprocess.TimeoutExpired))
+    assert server.run_flow("weekly-digest") == "saw " + FOREIGN + "\n"
+
+
 def test_a_task_that_is_not_text_is_refused_without_a_run(monkeypatch):
     fake = spawn(monkeypatch)
     said = server.run_flow("weekly-digest", task=["not", "text"])

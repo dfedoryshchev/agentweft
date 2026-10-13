@@ -13,7 +13,17 @@ class Transient(Exception):
 
 
 class Fatal(Exception):
-    """going again will not help. no credentials, flow does not exist."""
+    """going again will not help. no credentials, flow does not exist.
+
+    `replies` and `retries` are as on Outage: the goes made before it gave
+    up, which were paid for all the same.
+    """
+
+    def __init__(self, detail="", replies=(), retries=None):
+        Exception.__init__(self, detail)
+        self.detail = detail
+        self.replies = list(replies)
+        self.retries = dict(retries or {})
 
 
 class BadPrompt(Exception):

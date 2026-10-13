@@ -12,9 +12,10 @@ the reason it is in here at all is at the bottom.
     max_tokens: 120000
 
 checked after every step. over it and the run stops, writes `failed at <step>`
-with the cause `budget` to the journal, and keeps what it has. a flow that says nothing gets
-the defaults in `guardrails/defaults.py` - no cap is the wrong default for the
-thing that spends money.
+with the cause `budget` to the journal, keeps what it has, and exits 2 as a
+gate stop does. a flow that says nothing gets the defaults in
+`runner/settings.py`: 25 calls and no token cap. the call cap is the one that
+catches a run going round in a loop, so it is on until a flow sets its own.
 
 every go at a model is charged, the failed ones a retry went through too. a
 provider that reports usage (see `providers.md`) is charged exactly what it
@@ -39,10 +40,17 @@ the tokens (see the next section):
     3 calls, mixed: 2 estimated calls, 120 tokens counted (input 100, output 20) + ~30 estimated (cli x1, fake x2)
     3 calls, 55 tokens counted (input 50, output 5), 2 failed calls charged 0 (transient x2) (cli x3)
 
-`max_tokens` reads that same total, cache reads included: a run that re-reads
-a large cached prompt on every step is a run that has grown. when it trips,
-the reason names both halves, `token cap: 105 > 100 (90 counted: input 90,
-output 0, + ~15 estimated)`. `max_calls` counts every go, failed ones included.
+`max_tokens` reads that total without the cache reads: input, cache writes and
+output, plus any estimate. a cache read is a prompt the provider already had,
+billed at a tenth of an input token or less in the shipped table, and on a
+`claude` run it is often most of the count and little of the money, so a cap
+that counted it stopped runs that cost cents. when it trips, the reason names the parts, and the cache reads it
+left out:
+
+    token cap: 851 > 850 (851 counted: input 10, cache_creation 800, output 41; cache_read 12000 not counted)
+    token cap: 105 > 100 (90 counted: input 90, output 0, + ~15 estimated)
+
+`max_calls` counts every go, failed ones included.
 
 ## what it cost in money
 
