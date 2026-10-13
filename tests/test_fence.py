@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import types
@@ -75,6 +76,49 @@ def test_what_the_fence_skips_is_not_watched(tmp_path):
     g = fence.Fence(place)
     (place / "cache" / "warm.bin").write_text("z", encoding="utf-8")
     assert g.crossed() == [("cache/warm.bin", "changed")]
+
+
+def test_files_the_run_creates_never_trip_it_ignored_or_not(tmp_path):
+    place = a_repo(tmp_path / "p")
+    f = fence.Fence(place)
+    (place / "made").mkdir()
+    (place / "made" / "deep.txt").write_text("a", encoding="utf-8")
+    (place / "cache" / "fresh.bin").write_text("b", encoding="utf-8")
+    (place / "scratch.tmp").write_text("c", encoding="utf-8")
+    (place / "scratch.tmp").unlink()
+    git(place, "add", "made/deep.txt")
+    assert f.crossed() == []
+
+
+def test_touching_a_file_without_changing_what_is_in_it_is_not_a_change(
+        tmp_path):
+    place = a_repo(tmp_path / "p")
+    f = fence.Fence(place)
+    os.utime(place / ".env", (1, 1))
+    assert f.crossed() == []
+    (place / "wip.md").unlink()
+    (place / "wip.md").write_text("half a thought\n", encoding="utf-8")
+    assert f.crossed() == []
+
+
+def test_a_name_with_spaces_is_watched_and_a_new_one_is_free(tmp_path):
+    place = a_repo(tmp_path / "p")
+    (place / "my notes.md").write_text("one\n", encoding="utf-8")
+    f = fence.Fence(place)
+    (place / "new notes.md").write_text("fresh\n", encoding="utf-8")
+    assert f.crossed() == []
+    (place / "my notes.md").write_text("two!\n", encoding="utf-8")
+    assert f.crossed() == [("my notes.md", "changed")]
+
+
+def test_an_ignored_file_that_was_there_first_counts_and_a_moved_one_is_gone(
+        tmp_path):
+    place = a_repo(tmp_path / "p")
+    f = fence.Fence(place)
+    (place / "cache" / "warm.bin").unlink()
+    os.replace(place / "wip.md", place / "wip-renamed.md")
+    assert f.crossed() == [("cache/warm.bin", "removed"),
+                           ("wip.md", "removed")]
 
 
 def test_a_place_below_the_top_of_the_repo_watches_only_itself(tmp_path):
