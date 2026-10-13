@@ -79,10 +79,12 @@ def test_the_sides_are_not_the_same_size():
     # `tiers` is the eighth, and grows it again: a tier per role, where each
     # agent file carries its own and there is no phase-wide word for it.
     #
-    # `investigate` is the ninth, one way again: a phase that wants the cause
+    # `investigate` is one more, one way again: a phase that wants the cause
     # found first names an agent for it, and there is no switch to pair with.
+    # the test levels and the step that writes tests are three more: a phase
+    # asks for tests in prose, never as a value.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 21
+    assert len(compare.flow_only()) == 24
     assert len(compare.phase_only()) == 7
 
 

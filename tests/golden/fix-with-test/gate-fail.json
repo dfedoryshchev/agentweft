@@ -93,6 +93,6 @@
     "to carry on: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 5d168c9f2b633c1894ae1eced89ad349d60a21de7e6c91e820b0bb077bc005cf"
+    "worker.md go 1 aa6957532c85cbd95ad5f89a00cd4ecadc27bbdc26bc10cd674f44db96eb6f50"
   ]
 }

@@ -161,6 +161,19 @@ the only form a judge can do anything with. `reports: [reviewer-minimalist]`
 names one of the pair. the same step named twice arrives once. a name that is
 neither a role nor a step earlier in the same flow is refused by the checker.
 
+`writes_tests: true` on a step means it writes tests, and it is sent
+`fragments/tests.md` after its own words: every behaviour, input class, output
+shape, error path, caller and option pair the change reaches, each case once,
+expected values from the spec and never from running the code, and a
+`NEEDS:` line for a case the spec does not decide. the levels go in as values,
+one line each: unit always; integration from `tests_integration` at the top of
+the flow - `true`, `false`, or `auto` (the default), which is on where the
+project has an entry point (`[project.scripts]` in `pyproject.toml`, a
+`__main__.py` at the top or in a package one level down, or a `main.py`); e2e
+from `tests_e2e`, off unless the flow turns it on. a level that is off is
+named in the prompt as one not to write. `fix-with-test` marks its worker and
+patcher, `build-feature` its tester and worker.
+
 `schedule` is checked before anything runs. `python run.py weekly-digest
 --force` ignores it.
 

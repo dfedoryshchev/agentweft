@@ -8,7 +8,8 @@ order, highest first: the step, the flow, the environment, the default.
 """
 
 DEFAULTS = {"timeout": 300, "retries": 3, "workers": 3,
-            "max_calls": 25, "max_tokens": 0}
+            "max_calls": 25, "max_tokens": 0,
+            "tests_e2e": False, "tests_integration": "auto"}
 
 
 def get(key, step=None, flow=None, env=None, default=None):

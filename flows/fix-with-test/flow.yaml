@@ -3,6 +3,7 @@ investigate: off
 steps:
   - role: worker
     prompt: worker.md
+    writes_tests: true
     must_produce: "FAILS:"
     gates:
       - gate: red-test
@@ -10,6 +11,7 @@ steps:
         command: ["python", "-m", "pytest", "-q", "{test}"]
   - role: patcher
     prompt: patcher.md
+    writes_tests: true
     on_redo: worker
     gates:
       - gate: red-test

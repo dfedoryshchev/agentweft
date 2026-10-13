@@ -134,6 +134,6 @@
   ],
   "prompts": [
     "planner.md go 1 8983b9f9e1e68c5d046795692307cdcd50428f58743ca7575aa77ef1a8ad73a0",
-    "tester.md go 1 8429bdb13d057fc179be8f78b07fb82f9a66184d24615e4f14260cecaf1c30b6"
+    "tester.md go 1 ed58a9d92fccdca027d22a68e2ad70d8f8deec1d11f8dcbc8d850d9c6712ab4c"
   ]
 }

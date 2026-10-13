@@ -232,7 +232,7 @@
   "prompts": [
     "planner.md go 1 8983b9f9e1e68c5d046795692307cdcd50428f58743ca7575aa77ef1a8ad73a0",
     "reviewer.md go 1 eb64901804120b6641b441a02d243e6c608b81e43887aff86868a152ed0bdd66",
-    "tester.md go 1 8429bdb13d057fc179be8f78b07fb82f9a66184d24615e4f14260cecaf1c30b6",
-    "worker.md go 1 5e6b4b6b0aa386e968c17c560841c23e2dbfbcc05bb5d44309713337ea5022cc"
+    "tester.md go 1 ed58a9d92fccdca027d22a68e2ad70d8f8deec1d11f8dcbc8d850d9c6712ab4c",
+    "worker.md go 1 c8367c8dfdb76b30bf71769c66055123aa1e835c8e06ca42f71946534598d239"
   ]
 }

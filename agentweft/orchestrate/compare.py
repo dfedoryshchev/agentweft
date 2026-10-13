@@ -129,6 +129,16 @@ FLOW_ONLY = (
          "a step put in front of the flow's own that finds the cause and the "
          "sites it reaches before anything is written. a phase that wants one "
          "names an agent for it, which is a step and not a switch."),
+    Pair("flow.tests_integration", "",
+         "whether a step that writes tests writes integration tests: on, off, "
+         "or auto, which is on where the project has an entry point. a phase "
+         "says what to test in its agents' prose, where nothing reads a value."),
+    Pair("flow.tests_e2e", "",
+         "whether a step that writes tests writes e2e tests. off unless a flow "
+         "turns it on, for the same reason as the one above."),
+    Pair("step.writes_tests", "",
+         "this step writes tests, so it is sent the brief on what to test and "
+         "the levels above as values."),
     Pair("step.prompt", "",
          "which file the step sends. an agent's prompt is its own name plus "
          ".md, so it cannot be pointed anywhere else."),

@@ -80,10 +80,10 @@ def steps_named(steps, name):
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
-         "tiers", "investigate")
+         "tiers", "investigate", "tests_e2e", "tests_integration")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
-              "reports")
+              "reports", "writes_tests")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
 PREFLIGHT_KNOWN = ("mode", "threshold")
@@ -145,7 +145,8 @@ def with_investigator(raw):
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
-         "max_tokens": int, "journal": bool, "name": str, "workdir": str}
+         "max_tokens": int, "journal": bool, "name": str, "workdir": str,
+         "tests_e2e": bool}
 
 
 def meant(word, known):
@@ -211,6 +212,9 @@ def check(raw):
         want = TYPES.get(key)
         if want and not isinstance(raw[key], want):
             bad.append(key + " should be " + want.__name__)
+    said = raw.get("tests_integration")
+    if said is not None and not isinstance(said, bool) and said != "auto":
+        bad.append("tests_integration should be true, false or auto")
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)
@@ -228,6 +232,8 @@ def check(raw):
         for key in step:
             if key not in STEP_KNOWN:
                 bad.append(at + unknown(key, STEP_KNOWN))
+        if not isinstance(step.get("writes_tests", False), bool):
+            bad.append(at + "writes_tests should be true or false")
         if step.get("gates") is not None:
             bad.extend(check_gates(at, step["gates"]))
         if step.get("preflight") is not None:

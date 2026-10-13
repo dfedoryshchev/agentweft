@@ -27,7 +27,7 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import manifest, models, resume, router
+from . import levels, manifest, models, resume, router
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -330,6 +330,13 @@ class Run(object):
                 return s.get("pause")
         return None
 
+    def writes_tests(self, step):
+        """whether this step said it writes tests, and so gets the brief."""
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                return bool(s.get("writes_tests"))
+        return False
+
     def grant_for(self, step):
         """what this step may touch, or None when it did not say.
 
@@ -434,6 +441,8 @@ class Run(object):
         if step == investigate.STEP:
             prompt = prompt + investigate.plan_words(self.fm)
         prompt = prompts.put_task(prompt, self.task_text)
+        if self.writes_tests(step):
+            prompt = prompt + levels.as_prompt(self.fm, self.workdir)
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its

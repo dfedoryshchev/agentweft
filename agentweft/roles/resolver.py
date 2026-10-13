@@ -22,6 +22,10 @@ def _read(names):
                    for n in names)
 
 
+def fragment(name):
+    return _read([name])
+
+
 def skill_rules():
     # the skill files have frontmatter and the fragments do not, so this is
     # _read again with three extra lines. wrong, sort it later.
