@@ -29,8 +29,12 @@ pointed at a task instead of a copy of the flow per task:
 
     python run.py fix-with-test --workdir ../my-project --task "add(1, 2) returns -1"
     python run.py fix-with-test --workdir ../my-project --task-file bug.md
+    python run.py build-feature --workdir ../my-project --task-file spec.md
 
-the text goes where the flow wrote `{TASK}` (`docs/flows.md`).
+the text goes where the flow wrote `{TASK}` (`docs/flows.md`). `fix-with-test`
+writes a failing test for a bug, then the patch. `build-feature` writes the
+failing tests for a spec, then the code, with the whole suite run before its
+one reviewer sees it.
 
 which model each role runs on is a switch on the run, not an edit to the flow:
 

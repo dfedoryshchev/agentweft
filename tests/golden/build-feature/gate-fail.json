@@ -1,0 +1,111 @@
+{
+  "exit": 2,
+  "raised": null,
+  "path": [
+    "1 planner.md ok -> tester.md",
+    "2 tester.md gate failed  FAIL red-test"
+  ],
+  "journal": [
+    "<time>  build-feature  running  <secs>s  build-feature-<run>",
+    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  red-test: no FAILS: line, so the test never failed"
+  ],
+  "index": [
+    "GATE  build-feature  red-test at tester.md"
+  ],
+  "handoff": [],
+  "files": [
+    "build-feature-<run>/gates.md",
+    "build-feature-<run>/planner.md",
+    "build-feature-<run>/steps.jsonl",
+    "build-feature-<run>/steps/001-planner.md",
+    "build-feature-<run>/steps/002-tester.md",
+    "build-feature-<run>/task.md",
+    "build-feature-<run>/tester.md",
+    "build-feature-<run>/why.md",
+    "build-feature-<run>/workdir",
+    "index.md",
+    "journal.md"
+  ],
+  "steps": [
+    {
+      "seq": 1,
+      "time": "<time>",
+      "step": "planner.md",
+      "from": null,
+      "to": "tester.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "session": "planner-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "cause": null,
+      "why": null,
+      "file": "steps/001-planner.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "tester.md",
+      "from": "planner.md",
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "session": "tester-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "gates": [
+        {
+          "gate": "red-test",
+          "ok": false,
+          "detail": "no FAILS: line, so the test never failed"
+        }
+      ],
+      "ungated": false,
+      "outcome": "gate failed",
+      "cause": "gate failed",
+      "why": "red-test: no FAILS: line, so the test never failed",
+      "file": "steps/002-tester.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null
+    }
+  ],
+  "printed": [
+    "started planner.md",
+    "started tester.md",
+    "  FAIL red-test - no FAILS: line, so the test never failed",
+    "gate failed at tester.md, stopping"
+  ]
+}

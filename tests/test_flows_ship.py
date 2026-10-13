@@ -42,6 +42,15 @@ def test_only_the_per_diff_flow_stays_out_of_the_journal():
     assert off == ["code-review"]
 
 
+def test_a_flow_that_builds_a_feature_ships():
+    assert "build-feature" in flows_in("flows")
+    spec = runner.config("build-feature")
+    assert [s["role"] for s in spec.steps] == ["planner", "tester", "worker",
+                                               "reviewer"]
+    [reviewer] = [s for s in spec.steps if s["role"] == "reviewer"]
+    assert reviewer["on_redo"] == "worker"
+
+
 def test_the_examples_parse_too():
     prompts.FLOW_ROOT[0] = "examples"
     try:

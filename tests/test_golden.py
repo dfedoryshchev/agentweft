@@ -74,7 +74,41 @@ FIXES = {
                   "PASS the patch is the smallest thing that turns it "
                   "green\n"]}
 
+FEATURE = "calc gets mul(a, b), which multiplies"
+ADD_ONLY = "def add(a, b):\n    return a + b\n"
+WITH_MUL = ADD_ONLY + "\n\ndef mul(a, b):\n    return a * b\n"
+MUL_TEST = ("def test_mul():\n    from calc import mul\n\n"
+            "    assert mul(2, 3) == 6\n")
+MUL_PLAN = "- mul(2, 3) is 6 | calc.py\n"
+MUL_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
+              "TEST: test_mul.py\n\n" + MUL_TEST, {"test_mul.py": MUL_TEST})
+MUL_BUILT = "- calc.py: mul(a, b) added\n"
+
 CASES = {
+    ("build-feature", "pass"): {"place": {"calc.py": ADD_ONLY},
+                                "args": ["--task", FEATURE], "answers": {
+        "planner.md": [MUL_PLAN],
+        "tester.md": [MUL_RED],
+        "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
+        "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "redo"): {"place": {"calc.py": ADD_ONLY},
+                                "args": ["--task", FEATURE], "answers": {
+        "planner.md": [MUL_PLAN],
+        "tester.md": [MUL_RED],
+        "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL}),
+                      say(MUL_BUILT + "- test_mul.py: mul(-2, 3) is -6\n",
+                          {"test_mul.py": MUL_TEST + "\n\ndef test_mul_neg():\n"
+                           "    from calc import mul\n\n"
+                           "    assert mul(-2, 3) == -6\n"})],
+        "reviewer.md": ["VERDICT: redo\n\nmul is not tried on a negative "
+                        "number\n",
+                        "VERDICT: ok\n\n" + MUL_BUILT
+                        + "- test_mul.py: mul(-2, 3) is -6\n"]}},
+    ("build-feature", "gate-fail"): {"place": {"calc.py": ADD_ONLY},
+                                     "args": ["--task", FEATURE], "answers": {
+        "planner.md": [MUL_PLAN],
+        "tester.md": [say("TEST: test_mul.py\n\n" + MUL_TEST,
+                          {"test_mul.py": MUL_TEST})]}},
     ("code-review", "pass"): {"answers": {
         "worker.md": [ONE_FINDING],
         "reviewer.md": ["VERDICT: ok\n\n" + ONE_FINDING]}},

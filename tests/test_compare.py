@@ -114,14 +114,14 @@ def test_the_census_counts_what_is_in_the_repo():
     wf = workflow.load()
     assert rows["ordered units"].phase == str(len(wf.phases)) + " phases"
     assert rows["named jobs"].phase.endswith(str(len(wf.agents())) + " distinct")
-    assert rows["conditions in prose"].flow == "19 invariants"
+    assert rows["conditions in prose"].flow == "22 invariants"
 
 
 def test_the_census_says_how_much_of_it_is_prose():
     rows = by_label(compare.census())
     # most invariants are prose the checker shrugs at, and every entry and
     # exit line is
-    assert rows["of those, something checks"].flow == "3 of 19"
+    assert rows["of those, something checks"].flow == "4 of 22"
     assert rows["of those, something checks"].phase == "none of 16"
 
 
@@ -130,7 +130,7 @@ def test_the_census_counts_the_grant_on_both_sides():
     opposite: every seat declares one, no step in the repo does. the word
     crossed; the files that could use it have not moved yet."""
     rows = by_label(compare.census())
-    assert rows["declares a tool grant"].flow == "0 of 20 steps"
+    assert rows["declares a tool grant"].flow == "0 of 24 steps"
     assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 
@@ -142,7 +142,7 @@ def test_the_census_counts_the_paths_a_prompt_names_itself():
     what `project.yml` exists to take to zero, and nothing takes it there yet.
     """
     rows = by_label(compare.census())
-    assert rows["names a path in its prose"].flow == "0 of 20 steps"
+    assert rows["names a path in its prose"].flow == "0 of 24 steps"
     assert rows["names a path in its prose"].phase == "17 of 20 seats"
 
 
@@ -159,7 +159,7 @@ def test_the_census_says_whether_a_seat_reads_its_pre_work_from_the_project():
 
 def test_the_census_says_which_side_runs():
     rows = by_label(compare.census())
-    assert rows["something executes it"].flow == "20 of 20 steps"
+    assert rows["something executes it"].flow == "24 of 24 steps"
     assert rows["something executes it"].phase == "0 of 8 phases"
     assert rows["checks that are programs"].phase == "none"
 

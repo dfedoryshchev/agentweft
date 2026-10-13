@@ -103,11 +103,11 @@ program, and one file using one word for two opposite things is enough.
 
 the counts are the argument, not the prose:
 
-    loaded as                   7 flow specs      8 flow specs, translated
-    conditions in prose         19 invariants     16 entry and exit lines
-    of those, something checks  3 of 19           none of 16
-    declares a tool grant       0 of 20 steps     20 of 20 seats
-    something executes it       20 of 20 steps    0 of 8 phases
+    loaded as                   8 flow specs      8 flow specs, translated
+    conditions in prose         22 invariants     16 entry and exit lines
+    of those, something checks  4 of 22           none of 16
+    declares a tool grant       0 of 24 steps     20 of 20 seats
+    something executes it       24 of 24 steps    0 of 8 phases
 
 the grant row is the only one where the two sides are opposites, and it is the
 one to watch. every seat says what it may touch and no step in the repo does,

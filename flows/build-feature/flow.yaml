@@ -1,0 +1,31 @@
+name: build-feature
+steps:
+  - role: planner
+    prompt: planner.md
+  - role: tester
+    prompt: tester.md
+    must_produce: "FAILS:"
+    gates:
+      - gate: red-test
+        red: true
+        command: ["python", "-m", "pytest", "-q", "{test}"]
+  - role: worker
+    prompt: worker.md
+    gates:
+      - gate: command
+        command: ["python", "-m", "pytest", "-q"]
+        expect: 0
+        timeout: 300
+  - role: reviewer
+    prompt: reviewer.md
+    on_redo: worker
+promises:
+  inputs: a feature to build, and the spec it names
+  outputs: failing tests, then the code that turns them green, then the files it changed
+  invariants:
+    - every line names a file
+    - the tests are written before the code, and fail without it
+    - the whole suite passes once the code is in
+max_calls: 10
+timeout: 600
+retries: 2

@@ -37,7 +37,27 @@ a reviewer that just reads nicely written output agrees with it. the ops-check
 reviewer works because its prompt lists the specific things that are NOT
 findings. be that specific or skip the reviewer.
 
-## 5. run it three times before you trust it
+## 5. a flow that changes code needs a program to say it worked
+
+two shipped flows change code, and both put the check in a gate, not in a
+prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
+
+    python run.py build-feature --workdir ../my-project --task "calc gets mul(a, b)"
+    python run.py build-feature --workdir ../my-project --task-file spec.md
+
+- the planner turns the spec into behaviours a test can check
+- the tester writes the failing tests and nothing else. a `red-test` gate runs
+  the file it names and wants pytest's exit 1, so a test that already passes,
+  or a file pytest cannot even import (exit 2), stops the run before any code
+  is written
+- the worker writes the code, and a `command` gate runs the whole suite and
+  wants exit 0
+- one reviewer, `on_redo: worker`, sends the code back, not the tests
+
+the suite is `python -m pytest -q`, written in its `flow.yaml`. a project
+that runs its tests some other way changes that line in a copy of the flow.
+
+## 6. run it three times before you trust it
 
     python run.py my-flow --force
 
