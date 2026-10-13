@@ -21,7 +21,7 @@ FILE = "handoff.md"
 
 
 def lines(run_id, flow, step, who, done, left, command, why=None,
-          again=False, task=None):
+          again=False, task=None, cause=None):
     """the handoff as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
@@ -31,14 +31,18 @@ def lines(run_id, flow, step, who, done, left, command, why=None,
     runs it again rather than handing on what it made. `task` is what the run
     was pointed at; its first line is enough to tell two parked runs of one
     flow apart.
+
+    `who` is None for a run that stopped without waiting for anyone - a gate,
+    the cap, a crash. it still gets a handoff, under its `cause`: the step it
+    stopped at runs again when it is carried on.
     """
+    if who is None:
+        return stopped(run_id, flow, step, cause, done, left, command, why,
+                       task)
     out = ["# parked: " + run_id, ""]
     out.append("waiting for    " + who)
     out.append("flow           " + flow)
-    if task is not None:
-        out.append("task           " + task.strip().split("\n")[0])
-        out.append("               all of it is in runs/" + run_id + "/"
-                   + TASK + ", and --resume carries on with it")
+    task_lines(out, run_id, task)
     out.append(("stopped at     " if again else "stopped after  ") + step)
     out.append("")
     if why:
@@ -68,8 +72,41 @@ def lines(run_id, flow, step, who, done, left, command, why=None,
     return out
 
 
+def task_lines(out, run_id, task):
+    if task is not None:
+        out.append("task           " + task.strip().split("\n")[0])
+        out.append("               all of it is in runs/" + run_id + "/"
+                   + TASK + ", and --resume carries on with it")
+
+
+def stopped(run_id, flow, step, cause, done, left, command, why, task):
+    out = ["# stopped: " + run_id, ""]
+    out.append("cause          " + str(cause))
+    out.append("flow           " + flow)
+    task_lines(out, run_id, task)
+    out.append("stopped at     " + step)
+    out.append("")
+    if why:
+        out.append(why)
+    out.append("so the rest of it has not run.")
+    out.append("")
+    out.append("ran")
+    for name, seconds in done:
+        out.append("  " + name.ljust(16) + str(seconds) + "s")
+    out.append("")
+    out.append("left")
+    for name in left or ["nothing"]:
+        out.append("  " + name)
+    out.append("")
+    out.append(step + " runs again when you carry on; the steps before it do not.")
+    out.append("")
+    out.append("to carry on")
+    out.append("  " + command)
+    return out
+
+
 def write(run_id, flow, step, who, done, left, command, runs=None, why=None,
-          again=False):
+          again=False, cause=None):
     """write the handoff beside the step outputs, and hand back the path.
 
     the same folder as steps.jsonl and gates.md. everything one run left behind
@@ -80,6 +117,6 @@ def write(run_id, flow, step, who, done, left, command, runs=None, why=None,
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / FILE
     body = lines(run_id, flow, step, who, done, left, command, why, again,
-                 saved(folder))
+                 saved(folder), cause)
     path.write_text("\n".join(body) + "\n", encoding="utf-8")
     return path

@@ -36,6 +36,11 @@ CHARS_PER_TOKEN = 4
 SPLIT = ("input", "output", "cache_read", "cache_creation", "reasoning")
 
 
+def copied(value):
+    return {k: copied(v) for k, v in value.items()} \
+        if isinstance(value, dict) else value
+
+
 def plural(n, what):
     return str(n) + " " + what + ("" if n == 1 else "s")
 
@@ -99,6 +104,32 @@ class Budget(object):
             self.reported_calls += 1
         self.calls += 1
         self.by_provider[provider] = self.by_provider.get(provider, 0) + 1
+        return self
+
+    KEPT = ("calls", "by_provider", "counted", "counted_calls", "estimated",
+            "estimated_calls", "unreported", "priced_calls", "unpriced",
+            "reported_calls")
+    MONEY = ("usd", "usd_estimated", "reported")
+
+    def saved(self):
+        """-> what has been spent so far, as plain data a run can keep."""
+        with self.lock:
+            out = {k: getattr(self, k) for k in self.KEPT}
+            for k in self.MONEY:
+                out[k] = str(getattr(self, k))
+            return copied(out)
+
+    def restore(self, spent):
+        """carry on from what `saved` handed back. a resumed run starts at what
+        the run it picks up had spent, or the cap is a cap per leg."""
+        spent = spent or {}
+        with self.lock:
+            for k in self.KEPT:
+                if k in spent:
+                    setattr(self, k, copied(spent[k]))
+            for k in self.MONEY:
+                if k in spent:
+                    setattr(self, k, Decimal(spent[k]))
         return self
 
     @property

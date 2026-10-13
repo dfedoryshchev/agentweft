@@ -17,6 +17,7 @@
   "files": [
     "fix-with-test-<day>-1.md",
     "fix-with-test-<run>/gates.md",
+    "fix-with-test-<run>/manifest.json",
     "fix-with-test-<run>/patcher.md",
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",

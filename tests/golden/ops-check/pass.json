@@ -19,6 +19,7 @@
     "journal.md",
     "ops-check-<day>-1.md",
     "ops-check-<run>/gates.md",
+    "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
     "ops-check-<run>/reviewer.md",
     "ops-check-<run>/steps.jsonl",

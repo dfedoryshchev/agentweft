@@ -13,6 +13,10 @@ the journal has three shapes of line, the same first four columns in each:
 
 a stop is `parked at` when the run is waiting for someone, `failed at` for
 everything else. `<when>` is when the run started, on every line it writes.
+
+a resumed run gets an id of its own, so each of its lines ends with one more
+column, `resumes <run id>`: the run the task started as, however many times it
+has been picked up since. that is what ties one task's lines together.
 """
 import datetime
 
@@ -76,8 +80,11 @@ def flat(text):
     return " ".join(str(text or "").split())
 
 
+RESUMES = "resumes "
+
+
 def line(started, flow, state, secs, run=None, cause=None, spend=None,
-         why=None, saved=None):
+         why=None, saved=None, origin=None):
     """-> one journal line, without its newline."""
     parts = [started.strftime(STAMP), flow, state, str(int(secs)) + "s"]
     if run:
@@ -87,6 +94,8 @@ def line(started, flow, state, secs, run=None, cause=None, spend=None,
                          flat(why) or cause]
     elif saved is not None:
         parts = parts + [saved, spend or "0 calls, 0 tokens"]
+    if origin:
+        parts.append(RESUMES + origin)
     return "  ".join(parts)
 
 
@@ -94,7 +103,7 @@ class Line(object):
     """one journal line, read back. what a column did not say is None."""
 
     __slots__ = ("when", "flow", "status", "secs", "run", "cause", "spend",
-                 "why", "saved", "step")
+                 "why", "saved", "step", "origin")
 
     def __init__(self, when, flow, status, secs):
         self.when = when
@@ -102,7 +111,7 @@ class Line(object):
         self.status = status
         self.secs = secs
         self.run = self.cause = self.spend = self.why = None
-        self.saved = self.step = None
+        self.saved = self.step = self.origin = None
 
     @property
     def kind(self):
@@ -125,6 +134,9 @@ def read(text):
         parts.append("0s")
     out = Line(parts[0], parts[1], parts[2], parts[3])
     rest = parts[4:]
+    if len(rest) > 1 and rest[-1].startswith(RESUMES):
+        out.origin = rest[-1][len(RESUMES):]
+        rest = rest[:-1]
     if out.status == RUNNING:
         out.run = rest[0] if rest else None
         return out

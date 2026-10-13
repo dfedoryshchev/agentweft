@@ -35,6 +35,7 @@
     "journal.md",
     "risky-edit-<run>/gates.md",
     "risky-edit-<run>/handoff.md",
+    "risky-edit-<run>/manifest.json",
     "risky-edit-<run>/planner.md",
     "risky-edit-<run>/steps.jsonl",
     "risky-edit-<run>/steps/001-planner.md",

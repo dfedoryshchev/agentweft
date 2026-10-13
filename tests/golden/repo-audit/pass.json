@@ -20,6 +20,7 @@
     "journal.md",
     "repo-audit-<day>-1.md",
     "repo-audit-<run>/gates.md",
+    "repo-audit-<run>/manifest.json",
     "repo-audit-<run>/merge.md",
     "repo-audit-<run>/planner.md",
     "repo-audit-<run>/reviewer.md",
@@ -28,6 +29,7 @@
     "repo-audit-<run>/steps/002-worker.md",
     "repo-audit-<run>/steps/003-merge.md",
     "repo-audit-<run>/steps/004-reviewer.md",
+    "repo-audit-<run>/tasks.jsonl",
     "repo-audit-<run>/workdir",
     "repo-audit-<run>/worker.md"
   ],

@@ -12,8 +12,11 @@ the reason it is in here at all is at the bottom.
     max_tokens: 120000
 
 checked after every step. over it and the run stops, writes `failed at <step>`
-with the cause `budget` to the journal, keeps what it has, and exits 2 as a
-gate stop does. a flow that says nothing gets the defaults in
+with the cause `budget` to the journal, keeps what it has, leaves a
+`handoff.md`, and exits 2 as a gate stop does. the cap is for the task, not
+for one go at it: a resumed run starts at what the run it picks up had spent,
+and one that is already over the cap is refused until the cap in `flow.yaml`
+is raised (which edits the flow, so the resume then needs `--force`). a flow that says nothing gets the defaults in
 `runner/settings.py`: 25 calls and no token cap. the call cap is the one that
 catches a run going round in a loop, so it is on until a flow sets its own.
 

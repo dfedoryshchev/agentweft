@@ -14,11 +14,30 @@
   "index": [
     "GATE  weekly-digest  regex at reviewer.md"
   ],
-  "handoff": [],
+  "handoff": [
+    "# stopped: weekly-digest-<run>",
+    "cause          gate failed",
+    "flow           weekly digest",
+    "stopped at     reviewer.md",
+    "regex: matched here is|as an ai|i hope this and should not have",
+    "so the rest of it has not run.",
+    "ran",
+    "  planner.md      <secs>s",
+    "  worker.md       <secs>s",
+    "  merge.md        <secs>s",
+    "  reviewer.md     <secs>s",
+    "left",
+    "  reviewer.md",
+    "reviewer.md runs again when you carry on; the steps before it do not.",
+    "to carry on",
+    "  python run.py weekly-digest --resume weekly-digest-<run> --force"
+  ],
   "files": [
     "index.md",
     "journal.md",
     "weekly-digest-<run>/gates.md",
+    "weekly-digest-<run>/handoff.md",
+    "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
     "weekly-digest-<run>/reviewer.md",
@@ -27,6 +46,7 @@
     "weekly-digest-<run>/steps/002-worker.md",
     "weekly-digest-<run>/steps/003-merge.md",
     "weekly-digest-<run>/steps/004-reviewer.md",
+    "weekly-digest-<run>/tasks.jsonl",
     "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir",
     "weekly-digest-<run>/worker.md"
@@ -255,7 +275,8 @@
     "started reviewer.md",
     "  PASS length - 8 lines",
     "  FAIL regex - matched here is|as an ai|i hope this and should not have",
-    "gate failed at reviewer.md, stopping"
+    "gate failed at reviewer.md, stopping",
+    "to carry on: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
     "merge.md go 1 3ec2633beac13929bb4818ff3f11a98f8cdd132248b7813c3ca50c2b2da7170a",

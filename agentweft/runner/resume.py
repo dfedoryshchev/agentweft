@@ -1,11 +1,16 @@
-"""pick a flow back up, using the journal to find where it stopped.
+"""pick a run back up where it stopped.
 
-there are two ways to stop short now. a run that died is picked up AT the step
+there are two ways to stop short. a run that died is picked up AT the step
 that died, because that step produced nothing. a run that parked for a person
 is picked up AFTER the step it parked on, because that step finished and the
 only thing missing was the person.
+
+where a run stopped is read from its own `manifest.json` (see `manifest`); the
+journal is only asked about a run from before there was one.
 """
-from . import state, stops
+import re
+
+from . import manifest, state, stops
 
 JOURNAL = None
 
@@ -86,10 +91,68 @@ def workdir(run_id):
 
 
 def runs_for(flow):
+    """-> the run folders of this flow, oldest first.
+
+    matched on the whole name: `fix-` is also the start of every run of a flow
+    called fix-with-test.
+    """
     runs = state.RUNS
     if not runs.exists():
         return []
-    return sorted(p.name for p in runs.iterdir() if p.is_dir() and p.name.startswith(flow + "-"))
+    named = re.compile(re.escape(flow) + r"-\d{4}-\d{2}-\d{2}-\d+(-\d+)?$")
+    found = [p.name for p in runs.iterdir() if p.is_dir() and named.match(p.name)]
+    return sorted(found, key=order_of)
+
+
+def order_of(run_id):
+    """a second run started in the same second as another is `<id>-2`."""
+    m = re.match(r"(.*?-\d{4}-\d{2}-\d{2}-\d+)(?:-(\d+))?$", run_id)
+    if not m:
+        return (run_id, 0)
+    return (m.group(1), int(m.group(2) or 1))
+
+
+def stop_of(run_id):
+    """-> the last journal Line of that run, or None when it wrote none."""
+    journal = JOURNAL or state.RUNS / "journal.md"
+    if not journal.exists():
+        return None
+    found = None
+    for text in journal.read_text(encoding="utf-8").split("\n"):
+        line = stops.read(text)
+        if line is not None and line.run == run_id:
+            found = line
+    return found
+
+
+def finished(run_id, kept):
+    if kept is not None:
+        return kept.state == manifest.FINISHED
+    line = stop_of(run_id)
+    return line is not None and line.kind == "ok"
+
+
+def start_at(run_id, order, kept=None):
+    """-> the step a resume of run_id starts at, None when nothing is left.
+
+    the manifest answers when there is one: the first step nothing passed
+    for. a run from before manifests is read off its own journal lines, and
+    one with no end line died without a word, so it starts at the first step
+    with no output on disk.
+    """
+    if kept is not None:
+        return kept.start_at(order)
+    line = stop_of(run_id)
+    if line is not None and line.kind == "stop":
+        if line.parked and line.cause != stops.OUTAGE:
+            left = after(order, line.step)
+        else:
+            left = remaining(order, line.step)
+        return left[0] if left else None
+    for step in order:
+        if not (state.RUNS / run_id / step).exists():
+            return step
+    return None
 
 
 def remaining(all_steps, failed_step):

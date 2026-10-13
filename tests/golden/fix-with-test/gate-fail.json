@@ -11,9 +11,29 @@
   "index": [
     "GATE  fix-with-test  red-test at worker.md"
   ],
-  "handoff": [],
+  "handoff": [
+    "# stopped: fix-with-test-<run>",
+    "cause          gate failed",
+    "flow           fix-with-test",
+    "task           add(1, 2) returns -1",
+    "               all of it is in runs/fix-with-test-<run>/task.md, and --resume carries on with it",
+    "stopped at     worker.md",
+    "red-test: no FAILS: line, so the test never failed",
+    "so the rest of it has not run.",
+    "ran",
+    "  worker.md       <secs>s",
+    "left",
+    "  worker.md",
+    "  patcher.md",
+    "  verify.md",
+    "worker.md runs again when you carry on; the steps before it do not.",
+    "to carry on",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force"
+  ],
   "files": [
     "fix-with-test-<run>/gates.md",
+    "fix-with-test-<run>/handoff.md",
+    "fix-with-test-<run>/manifest.json",
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",
     "fix-with-test-<run>/task.md",
@@ -69,7 +89,8 @@
   "printed": [
     "started worker.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
-    "gate failed at worker.md, stopping"
+    "gate failed at worker.md, stopping",
+    "to carry on: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
     "worker.md go 1 5d168c9f2b633c1894ae1eced89ad349d60a21de7e6c91e820b0bb077bc005cf"

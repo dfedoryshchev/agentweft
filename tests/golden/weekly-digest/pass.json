@@ -20,6 +20,7 @@
     "journal.md",
     "weekly-digest-<day>-1.md",
     "weekly-digest-<run>/gates.md",
+    "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
     "weekly-digest-<run>/reviewer.md",
@@ -28,6 +29,7 @@
     "weekly-digest-<run>/steps/002-worker.md",
     "weekly-digest-<run>/steps/003-merge.md",
     "weekly-digest-<run>/steps/004-reviewer.md",
+    "weekly-digest-<run>/tasks.jsonl",
     "weekly-digest-<run>/workdir",
     "weekly-digest-<run>/worker.md"
   ],

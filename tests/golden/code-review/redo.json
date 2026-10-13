@@ -15,6 +15,7 @@
   "files": [
     "code-review-<day>-1.md",
     "code-review-<run>/gates.md",
+    "code-review-<run>/manifest.json",
     "code-review-<run>/reviewer.md",
     "code-review-<run>/steps.jsonl",
     "code-review-<run>/steps/001-worker.md",

@@ -100,11 +100,14 @@ then the output file or the stop's cause and why, with what the run spent.
 `runner/stops.py` holds the shapes and the fixed list of causes, and reads the
 lines back for `--resume`, `rollup.py` and `run.py spend`.
 
-`runs/<run-id>/` holds each step's output as it is produced. that is what makes
-resume possible: `--resume` finds the last failed run in the journal, works out
-which steps are left, and hands the step before it whatever it produced last
-time. without the outputs on disk resume could tell you where it died and
-nothing else.
+`runs/<run-id>/` holds each step's output as it is produced, and
+`manifest.json`, written by `runner/manifest.py`: each step's state, what the
+run has spent, a digest of the flow folder and of what each step produced,
+the place's HEAD and changed files, the task and the run the task started as.
+that is what makes resume possible: `--resume <run-id>` reads that run's
+manifest, starts at the first step nothing passed for, and hands it whatever
+the step before it produced. without the outputs on disk resume could tell
+you where it died and nothing else.
 
 `runs/<run-id>/steps.jsonl` is one json line per step run, written by
 `runner/trace.py` whatever the step's fate: who answered, what it was counted

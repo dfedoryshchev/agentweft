@@ -16,7 +16,7 @@ from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
                                   promises)
 from agentweft.mcp import context, preflight
-from agentweft.orchestrate import park, synthesise
+from agentweft.orchestrate import decisions, park, synthesise
 
 NEWLINE = chr(10)
 from agentweft.guardrails.budget import Budget
@@ -27,7 +27,7 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import models, resume, router
+from . import manifest, models, resume, router
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -150,13 +150,13 @@ def items(text):
 
 
 def journal(flow_name, status, started, run=None, cause=None, spend=None,
-            why=None, saved=None):
+            why=None, saved=None, origin=None):
     """the only place a journal line gets written. there were three, and the
     failure one had drifted into a different column order. the shapes are in
     `stops`, which is also what reads them back."""
     secs = int((datetime.datetime.now() - started).total_seconds())
     text = stops.line(started, flow_name, status, secs, run, cause, spend,
-                      why, saved)
+                      why, saved, origin)
     runs = state.RUNS
     runs.mkdir(parents=True, exist_ok=True)
     with open(runs / "journal.md", "a", encoding="utf-8") as f:
@@ -223,6 +223,8 @@ class Run(object):
         self.retries = int(settings.get("retries", flow=fm))
         self.fan = fanout_step(flow)
         self.produced = {}
+        self.folder = None
+        self.reuse = {}
         self.answers = {}
         self.attempts = []
         self.ranking = ""
@@ -500,10 +502,22 @@ def run_fanout(run, plan):
             "why": run.fan + " is fanned out one task per line with a | in it,"
                    " and what " + plan.role + " handed it has none"})
 
+    done = getattr(run, "reuse", {}) if back is EMPTY else {}
+    run.reuse = {}
+    folder = getattr(run, "folder", None)
+
     def one(i):
-        return run.step(run.fan, previous=back,
-                        extra="\n\nyour task, only this one:\n\n" + tasks[i],
-                        task=i + 1)
+        kept = done.get((i + 1, tasks[i]))
+        if kept is not None:
+            part = Handoff(role, kept["output"], kept["verdict"],
+                           meta={"asked": kept["asked"]})
+        else:
+            part = run.step(run.fan, previous=back,
+                            extra="\n\nyour task, only this one:\n\n"
+                            + tasks[i], task=i + 1)
+        if folder is not None and part:
+            manifest.task_done(folder, run.fan, i + 1, tasks[i], part)
+        return part
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
@@ -600,12 +614,12 @@ def main():
         prompts.FLOW_ROOT[0] = sys.argv[sys.argv.index("--flows") + 1]
     flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
     pick_up = None
-    if "--resume" in sys.argv:
+    resuming = "--resume" in sys.argv
+    if resuming:
         i = sys.argv.index("--resume")
-        pick_up = sys.argv[i + 1] if len(sys.argv) > i + 1 else None
-        if pick_up is None:
-            ids = resume.runs_for(flow)
-            pick_up = ids[-1] if ids else None
+        named_run = sys.argv[i + 1] if len(sys.argv) > i + 1 else ""
+        if not named_run.startswith("-"):
+            pick_up = named_run or None
     try:
         fm = config(flow)
     except FileNotFoundError:
@@ -616,17 +630,36 @@ def main():
     except ValueError as e:
         print(flow + "/flow.yaml is wrong: " + str(e))
         return 1
-    if pick_up and not fm.get("journal", True):
+    if resuming and not fm.get("journal", True):
         print(flow + " has journal: false, so a run that finished is never "
               "written down and --resume cannot tell it from one that stopped")
         return 1
+    found = None
+    if resuming:
+        ids = resume.runs_for(flow)
+        pick_up = pick_up or (ids[-1] if ids else None)
+        if pick_up is None:
+            print("no run of " + flow + " to pick up")
+            return 1
+        if not (state.RUNS / pick_up).is_dir():
+            print("no run called " + pick_up + " in " + str(state.RUNS))
+            return 1
+        found = manifest.load(state.RUNS / pick_up)
+        if resume.finished(pick_up, found):
+            print(pick_up + " finished. there is nothing to pick up")
+            return 1
     try:
         asked = task.settle(flow, task.places(flow_path(flow), fm),
                             task.given(sys.argv),
-                            task.saved(state.RUNS / pick_up) if pick_up else None,
+                            (found.task if found else
+                             task.saved(state.RUNS / pick_up))
+                            if pick_up else None,
                             pick_up)
         chosen = models.parse(models.pairs(sys.argv))
-        kept = models.load(state.RUNS / pick_up) if pick_up else {}
+        kept = {}
+        if pick_up:
+            kept = dict(found.data.get("models") or {}) if found \
+                else models.load(state.RUNS / pick_up)
         if pick_up and chosen and chosen != kept:
             print(pick_up + " was started with " + (models.said(kept) or
                                                     "no models chosen")
@@ -651,7 +684,31 @@ def main():
             print("--workdir needs a directory")
             return 1
         named = sys.argv[i + 1]
-    started_in = resume.workdir(pick_up) if pick_up else ""
+    started_in = ""
+    if pick_up:
+        started_in = (found.data.get("workdir") if found else "") \
+            or resume.workdir(pick_up)
+    order = steps(flow)
+    shape = manifest.flow_digest(flow_path(flow))
+    notes = []
+    start = order[0]
+    if pick_up:
+        start = resume.start_at(pick_up, order, found)
+        if start is None:
+            print("nothing left to run in " + pick_up)
+            return stops.EXIT_OK
+        edited = manifest.changed(found.data.get("flow_files"), shape[1]) \
+            if found else []
+        if edited and "--force" not in sys.argv:
+            print(flow + " has changed since " + pick_up + " stopped ("
+                  + ", ".join(edited) + "). the rest of it would run on a "
+                  "different flow than the part that ran; --force carries on "
+                  "anyway")
+            return 1
+        if edited:
+            notes.append(("carried " + pick_up + " on over an edited flow",
+                          ", ".join(edited) + " changed since " + pick_up
+                          + " stopped, and --force was given."))
     try:
         if started_in and named and where(fm, named) != Path(started_in):
             print(pick_up + " was working in " + started_in + ", not "
@@ -662,48 +719,84 @@ def main():
     except ValueError as e:
         print(str(e))
         return 1
+    if found:
+        run.budget.restore(found.spend)
+        over = run.budget.over()
+        if over:
+            print(pick_up + " is over its cap (" + over + "). raise max_calls"
+                  " or max_tokens in " + flow + "/flow.yaml, then carry on with"
+                  " --resume " + pick_up + " --force")
+            return 1
     route = router.Router(fm, cap=2)
     started = datetime.datetime.now()
-    run_id = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
+    run_id = new_run_id(flow, started)
     timings = []
     risk_text = ""
     out = EMPTY
     came_from = None
-    todo = steps(flow)
+    todo = order[order.index(start):]
+    origin = None
     if pick_up:
-        stopped = resume.last_stop(fm["name"])
-        if stopped:
-            # a step that died produced nothing, so it runs again. a step that
-            # parked produced its output and passed its checks, so the thing
-            # that was missing was the person, and the run carries on past it.
-            todo = (resume.after(todo, stopped.step) if stopped.parked
-                    else resume.remaining(todo, stopped.step))
-            if not todo:
-                print("nothing left after " + stopped.step + " in " + pick_up)
-                return stops.EXIT_OK
-            before = steps(flow)[:len(steps(flow)) - len(todo)]
-            if before:
-                out = Handoff(run.role_for(before[-1]),
-                              resume.step_output(pick_up, before[-1]))
-                came_from = before[-1]
-            print("picking " + pick_up + " up at " + todo[0])
+        origin = found.origin if found else pick_up
+        before = order[:order.index(start)]
+        if before:
+            came_from = before[-1]
+            held = found.step(came_from) if found else None
+            source = (held or {}).get("in") or pick_up
+            out = Handoff(run.role_for(came_from),
+                          resume.step_output(source, came_from))
+            if held and held.get("digest") and \
+                    manifest.of_text(out.output) != held["digest"]:
+                print(came_from + " was edited after " + source
+                      + " wrote it; the rest of the run works from the edit")
+                notes.append((came_from + " was edited by hand before " + run_id
+                              + " carried on",
+                              "runs/" + source + "/" + came_from + " is not "
+                              "what " + came_from + " produced, and what "
+                              "comes after it works from the edited file."))
+        if found and found.data.get("tree"):
+            moved = manifest.moved(found.data["tree"],
+                                   manifest.tree(run.workdir, state.RUNS))
+            if moved:
+                print("the place has changed since " + pick_up + " stopped: "
+                      + ", ".join(moved))
+        if found and start == run.fan and not (found.step(start) or {}).get(
+                "digest"):
+            run.reuse = manifest.tasks_done(state.RUNS / pick_up, start)
         if investigate.on(fm) and investigate.STEP not in todo:
+            held = found.step(investigate.STEP) if found else None
             run.produced[investigate.STEP] = resume.step_output(
-                pick_up, investigate.STEP)
+                (held or {}).get("in") or pick_up, investigate.STEP)
+        print("picking " + pick_up + " up at " + start)
     seen = load_state(flow).get("last_run")
-    (state.RUNS / run_id).mkdir(parents=True, exist_ok=True)
-    (state.RUNS / run_id / "workdir").write_text(str(run.workdir),
-                                                   encoding="utf-8")
+    folder = state.RUNS / run_id
+    folder.mkdir(parents=True, exist_ok=True)
+    run.folder = folder
+    (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
     if asked is not None:
-        task.save(state.RUNS / run_id, asked)
-    models.save(state.RUNS / run_id, chosen)
-    trail = trace.Trail(state.RUNS / run_id,
+        task.save(folder, asked)
+    models.save(folder, chosen)
+    if found:
+        record = found.carried(folder, run_id, order, shape,
+                               workdir=str(run.workdir))
+    else:
+        record = manifest.Manifest.new(folder, run_id, flow, fm["name"], order,
+                                       shape, task=asked, models=chosen,
+                                       workdir=run.workdir, origin=origin,
+                                       resumes=pick_up)
+        for name in order[:order.index(start)]:
+            record.mark(name, manifest.PASSED, pick_up)
+    record.save(run.budget)
+    for decided, why in notes:
+        decisions.record(folder, decided, why)
+    trail = trace.Trail(folder,
                         after=trace.last_seq(state.RUNS / pick_up)
                         if pick_up else 0)
     if fm.get("journal", True):
-        journal(fm["name"], stops.RUNNING, started, run=run_id)
+        journal(fm["name"], stops.RUNNING, started, run=run_id, origin=origin)
     step = todo[0]
     used = run.provider
+    wrote = set()
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None):
@@ -720,27 +813,44 @@ def main():
                                fanned=step == run.fan)
         if entry is not None:
             trail.close(entry, outcome, why=why, cause=cause)
-        folder = state.RUNS / run_id
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "why.md").write_text(
             "stopped at " + at + NEWLINE + "cause      " + cause + NEWLINE
             + NEWLINE + why + NEWLINE, encoding="utf-8")
+        parked = cause == stops.PARKED
+        record.mark(at, manifest.PARKED if parked else manifest.FAILED,
+                    run_id if at in wrote else None,
+                    resume.step_output(run_id, at) if at in wrote else None)
+        record.stop(at, cause, why, run.workdir, state.RUNS)
+        record.save(run.budget)
+        done = [(name, secs) for name, secs, _ in timings]
         if waiting:
             again = cause == stops.OUTAGE
             left = (resume.remaining if again else resume.after)(steps(flow),
                                                                  at)
-            note = park.write(run_id, fm["name"], at, waiting,
-                              [(name, secs) for name, secs, _ in timings],
+            note = park.write(run_id, fm["name"], at, waiting, done,
                               left, resume_command(flow, run_id),
                               runs=state.RUNS,
                               why=why + "," if told is None else told,
                               again=again)
             print("parked at " + at + ", waiting for " + waiting)
             print("it needs you: " + str(note))
+        else:
+            told = why
+            if cause == stops.BUDGET:
+                told = (why + NEWLINE + "raise max_calls or max_tokens in "
+                        + flow + "/flow.yaml first: a resume starts at what"
+                        " this run spent, and the edit needs --force.")
+            note = park.write(run_id, fm["name"], at, None, done,
+                              resume.remaining(steps(flow), at),
+                              resume_command(flow, run_id), runs=state.RUNS,
+                              why=told, cause=cause)
+            print("to carry on: " + str(note))
         if index:
             write_index(index)
         journal(fm["name"], stops.status(cause, at), started, run=run_id,
-                cause=cause, spend=run.budget.summary(), why=why)
+                cause=cause, spend=run.budget.summary(), why=why,
+                origin=origin)
         return stops.exit_code(cause)
 
     try:
@@ -772,6 +882,7 @@ def main():
             step_dir = state.RUNS / run_id
             step_dir.mkdir(parents=True, exist_ok=True)
             (step_dir / step).write_text(out.output, encoding="utf-8")
+            wrote.add(step)
             timings.append((step, out.meta.get("seconds", 0),
                             out.meta.get("cached")))
             entry = trail.open(step, run.taken(), used, came_from,
@@ -897,11 +1008,15 @@ def main():
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting=waiting, told=why)
-            trail.close(entry, "redo" if out.verdict == "redo" and nxt else "ok",
-                        to=nxt)
+            sent_back = out.verdict == "redo" and nxt
+            trail.close(entry, "redo" if sent_back else "ok", to=nxt)
+            record.mark(step, manifest.REDO if sent_back else manifest.PASSED,
+                        run_id, out.output)
+            record.save(run.budget)
             came_from = step
             step = nxt
-        return finish(flow, fm, run, out, started, run_id, pick_up)
+        return finish(flow, fm, run, out, started, run_id, pick_up, record,
+                      origin)
     except BaseException as e:
         cause = stops.of(e)
         if cause == stops.EXCEPTION:
@@ -947,7 +1062,20 @@ def nothing_why(step, entry):
     return out
 
 
-def finish(flow, fm, run, out, started, run_id, pick_up):
+def new_run_id(flow, started):
+    """-> <flow>-<day>-<time>, with -2, -3 on it when a run of the same flow
+    started in the same second: a resume is quick, and the two would have
+    shared a folder."""
+    base = flow + "-" + started.strftime("%Y-%m-%d-%H%M%S")
+    run_id, n = base, 1
+    while (state.RUNS / run_id).exists():
+        n = n + 1
+        run_id = base + "-" + str(n)
+    return run_id
+
+
+def finish(flow, fm, run, out, started, run_id, pick_up, record=None,
+           origin=None):
     """the end of a run that got through every step. -> the exit code."""
     broken = promises.failures(out.output, fm.promises.invariants)
     for inv, detail in broken:
@@ -988,6 +1116,10 @@ def finish(flow, fm, run, out, started, run_id, pick_up):
     else:
         print(shown)
 
+    if record is not None:
+        record.finish(run.workdir, state.RUNS)
+        record.save(run.budget)
+
     # last, so that anything above that raises is this run's only end line
     # rather than a second one after an `ok`.
     # code-review runs per diff, several times an hour. it drowns the weekly
@@ -1001,7 +1133,7 @@ def finish(flow, fm, run, out, started, run_id, pick_up):
         if skipped:
             status = status + ", " + str(len(skipped)) + " promise(s) not checked"
         journal(fm["name"], status, started, run=run_id, saved=path.name,
-                spend=run.budget.summary())
+                spend=run.budget.summary(), origin=origin)
     return stops.EXIT_OK
 
 

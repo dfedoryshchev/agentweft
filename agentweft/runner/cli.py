@@ -74,9 +74,11 @@ def cmd_help():
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
---resume  pick up the last run of that flow that did not finish. one that died
-          starts again at the step that died; one that parked for a person
-          carries on at the step after it
+--resume  pick up a run that did not finish, read from its own manifest: the
+          one named, or the newest of that flow. one that died starts again
+          at the step that died; one that parked for a person carries on at
+          the step after it. it keeps the task, the models, the place and what
+          the run had spent; a flow edited since then needs --force
 --workdir the directory the run works in, over the flow's own `workdir`.
           a resumed run stays in the one it started in
 --task    what this run is for: a bug, a feature, a question. it goes where

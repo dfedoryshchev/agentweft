@@ -13,6 +13,8 @@ step, and one more line when it ends:
 the columns are split by two spaces: when the run started, the flow, how it
 ended, how long it took, the run id. a finished run then has the file it
 saved and what it spent; a stopped run has its cause, what it spent and why.
+a resumed run's lines end with one more, `resumes <run-id>` (see "when a run
+dies").
 what it spent is counted, estimated or mixed, then its money: what the price
 table makes of it and what the provider said (see "the spend cap" and "what it
 cost in money" in `guardrails.md`). `python run.py spend` prints the last
@@ -153,20 +155,62 @@ ended (the process was killed). `--failed` keeps only the runs that stopped.
 
 ## when a run dies
 
+    python run.py weekly-digest --resume weekly-digest-2026-01-22-091402
+
+picks that run up from its own folder. `runs/<run-id>/manifest.json` is
+written when a run starts, after every step that passes and when it ends, and
+says:
+
+- each step's state, `passed`, `parked`, `failed`, `redo` or `not run`, which
+  run's folder holds what it produced last, and a digest of that
+- what the run has spent so far
+- a digest of every file in the flow folder
+- the place's HEAD and the files git calls changed, a digest each
+- the task, the models chosen, the place, `origin` (the run the task started
+  as) and `resumes` (the run this one picked up)
+
+the resume starts at the first step nothing passed for, and hands it whatever
+the step before it produced. that is why the step outputs are on disk -
+without them resume could tell you where it died and nothing more.
+
+- the spend carries on: the new run starts at what the old one had spent, so
+  the cap is the task's, not each leg's. a run already over its cap is refused
+  until the cap is raised.
+- a flow edited since the stop is refused, naming the files, unless `--force`
+  is given; then the edit goes into `decisions.md` in the new run's folder.
+- a step output edited by hand since it was written is what the rest works
+  from, and that goes into the same `decisions.md`.
+- a place whose HEAD or changed files are not what they were at the stop is
+  named before anything runs. it is not refused: the person carrying on may
+  have changed it on purpose.
+- a fanned-out step writes each task to `tasks.jsonl` as it finishes. if the
+  step died part way, the resume runs only the tasks with nothing written, and
+  a task whose plan line was edited counts as not done.
+- a run that finished is not picked up again: `--resume` says so and runs
+  nothing.
+
     python run.py weekly-digest --resume
 
-finds the most recent run of that flow that stopped short, whatever the cause,
-works out which steps are left, and hands the first of them whatever the step
-before it produced last time. that is why the step outputs are on disk -
-without them resume could tell you where it died and nothing more. a
-`running` line is skipped: it says a run began, not how it ended.
+picks up the newest run of that flow, and says there is nothing to pick up when
+that one finished. `--resume` followed by another switch (`--resume --force`)
+is the same thing, not a run called `--force`.
 
 a provider outage is written as a park, but the step it parked on got no
-answer, so carrying on runs that step again.
+answer, so carrying on runs that step again. a run from before there was a
+manifest is read off its own journal lines, and one with no end line starts at
+the first step with no output on disk.
 
-    python run.py weekly-digest --resume weekly-digest-2026-01-22-1
+the resumed run has an id of its own, and every journal line it writes ends
+with `resumes <run-id>`, the run the task started as, however many times it has
+been picked up since:
 
-picks a specific run instead of the most recent.
+    2026-01-22 09:20  weekly digest  ok (resumed)  12s  weekly-digest-2026-01-22-092011  weekly-digest-2026-01-22-2.md  6 calls, ...  resumes weekly-digest-2026-01-22-091402
+
+its spend is the whole task's so far, every leg included.
+
+a run that stops without waiting for anyone (a gate, the cap, a crash) leaves
+a `handoff.md` too, headed `# stopped:` with its cause, the step that runs
+again, and the command that carries on.
 
 ## when a run stops on purpose
 
@@ -244,9 +288,13 @@ why)` appends to `<root>/decisions.md` and refuses an entry with no why;
 `read(root)` gives every entry back, oldest first. entries are never
 rewritten - a decision that turned out wrong gets a later one saying so.
 
-nothing in the runner writes to it yet.
+the runner writes one in a resumed run's own folder, when it carried on over
+an edited flow or an edited step output.
 
 ## what it does not do
 
-a resumed run writes its own journal line. so a run that failed and was picked
-up shows twice.
+a resumed run writes its own journal lines, so a task that stopped and was
+picked up shows once per leg; the `resumes` column is what ties them together.
+a step that stopped while it was being redone is handed the step before it in
+the flow on resume, not the review that sent it back, and the redo count
+starts again.
