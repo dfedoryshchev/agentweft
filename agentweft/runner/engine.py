@@ -842,7 +842,7 @@ def main():
             run.produced[investigate.STEP] = resume.step_output(
                 (held or {}).get("in") or pick_up, investigate.STEP)
         print("picking " + pick_up + " up at " + start)
-    seen = load_state(flow, run.workdir, asked).get("last_run")
+    seen = state.last_output(flow, run.workdir, asked)
     folder = state.RUNS / run_id
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
@@ -1019,7 +1019,7 @@ def main():
                     run.ranking = risk_text
                     extra = extra + context.as_prompt(risk_text)
                 if seen and step == "planner.md":
-                    extra = "\n\nthe last run was " + seen + \
+                    extra = "\n\nthe last run was " + str(seen) + \
                         ". only tell me what is different since then."
                 out = run.step(step, previous=out, extra=extra)
             step_dir = state.RUNS / run_id

@@ -38,12 +38,13 @@ def test_another_task_in_the_same_project_is_kept_apart(tmp_path):
 # through the engine
 
 
-def a_flow(tmp_path, monkeypatch, pause=False):
+def a_flow(tmp_path, monkeypatch, pause=False, tasked=False):
     d = tmp_path / "home" / "flows" / "kept"
     d.mkdir(parents=True)
     for step in ["planner.md", "worker.md"]:
         (d / step).write_text("# step\n\ndo the thing.\n", encoding="utf-8")
-    (d / "instructions.md").write_text("two steps.\n", encoding="utf-8")
+    (d / "instructions.md").write_text(
+        "two steps." + (" {TASK}" if tasked else "") + "\n", encoding="utf-8")
     (d / "flow.yaml").write_text(
         "name: kept\n"
         "steps:\n"
@@ -72,9 +73,9 @@ def planner_prompts(monkeypatch):
     return sent
 
 
-def go(monkeypatch, place):
+def go(monkeypatch, place, *more):
     monkeypatch.setattr(sys, "argv", ["run.py", "kept", "--force",
-                                      "--workdir", str(place)])
+                                      "--workdir", str(place)] + list(more))
     return engine.main()
 
 
@@ -127,14 +128,60 @@ def test_the_old_file_of_another_project_is_ignored(tmp_path, monkeypatch):
     assert [LINE in p for p in sent] == [False]
 
 
-def test_the_old_file_of_the_same_project_is_read_once(tmp_path, monkeypatch):
-    a_flow(tmp_path, monkeypatch)
+def test_the_old_file_names_no_task_so_it_gives_no_line(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, tasked=True)
+    state.RUNS.mkdir(parents=True, exist_ok=True)
+    (state.RUNS / "kept-before.md").write_text("before\n", encoding="utf-8")
     state.STATE_DIR.mkdir(parents=True)
     (state.STATE_DIR / "kept.json").write_text(json.dumps(
         {"last_run": "kept-before.md",
          "workdir": str((tmp_path / "a").resolve())}), encoding="utf-8")
     sent = planner_prompts(monkeypatch)
-    assert go(monkeypatch, tmp_path / "a") == 0
-    assert go(monkeypatch, tmp_path / "a") == 0
-    assert LINE + "kept-before.md" in sent[0]
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    assert LINE not in sent[0]
     assert "kept-before.md" not in sent[1] and LINE in sent[1]
+
+
+def saved_output():
+    [kept] = kept_under_the_runs()
+    return (state.RUNS / kept["last_run"]).resolve()
+
+
+def test_another_task_in_the_same_repo_gets_no_line(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, tasked=True)
+    sent = planner_prompts(monkeypatch)
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    assert go(monkeypatch, tmp_path / "a", "--task", "two") == 0
+    assert [LINE in p for p in sent] == [False, False]
+
+
+def test_the_same_task_is_told_where_its_last_output_is(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, tasked=True)
+    sent = planner_prompts(monkeypatch)
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    out = saved_output()
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    assert out.is_absolute() and out.is_file()
+    assert LINE + str(out) + "." in sent[1]
+
+
+def test_a_last_output_that_was_deleted_gives_no_line(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, tasked=True)
+    sent = planner_prompts(monkeypatch)
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    saved_output().unlink()
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    assert LINE not in sent[1]
+
+
+def test_a_kept_run_of_another_place_gives_no_line(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, tasked=True)
+    state.RUNS.mkdir(parents=True, exist_ok=True)
+    (state.RUNS / "kept-other.md").write_text("other\n", encoding="utf-8")
+    state.save_state("kept", {"last_run": "kept-other.md",
+                              "workdir": str((tmp_path / "b").resolve())},
+                     tmp_path / "a", "one")
+    sent = planner_prompts(monkeypatch)
+    assert go(monkeypatch, tmp_path / "a", "--task", "one") == 0
+    assert LINE not in sent[0]

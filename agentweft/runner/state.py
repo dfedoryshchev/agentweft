@@ -60,6 +60,23 @@ def load_state(flow, place, task=None):
     return _before(flow, place)
 
 
+def last_output(flow, place, task=None):
+    """-> the absolute path of the output the last run of `flow` on this repo
+    and task saved, None when there is none or it is gone.
+
+    only the file kept for this repo and task counts: the older one per flow
+    names no task, so its run may have been asked something else."""
+    p = _path(flow, place, task)
+    if not p.exists():
+        return None
+    kept = json.loads(p.read_text(encoding="utf-8"))
+    said, name = kept.get("workdir"), kept.get("last_run")
+    if not said or not name or root_of(said) != root_of(place):
+        return None
+    out = (RUNS / name).resolve()
+    return out if out.is_file() else None
+
+
 def save_state(flow, entry, place, task=None):
     p = _path(flow, place, task)
     p.parent.mkdir(parents=True, exist_ok=True)
