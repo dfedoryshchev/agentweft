@@ -512,6 +512,28 @@ def test_authority_claimed_with_no_ruling_on_record_is_flagged():
     assert summary.authority(blocks, [object()]) == []
 
 
+def _doubt(text):
+    return [("patcher", handoff.parse(
+        "HANDOFF\nDOUBTS:\n- " + text + "\nEND HANDOFF\n"))]
+
+
+def test_an_open_question_about_a_ruling_is_not_a_claim_of_one():
+    for text in ("nobody has ruled on which format wins",
+                 "the spec line has not been approved",
+                 "no one approved this yet",
+                 "the format needs a ruling",
+                 "not as agreed with the user"):
+        assert summary.authority(_doubt(text), []) == [], text
+
+
+def test_a_claim_that_a_person_decided_is_flagged_once():
+    got = summary.authority(_doubt("the user approved the new format"), [])
+    assert got == ["patcher: \"the user approved\" - the user approved the"
+                   " new format"]
+    got = summary.authority(_doubt("as agreed, amounts stay strings"), [])
+    assert got == ["patcher: \"as agreed\" - as agreed, amounts stay strings"]
+
+
 def test_a_run_in_a_git_checkout_lists_what_changed_from_the_tree(
         tmp_path, monkeypatch):
     place = a_repo(tmp_path / "repo")

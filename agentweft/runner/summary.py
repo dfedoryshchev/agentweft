@@ -34,9 +34,13 @@ JUDGING = ("reviewer", "verify", "judge")
 TEST_PATH = re.compile(r"(^|/)(tests?|spec|__tests__)/|(^|/)test_[^/]*\.py$"
                        r"|_tests?\.py$|\.(test|spec)\.[cm]?[jt]sx?$"
                        r"|Tests?\.cs$")
-AUTHORITY = re.compile(r"\b(user-directed|as agreed|approved|the user wants"
-                       r"|ruled|per the user|user-approved|session-settled"
-                       r"|as discussed)\b", re.I)
+AUTHORITY = re.compile(r"\b(user-directed|user-approved|session-settled"
+                       r"|as agreed|as discussed|per the user|the user wants"
+                       r"|the (?:user|lead|owner|maintainer|reviewer|team)"
+                       r" (?:has |had )?(?:approved|ruled|agreed|decided))\b",
+                       re.I)
+NEGATED = re.compile(r"\b(not|never|no|nobody|without)\W+(\w+\W+){0,2}$",
+                     re.I)
 
 
 def _git(place, *args):
@@ -226,7 +230,7 @@ def authority(blocks, decided_in_run):
             for item in block[key]:
                 text = item["claim"] if isinstance(item, dict) else item
                 m = AUTHORITY.search(text)
-                if m:
+                if m and not NEGATED.search(text[:m.start()]):
                     out.append(role + ': "' + m.group(1) + '" - ' + text)
     return out
 

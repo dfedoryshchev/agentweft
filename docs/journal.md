@@ -231,9 +231,10 @@ every gate's verdict with the command behind it, the red-first proof (the
 the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (a markdown file at the top of the checkout) changed at all, each
 name the `decisions.md` entry behind them or print `UNRULED`; an add-only
-test change says so. a step that claims an agreement, an approval or a
-ruling with none on record is printed under "rulings" as "authority
-claimed, no ruling on record". a VERIFIED claim the transcript does not show
+test change says so. a step that claims a person agreed, approved or
+ruled ("the user approved", "as agreed") with none on record is printed under "rulings" as "authority
+claimed, no ruling on record"; an open question ("nobody has ruled", "not
+approved yet") is not a claim. a VERIFIED claim the transcript does not show
 is printed under "not verified" as "claims the record does not show".
 
     # fix-with-test fix-with-test-2026-10-13-091402: finished - add returns a + b; it subtracted
