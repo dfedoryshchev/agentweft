@@ -65,6 +65,9 @@ class Budget(object):
         # failed goes the provider gave no usage for, by error kind. they are
         # charged as calls and as 0 tokens, which is not the same as free
         self.unreported = {}
+        # goes the provider turned away and counted at 0 tokens, such as the
+        # account's limit: nothing was worked on, so they are not calls
+        self.refused_calls = 0
         self.lock = threading.Lock()
 
     def charge(self, prompt, answer, provider="cli", error=None, model=None):
@@ -80,6 +83,10 @@ class Budget(object):
 
     def _charge(self, prompt, answer, provider, error, model):
         usage = getattr(answer, "usage", None)
+        if error and usage is not None and not (
+                usage.input_tokens or usage.output_tokens):
+            self.refused_calls += 1
+            return self
         if usage is not None:
             self.counted["input"] += usage.input_tokens
             self.counted["output"] += usage.output_tokens
@@ -108,7 +115,7 @@ class Budget(object):
 
     KEPT = ("calls", "by_provider", "counted", "counted_calls", "estimated",
             "estimated_calls", "unreported", "priced_calls", "unpriced",
-            "reported_calls")
+            "reported_calls", "refused_calls")
     MONEY = ("usd", "usd_estimated", "reported")
 
     def saved(self):
@@ -260,9 +267,11 @@ class Budget(object):
         return None
 
     def summary(self):
+        refused = (str(self.refused_calls) + " refused, "
+                   if self.refused_calls else "")
         if not self.calls:
-            return "0 calls, 0 tokens"
-        out = plural(self.calls, "call") + ", "
+            return "0 calls, " + refused + "0 tokens"
+        out = plural(self.calls, "call") + ", " + refused
         estimate = "~" + str(self.estimated) + " tokens estimated"
         if self.counted_calls and self.estimated_calls:
             out = (out + self.metered() + ", " + self.split()

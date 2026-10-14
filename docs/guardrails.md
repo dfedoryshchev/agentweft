@@ -29,7 +29,8 @@ already includes `cache_read` and `cache_creation`, and `output` already include
 twice. a provider that reports nothing - fake, a command other than `claude` -
 is charged characters over four, a guess meant only to say when a run is ten
 times bigger than usual. a failed go with no usage is charged as a call and 0
-tokens, tagged with the kind of failure. a cached answer is not charged, and
+tokens, tagged with the kind of failure; one the provider counted at 0 tokens
+is a refusal, not a call (below). a cached answer is not charged, and
 the cache is the run's own: a redo inside a run gets the answer it already
 paid for, a second run or a second eval case asks again.
 
@@ -53,7 +54,16 @@ left out:
     token cap: 851 > 850 (851 counted: input 10, cache_creation 800, output 41; cache_read 12000 not counted)
     token cap: 105 > 100 (90 counted: input 90, output 0, + ~15 estimated)
 
-`max_calls` counts every go, failed ones included.
+`max_calls` counts every go, failed ones included, except a go the provider
+turned away and counted at 0 tokens, such as the account's usage limit. that
+one did no work, so it is shown as refused and never counts toward the cap; a
+run that stops on the limit and is resumed nine times is not stopped by the
+cap for it:
+
+    2 calls, 9 refused, 28 tokens counted (input 20, output 8) (cli x2)
+
+a failed go the provider gave no count for at all, a timeout say, is still a
+call.
 
 ## what it cost in money
 

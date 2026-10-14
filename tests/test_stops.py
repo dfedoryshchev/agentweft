@@ -235,7 +235,31 @@ def test_a_scored_run_names_the_outage(tmp_path, monkeypatch, fake_cli):
     _, budget, why = engine.run_once("fix")
     assert why.startswith("provider outage at worker.md: limit reached, "
                           "resets 7:20pm (Europe/London)")
-    assert len(cli.calls) == 1 and budget.calls == 1
+    assert len(cli.calls) == 1
+    assert budget.summary() == "0 calls, 1 refused, 0 tokens"
+
+
+def test_limit_refusals_across_a_chain_of_resumes_do_not_reach_the_call_cap(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "fix", ["worker", "reviewer"],
+           tail=CLAUDE + "max_calls: 2\n")
+    fake_cli(answer("done\n"), refused_by_the_limit())
+    assert engine.main() == 2
+    seen = {the_folder().name}
+    last = the_folder().name
+    for _ in range(8):
+        fake_cli(refused_by_the_limit())
+        monkeypatch.setattr(sys, "argv", ["run.py", "fix", "--force",
+                                          "--resume", last])
+        assert engine.main() == 2
+        [last] = {p.name for p in state.RUNS.iterdir() if p.is_dir()} - seen
+        seen.add(last)
+    fake_cli(answer("VERDICT: ok\n\nfine\n"))
+    monkeypatch.setattr(sys, "argv", ["run.py", "fix", "--force", "--resume",
+                                      last])
+    assert engine.main() == 0
+    end = ends()[-1]
+    assert end.spend.startswith("2 calls, 9 refused, ")
 
 
 def test_one_step_on_its_own_says_the_limit_and_exits_2(tmp_path, monkeypatch,

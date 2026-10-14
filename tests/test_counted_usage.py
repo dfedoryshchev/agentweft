@@ -217,6 +217,49 @@ def test_the_call_cap_counts_failed_goes_and_trips_only_past_the_cap():
     assert b.over() == "call cap: 3 > 2"
 
 
+def refusal():
+    return Reply("", detail="limit reached", outage="unknown",
+                 usage=Usage.of({"input_tokens": 0, "output_tokens": 0}))
+
+
+def test_a_refusal_counted_at_zero_tokens_is_not_a_call():
+    b = Budget(max_calls=2)
+    b.charge("p", counted({"input_tokens": 1, "output_tokens": 1}))
+    for _ in range(9):
+        b.charge("p", refusal(), error="outage")
+    assert b.over() is None
+    assert (b.calls, b.counted_calls) == (1, 1)
+    assert b.refused_calls == 9
+
+
+def test_nine_refusals_alone_read_as_refused_with_no_tokens():
+    b = Budget()
+    for _ in range(9):
+        b.charge("p", refusal(), error="outage")
+    assert b.summary() == "0 calls, 9 refused, 0 tokens"
+
+
+def test_refusals_are_named_beside_the_work_calls():
+    b = Budget()
+    b.charge("p", counted({"input_tokens": 3, "output_tokens": 1}))
+    b.charge("p", refusal(), error="outage")
+    assert b.summary().startswith("1 call, 1 refused, 4 tokens counted")
+
+
+def test_a_resumed_run_carries_its_refusals():
+    b = Budget()
+    b.charge("p", refusal(), error="outage")
+    again = Budget().restore(b.saved())
+    assert again.summary() == "0 calls, 1 refused, 0 tokens"
+
+
+def test_a_failed_go_with_no_usage_block_is_still_a_call():
+    b = Budget(max_calls=1)
+    b.charge("p", Reply("", detail="timed out"), error="transient")
+    b.charge("p", Reply("", detail="timed out"), error="transient")
+    assert b.over() == "call cap: 2 > 1"
+
+
 def test_nothing_charged_reads_as_nothing():
     assert Budget().summary() == "0 calls, 0 tokens"
 
