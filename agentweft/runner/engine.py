@@ -1020,11 +1020,20 @@ def main():
                             + step)
 
             hot = []
-            if fm.get("context") and run.preflight_for(step):
+            if run.preflight_for(step):
                 hot = preflight.check(out.output, risk_text,
                                       threshold=float(run.preflight_for(step).get(
                                           "threshold", preflight.DEFAULT_THRESHOLD)))
-                if hot:
+                if hot is None:
+                    mode = run.preflight_for(step).get("mode", "flag")
+                    print("preflight: " + preflight.NO_RANKING + ", " + step
+                          + " not checked")
+                    if mode in ("park", "refuse"):
+                        return stop(stops.PARKED, step + " was not checked: "
+                                    + preflight.NO_RANKING, "parked", entry,
+                                    index="PARKED  " + flow + "  at " + step,
+                                    waiting="user")
+                elif hot:
                     mode = run.preflight_for(step).get("mode", "flag")
                     print("preflight: " + str(len(hot)) + " hot file(s) in that step")
                     for path, score in hot:

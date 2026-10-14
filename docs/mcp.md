@@ -61,7 +61,9 @@ with an empty list, which reads exactly like a codebase with no risk in it.
 it is advisory on purpose. if the server is missing or slow, does not have the
 tool, is missing an argument, answers with nothing, or says the tool failed, the
 run prints `no risk map:` and why, and carries on - a flow does not fail because
-a side channel is down.
+a side channel is down. a step with a `preflight:` set to `park` or `refuse`
+still parks when its turn comes, because it has nothing to check against
+(below).
 
 nothing in here knows which tool it is talking to. anything speaking the same
 protocol works.
@@ -92,8 +94,17 @@ is refused when the flow loads.
 this is the part that is not a prompt. asking an agent to be careful about a
 hot file is a prompt. a number and a comparison is a control.
 
-it needs a `context:` block on the flow, because without a ranking there is
-nothing to check against, and with no ranking nothing is ever flagged.
+it needs a ranking, which comes from the flow's `context:` block when the
+planner runs. no ranking is not the same as nothing hot, and the step says so:
+the server was down, it answered with something that is not `path score`
+lines, the flow has no `context:` block, or a `--resume` picked the run up past
+the planner, so the map was never fetched. in each case the run prints
+`preflight: no ranking to check against, <step> not checked`. `flag` carries on
+after that line. `park` and `refuse` both park, with the why `<step> was not
+checked: no ranking to check against`: a step set to stop on a hot file is not
+let through on a check that never ran, and refusing it would claim a blast
+radius nobody measured, so a person reads it and carries on with `--resume`.
+the map itself stays advisory - a planner without one still runs.
 
 a `command` gate reads the same ranking to pick between a short test command
 and a long one (`docs/gates.md`).

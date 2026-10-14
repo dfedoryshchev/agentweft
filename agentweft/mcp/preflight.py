@@ -15,6 +15,7 @@ be careful about a hot file is a prompt. this is a number and a comparison.
 import re
 
 DEFAULT_THRESHOLD = 0.7
+NO_RANKING = "no ranking to check against"
 
 
 def parse_ranking(text):
@@ -53,10 +54,15 @@ def _same_file(a, b):
 
 
 def check(text, ranking_text, threshold=DEFAULT_THRESHOLD):
-    """-> list of (path, score) at or above the threshold."""
+    """-> list of (path, score) at or above the threshold, or None when there
+    is no ranking to check against.
+
+    None and [] are different answers on purpose. [] is "checked, nothing
+    hot"; None is "not checked", which a step set to park or refuse must not
+    read as permission to go on."""
     ranking = parse_ranking(ranking_text)
     if not ranking:
-        return []
+        return None
     hot = []
     for path in files_mentioned(text):
         for known, score in ranking.items():

@@ -141,13 +141,44 @@ def test_a_step_that_names_no_hot_file_runs_through(tmp_path, monkeypatch):
     assert "parked" not in journal()
 
 
-def test_no_ranking_parks_nothing(tmp_path, monkeypatch, capsys):
-    """the side channel being down is a run without a map, not a run that
-    stops: the same answer flag and refuse already give it."""
+def test_no_ranking_parks_a_step_set_to_park(tmp_path, monkeypatch, capsys):
     asked = go(tmp_path, monkeypatch, "park", ranking=("", "server is down"))
+    assert steps_asked(asked) == ["planner.md", "worker.md"]
+    said = capsys.readouterr().out
+    assert "no risk map: server is down" in said
+    assert "parked at worker.md, waiting for user" in said
+    assert "no ranking to check against" in journal()
+    assert "no ranking to check against" in handoff()
+
+
+def test_no_ranking_parks_a_step_set_to_refuse_rather_than_refusing_it(
+        tmp_path, monkeypatch):
+    asked = go(tmp_path, monkeypatch, "refuse", ranking=("", "server is down"))
+    assert steps_asked(asked) == ["planner.md", "worker.md"]
+    last = causes.read(journal().strip().split(NL)[-1])
+    assert (last.status, last.cause) == ("parked at worker.md", "parked")
+    assert "hot blast radius" not in journal()
+
+
+def test_no_ranking_is_said_and_a_flag_step_carries_on(tmp_path, monkeypatch,
+                                                       capsys):
+    asked = go(tmp_path, monkeypatch, "flag", ranking=("", "server is down"))
     assert steps_asked(asked) == ["planner.md", "worker.md", "reviewer.md"]
-    assert "no risk map: server is down" in capsys.readouterr().out
+    assert "preflight: no ranking to check against, worker.md not checked" \
+        in capsys.readouterr().out
     assert "parked" not in journal()
+
+
+def test_a_resumed_run_past_the_planner_does_not_pass_a_park_step_silently(
+        tmp_path, monkeypatch, capsys):
+    go(tmp_path, monkeypatch, "park", worker="")
+    assert "failed at worker.md" in journal()
+    capsys.readouterr()
+    asked = go(tmp_path, monkeypatch, "park", extra=["--resume"])
+    assert steps_asked(asked) == ["worker.md"]
+    said = capsys.readouterr().out
+    assert "no ranking to check against" in said
+    assert "parked at worker.md, waiting for user" in said
 
 
 def test_each_mode_stops_its_own_way_on_the_same_hot_step(tmp_path,

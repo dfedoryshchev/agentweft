@@ -21,8 +21,13 @@ def test_a_cold_file_is_not_flagged():
     assert preflight.check("touching src/util.ts only", RANKING) == []
 
 
-def test_no_ranking_means_nothing_is_flagged():
-    assert preflight.check("src/hooks.ts", "") == []
+def test_no_ranking_is_not_the_same_answer_as_nothing_hot():
+    assert preflight.check("src/hooks.ts", "") is None
+    assert preflight.check("touching src/util.ts only", RANKING) == []
+
+
+def test_a_ranking_with_nothing_parseable_in_it_is_no_ranking():
+    assert preflight.check("src/hooks.ts", "[{\"path\": \"src/hooks.ts\"}]") is None
 
 
 def test_the_threshold_is_respected():
