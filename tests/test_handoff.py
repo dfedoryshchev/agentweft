@@ -174,6 +174,49 @@ def test_a_claim_that_names_no_command_is_unbacked():
     assert item["backed"] == "unbacked" and "no command" in item["why"]
 
 
+def verified(lines):
+    return handoff.parse("HANDOFF\nVERIFIED:\n" + lines + "END HANDOFF\n")
+
+
+def test_a_piped_command_on_its_own_line_is_kept_whole_and_backed():
+    block = verified("- the suite is green\n"
+                     "  cmd: python -m pytest -q | tail -5\n"
+                     "  saw: 5 passed\n")
+    [item] = block["verified"]
+    assert item["claim"] == "the suite is green"
+    assert item["cmd"] == "python -m pytest -q | tail -5"
+    assert item["saw"] == "5 passed"
+    [item] = handoff.back(block, [
+        ("cd /w && python -m pytest -q | tail -5", "5 passed in 0.1s")])[
+        "verified"]
+    assert item["backed"] == "backed"
+
+
+def test_an_old_one_line_claim_with_a_piped_command_still_parses_whole():
+    [item] = verified("- green | cmd: python -m pytest -q | tail -5"
+                      " | saw: 5 passed\n")["verified"]
+    assert item["claim"] == "green"
+    assert item["cmd"] == "python -m pytest -q | tail -5"
+    assert item["saw"] == "5 passed"
+
+
+def test_each_excerpt_is_matched_alone_and_the_missing_one_is_named():
+    block = verified("- green and quiet\n"
+                     "  cmd: python -m pytest -q\n"
+                     "  saw: 5 passed\n"
+                     "  saw: 0 warnings\n")
+    [item] = handoff.back(block, [("python -m pytest -q",
+                                   "5 passed, 2 warnings in 0.1s")])[
+        "verified"]
+    assert item["backed"] == "unbacked"
+    assert item["why"].endswith("does not show 0 warnings")
+    old = verified('- green | cmd: python -m pytest -q'
+                   ' | saw: "5 passed" / "1 skipped"\n')
+    [item] = handoff.back(old, [("python -m pytest -q",
+                                 "5 passed, 1 skipped in 0.1s")])["verified"]
+    assert item["backed"] == "backed"
+
+
 def test_no_transcript_leaves_a_claim_unchecked(tmp_path, monkeypatch):
     monkeypatch.setattr(handoff, "PROJECTS", tmp_path / "nothing")
     assert handoff.transcript("s-9") is None
@@ -208,6 +251,7 @@ def test_every_role_is_asked_for_the_block_and_not_told_to_hide_its_work(
                 "MUST NOT MISS:", "TRIED:", "READ:"):
         assert key in prompt, key
     assert "cmd:" in prompt and "saw:" in prompt
+    assert "| cmd:" not in prompt and "| saw:" not in prompt
 
 
 def test_the_next_step_gets_the_block_first_and_told_whose_account_it_is():

@@ -248,8 +248,8 @@
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 1841c9b29b5952d022a916e4be3d81835a6c765c88f6eb889033577c5a472dac",
-    "reviewer.md go 1 1d1853231158b62af8177640920d371c96b252300c1e11d5b04faba2125258fe",
-    "worker.md go 1 6f12fc4f52acbcbdf78ca9bc7d00ec63bc3664e187febf559fe48f38bef679f6"
+    "planner.md go 1 4ab59c937b8ef73ade8fe020adbf8ade2b22a08401dbcc8d8a25566b407fc412",
+    "reviewer.md go 1 8625ea70adc7ded44ccaa60f6d24a914609bbca8a6bef24e2797d80852cc91d9",
+    "worker.md go 1 264889321028febeca6d9454f10c52975bcd28703927ad5f893b0fff766fbc12"
   ]
 }

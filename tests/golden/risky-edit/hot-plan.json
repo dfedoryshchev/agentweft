@@ -178,6 +178,6 @@
     "handoff: <tmp>/runs/risky-edit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 febfe77b38fa313c9971a0ba65590c8d80f2f714325e840c6d7b2d26a07197a9"
+    "planner.md go 1 8170335cd5db8708cb4f649de18e702be20df61bfca759950673d50cf3d6a22d"
   ]
 }

@@ -118,6 +118,9 @@
             "claim": "the test fails on the code as it stands",
             "cmd": "python -m pytest -q test_calc.py",
             "saw": "1 failed",
+            "excerpts": [
+              "1 failed"
+            ],
             "backed": "unchecked",
             "why": "no transcript for this step"
           }
@@ -184,6 +187,9 @@
             "claim": "1 passed",
             "cmd": "python -m pytest -q test_calc.py",
             "saw": "1 passed",
+            "excerpts": [
+              "1 passed"
+            ],
             "backed": "unchecked",
             "why": "no transcript for this step"
           }
@@ -253,6 +259,9 @@
             "claim": "the whole suite is green",
             "cmd": "python -m pytest -q",
             "saw": "1 passed",
+            "excerpts": [
+              "1 passed"
+            ],
             "backed": "unchecked",
             "why": "no transcript for this step"
           }
@@ -291,8 +300,8 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 f2dcfc44ed8c52cc062b74663164fe3ea35017925044d8d370810e9c2f2e2a26",
-    "verify.md go 1 243579f7bb909cd502833a85c5b6c01c8e533b05110be89d2d8ba8f3fd1fa9b4",
-    "worker.md go 1 806bac4ca4558da195e96856b3d39346277bc271eb01d57272f0902b48207e29"
+    "patcher.md go 1 2e91c146edc5bdd3fa291e6780ab4e1dc59940cca79e0d23ccbeb79bd14034c5",
+    "verify.md go 1 f44dd62a5641e0be815c473e58c22b95d12f5af0eac70ba421ef65a6284dd08f",
+    "worker.md go 1 bb2e42bd82e672c996442889512ac4b7121a16d015c13fe0e060f98218ac89da"
   ]
 }

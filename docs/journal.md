@@ -163,10 +163,12 @@ or crashed. the keys are always all there, in this order:
   `present`, `missing` (the step ended without one; nothing is made up in
   its place), `unreadable` (a block it could not read, with `why`) or, on a
   fanned-out step, `partial` (some tasks handed one over). each VERIFIED
-  claim carries `backed`: `backed` when the step's transcript holds the
-  command and the excerpt, `ran` when it holds the command and no excerpt
-  was given, `unbacked` when it holds neither or the output does not show
-  the excerpt (`why` says which), `unchecked` when there is no transcript
+  claim carries `claim`, `cmd`, `saw` (its excerpts as written, joined by
+  ` / `), `excerpts` (each one alone) and `backed`: `backed` when the step's
+  transcript holds the command and every excerpt, `ran` when it holds the
+  command and no excerpt was given, `unbacked` when it holds neither or the
+  output does not show an excerpt (`why` says which, naming each missing
+  excerpt), `unchecked` when there is no transcript
   to read (the fake, the api, a cli command other than claude). null only on
   a line closed before the step answered.
 
@@ -182,7 +184,9 @@ with a block, after the work:
     DID:
     - <the outcome in one line, then one line per file or finding>
     VERIFIED:
-    - <claim> | cmd: <the command it ran> | saw: <an excerpt of the output>
+    - <claim>
+      cmd: <the command it ran>
+      saw: <an excerpt of the output, one line per excerpt>
     NOT VERIFIED:
     - <what it did not check> - <why>
     ASSUMED:
@@ -201,7 +205,12 @@ with a block, after the work:
 a `>` quote, any case, bullet or bold ignored) and `agentweft/runner/handoff.py`
 reads the last block off them: a section with `none` is empty, a heading in
 capitals it does not know (`NEEDS:`, `CITES:`, `OPTIONS:`) is kept under
-`other`. the block is not the work: the gates, the saved run and what the
+`other`. a VERIFIED item's `cmd:` and `saw:` lines are read as parts of
+the claim above them, so a command keeps any pipe in it; a block written in
+the older one-line form, `<claim> | cmd: <command> | saw: <excerpt>`, is
+still read, split on the `cmd:` and `saw:` labels only, and a `saw:` that
+quotes two or more pieces matches each piece on its own. the block is not
+the work: the gates, the saved run and what the
 next step is handed as "what <role> produced" see the answer without it.
 
 the next step gets the block first, before the raw answer, as "what <role>

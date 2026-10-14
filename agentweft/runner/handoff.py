@@ -15,10 +15,11 @@ a step that ends without one is recorded `missing`. nothing is made up in its
 place and nothing fails for it by default: a flow that wants the block can
 gate on it.
 
-a VERIFIED line names the command the step ran and a piece of what it
-printed. when the step's provider keeps a transcript, the claim is held to it:
-`backed` when the command and the excerpt are both there, `unbacked` when one
-of them is not, `ran` when the command is there and no excerpt was given,
+a VERIFIED item is a claim with a `cmd:` line naming the command the step ran
+and a `saw:` line per piece of what it printed. when the step's provider keeps
+a transcript, the claim is held to it: `backed` when the command and every
+excerpt are there, `unbacked` when one of them is not (the missing one is
+named), `ran` when the command is there and no excerpt was given,
 `unchecked` when there is no transcript to read. the model's word for what it
 ran is never taken on its own.
 """
@@ -46,6 +47,8 @@ OPEN = re.compile("^" + DECOR + r"HANDOFF[\s*`_:]*$", re.I)
 CLOSE = re.compile("^" + DECOR + r"END HANDOFF[\s*`_:.]*$", re.I)
 NONE_WORDS = ("", "none", "nothing", "-", "n/a", "na", "none.")
 PART = re.compile(r"^(cmd|command|ran|saw|output)\s*:\s*(.*)$", re.I)
+OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
+QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 
 PROJECTS = None
 
@@ -95,6 +98,9 @@ def parse(text):
     items = None
     known = False
     for _, line in shown[found[0] + 1:found[1]]:
+        if items is out["verified"] and items and _labelled(line):
+            items[-1] = items[-1] + "\n" + _labelled(line)
+            continue
         head = verbs.key_of(line)
         if head is not None:
             name, rest, bulleted, caps = head
@@ -128,20 +134,54 @@ def parse(text):
     return out
 
 
+def _labelled(line):
+    """-> a `cmd:` / `saw:` line under a VERIFIED claim, bullet taken off, or
+    None for any other line."""
+    m = verbs.BULLET.match(line)
+    body = (m.group(1) if m else line).strip()
+    return body if PART.match(body) else None
+
+
 def claim(item):
-    """`<claim> | cmd: <command> | saw: <excerpt>` -> its parts."""
-    parts = [p.strip() for p in item.split("|")]
-    out = {"claim": parts[0], "cmd": "", "saw": "", "backed": "unchecked",
-           "why": "not held to a transcript"}
-    for p in parts[1:]:
-        m = PART.match(p)
-        if not m:
-            out["claim"] = out["claim"] + " | " + p
-        elif m.group(1).lower() in ("cmd", "command", "ran"):
-            out["cmd"] = m.group(2).strip()
-        else:
-            out["saw"] = m.group(2).strip()
+    """a VERIFIED item -> its claim, command and excerpts.
+
+    the item is the claim on its first line and `cmd:` / `saw:` lines under
+    it, one `saw:` per excerpt. an item from before that shape is one line,
+    `<claim> | cmd: <command> | saw: <excerpt>`, and is split on those labels
+    only, so a pipe inside the command stays in the command."""
+    out = {"claim": "", "cmd": "", "saw": "", "excerpts": [],
+           "backed": "unchecked", "why": "not held to a transcript"}
+    saws = []
+    field = None
+    for line in item.split("\n"):
+        bits = OLD_PART.split(line.strip())
+        pairs = list(zip(bits[1::2], bits[2::2]))
+        m = PART.match(bits[0])
+        if m:
+            pairs.insert(0, (m.group(1), m.group(2)))
+        elif bits[0]:
+            if field is None:
+                out["claim"] = (out["claim"] + " " + bits[0]).strip()
+            elif field == "cmd":
+                out["cmd"] = out["cmd"] + " " + bits[0]
+            else:
+                saws[-1] = saws[-1] + " " + bits[0]
+        for label, value in pairs:
+            if label.lower() in ("cmd", "command", "ran"):
+                field, out["cmd"] = "cmd", value.strip()
+            else:
+                field = "saw"
+                saws.append(value.strip())
+    out["saw"] = " / ".join(saws)
+    out["excerpts"] = [e for s in saws for e in excerpts(s)]
     return out
+
+
+def excerpts(saw):
+    """-> the pieces of output one `saw:` quotes. two or more quoted pieces
+    are each their own excerpt; anything else is one."""
+    quoted = [a or b for a, b in QUOTED.findall(saw)]
+    return quoted if len(quoted) > 1 else [saw]
 
 
 def without(text):
@@ -182,14 +222,19 @@ def back(block, calls):
         if not ran:
             item["backed"] = "unbacked"
             item["why"] = "no such command in the step's transcript"
-        elif not item["saw"]:
+            continue
+        if not item["saw"]:
             item["backed"], item["why"] = "ran", "nothing of its output quoted"
-        elif any(norm(item["saw"]) in norm(out) for out in ran):
+            continue
+        shown = [norm(out) for out in ran]
+        missing = [e for e in item.get("excerpts") or excerpts(item["saw"])
+                   if not any(norm(e) in out for out in shown)]
+        if not missing:
             item["backed"], item["why"] = "backed", ""
         else:
             item["backed"] = "unbacked"
             item["why"] = ("the command ran, but its output does not show "
-                           + item["saw"])
+                           + "; ".join(missing))
     return block
 
 
