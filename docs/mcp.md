@@ -91,6 +91,23 @@ after that step with whatever that file holds by then. so a person owns the
 risky edit, rather than the agent making it or declining it. any other `mode`
 is refused when the flow loads.
 
+the same check runs first on what the step is handed - the plan, or whatever
+the step before it produced - before the step is called. a step that can edit
+files has already edited them by the time its answer is checked, so a plan that
+names a hot file stops the run there instead. `flag` prints
+`preflight: <step> was handed <n> hot file(s)` and the step runs. `refuse`
+stops the run the same way as above without spending the call. `park` stops it
+before the step: the handoff says `stopped before <step>`, the manifest keeps
+the step as not run, and `--resume` starts AT that step, on what it was handed.
+carrying on is the go-ahead: the step is not checked again on the files the
+plan named, and the check after it stops only on a hot file that was not among
+them. to change what the step works from, edit what the step before it
+produced first, the way any handed file is edited.
+
+the check on the handed text only sees the files the plan names. a file the
+model decides on mid-step is not in it, so the check after the step, and the
+fence on what actually changed (`docs/guardrails.md`), still report that one.
+
 this is the part that is not a prompt. asking an agent to be careful about a
 hot file is a prompt. a number and a comparison is a control.
 
@@ -99,12 +116,15 @@ planner runs. no ranking is not the same as nothing hot, and the step says so:
 the server was down, it answered with something that is not `path score`
 lines, the flow has no `context:` block, or a `--resume` picked the run up past
 the planner, so the map was never fetched. in each case the run prints
-`preflight: no ranking to check against, <step> not checked`. `flag` carries on
-after that line. `park` and `refuse` both park, with the why `<step> was not
-checked: no ranking to check against`: a step set to stop on a hot file is not
-let through on a check that never ran, and refusing it would claim a blast
-radius nobody measured, so a person reads it and carries on with `--resume`.
-the map itself stays advisory - a planner without one still runs.
+`preflight: no ranking to check against, <step> not checked` once, before the
+step. `flag` carries on after that line. `park` and `refuse` both park before
+the step runs, with the why `<step> was not checked: no ranking to check
+against`: a step set to stop on a hot file is not let through on a check that
+never ran, and refusing it would claim a blast radius nobody measured, so a
+person reads it and carries on with `--resume`, which runs the step and does
+not stop it again for the same missing map. the map itself stays advisory - a
+planner without one still runs. a `preflight:` on the planner itself is checked
+only after it, since the planner is the step that fetches the map.
 
 a `command` gate reads the same ranking to pick between a short test command
 and a long one (`docs/gates.md`).

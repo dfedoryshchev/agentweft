@@ -233,9 +233,14 @@ CASES = {
         "flows": TEST_FLOWS,
         "ranking": "src/hooks.ts 0.94\nsrc/util.ts 0.11\n",
         "answers": {
-            "planner.md": ["src/hooks.ts: the retry loop lives there\n"],
+            "planner.md": ["the retry loop backs off too late\n"],
             "worker.md": ["edited src/hooks.ts: the retry loop backs off "
                           "before the third call\n"]}},
+    ("risky-edit", "hot-plan"): {
+        "flows": TEST_FLOWS,
+        "ranking": "src/hooks.ts 0.94\nsrc/util.ts 0.11\n",
+        "answers": {
+            "planner.md": ["src/hooks.ts: the retry loop lives there\n"]}},
 }
 
 

@@ -3,7 +3,8 @@
 there are two ways to stop short. a run that died is picked up AT the step
 that died, because that step produced nothing. a run that parked for a person
 is picked up AFTER the step it parked on, because that step finished and the
-only thing missing was the person.
+only thing missing was the person - unless it parked before that step ran,
+when the manifest keeps the step as not run and the resume starts at it.
 
 where a run stopped is read from its own `manifest.json` (see `manifest`); the
 journal is only asked about a run from before there was one.

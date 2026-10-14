@@ -871,6 +871,13 @@ def main():
     step = todo[0]
     used = run.provider
     wrote = set()
+    # a run parked before a step is carried on by the person who read why, so
+    # that step is not checked again on what it was handed the first time round
+    cleared = None
+    if found and (found.data.get("stopped") or {}).get("step") == start \
+            and found.data["stopped"].get("cause") == stops.PARKED \
+            and (found.step(start) or {}).get("state") == manifest.NOT_RUN:
+        cleared = start
 
     def leave(stopped=None, needs=None):
         """write the run's handoff.md from what the runner knows, and hand
@@ -884,12 +891,14 @@ def main():
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
-             told=None, at=None):
+             told=None, at=None, handed=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
         cause, what the run spent and where the handoff is. `at` is the step
-        the run stopped at, when that is not the one that ran.
+        the run stopped at, when that is not the one that ran. `handed` is
+        the step whose output `at` was handed, for a park before `at` ran:
+        the step stays not run, so carrying on starts at it.
 
         -> the exit code.
         """
@@ -904,7 +913,11 @@ def main():
             "stopped at " + at + NEWLINE + "cause      " + cause + NEWLINE
             + NEWLINE + why + NEWLINE, encoding="utf-8")
         parked = cause == stops.PARKED
-        record.mark(at, manifest.PARKED if parked else manifest.FAILED,
+        if handed:
+            kept = manifest.NOT_RUN
+        else:
+            kept = manifest.PARKED if parked else manifest.FAILED
+        record.mark(at, kept,
                     run_id if at in wrote else None,
                     resume.step_output(run_id, at) if at in wrote else None)
         record.stop(at, cause, why, run.workdir, state.RUNS)
@@ -913,12 +926,12 @@ def main():
         done = [(name, secs) for name, secs, _ in timings]
         if waiting:
             again = cause == stops.OUTAGE
-            left = (resume.remaining if again else resume.after)(steps(flow),
-                                                                 at)
+            left = (resume.remaining if again or handed else resume.after)(
+                steps(flow), at)
             needs = park.lines(at, waiting, done, left,
                                resume_command(flow, run_id),
                                why=why + "," if told is None else told,
-                               again=again)
+                               again=again, handed=handed)
             print("parked at " + at + ", waiting for " + waiting)
         else:
             told = why
@@ -947,6 +960,51 @@ def main():
                 return stop(stops.REFUSED, refused, "refused",
                             entry=trail.open(step, [], used, came_from),
                             index="REFUSED  " + flow + "  " + step)
+            allowed = set()
+            unchecked = False
+            pre = run.preflight_for(step)
+            # the planner is the step that fetches the map, so before it runs
+            # there is no ranking yet to read its handed text against
+            if pre and not (step == "planner.md" and fm.get("context")):
+                threshold = float(pre.get("threshold",
+                                          preflight.DEFAULT_THRESHOLD))
+                ahead = preflight.check(out.output, risk_text,
+                                        threshold=threshold)
+                if ahead is None:
+                    unchecked = True
+                    if step != cleared:
+                        print("preflight: " + preflight.NO_RANKING + ", "
+                              + step + " not checked")
+                        if pre.get("mode", "flag") in ("park", "refuse"):
+                            return stop(stops.PARKED, step + " was not checked: "
+                                        + preflight.NO_RANKING, "parked",
+                                        index="PARKED  " + flow + "  at " + step,
+                                        waiting="user",
+                                        handed=came_from or "the task")
+                elif ahead and step == cleared:
+                    allowed = set(p for p, _ in ahead)
+                elif ahead:
+                    print("preflight: " + step + " was handed " + str(len(ahead))
+                          + " hot file(s)")
+                    for path, score in ahead:
+                        print("  " + path + "  " + str(score))
+                    mode = pre.get("mode", "flag")
+                    if mode == "refuse":
+                        return stop(stops.REFUSED, "hot blast radius: "
+                                    + ", ".join(p for p, _ in ahead),
+                                    "refused", index="REFUSED  " + flow + "  "
+                                    + ahead[0][0])
+                    if mode == "park":
+                        return stop(stops.PARKED, step + " was handed "
+                                    + ", ".join(p + " (" + str(s) + ")"
+                                                for p, s in ahead)
+                                    + ", at or above the " + str(threshold)
+                                    + " the risk map counts as hot, and was"
+                                    " parked before it ran", "parked",
+                                    index="PARKED  " + flow + "  at " + step,
+                                    waiting="user",
+                                    handed=came_from or "the task")
+            cleared = None
             print("started " + step)
             handed = out
             if step == run.fan:
@@ -1024,7 +1082,7 @@ def main():
                 hot = preflight.check(out.output, risk_text,
                                       threshold=float(run.preflight_for(step).get(
                                           "threshold", preflight.DEFAULT_THRESHOLD)))
-                if hot is None:
+                if hot is None and not unchecked:
                     mode = run.preflight_for(step).get("mode", "flag")
                     print("preflight: " + preflight.NO_RANKING + ", " + step
                           + " not checked")
@@ -1038,14 +1096,15 @@ def main():
                     print("preflight: " + str(len(hot)) + " hot file(s) in that step")
                     for path, score in hot:
                         print("  " + path + "  " + str(score))
-                    if mode == "refuse":
+                    fresh = [h for h in hot if h[0] not in allowed]
+                    if fresh and mode == "refuse":
                         return stop(stops.REFUSED, "hot blast radius: "
-                                    + ", ".join(p for p, _ in hot), "refused",
+                                    + ", ".join(p for p, _ in fresh), "refused",
                                     entry, index="REFUSED  " + flow + "  "
-                                    + hot[0][0])
-                    if mode == "park":
+                                    + fresh[0][0])
+                    if fresh and mode == "park":
                         why = (step + " touches " + ", ".join(
-                            p + " (" + str(s) + ")" for p, s in hot)
+                            p + " (" + str(s) + ")" for p, s in fresh)
                             + ", at or above the " + str(run.preflight_for(step).get(
                                 "threshold", preflight.DEFAULT_THRESHOLD))
                             + " the risk map counts as hot")

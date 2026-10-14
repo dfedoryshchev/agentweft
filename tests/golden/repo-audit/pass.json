@@ -321,8 +321,8 @@
   "printed": [
     "started planner.md",
     "no risk map: no server in a replay",
-    "started worker.md",
     "preflight: no ranking to check against, worker.md not checked",
+    "started worker.md",
     "started merge.md",
     "started reviewer.md",
     "promise not checked: every claim names a file",

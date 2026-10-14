@@ -11,6 +11,13 @@ to refuse rather than flag, or to park the run so a person makes the edit.
 
 this is the half of the idea that is not a prompt. a prompt asking an agent to
 be careful about a hot file is a prompt. this is a number and a comparison.
+
+the runner asks twice. once on the text a step is handed, before the step is
+called, because a step that can edit files has already edited them by the time
+its answer comes back. and once on what the step said it did, after. the first
+catches only the files the plan names: a file the model picks mid-step is not
+in the text it was handed, so the second check, and the fence on what actually
+changed, are still what report it.
 """
 import re
 

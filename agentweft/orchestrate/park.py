@@ -19,14 +19,16 @@ passes to the next, machine to machine. this is what a run passes to a person.
 """
 
 
-def lines(step, who, done, left, command, why=None, again=False, cause=None):
+def lines(step, who, done, left, command, why=None, again=False, cause=None,
+          handed=None):
     """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
     it stopped, why it stopped, and what to do about it. the last one is a
     command to type, not a description of one. `why` is for a stop the flow
     did not ask for. `again` is a step that produced nothing, so carrying on
-    runs it again rather than handing on what it made.
+    runs it again rather than handing on what it made. `handed` names the step
+    whose output `step` was handed when the run parked before `step` ran.
 
     `who` is None for a run that stopped without waiting for anyone - a gate,
     the cap, a crash. it gets the same section under its `cause`: the step it
@@ -35,7 +37,10 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None):
     if who is None:
         return stopped(step, cause, done, left, command, why)
     out = ["waiting for    " + who]
-    out.append(("stopped at     " if again else "stopped after  ") + step)
+    if handed:
+        out.append("stopped before " + step)
+    else:
+        out.append(("stopped at     " if again else "stopped after  ") + step)
     out.append("")
     if why:
         out.append(why)
@@ -45,7 +50,11 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None):
         out.append("asks for " + who + " here, so the rest of it has not run.")
     out.append("")
     ran_and_left(out, done, left)
-    if again:
+    if handed:
+        out.append(step + " has not run. it was handed what " + handed + " produced, and")
+        out.append("carrying on runs it on that: the go-ahead for the files named above.")
+        out.append("edit what " + handed + " produced first to change what it works from.")
+    elif again:
         out.append(step + " produced nothing, so it runs again when you carry on.")
     else:
         out.append("what " + step + " produced is beside this file, as " + step + ".")
