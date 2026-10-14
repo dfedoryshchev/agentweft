@@ -292,8 +292,11 @@ def test_a_prompt_past_the_windows_command_line_limit_reaches_a_real_process(
     def run(argv, **kw):
         return subprocess.run([sys.executable, str(script)] + argv[1:], **kw)
 
+    def popen(argv, **kw):
+        return subprocess.Popen([sys.executable, str(script)] + argv[1:], **kw)
+
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
-        run=run, TimeoutExpired=subprocess.TimeoutExpired))
+        run=run, Popen=popen, TimeoutExpired=subprocess.TimeoutExpired))
     prompt = "x" * 100000 + "tail \u6f22\u5b57 end"
     r = claude().ask(prompt, timeout=60)
     assert r.text == "tail \u6f22\u5b57 end \u2013 ok"

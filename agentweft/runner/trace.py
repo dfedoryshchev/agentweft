@@ -109,6 +109,14 @@ def retries(attempts):
     return out
 
 
+def killed(attempts):
+    """the processes a step left running that were ended with it. None when no
+    reply said, which a step that started no process never does."""
+    said = [getattr(r, "killed", None) for a in attempts for r in a.replies]
+    said = [n for n in said if n is not None]
+    return sum(said) if said else None
+
+
 def last(attempt, what):
     said = [getattr(r, what) for r in attempt.replies if getattr(r, what)]
     return said[-1] if said else None
@@ -126,7 +134,8 @@ def facts(attempts, model=None):
             "priced": priced(attempts, model),
             "seconds": seconds(attempts),
             "cached": bool(attempts) and all(a.cached for a in attempts),
-            "retries": retries(attempts)}
+            "retries": retries(attempts),
+            "background_killed": killed(attempts)}
 
 
 def last_seq(folder):
@@ -248,6 +257,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "seconds": said["seconds"],
             "cached": said["cached"],
             "retries": said["retries"],
+            "background_killed": said["background_killed"],
             "gates": [gate_line(g) for g in entry.gates],
             "ungated": entry.ungated,
             "outcome": outcome,

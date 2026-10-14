@@ -35,8 +35,11 @@ def a_model(tmp_path, monkeypatch):
     def run(argv, **kw):
         return subprocess.run([sys.executable, str(script)] + argv[1:], **kw)
 
+    def popen(argv, **kw):
+        return subprocess.Popen([sys.executable, str(script)] + argv[1:], **kw)
+
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
-        run=run, TimeoutExpired=subprocess.TimeoutExpired))
+        run=run, Popen=popen, TimeoutExpired=subprocess.TimeoutExpired))
     return log
 
 

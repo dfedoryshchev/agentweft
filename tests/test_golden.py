@@ -23,6 +23,7 @@ import types
 from pathlib import Path
 
 import pytest
+from conftest import answering
 
 sys.path.insert(0, ".")
 from agentweft.evals import recording
@@ -341,6 +342,7 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(engine.Run, "step", step)
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=script.run, TimeoutExpired=subprocess.TimeoutExpired))
+    monkeypatch.setattr(cli_provider, "call", answering(script.run))
 
     capsys.readouterr()
     raised = None

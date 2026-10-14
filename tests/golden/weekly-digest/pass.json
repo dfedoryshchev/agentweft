@@ -95,6 +95,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -141,6 +142,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -163,6 +165,7 @@
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
+          "background_killed": 0,
           "session": "worker-1-1",
           "model_reported": "model-in-replay"
         },
@@ -180,6 +183,7 @@
           "seconds": "<seconds>",
           "cached": false,
           "retries": {},
+          "background_killed": 0,
           "session": "worker-2-1",
           "model_reported": "model-in-replay"
         }
@@ -222,6 +226,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -297,6 +302,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [
         {
           "gate": "length",

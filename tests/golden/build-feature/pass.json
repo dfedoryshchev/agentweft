@@ -94,6 +94,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -140,6 +141,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [
         {
           "gate": "red-test",
@@ -192,6 +194,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [
         {
           "gate": "command",
@@ -273,6 +276,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [],
       "ungated": true,
       "outcome": "ok",

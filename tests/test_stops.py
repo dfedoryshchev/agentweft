@@ -589,11 +589,11 @@ def test_the_provider_reads_a_limit_off_the_structured_reply():
     import types
 
     data = json.loads(refused_by_the_limit()[1])
-    reply = p.read(data, types.SimpleNamespace(returncode=1))
+    reply = p.read(data, types.SimpleNamespace(returncode=1, killed=0))
     assert reply.outage == "7:20pm (Europe/London)"
     assert reply.retryable is False
     data = json.loads(refused_by_the_limit("Rate limited")[1])
-    reply = p.read(data, types.SimpleNamespace(returncode=1))
+    reply = p.read(data, types.SimpleNamespace(returncode=1, killed=0))
     assert reply.outage is None and reply.retryable is True
 
 

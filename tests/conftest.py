@@ -37,8 +37,22 @@ def no_real_provider():
         # on purpose and share that module.
         mp.setattr(cli_provider, "subprocess", types.SimpleNamespace(
             run=refuse("the cli provider's subprocess.run"),
+            Popen=refuse("the cli provider's subprocess.Popen"),
             TimeoutExpired=subprocess.TimeoutExpired))
         yield
+
+
+def answering(run):
+    """-> a `cli_provider.call` that hands each call to a fake shaped like
+    `subprocess.run`, for the tests that answer without a process."""
+    def call(argv, stdin=None, cwd=None, timeout=None, done=None):
+        try:
+            r = run(argv, input=stdin, capture_output=True, encoding="utf-8",
+                    errors="replace", cwd=cwd, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return cli_provider.Ran(None, "", "", 0, timed_out=True)
+        return cli_provider.Ran(r.returncode, r.stdout, r.stderr, 0)
+    return call
 
 
 LOCALE = "cp1252"
@@ -99,6 +113,7 @@ class FakeCli(object):
     def install(self, monkeypatch):
         monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
             run=self.run, TimeoutExpired=subprocess.TimeoutExpired))
+        monkeypatch.setattr(cli_provider, "call", answering(self.run))
         return self
 
 

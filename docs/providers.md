@@ -18,6 +18,16 @@ a provider answers a prompt. that is the whole interface:
   a step with `tools` gets its grant as flags (below). any other command is
   called as `<command> -p <prompt>` and its stdout is the answer, as before,
   grant or none. output is read as UTF-8 either way.
+
+  the call is over when its answer is: for `claude`, once the json result has
+  arrived (it then gets a few seconds to exit on its own), for any other
+  command once it exits. a shell it moved to the background and left running
+  would otherwise hold its output open and keep the step waiting to its
+  timeout. so the command runs in a process group of its own (on Windows, a
+  job object, which also holds a shell whose parent has exited), and whatever
+  is still running when the call is over, or when it times out, is ended.
+  how many that was is the reply's `killed`, and `background_killed` on the
+  step's line (`journal.md`).
 - **api** - plain http, no sdk. reads `API_KEY`, `API_URL` and `MODEL` (or
   `MODEL_HIGH` and friends, see tiers) from the environment. the model id is
   never written down in the source, because a version string in a file is a
@@ -48,6 +58,8 @@ besides the text:
   failure (429, 5xx), a timeout, or a missing binary; None when unknown.
   the runner goes again only on True, asks once on False, and reads the
   failure's words only when it is None.
+- `killed` - how many processes a cli call left running that were ended with
+  it; None from a provider that starts none.
 
 any of these is None when the provider did not say. that is not zero: **fake**,
 a command other than `claude`, and an error that came back without a usage

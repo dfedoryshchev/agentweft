@@ -1,5 +1,7 @@
 import sys
 
+from conftest import answering
+
 sys.path.insert(0, ".")
 from agentweft import providers, runner
 from agentweft.flow import spec
@@ -113,7 +115,7 @@ def test_a_command_other_than_claude_is_handed_no_model(monkeypatch):
         seen.append(argv)
         return Done()
 
-    monkeypatch.setattr(cli_provider.subprocess, "run", fake_run)
+    monkeypatch.setattr(cli_provider, "call", answering(fake_run))
     p = providers.build({"provider": "cli", "command": "echo"}, tier="high")
     p.ask("hi")
     assert seen == [["echo", "-p", "hi"]]

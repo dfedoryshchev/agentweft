@@ -2,9 +2,19 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
+import threading
+import time
 
 from .base import Provider, Reply, Usage, again, model_for, register
+
+PIPE = subprocess.PIPE
+NEW_GROUP = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+
+# a cli that has answered may still be writing its session down, and the
+# transcript is read back after the step, so it gets this long to exit itself.
+GRACE = 5
 
 # a grant word, as the built-in tools claude calls it by. the keys are
 # `spec.GRANTS` in its order, which a test holds them to.
@@ -142,6 +152,227 @@ def limit(data, why):
     return None
 
 
+class Ran(object):
+    """what a call left: its exit code, both outputs as text, how many of the
+    processes it started were still running and were ended (None when that
+    could not be told), and whether it ran out of time."""
+
+    __slots__ = ("returncode", "stdout", "stderr", "killed", "timed_out")
+
+    def __init__(self, returncode, stdout, stderr, killed, timed_out=False):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+        self.killed = killed
+        self.timed_out = timed_out
+
+
+def text(raw):
+    """utf-8 whatever the platform default, line ends as text mode gives them."""
+    return raw.decode("utf-8", "replace").replace("\r\n", "\n") \
+        .replace("\r", "\n")
+
+
+def call(argv, stdin=None, cwd=None, timeout=None, done=None):
+    """-> Ran. argv runs in a process group of its own, both pipes are read as
+    they come so neither fills up and stalls it, and the call is over when
+    `done` says the output so far is the whole answer, when the process exits,
+    or at the timeout, whichever is first. whatever it started that is still
+    running then is ended.
+
+    waiting for the pipes to close is not enough: a shell the process left in
+    the background holds them open, and the call would last as long as it.
+    """
+    if os.name == "nt":
+        group = {"creationflags": NEW_GROUP}
+    else:
+        group = {"start_new_session": True}
+    proc = subprocess.Popen(argv, stdin=PIPE if stdin is not None else None,
+                            stdout=PIPE, stderr=PIPE, cwd=cwd, **group)
+    job = job_for(proc.pid) if os.name == "nt" else None
+    out, err = [], []
+    answer, eof, woke = threading.Event(), threading.Event(), threading.Event()
+
+    def take(pipe, into, watch):
+        try:
+            while True:
+                chunk = pipe.read1(65536)
+                if not chunk:
+                    break
+                into.append(chunk)
+                if watch and done and done(text(b"".join(into))):
+                    answer.set()
+                    woke.set()
+        except (OSError, ValueError):
+            pass
+        if watch:
+            eof.set()
+            woke.set()
+
+    def give(data):
+        try:
+            proc.stdin.write(data)
+            proc.stdin.close()
+        except OSError:
+            pass
+
+    hands = [threading.Thread(target=take, args=(proc.stdout, out, True)),
+             threading.Thread(target=take, args=(proc.stderr, err, False))]
+    if stdin is not None:
+        hands.append(threading.Thread(target=give,
+                                      args=(stdin.encode("utf-8"),)))
+    for t in hands:
+        t.daemon = True
+        t.start()
+
+    end = None if timeout is None else time.monotonic() + timeout
+
+    def left(most=None):
+        if end is None:
+            return most
+        rest = max(0.0, end - time.monotonic())
+        return rest if most is None else min(most, rest)
+
+    timed_out = False
+    ended_it = False
+    try:
+        while not woke.is_set() and proc.poll() is None:
+            if end is not None and left() <= 0:
+                timed_out = True
+                break
+            woke.wait(left(0.05))
+        if not timed_out and proc.poll() is None:
+            try:
+                proc.wait(left(GRACE) if answer.is_set() else left())
+            except subprocess.TimeoutExpired:
+                ended_it = answer.is_set()
+                timed_out = not ended_it
+    except BaseException:
+        # in a group of its own it no longer hears the ctrl-c the runner got
+        end_tree(proc, job)
+        raise
+    killed = end_tree(proc, job)
+    for t in hands:
+        t.join(5)
+    try:
+        code = proc.wait(5)
+    except subprocess.TimeoutExpired:
+        code = None
+    if ended_it:
+        code = 0
+    return Ran(code, text(b"".join(out)), text(b"".join(err)), killed,
+               timed_out)
+
+
+def end_tree(proc, job):
+    """-> how many processes besides proc were still running, None when that
+    could not be told. all of them, proc too, are ended."""
+    if os.name == "nt":
+        return end_job(proc, job)
+    return end_group(proc.pid)
+
+
+KERNEL32 = []
+
+
+def kernel32():
+    if not KERNEL32:
+        import ctypes
+        from ctypes import wintypes
+
+        k = ctypes.WinDLL("kernel32", use_last_error=True)
+        k.CreateJobObjectW.restype = wintypes.HANDLE
+        k.CreateJobObjectW.argtypes = (ctypes.c_void_p, wintypes.LPCWSTR)
+        k.OpenProcess.restype = wintypes.HANDLE
+        k.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL,
+                                  wintypes.DWORD)
+        k.AssignProcessToJobObject.argtypes = (wintypes.HANDLE,
+                                               wintypes.HANDLE)
+        k.QueryInformationJobObject.argtypes = (
+            wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD,
+            ctypes.c_void_p)
+        k.TerminateJobObject.argtypes = (wintypes.HANDLE, wintypes.UINT)
+        k.CloseHandle.argtypes = (wintypes.HANDLE,)
+        KERNEL32.append(k)
+    return KERNEL32[0]
+
+
+def job_for(pid):
+    """-> a job object holding pid, and every process it starts from here on,
+    or None when one could not be made.
+
+    on Windows a process group is no handle on the tree: `taskkill /T` walks
+    parent ids, and a shell whose parent has already exited is not found by
+    it. a job keeps every descendant, orphaned or not.
+    """
+    try:
+        k = kernel32()
+    except (OSError, AttributeError):
+        return None
+    job = k.CreateJobObjectW(None, None)
+    if not job:
+        return None
+    # PROCESS_SET_QUOTA | PROCESS_TERMINATE
+    handle = k.OpenProcess(0x0100 | 0x0001, False, pid)
+    ok = bool(handle) and bool(k.AssignProcessToJobObject(job, handle))
+    if handle:
+        k.CloseHandle(handle)
+    if not ok:
+        k.CloseHandle(job)
+        return None
+    return job
+
+
+def end_job(proc, job):
+    if job is None:
+        if proc.poll() is None:
+            import subprocess as stdlib
+
+            try:
+                stdlib.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
+                           capture_output=True, timeout=30)
+            except (OSError, stdlib.SubprocessError):
+                pass
+        return None
+    import ctypes
+
+    class Listed(ctypes.Structure):
+        _fields_ = [("assigned", ctypes.c_ulong), ("listed", ctypes.c_ulong),
+                    ("ids", ctypes.c_size_t * 1024)]
+
+    k = kernel32()
+    seen = Listed()
+    # 3: JobObjectBasicProcessIdList
+    if k.QueryInformationJobObject(job, 3, ctypes.byref(seen),
+                                   ctypes.sizeof(seen), None):
+        killed = len([i for i in seen.ids[:seen.listed] if i != proc.pid])
+    else:
+        killed = None
+    k.TerminateJobObject(job, 1)
+    k.CloseHandle(job)
+    return killed
+
+
+def end_group(pgid):
+    import subprocess as stdlib
+
+    try:
+        ps = stdlib.run(["ps", "-A", "-o", "pid=,pgid="], capture_output=True,
+                        encoding="utf-8", errors="replace", timeout=10).stdout
+        killed = 0
+        for row in ps.split("\n"):
+            ids = row.split()
+            if len(ids) == 2 and ids[1] == str(pgid) and ids[0] != str(pgid):
+                killed = killed + 1
+    except (OSError, stdlib.SubprocessError):
+        killed = None
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except OSError:
+        pass
+    return killed
+
+
 @register
 class CliProvider(Provider):
     """the original. shells out to the cli, which is how this started."""
@@ -229,20 +460,18 @@ class CliProvider(Provider):
             return Reply("", detail=refused, retryable=False)
         argv, stdin = self.argv(prompt)
         try:
-            # the platform default is cp1252 on Windows, and a reply decoded
-            # with it is garbled or, for some bytes, an exception that loses it
-            r = subprocess.run(argv, input=stdin, capture_output=True,
-                               encoding="utf-8", errors="replace",
-                               cwd=str(self.where) if self.where else None,
-                               timeout=timeout)
+            r = call(argv, stdin=stdin,
+                     cwd=str(self.where) if self.where else None,
+                     timeout=timeout,
+                     done=answered if stdin is not None else None)
         except FileNotFoundError:
             return Reply("", detail=argv[0] + " is not on PATH", retryable=False)
-        except subprocess.TimeoutExpired:
-            return Reply("", detail="timed out after " + str(timeout) + "s",
-                         retryable=True)
         except OSError as e:
             return Reply("", detail=(argv[0] + ": " + str(e))[:200],
                          retryable=False)
+        if r.timed_out:
+            return Reply("", detail="timed out after " + str(timeout) + "s",
+                         retryable=True, killed=r.killed)
         data = answered(r.stdout) if stdin is not None else None
         if data is not None:
             return self.read(data, r)
@@ -250,8 +479,9 @@ class CliProvider(Provider):
             # some failures say nothing on stderr and everything on stdout, and
             # i was throwing that away and reporting an empty error
             detail = (r.stderr.strip() or r.stdout.strip())[:200]
-            return Reply("", detail=detail or ("exit " + str(r.returncode)))
-        return Reply(r.stdout)
+            return Reply("", detail=detail or ("exit " + str(r.returncode)),
+                         killed=r.killed)
+        return Reply(r.stdout, killed=r.killed)
 
     def read(self, data, r):
         models = data.get("modelUsage")
@@ -261,7 +491,8 @@ class CliProvider(Provider):
                     session=data.get("session_id") or None,
                     model=", ".join(sorted(models)) if isinstance(models, dict)
                     and models else None,
-                    models=per_model(models, data.get("usage")))
+                    models=per_model(models, data.get("usage")),
+                    killed=r.killed)
         text = data.get("result")
         if data.get("is_error") or r.returncode != 0:
             why = text if isinstance(text, str) and text.strip() else \

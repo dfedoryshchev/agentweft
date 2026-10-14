@@ -90,7 +90,8 @@ or crashed. the keys are always all there, in this order:
                 "cache_read": 2, "cache_creation": 0},
      "cost": 0.25, "priced": 0.25, "session": "s-1", "seconds": 8.4,
      "cached": false,
-     "retries": {}, "gates": [{"gate": "length", "ok": true,
+     "retries": {}, "background_killed": 0,
+     "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
      "ungated": false,
      "outcome": "ok", "cause": null, "why": null,
@@ -138,6 +139,10 @@ or crashed. the keys are always all there, in this order:
   go was not counted or the table could not price it.
 - `retries` is the goes that failed, by cause (`{"transient": 2}`); null on a
   crash, where nothing knows how many there were.
+- `background_killed` is how many processes the cli call left running (a
+  shell it moved to the background, say) that were ended when it answered or
+  timed out, summed over every go; null for a provider that starts no process
+  (the fake, the api) and when it could not be told.
 - `gates` is `[]` for a step that declares none, and also for one whose line
   was closed before its gates were checked (refused, fenced, over budget,
   crashed). `ungated` tells them apart: `true` when the gates were checked and
@@ -156,7 +161,8 @@ or crashed. the keys are always all there, in this order:
   `--task-file`, kept beside the line as `runs/<run-id>/task.md`; null when it
   was not. the text is not on the line, so a long task is written once.
 - a fanned-out step is one line: the totals at the top and a `tasks` list with
-  each task's own seconds, tokens, cost, priced, session and retries, in plan
+  each task's own seconds, tokens, cost, priced, session, retries and
+  background_killed, in plan
   order.
   the gates judged the joined output, so they are on the line, not the tasks.
 - `handoff` is the step's HANDOFF block, parsed (next section). `state` is

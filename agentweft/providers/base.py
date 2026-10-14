@@ -69,15 +69,16 @@ class Reply(object):
     again can help, None when it has none. `outage` is set when the account's
     own limit refused the call: when the provider said it resets, or
     "unknown". `models` is the usage per model when more than one answered,
-    None otherwise.
+    None otherwise. `killed` is how many processes the call left running that
+    were ended with it, None when it started none or could not tell.
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
-                 "retryable", "outage", "models")
+                 "retryable", "outage", "models", "killed")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
                  session=None, model=None, retryable=None, outage=None,
-                 models=None):
+                 models=None, killed=None):
         self.text = text
         self.cached = cached
         self.detail = detail
@@ -88,6 +89,7 @@ class Reply(object):
         self.retryable = retryable
         self.outage = outage
         self.models = models
+        self.killed = killed
 
     def __bool__(self):
         return bool(self.text)

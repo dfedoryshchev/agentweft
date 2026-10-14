@@ -94,6 +94,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [
         {
           "gate": "red-test",
@@ -163,6 +164,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [
         {
           "gate": "red-test",
@@ -230,6 +232,7 @@
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
+      "background_killed": 0,
       "gates": [
         {
           "gate": "verdict",
