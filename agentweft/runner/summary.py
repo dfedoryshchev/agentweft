@@ -260,11 +260,41 @@ def _gates(results, commands):
     for i, g in enumerate(results or []):
         if isinstance(g, dict):
             gate, ok, detail = g.get("gate"), g.get("ok"), g.get("detail")
+            unsure = g.get("unproven") or []
         else:
             gate, ok, detail = g.gate, g.ok, g.detail
-        out.append({"gate": gate, "ok": bool(ok), "detail": detail or "",
-                    "command": commands[i] if i < len(commands) else ""})
+            unsure = g.unproven
+        kept = {"gate": gate, "ok": bool(ok), "detail": detail or "",
+                "command": commands[i] if i < len(commands) else ""}
+        if unsure:
+            kept["unproven"] = list(unsure)
+        out.append(kept)
     return out
+
+
+def unproven(passes):
+    """-> (step, line) for every check a passing gate recorded as unproven,
+    once each when a step sent back ran again and said the same."""
+    out = []
+    for p in passes:
+        for g in p["gates"]:
+            for line in (g.get("unproven", []) if g["ok"] else []):
+                if (p["step"], line) not in out:
+                    out.append((p["step"], line))
+    return out
+
+
+def outcome(stopped, unsure=()):
+    """-> how the run ended, the words the handoff opens with. a run that got
+    through with checks nobody could decide says how many, so it never reads
+    as a clean finish."""
+    if stopped:
+        return ended(stopped)
+    if unsure:
+        n = len(unsure)
+        return ("done, " + str(n) + " check" + ("" if n == 1 else "s")
+                + " unproven")
+    return ended(stopped)
 
 
 def _redo_why(said):
@@ -409,7 +439,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     last = working(every)
     dug = investigate.sections(found)
     first_line = (task or "").strip().split("\n")[0] if task else ""
-    out = ["# " + flow_name + " " + run_id + ": " + ended(stopped)]
+    unsure = unproven(every)
+    out = ["# " + flow_name + " " + run_id + ": " + outcome(stopped, unsure)]
     if last and last["block"]["did"]:
         out[0] = out[0] + " - " + last["block"]["did"][0]
     out.append("")
@@ -539,6 +570,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("## not verified")
     said = ["- " + role + ": " + i for role, b in blocks if _present(b)
             for i in b["not_verified"]]
+    said.extend("- " + step + " unproven: " + line for step, line in unsure)
     said.extend("- claims the record does not show: " + role + ": "
                 + i["claim"] + " (" + i["why"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
@@ -592,7 +624,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                for p in every if p["outcome"] == "redo" and p["redo_why"])
     out.append("- spend: " + (spend or "0 calls, 0 tokens"))
     out.append("- " + ("stopped: " + stopped["cause"] + " at " + stopped["at"]
-                       if stopped else "finished"))
+                       if stopped else outcome(None, unsure)))
     out.append("- record: runs/" + run_id + "/steps.jsonl, gates.md, steps/")
     if stopped and command:
         # the file ends on the line to type, so the end of a long handoff is

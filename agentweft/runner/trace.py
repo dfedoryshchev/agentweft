@@ -207,6 +207,13 @@ class Trail(object):
         return self.unclosed[-1] if self.unclosed else None
 
 
+def gate_line(g):
+    out = {"gate": g.gate, "ok": bool(g.ok), "detail": g.detail}
+    if g.unproven:
+        out["unproven"] = list(g.unproven)
+    return out
+
+
 def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
     attempts = entry.attempts
     first = attempts[0] if attempts else None
@@ -241,8 +248,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "seconds": said["seconds"],
             "cached": said["cached"],
             "retries": said["retries"],
-            "gates": [{"gate": g.gate, "ok": bool(g.ok), "detail": g.detail}
-                      for g in entry.gates],
+            "gates": [gate_line(g) for g in entry.gates],
             "ungated": entry.ungated,
             "outcome": outcome,
             "cause": cause,

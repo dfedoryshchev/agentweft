@@ -42,11 +42,21 @@ read, is refused when the flow loads, before any step is paid for.
 - **regex** - `pattern`, and `present: false` to require it is absent.
 - **verdict** - an answer of `PASS` and `FAIL` lines. a line that starts with
   `FAIL` fails the step in any list shape (`- FAIL:`, `1. FAIL`, `**FAIL**`,
-  any case), and so does one that starts with a word that is not a verdict
-  (`UNVERIFIED`, `CANNOT CHECK`, `UNKNOWN`): a check nobody could do has not
-  passed. what is left needs `passes` lines starting with `PASS` (default 1),
-  so an answer in prose, or one that leaves a check out, fails too. an empty
-  answer fails as `the step answered nothing`.
+  any case). a line that starts with `UNSURE`, `NOT SURE`, `UNVERIFIED`,
+  `CANNOT CHECK`, `UNKNOWN` and the like is a check the step could not decide:
+  neither a pass nor a fail, it is recorded as unproven. the step passes when
+  it answered `passes` checks (default 1), at least one of them `PASS`, and
+  none `FAIL`; so `PASS a`, `PASS b`, `UNSURE: c` under `passes: 3` passes
+  as `2 PASS, 1 unproven, no FAIL`, and the same with `FAIL c` fails. an
+  answer in prose, one that leaves a check out, or one of nothing but unsure
+  lines fails. an empty answer fails as `the step answered nothing`.
+
+  an unproven check is never silent. its line goes into the gate's entry in
+  `steps.jsonl` (`"unproven": [...]`, left out when there is none), into the
+  handoff's `## not verified` section as `<step> unproven: <line>`, and into
+  the run's end line: a run that got through every step with one reads
+  `done, 1 check unproven` where a clean one reads `finished`. the end line is
+  built by `outcome` in `agentweft/runner/summary.py`.
 - **length** - `max_lines`, `min_lines`.
 - **command** - `command: [...]`, with `{file}` replaced by a temp file holding
   the output. passes when the exit code matches `expect` (default 0). it runs
@@ -130,7 +140,9 @@ its own patch and saying the test passes now; it is `python -m pytest -q` and
 an exit code, and a non-zero one stops the run. a `red: false` gate runs the
 test the patcher names, or the worker's when it names none, and the verify
 answer goes through
-`verdict` with `passes: 3`, one for each thing it is asked to check.
+`verdict` with `passes: 3`, one for each thing it is asked to check. a check it
+answers unsure does not stop a fix the programs proved; the run ends
+`done, 1 check unproven` and says which.
 
 ## the short suite or the long one
 

@@ -6,14 +6,20 @@ lists the ones it wants. nothing here knows what a model is.
 
 
 class Result(object):
-    """what a gate decided. `gate` is the gate's name, not the gate."""
+    """what a gate decided. `gate` is the gate's name, not the gate.
 
-    __slots__ = ("gate", "ok", "detail")
+    `unproven` is the lines of a check the step was asked and said it could
+    not decide: neither a pass nor a fail, and carried to the record so a
+    passing gate never hides them.
+    """
 
-    def __init__(self, gate, ok, detail=""):
+    __slots__ = ("gate", "ok", "detail", "unproven")
+
+    def __init__(self, gate, ok, detail="", unproven=()):
         self.gate = gate
         self.ok = ok
         self.detail = detail
+        self.unproven = list(unproven)
 
     def __bool__(self):
         return self.ok
@@ -36,11 +42,11 @@ class Gate(object):
     def run(self, text):
         raise NotImplementedError
 
-    def ok(self, detail=""):
-        return Result(self.name, True, detail)
+    def ok(self, detail="", unproven=()):
+        return Result(self.name, True, detail, unproven)
 
-    def fail(self, detail=""):
-        return Result(self.name, False, detail)
+    def fail(self, detail="", unproven=()):
+        return Result(self.name, False, detail, unproven)
 
 
 registry = {}

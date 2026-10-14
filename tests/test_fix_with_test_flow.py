@@ -3,6 +3,7 @@
 each step's answer is canned, and the worker and the patcher write into the
 project the way a model with a shell would. the gates are the flow's own.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -156,6 +157,31 @@ def test_an_unverified_answer_from_verify_stops_the_run(tmp_path,
         "worker.md": WORKER, "patcher.md": PATCHER,
         "verify.md": "UNVERIFIED: could not run the suite"})
     assert "FAIL verdict" in written
+
+
+def test_an_unsure_check_from_verify_finishes_the_run_with_it_on_record(
+        tmp_path, monkeypatch, capsys):
+    answer = VERIFIED.replace("PASS the patch is",
+                              "UNSURE: cannot tell if the patch is")
+    asked, written = run_it(tmp_path, monkeypatch, {
+        "worker.md": WORKER, "patcher.md": PATCHER, "verify.md": answer})
+    assert asked == ["worker.md", "patcher.md", "verify.md"], written
+    assert "FAIL verdict" not in written
+    assert "1 unproven" in written
+    folder = next(p for p in (tmp_path / "runs").iterdir()
+                  if (p / "steps.jsonl").exists())
+    handed = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert handed.split(NL)[0].endswith(": done, 1 check unproven")
+    unsure = "UNSURE: cannot tell if the patch is the smallest thing that" \
+        " turns it green"
+    assert "- verify.md unproven: " + unsure in handed
+    lines = [json.loads(l) for l in (folder / "steps.jsonl").read_text(
+        encoding="utf-8").split(NL) if l.strip()]
+    judged = [g for l in lines if l["step"] == "verify.md"
+              for g in l["gates"] if g["gate"] == "verdict"]
+    assert judged[0]["ok"] is True
+    assert judged[0]["unproven"] == [unsure]
+    assert "done, 1 check unproven" in capsys.readouterr().out
 
 
 def test_an_empty_worker_answer_is_reported_as_nothing(tmp_path, monkeypatch):
