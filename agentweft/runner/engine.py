@@ -842,7 +842,7 @@ def main():
             run.produced[investigate.STEP] = resume.step_output(
                 (held or {}).get("in") or pick_up, investigate.STEP)
         print("picking " + pick_up + " up at " + start)
-    seen = load_state(flow).get("last_run")
+    seen = load_state(flow, run.workdir, asked).get("last_run")
     folder = state.RUNS / run_id
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
@@ -909,6 +909,7 @@ def main():
                     resume.step_output(run_id, at) if at in wrote else None)
         record.stop(at, cause, why, run.workdir, state.RUNS)
         record.save(run.budget)
+        remember(flow, run, run_id, stops.status(cause, at))
         done = [(name, secs) for name, secs, _ in timings]
         if waiting:
             again = cause == stops.OUTAGE
@@ -1189,6 +1190,20 @@ def new_run_id(flow, started):
     return run_id
 
 
+def remember(flow, run, run_id, ended, saved=None):
+    """keep how this run ended for the next run of the flow on the same repo
+    and task. `last_run` is the newest saved answer, so a run that stopped
+    short keeps the one before it."""
+    entry = {"run": run_id, "ended": ended,
+             "at": datetime.datetime.now().isoformat(),
+             "workdir": str(run.workdir)}
+    last = saved or load_state(flow, run.workdir, run.task_text).get(
+        "last_run")
+    if last:
+        entry["last_run"] = last
+    save_state(flow, entry, run.workdir, run.task_text)
+
+
 def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
            origin=None):
     """the end of a run that got through every step. -> the exit code.
@@ -1216,9 +1231,7 @@ def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
     f.close()
     print("saved " + str(path))
 
-    save_state(flow, {"last_run": path.name,
-                      "at": datetime.datetime.now().isoformat(),
-                      "workdir": str(run.workdir)})
+    remember(flow, run, run_id, "ok", saved=path.name)
 
     write_index(path.name + "  " + flow + "  " + str(len(steps(flow))) + " steps")
 

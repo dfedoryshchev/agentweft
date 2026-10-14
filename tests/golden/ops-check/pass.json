@@ -48,6 +48,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "last-run-ops-check-<key>.json",
     "ops-check-<day>-1.md",
     "ops-check-<run>/gates.md",
     "ops-check-<run>/handoff.md",

@@ -72,7 +72,8 @@
     "build-feature-<run>/why.md",
     "build-feature-<run>/workdir",
     "index.md",
-    "journal.md"
+    "journal.md",
+    "last-run-build-feature-<key>.json"
   ],
   "steps": [
     {

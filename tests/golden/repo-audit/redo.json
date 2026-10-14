@@ -61,6 +61,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "last-run-repo-audit-<key>.json",
     "repo-audit-<day>-1.md",
     "repo-audit-<run>/gates.md",
     "repo-audit-<run>/handoff.md",

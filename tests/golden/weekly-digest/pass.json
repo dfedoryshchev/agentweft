@@ -52,6 +52,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "last-run-weekly-digest-<key>.json",
     "weekly-digest-<day>-1.md",
     "weekly-digest-<run>/gates.md",
     "weekly-digest-<run>/handoff.md",

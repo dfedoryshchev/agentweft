@@ -107,7 +107,7 @@ def test_the_place_is_written_down_beside_the_step_outputs(tmp_path,
     a_flow(tmp_path, monkeypatch)
     go(monkeypatch, "--workdir", "project")
     assert recorded(tmp_path) == [str((tmp_path / "project").resolve())]
-    assert state.load_state("placed")["workdir"] == \
+    assert state.load_state("placed", tmp_path / "project")["workdir"] == \
         str((tmp_path / "project").resolve())
 
 

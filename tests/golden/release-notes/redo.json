@@ -52,6 +52,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "last-run-release-notes-<key>.json",
     "release-notes-<day>-1.md",
     "release-notes-<run>/gates.md",
     "release-notes-<run>/handoff.md",

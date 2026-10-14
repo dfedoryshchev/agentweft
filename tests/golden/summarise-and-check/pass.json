@@ -45,6 +45,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "last-run-summarise-and-check-<key>.json",
     "summarise-and-check-<day>-1.md",
     "summarise-and-check-<run>/gates.md",
     "summarise-and-check-<run>/handoff.md",

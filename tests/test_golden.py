@@ -393,6 +393,8 @@ def record(runs, code, raised, printed):
 
 
 STAMPS = (
+    # the last-run file is named by a hash of the place, which is a temp dir
+    (re.compile(r"^(last-run-\S+)-[0-9a-f]{16}(?=\.json)"), r"\1-<key>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}-\d{6}"), "<run>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?"), "<time>"),
     (re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}"), "<time>"),

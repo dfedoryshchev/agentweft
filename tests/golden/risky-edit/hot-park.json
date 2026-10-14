@@ -62,6 +62,7 @@
   "files": [
     "index.md",
     "journal.md",
+    "last-run-risky-edit-<key>.json",
     "risky-edit-<run>/gates.md",
     "risky-edit-<run>/handoff.md",
     "risky-edit-<run>/manifest.json",

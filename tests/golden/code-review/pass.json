@@ -50,7 +50,8 @@
     "code-review-<run>/steps/002-reviewer.md",
     "code-review-<run>/workdir",
     "code-review-<run>/worker.md",
-    "index.md"
+    "index.md",
+    "last-run-code-review-<key>.json"
   ],
   "steps": [
     {

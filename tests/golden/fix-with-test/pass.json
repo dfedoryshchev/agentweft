@@ -65,7 +65,8 @@
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
     "index.md",
-    "journal.md"
+    "journal.md",
+    "last-run-fix-with-test-<key>.json"
   ],
   "steps": [
     {

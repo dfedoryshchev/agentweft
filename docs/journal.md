@@ -26,6 +26,15 @@ no counts, no money` instead of adding up to nothing.
 a run saves its output as `runs/<flow>-<day>-<n>.md`, and the first run of a
 day is `-1`.
 
+how a run ended is kept in `runs/last-run-<flow>-<key>.json`, the key a hash
+of the repo the run worked in (its place when that is in no repo) and its
+task. it is written when the run finishes and when it stops short, with the
+run id, how it ended, its place and `last_run`, the newest output a run of the
+same flow, repo and task saved. a planner is told about that last run and
+nothing else, so two projects run from one install never see each other's
+runs. an older install kept one file per flow inside the package; that file
+is read for the place it names, and ignored for any other.
+
 ## why a run stopped
 
 a run that stops short says `parked at <step>` when it is waiting for someone
