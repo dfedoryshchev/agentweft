@@ -69,6 +69,7 @@ def cmd_help():
                        [--task "<text>" | --task-file <path>]
                        [--model-for <role>=<model>,...]
                        [--effort-for <role>=<level>,...]
+                       [--skip <gate>[,<gate>] "<reason>"]
                        [--skip-tests "<reason>"] [--continue <run|commit>]
                        [--max-calls <n>] [--max-tokens <n>]
                        [--on-stop keep|revert-tests]
@@ -104,9 +105,14 @@ def cmd_help():
           high, xhigh or max, over the step's and the flow's own. a step sent
           back goes again one level higher, up to xhigh. a resumed run keeps
           the ones it started with
---skip-tests  run a flow whose steps say what they write without any test
-          check: no red test is needed before product code. the reason is
-          required and goes into decisions.md and the handoff
+--skip    turn the named gates off for this run, each with the reason:
+          every step's gate of that name passes as not run, saying why. the
+          reason is required and goes into decisions.md and the handoff; a
+          name that is no gate, or that no step of the flow has, is refused.
+          `tests` names red-test, red-first and the test order checks
+--skip-tests  short for --skip tests: run a flow whose steps say what they
+          write without any test check, so no red test is needed before
+          product code
 --continue  carry the red tests of an earlier run of the same place, or of
           the start commit's tests added since <commit> and any test file
           not committed yet (HEAD for those alone), once each is seen to

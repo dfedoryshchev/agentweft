@@ -14,8 +14,9 @@ from .config import (VERDICTS, asks_for_verdict, config, declared, due,
 from agentweft import providers
 from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
-                                  fence, gates, promises, redorder, shellwrite, snapshot,
-                                  specfiles, starttests, worktree)
+                                  fence, gates, promises, redorder, shellwrite,
+                                  skips, snapshot, specfiles, starttests,
+                                  worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -554,7 +555,11 @@ class Run(object):
 
     def held(self, gate, step):
         """the gate built for `step`, or a pass saying it was not run when
-        the run skips tests and it is a test check."""
+        the run skips it by name, or skips tests and it is a test check."""
+        reason = (getattr(self, "skipped", None) or {}).get(gate.name)
+        if reason:
+            return lambda text: Result(gate.name, True, "not run - skipped: "
+                                       + reason)
         order = getattr(self, "order", None)
         if order is not None and order.skip and \
                 gate.name in redorder.TEST_GATES:
@@ -1180,10 +1185,10 @@ def main():
         print(flow + " has journal: false, so a run that finished is never "
               "written down and --resume cannot tell it from one that stopped")
         return 1
-    skip = valued("--skip-tests")
-    if skip is not None and not skip:
-        print("--skip-tests needs a reason: --skip-tests \"<why this run has"
-              " no tests>\"")
+    skipped, wrong = skips.given(sys.argv)
+    wrong = wrong or skips.unused(skipped, fm)
+    if wrong:
+        print(wrong)
         return 1
     carry = valued("--continue")
     if carry is not None and not carry:
@@ -1362,16 +1367,25 @@ def main():
     except ValueError as e:
         print(str(e))
         return 1
+    run.skipped = {}
     if pick_up:
         run.order.skip, run.order.proof = redorder.load(state.RUNS / pick_up)
+        run.skipped = skips.load(state.RUNS / pick_up)
         lost = run.order.recheck()
         if lost:
             print("the red proof " + pick_up + " held is dropped: " + lost)
-    if skip:
-        run.order.skip = skip
-        notes.append(("tests skipped for this run", skip + NEWLINE
-                      + "given with --skip-tests: the red-test and red-first"
+    run.skipped.update(skipped)
+    if skipped.get(skips.TESTS):
+        run.order.skip = skipped[skips.TESTS]
+        notes.append(("tests skipped for this run", run.order.skip + NEWLINE
+                      + "given with --skip tests: the red-test and red-first"
                       " gates and the test order checks did not run."))
+    for names, reason in skips.grouped(skipped):
+        notes.append((", ".join(names) + " skipped for this run", reason
+                      + NEWLINE + "given with --skip " + ",".join(names)
+                      + ": each step's " + " and ".join(names) + " gate"
+                      + ("s" if len(names) > 1 else "")
+                      + " did not run, and each says so in the record."))
     if carry:
         run.order.proof, why = carried(carry, run, fm)
         if why:
@@ -1478,6 +1492,8 @@ def main():
             "why", "the run skips tests"))
     if redorder.ordered(fm) or run.order.skip or run.order.proof:
         run.order.save(folder)
+    if run.skipped:
+        skips.save(folder, run.skipped)
     if asked is not None:
         task.save(folder, asked)
     models.save(folder, chosen)
@@ -1557,7 +1573,8 @@ def main():
                               found=run.produced.get(investigate.STEP, ""),
                               order=run.order.said(), left=left,
                               suite=baseline.lines(known),
-                              chained=record.data[chain.FIELD])
+                              chained=record.data[chain.FIELD],
+                              skipped=skips.said(run.skipped))
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,

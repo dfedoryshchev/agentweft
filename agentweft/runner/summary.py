@@ -739,7 +739,8 @@ def changed_lines(changes):
 
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
-          found="", order="", left=None, suite=(), chained=None):
+          found="", order="", left=None, suite=(), chained=None,
+          skipped=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -752,6 +753,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     what a stop found of the tests the run added or changed (`leftred.check`);
     `suite` is the lines on the suite as the run found it (`baseline.lines`);
     `chained` is the head of steps.jsonl it was written from (`chain.head`).
+    `skipped` is a line per reason the run skipped gates by name for.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -788,7 +790,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
               if gates else "no gates ran")
     out.append("checks: " + checks + "; red first: " + red_first(every)
                + ("; " + order if order.startswith("tests skipped") else "")
-               + ".")
+               + "".join("; " + s for s in skipped) + ".")
     if changes.get("git"):
         files = changes["files"]
         out.append("changed: " + (str(len(files)) + " file"
@@ -867,6 +869,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if order:
         out.append("- test order: " + order)
     out.extend(suite)
+    out.extend("- " + s + " (--skip)" for s in skipped)
     _, shown = replay(every)
     if shown is not None:
         from agentweft.guardrails.gates.redfirst_gate import said_of

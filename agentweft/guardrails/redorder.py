@@ -10,8 +10,9 @@ a test added after that is known as one (the red-first gate replays it). a
 `writes: tests` step that changes a product file fails. it is fail-closed:
 no start snapshot, no proof record or a gate that ran nothing is no proof.
 
-two ways round it, both said in the record. `--skip-tests "<reason>"` is a
-person deciding the run has no tests, and then none of the test checks apply.
+two ways round it, both said in the record. `--skip tests "<reason>"`
+(`--skip-tests "<reason>"` for short, `guardrails/skips.py`) is a person
+deciding the run has no tests, and then none of the test checks apply.
 `--continue <run>` carries the proof an earlier run of the same place holds,
 and `--continue <commit>` carries tests the start commit added since that
 commit plus the test files changed but not committed when the run started
@@ -182,7 +183,7 @@ class Order(object):
     def said(self):
         """-> the handoff's line on the order, "" when nothing is held."""
         if self.skip:
-            return ("tests skipped: " + self.skip + " (--skip-tests), so no"
+            return ("tests skipped: " + self.skip + " (--skip tests), so no"
                     " test check applied")
         if not self.proof:
             return ""

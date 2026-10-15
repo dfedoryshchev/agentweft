@@ -77,7 +77,7 @@ prompt:
 command, which every `tests` step needs) has seen a test the run wrote fail;
 a `tests` step that changes any file other than a test, a spec or a test
 runner file is sent back once, then the run stops. `--skip-tests "<reason>"`
-runs without tests and says so; `--continue <run or commit>` carries tests
+(short for `--skip tests "<reason>"`) runs without tests and says so; `--continue <run or commit>` carries tests
 already written, committed or not. the rules are in `docs/gates.md`, "no
 product code before a red test".
 

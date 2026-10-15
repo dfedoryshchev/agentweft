@@ -398,8 +398,9 @@ green, pins current behaviour, not counted as coverage`, or the failure; else th
 nothing was run` or `not proven by a gate`), the test order on a flow whose
 steps say what they write (`- test order: red before any product code:
 red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or
-`tests carried from <sha>`, or `tests skipped: <reason> (--skip-tests)`, which
-the checks line repeats), the rulings on record (`decisions.md` in the place),
+`tests carried from <sha>`, or `tests skipped: <reason> (--skip tests)`, which
+the checks line repeats), each gate skipped by name with its reason (`- regex
+skipped: <reason> (--skip)`, also on the checks line), the rulings on record (`decisions.md` in the place),
 the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
 `docs/spec*` there; a `*` never crosses a `/`) changed at all, each
@@ -525,10 +526,12 @@ without them resume could tell you where it died and nothing more.
   is given; then the edit goes into `decisions.md` in the new run's folder.
 - a step output edited by hand since it was written is what the rest works
   from, and that goes into the same `decisions.md`.
-- `--skip-tests "<reason>"` and `--continue <run or commit>` are each written
-  into that `decisions.md` too, as `tests skipped for this run` with the
-  reason or `tests carried from ...` with the test files. the start snapshot
-  and the red proof (`start-snapshot.json`, `red-proof.json`) are carried
+- `--skip <gate> "<reason>"`, `--skip-tests "<reason>"` and `--continue <run
+  or commit>` are each written into that `decisions.md` too, as `<gate>
+  skipped for this run` or `tests skipped for this run` with the reason, or
+  `tests carried from ...` with the test files. the start snapshot, the red
+  proof and the skips (`start-snapshot.json`, `red-proof.json`,
+  `skips.json`) are carried
   into the new run's folder, so the order and the red-first replay compare
   against the place as the first run found it (`docs/gates.md`).
 - a place whose HEAD or changed files are not what they were at the stop is

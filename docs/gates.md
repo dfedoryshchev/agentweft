@@ -90,6 +90,33 @@ cap or a pattern is about the work.
 a gate name that is not one of the eight below, or an option the gate does not
 read, is refused when the flow loads, before any step is paid for.
 
+## skipping a gate, by name and with a reason
+
+    python run.py build --skip regex,length "the pattern predates the format"
+
+`--skip <gate>[,<gate>] "<reason>"` turns the named gates off for one run.
+deleting the gate from `flow.yaml` would leave no trace in the run; a skip
+leaves three:
+
+- every step's gate of that name still gets its line, a pass that reads `not
+  run - skipped: <reason>`, in `gates.md` and in the step's line in
+  `steps.jsonl`.
+- `decisions.md` in the run's folder gets an entry naming the gates, with the
+  reason.
+- the handoff's checks line and its "tests and checks" say which gates were
+  skipped and why.
+
+the reason is required, so a skip with none is refused before anything runs.
+so is a name that is not a gate, one no step of the flow has, and one named
+twice. `--skip` can be given more than once, each with its own reason. the
+skips are kept as `runs/<run id>/skips.json`, and a run picked up with
+`--resume` skips the same gates.
+
+`tests` is one name for the `red-test` and `red-first` gates and the test
+order checks together (below), and `--skip-tests "<reason>"` is short for
+`--skip tests "<reason>"`. skipping `red-test` or `red-first` by its own name
+turns only that gate off: the order checks still want a red proof.
+
 ## the eight
 
 - **regex** - `pattern`, and `present: false` to require it is absent.
@@ -305,7 +332,8 @@ it sits on, so it can never let that same step start.) the proof is kept as
 two ways round it, both written into the run's `decisions.md` and the
 handoff's "tests and checks":
 
-- `--skip-tests "<reason>"` is a person deciding the run has no tests. a
+- `--skip tests "<reason>"`, or `--skip-tests "<reason>"` for short, is a
+  person deciding the run has no tests. a
   reason is required. then no test check applies at all: no order check, no
   `tests-only` check, a `must_produce: "FAILS:"` is not asked for, and every
   `red-test` and `red-first` gate passes as `not run - tests skipped:
@@ -370,7 +398,7 @@ records it as a `start-tests` line in `gates.md`:
 
 a place outside git has no start commit and says `not replayed`. a checkout
 that cannot be made, or a pytest that cannot start, fails the line like a
-gate. with `--skip-tests` it does not run.
+gate. with `--skip tests` it does not run.
 
 ## the suite as the run found it
 
