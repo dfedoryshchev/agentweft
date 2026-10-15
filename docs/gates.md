@@ -24,6 +24,12 @@ make the first one do the second.
 results print under the step and land in `runs/<run id>/gates.md`. the journal
 only hears about a gate that failed, because that one stops the run.
 
+a step's gates run after its answer is read for a question: an answer with a
+`NEEDS:` line, a first line of `VERDICT: park` or a `REFUSED:` line parks the
+run for a ruling (or ends it, for a refusal that cites the spec) before any
+gate sees it. a step that stopped to ask produced nothing to gate
+(`docs/journal.md`, when a step asks for a ruling).
+
 nothing goes past a failed gate, but the run does not stop on the first one.
 the step that failed goes again, once, with the gate's line at the very end of
 its prompt (`your last answer failed a gate, so this step runs again. the gate

@@ -302,7 +302,7 @@ def test_every_stop_names_a_cause_from_the_list(tmp_path, monkeypatch):
 def test_the_list_is_the_one_the_rollup_counts():
     assert stops.CAUSES == ("gate failed", "refused", "parked",
                             "provider outage", "budget", "exception",
-                            "interrupt", "no answer")
+                            "interrupt", "no answer", "declined")
 
 
 def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
@@ -335,6 +335,11 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
         a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"])
         no_waiting(monkeypatch)
         fake_cli(answer(""))
+    elif cause == "declined":
+        a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"])
+        (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                          encoding="utf-8")
+        fake_cli(answer('REFUSED: TASK.md:1 "amounts are strings"\n'))
     return engine.main()
 
 
@@ -342,7 +347,7 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
 def test_each_cause_is_a_stop_the_runner_makes(cause, tmp_path, monkeypatch,
                                                fake_cli, capsys):
     code = run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause)
-    assert code == (130 if cause == "interrupt" else 2)
+    assert code == {"interrupt": 130, "declined": 0}.get(cause, 2)
     [end] = ends()
     assert end.cause == cause
     assert end.why and end.spend and end.run == the_folder().name
@@ -364,7 +369,8 @@ OUTCOME = {"gate failed": "stopped: gate failed",
            "budget": "needs you: budget",
            "exception": "stopped: tool fault",
            "interrupt": "stopped: interrupted",
-           "no answer": "stopped: tool fault"}
+           "no answer": "stopped: tool fault",
+           "declined": "refused (spec cited)"}
 
 
 def test_every_cause_has_exactly_one_outcome():

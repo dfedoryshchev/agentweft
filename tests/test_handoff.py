@@ -422,7 +422,7 @@ def test_a_gate_stop_and_a_budget_stop_write_the_handoff_too(tmp_path,
     assert "call cap" in note
 
 
-def test_a_needs_line_reaches_the_needs_you_section_even_on_a_gate_stop(
+def test_a_needs_line_reaches_the_needs_you_section_before_any_gate(
         tmp_path, monkeypatch):
     asking = ("TEST: t.py\nNEEDS: keep the string or change it?\nCITES:\n"
               "- TASK.md:158 - a string with 2 decimals\nOPTIONS:\n"
@@ -442,7 +442,8 @@ def test_a_needs_line_reaches_the_needs_you_section_even_on_a_gate_stop(
     assert "- patcher asks: keep the string or change it?" in needs
     assert "  cites: TASK.md:158 - a string with 2 decimals" in needs
     assert "  option: B: change" in needs
-    assert ": stopped: gate failed at patcher.md" in note.split("\n")[0]
+    # the gate would fail on the NEEDS line; the question stops the run first
+    assert ": needs you: ruling at patcher.md" in note.split("\n")[0]
 
 
 def test_the_next_prompt_starts_with_what_the_step_before_handed_over(

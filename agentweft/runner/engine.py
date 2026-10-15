@@ -30,7 +30,7 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import levels, manifest, models, resume, router
+from . import levels, manifest, models, resume, router, ruling
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -232,6 +232,7 @@ class Run(object):
         self.answers = {}
         self.attempts = []
         self.gate_said = {}
+        self.ruled = {}
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
@@ -513,6 +514,7 @@ class Run(object):
             prompt = prompt + previous.as_prompt()
         # last, so every go at the step shares the whole prompt before it
         prompt = prompt + self.gate_said.get(step, "")
+        prompt = prompt + getattr(self, "ruled", {}).get(step, "")
         tried = trace.Attempt(task)
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
@@ -761,6 +763,14 @@ def run_once(flow, provider=None, task=None, trail=None):
             why = out.meta.get("why") or "nothing came out of " + step
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
+        said = ruling.asked_of(out.output, run.workdir)
+        if said and said[0] == ruling.DECLINED:
+            note("refused", said[1], stops.DECLINED, output=out.output)
+            return out.output, run.budget, ""
+        if said:
+            note("parked", said[1], stops.PARKED, output=out.output)
+            return (out.output, run.budget, "parked at " + step
+                    + " for a ruling: " + said[1].split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
         again = route.gate_back(step) if failed else None
         if again:
@@ -845,6 +855,36 @@ def main():
         if resume.finished(pick_up, found):
             print(pick_up + " finished. there is nothing to pick up")
             return 1
+    answer, wrong = ruling.answer_of(sys.argv)
+    if wrong:
+        print(wrong)
+        return 1
+    if answer is not None and not resuming:
+        print("--answer goes with --resume <run id>: it answers the question"
+              " a parked run asked")
+        return 1
+    question = found.question if found else None
+    if found:
+        ended = found.data.get("stopped") or {}
+        if ended.get("cause") == stops.DECLINED:
+            print(pick_up + " ended " + stops.status(stops.DECLINED,
+                                                     ended.get("step"))
+                  + ": " + str(ended.get("why"))
+                  + ". that is its answer; there is nothing to pick up")
+            return 1
+        if question is not None and answer is None:
+            print(pick_up + " is waiting for a ruling. "
+                  + ended.get("step") + " asked:")
+            print("")
+            print(question)
+            print("")
+            print("answer it with")
+            print("  " + resume_command(flow, pick_up) + park.ANSWER)
+            return stops.EXIT_STOP
+    if answer is not None and question is None:
+        print(pick_up + " is not waiting for a ruling, so --answer has nothing"
+              " to answer")
+        return 1
     try:
         asked = task.settle(flow, task.places(flow_path(flow), fm),
                             task.given(sys.argv),
@@ -1020,6 +1060,12 @@ def main():
     record.save(run.budget)
     for decided, why in notes:
         decisions.record(folder, decided, why)
+    if answer is not None:
+        decisions.record(run.workdir, ruling.decided(start, answer),
+                         ruling.why(start, pick_up, question, answer,
+                                    ruling.who()))
+        run.ruled[start] = ruling.told(question, answer)
+        print("ruled: " + start + " runs again with the answer")
     trail = trace.Trail(folder,
                         after=trace.last_seq(state.RUNS / pick_up)
                         if pick_up else 0)
@@ -1053,14 +1099,16 @@ def main():
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
-             told=None, at=None, handed=None):
+             told=None, at=None, handed=None, question=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
         cause, what the run spent and where the handoff is. `at` is the step
         the run stopped at, when that is not the one that ran. `handed` is
         the step whose output `at` was handed, for a park before `at` ran:
-        the step stays not run, so carrying on starts at it.
+        the step stays not run, so carrying on starts at it. `question` is
+        what the step asked instead of doing the work: the run waits for a
+        ruling, and carrying on runs the step again with the answer.
 
         -> the exit code.
         """
@@ -1073,20 +1121,37 @@ def main():
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "why.md").write_text(
             "stopped at " + at + NEWLINE + "cause      " + cause + NEWLINE
+            + ("kind       " + ruling.ASKED + NEWLINE if question else "")
             + NEWLINE + why + NEWLINE, encoding="utf-8")
+        if question:
+            (folder / "question.md").write_text(question + NEWLINE,
+                                                encoding="utf-8")
         parked = cause == stops.PARKED
         if handed:
             kept = manifest.NOT_RUN
+        elif question:
+            kept = manifest.RULING
+        elif cause == stops.DECLINED:
+            kept = manifest.PASSED
         else:
             kept = manifest.PARKED if parked else manifest.FAILED
         record.mark(at, kept,
                     run_id if at in wrote else None,
                     resume.step_output(run_id, at) if at in wrote else None)
-        record.stop(at, cause, why, run.workdir, state.RUNS)
+        record.stop(at, cause, why, run.workdir, state.RUNS,
+                    question=question)
         record.save(run.budget)
         remember(flow, run, run_id, stops.status(cause, at))
         done = [(name, secs) for name, secs, _ in timings]
-        if waiting:
+        if question:
+            needs = park.lines(at, waiting, done,
+                               resume.remaining(steps(flow), at),
+                               resume_command(flow, run_id),
+                               question=question)
+            print("parked at " + at + ", waiting for a ruling")
+        elif cause == stops.DECLINED:
+            needs = park.refused(at, why, done)
+        elif waiting:
             again = cause == stops.OUTAGE
             left = (resume.remaining if again or handed else resume.after)(
                 steps(flow), at)
@@ -1241,6 +1306,18 @@ def main():
                             "failed", entry,
                             index="FAILED  " + flow + "  at "
                             + (blamed or step), at=blamed)
+
+            said = ruling.asked_of(out.output, run.workdir)
+            if said and said[0] == ruling.DECLINED:
+                print("refused at " + step + ": " + said[1])
+                return stop(stops.DECLINED, said[1], "refused", entry)
+            if said:
+                print(step + " asks for a ruling")
+                return stop(stops.PARKED, "needs a ruling: "
+                            + said[1].split(NEWLINE)[0][len("NEEDS: "):],
+                            "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user", question=said[1])
 
             failed, blocked = check_step(run, route, step, out,
                                          run_dir=step_dir)

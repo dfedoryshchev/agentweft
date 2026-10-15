@@ -10,8 +10,9 @@ whole flow again.
 
 it holds:
 
-- every step's state - passed, parked, failed, redo or not run - the run whose
-  folder has what the step produced last, and a digest of that
+- every step's state - passed, parked, parked for a ruling, failed, redo or
+  not run - the run whose folder has what the step produced last, and a
+  digest of that
 - what the run has spent, so a resumed run starts there and not at nothing
 - a digest of every file in the flow folder, so an edited flow is named
 - HEAD and the files git calls changed in the place, a digest each
@@ -33,6 +34,9 @@ TASKS = "tasks.jsonl"
 
 PASSED = "passed"
 PARKED = "parked"
+# the step asked a question instead of doing the work, so it runs again,
+# with the answer, when the run is carried on
+RULING = "parked for a ruling"
 FAILED = "failed"
 REDO = "redo"
 NOT_RUN = "not run"
@@ -226,10 +230,21 @@ class Manifest(object):
                 return name
         return None
 
-    def stop(self, step, cause, why, place, own=None):
+    def stop(self, step, cause, why, place, own=None, question=None):
         self.data["state"] = STOPPED
         self.data["stopped"] = {"step": step, "cause": cause, "why": why}
+        if question is not None:
+            self.data["stopped"]["question"] = question
         self.data["tree"] = tree(place, own)
+
+    @property
+    def question(self):
+        """-> what the run asked when it parked for a ruling, else None."""
+        stopped = self.data.get("stopped") or {}
+        s = self.step(stopped.get("step"))
+        if s is None or s.get("state") != RULING:
+            return None
+        return stopped.get("question") or stopped.get("why") or ""
 
     def finish(self, place, own=None):
         self.data["state"] = FINISHED

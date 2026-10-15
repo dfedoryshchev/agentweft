@@ -39,16 +39,18 @@ gives a planner that line.
 
 ## why a run stopped
 
-a run that stops short says `parked at <step>` when it is waiting for someone
-and `failed at <step>` otherwise, and its cause is one of a fixed list:
+a run that stops short says `parked at <step>` when it is waiting for someone,
+`refused at <step>` when a step declined the work citing the spec, and
+`failed at <step>` otherwise, and its cause is one of a fixed list:
 
 - `gate failed` - a gate failed the step, or the step did not give the router
   what the flow requires of it (an output it must contain, a verdict it can
   read). the why is the gate and what it said.
 - `refused` - the step was not allowed to start (the place changed under it)
   or its output was refused (a preflight in `refuse` mode).
-- `parked` - the flow asked for a person, a preflight parked, the work ran out
-  of redos, or files git cannot give back were changed.
+- `parked` - the flow asked for a person, a step asked for a ruling (below), a
+  preflight parked, the work ran out of redos, or files git cannot give back
+  were changed.
 - `provider outage` - the account's own limit refused the call: a session,
   weekly or usage limit. the run parks after that one call, never retries and
   never hands the empty answer to a gate; the why and `handoff.md` say when
@@ -58,13 +60,15 @@ and `failed at <step>` otherwise, and its cause is one of a fixed list:
 - `interrupt` - Ctrl-C.
 - `no answer` - the step came back empty after its retries. the why carries
   the last thing the provider said.
+- `declined` - a step answered `REFUSED:` with a spec line it cites (below).
+  the run ends there, and that is its answer, so it exits 0.
 
 the same cause and why go on the step's line in `steps.jsonl` and into
 `runs/<run-id>/why.md`. a cause off the list is refused where the line is
 written, and `rollup.py` refuses one it finds.
 
-`run.py` exits 0 when the run finished (or was not due), 1 when it could not
-start, 2 when it stopped, and 130 on an interrupt.
+`run.py` exits 0 when the run finished, was not due or a step declined with a
+cite, 1 when it could not start, 2 when it stopped, and 130 on an interrupt.
 
 ## how a run ended
 
@@ -86,6 +90,7 @@ cause maps to:
 | `exception` | `stopped: tool fault` |
 | `no answer` | `stopped: tool fault` |
 | `interrupt` | `stopped: interrupted` |
+| `declined` | `refused (spec cited)` |
 
 the map is `OUTCOME` in `agentweft/runner/stops.py`, with no default: a cause
 with no outcome is refused where the outcome is read. a gate that failed
@@ -345,7 +350,8 @@ picks that run up from its own folder. `runs/<run-id>/manifest.json` is
 written when a run starts, after every step that passes and when it ends, and
 says:
 
-- each step's state, `passed`, `parked`, `failed`, `redo` or `not run`, which
+- each step's state, `passed`, `parked`, `parked for a ruling`, `failed`,
+  `redo` or `not run`, which
   run's folder holds what it produced last, and a digest of that
 - what the run has spent so far
 - a digest of every file in the flow folder
@@ -460,6 +466,53 @@ from.
 handoff has no "needs you" section. there is nothing behind that step for a
 person to hold up.
 
+## when a step asks for a ruling
+
+a step that cannot do its work without someone deciding something answers
+with a question on a line of its own, with what it cites and the options it
+sees under it:
+
+    NEEDS: keep amounts as strings, or make them numbers?
+    CITES:
+    - TASK.md:158 - the JSON amount is a string with 2 decimals
+    OPTIONS:
+    - A: keep the spec
+    - B: change it
+
+(`VERDICT: park` as the first line does the same, with the next line as the
+question.) the run parks there, before that step's gates run: a step that
+stopped to ask has produced nothing to gate. the journal says `parked at
+<step>`, `why.md` says `kind       ruling`, the step is `parked for a ruling`
+in the manifest, the question is in `runs/<run-id>/question.md`, and the
+handoff's "needs you" section shows it and ends with the command that answers
+it:
+
+    python run.py fix-with-test --resume <run-id> --answer "numbers"
+
+`--answer-file <path>` takes a longer answer from a file. the resume runs the
+step that asked again, AT that step and not after it, on what it was handed
+before, with the question and the answer at the very end of its prompt. the
+question, the answer and who gave it go into `decisions.md` in the place the
+run works in, so the ruling sits beside the code it changes and the handoff
+lists it as on record. `--resume` on that run without an answer runs nothing:
+it prints the question and the command, and exits 2. an `--answer` to a run
+that asked nothing is refused.
+
+the line is read the way every labelled line is (`agentweft/runner/verbs.py`):
+its key in any case, behind a bullet or in bold; never inside a code fence or
+a `>` quote, so a test that asserts on the string "NEEDS:" asks nothing.
+
+a step can also decline:
+
+    REFUSED: TASK.md:12 "a refund is income"
+
+when the cited file is in the place and has that line, the run ends `refused
+at <step>`, outcome `refused (spec cited)`, exit 0: the step's answer is that
+the spec says no, and nothing is owed. the steps after it do not run. a
+refusal that cites nothing, or a line that is not there, is read as a question
+and parks for a ruling instead. the runner refusing to START a step is a
+different thing, the `refused` cause, and that is a stop.
+
 ## reading it from an agent
 
 `python mcp_server.py` exposes the journal, the weekly rollup, the gate results
@@ -486,7 +539,8 @@ why)` appends to `<root>/decisions.md` and refuses an entry with no why;
 rewritten - a decision that turned out wrong gets a later one saying so.
 
 the runner writes one in a resumed run's own folder, when it carried on over
-an edited flow or an edited step output. it reads the one in the place: every
+an edited flow or an edited step output, and one in the place for every
+`--answer` to a step's question (above). it reads the one in the place: every
 step is handed the entries on record, and the run's `handoff.md` lists them
 and holds a changed pre-existing test or spec file against them.
 

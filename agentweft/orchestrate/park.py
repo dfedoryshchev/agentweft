@@ -20,7 +20,7 @@ passes to the next, machine to machine. this is what a run passes to a person.
 
 
 def lines(step, who, done, left, command, why=None, again=False, cause=None,
-          handed=None):
+          handed=None, question=None):
     """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
@@ -33,7 +33,13 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     `who` is None for a run that stopped without waiting for anyone - a gate,
     the cap, a crash. it gets the same section under its `cause`: the step it
     stopped at runs again when it is carried on.
+
+    `question` is what `step` asked instead of doing the work. the answer is
+    given on the command line, not by editing a file, so the section ends
+    with the command that takes it.
     """
+    if question is not None:
+        return ruling(step, who, done, left, command, question)
     if who is None:
         return stopped(step, cause, done, left, command, why)
     out = ["waiting for    " + who]
@@ -75,6 +81,44 @@ def ran_and_left(out, done, left):
     for name in left or ["nothing"]:
         out.append("  " + name)
     out.append("")
+
+
+ANSWER = ' --answer "<your ruling>"'
+
+
+def ruling(step, who, done, left, command, question):
+    out = ["waiting for    " + who, "stopped at     " + step, ""]
+    out.append(step + " asked for a ruling instead of doing the work:")
+    out.append("")
+    out.extend("  " + line for line in question.strip().split("\n"))
+    out.append("")
+    out.append("so the rest of it has not run.")
+    out.append("")
+    ran_and_left(out, done, left)
+    out.append(step + " runs again with your answer at the end of its prompt, and")
+    out.append("the question and the answer go into decisions.md. a longer answer")
+    out.append("can come from a file: --answer-file <path>.")
+    out.append("")
+    out.append("to carry on")
+    out.append("  " + command + ANSWER)
+    return out
+
+
+def refused(step, cite, done):
+    """the section for a step that declined the work and cited the spec line
+    that says why. nothing is owed: the run ends on it."""
+    out = ["refused at     " + step, ""]
+    out.append(step + " declined the work, citing:")
+    out.append("  " + cite)
+    out.append("")
+    out.append("nothing failed. the run ends here, and that is its answer. to have")
+    out.append("the work done anyway, change that line or start a new run whose")
+    out.append("task says to.")
+    out.append("")
+    out.append("ran")
+    for name, seconds in done:
+        out.append("  " + name.ljust(16) + str(seconds) + "s")
+    return out
 
 
 def stopped(step, cause, done, left, command, why):

@@ -11,8 +11,9 @@ the journal has three shapes of line, the same first four columns in each:
     <when>  <flow>  failed at <step>  <secs>s  <run id>  <cause>  <spend>  <why>  <run id>/handoff.md  [resumes <origin>]
     <when>  <flow>  ok  <secs>s  <run id>  <saved as>  <spend>  <run id>/handoff.md  [resumes <origin>]
 
-a stop is `parked at` when the run is waiting for someone, `failed at` for
-everything else. `<when>` is when the run started, on every line it writes.
+a stop is `parked at` when the run is waiting for someone, `refused at` when
+a step declined the work and cited the spec line that says why, `failed at`
+for everything else. `<when>` is when the run started, on every line it writes.
 
 the run's outcome, the word a program reads, is `done` (with the count of
 checks nobody could decide, when there were any) or the one OUTCOME maps the
@@ -36,9 +37,13 @@ BUDGET = "budget"
 EXCEPTION = "exception"
 INTERRUPT = "interrupt"
 NO_ANSWER = "no answer"
+# a step's own refusal, with a cited spec line. REFUSED is the runner
+# refusing to start a step, which is a stop; this is an answer, and the run
+# ends on it
+DECLINED = "declined"
 
 CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
-          NO_ANSWER)
+          NO_ANSWER, DECLINED)
 
 # the run waits for someone on these: a person for a park, the provider's
 # limit for an outage
@@ -54,7 +59,8 @@ OUTCOME = {GATE: "stopped: gate failed",
            BUDGET: "needs you: budget",
            EXCEPTION: "stopped: tool fault",
            INTERRUPT: "stopped: interrupted",
-           NO_ANSWER: "stopped: tool fault"}
+           NO_ANSWER: "stopped: tool fault",
+           DECLINED: "refused (spec cited)"}
 OUTCOMES = (DONE,) + tuple(sorted(set(OUTCOME.values())))
 
 EXIT_OK = 0
@@ -78,7 +84,9 @@ def checked(cause):
 
 def status(cause, step):
     """-> the journal's third column for a stop."""
-    return ("parked at " if checked(cause) in WAITING else "failed at ") + step
+    if checked(cause) == DECLINED:
+        return "refused at " + step
+    return ("parked at " if cause in WAITING else "failed at ") + step
 
 
 def outcome(cause):
@@ -96,7 +104,9 @@ def done(unproven=0):
 
 
 def exit_code(cause):
-    return EXIT_INTERRUPT if checked(cause) == INTERRUPT else EXIT_STOP
+    if checked(cause) == DECLINED:
+        return EXIT_OK
+    return EXIT_INTERRUPT if cause == INTERRUPT else EXIT_STOP
 
 
 def of(error):
