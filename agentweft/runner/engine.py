@@ -40,6 +40,7 @@ from . import stops
 from . import summary
 from . import task
 from . import trace
+from . import wrongtest
 from .state import load_state, save_state
 
 from pathlib import Path
@@ -292,6 +293,34 @@ class Run(object):
         # every MUST NOT MISS line any step handed over, as (role, line): a
         # constraint read from the spec by the first step binds the last
         self.constraints = []
+        # the step that first wrote each test file, by path from the place
+        self.authors = {}
+        self.test_seen = {}
+
+    def wrote_tests(self, step):
+        """note `step` as the writer of each test file it made or changed."""
+        start = getattr(self, "start", None)
+        if start is None or not start.hashed:
+            return
+        for rel, now in start.test_changes():
+            sha = snapshot._sha(now)
+            if self.test_seen.get(rel) == sha:
+                continue
+            self.test_seen[rel] = sha
+            self.authors.setdefault(start.from_place(rel), step)
+
+    def wrong_back(self, step, writer, test, told):
+        """send a test `step` called wrong back to `writer`: the claim at the
+        end of its prompt, and the red proof that test gave dropped, so the
+        corrected test has to be shown red again before product code."""
+        self.gate_said[writer] = told
+        if writer != step:
+            self.gate_said[step] = wrongtest.back_to(writer, test)
+        proof = self.order.proof
+        path = redorder.norm(test.partition("::")[0])
+        if proof and proof.get("how") == "gate" and path in set(
+                redorder.norm(f) for f in proof.get("tests") or {}):
+            self.order.proof = None
 
     def keep_in(self, folder):
         """every provider of this run notes a refused shell write in folder."""
@@ -748,6 +777,7 @@ def run_once(flow, provider=None, task=None, trail=None):
     out = EMPTY
     step = steps(flow)[0]
     came_from = None
+    given = {}
 
     def note(outcome, why=None, cause=None, to=None, output=None):
         taken = run.taken()
@@ -766,6 +796,7 @@ def run_once(flow, provider=None, task=None, trail=None):
             note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
         handed = out
+        given[step] = handed
         writes = run.writes_for(step)
         refused = run.order.before(step, writes)
         if refused:
@@ -782,6 +813,7 @@ def run_once(flow, provider=None, task=None, trail=None):
             note("parked", outage_why(e), stops.OUTAGE)
             return (out.output, run.budget, "provider outage at " + step
                     + ": " + outage_why(e))
+        run.wrote_tests(step)
         fenced = run.fenced(step)
         if fenced:
             note("parked", fenced, stops.PARKED, output=out.output)
@@ -790,6 +822,20 @@ def run_once(flow, provider=None, task=None, trail=None):
             why = out.meta.get("why") or "nothing came out of " + step
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
+        wrong = wrongtest.judge(out.output, step, run, route)
+        if wrong and wrong[0] == "back":
+            _, writer, test, told = wrong
+            note("redo", test + " is wrong, back to " + writer, to=writer,
+                 output=out.output)
+            run.wrong_back(step, writer, test, told)
+            out = given.get(writer, EMPTY)
+            came_from = step
+            step = writer
+            continue
+        if wrong:
+            note("parked", wrong[1], stops.PARKED, output=out.output)
+            return (out.output, run.budget, "parked at " + step
+                    + " for a ruling: " + wrong[1].split("\n")[0])
         said = ruling.asked_of(out.output, run.workdir)
         if said and said[0] == ruling.DECLINED:
             note("refused", said[1], stops.DECLINED, output=out.output)
@@ -1120,6 +1166,8 @@ def main():
     step = todo[0]
     used = run.provider
     wrote = set()
+    # what each step was handed, for a step a wrong test sends the work back to
+    given = {}
     # a run parked before a step is carried on by the person who read why, so
     # that step is not checked again on what it was handed the first time round
     cleared = None
@@ -1309,6 +1357,7 @@ def main():
             run.order.watch(step, writes)
             print("started " + step)
             handed = out
+            given[step] = handed
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
@@ -1329,6 +1378,7 @@ def main():
             step_dir.mkdir(parents=True, exist_ok=True)
             (step_dir / step).write_text(out.output, encoding="utf-8")
             wrote.add(step)
+            run.wrote_tests(step)
             timings.append((step, out.meta.get("seconds", 0),
                             out.meta.get("cached")))
             entry = trail.open(step, run.taken(), used, came_from,
@@ -1361,6 +1411,28 @@ def main():
                             "failed", entry,
                             index="FAILED  " + flow + "  at "
                             + (blamed or step), at=blamed)
+
+            wrong = wrongtest.judge(out.output, step, run, route)
+            if wrong and wrong[0] == "back":
+                _, writer, test, told = wrong
+                print(step + " says " + test + " is wrong, sent back to "
+                      + writer)
+                trail.close(entry, "redo", why=test + " is wrong, back to "
+                            + writer, to=writer)
+                record.mark(step, manifest.REDO, run_id, out.output)
+                record.save(run.budget)
+                run.wrong_back(step, writer, test, told)
+                out = given.get(writer, EMPTY)
+                came_from = step
+                step = writer
+                continue
+            if wrong:
+                print(step + " says a test the run will not rewrite is wrong")
+                return stop(stops.PARKED, "needs a ruling: "
+                            + wrong[1].split(NEWLINE)[0][len("NEEDS: "):],
+                            "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user", question=wrong[1])
 
             said = ruling.asked_of(out.output, run.workdir)
             if said and said[0] == ruling.DECLINED:

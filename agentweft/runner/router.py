@@ -53,6 +53,7 @@ class Router(object):
         self.gate_limit = GATE_CAP if said is None else said
         self.sent_back = 0
         self.gate_tries = {}
+        self.wrong_tries = {}
 
     def first(self):
         return self.order[0] if self.order else None
@@ -117,6 +118,16 @@ class Router(object):
             return None
         self.gate_tries[step] = tries + 1
         return step
+
+    def wrong_back(self, test):
+        """whether a test a step called wrong may go back to the step that
+        wrote it: the flow's `send_backs` times per test, once when it has
+        none. asked once per claim, which is what spends it."""
+        tries = self.wrong_tries.get(test, 0)
+        if tries >= self.gate_limit:
+            return False
+        self.wrong_tries[test] = tries + 1
+        return True
 
     def _back_to(self, step):
         # nothing declared, so back to whoever produced the thing being judged

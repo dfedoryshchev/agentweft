@@ -534,6 +534,21 @@ refusal that cites nothing, or a line that is not there, is read as a question
 and parks for a ruling instead. the runner refusing to START a step is a
 different thing, the `refused` cause, and that is a stop.
 
+a step can say a test it was given is wrong, on lines of its own:
+
+    WRONG TEST: tests/test_calc.py::test_mul
+    why: 2 times 3 is 6, and the test wants 5
+    spec: TASK.md:3 "mul(a, b) returns a times b"
+
+a test that was not in the place when the run started (the start snapshot) is
+the run's own: it goes back to the step that wrote it, with the claim at the
+very end of its prompt, and that step's gates have to show it red again before
+the work walks on; the step's line in `steps.jsonl` is a `redo` with `to`
+naming the writer. it goes back `send_backs` times per test, once by default,
+and a second claim on the same test parks for a ruling. a test the run started
+with never goes back: the claim parks for a ruling, quoted in `question.md`. a
+`spec:` line that is not there is read as a question too.
+
 ## reading it from an agent
 
 `python mcp_server.py` exposes the journal, the weekly rollup, the gate results

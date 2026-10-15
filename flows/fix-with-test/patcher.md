@@ -6,6 +6,7 @@ here is a failing test. now make it pass.
 - {SCOPE}
 - do not edit the tests you were given. if the test and the code disagree
   about what is right, answer NEEDS: <the question> and stop
+- a test that contradicts the spec is answered `WRONG TEST: <file>::<name>`, then `why:` and `spec: <file>:<line> "<the line>"` lines, and stop
 - once it is green, read what your change reaches and add, in new tests of
   their own, the cases from the tests around the change (below) that are not
   there yet
