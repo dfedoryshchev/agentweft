@@ -27,7 +27,7 @@ from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
 
-from . import handoff, investigate, leftred, manifest, stops, verbs
+from . import handoff, investigate, leftred, manifest, stops, trace, verbs
 
 FILE = "handoff.md"
 
@@ -384,7 +384,7 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
 
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
-         "shell_writes_denied", "shell_trap_recoveries")
+         "shell_writes_denied", "shell_trap_recoveries", "won")
 
 
 def read_of(sessions, root=None):
@@ -402,6 +402,9 @@ def facts_of(line, root=None):
     """-> a pass's facts from its steps.jsonl line: the retro's fields, and
     what its sessions read, from `root` when the path is under it."""
     out = dict((k, line.get(k)) for k in RETRO)
+    if out["won"] is None:
+        out["won"] = trace.won(line.get("outcome"), line.get("cause"),
+                               line.get("gates"), line.get("to"))
     sessions = [line["session"]] if line.get("session") else []
     sessions.extend(t["session"] for t in (line.get("tasks") or [])
                     if isinstance(t, dict) and t.get("session"))
@@ -671,11 +674,40 @@ def retro(passes):
             if f.get(key):
                 said.append(words + " " + str(f[key]))
         took = p["seconds"] if p["seconds"] is not None else 0
-        out.append("- " + at(p) + " " + str(took) + "s ("
-                   + _money(f) + "): " + ("; ".join(said) or "no events"))
+        out.append("- " + at(p) + " " + str(took) + "s (" + _money(f) + ")"
+                   + (", won " + f["won"] if f.get("won") else "") + ": "
+                   + ("; ".join(said) or "no events"))
     out.extend("- " + p["step"] + " sent the work back: " + p["redo_why"]
                for p in passes if p["outcome"] == "redo" and p["redo_why"])
-    return out or ["- no step ran"]
+    if not out:
+        return ["- no step ran"]
+    return out + bought(passes)
+
+
+def _tally(passes):
+    seconds = round(sum(p["seconds"] or 0 for p in passes), 1)
+    costs = [(p.get("facts") or {}).get("cost") for p in passes]
+    stated = [c for c in costs if isinstance(c, (int, float))
+              and not isinstance(c, bool)]
+    out = (str(len(passes)) + (" pass" if len(passes) == 1 else " passes")
+           + ", " + str(seconds) + "s, $%.4f" % sum(stated))
+    if len(stated) < len(costs):
+        out = out + ", cost not stated on " + str(len(costs) - len(stated))
+    return out
+
+
+def bought(passes):
+    """the spend and seconds of every pass summed by what it won, `none`
+    always among them, then the total, which is the sum of the steps."""
+    groups = {}
+    for p in passes:
+        groups.setdefault((p.get("facts") or {}).get("won") or "not recorded",
+                          []).append(p)
+    groups.setdefault("none", [])
+    order = list(trace.WON) + ["not recorded"]
+    out = ["- won " + k + ": " + _tally(groups[k]) for k in order
+           if k in groups]
+    return out + ["- total: " + _tally(passes)]
 
 
 def changed_lines(changes):

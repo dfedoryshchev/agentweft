@@ -146,7 +146,16 @@ rounded half up, and anything above zero that rounds to nothing is
 
 every step's line in `steps.jsonl` carries `priced` beside `cost`, and the
 eval scores carry `usd`, `usd_estimated` and `reported_usd`, so a comparison
-of two runs can be read as money per result.
+of two runs can be read as money per result. a step's `cost` can hold a go
+the provider never answered for, priced from its transcript or estimated;
+`cost_parts` splits it by kind, and `python run.py spend` adds up `reported`,
+`table-priced` and `estimated` apart, so a table's figure is never read as
+the provider's.
+
+each step's line also says what it won (`caught`, `stopped`, `proved`,
+`decided` or `none`, `journal.md`), and the retro in `handoff.md` puts every
+step's money and seconds against it, with the total spent on `won none`: the
+first place to look for a step to cut.
 
 ## the promises
 

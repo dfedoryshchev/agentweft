@@ -21,7 +21,11 @@ table makes of it and what the provider said (see "the spend cap" and "what it
 cost in money" in `guardrails.md`). `python run.py spend` prints the last
 twenty lines that say, then those runs per flow and per provider, read from
 their `steps.jsonl`; a run whose steps were never counted says `estimated only:
-no counts, no money` instead of adding up to nothing.
+no counts, no money` instead of adding up to nothing. `reported` there is only
+what the providers said; a go priced from its transcript is added up as
+`table-priced` and one estimated from its prompt as `estimated`, each beside
+it (a step line written before `cost_parts` existed, with goes of more than one
+kind, is `mixed, not split`).
 
 a run saves its output as `runs/<flow>-<day>-<n>.md`, and the first run of a
 day is `-1`.
@@ -136,7 +140,8 @@ or crashed. the keys are always all there, in this order:
      "grant": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
-     "cost": 0.25, "priced": 0.25, "cost_from": null, "session": "s-1",
+     "cost": 0.25, "priced": 0.25, "cost_from": null, "cost_parts": null,
+     "session": "s-1",
      "seconds": 8.4,
      "cached": false,
      "retries": {}, "background_killed": 0,
@@ -144,7 +149,7 @@ or crashed. the keys are always all there, in this order:
      "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
      "ungated": false,
-     "outcome": "ok", "cause": null, "why": null,
+     "outcome": "ok", "won": "none", "cause": null, "why": null,
      "file": "steps/001-worker.md",
      "task_file": "task.md", "tasks": null,
      "handoff": {"state": "present", "did": ["calc.py: add returns a + b"],
@@ -207,6 +212,9 @@ or crashed. the keys are always all there, in this order:
   with no figure at all, and the cost is null then, as it is when the table
   has no price for the model. the run's money line counts the same goes:
   a transcript's tokens as counted, an estimate as estimated (`~`).
+  `cost_parts` is the same cost split by those kinds, in USD,
+  `{"provider": 0.005, "estimate": 0.0008}`; null whenever `cost_from` or
+  `cost` is.
 - `retries` is the goes that failed, by cause (`{"transient": 2}`); null on a
   crash, where nothing knows how many there were.
 - `background_killed` is how many processes the cli call left running (a
@@ -242,6 +250,22 @@ or crashed. the keys are always all there, in this order:
   each step can say `over budget`. `cause` is the run's stop cause from the
   list above, null when it went on. `why` is the reason the run had in hand
   when it stopped there, null when it went on.
+- `won` is what the pass bought, set by the runner from the outcome, the
+  cause, the gates and `to`, never by the step:
+  - `caught`: a gate of its failed, or its verdict sent the work back (a
+    redo that only switched the cause step on is not one).
+  - `stopped`: it ended the run on a conflict, a refusal or a park for a
+    ruling or a person (`cause` `conflict`, `refused`, `declined` or
+    `parked`); a park for the budget or an outage, a crash and no answer
+    bought nothing.
+  - `proved`: it went on, and a gate it carries passed on a program's word: a
+    `command` or `coverage` gate, a `red-test` gate that ran its command, a
+    `red-first` gate that replayed something.
+  - `decided`: the lead's go that decided a question (`outcome` `decided`),
+    the one that records the ruling; the pass that asked is `none`, it runs
+    again.
+  - `none`: anything else, an all-pass judge among them.
+  the retro in `handoff.md` sums seconds and money by it.
 - `file` is what this pass produced, `steps/<seq>-<step>.md`. a redo's second
   review is a second file, so the finding that sent the work back is still
   there. `<step>` beside it is still the last pass, the one `--resume` reads.
@@ -250,7 +274,8 @@ or crashed. the keys are always all there, in this order:
   `--task-file`, kept beside the line as `runs/<run-id>/task.md`; null when it
   was not. the text is not on the line, so a long task is written once.
 - a fanned-out step is one line: the totals at the top and a `tasks` list with
-  each task's own seconds, tokens, cost, priced, cost_from, session, retries and
+  each task's own seconds, tokens, cost, priced, cost_from, cost_parts, session,
+  retries and
   background_killed, in plan
   order.
   the gates judged the joined output, so they are on the line, not the tasks.
@@ -371,8 +396,11 @@ four sections are written by the runner alone:
 - **retro**: per pass, its seconds and cost, its outcome when it was not ok,
   each gate it failed, its retries (`limit events`, `refused calls`,
   `retried after transient`), refused shell writes, shell-trap recoveries and
-  leftover processes ended, all from `steps.jsonl`; then one line per send-back
-  with the reviewer's reason.
+  leftover processes ended, all from `steps.jsonl`, and what it won (`won`
+  on the step line); then one line per send-back with the reviewer's reason;
+  then the money and seconds summed by what each pass won, `won none` always
+  among them, and the total, which is the sum of the steps. a pass whose cost
+  was not stated is counted and named, never added in as nothing.
 
     ## changed
     - calc.py +1 -1 (committed), lines 2
@@ -388,11 +416,14 @@ four sections are written by the runner alone:
       said, not in its transcript: docs/old.md:1-9 - the old notes
 
     ## retro
-    - worker.md 12.0s ($0.2500): no events
-    - reviewer.md 4.1s ($0.2500): sent back
-    - worker.md 9.3s ($0.2500): no events
-    - reviewer.md 3.9s ($0.2500): no events
+    - worker.md 12.0s ($0.2500), won none: no events
+    - reviewer.md 4.1s ($0.2500), won caught: sent back
+    - worker.md 9.3s ($0.2500), won none: no events
+    - reviewer.md 3.9s ($0.2500), won none: no events
     - reviewer.md sent the work back: notes.md still says three
+    - won caught: 1 pass, 4.1s, $0.2500
+    - won none: 3 passes, 25.2s, $0.7500
+    - total: 4 passes, 29.3s, $1.0000
 
     # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 

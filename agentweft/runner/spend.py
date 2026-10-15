@@ -5,7 +5,9 @@ the journal has one money figure per run. the steps of a run, in its
 from there: a run that went to two providers is split between them.
 
 a step its provider did not count has no tokens and no money on its line, and
-is called that rather than added in as nothing.
+is called that rather than added in as nothing. `reported` is only what the
+providers said; a go priced from its transcript is `table-priced` and one
+priced from its prompt `estimated`, each beside it, never inside it.
 """
 import json
 from decimal import Decimal
@@ -20,7 +22,8 @@ LAST = 20
 
 class Group(object):
     __slots__ = ("runs", "steps", "counted", "input", "output", "cache_read",
-                 "cache_creation", "usd", "unpriced", "reported", "unreported")
+                 "cache_creation", "usd", "unpriced", "reported", "unreported",
+                 "table_priced", "estimated", "unsplit")
 
     def __init__(self):
         self.runs = set()
@@ -28,6 +31,9 @@ class Group(object):
         self.input = self.output = self.cache_read = self.cache_creation = 0
         self.usd = Decimal(0)
         self.reported = Decimal(0)
+        self.table_priced = Decimal(0)
+        self.estimated = Decimal(0)
+        self.unsplit = Decimal(0)
         self.unpriced = self.unreported = 0
 
     def add(self, run, step):
@@ -48,8 +54,21 @@ class Group(object):
                 self.usd += Decimal(str(step["priced"]))
         if step.get("cost") is None:
             self.unreported += 1
-        else:
-            self.reported += Decimal(str(step["cost"]))
+            return
+        parts = step.get("cost_parts")
+        if parts is None and step.get("cost_from") is None:
+            parts = {"provider": step["cost"]}
+        if parts is None:
+            self.unsplit += Decimal(str(step["cost"]))
+            return
+        for kind, usd in parts.items():
+            usd = Decimal(str(usd))
+            if kind == "provider":
+                self.reported += usd
+            elif kind == "transcript":
+                self.table_priced += usd
+            else:
+                self.estimated += usd
 
     def line(self, name):
         head = ("  " + name + "  " + plural(len(self.runs), "run") + ", "
@@ -67,6 +86,11 @@ class Group(object):
                                             "step") + " estimated, not counted"
         if self.steps > self.unreported:
             out = out + ", reported " + prices.money(self.reported)
+            for usd, words in ((self.table_priced, "table-priced"),
+                               (self.estimated, "estimated"),
+                               (self.unsplit, "mixed, not split")):
+                if usd:
+                    out = out + ", " + words + " " + prices.money(usd)
             if self.unreported:
                 out = out + " on " + str(self.steps - self.unreported) + " of " \
                     + plural(self.steps, "step")

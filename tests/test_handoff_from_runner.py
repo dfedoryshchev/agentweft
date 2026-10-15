@@ -127,7 +127,7 @@ def test_retro_names_retries_limits_refusals_and_shell_trouble_per_step():
         "cost": 0.5, "retries": {"transient": 1, "outage": 1, "fatal": 1},
         "shell_writes_denied": 2, "shell_trap_recoveries": 1,
         "background_killed": 1})])
-    [line] = lines
+    line = lines[0]
     assert line.startswith("- worker.md 1.0s ($0.5000): ")
     for said in ("retried after transient 1", "limit events 1",
                  "refused calls 1", "shell writes refused 2",

@@ -32,10 +32,10 @@ def test_a_step_records_seconds_and_provider(monkeypatch):
 
 
 KEYS = ["seq", "time", "step", "from", "to", "provider", "command", "model",
-        "model_reported", "model_choice", "effort", "grant", "tokens", "cost", "priced", "cost_from", "session",
-        "seconds", "cached",
+        "model_reported", "model_choice", "effort", "grant", "tokens", "cost", "priced", "cost_from",
+        "cost_parts", "session", "seconds", "cached",
         "retries", "background_killed", "shell_writes_denied",
-        "shell_trap_recoveries", "gates", "ungated", "outcome", "cause", "why", "file",
+        "shell_trap_recoveries", "gates", "ungated", "outcome", "won", "cause", "why", "file",
         "task_file", "tasks", "handoff"]
 
 # an en dash, a CJK word and a Cyrillic letter: cp1252 has the first under

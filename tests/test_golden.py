@@ -509,6 +509,9 @@ STAMPS = (
     # the handoff's "ran ... in 4.2s" and "- steps: worker.md 1.3s -> ..."
     (re.compile(r"(?<= in )\d+(\.\d+)?s(?= on:|\.)"), "<secs>s"),
     (re.compile(r"(?<=\.md )\d+(\.\d+)?s(?= ->| \(|$)"), "<secs>s"),
+    # the retro's "- won none: 3 passes, 4.2s, $0.0300"
+    (re.compile(r"(?<=pass, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
+    (re.compile(r"(?<=passes, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
 )
 CLOCKED = ("time", "seconds")
 

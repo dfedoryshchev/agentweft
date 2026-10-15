@@ -134,6 +134,29 @@ def cost_from(attempts):
     return out
 
 
+def cost_parts(attempts, model=None):
+    """-> `cost` split by where each figure came from, the keys of
+    `cost_from`; None when `cost_from` is, or `cost` is."""
+    from agentweft.guardrails import prices
+
+    came = cost_from(attempts)
+    if came is None or cost(attempts, model) is None:
+        return None
+    table = None
+    out = {}
+    for a in attempts:
+        if a.cached:
+            continue
+        for r in a.replies:
+            if stated(r):
+                kind, usd = "provider", Decimal(str(r.cost))
+            else:
+                table = table or prices.load()
+                kind, usd = r.metered, one_go(table, r, model).usd
+            out[kind] = out.get(kind, Decimal(0)) + usd
+    return dict((k, round(float(v), 6)) for k, v in out.items())
+
+
 def priced(attempts, model=None):
     """USD by the price table, None when any reply was not counted or could
     not be priced. `model` is the id asked for, for a reply that names none."""
@@ -185,6 +208,7 @@ def facts(attempts, model=None):
     return {"tokens": tokens(attempts), "cost": cost(attempts, model),
             "priced": priced(attempts, model),
             "cost_from": cost_from(attempts),
+            "cost_parts": cost_parts(attempts, model),
             "seconds": seconds(attempts),
             "cached": bool(attempts) and all(a.cached for a in attempts),
             "retries": retries(attempts),
@@ -319,6 +343,47 @@ def shell_trap_recoveries(attempts):
     return sum(found) if found else None
 
 
+WON = ("caught", "stopped", "proved", "decided", "none")
+CHECKS = ("command", "coverage")
+
+
+def proof(g):
+    """whether a passing gate entry is a program's word, not a model's."""
+    if not g.get("ok"):
+        return False
+    detail = g.get("detail") or ""
+    if g.get("gate") == "red-test":
+        return "nothing was run" not in detail
+    if g.get("gate") == "red-first":
+        return not detail.startswith("not replayed")
+    return g.get("gate") in CHECKS
+
+
+def won(outcome, cause=None, gates=(), to=None):
+    """-> what a pass bought, one of WON, from its line's outcome, cause,
+    gate entries and where the run went next.
+
+    a stop for the budget, an outage, a crash or no answer bought nothing; a
+    redo that only switched the cause step on was the runner's choice, not a
+    defect the step found.
+    """
+    from .investigate import STEP
+    from .stops import CONFLICT, DECLINED, PARKED, REFUSED
+
+    gates = list(gates or ())
+    if outcome == "gate failed" or any(not g.get("ok") for g in gates):
+        return "caught"
+    if outcome == "redo" and to and to != STEP:
+        return "caught"
+    if cause in (CONFLICT, REFUSED, DECLINED, PARKED):
+        return "stopped"
+    if outcome == "decided":
+        return "decided"
+    if outcome == "ok" and any(proof(g) for g in gates):
+        return "proved"
+    return "none"
+
+
 def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
          folder=None):
     attempts = entry.attempts
@@ -335,6 +400,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             task["session"] = last(a, "session")
             task["model_reported"] = last(a, "model")
             tasks.append(task)
+    gates = [gate_line(g) for g in entry.gates]
     return {"seq": entry.seq,
             "time": (first.began if first else datetime.datetime.now())
             .isoformat(timespec="seconds"),
@@ -352,6 +418,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             "cost": said["cost"],
             "priced": said["priced"],
             "cost_from": said["cost_from"],
+            "cost_parts": said["cost_parts"],
             "session": last(one, "session") if one else None,
             "seconds": said["seconds"],
             "cached": said["cached"],
@@ -359,9 +426,10 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             "background_killed": said["background_killed"],
             "shell_writes_denied": shell_writes_denied(p, attempts, folder),
             "shell_trap_recoveries": shell_trap_recoveries(attempts),
-            "gates": [gate_line(g) for g in entry.gates],
+            "gates": gates,
             "ungated": entry.ungated,
             "outcome": outcome,
+            "won": won(outcome, cause, gates, to),
             "cause": cause,
             "why": why,
             "file": entry.file,
