@@ -123,7 +123,7 @@ def flow_with(tmp_path, mode):
 
 
 def run_it(tmp_path, monkeypatch, answers, mode="cause", fixes=True,
-           more=()):
+           more=(), tests=()):
     flows = flow_with(tmp_path, mode)
     project = tmp_path / "project"
     if not project.exists():
@@ -131,12 +131,13 @@ def run_it(tmp_path, monkeypatch, answers, mode="cause", fixes=True,
         (project / "conftest.py").write_text("", encoding="utf-8")
         (project / "calc.py").write_text(BROKEN, encoding="utf-8")
     asked = []
+    written = list(tests)
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         asked.append((step, prompt))
         if step == "worker.md":
-            (project / "tests" / "test_calc.py").write_text(TEST,
-                                                            encoding="utf-8")
+            (project / "tests" / "test_calc.py").write_text(
+                written.pop(0) if written else TEST, encoding="utf-8")
         if step == "patcher.md" and fixes:
             (project / "calc.py").write_text(FIXED, encoding="utf-8")
         return answers.get(step, ""), False
@@ -290,3 +291,77 @@ def test_off_sends_the_patcher_the_words_it_always_had(tmp_path, monkeypatch):
     assert "{SCOPE}" not in told
     assert "NOT REACHED" not in told
     assert "investigator" not in prompt_of(asked, "worker.md")
+
+
+GREEN = TEST.replace("== 3", "== -1")
+TWO_CAUSES = WORKER + NL.join([
+    "", "HANDOFF", "DID:",
+    "- the cause is add returning a - b",
+    "- a second cause is total calling add with its arguments swapped",
+    "END HANDOFF", ""])
+
+
+def decided(tmp_path):
+    folder = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()][0]
+    path = folder / "decisions.md"
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def test_auto_is_a_mode_the_flow_file_takes():
+    assert spec.check(raw(investigate="auto")) == []
+    steps = spec.load(raw(investigate="auto")).steps
+    assert [s["role"] for s in steps] == ["investigator", "worker"]
+
+
+def test_auto_never_calls_the_cause_step_on_a_clean_run(tmp_path,
+                                                         monkeypatch):
+    code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="auto")
+    assert code == 0
+    assert [s for s, _ in asked] == ["worker.md", "patcher.md"]
+    assert "the cause step was switched on" not in decided(tmp_path)
+
+
+def test_auto_switches_the_cause_step_on_when_the_red_test_fails_twice(
+        tmp_path, monkeypatch):
+    code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="auto",
+                         tests=[GREEN, GREEN])
+    assert code == 0
+    assert [s for s, _ in asked] == ["worker.md", "worker.md",
+                                     "investigator.md", "worker.md",
+                                     "patcher.md"]
+    assert SITE_TWO in prompt_of(asked, "worker.md")
+    said = decided(tmp_path)
+    assert "the cause step was switched on" in said
+    assert "red-test" in said
+
+
+def test_auto_switches_the_cause_step_on_when_did_names_two_causes(
+        tmp_path, monkeypatch):
+    code, asked = run_it(tmp_path, monkeypatch, dict(ANSWERS, **{
+        "worker.md": TWO_CAUSES}), mode="auto")
+    assert code == 0
+    assert [s for s, _ in asked] == ["worker.md", "investigator.md",
+                                     "worker.md", "patcher.md"]
+    assert "CAUSE: calc.py:2" in prompt_of(asked, "worker.md")
+    said = decided(tmp_path)
+    assert "the cause step was switched on" in said
+    assert "a second cause is total" in said
+
+
+def test_auto_switches_on_once_and_a_third_red_failure_stops_the_run(
+        tmp_path, monkeypatch):
+    code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="auto",
+                         tests=[GREEN, GREEN, GREEN])
+    assert [s for s, _ in asked] == ["worker.md", "worker.md",
+                                     "investigator.md", "worker.md"]
+    assert code != 0
+    assert "  failed at worker.md  " in journal(tmp_path)
+
+
+def test_cause_still_runs_the_step_first_and_a_red_failure_stops_as_before(
+        tmp_path, monkeypatch):
+    code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="cause",
+                         tests=[GREEN, GREEN])
+    assert [s for s, _ in asked] == ["investigator.md", "worker.md",
+                                     "worker.md"]
+    assert code != 0

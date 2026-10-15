@@ -9,8 +9,10 @@ fixes is still the task it was given.
 """
 import re
 
-from agentweft.flow.spec import INVESTIGATOR, investigating
+from agentweft.flow.spec import INVESTIGATOR, investigating, step_id
 from agentweft.roles import resolver
+
+from .manifest import NOT_RUN
 
 STEP = INVESTIGATOR + ".md"
 LABELS = ("RULED OUT", "DECISIONS", "RELATED", "ROOTED", "CAUSE", "SITES",
@@ -26,8 +28,51 @@ NAMED = ("touch the named sites only, every one of them and nothing else. a "
          "after TEST: as `NOT REACHED: <file>:<function>`")
 
 
+AUTO = "auto"
+RED = "red-test"
+NAMES_A_CAUSE = re.compile(r"\bcause\b", re.I)
+
+
 def on(fm):
     return investigating(fm.raw) != "off"
+
+
+def held(fm, order, kept=None):
+    """-> the steps a run starts from: `order` without the cause step while
+    `auto` has not switched it on.
+
+    `kept` is the manifest of the run being picked up. a cause step that ran
+    there, whatever it came to, is the run's own and stays in.
+    """
+    if investigating(fm.raw) != AUTO:
+        return order
+    if kept is not None and (kept.step(STEP) or {}).get("state") not in (
+            None, NOT_RUN):
+        return order
+    return [s for s in order if s != STEP]
+
+
+def wanted(fm, step, failed="", block=None):
+    """-> why `auto` switches the cause step on after this step, or "".
+
+    only the flow's first own step is read, and only for two things: its red
+    test failing a second time (`failed` is the gate that failed once the
+    step has no go left), or a DID naming more than one cause: the step is
+    paid for when the run shows it is guessing at the cause, not on every run.
+    """
+    if investigating(fm.raw) != AUTO or len(fm.steps) < 2 \
+            or fm.steps[0].get("role") != INVESTIGATOR \
+            or step != step_id(fm.steps[1]):
+        return ""
+    if failed == RED:
+        return (step + " failed its " + RED + " gate twice, so its test is "
+                "not yet against the cause")
+    causes = [l for l in (block or {}).get("did", [])
+              if NAMES_A_CAUSE.search(l)]
+    if len(causes) > 1:
+        return (step + " named " + str(len(causes)) + " causes in its DID:\n"
+                + "\n".join("- " + c for c in causes))
+    return ""
 
 
 def plan_words(fm):

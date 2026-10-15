@@ -137,6 +137,13 @@ with `investigate:` on takes one. a flow file that writes `{SCOPE}` gets
 what a patch may touch there: what the test reaches when nothing was
 investigated, the named sites when something was (`fix-with-test/patcher.md`).
 
+`auto` is `cause` held back until the flow's first own step shows it needs
+one: its red test failing a second time, or its handoff naming more than one
+cause under `DID:`. then the step runs once, the first step runs again with
+the labelled lines, and the run's `decisions.md` says what switched it on. a
+run that never shows either never pays for the step, and a red test that
+fails again after it stops the run as it would without it.
+
 `verify:` is `judge` or `off`. `judge` runs the flow's steps of role `verify` as
 written, `off` takes them out when the flow loads, and a flow that does not
 say runs them as written. it is for a flow whose promises are all gates on the

@@ -109,9 +109,11 @@ PREFLIGHT_MODES = ("flag", "refuse", "park")
 # `investigate:` puts one step in front of the flow's own that finds the cause
 # of the task and everything it reaches before anything is written. `cause` is
 # the cause and its sites, `plan` adds the tests to write and what the person
-# has to decide. the step's name is not `planner`, which already means a step
-# whose lines are fanned out and that is handed the risk map.
-INVESTIGATE = ("off", "cause", "plan")
+# has to decide. `auto` is `cause` held back until the first step shows it
+# needs one (`runner/investigate.py`). the step's name is not `planner`, which
+# already means a step whose lines are fanned out and that is handed the risk
+# map.
+INVESTIGATE = ("off", "cause", "plan", "auto")
 INVESTIGATOR = "investigator"
 # one site per line, `file:function`: a few anchors and not the code, which the
 # step after reads for itself

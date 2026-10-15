@@ -956,9 +956,10 @@ def main():
     order = steps(flow)
     shape = manifest.flow_digest(flow_path(flow))
     notes = []
-    start = order[0]
+    start = investigate.held(fm, order)[0]
     if pick_up:
-        start = resume.start_at(pick_up, order, found)
+        start = resume.start_at(pick_up, investigate.held(fm, order, found),
+                                found)
         if start is None:
             print("nothing left to run in " + pick_up)
             return stops.EXIT_OK
@@ -1225,6 +1226,17 @@ def main():
         show(note)
         return stops.exit_code(cause)
 
+    def switch_on(at, entry, outcome, said, why):
+        """`auto` turns the cause step on after `at`, once, and says why."""
+        print("the cause step was switched on after " + at)
+        trail.close(entry, outcome, why=said, to=investigate.STEP)
+        record.mark(at, manifest.REDO, run_id, out.output)
+        record.save(run.budget)
+        decisions.record(folder, "the cause step was switched on after " + at,
+                         why)
+        return investigate.STEP
+
+    switched = False
     try:
         while step:
             used = run.by_step.get(step, run.provider)
@@ -1370,6 +1382,14 @@ def main():
                 # nothing goes past a failed gate: the step goes again with
                 # what the gate said, and once the cap is spent the run stops
                 again = route.gate_back(step)
+                why = "" if again or switched else investigate.wanted(
+                    fm, step, failed=failed)
+                if why:
+                    step = switch_on(step, entry, "gate failed",
+                                     gate_why(out.meta["gates"]), why)
+                    switched = True
+                    out = handed
+                    continue
                 if again:
                     print("gate " + failed + " failed at " + step
                           + ", sent back to " + again)
@@ -1453,6 +1473,14 @@ def main():
                 return stop(stops.PARKED, unproven, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user")
+
+            why = "" if switched else investigate.wanted(fm, step,
+                                                         block=out.block)
+            if why:
+                step = switch_on(step, entry, "redo", why, why)
+                switched = True
+                out = handed
+                continue
 
             stuck = route.out_of_redos(out)
             nxt = route.next(step, out)
