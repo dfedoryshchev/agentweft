@@ -219,6 +219,24 @@ def question_of_conflict(cite, quote, words):
     return "\n".join(out)
 
 
+def question_of_start_tests(step, red):
+    """-> the question a start test gone red stops the run on. `red` is
+    [(test id, what it said)]."""
+    out = ["NEEDS: " + step + " wrote product code, and "
+           + ("a test" if len(red) == 1 else str(len(red)) + " tests")
+           + " the run started with, green then, "
+           + ("fails" if len(red) == 1 else "fail")
+           + " against it now. which one holds?", "CITES:"]
+    out.extend("- " + test + ' - "' + flat(said) + '"' for test, said in red)
+    out.extend(["OPTIONS:",
+                "- override: <why the change holds>. name each test above, or"
+                " quote the spec line that decides it, and the change stands",
+                "- request: <what to do instead>. the tests hold; the words"
+                " are added to the request and the run starts again from its"
+                " first step that reads the request"])
+    return "\n".join(out)
+
+
 def kind_of(answer):
     """-> OVERRIDE, REQUEST or None, from the word the answer starts with."""
     m = re.match(r"\s*(\w+)\s*:", answer or "")
@@ -244,6 +262,73 @@ def amended(task, answer):
     words = answer.strip()[len(REQUEST) + 1:].strip()
     return ((task or "").rstrip("\n") + "\n\nadded after a spec conflict, and"
             " it decides where the two disagree:\n\n" + words + "\n")
+
+
+QUOTED = re.compile(r'"([^"\n]+)"')
+# a quote of two words or fewer is in almost any spec, and would cover
+# every test the ruling was asked about by accident
+QUOTE_WORDS = 3
+
+
+def answered(d):
+    """-> the answer in a decisions.md entry written by --answer, "" for an
+    entry written any other way."""
+    _, sep, rest = d.why.partition("\nanswered:\n")
+    return rest.split("\n\nanswered by ")[0].strip() if sep else ""
+
+
+def own_words(d):
+    """-> what a decisions.md entry itself says: its heading and its why, or
+    for one written by --answer the answer, without the question it
+    answered."""
+    return d.decided + "\n" + (answered(d) or d.why)
+
+
+def names_test(text, test):
+    """whether `text` names `test` by its id, with or without the folders
+    before the file and the parameters after the name."""
+    short = test.rsplit("/", 1)[-1]
+    for t in (short, short.split("[")[0]):
+        if re.search(r"(?<![\w.-])" + re.escape(t) + r"(?!\w)", text or "",
+                     re.I):
+            return True
+    return False
+
+
+def spec_quoted(text, workdir, start):
+    """whether `text` quotes, between double quotes, a line of a spec file
+    as the run found it."""
+    quotes = [flat(q) for q in QUOTED.findall(text or "")
+              if len(q.split()) >= QUOTE_WORDS]
+    if not quotes or start is None or not getattr(start, "hashed", False):
+        return False
+    for rel in sorted(start.specs):
+        try:
+            found = as_found(workdir, start.from_place(rel), start)
+        except ValueError:
+            continue
+        lines = [flat(l) for l in (found or "").split("\n")]
+        if any(q in l for q in quotes for l in lines):
+            return True
+    return False
+
+
+def covering(decided, test, workdir, start=None):
+    """-> the decisions.md entry that lets `test`, green when the run started,
+    be red now, or None. it names the test in its own words, or it quotes the
+    spec line that decides it as the run found it and the entry (with the
+    question it answered) names the test. an answer of `request:` keeps
+    what the run started with, so it never covers one."""
+    for d in decided:
+        if kind_of(answered(d) or d.decided) == REQUEST:
+            continue
+        own = own_words(d)
+        if names_test(own, test):
+            return d
+        if names_test(d.decided + "\n" + d.why, test) and \
+                spec_quoted(own, workdir, start):
+            return d
+    return None
 
 
 def answer_of(argv):

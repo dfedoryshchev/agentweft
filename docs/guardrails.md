@@ -178,6 +178,15 @@ test files changed, where it has to fail on an assertion, and on the patched
 place, where it has to pass, so that the test fails for want of the fix is a
 run on record and not a reviewer's reading of an order nobody committed.
 
+after any step that writes product code, the tests the run started with run
+again, as the start commit has them, against the product files as they are
+now. a test that was green then and is red now stops the run as a spec
+conflict naming it, unless a ruling in `decisions.md` names the test or
+quotes the spec line that decides it; a test red at the start is not counted
+(`docs/gates.md`, "the tests the run started with, after product code").
+"do not edit the tests you were given" is a sentence in a prompt; this is a
+pytest run.
+
 ## the files that brief the model
 
 a `cli` step starts its model in the run's place, and a model cli can take

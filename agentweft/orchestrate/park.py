@@ -20,7 +20,7 @@ passes to the next, machine to machine. this is what a run passes to a person.
 
 
 def lines(step, who, done, left, command, why=None, again=False, cause=None,
-          handed=None, question=None, conflict=False):
+          handed=None, question=None, conflict=False, replayed=False):
     """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
@@ -37,10 +37,11 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     `question` is what `step` asked instead of doing the work. the answer is
     given on the command line, not by editing a file, so the section ends
     with the command that takes it. `conflict` is a question the step raised
-    by finding the request contradicts the spec, which has two answers.
+    by finding the request contradicts the spec, which has two answers;
+    `replayed` says the conflict is a test the run started with gone red.
     """
     if question is not None and conflict:
-        return contradicted(step, done, left, command, question)
+        return contradicted(step, done, left, command, question, replayed)
     if question is not None:
         return ruling(step, who, done, left, command, question)
     if who is None:
@@ -111,24 +112,41 @@ OVERRIDE = ' --answer "override: <the new rule>"'
 REQUEST = ' --answer "request: <what to do instead>"'
 
 
-def contradicted(step, done, left, command, question):
+STANDS = ' --answer "override: <why the change holds>"'
+
+
+def contradicted(step, done, left, command, question, replayed=False):
     out = ["cause          conflict", "stopped at     " + step, ""]
-    out.append(step + " found that the request contradicts the spec, and the")
-    out.append("line it quoted is there as the run found it:")
+    if replayed:
+        out.append(step + " wrote product code, and the tests the run started")
+        out.append("with, run again against it, are not all green as they were:")
+    else:
+        out.append(step + " found that the request contradicts the spec, and"
+                   " the")
+        out.append("line it quoted is there as the run found it:")
     out.append("")
     out.extend("  " + line for line in question.strip().split("\n"))
     out.append("")
     out.append("nothing failed, and the rest of it has not run.")
     out.append("")
     ran_and_left(out, done, left)
-    out.append("say which one holds. override lets the request win and lets")
-    out.append("that spec line change, nothing else; " + step + " runs again")
-    out.append("with your answer. request keeps the spec: your words are added")
-    out.append("to the request and the run starts again from its first step")
-    out.append("that reads it. either answer goes into decisions.md.")
+    if replayed:
+        out.append("say which one holds. override lets the change stand when it")
+        out.append("names each test or quotes the spec line that decides it; "
+                   + step)
+        out.append("runs again with your answer. request keeps the tests: your")
+        out.append("words are added to the request and the run starts again")
+        out.append("from its first step that reads it. either answer goes into")
+        out.append("decisions.md.")
+    else:
+        out.append("say which one holds. override lets the request win and lets")
+        out.append("that spec line change, nothing else; " + step + " runs again")
+        out.append("with your answer. request keeps the spec: your words are added")
+        out.append("to the request and the run starts again from its first step")
+        out.append("that reads it. either answer goes into decisions.md.")
     out.append("")
     out.append("to carry on")
-    out.append("  " + command + OVERRIDE)
+    out.append("  " + command + (STANDS if replayed else OVERRIDE))
     out.append("  " + command + REQUEST)
     return out
 

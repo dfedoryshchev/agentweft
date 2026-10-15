@@ -323,6 +323,45 @@ a run picked up with `--resume` keeps its snapshot and its proof, and reads
 the proved test files again: one whose content is not what was proved drops
 the proof, and a product step after it is refused saying which file moved.
 
+## the tests the run started with, after product code
+
+a test step can rewrite the assertion of a test it was given, and the product
+step then makes the rewritten test pass: the place's own suite stays green and
+nothing in it shows a test the run was handed now fails. so once a `writes:
+product` step's gates pass, the run runs the tests it started with again, and
+records it as a `start-tests` line in `gates.md`:
+
+- which tests: the start commit's python test modules (`test_*.py`,
+  `*_test.py`), plus the ones already loose when the run started, from the
+  start snapshot. never the copies in the place, which a step may have
+  edited; tests the run added are not among them.
+- against what: a temporary checkout of the start commit (the same locked,
+  hook-free one the red-first gate uses, gone afterwards), given the place's
+  start state and then every product file as it is now, with the product
+  files deleted since deleted there too. a step's commits change nothing: the
+  start commit is the snapshot's, and the product is read from the files.
+- one pytest run over all of them, no model: the flow's red-test or red-first
+  command up to `pytest` (else `python -m pytest`), with `-rA` and
+  `--continue-on-collection-errors`. product files whose hashes are what they
+  were at the start mean nothing is run, and so does a run with no python
+  test module at the start.
+- a test green when the run started and red now (failed, errored, or in a
+  file that no longer collects) stops the run `stopped: spec conflict`, cause
+  `conflict`, naming the test id and its assertion (`docs/journal.md`). which
+  tests were green at the start is read by running the same tests on the
+  start state, once per run, and only when something came back red: a test
+  red at the start is never blamed on the run.
+- unless a ruling in `decisions.md` covers it: one that names the test (its
+  id, with or without the folders before the file), or one that quotes in
+  double quotes, three words or more, a line of a spec file as the run found
+  it, in an entry that names the test, such as the answer to this stop. an
+  answer of `request:` keeps the tests and covers nothing. covered tests pass
+  as `red now, each covered by a ruling`.
+
+a place outside git has no start commit and says `not replayed`. a checkout
+that cannot be made, or a pytest that cannot start, fails the line like a
+gate. with `--skip-tests` it does not run.
+
 ## a rule is checked only if it has a pattern
 
     standards:

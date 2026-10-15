@@ -68,7 +68,8 @@ of a fixed list:
 - `declined` - a step answered `REFUSED:` with a spec line it cites (below).
   the run ends there, and that is its answer, so it exits 0.
 - `conflict` - a step answered `CONFLICT:` with a spec line the request
-  contradicts, and the quote was at that line as the run found it (below).
+  contradicts, and the quote was at that line as the run found it (below),
+  or a test the run started with went red after a product step (below).
   nothing broke; the run waits for someone to say which one holds.
 
 the same cause and why go on the step's line in `steps.jsonl` and into
@@ -599,6 +600,17 @@ a quote that is not at the line, a cite of a file that was not there when the
 run started, or a line that is not `<file>:<line> "<quote>"` fails the step
 the way a gate does (`conflict` in `gates.md`): it goes again once with what
 was wrong, then the run stops `gate failed`.
+
+the same stop comes from the runner when a step that writes product code
+turns red a test that was green when the run started, run as the start commit
+has it (`docs/gates.md`). the why names the test and its assertion:
+
+    spec conflict: tests/test_report.py::test_alphabetical was green when the run started and is red now: AssertionError: assert ['b', 'a'] == ['a', 'b']
+
+`gates.md` has it as a failed `start-tests` line, and the question lists each
+such test. `override:` lets the change stand only if it names each test or
+quotes the spec line that decides it: the step runs again, and its replay
+reads the ruling. `request:` keeps the tests, as above.
 
 ## reading it from an agent
 

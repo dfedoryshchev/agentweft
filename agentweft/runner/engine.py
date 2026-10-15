@@ -15,7 +15,7 @@ from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
                                   promises, redorder, shellwrite, snapshot,
-                                  worktree)
+                                  starttests, worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -307,6 +307,7 @@ class Run(object):
         # the step that first wrote each test file, by path from the place
         self.authors = {}
         self.test_seen = {}
+        self.start_green = {}
 
     def wrote_tests(self, step):
         """note `step` as the writer of each test file it made or changed."""
@@ -341,6 +342,32 @@ class Run(object):
     def rulings(self):
         """-> the decisions on record in the place, as lines."""
         return [summary.stamp(d) for d in decisions.read(self.workdir)]
+
+    def replayed(self, step):
+        """-> (the start tests' line for the record or None, (why, question)
+        when a test green at the start is red now and no ruling covers it,
+        else None). only after a `writes: product` step, and never when the
+        run skips tests."""
+        if self.writes_for(step) != "product" or self.order.skip:
+            return None, None
+        found = starttests.replay(self.start, redorder.test_command(self.fm),
+                                  green=self.start_green)
+        if not found.red:
+            return found.result, None
+        decided = decisions.read(self.workdir)
+        left, ruled = [], []
+        for test, said in found.red:
+            d = ruling.covering(decided, test, self.workdir, self.start)
+            if d is None:
+                left.append((test, said))
+            else:
+                ruled.append(test + " (ruling " + summary.stamp(d) + ")")
+        if not left:
+            return Result(starttests.NAME, True, "red now, each covered by a"
+                          " ruling: " + ", ".join(ruled)), None
+        line = Result(starttests.NAME, False, starttests.said_of(left))
+        return line, ("spec conflict: " + line.detail,
+                      ruling.question_of_start_tests(step, left))
 
     def keep(self, role, block):
         for line in block.get("must_not_miss", []):
@@ -755,6 +782,13 @@ def check_step(run, route, step, out, run_dir=None):
                               getattr(run, "start", None))
     if said and said[1]:
         results.insert(0, Result("conflict", False, said[1]))
+    replayed = getattr(run, "replayed", None)
+    if replayed is not None and all(r.ok for r in results):
+        line, held = replayed(step)
+        if line is not None:
+            results.append(line)
+        if held:
+            out.meta["conflict"] = held
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:
@@ -868,6 +902,11 @@ def run_once(flow, provider=None, task=None, trail=None):
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + said[1].split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
+        held = out.meta.pop("conflict", None)
+        if held:
+            note("conflict", held[1], stops.CONFLICT, output=out.output)
+            return out.output, run.budget, "spec conflict at " + step + ": " \
+                + held[0][len("spec conflict: "):]
         again = route.gate_back(step) if failed else None
         if again:
             note("gate failed", gate_why(out.meta["gates"]), to=again,
@@ -1244,7 +1283,7 @@ def main():
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
-             told=None, at=None, handed=None, question=None):
+             told=None, at=None, handed=None, question=None, replayed=False):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -1293,7 +1332,8 @@ def main():
             needs = park.lines(at, waiting, done,
                                resume.remaining(steps(flow), at),
                                resume_command(flow, run_id),
-                               question=question, conflict=conflict)
+                               question=question, conflict=conflict,
+                               replayed=replayed)
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:
@@ -1511,6 +1551,12 @@ def main():
                                          run_dir=step_dir)
             entry.gates = out.meta.get("gates", [])
             entry.ungated = out.meta.get("ungated")
+            held = out.meta.pop("conflict", None)
+            if held:
+                print(step + " turned a test the run started with red")
+                return stop(stops.CONFLICT, held[0], "conflict", entry,
+                            index="CONFLICT  " + flow + "  at " + step,
+                            question=held[1], replayed=True)
             if failed:
                 # nothing goes past a failed gate: the step goes again with
                 # what the gate said, and once the cap is spent the run stops
