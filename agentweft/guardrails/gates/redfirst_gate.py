@@ -15,6 +15,10 @@ ERROR_NAME = re.compile(r"^([A-Za-z_][\w.]*(?:Error|Exception))\b")
 # exception is the unfixed code failing, which is the bug a crash fix removes
 COULD_NOT_RUN = ("ImportError", "ModuleNotFoundError", "NameError",
                  "SyntaxError")
+PIN_OK = re.compile(r"^PIN OK:(.*)$")
+# the steps that decide what is built, not the ones that write it: a step
+# cannot excuse the pins it wrote itself
+PIN_ROLES = ("planner", "architect", "ba")
 
 
 def kind_of(output):
@@ -42,7 +46,46 @@ def said_of(test):
         before = "errors without the fix (" + (test.get("kind") or "") + ")"
     else:
         before = before + " without the fix"
-    return test["test"] + ": " + before + ", " + test["after"] + " with it"
+    line = test["test"] + ": " + before + ", " + test["after"] + " with it"
+    if test.get("counts") == "coverage":
+        line = line + "; added after green, coverage"
+    elif test.get("counts") == "pin":
+        line = line + ("; added after green, pins current behaviour, not"
+                       " counted as coverage")
+        if test.get("pin_ok"):
+            line = line + " (allowed by " + test["pin_ok"] + ")"
+    return line
+
+
+def pin_ok(said_by):
+    """-> "<role>: <reason>" from the last PIN OK: line a step of a
+    PIN_ROLES role wrote, "" when none did."""
+    found = ""
+    for role, text in said_by:
+        if role not in PIN_ROLES:
+            continue
+        for line in (text or "").splitlines():
+            m = PIN_OK.match(line.strip())
+            if m and m.group(1).strip():
+                found = role + ": " + m.group(1).strip()
+    return found
+
+
+def added_after(record):
+    """-> the gate's words on the tests added after green, "" for none."""
+    late = [t for t in record if t.get("added")]
+    if not late:
+        return ""
+    pins = [t for t in late if t.get("counts") == "pin"]
+    out = ("; added after green: " + str(len(late) - len(pins))
+           + " coverage, " + str(len(pins)) + " pin" + ("" if len(pins) == 1
+                                                        else "s"))
+    for t in pins:
+        out = out + "; " + t["test"] + " pins current behaviour, not counted" \
+            " as coverage"
+        if t.get("pin_ok"):
+            out = out + " (allowed by " + t["pin_ok"] + ")"
+    return out
 
 
 def declared(texts):
@@ -73,6 +116,13 @@ class RedFirstGate(Gate):
     the fix, and a test a step named on a TEST: line as `file::name` has to be
     one of the red ones; a new test green both ways is recorded as passing
     without the fix, and the record says so test by test.
+
+    a test added after the red was first shown (the run's red proof keeps
+    the ids there were then) is new test work too. red without the fix, it
+    is coverage; green there, it pins current behaviour, which the record
+    and the handoff list and never count as coverage. a PIN OK: <reason>
+    line from a planner, architect or ba step allows the pins, and the reason
+    goes in the record; the step that wrote the case cannot give one.
 
     it shows the tests tell the fixed code from the unfixed. it does not
     show they are good tests, and one run each way says nothing about a
@@ -115,7 +165,24 @@ class RedFirstGate(Gate):
         after = dict((i, self.one(cmd, i, start.place, said)) for i in ids)
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
+        self.label(record)
         return self.judge(record, text)
+
+    def label(self, record):
+        """mark each test added after the red was first shown: red without
+        the fix is coverage, green there pins current behaviour. a PIN OK:
+        line from a step of a PIN_ROLES role allows the pins, and says why."""
+        first = self.order.first_ids() if self.order is not None else None
+        if first is None:
+            return
+        allowed = pin_ok(self.said_by)
+        for t in record:
+            if t["test"] in first:
+                continue
+            t["added"] = "after green"
+            t["counts"] = "coverage" if t["before"] == "red" else "pin"
+            if t["before"] == "green" and allowed:
+                t["pin_ok"] = allowed
 
     def carried_green(self, cmd, carried, start, said):
         """a continued run wrote no test: its red was shown when the tests
@@ -195,7 +262,7 @@ class RedFirstGate(Gate):
                   " and green with it: " + ", ".join(red))
         if green:
             detail = detail + "; green without it too: " + ", ".join(green)
-        return self.done(True, detail, record)
+        return self.done(True, detail + added_after(record), record)
 
     def done(self, ok, detail, record):
         r = self.ok(detail) if ok else self.fail(detail)

@@ -4,7 +4,9 @@ a step says what it writes: `writes: tests`, `writes: product` or `writes:
 none`. the run holds a red proof once a red-test gate has seen a test fail by
 running it, or a red-first gate has shown a new test red without the fix, on
 a test file whose content is not what it was when the run started (the start
-snapshot). a `writes: product` step does not start until there is one, and a
+snapshot). the proof keeps the new test ids there were when it was shown, so
+a test added after that is known as one (the red-first gate replays it). a
+`writes: product` step does not start until there is one, and a
 `writes: tests` step that changes a product file fails. it is fail-closed:
 no start snapshot, no proof record or a gate that ran nothing is no proof.
 
@@ -135,7 +137,9 @@ class Order(object):
                      if k in moved]
             if found:
                 self.proof = {"how": "gate", "step": step, "gate": r.gate,
-                              "tests": dict(found)}
+                              "tests": dict(found),
+                              "ids": self.start.new_test_ids()
+                              if self.start.start else None}
                 self.lost = ""
                 return True
         return False
@@ -158,6 +162,15 @@ class Order(object):
                          " they were: " + ", ".join(moved))
             self.proof = None
         return self.lost
+
+    def first_ids(self):
+        """-> the new test ids there were when the red was first shown by a
+        gate in this run, or None when the proof was carried, came from no
+        gate or is older than this record."""
+        if not self.proof or self.proof.get("how") != "gate":
+            return None
+        ids = self.proof.get("ids")
+        return list(ids) if isinstance(ids, list) else None
 
     def carried(self):
         """-> the carried test files as {path from the place: sha256}, or

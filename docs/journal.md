@@ -214,7 +214,9 @@ or crashed. the keys are always all there, in this order:
   tests one by one (`red-first`, `docs/gates.md`) adds `tests` to its entry,
   one per test: `{"test": "tests/test_calc.py::test_add", "before": "red",
   "kind": "assertion", "after": "green"}`; the other gates' entries have no
-  `tests` key.
+  `tests` key. a test added after the red was first shown also carries
+  `"added": "after green"` and `"counts": "coverage"` or `"pin"`, and an
+  allowed pin `"pin_ok": "<role>: <reason>"`.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `gate failed`,
   `failed`, `crashed`; a line written before the cap was checked ahead of
   each step can say `over budget`. `cause` is the run's stop cause from the
@@ -309,8 +311,9 @@ the files that changed and the commits (git, against the tree at run start,
 each file `+added -removed` and `committed`, `uncommitted` or `untracked`),
 every gate's verdict with the command behind it, the red-first proof (the
 newest `red-first` gate that replayed something: `shown on <step>` with each
-new test's line, `red without the fix (assertion), green with it`, or the
-failure; else the `red-test` gate's own record: `gate-proven`, `claimed,
+new test's line, `red without the fix (assertion), green with it`, a case
+added after green ending `; added after green, coverage` or `; added after
+green, pins current behaviour, not counted as coverage`, or the failure; else the `red-test` gate's own record: `gate-proven`, `claimed,
 nothing was run` or `not proven by a gate`), the test order on a flow whose
 steps say what they write (`- test order: red before any product code:
 red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or

@@ -7,6 +7,8 @@ here are the failing tests. now write the code that makes them pass.
 - a case you find while building that no test covers gets a test of its own,
   written before the code for it. the cases to look for are the tests around
   the change, below.
+- each new case is run on the code without yours too: one that passes there
+  is reported as pinning current behaviour, never counted as coverage.
 
 then list every file you changed, one line each, and nothing else before the
 handoff block:

@@ -209,6 +209,21 @@ steps after it are told what it ran: a verify step reads that the test failed
 without the fix as a run, not as something it has to take on trust. so are the
 red-test gate's own red runs, which happened before any later step started.
 
+a case added after the fix is green is new test work, and is replayed the
+same way. the run's red proof (below) keeps the new test ids there were when
+a gate first showed the red, and every new id the replay finds beyond those
+is one added after green. its record gets `added: "after green"` and
+`counts`: `coverage` when it is red without the fix, `pin` when it passes
+there. a pin pins current behaviour: it does not fail the gate, it is never
+counted as coverage, and the gate's detail, `steps.jsonl` and the handoff's
+test lines all name it (`...; added after green, pins current behaviour, not
+counted as coverage`). the one exemption is a `PIN OK: <reason>` line from a
+`planner`, `architect` or `ba` step, the steps that decide what is built: the
+pins are then allowed, and the record keeps who said so and why (`pin_ok:
+"planner: <reason>"`). a `PIN OK:` line from the step that wrote the case, or
+any other, allows nothing. a proof that was carried in with `--continue`
+keeps no ids, so a continued run's new tests are not split this way.
+
 it shows the tests tell the fixed code from the unfixed, not that they are
 good tests, and one run each way says nothing about a flaky test. a place
 outside git, or a repo with no commit yet, has no start to replay from, and

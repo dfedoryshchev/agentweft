@@ -462,8 +462,11 @@ class Run(object):
         for s in self.fm.steps:
             if step_id(s) == step:
                 earlier = [t for k, t in self.produced.items() if k != step]
+                roles = dict((step_id(o), o["role"]) for o in self.fm.steps)
+                said_by = [(roles.get(k, k), t)
+                           for k, t in self.produced.items() if k != step]
                 return [gates.build(g, where=self.workdir, ranking=self.ranking,
-                                    earlier=earlier,
+                                    earlier=earlier, said_by=said_by,
                                     start=getattr(self, "start", None),
                                     order=getattr(self, "order", None))
                         for g in (s.get("gates") or [])]

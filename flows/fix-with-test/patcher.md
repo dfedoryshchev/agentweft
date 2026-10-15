@@ -10,6 +10,8 @@ here is a failing test. now make it pass.
 - once it is green, read what your change reaches and add, in new tests of
   their own, the cases from the tests around the change (below) that are not
   there yet
+- each new case is run on the unpatched code too: one that passes there is
+  reported as pinning current behaviour, never counted as coverage
 
 name the test on its own line first, exactly as the worker named it:
 
