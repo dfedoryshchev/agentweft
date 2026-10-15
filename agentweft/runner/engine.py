@@ -45,6 +45,7 @@ from . import stops
 from . import summary
 from . import task
 from . import trace
+from . import worktrees
 from . import wrongtest
 from .state import load_state, save_state
 
@@ -1366,8 +1367,15 @@ def main():
             print("--workdir needs a directory")
             return 1
         named = sys.argv[i + 1]
+    tree_base = worktrees.asked(fm, sys.argv)
+    made = (found.data.get("worktree") if found else None) or None
     started_in = ""
     if pick_up:
+        if worktrees.FLAG in sys.argv and not made:
+            print(pick_up + " did not start in a worktree of its own. a run"
+                  " carries on where it started")
+            return 1
+        tree_base = None
         started_in = (found.data.get("workdir") if found else "") \
             or resume.workdir(pick_up)
     order = steps(flow)
@@ -1403,11 +1411,23 @@ def main():
             notes.append(("carried " + pick_up + " on over a broken record",
                           "runs/" + pick_up + "/steps.jsonl: " + broke
                           + ", and --force was given."))
+    started = datetime.datetime.now()
+    run_id = new_run_id(flow, started)
+
+    def undo(code):
+        """-> code, once a checkout this run made and never used is gone."""
+        if tree_base:
+            worktrees.discard(made)
+        return code
+
     try:
         if started_in and named and where(fm, named) != Path(started_in):
             print(pick_up + " was working in " + started_in + ", not "
                   + named + ". a run carries on where it started")
             return 1
+        if tree_base:
+            inside, made = worktrees.make(fm, named, run_id, tree_base)
+            named = str(inside)
         run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
                   chosen=chosen, efforts=efforts)
         if pick_up and run.start is not None:
@@ -1422,8 +1442,9 @@ def main():
             commits.load(state.RUNS / pick_up) if pick_up else None)
     except ValueError as e:
         print(str(e))
-        return 1
+        return undo(1)
     run.skipped = {}
+    run.worktree = made
     if pick_up:
         run.order.skip, run.order.proof = redorder.load(state.RUNS / pick_up)
         run.skipped = skips.load(state.RUNS / pick_up)
@@ -1446,7 +1467,7 @@ def main():
         run.order.proof, why = carried(carry, run, fm)
         if why:
             print("nothing carried from " + carry + ": " + why)
-            return 1
+            return undo(1)
         notes.append(("tests carried from " + run.order.proof["from"],
                       "given with --continue " + carry + ": "
                       + ", ".join(sorted(run.order.proof["tests"]))))
@@ -1454,7 +1475,7 @@ def main():
         given = caps_given(sys.argv)
     except ValueError as e:
         print(str(e))
-        return 1
+        return undo(1)
     # a cap given on the command line is the run's, not one leg's: a resume
     # without it would carry on under the flow's, past the one it parked on
     held = dict((found.data.get("caps") or {}) if found else {})
@@ -1487,13 +1508,11 @@ def main():
                       or "the caps were changed before carrying on.")
     route = router.Router(fm)
     run.ups = route.ups
-    started = datetime.datetime.now()
-    run_id = new_run_id(flow, started)
     try:
         run.committer.begin(run_id)
     except ValueError as e:
         print(str(e))
-        return 1
+        return undo(1)
     timings = []
     risk_text = ""
     out = EMPTY
@@ -1577,6 +1596,8 @@ def main():
             record.mark(name, manifest.PASSED, pick_up)
     if held:
         record.data["caps"] = held
+    if made:
+        record.data["worktree"] = made
     record.save(run.budget)
     for decided, why in notes:
         decisions.record(folder, decided, why)
@@ -1644,7 +1665,9 @@ def main():
                               suite=baseline.lines(known),
                               chained=record.data[chain.FIELD],
                               skipped=skips.said(run.skipped),
-                              kept=run.committer.said())
+                              kept=run.committer.said(),
+                              worktree=worktrees.lines(made, run_id),
+                              headline=worktrees.headline(made))
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,

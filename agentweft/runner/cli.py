@@ -65,7 +65,7 @@ def cmd_show():
 def cmd_help():
     print("""usage:
   python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
-                       [--workdir <dir>]
+                       [--workdir <dir>] [--worktree [commit]]
                        [--task "<text>" | --task-file <path>]
                        [--model-for <role>=<model>,...]
                        [--effort-for <role>=<level>,...]
@@ -82,6 +82,8 @@ def cmd_help():
   python run.py vocab             flow words against phase words, counted
   python run.py verify <run-id>   does that run's record still hold
   python run.py bench <set> [--k <n>] [--live]   score a flow on tasks
+  python run.py worktree [remove <run-id> [--force]]   the runs' own
+                                  worktrees, or remove one
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -93,6 +95,12 @@ def cmd_help():
           so does a run whose record no longer holds (see verify)
 --workdir the directory the run works in, over the flow's own `workdir`.
           a resumed run stays in the one it started in
+--worktree  the run works in a git worktree of its own, made from HEAD (or
+          the commit named) under runs/worktrees/<run-id>, and never touches
+          the tree it was started from. the flow's `worktree` does the same.
+          the worktree is left for you; the handoff says where it is, how to
+          bring the change back and how to remove it. a resumed run carries
+          on in the same one
 --task    what this run is for: a bug, a feature, a question. it goes where
           the flow wrote {TASK}, and a flow without one refuses it. a flow
           with one does not start without it. a resumed run keeps the task
@@ -305,6 +313,12 @@ def cmd_verify():
     return 0
 
 
+def cmd_worktree():
+    from . import worktrees
+
+    return worktrees.cmd()
+
+
 def command(name):
     """-> the exit code of one of COMMANDS. `--flows` is read here, so it
     names the folder for every command and not only for a run."""
@@ -335,5 +349,5 @@ def cmd_bench():
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
             "vocab": cmd_vocab, "verify": cmd_verify, "bench": cmd_bench,
-            "--help": cmd_help,
+            "worktree": cmd_worktree, "--help": cmd_help,
             "-h": cmd_help}

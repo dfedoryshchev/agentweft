@@ -740,7 +740,7 @@ def changed_lines(changes):
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
-          skipped=(), kept=""):
+          skipped=(), kept="", worktree=(), headline=""):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -755,6 +755,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `chained` is the head of steps.jsonl it was written from (`chain.head`).
     `skipped` is a line per reason the run skipped gates by name for.
     `kept` is the line on the run's own commits, "" when it makes none.
+    `worktree` is the section on the run's own worktree and `headline` its
+    line at the top, both empty for a run in the tree it was started from.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -805,6 +807,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     else:
         out.append("changed: not a git checkout, so what changed is not"
                    " recorded here.")
+    if headline:
+        out.append(headline)
 
     asked = asks(still_open(every, stopped))
     asked.extend("- " + investigate.STEP + " leaves to you: " + l[2:]
@@ -830,6 +834,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 out.append("")
                 out.append("to run again from there")
                 out.append("  " + command)
+    out.extend(worktree)
 
     out.append("")
     out.append("## assumed - tell me if wrong")

@@ -236,6 +236,13 @@ that is no longer running. a replay a live run holds, a worktree a person
 locked, and every other worktree are left alone. the person's checkout is
 never stashed, checked out or reset.
 
+a run started with `--worktree` (`docs/flows.md`) works in a worktree of its
+own, and every gate here reads that one: the start snapshot is taken of it,
+the replay's checkout is made from its start commit, and the changed-file
+record is its diff. the tree the run was started from is not read or
+written. that worktree is locked with the run's id as the reason, so the
+start-of-run cleanup above never takes it for a replay a killed run left.
+
 the assertion rule and the ids are pytest's. with another runner the gate
 still runs each new test file as one id with `{test}`, red is the exit
 `expect` names, green is exit 0, and exit 2 reads as could not run (pytest's

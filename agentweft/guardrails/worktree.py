@@ -11,6 +11,10 @@ as the reason. a run killed while one exists leaves it behind, registered in
 the repo, and the folder on disk. the next run's start removes every one this
 module made (they are named by PREFIX) whose run is no longer alive, and no
 other: one locked by a live run, or locked by a person, is left alone.
+
+`for_run` makes the other kind: the checkout a run started with `--worktree`
+works in, kept after the run for the person to read, and removed only by
+`drop`, which refuses while it holds work nothing else has.
 """
 import os
 import shutil
@@ -130,3 +134,69 @@ def prune(place):
     for path in gone:
         remove(place, path)
     return gone
+
+
+# a run that works in its own checkout. it is not temporary: the person reads
+# the result there, so it stays until they remove it, and its lock names the
+# run rather than a pid, so `leftovers` never takes it for a killed replay.
+RUN_REASON = "agentweft run "
+
+
+def for_run(place, path, base="HEAD"):
+    """make a detached checkout of `base` at `path` for a run that works in
+    the repo `place` is in, with the repo's hooks off.
+
+    -> (the place inside that checkout, the sha it was made from, the top
+    of the repo). raises
+    ValueError when `place` is in no repo or `base` is no commit in it."""
+    place = Path(place).resolve()
+    try:
+        top = Path(_git(place, "rev-parse", "--show-toplevel").strip())
+    except ValueError:
+        raise ValueError("--worktree needs a git repo, and " + str(place)
+                         + " is not in one")
+    top = top.resolve()
+    try:
+        sha = _git(top, "rev-parse", "--verify", "--quiet",
+                   base + "^{commit}").strip()
+    except ValueError:
+        sha = ""
+    if not sha:
+        raise ValueError("--worktree: " + base + " is not a commit in "
+                         + str(top))
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    hooks = tempfile.mkdtemp(prefix=PREFIX + "hooks-")
+    try:
+        _git(top, "-c", "core.hooksPath=" + hooks, "worktree", "add",
+             "--detach", "--lock", "--reason", RUN_REASON + path.name,
+             str(path), sha)
+    finally:
+        shutil.rmtree(hooks, ignore_errors=True)
+    return path.resolve() / place.relative_to(top), sha, top
+
+
+def held(path, base):
+    """-> what removing the checkout at `path` would lose, one line each: a
+    file not committed, or a commit made there since `base` that no branch or
+    tag holds."""
+    out = []
+    for line in _git(path, "status", "--porcelain",
+                     "--untracked-files=all").splitlines():
+        if line.strip():
+            out.append(line[3:])
+    for sha in _git(path, "rev-list", base + "..HEAD", "--not", "--branches",
+                    "--tags").split():
+        out.append("commit " + sha[:12])
+    return out
+
+
+def drop(repo, path, base, force=False):
+    """remove a run's checkout of `repo`. -> [] when it was removed, else
+    what it holds and was kept for."""
+    if Path(path).exists() and not force:
+        kept = held(path, base)
+        if kept:
+            return kept
+    remove(repo, path)
+    return []

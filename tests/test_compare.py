@@ -108,8 +108,10 @@ def test_the_sides_are_not_the_same_size():
     #
     # `commits` is one more, one way: a phase leaves its commits to whoever
     # runs it, and has no word for a run that must never make one.
+    #
+    # `worktree` is one more, one way, for the reason `workdir` was.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 34
+    assert len(compare.flow_only()) == 35
     assert len(compare.phase_only()) == 7
 
 

@@ -82,7 +82,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
-         "efforts", "commits")
+         "efforts", "commits", "worktree")
 NO_LEAD = "none"
 # whether the run commits as it goes (`runner/commits.py`)
 COMMITS = ("none", "wip", "squash")
@@ -305,6 +305,11 @@ def check(raw):
         bad.append("baseline should be one of " + ", ".join(BASELINE))
     if "commits" in raw and raw["commits"] not in COMMITS:
         bad.append("commits should be one of " + ", ".join(COMMITS))
+    said = raw.get("worktree")
+    if said is not None and not isinstance(said, bool) and \
+            not (isinstance(said, str) and said.strip()):
+        bad.append("worktree should be true, false or the commit to start "
+                   "from")
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)

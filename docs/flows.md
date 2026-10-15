@@ -256,6 +256,24 @@ that last part has a guard of its own, in `guardrails.md`.
 agentweft checkout, whichever directory the run was started from or works in,
 so a run pointed at another repo leaves no run records in that repo's tree.
 
+`worktree: true`, or `--worktree` on the command line, makes the run work in a
+git worktree of its own instead of the place. before the first step the run
+adds a detached `git worktree` of HEAD (or of the commit named:
+`--worktree <commit>`, `worktree: <commit>`) under
+`runs/worktrees/<run-id>`, with the repo's hooks off, and the place inside it
+becomes `Run.workdir`. every step, every gate, the start snapshot and the
+changed-file record then read that worktree, so nothing the run does reaches
+the tree it was started from, byte for byte. the loose changes in that tree
+are not carried over: the run starts from a commit. the worktree's path and
+the commit it was made from go into the manifest, and the handoff names both
+with the commands that bring the change back (a branch there, merged where
+you work, or a patch). a resume carries on in the same worktree; `--worktree`
+on a resume of a run that did not start in one is refused. the worktree is
+left for you to read: `python run.py worktree` lists them, and
+`python run.py worktree remove <run-id>` removes one, refusing while it holds
+a file not committed or a commit no branch holds (`--force` removes it
+anyway). without the key or the flag a run works in the place, as above.
+
 ## what each role is for
 
 - **planner** reads the source and decides what the work is. it does not do

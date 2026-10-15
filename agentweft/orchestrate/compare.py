@@ -147,6 +147,10 @@ FLOW_ONLY = (
          "the directory a run works in, made absolute and checked before the "
          "first call. a phase has no word for a place: its agents name their "
          "own paths in their prompts."),
+    Pair("flow.worktree", "",
+         "whether a run works in a checkout of its own, made from a commit, "
+         "so the person's tree is never touched. a phase has no word for a "
+         "place, so it has none for a second one either."),
     Pair("flow.tiers", "",
          "a tier per role, under a step's own `model`. a phase has no word "
          "for it: each agent carries its tier in its own file."),
