@@ -301,6 +301,27 @@ def test_a_patcher_held_by_a_spec_pinned_test_ends_on_a_conflict(
     assert (place / "export.py").read_bytes() == before["export.py"]
 
 
+def test_a_conflict_stops_the_run_before_any_step_is_asked_for_breadth(
+        tmp_path, monkeypatch):
+    bug_place(tmp_path)
+    place = tmp_path / "project"
+    asked, sent, code = go(tmp_path, monkeypatch, "fix-with-test",
+                           plain({"worker.md": [WORKER],
+                                  "patcher.md": [PATCHER_CONFLICT]}),
+                           bug_edits(place), "--task", BUG)
+    assert asked == ["worker.md", "patcher.md"]
+    assert end(tmp_path).cause == "conflict"
+    worker = " ".join(sent[0].split())
+    assert "## the tests around the change" not in worker
+    assert "both sides of every boundary" not in worker
+    # the stopping step holds the brief, but under the conflict check
+    patcher = " ".join(sent[1].split())
+    assert patcher.find("CONFLICT:") < patcher.find("once it is green") \
+        < patcher.find("## the tests around the change")
+    tests = (place / "tests" / "test_export.py").read_text(encoding="utf-8")
+    assert tests == EXPORT_TEST + NUMBERS
+
+
 def test_a_red_supplied_test_marked_conflict_is_a_stop_not_a_loop_target(
         tmp_path, monkeypatch):
     bug_place(tmp_path)

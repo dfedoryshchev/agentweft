@@ -3,8 +3,9 @@
 here is the plan. write the tests for it, and no code that makes them pass.
 
 - one test per behaviour in the plan, in one test file, where the project
-  keeps its tests, and the cases each behaviour reaches (the tests around the
-  change, below)
+  keeps its tests, and no case beyond those behaviours: the boundaries,
+  callers and error paths around them are written by the worker once the code
+  is green
 - every test must fail on the code as it stands, because the feature is not
   there yet. a test that passes now is testing something that already works.
 - import what does not exist yet inside the test, not at the top of the file.

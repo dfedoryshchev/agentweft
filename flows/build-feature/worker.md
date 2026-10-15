@@ -10,9 +10,10 @@ here are the failing tests. now write the code that makes them pass.
 - if the request itself asks for what a line of TASK.md rules out, the tests
   that encode it are not ones to make green: answer the `CONFLICT:` line from
   the instructions.
-- a case you find while building that no test covers gets a test of its own,
-  written before the code for it. the cases to look for are the tests around
-  the change, below.
+- once the tests you were given are green, read what your code reaches and
+  add, in new tests of their own, the cases from the tests around the change
+  (below) that they do not cover. the tester wrote one test per planned
+  behaviour and nothing more, so these are yours.
 - each new case is run on the code without yours too: one that passes there
   is reported as pinning current behaviour, never counted as coverage.
 

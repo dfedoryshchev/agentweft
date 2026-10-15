@@ -7,7 +7,6 @@ steps:
   - role: tester
     prompt: tester.md
     writes: tests
-    writes_tests: true
     must_produce: "FAILS:"
     gates:
       - gate: red-test

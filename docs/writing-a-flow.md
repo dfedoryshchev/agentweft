@@ -46,12 +46,15 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
     python run.py build-feature --workdir ../my-project --task-file spec.md
 
 - the planner turns the spec into behaviours a test can check
-- the tester writes the failing tests and nothing else. a `red-test` gate runs
+- the tester writes the failing tests, one per planned behaviour, and nothing
+  else: no boundaries, callers or error paths around them yet. a `red-test` gate runs
   the file it names and wants pytest's exit 1, so a test that already passes,
   or a file pytest cannot even import (exit 2), stops the run before any code
   is written
-- the worker writes the code, and a `command` gate runs the whole suite and
-  wants exit 0. a `red-first` gate then runs each new test without the code
+- the worker writes the code, and once the given tests are green it adds the
+  cases around the change (`fragments/tests.md`). a `command` gate runs the
+  whole suite and wants exit 0. a `red-first` gate then runs each new test
+  without the code
   (a temporary checkout of the start commit plus the test files) and with it:
   red then green, test by test, or the run stops. the tester's `FAILS:` line
   naming an `ImportError` is what lets a test that fails on the missing name

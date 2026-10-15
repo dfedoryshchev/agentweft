@@ -3,6 +3,11 @@
 the coding steps of the shipped flows wrote the one test that went red and
 stopped there. the brief asks for the cases the change reaches, and the
 levels go in as values read from the settings, not as prose to infer.
+
+the brief goes to the step after green, not the first one. the first step
+writes the test that fails for the reported reason and checks the request
+against the spec; cases written before that check are spent on a request that
+may be stopped as a conflict.
 """
 import sys
 from pathlib import Path
@@ -66,10 +71,29 @@ def fix_run(tmp_path, monkeypatch, flows=FLOWS, project_files=None):
     return sent, run_dir
 
 
-def test_the_fix_with_test_worker_is_asked_for_more_than_the_red_test(
-        tmp_path, monkeypatch):
+BREADTH = ("## the tests around the change",
+           "every behaviour the change can reach, asserted",
+           "both sides of every boundary",
+           "each caller or command",
+           "every error path a user can reach")
+
+
+def test_the_fix_with_test_worker_writes_only_the_driving_test(tmp_path,
+                                                               monkeypatch):
     sent, _ = fix_run(tmp_path, monkeypatch)
     prompt = sent["worker.md"]
+    flat = " ".join(prompt.split())
+    for ask in BREADTH:
+        assert ask not in flat, ask
+    assert "the minimum that fails for the reason the report gives" in flat
+    assert "written after it is green" in flat
+    assert "never from running the code" in flat
+
+
+def test_the_fix_with_test_patcher_is_asked_for_more_than_the_red_test(
+        tmp_path, monkeypatch):
+    sent, _ = fix_run(tmp_path, monkeypatch)
+    prompt = sent["patcher.md"]
     flat = " ".join(prompt.split())
     for ask in ("every behaviour the change can reach, asserted",
                 "each branch it can take and each result it can return",
@@ -94,11 +118,11 @@ def test_the_fix_with_test_worker_is_asked_for_more_than_the_red_test(
 def test_with_e2e_off_the_prompt_says_not_to_write_them(tmp_path,
                                                         monkeypatch):
     sent, _ = fix_run(tmp_path, monkeypatch)
-    assert "    e2e: off - do not write e2e tests" in sent["worker.md"]
+    assert "    e2e: off - do not write e2e tests" in sent["patcher.md"]
     assert settings.get("tests_e2e") is False
 
 
-def test_the_patcher_gets_the_same_brief(tmp_path, monkeypatch):
+def test_the_patcher_gets_the_brief_and_the_judge_not(tmp_path, monkeypatch):
     flows = copied_flow(tmp_path, "")
     flow = flows / "fix-with-test" / "flow.yaml"
     flow.write_text(flow.read_text(encoding="utf-8").replace(
@@ -123,7 +147,8 @@ def test_a_worker_that_adds_three_tests_keeps_all_three_in_its_record(
 
 def test_the_brief_names_no_count_of_cases(tmp_path, monkeypatch):
     sent, _ = fix_run(tmp_path, monkeypatch)
-    prompt = sent["worker.md"]
+    prompt = sent["patcher.md"]
+    assert "## the tests around the change" in prompt
     brief = prompt[prompt.find("## the tests around the change"):]
     brief = brief[:brief.find("the levels for this run")]
     assert "no number of cases to reach" in brief
@@ -146,8 +171,8 @@ def copied_flow(tmp_path, extra):
 def test_a_flow_that_turns_e2e_on_says_so(tmp_path, monkeypatch):
     sent, _ = fix_run(tmp_path, monkeypatch,
                       flows=copied_flow(tmp_path, "tests_e2e: true" + NL))
-    assert "    e2e: on" in sent["worker.md"]
-    assert "do not write e2e tests" not in sent["worker.md"]
+    assert "    e2e: on" in sent["patcher.md"]
+    assert "do not write e2e tests" not in sent["patcher.md"]
 
 
 def test_integration_is_on_where_the_project_has_an_entry_point(tmp_path,
@@ -156,14 +181,14 @@ def test_integration_is_on_where_the_project_has_an_entry_point(tmp_path,
         "pyproject.toml": "[project]" + NL + "name = 'calc'" + NL + NL
         + "[project.scripts]" + NL + "calc = 'calc:main'" + NL})
     assert ("    integration: on - the project has an entry point"
-            " (pyproject.toml [project.scripts])") in sent["worker.md"]
+            " (pyproject.toml [project.scripts])") in sent["patcher.md"]
 
 
 def test_integration_is_off_where_there_is_no_entry_point(tmp_path,
                                                           monkeypatch):
     sent, _ = fix_run(tmp_path, monkeypatch)
     assert ("    integration: off - no entry point found, do not write"
-            " integration tests") in sent["worker.md"]
+            " integration tests") in sent["patcher.md"]
 
 
 def test_a_flow_can_turn_integration_off_over_an_entry_point(tmp_path,
@@ -173,7 +198,7 @@ def test_a_flow_can_turn_integration_off_over_an_entry_point(tmp_path,
                                         "tests_integration: false" + NL),
                       project_files={"__main__.py": "print(1)" + NL})
     assert ("    integration: off - tests_integration is false, do not write"
-            " integration tests") in sent["worker.md"]
+            " integration tests") in sent["patcher.md"]
 
 
 @pytest.mark.parametrize("files, why", [
@@ -193,7 +218,7 @@ def test_what_counts_as_an_entry_point(tmp_path, files, why):
     assert levels.entry_point(tmp_path) == why
 
 
-def test_the_build_feature_tester_and_worker_get_the_brief_and_the_rest_not(
+def test_the_build_feature_worker_gets_the_brief_and_the_rest_not(
         monkeypatch):
     from agentweft import runner
     from agentweft.roles import resolver
@@ -201,7 +226,7 @@ def test_the_build_feature_tester_and_worker_get_the_brief_and_the_rest_not(
     fm = runner.config("build-feature")
     by_role = resolver.resolve(fm.raw, runner.flow_path("build-feature"))
     run = runner.Run("build-feature", fm, by_role, workdir=str(FLOWS))
-    assert run.writes_tests("tester.md")
+    assert not run.writes_tests("tester.md")
     assert run.writes_tests("worker.md")
     assert not run.writes_tests("reviewer.md")
     assert not run.writes_tests("planner.md")
@@ -215,10 +240,30 @@ def test_the_build_feature_tester_and_worker_get_the_brief_and_the_rest_not(
     for step in ("planner.md", "tester.md", "worker.md", "reviewer.md"):
         run.step(step)
     rule = "stop when every behaviour the code permits is asserted"
-    assert rule in sent["tester.md"]
+    assert rule not in sent["tester.md"]
     assert rule in sent["worker.md"]
     assert rule not in sent["planner.md"]
     assert rule not in sent["reviewer.md"]
+
+
+def flat_text(flow, step):
+    return " ".join((FLOWS / flow / step).read_text(encoding="utf-8").split())
+
+
+def test_the_tests_around_the_change_come_after_green_in_both_flows():
+    tester = flat_text("build-feature", "tester.md")
+    assert "one test per behaviour" in tester
+    assert "no case beyond those behaviours" in tester
+    assert "tests around the change" not in tester
+    worker = flat_text("build-feature", "worker.md")
+    assert "once the tests you were given are green" in worker
+    assert "the tests around the change" in worker
+    patcher = flat_text("fix-with-test", "patcher.md")
+    assert "once it is green" in patcher
+    assert patcher.find("CONFLICT:") < patcher.find("once it is green")
+    brief = " ".join((FLOWS.parent / "agentweft" / "fragments" / "tests.md")
+                     .read_text(encoding="utf-8").split())
+    assert "written once the change is green" in brief
 
 
 @pytest.mark.parametrize("flow", ["code-review", "weekly-digest",

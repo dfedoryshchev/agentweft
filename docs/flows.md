@@ -182,7 +182,8 @@ holds the order: a product step does not start before the run holds a red
 test, a tests step that changes product code fails (`docs/gates.md`, "no
 product code before a red test").
 
-`writes_tests: true` on a step means it writes tests, and it is sent
+`writes_tests: true` on a step means it writes the tests around the change
+once the change is green, and it is sent
 `fragments/tests.md` after its own words: every behaviour, input class, output
 shape, error path, caller and option pair the change reaches, each case once,
 expected values from the spec and never from running the code, and a
@@ -192,8 +193,15 @@ the flow - `true`, `false`, or `auto` (the default), which is on where the
 project has an entry point (`[project.scripts]` in `pyproject.toml`, a
 `__main__.py` at the top or in a package one level down, or a `main.py`); e2e
 from `tests_e2e`, off unless the flow turns it on. a level that is off is
-named in the prompt as one not to write. `fix-with-test` marks its worker and
-patcher, `build-feature` its tester and worker.
+named in the prompt as one not to write. `fix-with-test` marks its patcher,
+`build-feature` its worker. the step that writes the first tests is not
+marked: the fix-with-test worker writes the minimum that fails for the reason
+the report gives, and the build-feature tester one test per planned behaviour
+and nothing beyond them. those are what the request is checked against the
+spec on, so a run that stops on a `CONFLICT:` stops before anything is spent
+on cases for a request that may be wrong. the cases written after green are
+replayed by the `red-first` gate, which reports each one as red without the
+change or as a pin (`docs/gates.md`).
 
 `schedule` is checked before anything runs. `python run.py weekly-digest
 --force` ignores it.

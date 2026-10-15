@@ -1,7 +1,10 @@
 ## the tests around the change
 
-the test that shows the problem is the start, not the job. the job is every
-behaviour the change can reach, asserted. take each interface the change
+the tests you were given are the start, not the job. the job is every
+behaviour the change can reach, asserted, and these cases are written once the
+change is green, never before: the first tests are checked against the spec
+first, and a case written ahead of that check is spent on a request that may
+be stopped. take each interface the change
 touches - a function, a command, a file it reads or writes - at each level
 switched on below. read it from the code side: what it takes in, what it gives
 back, and who calls it. list the behaviours it permits before writing a test,

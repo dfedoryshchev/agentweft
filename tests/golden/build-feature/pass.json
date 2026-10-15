@@ -343,7 +343,7 @@
   "prompts": [
     "planner.md go 1 603bcfe9dc813b74d9c6ca800d82fe17a8862f512a0c0050295f24bc83c1ef9a",
     "reviewer.md go 1 56d4ce5c5e8aab18eb00600e163790baa4eb5fdfede16b82d26dc11a3851d03b",
-    "tester.md go 1 808f88f19b9041274bc4d2c20ce4c1f2fa9671fc740e6247013b9f1a2440c9ec",
-    "worker.md go 1 1910e0d919db47ac12f807b01baa7ccae67cdfa49cbd54ff80ee56f005a63fb0"
+    "tester.md go 1 214e96819765041850763f22a6701af7e417f3a770f8f3b213179b8e454447e8",
+    "worker.md go 1 88c9584be7af9d782eff09494bd3ab65c61ced5cda5ba655d8e5c3e6238f5d22"
   ]
 }
