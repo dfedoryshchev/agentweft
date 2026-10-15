@@ -4,7 +4,7 @@ from pathlib import Path
 
 from agentweft.mcp import preflight
 
-from .base import Gate, register
+from .base import Gate, fresh_python, register
 
 
 @register
@@ -58,10 +58,12 @@ class CommandGate(Gate):
         argv = [str(tmp) if a == "{file}" else a for a in cmd]
 
         try:
-            r = subprocess.run(argv, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace",
-                               cwd=str(self.where) if self.where else None,
-                               timeout=int(self.opts.get("timeout", 60)))
+            with fresh_python() as env:
+                r = subprocess.run(argv, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace",
+                                   cwd=str(self.where) if self.where else None,
+                                   env=env,
+                                   timeout=int(self.opts.get("timeout", 60)))
         except FileNotFoundError:
             return self.fail("not on PATH: " + argv[0])
         except subprocess.TimeoutExpired:

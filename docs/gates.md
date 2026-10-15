@@ -50,6 +50,13 @@ before the run stops, at 0 the first failure stops it.
 a command or red-test gate keeps the last 160 characters of what the command
 printed, not the first: a test runner says what failed at the end.
 
+a command, red-test or red-first gate runs its command with
+`PYTHONDONTWRITEBYTECODE=1` and `PYTHONPYCACHEPREFIX` set to a new empty
+folder, so python neither leaves bytecode in the place nor runs the bytecode
+an earlier run left: a `.pyc` is trusted on the source's size and its mtime in
+whole seconds, and an edit of the same size within the same second would
+otherwise run the old code.
+
 a step with no gates gets its heading in `gates.md` too, with `no gates`
 under it, and its line in `steps.jsonl` says `"ungated": true` (see
 `docs/journal.md`). without it, a step missing from `gates.md` could have

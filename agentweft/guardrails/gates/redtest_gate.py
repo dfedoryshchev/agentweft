@@ -2,7 +2,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from .base import Gate, register
+from .base import Gate, fresh_python, register
 
 TEST = "TEST:"
 
@@ -80,10 +80,11 @@ class RedTestGate(Gate):
             argv = [named if a == "{test}" else a for a in argv]
 
         try:
-            r = subprocess.run(argv, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace",
-                               cwd=str(place),
-                               timeout=int(self.opts.get("timeout", 120)))
+            with fresh_python() as env:
+                r = subprocess.run(argv, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace",
+                                   cwd=str(place), env=env,
+                                   timeout=int(self.opts.get("timeout", 120)))
         except FileNotFoundError:
             return self.fail("not on PATH: " + argv[0])
         except subprocess.TimeoutExpired:

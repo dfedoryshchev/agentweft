@@ -5,7 +5,7 @@ from pathlib import Path
 
 from agentweft.guardrails import worktree
 
-from .base import Gate, register
+from .base import Gate, fresh_python, register
 from .redtest_gate import TEST, named_test
 
 SUMMARY = re.compile(r"^(?:FAILED|ERROR) \S+ - (.+)$", re.M)
@@ -139,13 +139,13 @@ class RedFirstGate(Gate):
         path = [str(where), str(Path(where) / "src")]
         if os.environ.get("PYTHONPATH"):
             path.append(os.environ["PYTHONPATH"])
-        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
-                   PYTHONPATH=os.pathsep.join(path))
         try:
-            r = subprocess.run(argv, capture_output=True, text=True,
-                               encoding="utf-8", errors="replace",
-                               cwd=str(where), env=env,
-                               timeout=int(self.opts.get("timeout", 120)))
+            with fresh_python(dict(os.environ, PYTHONPATH=os.pathsep.join(
+                    path))) as env:
+                r = subprocess.run(argv, capture_output=True, text=True,
+                                   encoding="utf-8", errors="replace",
+                                   cwd=str(where), env=env,
+                                   timeout=int(self.opts.get("timeout", 120)))
         except subprocess.TimeoutExpired:
             return "timed out", ""
         except OSError as e:
