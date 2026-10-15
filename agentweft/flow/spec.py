@@ -240,6 +240,26 @@ def check_gates(at, gates):
     return bad
 
 
+def ordered(raw):
+    """whether any step of the flow says what it writes."""
+    return any(isinstance(s, dict) and s.get("writes") is not None
+               for s in raw.get("steps") or [])
+
+
+def proves_red(step):
+    """whether the step has a red-test gate that wants red and runs a
+    command to see it."""
+    for g in step.get("gates") or []:
+        if not isinstance(g, dict) or g.get("gate") != "red-test":
+            continue
+        red = g.get("red", True)
+        if isinstance(red, str):
+            red = red.strip().lower() in ("true", "yes", "on", "1")
+        if red in (True, 1) and g.get("command"):
+            return True
+    return False
+
+
 def check(raw):
     """-> list of complaints. a typo in flow.yaml used to just do nothing."""
     bad = []
@@ -279,6 +299,13 @@ def check(raw):
             bad.append(at + "writes_tests should be true or false")
         if step.get("writes") is not None and step["writes"] not in WRITES:
             bad.append(at + "writes should be one of " + ", ".join(WRITES))
+        if step.get("writes") is None and ordered(raw):
+            bad.append(at + "another step says what it writes, so this one"
+                       " has to as well: writes: " + " | ".join(WRITES))
+        if step.get("writes") == "tests" and not proves_red(step):
+            bad.append(at + "writes: tests needs a red-test gate with red:"
+                       " true and a command, the only gate that shows a test"
+                       " it wrote failing before product code is written")
         if step.get("gates") is not None:
             bad.extend(check_gates(at, step["gates"]))
         if step.get("preflight") is not None:

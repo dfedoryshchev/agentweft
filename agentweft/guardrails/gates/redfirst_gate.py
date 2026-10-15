@@ -77,7 +77,9 @@ class RedFirstGate(Gate):
     it shows the tests tell the fixed code from the unfixed. it does not
     show they are good tests, and one run each way says nothing about a
     flaky one. a place outside git, or a repo with no commit, has no start to
-    replay from: the gate passes saying it was not replayed.
+    replay from: the gate passes saying it was not replayed. a run that wrote
+    no test but carried its red in (`--continue`) runs each carried test
+    with the fix, and each has to pass.
     """
 
     name = "red-first"
@@ -96,10 +98,13 @@ class RedFirstGate(Gate):
             return self.ok("not replayed - " + start.why)
         changes = start.test_changes()
         ids = start.new_test_ids(changes)
+        said = declared(self.earlier)
+        carried = self.order.carried() if self.order is not None else {}
+        if not ids and carried:
+            return self.carried_green(cmd, carried, start, said)
         if not ids:
             return self.fail("no test was added or changed since the run"
                              " started, so nothing shows the fix is needed")
-        said = declared(self.earlier)
         try:
             with worktree.temporary(start.root, start.start) as tree:
                 start.lay_out(tree, changes)
@@ -111,6 +116,19 @@ class RedFirstGate(Gate):
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
         return self.judge(record, text)
+
+    def carried_green(self, cmd, carried, start, said):
+        """a continued run wrote no test: its red was shown when the tests
+        were carried in, so what is left to show is each of them green with
+        the fix."""
+        for f in sorted(carried):
+            after = self.one(cmd, f, start.place, said)[0]
+            if after != "green":
+                return self.fail(f + ", carried from "
+                                 + self.order.proof["from"] + ", does not"
+                                 " pass with the fix: " + after)
+        return self.ok("carried from " + self.order.proof["from"]
+                       + ", green with the fix: " + ", ".join(sorted(carried)))
 
     def one(self, cmd, test, where, said):
         """-> (red | green | error | exit N | timed out | not on PATH |

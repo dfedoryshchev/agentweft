@@ -6,6 +6,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
+from agentweft.flow import spec
+from agentweft.guardrails import redorder, snapshot
+from agentweft.guardrails.gates.base import Result
 from agentweft.runner import engine, prompts, resume, state, stops
 
 NL = chr(10)
@@ -57,13 +60,18 @@ def a_flow(tmp_path, name, steps):
 
 def running(tmp_path, monkeypatch, place, flow, does, *args):
     """main() over `flow` in `place`, each step doing what `does` names for
-    it: (files it writes, what it answers). -> the steps that were called."""
+    it: (files it writes, what it answers), or a list of them, one per go.
+    -> the steps that were called."""
     called = []
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         called.append(step)
-        writes, said = does[step]
+        planned = does[step]
+        if isinstance(planned, list):
+            planned = planned[min(called.count(step), len(planned)) - 1]
+        writes, said = planned
         for rel, text in writes.items():
+            (place / rel).parent.mkdir(parents=True, exist_ok=True)
             (place / rel).write_text(text, encoding="utf-8")
         return said, False
 
@@ -106,11 +114,39 @@ def test_a_tests_step_editing_product_code_fails(tmp_path, monkeypatch):
     code, called = running(tmp_path, monkeypatch, place, "build", {
         "tester.md": ({"tests/test_calc.py": RED_TEST, "calc.py": FIXED},
                       TESTER_SAID)})
-    assert called == ["tester.md"]
+    assert called == ["tester.md", "tester.md"]
     assert code == stops.exit_code(stops.GATE)
     why = read(folders()[-1] / "why.md")
     assert "writes tests only" in why
     assert "calc.py" in why
+
+
+def test_a_tests_step_editing_product_code_is_sent_back_and_can_undo_it(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": [({"tests/test_calc.py": RED_TEST,
+                        "calc.py": FIXED + "# not the size of the bug" + NL},
+                       TESTER_SAID),
+                      ({"calc.py": BUGGY}, TESTER_SAID)],
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert called == ["tester.md", "tester.md", "worker.md"]
+    assert code == stops.EXIT_OK
+
+
+def test_a_tests_step_may_write_test_tooling(tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({"tests/test_calc.py": RED_TEST,
+                       "conftest.py": "import sys" + NL,
+                       "pytest.ini": "[pytest]" + NL,
+                       ".coverage": "x",
+                       ".hypothesis/examples": "x"}, TESTER_SAID),
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert called == ["tester.md", "worker.md"]
+    assert code == stops.EXIT_OK
 
 
 def test_skip_tests_runs_and_says_so(tmp_path, monkeypatch):
@@ -179,7 +215,8 @@ def test_a_resume_carries_the_snapshot_and_the_proof(tmp_path, monkeypatch):
     assert code == stops.EXIT_OK
 
 
-def test_a_red_test_gate_that_ran_nothing_is_no_proof(tmp_path, monkeypatch):
+def test_a_tests_step_whose_red_test_runs_nothing_is_refused_by_the_checker(
+        tmp_path, monkeypatch):
     place = a_repo(tmp_path / "repo")
     claimed = ("  - role: tester" + NL + "    prompt: tester.md" + NL
                + "    writes: tests" + NL + "    gates:" + NL
@@ -187,8 +224,144 @@ def test_a_red_test_gate_that_ran_nothing_is_no_proof(tmp_path, monkeypatch):
     a_flow(tmp_path, "build", claimed + WORKER)
     code, called = running(tmp_path, monkeypatch, place, "build", {
         "tester.md": ({"tests/test_calc.py": RED_TEST}, TESTER_SAID)})
-    assert called == ["tester.md"]
+    assert called == []
+    assert code == 1
+
+
+def a_raw(*steps):
+    return {"name": "x", "steps": list(steps)}
+
+
+def test_the_checker_wants_a_commanded_red_test_on_every_tests_step():
+    bare = {"role": "tester", "writes": "tests",
+            "gates": [{"gate": "red-test", "red": True}]}
+    green = {"role": "tester", "writes": "tests",
+             "gates": [{"gate": "red-test", "red": False,
+                        "command": ["pytest", "{test}"]}]}
+    good = {"role": "tester", "writes": "tests",
+            "gates": [{"gate": "red-test", "red": True,
+                       "command": ["pytest", "{test}"]}]}
+    product = {"role": "worker", "writes": "product"}
+    for tester in (bare, green):
+        bad = spec.check(a_raw(tester, product))
+        assert any("red-test gate with red: true and a command" in b
+                   for b in bad), bad
+    assert spec.check(a_raw(good, product)) == []
+
+
+def test_the_checker_wants_writes_on_every_step_once_one_says_it():
+    bad = spec.check(a_raw({"role": "planner"},
+                           {"role": "worker", "writes": "product"}))
+    assert any("step 0" in b and "writes" in b for b in bad), bad
+    assert spec.check(a_raw({"role": "planner"}, {"role": "worker"})) == []
+
+
+def test_red_first_on_the_product_step_after_continue_passes(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    before = git(place, "rev-parse", "HEAD").strip()
+    (place / "tests" / "test_calc.py").write_text(RED_TEST, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "the tests")
+    a_flow(tmp_path, "patch", WORKER + RED_GATE.replace(
+        "red-test", "red-first").replace("        red: true" + NL, ""))
+    code, called = running(tmp_path, monkeypatch, place, "patch",
+                           {"worker.md": ({"calc.py": FIXED}, "done")},
+                           "--continue", before)
+    assert called == ["worker.md"]
+    assert code == stops.EXIT_OK
+    handoff = read(folders()[-1] / "handoff.md")
+    assert "carried from " + before[:12] + ", green with the fix" in handoff
+
+
+def test_uncommitted_tests_are_carried_with_continue_head(tmp_path,
+                                                         monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    (place / "tests" / "test_calc.py").write_text(RED_TEST, encoding="utf-8")
+    a_flow(tmp_path, "patch", WORKER + RED_GATE.replace(
+        "red-test", "red-first").replace("        red: true" + NL, ""))
+    code, called = running(tmp_path, monkeypatch, place, "patch",
+                           {"worker.md": ({"calc.py": FIXED}, "done")},
+                           "--continue", "HEAD")
+    assert called == ["worker.md"]
+    assert code == stops.EXIT_OK
+    assert "tests carried from HEAD" in read(folders()[-1] / "handoff.md")
+
+
+def test_a_new_test_file_failing_on_import_is_carried_as_red(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    before = git(place, "rev-parse", "HEAD").strip()
+    (place / "tests" / "test_mul.py").write_text(
+        "from calc import mul" + NL + NL + NL + "def test_mul():" + NL
+        + "    assert mul(2, 3) == 6" + NL, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "the tests")
+    a_flow(tmp_path, "patch", WORKER + RED_GATE.replace("red: true",
+                                                        "red: false"))
+    with_mul = BUGGY + NL + NL + "def mul(a, b):" + NL + "    return a * b" + NL
+    code, called = running(tmp_path, monkeypatch, place, "patch", {
+        "worker.md": ({"calc.py": with_mul}, "TEST: tests/test_mul.py" + NL)},
+        "--continue", before)
+    assert called == ["worker.md"]
+    assert code == stops.EXIT_OK
+    proof = json.loads(read(folders()[-1] / "red-proof.json"))["proof"]
+    assert proof["kinds"]["tests/test_mul.py"] in ("ImportError",
+                                                   "a collection error")
+
+
+def test_a_red_test_named_with_a_backslash_is_a_proof(tmp_path):
+    place = a_repo(tmp_path / "repo")
+    order = redorder.Order(snapshot.take(place))
+    (place / "tests" / "test_calc.py").write_text(RED_TEST, encoding="utf-8")
+    said = "TEST: .\\tests\\test_calc.py" + NL
+    assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
+                        said)
+
+
+def test_a_spec_is_read_from_the_place_and_a_star_stays_in_its_folder(
+        tmp_path):
+    repo = a_repo(tmp_path / "repo")
+    place = repo / "pkg"
+    (place / "docs" / "specs").mkdir(parents=True)
+    (place / "TASK.md").write_text("x", encoding="utf-8")
+    (place / "docs" / "specs" / "api.md").write_text("x", encoding="utf-8")
+    (place / "notes").mkdir()
+    (place / "notes" / "SPEC1.md").write_text("x", encoding="utf-8")
+    shot = snapshot.take(place)
+    assert sorted(shot.specs) == ["pkg/TASK.md", "pkg/docs/specs/api.md"]
+    assert "pkg/notes/SPEC1.md" in shot.product
+
+
+def test_skip_tests_lets_a_tests_step_go_without_its_fails_line(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER.replace(
+        "    writes: tests" + NL, "    writes: tests" + NL
+        + "    must_produce: \"FAILS:\"" + NL) + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, "no test for a hotfix"),
+        "worker.md": ({"calc.py": FIXED}, "done")},
+        "--skip-tests", "hotfix")
+    assert called == ["tester.md", "worker.md"]
+    assert code == stops.EXIT_OK
+
+
+def test_a_resume_whose_proved_test_moved_refuses(tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({"tests/test_calc.py": RED_TEST}, TESTER_SAID),
+        "worker.md": ({}, "")})
+    first = folders()[-1]
+    (place / "tests" / "test_calc.py").write_text(
+        "def test_add():" + NL + "    assert True" + NL, encoding="utf-8")
+    code, called = running(tmp_path, monkeypatch, place, "build",
+                           {"worker.md": ({"calc.py": FIXED}, "done")},
+                           "--resume", first.name)
+    assert called == []
     assert code == stops.exit_code(stops.REFUSED)
+    assert "tests/test_calc.py" in read(folders()[-1] / "why.md")
 
 
 def test_tests_red_at_the_start_commit_are_carried_from_it(tmp_path,

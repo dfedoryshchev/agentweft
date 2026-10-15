@@ -304,7 +304,8 @@ red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or
 `tests carried from <sha>`, or `tests skipped: <reason> (--skip-tests)`, which
 the checks line repeats), the rulings on record (`decisions.md` in the place),
 the spend. a pre-existing test whose lines were removed or changed, and a
-spec file (a markdown file at the top of the checkout) changed at all, each
+spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
+`docs/spec*` there; a `*` never crosses a `/`) changed at all, each
 name the `decisions.md` entry behind them or print `UNRULED`; an add-only
 test change says so. a step that claims a person agreed, approved or
 ruled ("the user approved", "as agreed") with none on record is printed under "rulings" as "authority

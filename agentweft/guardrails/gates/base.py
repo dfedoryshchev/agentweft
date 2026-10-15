@@ -38,6 +38,7 @@ class Gate(object):
     ranking = ""
     earlier = ()
     start = None
+    order = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -60,7 +61,7 @@ def register(cls):
     return cls
 
 
-def build(config, where=None, ranking="", earlier=(), start=None):
+def build(config, where=None, ranking="", earlier=(), start=None, order=None):
     """{"gate": "regex", ...} -> a Gate. unknown names are an error, not a skip.
 
     the argument was called `spec`, which in this repo means a FlowSpec. it is
@@ -71,7 +72,8 @@ def build(config, where=None, ranking="", earlier=(), start=None):
     what the run's other steps answered in this process, oldest first, for a
     gate that can take something a step before this one already said.
     `start` is the run's snapshot of the place as it started
-    (`guardrails/snapshot.py`), for a gate that compares against it.
+    (`guardrails/snapshot.py`), for a gate that compares against it, and
+    `order` the red proof the run holds (`guardrails/redorder.py`).
     """
     name = config.get("gate")
     if name not in registry:
@@ -84,4 +86,5 @@ def build(config, where=None, ranking="", earlier=(), start=None):
     g.ranking = ranking or ""
     g.earlier = list(earlier or ())
     g.start = start
+    g.order = order
     return g

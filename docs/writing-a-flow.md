@@ -69,11 +69,13 @@ prompt:
     - role: worker
       writes: product
 
-`writes: tests | product | none`. a `product` step does not start until a
-red-test or red-first gate in this run has seen a test the run wrote fail; a
-`tests` step that changes any file other than a test or spec file fails.
-`--skip-tests "<reason>"` runs without tests and says so; `--continue <run or
-commit>` carries tests already written. the rules are in `docs/gates.md`, "no
+`writes: tests | product | none`, on every step once one says it. a
+`product` step does not start until the red-test gate (`red: true` and a
+command, which every `tests` step needs) has seen a test the run wrote fail;
+a `tests` step that changes any file other than a test, a spec or a test
+runner file is sent back once, then the run stops. `--skip-tests "<reason>"`
+runs without tests and says so; `--continue <run or commit>` carries tests
+already written, committed or not. the rules are in `docs/gates.md`, "no
 product code before a red test".
 
 `fix-with-test` is the same shape with one step fewer: the worker's `red-test`

@@ -16,7 +16,6 @@ compares against the place as it first started and not as it was left.
 """
 import ast
 import base64
-import fnmatch
 import hashlib
 import json
 import os
@@ -26,7 +25,10 @@ from pathlib import Path, PurePosixPath
 
 FILE = "start-snapshot.json"
 SPEC = ("TASK.md", "SPEC*.md", "docs/spec*")
-SKIP_DIRS = ("__pycache__", "node_modules")
+SKIP_DIRS = ("__pycache__", "node_modules", "venv", ".venv", "build", "dist",
+             "target")
+TOOLING_NAMES = ("conftest.py", "pytest.ini")
+TOOLING_DIRS = (".hypothesis", ".pytest_cache")
 
 TEST_PATH = re.compile(r"(^|/)(tests?|spec|__tests__)/|(^|/)test_[^/]*\.py$"
                        r"|_tests?\.py$|\.(test|spec)\.[cm]?[jt]sx?$"
@@ -99,9 +101,35 @@ def collected(node):
     return False
 
 
+def _glob(pattern):
+    """a glob as a regex in which `*` and `?` stop at a `/`."""
+    out = ""
+    for part in re.split(r"(\*|\?)", pattern):
+        out += "[^/]*" if part == "*" else "[^/]" if part == "?" \
+            else re.escape(part)
+    return re.compile(out + r"\Z")
+
+
+SPEC_RE = [_glob(g) for g in SPEC]
+
+
 def is_spec(path):
-    return not is_test(path) and any(fnmatch.fnmatchcase(path, g)
-                                     for g in SPEC)
+    """whether a path from the top of the place is a spec file: one a SPEC
+    glob names, or one inside a folder a SPEC glob names."""
+    if is_test(path):
+        return False
+    parts = path.split("/")
+    heads = ["/".join(parts[:i]) for i in range(1, len(parts) + 1)]
+    return any(g.match(h) for g in SPEC_RE for h in heads)
+
+
+def is_tooling(path):
+    """whether a file is the test runner's own: written by a step that only
+    writes tests without being product code."""
+    parts = path.split("/")
+    name = parts[-1]
+    return (name in TOOLING_NAMES or name.startswith(".coverage")
+            or any(p in TOOLING_DIRS for p in parts[:-1]))
 
 
 class Snapshot(object):
@@ -160,7 +188,8 @@ class Snapshot(object):
     def files(self):
         """-> every file under the place, tracked or not, ignored ones left
         out, as paths from the top of the repo. outside git, every file under
-        the place but those in a folder whose name starts with a dot."""
+        the place but those in a folder whose name starts with a dot or is
+        one of SKIP_DIRS."""
         if not self.ingit:
             found = []
             for top, dirs, names in os.walk(str(self.place)):
@@ -192,15 +221,18 @@ class Snapshot(object):
     def hashes(self):
         """-> ({test file: sha256}, {spec file: sha256}, {product file:
         sha256}) as the place is now. a product file is every file that is
-        neither."""
+        neither, the test runner's own files left out of all three."""
         tests, specs, product = {}, {}, {}
         for rel in self.files():
             data = _read(self.root / rel)
             if data is None:
                 continue
-            kind = tests if is_test(rel) else specs if is_spec(rel) \
-                else product
-            kind[rel] = _sha(data)
+            if is_test(rel):
+                tests[rel] = _sha(data)
+            elif is_spec(self.from_place(rel)):
+                specs[rel] = _sha(data)
+            elif not is_tooling(rel):
+                product[rel] = _sha(data)
         return tests, specs, product
 
     def product_now(self):

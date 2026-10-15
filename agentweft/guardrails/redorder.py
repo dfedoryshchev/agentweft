@@ -12,18 +12,21 @@ two ways round it, both said in the record. `--skip-tests "<reason>"` is a
 person deciding the run has no tests, and then none of the test checks apply.
 `--continue <run>` carries the proof an earlier run of the same place holds,
 and `--continue <commit>` carries tests the start commit added since that
-commit, once each of them is seen failing in the place as it starts. neither
-is assumed: a carried test whose content moved since, or one that does not
-fail, carries nothing.
+commit plus the test files changed but not committed when the run started
+(`--continue HEAD` for those alone), once each of them is seen failing in the
+place as it starts. neither is assumed: a carried test whose content moved
+since, or one that does not fail, carries nothing. a resumed run re-reads the
+proved test files too, and a moved one drops the proof.
 
 the proof is kept as runs/<id>/red-proof.json beside the start snapshot, so
 a run picked up later has both.
 """
 import json
-import subprocess
+import os
+import posixpath
 from pathlib import Path
 
-from agentweft.guardrails.snapshot import _sha, changed, is_test
+from agentweft.guardrails.snapshot import _git, _sha, changed, is_test
 
 from .gates.redfirst_gate import RedFirstGate
 from .gates.redtest_gate import named_test
@@ -49,6 +52,13 @@ def test_command(fm):
     return None
 
 
+def norm(path):
+    """a test path as one key, however a step wrote it: `/` for `\\`, no
+    `./`, and case-folded where the file system ignores case."""
+    out = posixpath.normpath((path or "").replace("\\", "/"))
+    return out.casefold() if os.name == "nt" else out
+
+
 class Order(object):
     """what the run holds: the start snapshot, a red proof or a skip."""
 
@@ -56,6 +66,8 @@ class Order(object):
         self.start = start
         self.skip = skip
         self.proof = proof
+        self.lost = ""
+        self.watching = {}
 
     def before(self, step, writes):
         """why `step` may not start, or "" when it may."""
@@ -65,33 +77,41 @@ class Order(object):
             return (step + " writes product code, and the run has no start"
                     " snapshot to tell a test it wrote from one that was"
                     " there: no start snapshot, so no red test can be shown")
+        if self.lost:
+            return step + " writes product code, and " + self.lost
         if not self.proof:
             return (step + " writes product code, and the run holds no red"
-                    " test yet: no red-test or red-first gate has seen a test"
-                    " it wrote fail. --skip-tests \"<reason>\" runs without"
-                    " tests, --continue <run or commit> carries them")
+                    " test yet: no red-test gate with red: true and a command"
+                    " on a tests step has seen a test it wrote fail."
+                    " --skip-tests \"<reason>\" runs without tests,"
+                    " --continue <run or commit> carries them")
         return ""
 
-    def watch(self, writes):
-        """-> the product files' hashes before a `writes: tests` step, or
-        None for any other step."""
+    def watch(self, step, writes):
+        """note the product files' hashes before a `writes: tests` step. a
+        step sent back keeps the hashes from before its first go, so it is
+        held to undoing what it changed then."""
         if self.skip or writes != "tests" or self.start is None \
                 or not self.start.hashed:
-            return None
-        return self.start.product_now()
+            return
+        if step not in self.watching:
+            self.watching[step] = self.start.product_now()
 
-    def after(self, step, writes, before):
+    def after(self, step, writes):
         """why a `writes: tests` step fails for what it changed, or ""."""
         if self.skip or writes != "tests":
             return ""
-        if before is None:
+        if step not in self.watching:
             return (step + " writes tests only, and with no start snapshot"
                     " nothing shows it left product code alone")
-        moved = changed(before, self.start.product_now())
+        moved = changed(self.watching[step], self.start.product_now())
         if moved:
             return (step + " writes tests only and changed product code: "
                     + ", ".join(moved))
         return ""
+
+    def passed(self, step):
+        self.watching.pop(step, None)
 
     def proven(self, step, results, output):
         """record the run's red proof from what `step`'s gates ran, the first
@@ -99,7 +119,8 @@ class Order(object):
         if self.proof or self.skip or self.start is None \
                 or not self.start.hashed:
             return False
-        moved = dict((self.start.from_place(rel), _sha(now))
+        moved = dict((norm(self.start.from_place(rel)),
+                      (self.start.from_place(rel), _sha(now)))
                      for rel, now in self.start.test_changes())
         for r in results:
             if not r.ok:
@@ -110,12 +131,40 @@ class Order(object):
             elif r.gate == "red-first" and r.tests:
                 files = [t["test"].split("::")[0] for t in r.tests
                          if t["before"] == "red"]
-            files = sorted(set(f for f in files if f in moved))
-            if files:
+            found = [moved[k] for k in sorted(set(norm(f) for f in files))
+                     if k in moved]
+            if found:
                 self.proof = {"how": "gate", "step": step, "gate": r.gate,
-                              "tests": dict((f, moved[f]) for f in files)}
+                              "tests": dict(found)}
+                self.lost = ""
                 return True
         return False
+
+    def recheck(self):
+        """drop a proof whose proved test files are not the content it
+        proved, saying why in `lost`. -> the why, "" when it holds."""
+        if not self.proof or self.start is None:
+            return ""
+        moved = []
+        for f, sha in sorted((self.proof.get("tests") or {}).items()):
+            try:
+                now = _sha((self.start.place / f).read_bytes())
+            except OSError:
+                now = None
+            if now != sha:
+                moved.append(f)
+        if moved:
+            self.lost = ("the tests its red proof was shown on are not as"
+                         " they were: " + ", ".join(moved))
+            self.proof = None
+        return self.lost
+
+    def carried(self):
+        """-> the carried test files as {path from the place: sha256}, or
+        {} when the proof was not carried."""
+        if not self.proof or self.proof.get("how") != "carried":
+            return {}
+        return dict(self.proof.get("tests") or {})
 
     def said(self):
         """-> the handoff's line on the order, "" when nothing is held."""
@@ -168,30 +217,43 @@ def carry_run(folder, run_id, start):
 
 def carry_commit(start, rev, cmd):
     """-> (proof, "") for the tests the start commit added or changed since
-    `rev`, each seen failing in the place as it starts, or (None, why)."""
+    `rev`, and those changed but not committed when the run started, each
+    seen failing in the place as it starts, or (None, why). a test file new
+    since `rev` that cannot even be collected (an ImportError, exit 2) counts
+    as red, with its kind kept in the proof."""
     if start is None or not start.start:
         return None, "the place has no start commit to carry tests from"
     if not cmd:
         return None, ("the flow has no red-test or red-first gate command to"
                       " run the carried tests with")
-    try:
-        r = subprocess.run(["git", "-C", str(start.root), "diff", "--name-only",
-                            "-z", rev, start.start, "--"],
-                           capture_output=True, text=True, encoding="utf-8",
-                           errors="replace")
-    except OSError as e:
-        return None, "git could not be run: " + str(e)
-    if r.returncode != 0:
+    if not _git(start.root, "rev-parse", "--verify", "--quiet",
+                rev + "^{commit}"):
         return None, rev + " is not a commit or a run of this place"
-    carried = dict((start.from_place(rel), start.tests[rel])
-                   for rel in r.stdout.split("\0")
-                   if rel and is_test(rel) and rel in start.tests)
-    if not carried:
-        return None, "no test file changed between " + rev + " and the start"
+    diff = _git(start.root, "diff", "--name-only", "-z", rev, start.start,
+                "--")
+    if diff is None:
+        return None, "git could not tell what changed since " + rev
+    rels = set(rel for rel in diff.split("\0") if rel)
+    rels.update(rel for rel, data in start.loose.items() if data is not None)
+    rels = sorted(rel for rel in rels if is_test(rel) and rel in start.tests)
+    if not rels:
+        return None, ("no test file changed between " + rev + " and the place"
+                      " as it starts")
     gate = RedFirstGate(command=cmd)
-    for f in sorted(carried):
+    carried, kinds = {}, {}
+    for rel in rels:
+        f = start.from_place(rel)
         said, kind = gate.one(cmd, f, start.place, "")
+        new = _git(start.root, "cat-file", "-e", rev + ":" + rel) is None
+        # a test file that did not exist at `rev` failing to import is the
+        # usual red of a feature not written yet: the name it imports is
+        # what the product step adds
+        if said == "error" and new:
+            said = "red"
         if said != "red":
             return None, (f + " is not red in the place as it starts (" + said
                           + (", " + kind if kind else "") + ")")
-    return {"how": "carried", "from": rev[:12], "tests": carried}, ""
+        carried[f] = start.tests[rel]
+        kinds[f] = kind or "assertion"
+    return {"how": "carried", "from": rev[:12], "tests": carried,
+            "kinds": kinds}, ""

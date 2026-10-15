@@ -22,6 +22,7 @@ from agentweft.mcp import context, preflight
 from agentweft.orchestrate import decisions, park, synthesise
 
 NEWLINE = chr(10)
+RED_MARKER = "FAILS:"
 from agentweft.guardrails.budget import Budget
 
 from .handoff import EMPTY, Handoff, back, merge, parse, transcript, without
@@ -428,7 +429,8 @@ class Run(object):
                 earlier = [t for k, t in self.produced.items() if k != step]
                 return [gates.build(g, where=self.workdir, ranking=self.ranking,
                                     earlier=earlier,
-                                    start=getattr(self, "start", None))
+                                    start=getattr(self, "start", None),
+                                    order=getattr(self, "order", None))
                         for g in (s.get("gates") or [])]
         return []
 
@@ -692,6 +694,11 @@ def check_step(run, route, step, out, run_dir=None):
     """
     held = getattr(run, "held", lambda g, s: g.run)
     results = [held(g, step)(without(out.output)) for g in run.gates_for(step)]
+    order = getattr(run, "order", None)
+    if order is not None:
+        moved = order.after(step, run.writes_for(step))
+        if moved:
+            results.insert(0, Result("tests-only", False, moved))
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:
@@ -709,6 +716,9 @@ def check_step(run, route, step, out, run_dir=None):
     failed = [r for r in results if not r.ok]
     if failed:
         return failed[0].gate, ""
+    if order is not None and order.skip and \
+            getattr(route, "must", {}).get(step) == RED_MARKER:
+        return "", route.unread(step, out) or ""
     return "", route.gate(step, out) or ""
 
 
@@ -750,7 +760,7 @@ def run_once(flow, provider=None, task=None, trail=None):
         if refused:
             note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
-        watched = run.order.watch(writes)
+        run.order.watch(step, writes)
         try:
             if step == run.fan:
                 out = run_fanout(run, out)
@@ -765,11 +775,6 @@ def run_once(flow, provider=None, task=None, trail=None):
         if fenced:
             note("parked", fenced, stops.PARKED, output=out.output)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
-        moved = run.order.after(step, writes, watched)
-        if moved:
-            note("gate failed", moved, stops.GATE, output=out.output)
-            return out.output, run.budget, "tests-only failed at " + step \
-                + ": " + moved
         if not out:
             why = out.meta.get("why") or "nothing came out of " + step
             note("failed", why, stops.NO_ANSWER, output=out.output)
@@ -792,6 +797,7 @@ def run_once(flow, provider=None, task=None, trail=None):
             step = again
             continue
         if not failed:
+            run.order.passed(step)
             run.order.proven(step, out.meta["gates"], out.output)
         if failed or blocked:
             why = gate_why(out.meta["gates"]) if failed else blocked
@@ -976,6 +982,9 @@ def main():
         return 1
     if pick_up:
         run.order.skip, run.order.proof = redorder.load(state.RUNS / pick_up)
+        lost = run.order.recheck()
+        if lost:
+            print("the red proof " + pick_up + " held is dropped: " + lost)
     if skip:
         run.order.skip = skip
         notes.append(("tests skipped for this run", skip + NEWLINE
@@ -1273,7 +1282,7 @@ def main():
                                     waiting="user",
                                     handed=came_from or "the task")
             cleared = None
-            watched = run.order.watch(writes)
+            run.order.watch(step, writes)
             print("started " + step)
             handed = out
             if step == run.fan:
@@ -1309,12 +1318,6 @@ def main():
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user")
 
-            moved = run.order.after(step, writes, watched)
-            if moved:
-                print("tests-only failed at " + step + ": " + moved)
-                return stop(stops.GATE, "tests-only: " + moved, "gate failed",
-                            entry, index="GATE  " + flow + "  tests-only at "
-                            + step)
 
             if not out:
                 # an empty answer is checked before any gate: a gate handed
@@ -1372,6 +1375,7 @@ def main():
                             "gate failed", entry,
                             index="GATE  " + flow + "  " + failed + " at "
                             + step)
+            run.order.passed(step)
             if run.order.proven(step, entry.gates, out.output):
                 run.order.save(folder)
 

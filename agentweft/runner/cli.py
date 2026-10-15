@@ -100,8 +100,9 @@ def cmd_help():
           check: no red test is needed before product code. the reason is
           required and goes into decisions.md and the handoff
 --continue  carry the red tests of an earlier run of the same place, or of
-          the start commit's tests added since <commit>, once each is seen
-          to still hold
+          the start commit's tests added since <commit> and any test file
+          not committed yet (HEAD for those alone), once each is seen to
+          still hold
 --max-calls / --max-tokens  the cap for this run, over the flow's own; 0
           is no cap. a run that parked at its cap carries on only with it
           raised, and the change is written to decisions.md""")

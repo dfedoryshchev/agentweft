@@ -25,6 +25,7 @@ from pathlib import Path
 
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
+from agentweft.guardrails.snapshot import is_spec as spec_path
 
 from . import handoff, investigate, manifest, stops, verbs
 
@@ -66,8 +67,16 @@ def did_of(passes, role):
     return out
 
 
-def is_spec(path):
-    return "/" not in path and path.lower().endswith(".md")
+def is_spec(path, root=None, place=None):
+    """whether a path from the top of the repo is a spec file, read from the
+    top of the place (`snapshot.is_spec`)."""
+    if root is not None and place is not None:
+        try:
+            path = (Path(root) / path).resolve().relative_to(
+                Path(place).resolve()).as_posix()
+        except ValueError:
+            return False
+    return spec_path(path)
 
 
 def _numstat(text):
@@ -156,7 +165,7 @@ class Tree(object):
                     continue
                 if is_test(path):
                     out["tests_changed"].append((path, a, d))
-                if is_spec(path):
+                if is_spec(path, self.root, self.place):
                     out["spec_changed"].append((path, a, d))
         return out
 
@@ -186,7 +195,8 @@ def rulings(changes, decided):
     """the lines a person owes a ruling on, or that one already covers.
 
     a pre-existing test whose lines were removed or changed, and a spec file
-    (a markdown file at the top of the checkout) changed at all, each name
+    (`TASK.md`, `SPEC*.md` or under `docs/spec*`, from the top of the
+    place) changed at all, each name
     the decisions.md entry behind them or say UNRULED. an add-only test
     change needs none and says so.
     """
