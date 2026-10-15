@@ -29,7 +29,7 @@ sys.path.insert(0, ".")
 from agentweft.evals import recording
 from agentweft.evals import steps as took
 from agentweft.providers import cli_provider
-from agentweft.runner import engine, prompts, trace
+from agentweft.runner import engine, prompts, resume, trace
 
 HERE = Path(__file__).resolve().parent
 GOLDEN = HERE / "golden"
@@ -44,6 +44,19 @@ def say(text, writes=None):
     """an answer that also leaves files in the place, the way a model run
     there edits them."""
     return {"say": text, "writes": writes or {}}
+
+
+def limited():
+    """the account's usage limit refusing the call: an error result with no
+    tokens in it, and the reset as the cli gives it."""
+    return {"say": "", "writes": {}, "error": {
+        "type": "result", "is_error": True,
+        "result": "You've hit your usage limit",
+        "api_error": "usage_limit_reached",
+        "api_error_params": {"rate_limit_info": {"resetsAt": 1893456000}},
+        "total_cost_usd": 0,
+        "usage": {"input_tokens": 0, "output_tokens": 0},
+        "modelUsage": {}}}
 
 
 BUGGY = "def add(a, b):\n    return a - b\n"
@@ -104,6 +117,7 @@ MUL_PLAN = "- mul(2, 3) is 6 | calc.py\n"
 MUL_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
               "TEST: test_mul.py\n\n" + MUL_TEST, {"test_mul.py": MUL_TEST})
 MUL_BUILT = "- calc.py: mul(a, b) added\n"
+LAST = "<the run the leg before left>"
 
 CASES = {
     ("build-feature", "pass"): {"place": {"calc.py": ADD_ONLY},
@@ -236,6 +250,24 @@ CASES = {
         "ranking": "src/hooks.ts 0.94\nsrc/util.ts 0.11\n",
         "answers": {
             "planner.md": ["src/hooks.ts: the retry loop lives there\n"]}},
+    ("release-notes", "outage-resume"): {
+        "legs": [[], ["--resume", LAST]],
+        "answers": {
+            "worker.md": [NOTES],
+            "reviewer.md": [limited(), "VERDICT: ok\n\n" + NOTES]}},
+    ("capped", "budget-resume"): {
+        "flows": TEST_FLOWS,
+        "legs": [[], ["--resume", LAST],
+                 ["--resume", LAST, "--max-calls", "2"]],
+        "answers": {
+            "worker.md": [NOTES],
+            "reviewer.md": ["VERDICT: ok\n\n" + NOTES]}},
+    ("fix-with-test", "chained-resume"): {
+        "place": {"calc.py": BUGGY}, "args": ["--task", BUG], "task": BUG,
+        "legs": [[], ["--resume", LAST], ["--resume", LAST]],
+        "answers": {"worker.md": FIXES["worker.md"],
+                    "patcher.md": [limited(), limited()]
+                    + FIXES["patcher.md"]}},
 }
 
 
@@ -283,6 +315,9 @@ class Script(object):
             (self.place / rel).write_bytes(text.encode("utf-8"))
         session = step[:-3] + ("" if task is None else "-" + str(task)) \
             + "-" + str(n + 1)
+        if answer.get("error"):
+            out = json.dumps(dict(answer["error"], session_id=session))
+            return types.SimpleNamespace(returncode=1, stdout=out, stderr="")
         out = json.dumps({"type": "result", "is_error": False,
                           "result": answer["say"], "session_id": session,
                           "total_cost_usd": 0.01,
@@ -309,8 +344,6 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         (place / rel).write_bytes(text.encode("utf-8"))
     monkeypatch.chdir(place)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(case.get("flows", FLOWS))])
-    monkeypatch.setattr(sys, "argv", ["run.py", flow, "--force"]
-                        + case.get("args", []))
     for key in list(os.environ):
         if key.startswith("MODEL_"):
             monkeypatch.delenv(key)
@@ -329,24 +362,44 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     script = Script(case["answers"], place)
     real_step = engine.Run.step
 
-    def step(self, name, previous=engine.EMPTY, extra="", task=None):
+    def step(self, name, previous=engine.EMPTY, extra="", task=None, last=""):
         script.asking(name, task)
-        return real_step(self, name, previous=previous, extra=extra, task=task)
+        return real_step(self, name, previous=previous, extra=extra, task=task,
+                         last=last)
 
     monkeypatch.setattr(engine.Run, "step", step)
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=script.run, TimeoutExpired=subprocess.TimeoutExpired))
     monkeypatch.setattr(cli_provider, "call", answering(script.run))
 
-    capsys.readouterr()
-    raised = None
-    code = None
-    try:
-        code = engine.main()
-    except Exception as e:
-        raised = type(e).__name__ + ": " + str(e)
-    printed = capsys.readouterr().out
+    legs = case.get("legs")
+    codes, raises, prints = [], [], []
+    for n, leg in enumerate(legs or [[]]):
+        if n:
+            # each leg a minute on, so a resume never shares the second, and
+            # with it the -2 on the id, with the run it picks up
+            clock = later(datetime.timedelta(minutes=n))
+            monkeypatch.setattr(engine, "datetime", clock)
+            monkeypatch.setattr(trace, "datetime", clock)
+        if LAST in leg:
+            leg = [resume.runs_for(flow)[-1] if a == LAST else a for a in leg]
+        monkeypatch.setattr(sys, "argv", ["run.py", flow, "--force"]
+                            + case.get("args", []) + leg)
+        capsys.readouterr()
+        raised = None
+        code = None
+        try:
+            code = engine.main()
+        except Exception as e:
+            raised = type(e).__name__ + ": " + str(e)
+        codes.append(code)
+        raises.append(raised)
+        prints.append(said(capsys.readouterr().out))
     assert script.unused() == [], "answers the run never asked for"
+    if legs:
+        code, raised, printed = codes, raises, prints
+    else:
+        code, raised, printed = codes[0], raises[0], prints[0]
     if case.get("task"):
         # fix-with-test names worker.md for its task; the steps after it work
         # from what the worker handed on
@@ -388,9 +441,13 @@ def record(runs, code, raised, printed):
         "files": sorted(p.relative_to(runs).as_posix()
                         for p in runs.rglob("*") if p.is_file()),
         "steps": steps,
-        "printed": [l.rstrip() for l in printed.replace("\r\n", "\n")
-                    .split("\n") if l.strip()],
+        "printed": printed,
     }
+
+
+def said(printed):
+    return [l.rstrip() for l in printed.replace("\r\n", "\n").split("\n")
+            if l.strip()]
 
 
 STAMPS = (
@@ -522,6 +579,22 @@ class LaterDay(datetime.date):
     @classmethod
     def today(cls):
         return (datetime.datetime.now() + SHIFT).date()
+
+
+def later(shift):
+    """-> a datetime module whose clock reads `shift` ahead."""
+    class Now(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.datetime.now(tz) + shift
+
+    class Today(datetime.date):
+        @classmethod
+        def today(cls):
+            return (datetime.datetime.now() + shift).date()
+
+    return types.SimpleNamespace(datetime=Now, date=Today,
+                                 timedelta=datetime.timedelta)
 
 
 def test_a_run_on_another_day_reads_the_same_once_normalised(

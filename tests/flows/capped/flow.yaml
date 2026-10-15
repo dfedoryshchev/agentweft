@@ -1,0 +1,8 @@
+name: capped
+steps:
+  - role: worker
+    prompt: worker.md
+  - role: reviewer
+    prompt: reviewer.md
+max_calls: 1
+timeout: 300
