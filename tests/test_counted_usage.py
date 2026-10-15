@@ -73,10 +73,6 @@ def journal():
     return (state.RUNS / "journal.md").read_text(encoding="utf-8")
 
 
-def index():
-    return (state.RUNS / "index.md").read_text(encoding="utf-8")
-
-
 # the budget on its own
 
 
@@ -371,9 +367,9 @@ def test_cache_writes_count_against_the_token_cap(tmp_path, monkeypatch,
            tail=CLAUDE + "max_tokens: 500\n")
     fake_cli(answer("did it\n", usage=HEAVY))
     engine.main()
-    assert ("OVER  cached-heavy  token cap: 850 > 500 (850 counted: input 10,"
+    assert ("token cap: 850 of 500 spent, 170% (850 counted: input 10,"
             " cache_creation 800, output 40; cache_read 12000 not counted)") \
-        in index()
+        in journal()
 
 
 def test_an_ordinary_run_is_not_stopped_by_a_token_cap_it_never_set(
@@ -392,12 +388,14 @@ def test_the_cap_is_exact_at_the_boundary_through_the_engine(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "edge", ["worker", "reviewer"],
            tail=CLAUDE + "max_tokens: 850\n")
-    fake_cli(answer("did it\n", usage=HEAVY),
-             answer("VERDICT: ok\n\nfine\n", usage={"output_tokens": 1}))
+    cli = fake_cli(answer("did it\n", usage=HEAVY),
+                   answer("VERDICT: ok\n\nfine\n", usage={"output_tokens": 1}))
     engine.main()
-    assert "OVER  edge  token cap: 851 > 850" in index()
-    assert "  failed at reviewer.md  " in journal()
+    assert ("reached, completion 1/2 steps, token cap: 850 of 850 spent, 100%"
+            in journal())
+    assert "  parked at reviewer.md  " in journal()
     assert "  budget  " in journal()
+    assert len(cli.calls) == 1
 
 
 def test_a_budget_stop_exits_like_any_other_stop(tmp_path, monkeypatch,

@@ -45,9 +45,12 @@ DECLINED = "declined"
 CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
           NO_ANSWER, DECLINED)
 
-# the run waits for someone on these: a person for a park, the provider's
-# limit for an outage
-WAITING = (PARKED, OUTAGE)
+# the run waits for someone on these: a person for a park or a cap, the
+# provider's limit for an outage
+WAITING = (PARKED, OUTAGE, BUDGET)
+# a wait on these comes before the step it names has done its work, so
+# carrying on runs that step rather than the one after it
+AGAIN = (OUTAGE, BUDGET)
 
 DONE = "done"
 # no default: a cause added without an outcome fails where it is read rather

@@ -115,9 +115,9 @@ def test_a_gate_on_a_fanned_out_step_stops_the_run(tmp_path, monkeypatch):
     assert "merge.md" not in asked
 
 
-def test_the_budget_is_checked_after_a_fanned_out_step(tmp_path, monkeypatch):
-    body = HEAD.format(name="fan-budget") + TAIL + "max_calls: 1" + NL
+def test_the_budget_is_checked_before_a_fanned_out_step(tmp_path, monkeypatch):
+    body = HEAD.format(name="fan-budget") + TAIL + "max_calls: 2" + NL
     asked = go(tmp_path, monkeypatch, body,
                {"planner.md": PLAN, "worker.md": "one line"}, "fan-budget")
-    assert "OVER  fan-budget  call cap: 3 > 1" in index(tmp_path)
-    assert "merge.md" not in asked
+    assert "PARKED  fan-budget  at worker.md" in index(tmp_path)
+    assert asked == ["planner.md"]

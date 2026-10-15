@@ -185,13 +185,15 @@ def test_a_step_the_flow_parks_on_gets_its_line(tmp_path, monkeypatch):
         ("parked", "waiting for user", None)
 
 
-def test_a_step_over_the_budget_gets_its_line(tmp_path, monkeypatch):
+def test_a_step_paused_at_the_cap_gets_its_line(tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch, "spent", ["worker", "reviewer"],
            tail=FAKE + "max_calls: 1\n")
     engine.main()
     got = lines(folders(tmp_path)[0])
-    assert [l["outcome"] for l in got] == ["ok", "over budget"]
-    assert got[1]["why"] == "call cap: 2 > 1"
+    assert [l["outcome"] for l in got] == ["ok", "parked"]
+    assert got[1]["cause"] == "budget"
+    assert got[1]["why"] == ("reached, completion 1/2 steps, call cap: 1 of 1"
+                             " calls spent, and the next step takes 1")
 
 
 def test_a_step_refused_before_it_starts_gets_a_line_with_nothing_spent(
@@ -363,7 +365,7 @@ def test_a_failed_gate_is_not_ungated_and_the_run_stops_before_the_next(
 
 def test_a_line_closed_before_the_gates_ran_does_not_claim_either(
         tmp_path, monkeypatch):
-    """refused, over budget and crashed lines never reached the check, so
+    """refused, paused at the cap and crashed lines never reached the check, so
     `gates: []` there says nothing about what the step declares."""
     a_flow(tmp_path, monkeypatch, "moved",
            ["worker", "reviewer\ngates:\n  - gate: length\n    max_lines: 5"],

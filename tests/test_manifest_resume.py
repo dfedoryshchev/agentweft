@@ -140,7 +140,8 @@ def test_a_finished_run_has_nothing_to_pick_up(tmp_path, monkeypatch, capsys):
     assert asked == []
 
 
-def test_a_resume_starts_at_what_the_run_had_spent(tmp_path, monkeypatch):
+def test_a_resume_starts_at_what_the_run_had_spent(tmp_path, monkeypatch,
+                                                   capsys):
     a_flow(tmp_path, monkeypatch, "capped",
            [("a", []), ("b", ["pause: user"]), ("c", [])],
            tail="max_calls: 2" + NL)
@@ -148,12 +149,10 @@ def test_a_resume_starts_at_what_the_run_had_spent(tmp_path, monkeypatch):
     run(monkeypatch, "capped", "--force")
     [first] = folders(tmp_path)
     asked.clear()
-    assert run(monkeypatch, "capped", "--force", "--resume",
-               first.name) == stops.EXIT_STOP
-    assert steps_of(asked) == ["c.md"]
-    last = stops.read(journal(tmp_path)[-1])
-    assert last.cause == stops.BUDGET
-    assert last.spend.startswith("3 calls")
+    capsys.readouterr()
+    assert run(monkeypatch, "capped", "--force", "--resume", first.name) == 1
+    assert "call cap: 2 of 2 calls spent" in capsys.readouterr().out
+    assert asked == []
 
 
 def test_a_run_over_its_cap_is_not_resumed_until_the_cap_moves(tmp_path,
@@ -175,7 +174,7 @@ def test_a_run_over_its_cap_is_not_resumed_until_the_cap_moves(tmp_path,
                                  encoding="utf-8")
     assert run(monkeypatch, "over", "--force", "--resume",
                first.name) == stops.EXIT_OK
-    # the step that went over is asked again: its answer was never checked
+    # the run paused before b.md, so b.md is where it carries on
     assert steps_of(asked) == ["b.md", "c.md"]
 
 
@@ -186,7 +185,7 @@ def test_a_budget_stop_leaves_a_handoff(tmp_path, monkeypatch):
     run(monkeypatch, "spent", "--force")
     [first] = folders(tmp_path)
     note = (first / "handoff.md").read_text(encoding="utf-8")
-    assert "call cap: 2 > 1" in note
+    assert "call cap: 1 of 1 calls spent" in note
     assert note.rstrip(NL).split(NL)[-1].strip() == \
         "python run.py spent --resume " + first.name + " --force"
 

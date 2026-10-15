@@ -98,7 +98,7 @@ def test_the_call_cap_sees_every_call_charged_from_three_threads():
     assert b.over() == "call cap: 3 > 2"
 
 
-# through the runner: a fan-out wider than the cap
+# through the runner: a fan-out that fills the cap
 
 
 def a_flow(tmp_path, name):
@@ -119,7 +119,7 @@ def a_flow(tmp_path, name):
         + "journal: false" + NL
         + "provider:" + NL
         + "  provider: fake" + NL
-        + "max_calls: 2" + NL, encoding="utf-8")
+        + "max_calls: 4" + NL, encoding="utf-8")
     (d / "instructions.md").write_text("do what you are given." + NL,
                                        encoding="utf-8")
     for role in ("planner", "worker", "merge"):
@@ -130,7 +130,7 @@ def a_flow(tmp_path, name):
 
 @pytest.mark.parametrize("order", [(1, 2, 3), (3, 2, 1)],
                          ids=["first-task-first", "last-task-first"])
-def test_a_fanout_wider_than_the_cap_stops_at_one_count(tmp_path, monkeypatch,
+def test_a_fanout_that_fills_the_cap_parks_at_one_count(tmp_path, monkeypatch,
                                                          order):
     name = "fan-cap"
     root = a_flow(tmp_path, name)
@@ -165,8 +165,9 @@ def test_a_fanout_wider_than_the_cap_stops_at_one_count(tmp_path, monkeypatch,
     monkeypatch.chdir(tmp_path)
     engine.main()
 
-    index = (tmp_path / "runs" / "index.md").read_text(encoding="utf-8")
-    assert "OVER  fan-cap  call cap: 4 > 2" in index
+    why = (tmp_path / "runs").glob("fan-cap-*/why.md")
+    assert "call cap: 4 of 4 calls spent" in next(why).read_text(
+        encoding="utf-8")
     assert "merge.md" not in asked
     spent = made[0]
     assert (spent.calls, spent.by_provider) == (4, {"fake": 4})

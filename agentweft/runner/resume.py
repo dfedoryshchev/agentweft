@@ -25,7 +25,8 @@ class Stop(object):
 
     an outage is written as a park, because the run is waiting, but what it
     waits on is the provider: the step it parked on got no answer and runs
-    again.
+    again. a cap parks before the step that would cross it, so that step runs
+    as well.
     """
 
     __slots__ = ("kind", "step", "when", "cause")
@@ -38,7 +39,7 @@ class Stop(object):
 
     @property
     def parked(self):
-        return self.kind == "parked" and self.cause != stops.OUTAGE
+        return self.kind == "parked" and self.cause not in stops.AGAIN
 
 
 def last_stop(flow_name):
@@ -145,7 +146,7 @@ def start_at(run_id, order, kept=None):
         return kept.start_at(order)
     line = stop_of(run_id)
     if line is not None and line.kind == "stop":
-        if line.parked and line.cause != stops.OUTAGE:
+        if line.parked and line.cause not in stops.AGAIN:
             left = after(order, line.step)
         else:
             left = remaining(order, line.step)

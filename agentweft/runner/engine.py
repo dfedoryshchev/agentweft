@@ -438,6 +438,17 @@ class Run(object):
                 return int(settings.get("workers", step=s, flow=self.fm))
         return 1
 
+    def calls_for(self, step, handed):
+        """-> the calls `step` is about to make on what it was handed: one,
+        or one per task of the fanned step not already done."""
+        if step != self.fan:
+            return 1
+        plan, done = handed, getattr(self, "reuse", {})
+        if handed.verdict == "redo" and getattr(self, "plan", None) is not None:
+            plan, done = self.plan, {}
+        tasks = [l for l in plan.output.split("\n") if "|" in l]
+        return max(1, len(tasks) - len(done))
+
     def charge(self, prompt, answer, provider, model=None):
         """every go the answer took, the failed ones too: each was paid for."""
         replies = getattr(answer, "replies", None)
@@ -978,14 +989,27 @@ def main():
         notes.append(("tests carried from " + run.order.proof["from"],
                       "given with --continue " + carry + ": "
                       + ", ".join(sorted(run.order.proof["tests"]))))
+    try:
+        for key, value in caps_given(sys.argv).items():
+            setattr(run.budget, key, value)
+    except ValueError as e:
+        print(str(e))
+        return 1
     if found:
         run.budget.restore(found.spend)
-        over = run.budget.over()
-        if over:
-            print(pick_up + " is over its cap (" + over + "). raise max_calls"
-                  " or max_tokens in " + flow + "/flow.yaml, then carry on with"
-                  " --resume " + pick_up + " --force")
+        waits = run.budget.ahead()
+        if waits:
+            print(pick_up + " is at its cap (" + waits[1] + "). carry on with"
+                  " --resume " + pick_up + " --max-calls <n> or --max-tokens"
+                  " <n>, or raise max_calls or max_tokens in " + flow
+                  + "/flow.yaml and add --force")
             return 1
+        moved = run.budget.moved(found.spend)
+        if moved:
+            notes.append(("carried " + pick_up + " on with the "
+                          + ", the ".join(moved),
+                          (found.data.get("stopped") or {}).get("why")
+                          or "the caps were changed before carrying on."))
     route = router.Router(fm)
     started = datetime.datetime.now()
     run_id = new_run_id(flow, started)
@@ -1163,12 +1187,14 @@ def main():
         else:
             told = why
             if cause == stops.BUDGET:
-                told = (why + NEWLINE + "raise max_calls or max_tokens in "
-                        + flow + "/flow.yaml first: a resume starts at what"
-                        " this run spent, and the edit needs --force.")
+                told = (why + NEWLINE + "raise the cap to carry on: add"
+                        " --max-calls <n> or --max-tokens <n> to the command"
+                        " below, or edit max_calls or max_tokens in " + flow
+                        + "/flow.yaml. a resume starts at what this run"
+                        " spent.")
             needs = park.lines(at, None, done, resume.remaining(steps(flow), at),
                                resume_command(flow, run_id), why=told,
-                               cause=cause)
+                               cause=cause, handed=handed)
         note = leave({"cause": cause, "why": why, "at": at}, needs)
         if index:
             write_index(index)
@@ -1194,6 +1220,14 @@ def main():
                 return stop(stops.REFUSED, refused, "refused",
                             entry=trail.open(step, [], used, came_from),
                             index="REFUSED  " + flow + "  " + step)
+            waits = run.budget.ahead(run.calls_for(step, out))
+            if waits:
+                why = (waits[0] + ", completion " + completion(record, order)
+                       + ", " + waits[1])
+                print("paused before " + step + ": " + why)
+                return stop(stops.BUDGET, why, "parked",
+                            index="PARKED  " + flow + "  at " + step,
+                            handed=came_from or "the task")
             allowed = set()
             unchecked = False
             pre = run.preflight_for(step)
@@ -1281,12 +1315,6 @@ def main():
                 return stop(stops.GATE, "tests-only: " + moved, "gate failed",
                             entry, index="GATE  " + flow + "  tests-only at "
                             + step)
-
-            spent = run.budget.over()
-            if spent:
-                print("stopping: " + spent)
-                return stop(stops.BUDGET, spent, "over budget", entry,
-                            index="OVER  " + flow + "  " + spent)
 
             if not out:
                 # an empty answer is checked before any gate: a gate handed
@@ -1465,6 +1493,28 @@ def main():
 def outage_why(e):
     return ("limit reached, resets " + e.resets + "; the provider said: "
             + e.detail)
+
+
+CAPS = (("--max-calls", "max_calls"), ("--max-tokens", "max_tokens"))
+
+
+def caps_given(argv):
+    """-> {cap: value} for every cap argv sets, over the flow's own."""
+    out = {}
+    for flag, key in CAPS:
+        if flag not in argv:
+            continue
+        i = argv.index(flag)
+        value = argv[i + 1] if len(argv) > i + 1 else ""
+        if not value.isdigit():
+            raise ValueError(flag + " needs a whole number, 0 for no cap")
+        out[key] = int(value)
+    return out
+
+
+def completion(record, order):
+    passed = [s for s in record.data["steps"] if s["state"] == manifest.PASSED]
+    return str(len(passed)) + "/" + str(len(order)) + " steps"
 
 
 def passes(trail, run, fm):

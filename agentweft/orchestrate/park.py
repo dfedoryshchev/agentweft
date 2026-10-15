@@ -41,7 +41,7 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     if question is not None:
         return ruling(step, who, done, left, command, question)
     if who is None:
-        return stopped(step, cause, done, left, command, why)
+        return stopped(step, cause, done, left, command, why, handed)
     out = ["waiting for    " + who]
     if handed:
         out.append("stopped before " + step)
@@ -121,16 +121,20 @@ def refused(step, cite, done):
     return out
 
 
-def stopped(step, cause, done, left, command, why):
+def stopped(step, cause, done, left, command, why, handed=None):
     out = ["cause          " + str(cause)]
-    out.append("stopped at     " + step)
+    out.append(("stopped before " if handed else "stopped at     ") + step)
     out.append("")
     if why:
         out.append(why)
     out.append("so the rest of it has not run.")
     out.append("")
     ran_and_left(out, done, left)
-    out.append(step + " runs again when you carry on; the steps before it do not.")
+    if handed:
+        out.append(step + " has not run. carrying on starts at it, on what "
+                   + handed + " produced.")
+    else:
+        out.append(step + " runs again when you carry on; the steps before it do not.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command)

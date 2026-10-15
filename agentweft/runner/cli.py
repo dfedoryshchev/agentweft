@@ -69,7 +69,8 @@ def cmd_help():
                        [--task "<text>" | --task-file <path>]
                        [--model-for <role>=<model>,...]
                        [--skip-tests "<reason>"] [--continue <run|commit>]
-  python run.py list             what flows there are
+                       [--max-calls <n>] [--max-tokens <n>]
+  python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
   python run.py provider         is each configured provider usable
@@ -100,7 +101,10 @@ def cmd_help():
           required and goes into decisions.md and the handoff
 --continue  carry the red tests of an earlier run of the same place, or of
           the start commit's tests added since <commit>, once each is seen
-          to still hold""")
+          to still hold
+--max-calls / --max-tokens  the cap for this run, over the flow's own; 0
+          is no cap. a run that parked at its cap carries on only with it
+          raised, and the change is written to decisions.md""")
     return 0
 
 

@@ -11,14 +11,39 @@ the reason it is in here at all is at the bottom.
     max_calls: 20
     max_tokens: 120000
 
-checked after every step. over it and the run stops, writes `failed at <step>`
-with the cause `budget` to the journal, keeps what it has, leaves a
-`handoff.md`, and exits 2 as a gate stop does. the cap is for the task, not
-for one go at it: a resumed run starts at what the run it picks up had spent,
-and one that is already over the cap is refused until the cap in `flow.yaml`
-is raised (which edits the flow, so the resume then needs `--force`). a flow that says nothing gets the defaults in
-`runner/settings.py`: 25 calls and no token cap. the call cap is the one that
-catches a run going round in a loop, so it is on until a flow sets its own.
+checked before every step. near it the run pauses rather than stopping: it
+parks before the step, writes `parked at <step>` with the cause `budget` to
+the journal, keeps what it has, leaves a `handoff.md` and exits 2 as any stop
+does. its outcome is `needs you: budget`, and the why says how far it got:
+
+    reached, completion 2/3 steps, call cap: 2 of 2 calls spent, and the next step takes 1
+    reaching, completion 1/3 steps, token cap: 10750 of 12000 spent, 89% (~10750 estimated)
+
+the call cap is read before the calls are made: a step that would take the run
+past it does not start, and a fanned-out step counts one call per task it has
+left, so `max_calls: 20` spends 20, never 21 or 20 plus a fan-out's width.
+tokens are only known once a step has answered, so the token cap pauses at
+`reaching` once 80% of it is spent and at `reached` once all of it is. the
+call cap gets no 80% pause: it is counted exactly, so it never goes over.
+
+the cap is for the task, not for one go at it: a resumed run starts at what
+the run it picks up had spent, and one still at its cap is refused, so a budget
+park carries on only once the cap is raised. raise it for that resume with
+`--max-calls <n>` or `--max-tokens <n>`, or in `flow.yaml` (which edits the
+flow, so the resume then needs `--force`):
+
+    python run.py weekly-digest --resume <run-id> --max-calls 30
+
+the resume starts at the step the run paused before, and writes the change
+into `decisions.md` in its folder: `carried <run-id> on with the call cap from
+20 to 30`, under the why the run paused with. a flow that says nothing gets the
+defaults in `runner/settings.py`: 25 calls and no token cap. the call cap is
+the one that catches a run going round in a loop, so it is on until a flow
+sets its own.
+
+the cap is read between steps, so it does not reach inside one: a `claude -p`
+step's own turns are not counted until the step answers, and one step can go
+past a token cap on its own. the next step is the one that waits.
 
 every go at a model is charged, the failed ones a retry went through too. a
 provider that reports usage (see `providers.md`) is charged exactly what it

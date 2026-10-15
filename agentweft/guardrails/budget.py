@@ -27,6 +27,11 @@ class OverBudget(Exception):
     pass
 
 
+REACHED = "reached"
+REACHING = "reaching"
+NEAR = 0.8
+
+
 # rough, and deliberately so. i want an order of magnitude, not an invoice.
 CHARS_PER_TOKEN = 4
 
@@ -126,6 +131,7 @@ class Budget(object):
             out = {k: getattr(self, k) for k in self.KEPT}
             for k in self.MONEY:
                 out[k] = str(getattr(self, k))
+            out.update(self.caps())
             return copied(out)
 
     def restore(self, spent):
@@ -254,19 +260,63 @@ class Budget(object):
                else "")
         return str(n) + " tokens counted (" + out + ")"
 
+    def token_parts(self):
+        why = []
+        if self.counted_calls:
+            why.append(self.capped_split())
+        if self.estimated_calls:
+            why.append(("+ " if why else "") + "~" + str(self.estimated)
+                       + " estimated")
+        return ", ".join(why)
+
     def over(self):
         if self.max_calls and self.calls > self.max_calls:
             return "call cap: " + str(self.calls) + " > " + str(self.max_calls)
         if self.max_tokens and self.capped > self.max_tokens:
-            why = []
-            if self.counted_calls:
-                why.append(self.capped_split())
-            if self.estimated_calls:
-                why.append(("+ " if why else "") + "~" + str(self.estimated)
-                           + " estimated")
             return ("token cap: " + str(self.capped) + " > "
-                    + str(self.max_tokens) + " (" + ", ".join(why) + ")")
+                    + str(self.max_tokens) + " (" + self.token_parts() + ")")
         return None
+
+    def ahead(self, charge=1, near=NEAR):
+        """-> (REACHED or REACHING, why) when the next step should wait for
+        someone, None when it can go.
+
+        the call cap is read before the step: a step of `charge` calls that
+        would take the run past it does not start, so a cap of 20 spends 20.
+        tokens are only known once a step has answered, so the token cap gets
+        a warning as well, once `near` of it is spent.
+        """
+        with self.lock:
+            if self.max_calls and self.calls + charge > self.max_calls:
+                return REACHED, ("call cap: " + str(self.calls) + " of "
+                                 + str(self.max_calls) + " calls spent, and "
+                                 "the next step takes " + str(charge))
+            if not self.max_tokens:
+                return None
+            share = self.capped * 100 // self.max_tokens
+            word = REACHED if self.capped >= self.max_tokens else (
+                REACHING if self.capped >= near * self.max_tokens else None)
+            if word is None:
+                return None
+            return word, ("token cap: " + str(self.capped) + " of "
+                          + str(self.max_tokens) + " spent, " + str(share)
+                          + "% (" + self.token_parts() + ")")
+
+    def caps(self):
+        return {"max_calls": self.max_calls, "max_tokens": self.max_tokens}
+
+    def moved(self, kept):
+        """-> one line per cap that is not what `kept`, the spend a run
+        stopped with, says it had to go on."""
+        out = []
+        for key, name in (("max_calls", "call cap"), ("max_tokens",
+                                                      "token cap")):
+            was = (kept or {}).get(key)
+            now = getattr(self, key)
+            if was is not None and now != was:
+                out.append(name + " from " + (str(was) if was else "off")
+                           + " to " + (str(now) if now else "off"))
+        return out
 
     def summary(self):
         refused = (str(self.refused_calls) + " refused, "

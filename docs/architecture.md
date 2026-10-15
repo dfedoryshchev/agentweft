@@ -45,7 +45,8 @@ which meant every test knew how a call was made.
 
 `guardrails/` is the layer that says no. `budget.py` counts calls and
 tokens, as the provider reported them or estimated where it reported nothing,
-and stops the run when a flow goes over what it declared.
+and parks the run before the step that would take it over what the flow
+declared.
 `promises.py` checks the output against the flow's own invariants afterwards -
 the prompts are told the same rules, but being told is not being checked.
 `defaults.py` exists because a flow saying nothing about cost used to mean no

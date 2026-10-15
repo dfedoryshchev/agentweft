@@ -39,9 +39,10 @@ gives a planner that line.
 
 ## why a run stopped
 
-a run that stops short says `parked at <step>` when it is waiting for someone,
-`refused at <step>` when a step declined the work citing the spec, and
-`failed at <step>` otherwise, and its cause is one of a fixed list:
+a run that stops short says `parked at <step>` when it is waiting for someone
+(a park, a provider outage, a cap), `refused at <step>` when a step declined
+the work citing the spec, and `failed at <step>` otherwise, and its cause is
+one of a fixed list:
 
 - `gate failed` - a gate failed the step, or the step did not give the router
   what the flow requires of it (an output it must contain, a verdict it can
@@ -55,7 +56,10 @@ a run that stops short says `parked at <step>` when it is waiting for someone,
   weekly or usage limit. the run parks after that one call, never retries and
   never hands the empty answer to a gate; the why and `handoff.md` say when
   the provider said it resets, or `unknown`.
-- `budget` - the call or token cap.
+- `budget` - the call or token cap. the run parks before the step that would
+  cross the call cap, or once 80% of the token cap is spent; the why opens
+  with `reached` or `reaching` and how far it got (`completion 2/3 steps`),
+  and the step it parked before has not run (`docs/guardrails.md`).
 - `exception` - something raised; the traceback is printed as well.
 - `interrupt` - Ctrl-C.
 - `no answer` - the step came back empty after its retries. the why carries
@@ -189,8 +193,8 @@ or crashed. the keys are always all there, in this order:
   timed out, summed over every go; null for a provider that starts no process
   (the fake, the api) and when it could not be told.
 - `gates` is `[]` for a step that declares none, and also for one whose line
-  was closed before its gates were checked (refused, fenced, over budget,
-  crashed). `ungated` tells them apart: `true` when the gates were checked and
+  was closed before its gates were checked (refused, fenced, parked at the
+  cap, crashed). `ungated` tells them apart: `true` when the gates were checked and
   the step had none, `false` when it had some and `gates` holds what they
   said, null when the check never ran. `gates.md` says the same: an ungated
   step gets its heading and a `no gates` line under it. a gate that ran
@@ -198,8 +202,9 @@ or crashed. the keys are always all there, in this order:
   one per test: `{"test": "tests/test_calc.py::test_add", "before": "red",
   "kind": "assertion", "after": "green"}`; the other gates' entries have no
   `tests` key.
-- `outcome` is one of `ok`, `redo`, `parked`, `refused`, `over budget`,
-  `gate failed`, `failed`, `crashed`. `cause` is the run's stop cause from the
+- `outcome` is one of `ok`, `redo`, `parked`, `refused`, `gate failed`,
+  `failed`, `crashed`; a line written before the cap was checked ahead of
+  each step can say `over budget`. `cause` is the run's stop cause from the
   list above, null when it went on. `why` is the reason the run had in hand
   when it stopped there, null when it went on.
 - `file` is what this pass produced, `steps/<seq>-<step>.md`. a redo's second
@@ -365,8 +370,10 @@ the step before it produced. that is why the step outputs are on disk -
 without them resume could tell you where it died and nothing more.
 
 - the spend carries on: the new run starts at what the old one had spent, so
-  the cap is the task's, not each leg's. a run already over its cap is refused
-  until the cap is raised.
+  the cap is the task's, not each leg's. a run still at its cap is refused
+  until the cap is raised, with `--max-calls <n>` / `--max-tokens <n>` on the
+  resume or in `flow.yaml`; the change goes into `decisions.md` in the new
+  run's folder, and the run carries on at the step it paused before.
 - a flow edited since the stop is refused, naming the files, unless `--force`
   is given; then the edit goes into `decisions.md` in the new run's folder.
 - a step output edited by hand since it was written is what the rest works
