@@ -98,7 +98,22 @@ there shows. a flow that does not say runs its verify steps as written.
 quote the `"off"`: unquoted, yaml reads it as false, which is read as off too,
 but anything that reads the file without the loader sees `false`.
 
-## 6. run it three times before you trust it
+## 6. say how many times the work can go back
+
+a reviewer's `VERDICT: redo` sends the work back, and so does a failed gate.
+both stop somewhere and hand the run to you, and `send_backs` in `flow.yaml`
+says where:
+
+    send_backs: 3
+
+it is a whole number, 0 or more, and anything else is refused when the flow
+loads. it counts two things. a verdict's trips are counted for the whole run,
+and a failed gate's per step, so a gate failing on one step never spends
+another step's goes. leave it out and a verdict sends the work back twice and
+a gate once, which is how every shipped flow runs. the stop says which cap it
+hit and its value: `the work has gone back 3 times already (send_backs: 3)`.
+
+## 7. run it three times before you trust it
 
     python run.py my-flow --force
 

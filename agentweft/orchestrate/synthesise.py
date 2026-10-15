@@ -55,7 +55,8 @@ UNCHECKED = (
     ("do not average them",
      "a judgement that split the difference is spelled like one that did not."),
     ("the loop runs at most five times before it is a person's problem",
-     "that is `phase.loop`, and the flow side has no word for it. "
+     "that is `phase.loop`, and it does not carry over to a flow's "
+     "`send_backs`. "
      "`workflow.RESIDUE` is where that is written down."),
 )
 

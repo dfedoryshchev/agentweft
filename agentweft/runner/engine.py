@@ -709,7 +709,7 @@ def run_once(flow, provider=None, task=None, trail=None):
     fm = config(flow)
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     run = Run(flow, fm, by_role, provider=provider, task=task)
-    route = router.Router(fm, cap=2)
+    route = router.Router(fm)
     kept = trace.Trail(trail) if trail is not None else None
     out = EMPTY
     step = steps(flow)[0]
@@ -946,7 +946,7 @@ def main():
                   " or max_tokens in " + flow + "/flow.yaml, then carry on with"
                   " --resume " + pick_up + " --force")
             return 1
-    route = router.Router(fm, cap=2)
+    route = router.Router(fm)
     started = datetime.datetime.now()
     run_id = new_run_id(flow, started)
     timings = []
@@ -1349,7 +1349,8 @@ def main():
                 why = ""
                 if stuck:
                     why = (step + " still asks for a redo, and the work has gone"
-                           " back " + str(route.cap) + " times already,")
+                           " back " + times(route.cap) + " already (send_backs: "
+                           + str(route.cap) + "),")
                 return stop(stops.PARKED,
                             why.rstrip(",") or "waiting for " + waiting,
                             "parked", entry,
@@ -1436,10 +1437,14 @@ def gate_told(results):
 def sent_back_times(route, step):
     """-> how often a failed gate already sent the step back, for the why."""
     n = route.gate_tries.get(step, 0)
+    cap = " (send_backs: " + str(route.gate_cap(step)) + ")"
     if not n:
-        return ""
-    return ("; " + step + " was sent back " + str(n) + " time"
-            + ("" if n == 1 else "s") + " already")
+        return "; " + step + " was not sent back" + cap
+    return "; " + step + " was sent back " + times(n) + " already" + cap
+
+
+def times(n):
+    return str(n) + " time" + ("" if n == 1 else "s")
 
 
 def nothing_why(step, entry):

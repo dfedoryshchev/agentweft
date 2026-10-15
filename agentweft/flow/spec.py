@@ -80,7 +80,8 @@ def steps_named(steps, name):
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
-         "tiers", "investigate", "tests_e2e", "tests_integration", "verify")
+         "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
+         "send_backs")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes")
@@ -183,6 +184,12 @@ TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
          "tests_e2e": bool}
 
 
+def counts(value):
+    """-> whether value is a count. yaml reads `yes` as true, and true is an
+    int to python, so a bool is turned away by name."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
 def meant(word, known):
     """-> ", did you mean <the closest known word>?", or "" when none is close."""
     near = difflib.get_close_matches(str(word), list(known), n=1)
@@ -249,6 +256,8 @@ def check(raw):
     said = raw.get("tests_integration")
     if said is not None and not isinstance(said, bool) and said != "auto":
         bad.append("tests_integration should be true, false or auto")
+    if "send_backs" in raw and not counts(raw["send_backs"]):
+        bad.append("send_backs should be a whole number, 0 or more")
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)

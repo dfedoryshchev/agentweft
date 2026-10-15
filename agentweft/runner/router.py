@@ -25,11 +25,12 @@ from agentweft.flow.spec import step_id
 
 from .config import VERDICTS
 
+REDO_CAP = 2
 GATE_CAP = 1
 
 
 class Router(object):
-    def __init__(self, spec, cap=2):
+    def __init__(self, spec, cap=None):
         self.order = [step_id(s) for s in spec.steps]
         self.roles = {step_id(s): s["role"] for s in spec.steps}
         first_for_role = {}
@@ -46,7 +47,10 @@ class Router(object):
         for s in spec.steps:
             if s.get("must_produce"):
                 self.must[step_id(s)] = s["must_produce"]
-        self.cap = cap
+        said = spec.get("send_backs") if hasattr(spec, "get") else None
+        self.cap = cap if cap is not None else \
+            (REDO_CAP if said is None else said)
+        self.gate_limit = GATE_CAP if said is None else said
         self.sent_back = 0
         self.gate_tries = {}
 
@@ -93,8 +97,10 @@ class Router(object):
 
     def gate_cap(self, step):
         """how many times a failed gate sends this step back before the run
-        stops on it."""
-        return GATE_CAP
+        stops on it: the flow's `send_backs`, or once when it has none. the
+        verdict cap reads the same key but counts trips for the whole run,
+        which is why the two defaults differ."""
+        return self.gate_limit
 
     def gate_back(self, step):
         """-> the step a failed gate sends the work to, or None when it has

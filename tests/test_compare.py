@@ -87,8 +87,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `verify` is one more on the flow side: a switch for the judge steps,
     # where a phase's checks are agents and there is nothing to switch.
+    #
+    # `send_backs` grows it by one and is not `loop`'s pair: it counts trips
+    # back, and `loop` counts rounds.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 26
+    assert len(compare.flow_only()) == 27
     assert len(compare.phase_only()) == 7
 
 

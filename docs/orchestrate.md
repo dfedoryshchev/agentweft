@@ -196,8 +196,9 @@ at all:
 - **`personality`**, the same prompt twice from a fixed position. the second
   prompt file has a home now that a role's words are a library, but a step
   still names a role and nothing names a stance.
-- **`loop`**, the number of times round. a flow names who a verdict sends the
-  work back to, and the engine hands the router the number of trips itself.
+- **`loop`**, the number of times round. a flow's `send_backs` is the nearest
+  word, but it counts trips back rather than rounds, and nothing translates
+  one into the other when a phase loads as a flow.
 - **an ordered list of flows, and its name.** a flow spec says nothing about
   what runs after it.
 - **`name` in an agent's own frontmatter**, the file saying which role it is

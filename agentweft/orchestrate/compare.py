@@ -107,8 +107,12 @@ FLOW_ONLY = (
     Pair("step.on_redo", "",
          "going round again. it read as `loop`'s pair for the same reason and "
          "broke the same way - a flow names who a verdict sends the work back "
-         "to, and the engine hands the router the number of trips, so there is "
-         "nowhere for a phase's count to go."),
+         "to, and `send_backs` says how many trips, which is not a count of "
+         "rounds."),
+    Pair("flow.send_backs", "",
+         "how many times a verdict or a failed gate sends the work back before "
+         "the run stops for a person. a phase's `loop` counts rounds, not "
+         "trips back, so it stays where it is."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

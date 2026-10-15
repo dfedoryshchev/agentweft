@@ -117,9 +117,9 @@ RESIDUE = (
             "many copies, which is the other kind of many."),
     Missing(("phase.loop",),
             "how many times round before it becomes a person's problem. a "
-            "flow says who a verdict sends the work back to, and the engine "
-            "hands the router the number of trips itself, so the count in the "
-            "file has nowhere to land."),
+            "flow's `send_backs` is the nearest word, but it counts trips "
+            "back rather than rounds, and nothing translates one into the "
+            "other when a phase loads as a flow."),
     Missing(("agent.personality",),
             "the same prompt twice from a fixed position. the second prompt "
             "file has somewhere to live now that a role's words are a library "

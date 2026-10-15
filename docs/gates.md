@@ -33,8 +33,13 @@ again, not its `on_redo` target: the gate judged what that step produced. the
 first try's line in `steps.jsonl` says `gate failed` with `to` naming the step;
 the count is kept per step, so one step going again never uses up another's.
 if it fails a second time the run stops there as before, and the why says how
-often it was sent back. a provider failure retried inside one call is not a
-go and never spends the count.
+often it was sent back and the cap it hit (`... sent back 1 time already
+(send_backs: 1)`). a provider failure retried inside one call is not a go and
+never spends the count.
+
+once is the default. a flow that wants more, or none, sets `send_backs` in its
+`flow.yaml` (`docs/writing-a-flow.md`): at 2 a failing step goes again twice
+before the run stops, at 0 the first failure stops it.
 
 a command or red-test gate keeps the last 160 characters of what the command
 printed, not the first: a test runner says what failed at the end.

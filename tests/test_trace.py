@@ -170,7 +170,7 @@ def test_a_failed_gate_writes_the_line_of_the_step_it_stopped(
     assert line["outcome"] == "gate failed" and line["to"] is None
     assert line["cause"] == "gate failed"
     assert line["why"] == ("length: 2 lines, cap is 1; worker.md was sent"
-                           " back 1 time already")
+                           " back 1 time already (send_backs: 1)")
     assert line["gates"] == [{"gate": "length", "ok": False,
                               "detail": "2 lines, cap is 1"}]
     assert line["file"] == "steps/002-worker.md"

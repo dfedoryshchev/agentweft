@@ -10,13 +10,13 @@
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  failed at reviewer.md  <secs>s  weekly-digest-<run>  gate failed  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already  weekly-digest-<run>/handoff.md"
+    "<time>  weekly digest  failed at reviewer.md  <secs>s  weekly-digest-<run>  gate failed  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)  weekly-digest-<run>/handoff.md"
   ],
   "index": [
     "GATE  weekly-digest  regex at reviewer.md"
   ],
   "handoff": [
-    "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+    "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 2 of 4 gates passed; red first: not proven by a gate.",
@@ -24,7 +24,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     reviewer.md",
-    "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+    "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
     "ran",
     "  planner.md      <secs>s",
@@ -435,7 +435,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "cause": "gate failed",
-      "why": "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+      "why": "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/005-reviewer.md",
       "task_file": null,
       "tasks": null,
@@ -465,7 +465,7 @@
     "  PASS length - 8 lines",
     "  FAIL regex - matched here is|as an ai|i hope this and should not have",
     "gate failed at reviewer.md, stopping",
-    "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+    "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 2 of 4 gates passed; red first: not proven by a gate.",
@@ -473,7 +473,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     reviewer.md",
-    "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+    "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
     "ran",
     "  planner.md      <secs>s",

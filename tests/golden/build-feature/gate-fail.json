@@ -8,13 +8,13 @@
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already  build-feature-<run>/handoff.md"
+    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "GATE  build-feature  red-test at tester.md"
   ],
   "handoff": [
-    "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+    "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 0 of 2 gates passed; red first: not proven by a gate.",
@@ -22,7 +22,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     tester.md",
-    "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+    "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
     "ran",
     "  planner.md      <secs>s",
@@ -222,7 +222,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "cause": "gate failed",
-      "why": "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+      "why": "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/003-tester.md",
       "task_file": "task.md",
       "tasks": null,
@@ -248,7 +248,7 @@
     "started tester.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at tester.md, stopping",
-    "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+    "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 0 of 2 gates passed; red first: not proven by a gate.",
@@ -256,7 +256,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     tester.md",
-    "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+    "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
     "ran",
     "  planner.md      <secs>s",
