@@ -8,7 +8,9 @@ gate, and it waits for a ruling. `--resume <run id> --answer "<text>"` (or
 `--answer-file <path>`) runs that same step again with the answer at the end
 of its prompt, and the question, the answer and who gave it go into
 decisions.md in the place the run works in. a flow with a `lead:` step asks
-that step first, and parks only when it does not decide (`lead`).
+that step first, and parks only when it does not decide (`lead`). a judge
+whose file lists `VERDICT: spec change request` and answers it asks the same
+way, with the lines after its verdict as the reason.
 
 `REFUSED: <file>:<line> "<the line>"` is a step declining the work because
 the spec says otherwise. with a cite of a line that is there, the run ends on
@@ -36,7 +38,7 @@ import re
 from pathlib import Path
 
 from . import verbs
-from .config import verdict
+from .config import SPEC_CHANGE, verdict
 from .handoff import without
 
 PARK = "park"
@@ -92,9 +94,34 @@ def cited(said, cites, workdir):
     return None
 
 
-def asked_of(output, workdir):
+def spec_change_of(output):
+    """-> the question a `VERDICT: spec change request` answer stops on, with
+    the judge's reason: the lines after its verdict line, up to the next
+    one."""
+    lines = without(output).split("\n")
+    reason = []
+    for i, line in enumerate(lines):
+        if verdict(line) != SPEC_CHANGE:
+            continue
+        for rest in lines[i + 1:]:
+            if verdict(rest, asked=True):
+                break
+            if rest.strip():
+                reason.append(rest.strip())
+        break
+    said = flat(" ".join(reason)) or "the judge did not say why"
+    return ("NEEDS: the judge answered " + SPEC_CHANGE + ": the request"
+            " changes the spec rather than working under it. " + said
+            + "\nOPTIONS:\n- the spec may change: say which lines, and how"
+            "\n- the spec holds: say what to do instead")
+
+
+def asked_of(output, workdir, word=None, allowed=None):
     """-> (ASKED, the question), (DECLINED, the cited refusal) or None for an
-    answer that did neither."""
+    answer that did neither. `word` is the step's verdict and `allowed` the
+    verdicts its file lists; a spec change request asks only when it is one
+    of them, and otherwise is left to fail as an answer the file never
+    offered."""
     v = verbs.parse(output)
     if v.refused and not v.needs:
         cite = cited(v.refused, v.cites, workdir)
@@ -103,6 +130,8 @@ def asked_of(output, workdir):
         v.needs = v.refused + " (refused with no line of the spec cited)"
     if v.needs:
         return ASKED, question_of(v)
+    if word == SPEC_CHANGE and SPEC_CHANGE in (allowed or ()):
+        return ASKED, spec_change_of(output)
     if verdict(output) == PARK:
         said = [l.strip() for l in without(output).split("\n")[1:]
                 if l.strip()]

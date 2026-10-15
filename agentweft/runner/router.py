@@ -23,7 +23,7 @@ the flow's first step of the role.
 """
 from agentweft.flow.spec import step_id
 
-from .config import VERDICTS
+from .config import SPEC_CHANGE, VERDICTS
 
 REDO_CAP = 2
 GATE_CAP = 1
@@ -67,19 +67,25 @@ class Router(object):
         return self.unread(step, handoff)
 
     def unread(self, step, handoff):
-        """a step told to answer ok or redo that answered something else. only
-        redo is acted on, so any other word would walk on as an ok.
+        """a step told which verdicts it may give that answered something
+        else. only redo is acted on, so any other word would walk on as an
+        ok, and a word its file never offered is not an answer to it either.
 
         an empty answer is left to the check that stops a run on nothing.
         """
-        if not handoff.meta.get("asked") or not handoff.output \
-                or handoff.verdict in VERDICTS:
+        if not handoff.meta.get("asked") or not handoff.output:
+            return None
+        allowed = handoff.meta.get("allowed") or VERDICTS
+        if handoff.verdict in allowed and handoff.verdict in VERDICTS:
             return None
         asked = "step " + step + " was asked for a verdict and "
         if not handoff.verdict:
             return asked + "its answer has no verdict line"
-        return (asked + 'answered "' + handoff.verdict + '", which is neither '
-                + " nor ".join(VERDICTS))
+        if handoff.verdict == SPEC_CHANGE and SPEC_CHANGE in allowed:
+            return (asked + 'answered "' + SPEC_CHANGE + '", and the run did'
+                    " not stop for the ruling it asks for")
+        return (asked + 'answered "' + handoff.verdict + '", which is not '
+                + " or ".join(allowed) + ", the verdicts its file lists")
 
     def out_of_redos(self, handoff):
         """a redo the cap will not send anywhere. asked before `next`, which

@@ -32,6 +32,16 @@ gate sees it. a step that stopped to ask produced nothing to gate
 answer, which sends a test the run wrote back to the step that wrote it, to be
 shown red again by that step's gates, or parks on one the run started with.
 
+a step asked for a verdict is held to the verdicts its own file lists, each a
+line of its own: `VERDICT: ok`, `VERDICT: redo` and `VERDICT: spec change
+request`. an answer outside that list fails the step the way a failed gate
+does, so a redo from a file that only offers ok is not a send-back, and a word
+the runner does nothing with never walks on as an ok. a judge whose file lists
+`VERDICT: spec change request` and answers it parks the run for a ruling, with
+the lines after the verdict as its reason; one whose file does not list it
+fails. a judge that finds the request is really a change to the spec says so
+as a value, not as prose under an ok.
+
 a `CONFLICT: <file>:<line> "<quote>"` line, with `request: <the request's
 words>` on the line after it, is read first. when the quote is at that line as the run found it, the run stops on
 cause `conflict` before any gate runs, so a red test the step marked as

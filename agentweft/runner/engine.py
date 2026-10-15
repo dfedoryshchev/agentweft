@@ -9,8 +9,8 @@ from pathlib import Path
 
 from agentweft.roles import resolver
 
-from .config import (VERDICTS, asks_for_verdict, config, due, fanout_step,
-                     steps, verdict, where)
+from .config import (VERDICTS, asks_for_verdict, config, declared, due,
+                     fanout_step, steps, verdict, where)
 from agentweft import providers
 from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
@@ -663,7 +663,9 @@ class Run(object):
         return Handoff(role, text, verdict(text, asked=asked),
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,
-                             "asked": asked, "rulings": self.rulings()},
+                             "asked": asked,
+                             "allowed": declared(prompt) if asked else (),
+                             "rulings": self.rulings()},
                        block=block, carried=list(self.constraints))
 
 
@@ -728,6 +730,8 @@ def run_fanout(run, plan):
                   meta={"tasks": len(tasks),
                         "seconds": round(time.time() - began, 1),
                         "asked": any(p.meta.get("asked") for p in parts),
+                        "allowed": next((p.meta["allowed"] for p in parts
+                                         if p.meta.get("allowed")), ()),
                         "rulings": run.rulings()},
                   block=merge(p.block for p in parts),
                   carried=list(run.constraints))
@@ -982,7 +986,8 @@ def run_once(flow, provider=None, task=None, trail=None):
             note("parked", wrong[1], stops.PARKED, output=out.output)
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + wrong[1].split("\n")[0])
-        said = ruling.asked_of(out.output, run.workdir)
+        said = ruling.asked_of(out.output, run.workdir, out.verdict,
+                               out.meta.get("allowed"))
         if said and said[0] == ruling.DECLINED:
             note("refused", said[1], stops.DECLINED, output=out.output)
             return out.output, run.budget, ""
@@ -1647,7 +1652,8 @@ def main():
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=wrong[1])
 
-            said = ruling.asked_of(out.output, run.workdir)
+            said = ruling.asked_of(out.output, run.workdir, out.verdict,
+                                   out.meta.get("allowed"))
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)

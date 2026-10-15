@@ -36,6 +36,16 @@ def where(fm, given=None):
 
 
 VERDICTS = ("ok", "redo")
+SPEC_CHANGE = "spec change request"
+SHAPES = VERDICTS + (SPEC_CHANGE,)
+
+
+def declared(prompt):
+    """-> the verdicts a step's own words allow it, each written as a line of
+    its own: `VERDICT: ok`, `VERDICT: redo`, `VERDICT: spec change request`.
+    a word the runner does nothing with is not one, so it is never in here."""
+    said = set(line.strip() for line in prompt.split("\n"))
+    return tuple(w for w in SHAPES if "VERDICT: " + w in said)
 
 
 def asks_for_verdict(prompt):
@@ -44,8 +54,7 @@ def asks_for_verdict(prompt):
     the contract is the two lines the library gives a reviewer and a judge, so
     a prompt that only mentions a verdict in passing has not asked for one.
     """
-    return any(line.strip() in ("VERDICT: " + w for w in VERDICTS)
-               for line in prompt.split("\n"))
+    return any(w in VERDICTS for w in declared(prompt))
 
 
 def verdict(text, asked=False):

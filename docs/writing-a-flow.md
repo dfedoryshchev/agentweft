@@ -118,6 +118,15 @@ another step's goes. leave it out and a verdict sends the work back twice and
 a gate once, which is how every shipped flow runs. the stop says which cap it
 hit and its value: `the work has gone back 3 times already (send_backs: 3)`.
 
+the verdicts a step may give are the `VERDICT:` lines its file lists, and an
+answer outside them fails the step. a judge that should be able to say the
+request is really a change to the spec gets one more line in its file:
+
+    VERDICT: spec change request
+
+answered, it parks the run for a ruling with the judge's reason, the lines
+after the verdict, instead of sending anything back.
+
 ## 7. say who decides first
 
 a step that cannot go on without a decision asks with a `NEEDS:` line, and the
