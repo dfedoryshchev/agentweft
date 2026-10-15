@@ -69,9 +69,9 @@ read, is refused when the flow loads, before any step is paid for.
   an unproven check is never silent. its line goes into the gate's entry in
   `steps.jsonl` (`"unproven": [...]`, left out when there is none), into the
   handoff's `## not verified` section as `<step> unproven: <line>`, and into
-  the run's end line: a run that got through every step with one reads
-  `done, 1 check unproven` where a clean one reads `finished`. the end line is
-  built by `outcome` in `agentweft/runner/summary.py`.
+  the run's outcome: a run that got through every step with one reads
+  `done, 1 check unproven` where a clean one reads `done` (the outcomes are
+  listed in `docs/journal.md`, "how a run ended").
 - **length** - `max_lines`, `min_lines`.
 - **command** - `command: [...]`, with `{file}` replaced by a temp file holding
   the output. passes when the exit code matches `expect` (default 0). it runs

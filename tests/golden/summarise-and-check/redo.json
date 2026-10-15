@@ -15,7 +15,7 @@
     "summarise-and-check-<day>-1.md  summarise-and-check  2 steps"
   ],
   "handoff": [
-    "# summarise-and-check summarise-and-check-<run>: finished",
+    "# summarise-and-check summarise-and-check-<run>: done",
     "summarise-and-check ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",
@@ -46,7 +46,7 @@
     "- steps: worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
     "- reviewer.md sent the work back: notes.md: no line is named",
     "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
-    "- finished",
+    "- done",
     "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -326,7 +326,7 @@
     "VERDICT: ok",
     "notes.md: the plan moved to friday (line 3)",
     "deleted: nothing, every line was backed",
-    "# summarise-and-check summarise-and-check-<run>: finished",
+    "# summarise-and-check summarise-and-check-<run>: done",
     "summarise-and-check ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",

@@ -283,16 +283,11 @@ def unproven(passes):
 
 
 def outcome(stopped, unsure=()):
-    """-> how the run ended, the words the handoff opens with. a run that got
-    through with checks nobody could decide says how many, so it never reads
-    as a clean finish."""
+    """-> the run's one outcome (`stops.OUTCOMES`, or `done` with the count
+    of checks nobody could decide)."""
     if stopped:
-        return ended(stopped)
-    if unsure:
-        n = len(unsure)
-        return ("done, " + str(n) + " check" + ("" if n == 1 else "s")
-                + " unproven")
-    return ended(stopped)
+        return stops.outcome(stopped["cause"])
+    return stops.done(len(unsure))
 
 
 def _redo_why(said):
@@ -426,19 +421,14 @@ def assumed(item):
     return out
 
 
-def ended(stopped):
-    """-> the words after the run id: how it ended, in plain English."""
+def ended(stopped, unsure=()):
+    """-> the words after the run id: the outcome first, then for a stop
+    where and why."""
+    out = outcome(stopped, unsure)
     if not stopped:
-        return "finished"
-    cause, why, at = stopped["cause"], stopped.get("why") or "", stopped["at"]
-    word = {stops.PARKED: "parked at", stops.OUTAGE: "parked at",
-            stops.BUDGET: "over budget at", stops.GATE: "gate failed at",
-            stops.REFUSED: "refused at", stops.EXCEPTION: "crashed at",
-            stops.INTERRUPT: "interrupted at",
-            stops.NO_ANSWER: "no answer at"}.get(cause, "failed at")
-    out = word + " " + at
-    if cause == stops.OUTAGE:
-        out = out + " (provider outage)"
+        return out
+    why = stopped.get("why") or ""
+    out = out + " at " + stopped["at"]
     return out + (" - " + stops.flat(why) if why else "")
 
 
@@ -476,7 +466,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     dug = investigate.sections(found)
     first_line = (task or "").strip().split("\n")[0] if task else ""
     unsure = unproven(every)
-    out = ["# " + flow_name + " " + run_id + ": " + outcome(stopped, unsure)]
+    out = ["# " + flow_name + " " + run_id + ": " + ended(stopped, unsure)]
     if last and last["block"]["did"]:
         out[0] = out[0] + " - " + last["block"]["did"][0]
     out.append("")
@@ -664,7 +654,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.extend("- " + p["step"] + " sent the work back: " + p["redo_why"]
                for p in every if p["outcome"] == "redo" and p["redo_why"])
     out.append("- spend: " + (spend or "0 calls, 0 tokens"))
-    out.append("- " + ("stopped: " + stopped["cause"] + " at " + stopped["at"]
+    out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))
     out.append("- record: runs/" + run_id + "/steps.jsonl, gates.md, steps/")
     if stopped and command:

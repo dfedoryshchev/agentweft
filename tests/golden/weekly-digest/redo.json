@@ -18,7 +18,7 @@
     "weekly-digest-<day>-1.md  weekly-digest  4 steps"
   ],
   "handoff": [
-    "# weekly digest weekly-digest-<run>: finished",
+    "# weekly digest weekly-digest-<run>: done",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 4 of 4 gates passed; red first: not proven by a gate.",
@@ -57,7 +57,7 @@
     "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
     "- reviewer.md sent the work back: garden.md was never in the plan",
     "- spend: 9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)",
-    "- finished",
+    "- done",
     "- record: runs/weekly-digest-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -589,7 +589,7 @@
     "  - rent.md: due on the 1st",
     "## can wait",
     "  - garden.md: order seeds in march",
-    "# weekly digest weekly-digest-<run>: finished",
+    "# weekly digest weekly-digest-<run>: done",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 4 of 4 gates passed; red first: not proven by a gate.",

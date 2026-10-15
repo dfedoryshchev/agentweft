@@ -946,7 +946,11 @@ def main():
     def leave(stopped=None, needs=None):
         """write the run's handoff.md from what the runner knows, and hand
         back (its path, its lines)."""
-        lines = summary.build(run_id, fm["name"], asked, passes(trail, run, fm),
+        ran = passes(trail, run, fm)
+        record.ended(summary.outcome(stopped, summary.unproven(
+            list(earlier) + ran)))
+        record.save(run.budget)
+        lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), decisions.read(run.workdir),
                               run.budget.summary(), stopped=stopped,
                               needs=needs, command=resume_command(flow, run_id),

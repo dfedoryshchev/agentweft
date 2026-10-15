@@ -13,7 +13,7 @@
     "PARKED  risky-edit  at worker.md"
   ],
   "handoff": [
-    "# risky-edit risky-edit-<run>: parked at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
+    "# risky-edit risky-edit-<run>: needs you: ruling at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
     "risky-edit ran planner.md -> worker.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",
@@ -54,7 +54,7 @@
     "## run",
     "- steps: planner.md <secs>s -> worker.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
-    "- stopped: parked at worker.md",
+    "- cause: parked at worker.md",
     "- record: runs/risky-edit-<run>/steps.jsonl, gates.md, steps/",
     "to carry on",
     "  python run.py risky-edit --resume risky-edit-<run> --force"
@@ -176,7 +176,7 @@
     "preflight: 1 hot file(s) in that step",
     "  src/hooks.ts  0.94",
     "parked at worker.md, waiting for user",
-    "# risky-edit risky-edit-<run>: parked at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
+    "# risky-edit risky-edit-<run>: needs you: ruling at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
     "risky-edit ran planner.md -> worker.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",

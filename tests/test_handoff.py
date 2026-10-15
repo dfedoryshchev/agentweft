@@ -336,7 +336,7 @@ def test_a_two_step_run_records_both_blocks_and_writes_a_handoff_listing_them(
     assert second["handoff"]["state"] == "present"
     assert second["handoff"]["verified"][0]["backed"] == "unchecked"
     note = (folder / summary.FILE).read_text(encoding="utf-8")
-    assert note.startswith("# two " + folder.name + ": finished")
+    assert note.startswith("# two " + folder.name + ": done")
     assert "notes.md: the plan moved" in note
     assert "rent.md may be stale" in note
     assert "spec.md:2 - never drop a dated line" in note
@@ -345,7 +345,7 @@ def test_a_two_step_run_records_both_blocks_and_writes_a_handoff_listing_them(
     # the run's last console output is the top of the file, then its path
     printed = capsys.readouterr().out.rstrip("\n").split("\n")
     assert printed[-1] == "handoff: " + str(folder / summary.FILE)
-    assert any(l.startswith("# two " + folder.name + ": finished")
+    assert any(l.startswith("# two " + folder.name + ": done")
                for l in printed)
     journal = (tmp_path / "runs" / "journal.md").read_text(encoding="utf-8")
     assert journal.rstrip("\n").endswith(folder.name + "/" + summary.FILE)
@@ -397,7 +397,7 @@ def test_a_run_that_parks_still_writes_the_handoff_with_the_park_reason(
     assert engine.main() == 2
     folder = run_dir(tmp_path)
     note = (folder / summary.FILE).read_text(encoding="utf-8")
-    assert note.startswith("# parks " + folder.name + ": parked at worker.md")
+    assert note.startswith("# parks " + folder.name + ": needs you: ruling at worker.md")
     assert "## needs you" in note
     assert "waiting for    user" in note
     assert "python run.py parks --resume " + folder.name in note
@@ -414,7 +414,7 @@ def test_a_gate_stop_and_a_budget_stop_write_the_handoff_too(tmp_path,
                 extra="max_calls: 1\n")
     assert engine.main() == 2
     note = (run_dir(tmp_path) / summary.FILE).read_text(encoding="utf-8")
-    assert ": over budget at " in note.split("\n")[0]
+    assert ": needs you: budget at " in note.split("\n")[0]
     assert "call cap" in note
 
 
@@ -438,7 +438,7 @@ def test_a_needs_line_reaches_the_needs_you_section_even_on_a_gate_stop(
     assert "- patcher asks: keep the string or change it?" in needs
     assert "  cites: TASK.md:158 - a string with 2 decimals" in needs
     assert "  option: B: change" in needs
-    assert "gate failed at patcher.md" in note.split("\n")[0]
+    assert ": stopped: gate failed at patcher.md" in note.split("\n")[0]
 
 
 def test_the_next_prompt_starts_with_what_the_step_before_handed_over(

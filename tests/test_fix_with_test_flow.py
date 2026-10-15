@@ -182,6 +182,8 @@ def test_an_unsure_check_from_verify_finishes_the_run_with_it_on_record(
     assert judged[0]["ok"] is True
     assert judged[0]["unproven"] == [unsure]
     assert "done, 1 check unproven" in capsys.readouterr().out
+    kept = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    assert kept["outcome"] == "done, 1 check unproven"
 
 
 def test_an_empty_worker_answer_is_reported_as_nothing(tmp_path, monkeypatch):

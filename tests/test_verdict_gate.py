@@ -182,7 +182,7 @@ def test_two_unproven_checks_are_counted_in_the_plural():
 
 def test_a_run_with_nothing_unproven_ends_the_way_it_did():
     lines = handed(THREE)
-    assert lines[0] == "# demo demo-1: finished"
+    assert lines[0] == "# demo demo-1: done"
     assert not [l for l in lines if "unproven" in l]
 
 

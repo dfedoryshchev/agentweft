@@ -15,7 +15,7 @@
     "repo-audit-<day>-1.md  repo-audit  4 steps"
   ],
   "handoff": [
-    "# repo-audit repo-audit-<run>: finished",
+    "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",
@@ -45,7 +45,7 @@
     "## run",
     "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
     "- spend: 5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)",
-    "- finished",
+    "- done",
     "- record: runs/repo-audit-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -337,7 +337,7 @@
     "VERDICT: ok",
     "app.py parses argv and calls run().",
     "config.py loads settings.yml and has no defaults, which is the risk.",
-    "# repo-audit repo-audit-<run>: finished",
+    "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",

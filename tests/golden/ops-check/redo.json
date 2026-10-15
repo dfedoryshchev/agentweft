@@ -16,7 +16,7 @@
     "ops-check-<day>-1.md  ops-check  3 steps"
   ],
   "handoff": [
-    "# ops-check ops-check-<run>: finished",
+    "# ops-check ops-check-<run>: done",
     "ops-check ran planner.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",
@@ -49,7 +49,7 @@
     "- steps: planner.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
     "- reviewer.md sent the work back: the finding lost its raw line",
     "- spend: 5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)",
-    "- finished",
+    "- done",
     "- record: runs/ops-check-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -378,7 +378,7 @@
     "promise not checked: every finding keeps the raw line",
     "saved <tmp>/runs/ops-check-<day>-1.md",
     "- [high] app.log: ERROR nightly-export failed: disk full",
-    "# ops-check ops-check-<run>: finished",
+    "# ops-check ops-check-<run>: done",
     "ops-check ran planner.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",

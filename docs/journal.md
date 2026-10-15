@@ -66,6 +66,33 @@ written, and `rollup.py` refuses one it finds.
 `run.py` exits 0 when the run finished (or was not due), 1 when it could not
 start, 2 when it stopped, and 130 on an interrupt.
 
+## how a run ended
+
+every run that ends has one outcome, for a program to read where the cause
+is for counting: `outcome` in `runs/<run-id>/manifest.json` (null while the
+run is going), the first words after the run id in `handoff.md`'s heading, and
+so the console's end line too. a run that got through is `done`, or `done, 1
+check unproven` / `done, <n> checks unproven` when a judge said it could not
+decide some checks (`docs/gates.md`, verdict). a stop is the one outcome its
+cause maps to:
+
+| cause | outcome |
+|---|---|
+| `gate failed` | `stopped: gate failed` |
+| `refused` | `stopped: guard refused` |
+| `parked` | `needs you: ruling` |
+| `provider outage` | `waiting: provider limit` |
+| `budget` | `needs you: budget` |
+| `exception` | `stopped: tool fault` |
+| `no answer` | `stopped: tool fault` |
+| `interrupt` | `stopped: interrupted` |
+
+the map is `OUTCOME` in `agentweft/runner/stops.py`, with no default: a cause
+with no outcome is refused where the outcome is read. a gate that failed
+because the step would not do what it was asked still reads `stopped: gate
+failed`, so the outcome does not tell a principled stop from a broken step.
+the exit codes do not change with it.
+
 and every step's output lands under `runs/<flow>-<date>-<time>/`, one file per
 step, as it is produced. `runs/` is the one beside `run.py`, not one in the
 directory the run was started from, so `--resume`, `rollup.py` and the mcp
@@ -236,8 +263,8 @@ step's account of its work, not instructions.
 
 every run ends with `runs/<run-id>/handoff.md`, finished or stopped, and the
 last thing it prints is the top of that file and then `handoff: <path>`. it
-answers, in order: what came of it (the heading, with the last working
-step's first DID line), what it needs from you (a `NEEDS:` or `REFUSED:` a
+answers, in order: what came of it (the heading: the run's outcome, then
+where it stopped and why, then the last working step's first DID line), what it needs from you (a `NEEDS:` or `REFUSED:` a
 step wrote, with its cites and options, and on any stop what ran, what is
 left and the command to carry on), what the steps assumed (each as a question),
 what they doubt, what changed, what was tested, what a ruling is owed on,
@@ -260,7 +287,7 @@ claimed, no ruling on record"; an open question ("nobody has ruled", "not
 approved yet") is not a claim. a VERIFIED claim the transcript does not show
 is printed under "not verified" as "claims the record does not show".
 
-    # fix-with-test fix-with-test-2026-10-13-091402: finished - add returns a + b; it subtracted
+    # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 
     fix-with-test ran worker.md -> patcher.md -> verify.md in 41.2s on: add(1, 2) returns -1.
     patcher did:
@@ -274,7 +301,7 @@ is printed under "not verified" as "claims the record does not show".
     ## run
     - steps: worker.md 12.0s -> patcher.md 15.1s -> verify.md 14.1s
     - spend: 3 calls, ...
-    - finished
+    - done
     - record: runs/fix-with-test-2026-10-13-091402/steps.jsonl, gates.md, steps/
 
 a run that picks another up (`--resume`) folds the earlier run's passes in:
@@ -310,6 +337,7 @@ says:
 - the place's HEAD and the files git calls changed, a digest each
 - the task, the models chosen, the place, `origin` (the run the task started
   as) and `resumes` (the run this one picked up)
+- `outcome`, how the run ended (above), null while it runs
 
 the resume starts at the first step nothing passed for, and hands it whatever
 the step before it produced. that is why the step outputs are on disk -
@@ -371,7 +399,7 @@ run stops. the journal says `parked at planner.md` where a death says `failed
 at planner.md`, and the run's `handoff.md` (above) opens with a "needs you"
 section:
 
-    # park demo park-demo-2026-08-27-173348: parked at planner.md - waiting for user
+    # park demo park-demo-2026-08-27-173348: needs you: ruling at planner.md - waiting for user
 
     park demo ran planner.md in 0.0s.
     ...

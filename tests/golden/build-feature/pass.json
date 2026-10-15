@@ -15,7 +15,7 @@
     "build-feature-<day>-1.md  build-feature  4 steps"
   ],
   "handoff": [
-    "# build-feature build-feature-<run>: finished",
+    "# build-feature build-feature-<run>: done",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
@@ -46,7 +46,7 @@
     "## run",
     "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
-    "- finished",
+    "- done",
     "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -318,7 +318,7 @@
     "saved <tmp>/runs/build-feature-<day>-1.md",
     "VERDICT: ok",
     "- calc.py: mul(a, b) added",
-    "# build-feature build-feature-<run>: finished",
+    "# build-feature build-feature-<run>: done",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",

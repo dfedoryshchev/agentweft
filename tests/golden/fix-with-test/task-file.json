@@ -14,7 +14,7 @@
     "fix-with-test-<day>-1.md  fix-with-test  3 steps"
   ],
   "handoff": [
-    "# fix-with-test fix-with-test-<run>: finished - add returns a + b; it subtracted",
+    "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
     "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) \u2192 -1.",
     "patcher did:",
     "- add returns a + b; it subtracted",
@@ -48,7 +48,7 @@
     "## run",
     "- steps: worker.md <secs>s -> patcher.md <secs>s -> verify.md <secs>s",
     "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
-    "- finished",
+    "- done",
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -301,7 +301,7 @@
     "PASS the test is written before the patch",
     "PASS the test fails on the unpatched code",
     "PASS the patch is the smallest thing that turns it green",
-    "# fix-with-test fix-with-test-<run>: finished - add returns a + b; it subtracted",
+    "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
     "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) \u2192 -1.",
     "patcher did:",
     "- add returns a + b; it subtracted",

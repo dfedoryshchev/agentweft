@@ -53,7 +53,7 @@ def test_the_handoff_lands_beside_the_step_outputs(tmp_path):
     path = summary.write(tmp_path / "demo-1", lines)
     assert path == tmp_path / "demo-1" / summary.FILE
     text = path.read_text(encoding="utf-8")
-    assert text.startswith("# demo flow demo-1: parked at worker.md")
+    assert text.startswith("# demo flow demo-1: needs you: ruling at worker.md")
     assert "## needs you\nwaiting for    user\n" in text
     assert text.endswith("\n")
 

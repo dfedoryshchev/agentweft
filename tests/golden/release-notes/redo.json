@@ -15,7 +15,7 @@
     "release-notes-<day>-1.md  release-notes  2 steps"
   ],
   "handoff": [
-    "# release-notes release-notes-<run>: finished",
+    "# release-notes release-notes-<run>: done",
     "release-notes ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",
@@ -46,7 +46,7 @@
     "- steps: worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
     "- reviewer.md sent the work back: a hash and an author name are in the notes",
     "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
-    "- finished",
+    "- done",
     "- record: runs/release-notes-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -329,7 +329,7 @@
     "- a --dry-run switch on the export",
     "## fixed",
     "- the export no longer drops the last row",
-    "# release-notes release-notes-<run>: finished",
+    "# release-notes release-notes-<run>: done",
     "release-notes ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",

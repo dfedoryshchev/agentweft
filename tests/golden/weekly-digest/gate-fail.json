@@ -16,7 +16,7 @@
     "GATE  weekly-digest  regex at reviewer.md"
   ],
   "handoff": [
-    "# weekly digest weekly-digest-<run>: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+    "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 2 of 4 gates passed; red first: not proven by a gate.",
@@ -66,7 +66,7 @@
     "## run",
     "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s -> reviewer.md <secs>s",
     "- spend: 6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)",
-    "- stopped: gate failed at reviewer.md",
+    "- cause: gate failed at reviewer.md",
     "- record: runs/weekly-digest-<run>/steps.jsonl, gates.md, steps/",
     "to carry on",
     "  python run.py weekly-digest --resume weekly-digest-<run> --force"
@@ -458,7 +458,7 @@
     "  PASS length - 8 lines",
     "  FAIL regex - matched here is|as an ai|i hope this and should not have",
     "gate failed at reviewer.md, stopping",
-    "# weekly digest weekly-digest-<run>: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
+    "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 2 of 4 gates passed; red first: not proven by a gate.",

@@ -14,6 +14,11 @@ the journal has three shapes of line, the same first four columns in each:
 a stop is `parked at` when the run is waiting for someone, `failed at` for
 everything else. `<when>` is when the run started, on every line it writes.
 
+the run's outcome, the word a program reads, is `done` (with the count of
+checks nobody could decide, when there were any) or the one OUTCOME maps the
+cause to. it is the first thing after the run id in handoff.md and on the
+console, and `outcome` in manifest.json.
+
 two columns can follow, each read off the end of the line by what it looks
 like, so a line written before either existed still reads: the run's handoff,
 `<run id>/handoff.md`, the file to read about it; and, on a resumed run,
@@ -39,6 +44,19 @@ CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
 # limit for an outage
 WAITING = (PARKED, OUTAGE)
 
+DONE = "done"
+# no default: a cause added without an outcome fails where it is read rather
+# than ending runs under a word nobody chose
+OUTCOME = {GATE: "stopped: gate failed",
+           REFUSED: "stopped: guard refused",
+           PARKED: "needs you: ruling",
+           OUTAGE: "waiting: provider limit",
+           BUDGET: "needs you: budget",
+           EXCEPTION: "stopped: tool fault",
+           INTERRUPT: "stopped: interrupted",
+           NO_ANSWER: "stopped: tool fault"}
+OUTCOMES = (DONE,) + tuple(sorted(set(OUTCOME.values())))
+
 EXIT_OK = 0
 EXIT_STOP = 2
 EXIT_INTERRUPT = 130
@@ -61,6 +79,20 @@ def checked(cause):
 def status(cause, step):
     """-> the journal's third column for a stop."""
     return ("parked at " if checked(cause) in WAITING else "failed at ") + step
+
+
+def outcome(cause):
+    """-> the outcome of a run that stopped for `cause`."""
+    return OUTCOME[checked(cause)]
+
+
+def done(unproven=0):
+    """-> the outcome of a run that got through, with the checks nobody could
+    decide counted so it never reads as a clean finish."""
+    if not unproven:
+        return DONE
+    return (DONE + ", " + str(unproven) + " check"
+            + ("" if unproven == 1 else "s") + " unproven")
 
 
 def exit_code(cause):

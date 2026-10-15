@@ -10,7 +10,7 @@
     "code-review-<day>-1.md  code-review  2 steps"
   ],
   "handoff": [
-    "# code-review code-review-<run>: finished",
+    "# code-review code-review-<run>: done",
     "code-review ran worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",
@@ -36,7 +36,7 @@
     "## run",
     "- steps: worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
-    "- finished",
+    "- done",
     "- record: runs/code-review-<run>/steps.jsonl, gates.md, steps/"
   ],
   "files": [
@@ -198,7 +198,7 @@
     "saved <tmp>/runs/code-review-<day>-1.md",
     "VERDICT: ok",
     "- [high] app.py:12 the loop reads one past the end of items",
-    "# code-review code-review-<run>: finished",
+    "# code-review code-review-<run>: done",
     "code-review ran worker.md -> reviewer.md in <secs>s.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: no gates ran; red first: not proven by a gate.",

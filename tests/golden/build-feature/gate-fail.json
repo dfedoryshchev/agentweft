@@ -14,7 +14,7 @@
     "GATE  build-feature  red-test at tester.md"
   ],
   "handoff": [
-    "# build-feature build-feature-<run>: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+    "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 0 of 2 gates passed; red first: not proven by a gate.",
@@ -58,7 +58,7 @@
     "## run",
     "- steps: planner.md <secs>s -> tester.md <secs>s -> tester.md <secs>s",
     "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
-    "- stopped: gate failed at tester.md",
+    "- cause: gate failed at tester.md",
     "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force"
@@ -243,7 +243,7 @@
     "started tester.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at tester.md, stopping",
-    "# build-feature build-feature-<run>: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
+    "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 0 of 2 gates passed; red first: not proven by a gate.",

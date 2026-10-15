@@ -13,7 +13,7 @@
     "GATE  fix-with-test  red-test at worker.md"
   ],
   "handoff": [
-    "# fix-with-test fix-with-test-<run>: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already",
+    "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 0 of 2 gates passed; red first: not proven by a gate.",
@@ -54,7 +54,7 @@
     "## run",
     "- steps: worker.md <secs>s -> worker.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
-    "- stopped: gate failed at worker.md",
+    "- cause: gate failed at worker.md",
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force"
@@ -189,7 +189,7 @@
     "started worker.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at worker.md, stopping",
-    "# fix-with-test fix-with-test-<run>: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already",
+    "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
     "checks: 0 of 2 gates passed; red first: not proven by a gate.",

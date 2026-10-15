@@ -355,6 +355,59 @@ def test_each_cause_is_a_stop_the_runner_makes(cause, tmp_path, monkeypatch,
     assert "started worker.md" in printed
 
 
+# the one outcome a run ends with, read off its cause
+
+OUTCOME = {"gate failed": "stopped: gate failed",
+           "refused": "stopped: guard refused",
+           "parked": "needs you: ruling",
+           "provider outage": "waiting: provider limit",
+           "budget": "needs you: budget",
+           "exception": "stopped: tool fault",
+           "interrupt": "stopped: interrupted",
+           "no answer": "stopped: tool fault"}
+
+
+def test_every_cause_has_exactly_one_outcome():
+    assert {c: stops.outcome(c) for c in stops.CAUSES} == OUTCOME
+    assert all(stops.outcome(c) in stops.OUTCOMES for c in stops.CAUSES)
+
+
+def test_a_cause_off_the_list_has_no_outcome():
+    with pytest.raises(ValueError):
+        stops.outcome("tired")
+
+
+def test_a_clean_run_is_done_and_unproven_checks_are_counted():
+    assert stops.done() == "done"
+    assert stops.done(1) == "done, 1 check unproven"
+    assert stops.done(3) == "done, 3 checks unproven"
+
+
+@pytest.mark.parametrize("cause", stops.CAUSES)
+def test_each_stop_ends_with_its_outcome_on_record(cause, tmp_path,
+                                                   monkeypatch, fake_cli,
+                                                   capsys):
+    run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause)
+    folder = the_folder()
+    first = (folder / "handoff.md").read_text(encoding="utf-8").split("\n")[0]
+    assert first.startswith("# f " + folder.name + ": " + OUTCOME[cause]
+                            + " at "), first
+    kept = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    assert kept["outcome"] == OUTCOME[cause]
+    assert first in capsys.readouterr().out
+
+
+def test_a_finished_run_is_done_on_record(tmp_path, monkeypatch, capsys):
+    a_flow(tmp_path, monkeypatch, "f", ["worker"], tail=FAKE)
+    assert engine.main() == 0
+    folder = the_folder()
+    first = (folder / "handoff.md").read_text(encoding="utf-8").split("\n")[0]
+    assert first == "# f " + folder.name + ": done"
+    kept = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+    assert kept["outcome"] == "done"
+    assert first in capsys.readouterr().out
+
+
 def test_the_no_answer_why_carries_what_the_provider_said(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"])

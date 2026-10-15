@@ -16,6 +16,7 @@ it holds:
 - a digest of every file in the flow folder, so an edited flow is named
 - HEAD and the files git calls changed in the place, a digest each
 - the task, the models chosen, the place, and the run the task started as
+- once it has ended, its outcome (`runner/stops.py`): null while it runs
 
 a fanned-out step writes each task to `tasks.jsonl` as it finishes, so a step
 that died part way is picked up with only the tasks it had not done.
@@ -158,7 +159,7 @@ class Manifest(object):
             "flow_digest": whole, "flow_files": files, "tree": None,
             "steps": [{"step": s, "state": NOT_RUN, "in": None,
                        "digest": None} for s in order],
-            "stopped": None, "spend": {}})
+            "stopped": None, "outcome": None, "spend": {}})
 
     def carried(self, folder, run, order, flow_files, workdir=""):
         """-> the manifest of the run that picks this one up.
@@ -234,6 +235,10 @@ class Manifest(object):
         self.data["state"] = FINISHED
         self.data["stopped"] = None
         self.data["tree"] = tree(place, own)
+
+    def ended(self, outcome):
+        """the run's one outcome, the words its handoff opens with."""
+        self.data["outcome"] = outcome
 
     def save(self, budget=None):
         if budget is not None:
