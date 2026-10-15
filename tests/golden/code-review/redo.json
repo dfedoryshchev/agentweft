@@ -59,6 +59,7 @@
   ],
   "files": [
     "code-review-<day>-1.md",
+    "code-review-<run>/budget-plan.md",
     "code-review-<run>/gates.md",
     "code-review-<run>/handoff.md",
     "code-review-<run>/manifest.json",
@@ -104,6 +105,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 49200,
+        "buffer": 55080,
+        "risk": "ok, 49080 left to the buffer"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -199,6 +206,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 4800,
+        "buffer": 55080,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -264,6 +277,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 49200,
+        "buffer": 54960,
+        "risk": "over by 120, drawn from the buffer"
+      },
       "session": "worker-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -359,6 +378,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 4800,
+        "buffer": 59520,
+        "risk": "ok, 4560 left to the buffer"
+      },
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,

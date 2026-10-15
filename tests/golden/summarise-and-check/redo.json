@@ -65,6 +65,7 @@
     "journal.md",
     "last-run-summarise-and-check-<key>.json",
     "summarise-and-check-<day>-1.md",
+    "summarise-and-check-<run>/budget-plan.md",
     "summarise-and-check-<run>/gates.md",
     "summarise-and-check-<run>/handoff.md",
     "summarise-and-check-<run>/manifest.json",
@@ -107,6 +108,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 23,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -202,6 +209,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 23,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -267,6 +280,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 2,
+        "planned": 1,
+        "buffer": 22,
+        "risk": "over by 1, drawn from the buffer"
+      },
       "session": "worker-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -362,6 +381,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 2,
+        "planned": 1,
+        "buffer": 21,
+        "risk": "over by 1, drawn from the buffer"
+      },
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,

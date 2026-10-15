@@ -60,6 +60,7 @@
   ],
   "files": [
     "fix-with-test-<day>-1.md",
+    "fix-with-test-<run>/budget-plan.md",
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/handoff.md",
     "fix-with-test-<run>/manifest.json",
@@ -106,6 +107,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 7,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -194,6 +201,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 7,
+        "risk": "ok"
+      },
       "session": "patcher-1",
       "seconds": "<seconds>",
       "cached": false,

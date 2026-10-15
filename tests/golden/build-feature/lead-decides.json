@@ -70,6 +70,7 @@
   ],
   "files": [
     "build-feature-<day>-1.md",
+    "build-feature-<run>/budget-plan.md",
     "build-feature-<run>/gates.md",
     "build-feature-<run>/handoff.md",
     "build-feature-<run>/manifest.json",
@@ -122,6 +123,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 6,
+        "risk": "ok"
+      },
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -187,6 +194,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 6,
+        "risk": "ok"
+      },
       "session": "tester-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -258,6 +271,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 0,
+        "planned": 1,
+        "buffer": 4,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -323,6 +342,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 3,
+        "planned": 1,
+        "buffer": 4,
+        "risk": "over by 2, drawn from the buffer"
+      },
       "session": "planner-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -388,6 +413,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 4,
+        "risk": "ok"
+      },
       "session": "worker-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -494,6 +525,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 4,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,

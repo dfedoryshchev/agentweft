@@ -11,8 +11,10 @@ of the same flow differ only in the time, the ids and the seconds. a gate's
 entry carries `tests` only when that gate ran tests one by one. `handoff`
 is the step's HANDOFF block as `runner/handoff.py` parsed it, with each
 VERIFIED claim marked against the step's transcript; null only on a line
-closed before the step answered. every line ends on `chain`, which ties it
-to the line before it (`runner/chain.py`).
+closed before the step answered. `budget` is the pass against the run's
+budget plan (spent, planned, buffer, risk), null when there is no plan.
+every line ends on `chain`, which ties it to the line before it
+(`runner/chain.py`).
 """
 import datetime
 import json
@@ -259,8 +261,9 @@ class Trail(object):
     from the run it picked up, so the two files read as one sequence.
     """
 
-    def __init__(self, folder, after=0):
+    def __init__(self, folder, after=0, plan=None):
         self.folder = folder
+        self.plan = plan
         self.seq = max(after, last_seq(folder))
         self.unclosed = []
         self.closed = []
@@ -296,6 +299,8 @@ class Trail(object):
             self.unclosed.remove(entry)
         entry.written = line(entry, outcome, why, to, cause, self.task_file,
                              self.folder)
+        if self.plan is not None:
+            entry.written["budget"] = self.plan.closed(entry.step, outcome)
         self.held.append((entry, outcome))
         first = min(e.seq for e in self.unclosed) if self.unclosed else None
         ready = sorted((h for h in self.held
@@ -431,6 +436,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             "priced": said["priced"],
             "cost_from": said["cost_from"],
             "cost_parts": said["cost_parts"],
+            "budget": None,
             "session": last(one, "session") if one else None,
             "seconds": said["seconds"],
             "cached": said["cached"],

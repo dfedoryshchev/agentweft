@@ -26,6 +26,7 @@ from agentweft.orchestrate import decisions, park, synthesise
 NEWLINE = chr(10)
 RED_MARKER = "FAILS:"
 from agentweft.guardrails.budget import Budget
+from agentweft.guardrails import blocks
 
 from .handoff import EMPTY, Handoff, back, merge, parse, transcript, without
 from . import errors
@@ -1533,9 +1534,15 @@ def main():
         else:
             run.ruled[start] = ruling.told(question, answer, kind)
             print("ruled: " + start + " runs again with the answer")
+    plan = blocks.Plan(run.budget, todo, roles_of(run, todo),
+                       blocks.history(state.RUNS, flow, run.workdir,
+                                      skip=run_id))
+    plan.write(folder)
+    if plan.warning():
+        print(plan.warning())
     trail = trace.Trail(folder,
                         after=trace.last_seq(state.RUNS / pick_up)
-                        if pick_up else 0)
+                        if pick_up else 0, plan=plan)
     if fm.get("journal", True):
         journal(fm["name"], stops.RUNNING, started, run=run_id, origin=origin)
     step = todo[0]
@@ -2055,6 +2062,16 @@ def caps_given(argv):
         if not value.isdigit():
             raise ValueError(flag + " needs a whole number, 0 for no cap")
         out[key] = int(value)
+    return out
+
+
+def roles_of(run, todo):
+    out = {}
+    for step in todo:
+        try:
+            out[step] = run.role_for(step)
+        except KeyError:
+            out[step] = step
     return out
 
 

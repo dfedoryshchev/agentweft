@@ -55,6 +55,7 @@
     "journal.md",
     "last-run-release-notes-<key>.json",
     "release-notes-<day>-1.md",
+    "release-notes-<run>/budget-plan.md",
     "release-notes-<run>/gates.md",
     "release-notes-<run>/handoff.md",
     "release-notes-<run>/manifest.json",
@@ -95,6 +96,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 23,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -190,6 +197,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 23,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,

@@ -87,6 +87,7 @@
     "index.md",
     "journal.md",
     "last-run-weekly-digest-<key>.json",
+    "weekly-digest-<run>/budget-plan.md",
     "weekly-digest-<run>/gates.md",
     "weekly-digest-<run>/handoff.md",
     "weekly-digest-<run>/manifest.json",
@@ -134,6 +135,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 12401,
+        "buffer": 24284,
+        "risk": "ok, 12281 left to the buffer"
+      },
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -199,6 +206,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 63559,
+        "buffer": 87603,
+        "risk": "ok, 63319 left to the buffer"
+      },
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -305,6 +318,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 25837,
+        "buffer": 113320,
+        "risk": "ok, 25717 left to the buffer"
+      },
       "session": "merge-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -400,6 +419,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 6200,
+        "buffer": 113320,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -506,6 +531,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 6200,
+        "buffer": 113320,
+        "risk": "ok"
+      },
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,

@@ -117,6 +117,8 @@
   ],
   "files": [
     "capped-<day>-1.md",
+    "capped-<run>/budget-plan.md",
+    "capped-<run>/budget-plan.md",
     "capped-<run>/gates.md",
     "capped-<run>/gates.md",
     "capped-<run>/handoff.md",
@@ -166,6 +168,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": -1,
+        "risk": "ok; the buffer is spent, the run is 1 calls over its plan"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -222,6 +230,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 0,
+        "planned": 1,
+        "buffer": -1,
+        "risk": "ok; the buffer is spent, the run is 1 calls over its plan"
+      },
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -276,6 +290,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 0,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -315,6 +335,7 @@
   ],
   "printed": [
     [
+      "RISKY: the steps take ~2 calls, the call cap leaves 1 (budget-plan.md)",
       "started worker.md",
       "paused before reviewer.md: reached, completion 1/2 steps, call cap: 1 of 1 calls spent, and the next step takes 1",
       "# capped capped-<run>: needs you: budget at reviewer.md - reached, completion 1/2 steps, call cap: 1 of 1 calls spent, and the next step takes 1",

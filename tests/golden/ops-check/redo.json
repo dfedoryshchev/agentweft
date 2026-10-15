@@ -69,6 +69,7 @@
     "journal.md",
     "last-run-ops-check-<key>.json",
     "ops-check-<day>-1.md",
+    "ops-check-<run>/budget-plan.md",
     "ops-check-<run>/gates.md",
     "ops-check-<run>/handoff.md",
     "ops-check-<run>/manifest.json",
@@ -113,6 +114,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 5,
+        "risk": "ok"
+      },
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -178,6 +185,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 5,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -273,6 +286,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 5,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -338,6 +357,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 2,
+        "planned": 1,
+        "buffer": 4,
+        "risk": "over by 1, drawn from the buffer"
+      },
       "session": "worker-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -433,6 +458,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 2,
+        "planned": 1,
+        "buffer": 3,
+        "risk": "over by 1, drawn from the buffer"
+      },
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,

@@ -71,6 +71,7 @@
     "index.md",
     "journal.md",
     "last-run-risky-edit-<key>.json",
+    "risky-edit-<run>/budget-plan.md",
     "risky-edit-<run>/gates.md",
     "risky-edit-<run>/handoff.md",
     "risky-edit-<run>/manifest.json",
@@ -110,6 +111,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 3,
+        "risk": "ok"
+      },
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -166,6 +173,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 0,
+        "planned": 1,
+        "buffer": 3,
+        "risk": "ok"
+      },
       "session": null,
       "seconds": "<seconds>",
       "cached": false,

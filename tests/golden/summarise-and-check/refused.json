@@ -64,6 +64,7 @@
   "files": [
     "journal.md",
     "last-run-summarise-and-check-<key>.json",
+    "summarise-and-check-<run>/budget-plan.md",
     "summarise-and-check-<run>/handoff.md",
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/steps.jsonl",
@@ -102,6 +103,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 23,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,

@@ -68,6 +68,7 @@
     "  python run.py fix-with-test --resume fix-with-test-<run> --force"
   ],
   "files": [
+    "fix-with-test-<run>/budget-plan.md",
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/handoff.md",
     "fix-with-test-<run>/manifest.json",
@@ -114,6 +115,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 7,
+        "risk": "ok"
+      },
       "session": "worker-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -185,6 +192,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 2,
+        "planned": 1,
+        "buffer": 6,
+        "risk": "over by 1, drawn from the buffer"
+      },
       "session": "worker-2",
       "seconds": "<seconds>",
       "cached": false,

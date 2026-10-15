@@ -96,6 +96,60 @@ cap for it:
 a failed go the provider gave no count for at all, a timeout say, is still a
 call.
 
+### the budget plan
+
+the cap says when a run has spent too much, and says nothing before that. so
+before step one a run splits what its cap leaves into a block per step and
+writes them to `runs/<id>/budget-plan.md`: the cap, the unit, where the
+estimates came from, a realism note, then one line per step and the buffer.
+
+    # budget plan
+
+    cap       100000 tokens, 25 calls
+    unit      tokens
+    estimate  measured shares of a run's spend: worker 41%, patcher 22%, tester 14%, verify 11%, planner 8%, reviewer 4%
+    realism   a split, not a forecast: no earlier run of this flow here says what its steps take, so the cap is shared out by the measured shares
+
+        step        estimate
+        planner.md  11428
+        worker.md   58571
+        tester.md   20000
+        buffer      10001
+
+an estimate is what the step took in the newest five earlier runs of the same
+flow on the same project: the token cap's count (input, cache writes and
+output) when those runs were counted, else the calls. a step none of them ran
+is scaled from the ones that did by the shares below. with no earlier run at
+all, a token cap is split by the share of a run's spend each role took,
+measured over earlier runs of the shipped flows (worker 41%, patcher 22%,
+tester 14%, verify 11%, planner 8%, reviewer 4%; a role not on the list gets
+the mean), with a tenth held back as the buffer. a flow with only a call cap
+is planned at one call per step, and a fanned-out step counts once until an
+earlier run says how wide it went.
+
+when the blocks do not fit what the cap leaves, the run says so before it
+calls anything, and the plan file ends with the same line:
+
+    RISKY: the steps take ~3 calls, the call cap leaves 2 (budget-plan.md)
+    RISKY: the blocks add up to ~115000 tokens, the token cap leaves 100000 (budget-plan.md)
+
+RISKY is a warning, not a stop: the cap still stops the run where it always
+did. the realism note then names the biggest block as the first place to save,
+and says the red test is never where the saving comes from. a plan that fits
+reads `comfortable` with a buffer of a tenth of the cap or more, and `lower
+bound` under that.
+
+a block is accounting inside the run's total, not a second cap. every line in
+`steps.jsonl` carries `budget`, the pass held against its block:
+
+    "budget": {"spent": 35014, "planned": 30000, "buffer": 64966, "risk": "over by 5014, drawn from the buffer"}
+
+a step that passes under its block leaves the rest to the buffer (`ok, 29990
+left to the buffer`), and one that goes over draws the difference from it. a
+redo is charged to the same block, and a step with no block, such as the
+cause step switched on mid-run, draws all it spends. once the buffer is gone
+the risk says by how much the run is over its plan.
+
 ## what it cost in money
 
 the tokens go through a price table, `prices.yaml`: USD per million tokens,

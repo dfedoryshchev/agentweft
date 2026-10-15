@@ -77,6 +77,7 @@
     "journal.md",
     "last-run-repo-audit-<key>.json",
     "repo-audit-<day>-1.md",
+    "repo-audit-<run>/budget-plan.md",
     "repo-audit-<run>/gates.md",
     "repo-audit-<run>/handoff.md",
     "repo-audit-<run>/manifest.json",
@@ -125,6 +126,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 25837,
+        "buffer": 50719,
+        "risk": "ok, 25717 left to the buffer"
+      },
       "session": "planner-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -190,6 +197,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 132416,
+        "buffer": 182895,
+        "risk": "ok, 132176 left to the buffer"
+      },
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -296,6 +309,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 53827,
+        "buffer": 236602,
+        "risk": "ok, 53707 left to the buffer"
+      },
       "session": "merge-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -391,6 +410,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 120,
+        "planned": 12918,
+        "buffer": 236602,
+        "risk": "ok"
+      },
       "session": "reviewer-1",
       "seconds": "<seconds>",
       "cached": false,
@@ -456,6 +481,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 480,
+        "planned": 132416,
+        "buffer": 236362,
+        "risk": "over by 240, drawn from the buffer"
+      },
       "session": null,
       "seconds": "<seconds>",
       "cached": false,
@@ -562,6 +593,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 53827,
+        "buffer": 236242,
+        "risk": "over by 120, drawn from the buffer"
+      },
       "session": "merge-2",
       "seconds": "<seconds>",
       "cached": false,
@@ -657,6 +694,12 @@
       "priced": null,
       "cost_from": null,
       "cost_parts": null,
+      "budget": {
+        "spent": 240,
+        "planned": 12918,
+        "buffer": 248920,
+        "risk": "ok, 12678 left to the buffer"
+      },
       "session": "reviewer-2",
       "seconds": "<seconds>",
       "cached": false,
