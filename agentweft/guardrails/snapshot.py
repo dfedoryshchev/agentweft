@@ -25,7 +25,6 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 FILE = "start-snapshot.json"
-SPEC = ("TASK.md", "SPEC*.md", "docs/spec*")
 SKIP_DIRS = ("__pycache__", "node_modules", "venv", ".venv", "build", "dist",
              "target")
 TOOLING_NAMES = ("conftest.py", "pytest.ini")
@@ -111,17 +110,32 @@ def _glob(pattern):
     return re.compile(out + r"\Z")
 
 
-SPEC_RE = [_glob(g) for g in SPEC]
+_SPEC_RE = {}
+
+
+def spec_globs():
+    """-> the globs a spec file is named by: `spec_globs`, which
+    `agentweft init` asks for (`runner/settings.py`)."""
+    from agentweft.runner import settings
+
+    return tuple(settings.get("spec_globs"))
+
+
+def spec_re():
+    globs = spec_globs()
+    if globs not in _SPEC_RE:
+        _SPEC_RE[globs] = [_glob(g) for g in globs]
+    return _SPEC_RE[globs]
 
 
 def is_spec(path):
-    """whether a path from the top of the place is a spec file: one a SPEC
-    glob names, or one inside a folder a SPEC glob names."""
+    """whether a path from the top of the place is a spec file: one a spec
+    glob names, or one inside a folder a spec glob names."""
     if is_test(path):
         return False
     parts = path.split("/")
     heads = ["/".join(parts[:i]) for i in range(1, len(parts) + 1)]
-    return any(g.match(h) for g in SPEC_RE for h in heads)
+    return any(g.match(h) for g in spec_re() for h in heads)
 
 
 def is_tooling(path):

@@ -109,7 +109,7 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 
 ## docs
 
-- `docs/quickstart.md` - five minutes
+- `docs/quickstart.md` - `agentweft init`, a green run, then a real task
 - `docs/flows.md` - how a flow is put together
 - `docs/writing-a-flow.md` - adding one
 - `docs/gates.md` - checks that are programs

@@ -1,87 +1,99 @@
 # quickstart
 
-five minutes. the first three steps need no key and no folders of yours.
+from a clone to a green run, then to a real task. the first two steps need no
+key and cost nothing.
 
-## 1. get it running
+## 1. install it and answer init
 
-    pip install -r requirements.txt
-    python run.py list
+    pip install .
+    agentweft init
 
-that prints the flows, their roles, and when they run. nothing has been called
-yet and nothing has cost anything.
+`init` asks the few things a run needs and writes them to `.env`, where every
+run reads them:
 
-## 2. run one without a model
+- the provider a flow that names none runs on: `cli` shells out to `claude`,
+  `api` is the http one
+- a model per tier, `MODEL_HIGH`, `MODEL_MID` and `MODEL_LOW`: an alias such
+  as `opus` or `sonnet`, or a full id. blank leaves it to `MODEL`, then to the
+  provider's own default
+- the permission mode a step with a tool grant runs `claude` in, `dontAsk`
+  unless you say otherwise: anything the grant did not allow is denied
+- whether to keep the attribution trailer `claude` adds to its commits and
+  pull requests. off unless you turn it on
+- the caps a run parks at, `max_calls` and `max_tokens`, for a flow that sets
+  none
+- whether coding flows may write end-to-end tests. the recommendation is no:
+  they are slow and want a running system
+- what a run commits: `none` leaves every change in the work tree, `wip`
+  commits after each step, `squash` makes one commit per task
+- the files that are the spec, as globs from the top of the project
+- whether to keep a price table of your own, `prices.yaml`
 
-    python run.py minimal --force --flows examples
+`agentweft init --yes` takes every default and asks nothing. an `.env` that is
+already there is left alone; `--force` rewrites the keys init asks about and
+keeps the rest. the settings are `AGENTWEFT_<KEY>` lines: edit `.env`, or set
+the same name in the environment and leave it out of `.env`, which wins when
+both have it. a flow file that sets `max_calls`, `max_tokens` or `tests_e2e`
+itself wins over either.
 
-the examples use the `fake` provider, which replays canned text, and they read
-their inputs out of `examples/_inbox` and `examples/_logs`, which are in the
-repo. so this works on a fresh clone with nothing set up.
+it ends by printing the next two commands.
 
-`two-step` and `watch` are the other two. run `two-step` if you want to watch
-work get sent back for a redo.
+## 2. a green run, without a model
 
-## 3. look at what a flow promises
+    agentweft minimal --force --flows examples
 
-    python run.py show weekly-digest
+the examples use the `fake` provider, which replays canned text, so this works
+on a fresh clone with nothing set up. it ends on `done`. `two-step` and `watch`
+are the other two; run `two-step` to watch work get sent back for a redo.
 
-what it takes, what it gives back, and the invariants it is held to every time.
-those get handed to every role, so they are instructions as much as checks.
+    agentweft list
+    agentweft show minimal --flows examples
 
-## 4. point it at a model
+print the flows and what one promises. every command reads `--flows`, and
+`agentweft` with nothing after it prints the help.
 
-    cp .env.example .env
+## 3. a real task
 
-fill in either nothing (the default `cli` provider shells out to a command
-already on your PATH) or `API_KEY`, `API_URL` and `MODEL` for the http one.
-
-    python run.py provider
+    agentweft provider
 
 says whether each configured provider is usable, without spending anything.
+then point a coding flow at your project with what you want done:
 
-## 5. run one for real
+    agentweft fix-with-test --workdir ../my-project --task "add(1, 2) returns -1"
+    agentweft build-feature --workdir ../my-project --task-file spec.md
 
-    mkdir inbox && echo "# a note" > inbox/note.md
-    python run.py weekly-digest --force
+`fix-with-test` writes a failing test for the bug, then the patch.
+`build-feature` writes the failing tests for a spec, then the code. a flow
+says where the task goes by writing `{TASK}` in its own words; one that has no
+`{TASK}` refuses a task, and one that has it will not start without one.
+`docs/flows.md` has the rest.
 
-`INBOX=./inbox` is already in `.env.example`, along with `LOGS` and `WATCH` for
-the flows that read those.
+## 4. when it stops halfway
 
-a flow that works on whatever you point it at takes the task on the command
-line, so one flow serves every bug:
+    agentweft fix-with-test --resume
 
-    python run.py fix-with-test --workdir ../my-project --task "add(1, 2) returns -1"
-    python run.py fix-with-test --workdir ../my-project --task-file bug.md
-
-a flow says where the task goes by writing `{TASK}` in its own words; one that
-has no `{TASK}` refuses a task, and one that has it will not start without
-one. `docs/flows.md` has the rest.
-
-## 6. when it dies halfway
-
-    python run.py weekly-digest --resume
-
-picks up the last failed run of that flow at the step it died on, so the steps
-that already succeeded are not paid for twice.
+picks up the last run of that flow from its own manifest, so the steps that
+already succeeded are not paid for twice.
 
 to work on one prompt without running the flow around it:
 
-    python run.py step weekly-digest planner
+    agentweft step fix-with-test worker --workdir ../my-project
 
 that reads stdin, writes nothing down, and prints what came back.
 
-## 7. what it cost
+## 5. what it cost
 
-    python run.py spend
+    agentweft spend
 
 the last runs, one line each, then the same runs per flow and per provider:
 tokens, the money the price table gives them, and what the provider said they
-cost. the table is `agentweft/guardrails/prices.yaml`, dated; keep a
-`prices.yaml` of your own where you run when the prices move. `python
-rollup.py` is the wider view, and takes `--flow x` and `--failed`.
+cost. the table is `agentweft/guardrails/prices.yaml`, dated; a `prices.yaml`
+where you run wins over it. `python rollup.py` is the wider view, and takes
+`--flow x` and `--failed`.
 
 ## next
 
 - `docs/writing-a-flow.md` - adding your own
 - `docs/gates.md` - checks that are programs, not prompts
 - `docs/guardrails.md` - spend caps and promises
+- `docs/providers.md` - what the `cli` provider hands `claude`

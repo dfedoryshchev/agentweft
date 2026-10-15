@@ -273,7 +273,9 @@ def build(config, tier="", where=None, grant=None):
     the step for the same reason the tier does, so a step with a grant gets a
     provider of its own.
     """
-    name = (config or {}).get("provider", "cli")
+    from agentweft.runner import settings
+
+    name = settings.get("provider", flow=config or {})
     if name not in registry:
         raise ValueError("unknown provider: " + str(name) + ". there is: "
                          + ", ".join(sorted(registry)))

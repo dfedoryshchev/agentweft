@@ -37,6 +37,12 @@ FLOOR = (2, 1, 295)
 
 NO_TRAILER = {"attribution": {"commit": "", "pr": "", "sessionUrl": False}}
 
+
+def setting(key, flow=None):
+    from agentweft.runner import settings
+
+    return settings.get(key, flow=flow)
+
 # what a process needs to start, find its home folder and reach the network
 # through the machine's proxy. names are held upper case: Windows has no other.
 BASE = ("PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC",
@@ -103,7 +109,8 @@ def fence(grant):
     out = ["--tools", ",".join(tools)]
     if tools:
         out = out + ["--allowedTools", ",".join(tools)]
-    out = out + ["--permission-mode", "dontAsk", "--strict-mcp-config",
+    out = out + ["--permission-mode", setting("permission_mode"),
+                 "--strict-mcp-config",
                  "--disallowedTools", "mcp__*", "--disable-slash-commands"]
     if any(word in grant for word in ACTS):
         return out + ["--setting-sources", "user"]
@@ -665,7 +672,7 @@ class CliProvider(Provider):
             return [cmd, "-p", prompt], None
         argv = [cmd, "-p", "--output-format", "json"]
         settings = {}
-        if not self.opts.get("co_author"):
+        if not setting("co_author", flow=self.opts):
             settings.update(NO_TRAILER)
         hooked = self.hooked()
         if hooked:

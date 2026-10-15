@@ -1214,10 +1214,14 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
 
 def main():
     console()
+    if len(sys.argv) < 2:
+        from .cli import cmd_help
+
+        return cmd_help()
     load_env()
     if "--flows" in sys.argv:
         prompts.FLOW_ROOT[0] = sys.argv[sys.argv.index("--flows") + 1]
-    flow = sys.argv[1] if len(sys.argv) > 1 else "weekly-digest"
+    flow = sys.argv[1]
     pick_up = None
     resuming = "--resume" in sys.argv
     if resuming:

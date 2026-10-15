@@ -244,8 +244,10 @@ and a granted step is started with:
 - `--allowedTools <the same tools>`. under `dontAsk` anything that would
   prompt is denied, so a granted Bash or Edit has to be pre-approved to run at
   all. on its own this flag fences nothing; `--tools` does.
-- `--permission-mode dontAsk`, pinned, because the mode a `-p` run starts in
-  otherwise depends on the host.
+- `--permission-mode dontAsk`, always passed, because the mode a `-p` run
+  starts in otherwise depends on the host. `AGENTWEFT_PERMISSION_MODE` (which
+  `agentweft init` asks for) names another of `claude`'s modes; any mode but
+  `dontAsk` stops the denial above from covering what the grant left out.
 - `--strict-mcp-config` and `--disallowedTools "mcp__*"`: `--tools` does not
   reach MCP tools, so the place's `.mcp.json` is not loaded and no MCP tool is
   left.
@@ -351,7 +353,10 @@ block:
       provider: cli
       co_author: true
 
-and `--settings` is then not passed at all, so the cli's own default answers.
+or every run takes it from `AGENTWEFT_CO_AUTHOR=true` in `.env`, which
+`agentweft init` asks about (off unless you say yes). either way `--settings`
+is then not passed at all, so the cli's own default answers. a provider block
+that says `co_author: false` wins over the `.env` line.
 
 ### what the command's process holds
 

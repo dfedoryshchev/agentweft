@@ -64,6 +64,7 @@ def cmd_show():
 
 def cmd_help():
     print("""usage:
+  agentweft init [--yes] [--force]   the choices a first run needs, into .env
   python run.py <flow> [--force] [--resume [run-id]] [--flows <dir>]
                        [--workdir <dir>] [--worktree [commit]]
                        [--task "<text>" | --task-file <path>]
@@ -77,7 +78,8 @@ def cmd_help():
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
   python run.py provider         is each configured provider usable
-  python run.py step <flow> <role-or-step>   one step, nothing written down
+  python run.py step <flow> <role-or-step> [--workdir <dir>]
+                                  one step, nothing written down
   python run.py workflow          the phase list, and where it stops
   python run.py vocab             flow words against phase words, counted
   python run.py verify <run-id>   does that run's record still hold
@@ -86,6 +88,13 @@ def cmd_help():
                                   worktrees, or remove one
   python rollup.py [--flow x] [--failed]
 
+`agentweft` on the path is `python run.py`. every command reads --flows.
+
+init      asks the provider, a model per tier, the permission mode, the
+          attribution trailer, the caps, end-to-end tests, what a run commits
+          and the spec globs, writes them to .env and prints the quick
+          start. --yes takes every default; an .env already there is only
+          rewritten with --force, and keeps the keys init does not ask about
 --force   ignore the schedule
 --resume  pick up a run that did not finish, read from its own manifest: the
           one named, or the newest of that flow. one that died starts again
@@ -165,10 +174,17 @@ def cmd_step():
     except ValueError as e:
         print(str(e))
         return 1
+    workdir = None
+    if "--workdir" in sys.argv:
+        i = sys.argv.index("--workdir")
+        if len(sys.argv) <= i + 1:
+            print("--workdir needs a directory")
+            return 1
+        workdir = sys.argv[i + 1]
     spec = config(flow)
     by_role = resolver.resolve(spec.raw, prompts.flow_path(flow),
                                spec.promises.as_prompt())
-    run = Run(flow, spec, by_role, task=asked)
+    run = Run(flow, spec, by_role, task=asked, workdir=workdir)
     named = steps_named(spec.steps, name)
     step = step_id(named[0]) if named else name + ".md"
     previous = ""
@@ -346,7 +362,14 @@ def cmd_bench():
     return bench.main(sys.argv[2:])
 
 
-COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
+def cmd_init():
+    from .init import cmd_init as init
+
+    return init()
+
+
+COMMANDS = {"init": cmd_init, "list": cmd_list, "show": cmd_show,
+            "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
             "vocab": cmd_vocab, "verify": cmd_verify, "bench": cmd_bench,
             "worktree": cmd_worktree, "--help": cmd_help,

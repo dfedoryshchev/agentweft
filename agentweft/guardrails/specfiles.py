@@ -1,7 +1,8 @@
 """the spec files a run started with, held to the flow's rule for them.
 
 `spec_files:` in flow.yaml says what a step may do to the spec (`TASK.md`,
-`SPEC*.md` and `docs/spec*` from the top of the place, `snapshot.is_spec`):
+`SPEC*.md` and `docs/spec*` from the top of the place, or the globs the
+`spec_globs` setting names, `snapshot.is_spec`):
 
 - `read-only`: nothing. a step that changes a spec file fails like a gate,
   goes back once with the file named, and the run stops if it is still
