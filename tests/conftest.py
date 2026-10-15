@@ -48,10 +48,10 @@ def no_real_provider():
 def answering(run):
     """-> a `cli_provider.call` that hands each call to a fake shaped like
     `subprocess.run`, for the tests that answer without a process."""
-    def call(argv, stdin=None, cwd=None, timeout=None, done=None):
+    def call(argv, stdin=None, cwd=None, timeout=None, done=None, env=None):
         try:
             r = run(argv, input=stdin, capture_output=True, encoding="utf-8",
-                    errors="replace", cwd=cwd, timeout=timeout)
+                    errors="replace", cwd=cwd, timeout=timeout, env=env)
         except subprocess.TimeoutExpired:
             return cli_provider.Ran(None, "", "", 0, timed_out=True)
         return cli_provider.Ran(r.returncode, r.stdout, r.stderr, 0)

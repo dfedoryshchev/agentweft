@@ -71,7 +71,7 @@ def a_session(folder, session, prompt, *more):
 
 def timing_out(monkeypatch, write=None):
     """a cli call that runs out of time, having written `write` first."""
-    def call(argv, stdin=None, cwd=None, timeout=None, done=None):
+    def call(argv, stdin=None, cwd=None, timeout=None, done=None, env=None):
         if write:
             write()
         return cli_provider.Ran(None, "", "", 0, timed_out=True)

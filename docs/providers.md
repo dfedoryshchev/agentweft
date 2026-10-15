@@ -282,6 +282,35 @@ block:
 
 and `--settings` is then not passed at all, so the cli's own default answers.
 
+### what the command's process holds
+
+a model step can be pointed at a repo you did not write, so the command does
+not inherit the run's environment. it starts with what any process needs to
+start and find its home folder (`PATH`, `HOME` or `USERPROFILE`, `TEMP`, the
+locale, `SYSTEMROOT` and friends on Windows), the proxy and certificate names
+(`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY`, `NODE_EXTRA_CA_CERTS`,
+`SSL_CERT_FILE`), and nothing else. a token in the shell, a cloud key, the
+api provider's `API_KEY` and whatever `.env` loaded stay with the runner.
+
+`claude` also gets every name under `ANTHROPIC_` and `CLAUDE_`, because that
+is where it reads its own login and settings: `ANTHROPIC_API_KEY`,
+`ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CONFIG_DIR`,
+`ANTHROPIC_BASE_URL`, `CLAUDE_CODE_USE_BEDROCK` and the rest. a subscription
+login lives in the cli's config folder, not the environment, so it keeps
+working. any other command gets none of those: its login is not ours to
+guess. the same environment answers `--version` and `claude auth status`, so
+the check says what a step will see.
+
+a name the command needs beyond that is listed in the provider block, for
+example the cloud credentials a Bedrock or Vertex login reads:
+
+    provider:
+      provider: cli
+      env: [AWS_PROFILE, AWS_REGION]
+
+`--bare` would fence the cli harder, but it reads only `ANTHROPIC_API_KEY` or
+a key helper and never the subscription login, so it is not passed.
+
 ## where a setting comes from
 
 step, then flow, then environment, then the default in `runner/settings.py`.

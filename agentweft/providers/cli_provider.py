@@ -36,6 +36,20 @@ FLOOR = (2, 1, 295)
 
 NO_TRAILER = {"attribution": {"commit": "", "pr": "", "sessionUrl": False}}
 
+# what a process needs to start, find its home folder and reach the network
+# through the machine's proxy. names are held upper case: Windows has no other.
+BASE = ("PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC",
+        "TEMP", "TMP", "TMPDIR", "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH",
+        "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES",
+        "PROGRAMFILES(X86)", "USER", "USERNAME", "LOGNAME", "SHELL", "LANG",
+        "LC_ALL", "LC_CTYPE", "TERM", "TZ", "XDG_CONFIG_HOME", "XDG_DATA_HOME",
+        "XDG_CACHE_HOME", "XDG_RUNTIME_DIR", "HTTP_PROXY", "HTTPS_PROXY",
+        "NO_PROXY", "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE")
+
+# `claude` reads its login, config folder, endpoint and provider switch from
+# names under these.
+OWN = ("ANTHROPIC_", "CLAUDE_")
+
 
 def shell_hook(denials):
     """-> the `hooks` setting that hands every Bash and PowerShell call to the
@@ -323,7 +337,7 @@ def text(raw):
         .replace("\r", "\n")
 
 
-def call(argv, stdin=None, cwd=None, timeout=None, done=None):
+def call(argv, stdin=None, cwd=None, timeout=None, done=None, env=None):
     """-> Ran. argv runs in a process group of its own, both pipes are read as
     they come so neither fills up and stalls it, and the call is over when
     `done` says the output so far is the whole answer, when the process exits,
@@ -338,7 +352,8 @@ def call(argv, stdin=None, cwd=None, timeout=None, done=None):
     else:
         group = {"start_new_session": True}
     proc = subprocess.Popen(argv, stdin=PIPE if stdin is not None else None,
-                            stdout=PIPE, stderr=PIPE, cwd=cwd, **group)
+                            stdout=PIPE, stderr=PIPE, cwd=cwd, env=env,
+                            **group)
     job = job_for(proc.pid) if os.name == "nt" else None
     out, err = [], []
     answer, eof, woke = threading.Event(), threading.Event(), threading.Event()
@@ -536,6 +551,20 @@ class CliProvider(Provider):
     def command(self):
         return self.opts.get("command", "claude")
 
+    def child_env(self):
+        """-> the environment the command starts with: what any process needs,
+        for `claude` its own login and settings, and the names the provider's
+        `env` lists. nothing else the run holds, its keys and tokens included,
+        reaches the model's process."""
+        keep = set(BASE)
+        listed = self.opts.get("env") or ()
+        if isinstance(listed, str):
+            listed = [listed]
+        keep.update(str(name).upper() for name in listed)
+        own = OWN if is_claude(self.command) else ()
+        return {k: v for k, v in os.environ.items()
+                if k.upper() in keep or k.upper().startswith(own)}
+
     def version(self):
         """-> the cli's version, None when it could not be read. asked once
         per provider, and only of `claude`."""
@@ -544,7 +573,8 @@ class CliProvider(Provider):
         cmd = self.command
         try:
             r = subprocess.run([cmd, "--version"], capture_output=True,
-                               encoding="utf-8", errors="replace", timeout=30)
+                               encoding="utf-8", errors="replace", timeout=30,
+                               env=self.child_env())
             said = (r.stdout or "").strip()
             self.seen_version = version_of(said) if r.returncode == 0 else None
             self.version_said = said or ("exit " + str(r.returncode))
@@ -625,7 +655,8 @@ class CliProvider(Provider):
             r = call(argv, stdin=stdin,
                      cwd=str(self.where) if self.where else None,
                      timeout=timeout,
-                     done=answered if stdin is not None else None)
+                     done=answered if stdin is not None else None,
+                     env=self.child_env())
         except FileNotFoundError:
             return Reply("", detail=argv[0] + " is not on PATH", retryable=False)
         except OSError as e:
@@ -720,7 +751,8 @@ class CliProvider(Provider):
         try:
             r = subprocess.run([self.command, "auth", "status"],
                                capture_output=True, encoding="utf-8",
-                               errors="replace", timeout=30)
+                               errors="replace", timeout=30,
+                               env=self.child_env())
         except (OSError, subprocess.TimeoutExpired) as e:
             return False, "could not ask whether it is logged in: " + str(e)
         if r.returncode != 0:
