@@ -17,6 +17,10 @@ dev = ["pytest>=8.0"]
 [project.scripts]
 agentweft = "agentweft.runner.cli:entrypoint"
 
+[tool.pytest.ini_options]
+# bench/ holds task projects and hidden suites, run only against a copy
+testpaths = ["tests"]
+
 [tool.setuptools.packages.find]
 include = ["agentweft*"]
 

@@ -1010,16 +1010,17 @@ def check_step(run, route, step, out, run_dir=None):
     return "", route.gate(step, out) or ""
 
 
-def run_once(flow, provider=None, task=None, trail=None):
+def run_once(flow, provider=None, task=None, trail=None, workdir=None):
     """run a flow and hand back what it produced, what it cost, and why it
     stopped short ("" when it did not). the eval harness wants the output, not
     the printing, and it wants to say which provider the whole thing runs on.
 
     `trail` is a folder to write the run's steps.jsonl into, the same lines a
-    run of `main` writes, for a case that asserts the steps it took."""
+    run of `main` writes, for a case that asserts the steps it took.
+    `workdir` is the place it works in, over the flow's own."""
     fm = config(flow)
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
-    run = Run(flow, fm, by_role, provider=provider, task=task)
+    run = Run(flow, fm, by_role, provider=provider, task=task, workdir=workdir)
     route = router.Router(fm)
     run.ups = route.ups
     kept = trace.Trail(trail) if trail is not None else None

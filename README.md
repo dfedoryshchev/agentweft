@@ -114,6 +114,7 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
 - `docs/writing-a-flow.md` - adding one
 - `docs/gates.md` - checks that are programs
 - `docs/guardrails.md` - spend caps, prices and promises
+- `docs/bench.md` - a flow scored on tasks by a suite it never sees
 - `docs/providers.md` - cli, http, fake
 - `docs/mcp.md` - reading the runs from an agent, and feeding a flow context
 - `docs/journal.md` - the journal, the per-step trace, the rollup, and --resume

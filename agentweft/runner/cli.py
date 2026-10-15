@@ -81,6 +81,7 @@ def cmd_help():
   python run.py workflow          the phase list, and where it stops
   python run.py vocab             flow words against phase words, counted
   python run.py verify <run-id>   does that run's record still hold
+  python run.py bench <set> [--k <n>] [--live]   score a flow on tasks
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -325,7 +326,14 @@ def entrypoint():
     return _main()
 
 
+def cmd_bench():
+    from agentweft.bench import __main__ as bench
+
+    return bench.main(sys.argv[2:])
+
+
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
-            "vocab": cmd_vocab, "verify": cmd_verify, "--help": cmd_help,
+            "vocab": cmd_vocab, "verify": cmd_verify, "bench": cmd_bench,
+            "--help": cmd_help,
             "-h": cmd_help}

@@ -1,0 +1,4 @@
+flow: build-feature
+provider:
+  provider: fake
+k: 1
