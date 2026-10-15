@@ -288,7 +288,11 @@ every gate's verdict with the command behind it, the red-first proof (the
 newest `red-first` gate that replayed something: `shown on <step>` with each
 new test's line, `red without the fix (assertion), green with it`, or the
 failure; else the `red-test` gate's own record: `gate-proven`, `claimed,
-nothing was run` or `not proven by a gate`), the rulings on record (`decisions.md` in the place),
+nothing was run` or `not proven by a gate`), the test order on a flow whose
+steps say what they write (`- test order: red before any product code:
+red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or
+`tests carried from <sha>`, or `tests skipped: <reason> (--skip-tests)`, which
+the checks line repeats), the rulings on record (`decisions.md` in the place),
 the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (a markdown file at the top of the checkout) changed at all, each
 name the `decisions.md` entry behind them or print `UNRULED`; an add-only
@@ -361,6 +365,12 @@ without them resume could tell you where it died and nothing more.
   is given; then the edit goes into `decisions.md` in the new run's folder.
 - a step output edited by hand since it was written is what the rest works
   from, and that goes into the same `decisions.md`.
+- `--skip-tests "<reason>"` and `--continue <run or commit>` are each written
+  into that `decisions.md` too, as `tests skipped for this run` with the
+  reason or `tests carried from ...` with the test files. the start snapshot
+  and the red proof (`start-snapshot.json`, `red-proof.json`) are carried
+  into the new run's folder, so the order and the red-first replay compare
+  against the place as the first run found it (`docs/gates.md`).
 - a place whose HEAD or changed files are not what they were at the stop is
   named before anything runs. it is not refused: the person carrying on may
   have changed it on purpose.

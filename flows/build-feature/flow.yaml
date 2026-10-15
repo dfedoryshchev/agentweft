@@ -2,8 +2,10 @@ name: build-feature
 steps:
   - role: planner
     prompt: planner.md
+    writes: none
   - role: tester
     prompt: tester.md
+    writes: tests
     writes_tests: true
     must_produce: "FAILS:"
     gates:
@@ -12,6 +14,7 @@ steps:
         command: ["python", "-m", "pytest", "-q", "{test}"]
   - role: worker
     prompt: worker.md
+    writes: product
     writes_tests: true
     gates:
       - gate: command
@@ -22,6 +25,7 @@ steps:
         command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "{test}"]
   - role: reviewer
     prompt: reviewer.md
+    writes: none
     tools: [read, grep, shell]
     on_redo: worker
 promises:

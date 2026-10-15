@@ -9,12 +9,24 @@ a test file whose content is not what it was is one the run wrote or changed.
 
 content, never mtimes: a stash and pop rewrites the time of every file it
 touches without changing a byte, and an editor can save a file unchanged.
+
+it also hashes the spec files and every other file (the product), and the
+run keeps it as runs/<id>/start-snapshot.json, so a run picked up later
+compares against the place as it first started and not as it was left.
 """
 import ast
+import base64
+import fnmatch
 import hashlib
+import json
+import os
 import re
 import subprocess
 from pathlib import Path, PurePosixPath
+
+FILE = "start-snapshot.json"
+SPEC = ("TASK.md", "SPEC*.md", "docs/spec*")
+SKIP_DIRS = ("__pycache__", "node_modules")
 
 TEST_PATH = re.compile(r"(^|/)(tests?|spec|__tests__)/|(^|/)test_[^/]*\.py$"
                        r"|_tests?\.py$|\.(test|spec)\.[cm]?[jt]sx?$"
@@ -87,60 +99,128 @@ def collected(node):
     return False
 
 
-class Snapshot(object):
-    """the place as the run found it. `why` says why there is nothing to
-    compare against ("" when there is): not a git work tree, or no commit."""
+def is_spec(path):
+    return not is_test(path) and any(fnmatch.fnmatchcase(path, g)
+                                     for g in SPEC)
 
-    __slots__ = ("place", "root", "start", "tests", "loose", "own", "why")
+
+class Snapshot(object):
+    """the place as the run found it. `why` says why there is no start to
+    replay from ("" when there is): not a git work tree, or no commit.
+    `hashed` says whether the files were hashed at all, which a place outside
+    git still is: an order check needs content, not history."""
+
+    __slots__ = ("place", "root", "start", "tests", "specs", "product",
+                 "loose", "own", "why", "hashed", "ingit")
 
     def __init__(self, place, own=None, why=""):
         self.place = Path(place).resolve()
         self.root = None
         self.start = None
         self.tests = {}
+        self.specs = {}
+        self.product = {}
         self.loose = {}
         self.own = None
         self.why = ""
+        self.hashed = False
+        self.ingit = False
         if why:
             self.why = why
             return
         top = _git(self.place, "rev-parse", "--show-toplevel")
         if top is None:
             self.why = "the place is not in a git work tree"
-            return
-        self.root = Path(top.strip()).resolve()
-        head = _git(self.place, "rev-parse", "--verify", "--quiet", "HEAD")
-        if not head:
-            self.why = "the repo has no commit to start from"
-            return
-        self.start = head.strip()
+            self.root = self.place
+        else:
+            self.root = Path(top.strip()).resolve()
+            self.ingit = True
         if own is not None:
             try:
                 self.own = Path(own).resolve().relative_to(self.root) \
                     .as_posix() + "/"
             except ValueError:
                 self.own = None
-        for rel in self.test_files():
-            data = _read(self.root / rel)
-            if data is not None:
-                self.tests[rel] = _sha(data)
-        for rel in self._dirty():
-            self.loose[rel] = _read(self.root / rel)
+        if top is not None:
+            head = _git(self.place, "rev-parse", "--verify", "--quiet",
+                        "HEAD")
+            if head:
+                self.start = head.strip()
+            else:
+                self.why = "the repo has no commit to start from"
+        self.tests, self.specs, self.product = self.hashes()
+        self.hashed = True
+        if self.start:
+            for rel in self._dirty():
+                self.loose[rel] = _read(self.root / rel)
 
     def _mine(self, rel):
         return bool(self.own) and rel.startswith(self.own)
 
+    def files(self):
+        """-> every file under the place, tracked or not, ignored ones left
+        out, as paths from the top of the repo. outside git, every file under
+        the place but those in a folder whose name starts with a dot."""
+        if not self.ingit:
+            found = []
+            for top, dirs, names in os.walk(str(self.place)):
+                dirs[:] = [d for d in dirs
+                           if not d.startswith(".") and d not in SKIP_DIRS]
+                for name in names:
+                    found.append(Path(top, name).relative_to(self.place)
+                                 .as_posix())
+        else:
+            out = _git(self.place, "ls-files", "-z", "--full-name",
+                       "--cached", "--others", "--exclude-standard", "--",
+                       ".") or ""
+            found = out.split("\0")
+        seen = set()
+        out = []
+        for rel in found:
+            if not rel or rel in seen or self._mine(rel) \
+                    or "__pycache__" in rel or rel.endswith(".pyc"):
+                continue
+            seen.add(rel)
+            out.append(rel)
+        return sorted(out)
+
     def test_files(self):
-        """-> the test files under the place, tracked or not, ignored ones
-        left out, as paths from the top of the repo."""
-        out = _git(self.place, "ls-files", "-z", "--full-name", "--cached",
-                   "--others", "--exclude-standard", "--", ".") or ""
-        found = []
-        for rel in out.split("\0"):
-            if rel and rel not in found and is_test(rel) \
-                    and not self._mine(rel):
-                found.append(rel)
-        return sorted(found)
+        """-> the test files under the place, as paths from the top of the
+        repo."""
+        return [rel for rel in self.files() if is_test(rel)]
+
+    def hashes(self):
+        """-> ({test file: sha256}, {spec file: sha256}, {product file:
+        sha256}) as the place is now. a product file is every file that is
+        neither."""
+        tests, specs, product = {}, {}, {}
+        for rel in self.files():
+            data = _read(self.root / rel)
+            if data is None:
+                continue
+            kind = tests if is_test(rel) else specs if is_spec(rel) \
+                else product
+            kind[rel] = _sha(data)
+        return tests, specs, product
+
+    def product_now(self):
+        return self.hashes()[2]
+
+    def to_json(self):
+        return {"place": str(self.place),
+                "root": str(self.root) if self.root else None,
+                "start": self.start, "own": self.own, "why": self.why,
+                "hashed": self.hashed, "ingit": self.ingit, "tests": self.tests,
+                "specs": self.specs, "product": self.product,
+                "loose": dict((rel, None if data is None
+                               else base64.b64encode(data).decode("ascii"))
+                              for rel, data in self.loose.items())}
+
+    def save(self, folder):
+        Path(folder).mkdir(parents=True, exist_ok=True)
+        (Path(folder) / FILE).write_text(json.dumps(self.to_json(), indent=1,
+                                                    sort_keys=True),
+                                         encoding="utf-8")
 
     def _dirty(self):
         out = _git(self.place, "status", "--porcelain", "-z",
@@ -171,7 +251,7 @@ class Snapshot(object):
     def test_changes(self):
         """-> [(path from the top of the repo, its bytes now)] for every test
         file under the place that is new since the start or not as it was."""
-        if self.why:
+        if not self.hashed:
             return []
         out = []
         for rel in self.test_files():
@@ -235,7 +315,36 @@ class Snapshot(object):
         return Path(tree) / self.place.relative_to(self.root)
 
 
+def changed(before, now):
+    """-> the paths in either {path: sha256} that are not the same in both."""
+    return sorted(rel for rel in set(before) | set(now)
+                  if before.get(rel) != now.get(rel))
+
+
 def take(place, own=None):
     """-> a Snapshot of `place` now. it never raises: a place it cannot read
     gives one whose `why` says so."""
     return Snapshot(place, own=own)
+
+
+def load(folder):
+    """-> the Snapshot a run saved in `folder`, or None when it saved none
+    or the file does not read as one."""
+    try:
+        data = json.loads((Path(folder) / FILE).read_text(encoding="utf-8"))
+        shot = Snapshot(data["place"], why="loading")
+        shot.root = Path(data["root"]) if data.get("root") else None
+        shot.start = data.get("start")
+        shot.own = data.get("own")
+        shot.why = data.get("why") or ""
+        shot.hashed = bool(data.get("hashed"))
+        shot.ingit = bool(data.get("ingit"))
+        shot.tests = dict(data.get("tests") or {})
+        shot.specs = dict(data.get("specs") or {})
+        shot.product = dict(data.get("product") or {})
+        shot.loose = dict((rel, None if text is None
+                           else base64.b64decode(text))
+                          for rel, text in (data.get("loose") or {}).items())
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+    return shot

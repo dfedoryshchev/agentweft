@@ -14,7 +14,8 @@ from .config import (VERDICTS, asks_for_verdict, config, due, fanout_step,
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
-                                  promises, snapshot, worktree)
+                                  promises, redorder, snapshot, worktree)
+from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
 from agentweft.mcp import context, preflight
@@ -279,7 +280,9 @@ class Run(object):
         self.start = None
         if replays(fm):
             worktree.prune(self.workdir)
+        if replays(fm) or redorder.ordered(fm):
             self.start = snapshot.take(self.workdir, own=state.RUNS)
+        self.order = redorder.Order(self.start)
         # what a gate ran and saw, by step, handed to the steps after it
         self.proven = {}
         self.tree = summary.tree(self.workdir)
@@ -359,6 +362,24 @@ class Run(object):
             if step_id(s) == step:
                 return bool(s.get("writes_tests"))
         return False
+
+    def writes_for(self, step):
+        """tests, product or none: what this step said it writes, or "" when
+        it did not say."""
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                return s.get("writes") or ""
+        return ""
+
+    def held(self, gate, step):
+        """the gate built for `step`, or a pass saying it was not run when
+        the run skips tests and it is a test check."""
+        order = getattr(self, "order", None)
+        if order is not None and order.skip and \
+                gate.name in redorder.TEST_GATES:
+            return lambda text: Result(gate.name, True, "not run - tests"
+                                       " skipped: " + order.skip)
+        return gate.run
 
     def grant_for(self, step):
         """what this step may touch, or None when it did not say.
@@ -594,6 +615,30 @@ def replays(fm):
                for g in (s.get("gates") or []))
 
 
+def valued(flag):
+    """-> the value given after `flag`, "" when it has none, None when the
+    flag was not given."""
+    if flag not in sys.argv:
+        return None
+    i = sys.argv.index(flag)
+    said = sys.argv[i + 1].strip() if len(sys.argv) > i + 1 else ""
+    return "" if said.startswith("-") else said
+
+
+def carried(name, run, fm):
+    """-> (the red proof `--continue <name>` carries, "") or (None, why).
+    a name that is a run of this place carries that run's proof, anything
+    else is read as a commit the start commit's tests were added after."""
+    folder = state.RUNS / name
+    if folder.is_dir():
+        was = (folder / "workdir").read_text(encoding="utf-8").strip() \
+            if (folder / "workdir").is_file() else ""
+        if not was or Path(was).resolve() != Path(run.workdir).resolve():
+            return None, name + " did not work in " + str(run.workdir)
+        return redorder.carry_run(folder, name, run.start)
+    return redorder.carry_commit(run.start, name, redorder.test_command(fm))
+
+
 def shown(step, results, output):
     """-> the lines a later step is told about what this step's gates ran:
     a red test seen failing before the next step began, and each new test
@@ -632,7 +677,8 @@ def check_step(run, route, step, out, run_dir=None):
     step's account of the work, and a length cap or a pattern is about the
     work.
     """
-    results = [g.run(without(out.output)) for g in run.gates_for(step)]
+    held = getattr(run, "held", lambda g, s: g.run)
+    results = [held(g, step)(without(out.output)) for g in run.gates_for(step)]
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:
@@ -686,6 +732,12 @@ def run_once(flow, provider=None, task=None, trail=None):
             note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
         handed = out
+        writes = run.writes_for(step)
+        refused = run.order.before(step, writes)
+        if refused:
+            note("refused", refused, stops.REFUSED)
+            return out.output, run.budget, "refused at " + step + ": " + refused
+        watched = run.order.watch(writes)
         try:
             if step == run.fan:
                 out = run_fanout(run, out)
@@ -700,6 +752,11 @@ def run_once(flow, provider=None, task=None, trail=None):
         if fenced:
             note("parked", fenced, stops.PARKED, output=out.output)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
+        moved = run.order.after(step, writes, watched)
+        if moved:
+            note("gate failed", moved, stops.GATE, output=out.output)
+            return out.output, run.budget, "tests-only failed at " + step \
+                + ": " + moved
         if not out:
             why = out.meta.get("why") or "nothing came out of " + step
             note("failed", why, stops.NO_ANSWER, output=out.output)
@@ -713,6 +770,8 @@ def run_once(flow, provider=None, task=None, trail=None):
             out = handed
             step = again
             continue
+        if not failed:
+            run.order.proven(step, out.meta["gates"], out.output)
         if failed or blocked:
             why = gate_why(out.meta["gates"]) if failed else blocked
             note("gate failed", why, stops.GATE, output=out.output)
@@ -758,6 +817,19 @@ def main():
     if resuming and not fm.get("journal", True):
         print(flow + " has journal: false, so a run that finished is never "
               "written down and --resume cannot tell it from one that stopped")
+        return 1
+    skip = valued("--skip-tests")
+    if skip is not None and not skip:
+        print("--skip-tests needs a reason: --skip-tests \"<why this run has"
+              " no tests>\"")
+        return 1
+    carry = valued("--continue")
+    if carry is not None and not carry:
+        print("--continue needs the run or the commit whose tests it carries")
+        return 1
+    if carry and resuming:
+        print("--continue starts a run on an earlier one's tests; --resume"
+              " carries a run on. one or the other")
         return 1
     found = None
     if resuming:
@@ -844,11 +916,28 @@ def main():
         if pick_up and run.start is not None:
             # a snapshot taken now would count the tests the first run wrote
             # as already there
-            run.start = snapshot.Snapshot(run.workdir, why="resumed, start"
-                                          " state not kept")
+            run.start = snapshot.load(state.RUNS / pick_up) or \
+                snapshot.Snapshot(run.workdir, why="resumed, start state not"
+                                  " kept")
+            run.order.start = run.start
     except ValueError as e:
         print(str(e))
         return 1
+    if pick_up:
+        run.order.skip, run.order.proof = redorder.load(state.RUNS / pick_up)
+    if skip:
+        run.order.skip = skip
+        notes.append(("tests skipped for this run", skip + NEWLINE
+                      + "given with --skip-tests: the red-test and red-first"
+                      " gates and the test order checks did not run."))
+    if carry:
+        run.order.proof, why = carried(carry, run, fm)
+        if why:
+            print("nothing carried from " + carry + ": " + why)
+            return 1
+        notes.append(("tests carried from " + run.order.proof["from"],
+                      "given with --continue " + carry + ": "
+                      + ", ".join(sorted(run.order.proof["tests"]))))
     if found:
         run.budget.restore(found.spend)
         over = run.budget.over()
@@ -911,6 +1000,10 @@ def main():
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
+    if run.start is not None and run.start.hashed:
+        run.start.save(folder)
+    if redorder.ordered(fm) or run.order.skip or run.order.proof:
+        run.order.save(folder)
     if asked is not None:
         task.save(folder, asked)
     models.save(folder, chosen)
@@ -955,7 +1048,8 @@ def main():
                               run.budget.summary(), stopped=stopped,
                               needs=needs, command=resume_command(flow, run_id),
                               before=earlier, started=started,
-                              found=run.produced.get(investigate.STEP, ""))
+                              found=run.produced.get(investigate.STEP, ""),
+                              order=run.order.said())
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
@@ -1028,6 +1122,13 @@ def main():
                 return stop(stops.REFUSED, refused, "refused",
                             entry=trail.open(step, [], used, came_from),
                             index="REFUSED  " + flow + "  " + step)
+            writes = run.writes_for(step)
+            refused = run.order.before(step, writes)
+            if refused:
+                print("refused at " + step + ": " + refused)
+                return stop(stops.REFUSED, refused, "refused",
+                            entry=trail.open(step, [], used, came_from),
+                            index="REFUSED  " + flow + "  " + step)
             allowed = set()
             unchecked = False
             pre = run.preflight_for(step)
@@ -1073,6 +1174,7 @@ def main():
                                     waiting="user",
                                     handed=came_from or "the task")
             cleared = None
+            watched = run.order.watch(writes)
             print("started " + step)
             handed = out
             if step == run.fan:
@@ -1107,6 +1209,13 @@ def main():
                 return stop(stops.PARKED, fenced, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user")
+
+            moved = run.order.after(step, writes, watched)
+            if moved:
+                print("tests-only failed at " + step + ": " + moved)
+                return stop(stops.GATE, "tests-only: " + moved, "gate failed",
+                            entry, index="GATE  " + flow + "  tests-only at "
+                            + step)
 
             spent = run.budget.over()
             if spent:
@@ -1158,6 +1267,8 @@ def main():
                             "gate failed", entry,
                             index="GATE  " + flow + "  " + failed + " at "
                             + step)
+            if run.order.proven(step, entry.gates, out.output):
+                run.order.save(folder)
 
             hot = []
             if run.preflight_for(step):

@@ -189,10 +189,70 @@ red-test gate's own red runs, which happened before any later step started.
 it shows the tests tell the fixed code from the unfixed, not that they are
 good tests, and one run each way says nothing about a flaky test. a place
 outside git, or a repo with no commit yet, has no start to replay from, and
-the gate passes saying `not replayed` and why. so does a run picked up with
-`--resume` (`not replayed - resumed, start state not kept`, in "tests and
-checks"): the first run's start state is not kept, and a snapshot taken at
-the pick-up would count the tests that run wrote as already there.
+the gate passes saying `not replayed` and why. a run picked up with `--resume`
+replays from the snapshot the first run kept (`runs/<run-id>/start-snapshot.json`,
+below), never from one taken at the pick-up, which would count the tests that
+run wrote as already there. a run whose folder holds no snapshot passes saying
+`not replayed - resumed, start state not kept`.
+
+## no product code before a red test
+
+    steps:
+      - role: worker
+        prompt: worker.md
+        writes: tests
+        gates:
+          - gate: red-test
+            red: true
+            command: ["python", "-m", "pytest", "-q", "{test}"]
+      - role: patcher
+        prompt: patcher.md
+        writes: product
+
+a step says what it writes: `writes: tests`, `writes: product` or `writes:
+none`. a flow with a `tests` or `product` step takes a start snapshot as the
+run starts and keeps it as `runs/<run-id>/start-snapshot.json`: the start
+commit, a sha256 of every spec file (`TASK.md`, `SPEC*.md`, `docs/spec*`), of
+every test file and of every other file (the product), plus the bytes of the
+files that already differed from the start commit. content, never mtimes. a
+place outside git is hashed too, every file under it but those in a folder
+whose name starts with a dot, `__pycache__` or `node_modules`; it has no start
+commit, so it has nothing to replay, but its order still holds.
+
+the run holds a red proof once a passing `red-test` gate with `red: true` ran
+its command on a test file whose content is not what it was at the start, or
+a passing `red-first` gate showed a test in such a file red without the fix.
+it is kept as `runs/<run-id>/red-proof.json`. then:
+
+- a `writes: product` step does not start until the run holds a red proof.
+  the run stops `refused` before the step is called, and its why says so.
+- a `writes: tests` step that changes a product file (any file that is not a
+  test or a spec file) fails as `tests-only` and the run stops `gate`. the
+  product files are hashed just before the step and again just after it, so a
+  tests step sent back after the product step ran is held to its own edits.
+- anything unknown refuses: no start snapshot (a resume whose folder lost it
+  stops with `no start snapshot`), no proof record, a red-test gate with no
+  command (`nothing was run`), or a red-first gate that did not replay.
+- `writes: none` says the step writes nothing. nothing checks it yet.
+
+two ways round it, both written into the run's `decisions.md` and the
+handoff's "tests and checks":
+
+- `--skip-tests "<reason>"` is a person deciding the run has no tests. a
+  reason is required. then no test check applies at all: no order check, and
+  every `red-test` and `red-first` gate passes as `not run - tests skipped:
+  <reason>`. the handoff's checks line says `tests skipped: <reason>`. a
+  resumed run keeps it.
+- `--continue <run>` carries the red proof an earlier run of the same place
+  holds, as `tests carried from run <run>`, once each test file it proved is
+  still the content it proved. `--continue <commit>` carries the tests the
+  start commit added or changed since that commit, as `tests carried from
+  <sha>`, once each is seen failing in the place as it starts, run one file
+  at a time with the flow's first red-test or red-first command. nothing is
+  carried on trust: a moved test, a green one or one that could not run
+  carries nothing and the run does not start.
+
+a run picked up with `--resume` keeps its snapshot and its proof.
 
 ## a rule is checked only if it has a pattern
 

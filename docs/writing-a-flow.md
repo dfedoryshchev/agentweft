@@ -61,6 +61,21 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
 the suite is `python -m pytest -q`, written in its `flow.yaml`. a project
 that runs its tests some other way changes that line in a copy of the flow.
 
+each step says what it writes, and the runner holds the order rather than the
+prompt:
+
+    - role: tester
+      writes: tests
+    - role: worker
+      writes: product
+
+`writes: tests | product | none`. a `product` step does not start until a
+red-test or red-first gate in this run has seen a test the run wrote fail; a
+`tests` step that changes any file other than a test or spec file fails.
+`--skip-tests "<reason>"` runs without tests and says so; `--continue <run or
+commit>` carries tests already written. the rules are in `docs/gates.md`, "no
+product code before a red test".
+
 ## 6. run it three times before you trust it
 
     python run.py my-flow --force

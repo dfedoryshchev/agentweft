@@ -163,6 +163,11 @@ the only form a judge can do anything with. `reports: [reviewer-minimalist]`
 names one of the pair. the same step named twice arrives once. a name that is
 neither a role nor a step earlier in the same flow is refused by the checker.
 
+`writes: tests | product | none` on a step is what it writes, and the runner
+holds the order: a product step does not start before the run holds a red
+test, a tests step that changes product code fails (`docs/gates.md`, "no
+product code before a red test").
+
 `writes_tests: true` on a step means it writes tests, and it is sent
 `fragments/tests.md` after its own words: every behaviour, input class, output
 shape, error path, caller and option pair the change reaches, each case once,

@@ -68,6 +68,8 @@
     "build-feature-<run>/handoff.md",
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
+    "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/start-snapshot.json",
     "build-feature-<run>/steps.jsonl",
     "build-feature-<run>/steps/001-planner.md",
     "build-feature-<run>/steps/002-tester.md",

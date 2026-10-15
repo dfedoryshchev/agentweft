@@ -3,6 +3,7 @@ investigate: off
 steps:
   - role: worker
     prompt: worker.md
+    writes: tests
     writes_tests: true
     must_produce: "FAILS:"
     gates:
@@ -11,6 +12,7 @@ steps:
         command: ["python", "-m", "pytest", "-q", "{test}"]
   - role: patcher
     prompt: patcher.md
+    writes: product
     writes_tests: true
     on_redo: worker
     gates:
@@ -21,6 +23,7 @@ steps:
         command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "{test}"]
   - role: verify
     prompt: verify.md
+    writes: none
     on_redo: patcher
     gates:
       - gate: verdict

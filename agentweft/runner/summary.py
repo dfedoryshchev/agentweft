@@ -450,7 +450,7 @@ def asks(passes):
 
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
-          found=""):
+          found="", order=""):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -458,7 +458,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     decisions.md entry in the place; `stopped` is {"cause", "why", "at"} for
     a run that stopped short; `needs` is the park section's lines when the
     run waits for someone; `command` is the line that carries on; `found` is
-    the investigator's answer when the flow ran one.
+    the investigator's answer when the flow ran one; `order` is the line on
+    the red test the run holds before product code, "" for none.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -493,7 +494,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     passed = sum(1 for g in gates if g["ok"])
     checks = (str(passed) + " of " + str(len(gates)) + " gates passed"
               if gates else "no gates ran")
-    out.append("checks: " + checks + "; red first: " + red_first(every) + ".")
+    out.append("checks: " + checks + "; red first: " + red_first(every)
+               + ("; " + order if order.startswith("tests skipped") else "")
+               + ".")
     if changes.get("git"):
         files = changes["files"]
         out.append("changed: " + (str(len(files)) + " file"
@@ -568,6 +571,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         elif p.get("ungated"):
             out.append("- " + at(p) + ": no gates")
     out.append("- red first: " + red_first(every))
+    if order:
+        out.append("- test order: " + order)
     _, shown = replay(every)
     if shown is not None:
         from agentweft.guardrails.gates.redfirst_gate import said_of

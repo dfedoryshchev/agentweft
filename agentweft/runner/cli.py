@@ -64,7 +64,8 @@ def cmd_help():
                        [--workdir <dir>]
                        [--task "<text>" | --task-file <path>]
                        [--model-for <role>=<model>,...]
-  python run.py list              what flows there are
+                       [--skip-tests "<reason>"] [--continue <run|commit>]
+  python run.py list             what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
   python run.py provider         is each configured provider usable
@@ -89,7 +90,13 @@ def cmd_help():
           line
 --model-for  the model one role runs on for this run: a tier (high, mid,
           low) or a model id, over the step's and the flow's own. a resumed
-          run keeps the ones it started with""")
+          run keeps the ones it started with
+--skip-tests  run a flow whose steps say what they write without any test
+          check: no red test is needed before product code. the reason is
+          required and goes into decisions.md and the handoff
+--continue  carry the red tests of an earlier run of the same place, or of
+          the start commit's tests added since <commit>, once each is seen
+          to still hold""")
     return 0
 
 

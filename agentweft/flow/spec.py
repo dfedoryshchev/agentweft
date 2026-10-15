@@ -83,7 +83,8 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "tiers", "investigate", "tests_e2e", "tests_integration")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
-              "reports", "writes_tests")
+              "reports", "writes_tests", "writes")
+WRITES = ("tests", "product", "none")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
 PREFLIGHT_KNOWN = ("mode", "threshold")
@@ -234,6 +235,8 @@ def check(raw):
                 bad.append(at + unknown(key, STEP_KNOWN))
         if not isinstance(step.get("writes_tests", False), bool):
             bad.append(at + "writes_tests should be true or false")
+        if step.get("writes") is not None and step["writes"] not in WRITES:
+            bad.append(at + "writes should be one of " + ", ".join(WRITES))
         if step.get("gates") is not None:
             bad.extend(check_gates(at, step["gates"]))
         if step.get("preflight") is not None:

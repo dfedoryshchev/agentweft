@@ -82,9 +82,10 @@ def test_the_sides_are_not_the_same_size():
     # `investigate` is one more, one way again: a phase that wants the cause
     # found first names an agent for it, and there is no switch to pair with.
     # the test levels and the step that writes tests are three more: a phase
-    # asks for tests in prose, never as a value.
+    # asks for tests in prose, never as a value. what a step writes is one
+    # more: a phase states the order in prose, where nothing holds it.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 24
+    assert len(compare.flow_only()) == 25
     assert len(compare.phase_only()) == 7
 
 

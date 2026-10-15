@@ -433,7 +433,8 @@ def test_a_replay_whose_folder_went_away_fails_rather_than_crashing(
     assert "the folder is gone" in r.detail
 
 
-def test_a_resumed_run_says_it_did_not_replay(tmp_path, monkeypatch):
+def test_a_resumed_run_replays_from_the_snapshot_it_started_with(
+        tmp_path, monkeypatch):
     place = a_repo(tmp_path / "repo")
     a_flow_run(tmp_path, monkeypatch, place, "no commits")
     goes = []
@@ -459,4 +460,32 @@ def test_a_resumed_run_says_it_did_not_replay(tmp_path, monkeypatch):
     assert goes == ["worker.md", "patcher.md", "patcher.md", "verify.md"]
     second = [p for p in state.RUNS.iterdir() if p.is_dir() and p != first][0]
     handoff = (second / "handoff.md").read_text(encoding="utf-8")
-    assert "red-first - not replayed - resumed" in handoff
+    assert "red first: shown on patcher.md" in handoff
+    assert ("- tests/test_calc.py::test_add: red without the fix (assertion),"
+            " green with it") in handoff
+
+
+def test_a_resumed_run_with_no_kept_snapshot_does_not_replay(tmp_path,
+                                                             monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow_run(tmp_path, monkeypatch, place, "no commits")
+    goes = []
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        goes.append(step)
+        if step == "worker.md":
+            write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
+            return WORKER_SAID, False
+        return "", False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    engine.main()
+    [first] = [p for p in state.RUNS.iterdir() if p.is_dir()]
+    (first / "start-snapshot.json").unlink()
+    monkeypatch.setattr(sys, "argv", ["run.py", "fix-with-test", "--force",
+                                      "--resume", first.name])
+    engine.main()
+    assert goes == ["worker.md", "patcher.md"]
+    second = [p for p in state.RUNS.iterdir() if p.is_dir() and p != first][0]
+    assert "no start snapshot" in (second / "why.md").read_text(
+        encoding="utf-8")
