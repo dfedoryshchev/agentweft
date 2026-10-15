@@ -35,6 +35,7 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
+from . import commits
 from . import (chain, lead, leftred, levels, manifest, models, resume, router,
                ruling)
 from .settings import get as setting  # noqa: F401
@@ -316,10 +317,13 @@ class Run(object):
         self.baseline = None
         if replays(fm) or self.suite == baseline.ON:
             worktree.prune(self.workdir)
+        self.commits = commits.mode(fm)
         if replays(fm) or redorder.ordered(fm) or fm.get("spec_files") \
-                or self.suite == baseline.ON or self.reads_spec():
+                or self.suite == baseline.ON or self.reads_spec() \
+                or self.commits != commits.NONE:
             self.start = snapshot.take(self.workdir, own=state.RUNS)
         self.order = redorder.Order(self.start)
+        self.committer = commits.Committer(commits.NONE, None)
         # what a gate ran and saw, by step, handed to the steps after it
         self.proven = {}
         self.tree = summary.tree(self.workdir)
@@ -1413,6 +1417,9 @@ def main():
                 snapshot.Snapshot(run.workdir, why="resumed, start state not"
                                   " kept")
             run.order.start = run.start
+        run.committer = commits.Committer(
+            run.commits, run.start,
+            commits.load(state.RUNS / pick_up) if pick_up else None)
     except ValueError as e:
         print(str(e))
         return 1
@@ -1482,6 +1489,11 @@ def main():
     run.ups = route.ups
     started = datetime.datetime.now()
     run_id = new_run_id(flow, started)
+    try:
+        run.committer.begin(run_id)
+    except ValueError as e:
+        print(str(e))
+        return 1
     timings = []
     risk_text = ""
     out = EMPTY
@@ -1534,6 +1546,7 @@ def main():
     run.folder = folder
     run.keep_in(folder)
     run.kept.keep_in(folder)
+    run.committer.keep_in(folder)
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
     if run.start is not None and run.start.hashed:
         run.start.save(folder)
@@ -1630,7 +1643,8 @@ def main():
                               order=run.order.said(), left=left,
                               suite=baseline.lines(known),
                               chained=record.data[chain.FIELD],
-                              skipped=skips.said(run.skipped))
+                              skipped=skips.said(run.skipped),
+                              kept=run.committer.said())
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
@@ -2069,6 +2083,7 @@ def main():
             record.mark(step, manifest.REDO if sent_back else manifest.PASSED,
                         run_id, out.output)
             record.save(run.budget)
+            run.committer.step(step, flow)
             came_from = step
             step = nxt
         return finish(flow, fm, run, out, started, run_id, pick_up, leave,
@@ -2283,6 +2298,8 @@ def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
         record.finish(run.workdir, state.RUNS)
         record.save(run.budget)
 
+    run.committer.finish(flow, run.task_text,
+                         sorted((run.order.proof or {}).get("tests") or {}))
     note = leave()
     # last, so that anything above that raises is this run's only end line
     # rather than a second one after an `ok`.

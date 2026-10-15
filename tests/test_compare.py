@@ -105,8 +105,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `efforts` and a step's `effort` are two more, one way: an agent file
     # names a tier and says nothing about how hard its model thinks.
+    #
+    # `commits` is one more, one way: a phase leaves its commits to whoever
+    # runs it, and has no word for a run that must never make one.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 33
+    assert len(compare.flow_only()) == 34
     assert len(compare.phase_only()) == 7
 
 

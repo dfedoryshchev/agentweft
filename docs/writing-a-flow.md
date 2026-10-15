@@ -118,6 +118,24 @@ there shows. a flow that does not say runs its verify steps as written.
 quote the `"off"`: unquoted, yaml reads it as false, which is read as off too,
 but anything that reads the file without the loader sees `false`.
 
+some repos must never get a commit nobody typed, so a run commits nothing
+unless the flow says so:
+
+    commits: none     # never commit (the default)
+    commits: wip      # commit after each step, on a branch of the run's own
+    commits: squash   # that, then one commit for the task at the end
+
+`wip` and `squash` start the run on `agentweft/<run id>`, never the branch
+you started it on, and nothing is ever pushed. a commit holds what the run
+changed: a file already loose when the run started stays out while its bytes
+are what they were, and so does a change you had staged. the commits skip the
+repo's commit hooks. they are authored as git config's `user.name` and
+`user.email` in the place, and with either missing the run refuses before its
+first step. every gate reads the files by content from the start snapshot, so
+a flow gives the same verdict in all three modes; the commits add the order
+they were made in to the handoff (`docs/journal.md`, "the run's own
+commits").
+
 ## 6. say how many times the work can go back
 
 a reviewer's `VERDICT: redo` sends the work back, and so does a failed gate.

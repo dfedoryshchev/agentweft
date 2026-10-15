@@ -740,7 +740,7 @@ def changed_lines(changes):
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
-          skipped=()):
+          skipped=(), kept=""):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -754,6 +754,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `suite` is the lines on the suite as the run found it (`baseline.lines`);
     `chained` is the head of steps.jsonl it was written from (`chain.head`).
     `skipped` is a line per reason the run skipped gates by name for.
+    `kept` is the line on the run's own commits, "" when it makes none.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -868,6 +869,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("- red first: " + red_first(every))
     if order:
         out.append("- test order: " + order)
+    if kept:
+        out.append("- commits: " + kept)
     out.extend(suite)
     out.extend("- " + s + " (--skip)" for s in skipped)
     _, shown = replay(every)

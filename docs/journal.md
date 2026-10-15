@@ -807,6 +807,29 @@ a repo with no commit, there is no start to tell a changed test from its
 neighbours, so every test in a changed file is run. a stop that changed no
 test, or whose new tests all pass, says nothing about it.
 
+## the run's own commits
+
+a run commits nothing unless its flow says `commits: wip` or `commits:
+squash` (`docs/writing-a-flow.md`). with one of those it starts on a branch
+of its own, `agentweft/<run id>`, and after each step that changed a file it
+commits what that step changed as `wip(<flow>): <step>`.
+`runs/<id>/commits.json` keeps the branch, the commit it started from, the
+branch it was started on and each step's commit with its files. `squash`
+folds the step commits into one once every step has passed, its subject the
+flow and the task's first line, its body the step commits it replaced. a run
+that stops keeps its step commits, and `--resume` carries on on the same
+branch and squashes at its end; a resume with the place on another branch
+refuses and names the run's.
+
+the handoff's tests and checks get one more line:
+
+    - commits: wip on agentweft/build-2026-01-22-091402: tester.md 3f1c0a9e2b7d, worker.md 9a0e44c1d5b2, started from main; tests in 3f1c0a9e2b7d before the first product code in 9a0e44c1d5b2
+
+the second half is the order as the commits show it: the first commit that
+holds one of the red proof's test files, and the first that holds product
+code. it is evidence beside the gates and no gate reads it, so a run gives
+the same verdict whether it commits or not.
+
 ## reading it from an agent
 
 `python mcp_server.py` exposes the journal, the weekly rollup, the gate results

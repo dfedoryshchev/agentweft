@@ -82,8 +82,10 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
-         "efforts")
+         "efforts", "commits")
 NO_LEAD = "none"
+# whether the run commits as it goes (`runner/commits.py`)
+COMMITS = ("none", "wip", "squash")
 # when the run reads the state of the suite it started from
 # (`guardrails/baseline.py`)
 BASELINE = ("auto", "on", "off")
@@ -301,6 +303,8 @@ def check(raw):
         bad.append("spec_files should be one of " + ", ".join(SPEC_FILES))
     if "baseline" in raw and raw["baseline"] not in BASELINE + (True, False):
         bad.append("baseline should be one of " + ", ".join(BASELINE))
+    if "commits" in raw and raw["commits"] not in COMMITS:
+        bad.append("commits should be one of " + ", ".join(COMMITS))
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)
