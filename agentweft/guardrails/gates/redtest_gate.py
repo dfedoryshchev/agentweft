@@ -1,3 +1,4 @@
+import re
 import subprocess
 from pathlib import Path
 
@@ -12,7 +13,10 @@ class RedTestGate(Gate):
 
     fix-with-test says the test must fail before the patch. with a `command` the claim is not enough. the worker names the test on a
     `TEST:` line, as a file or as `file::name` (whatever the command takes to
-    run one test), the file has to be there in the run's place, and the command
+    run one test), or in prose as "file - name", "file, name" or "name in
+    file", which is run as `file::name` once the file defines that name. a
+    line that reads as none of these fails quoting it. the file has to be
+    there in the run's place, and the command
     is run there with `{test}` replaced by the whole of it. red is the exit a
     failing test gives (`expect`, default 1, which is pytest's), not any
     non-zero one: a runner that collected nothing or was called wrong has not
@@ -51,12 +55,14 @@ class RedTestGate(Gate):
         place = Path(self.where) if self.where else Path.cwd()
         argv = list(cmd)
         if "{test}" in argv:
-            named = named_test(text)
-            if not named and not want_red:
+            named, name, why = read_test(text)
+            if not named and not why and not want_red:
                 for answer in reversed(self.earlier):
-                    named = named_test(answer or "")
-                    if named:
+                    named, name, why = read_test(answer or "")
+                    if named or why:
                         break
+            if why:
+                return self.fail(why)
             if not named:
                 return self.fail("no " + TEST + " line, so there is no test to run")
             path = (place / named.split("::")[0]).resolve()
@@ -68,6 +74,9 @@ class RedTestGate(Gate):
                 return self.fail(named.split("::")[0] + " is not in "
                                  + str(place)
                                  + ", so the test was never written")
+            if name and not defines(path, name):
+                return self.fail(name + " is not a test in "
+                                 + named.split("::")[0])
             argv = [named if a == "{test}" else a for a in argv]
 
         try:
@@ -109,9 +118,51 @@ def truth(value):
     return None
 
 
-def named_test(text):
+NAME = r"[A-Za-z_]\w*"
+FILE = r"[^\s,]+\.\w+"
+DASHES = "-" + "".join(chr(c) for c in range(0x2010, 0x2016)) + chr(0x2212)
+FILE_THEN_NAME = re.compile(
+    r"^(?P<file>" + FILE + r")(?:\s+[" + re.escape(DASHES) + r"]\s+|\s*,\s*"
+    r"|\s*::\s*)(?P<name>" + NAME + r")$")
+NAME_IN_FILE = re.compile(
+    r"^(?P<name>" + NAME + r")\s+in\s+(?P<file>" + FILE + r")$")
+
+
+def read_test(text):
+    """-> (named, name, why) for the first `TEST:` line.
+
+    `named` is what `{test}` becomes: the line as written when it is one
+    token (a file or a node id), or `file::name` when the file and the name
+    were written apart ("file - name", "file, name", "file :: name", "name
+    in file"). `name` is set only then, for the caller to look for in the
+    file. a line that reads as neither is `why`, never a guessed id.
+    """
     for line in text.splitlines():
         line = line.strip()
-        if line.startswith(TEST):
-            return line[len(TEST):].strip().strip("`")
-    return ""
+        if not line.startswith(TEST):
+            continue
+        said = line[len(TEST):].strip()
+        bare = said.replace("`", "").strip().rstrip(".")
+        if not bare:
+            return "", "", ""
+        if not any(c.isspace() for c in bare):
+            return said.strip("`"), "", ""
+        m = FILE_THEN_NAME.match(bare) or NAME_IN_FILE.match(bare)
+        if m:
+            return m["file"] + "::" + m["name"], m["name"], ""
+        return "", "", ("cannot read " + repr(said) + " as a test: write the"
+                        " " + TEST + " line as file or file::name")
+    return "", "", ""
+
+
+def named_test(text):
+    return read_test(text)[0]
+
+
+def defines(path, name):
+    try:
+        source = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return re.search(r"^\s*(?:async\s+)?(?:def|class)\s+" + re.escape(name)
+                     + r"\b", source, re.M) is not None

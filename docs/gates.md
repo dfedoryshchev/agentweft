@@ -94,7 +94,10 @@ read, is refused when the flow loads, before any step is paid for.
   claim: the step names its test on a `TEST:` line, as a file or as
   `file::name` (whatever the command takes to run one test; only the part
   before `::` is looked for), the file has to exist in the run's `workdir`,
-  and the command runs there with `{test}` replaced by the whole line. red
+  and the command runs there with `{test}` replaced by the whole line. a line
+  written as prose, `file - name` (any dash), `file, name`, `file :: name` or
+  `name in file`, runs as `file::name`, and fails if the file defines no such
+  name; a line that reads as none of these fails quoting it. red
   passes on `expect` (default 1, a pytest run with a failing test) and on
   nothing else, so a test that passes, was never written, or was not
   collected is not red. `red: false` (or `"false"`, `no`, `0`) wants exit 0,

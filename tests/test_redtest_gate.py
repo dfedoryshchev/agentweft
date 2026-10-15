@@ -144,6 +144,58 @@ def test_a_node_id_is_run_as_named_once_its_file_is_there(tmp_path):
 
 NODE_RUN = [sys.executable, "-c", "raise SystemExit(1)", "{test}"]
 
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
+
+
+def ran_as(tmp_path, line, body="def test_y():" + NL + "    assert False"):
+    (tmp_path / "tests").mkdir(exist_ok=True)
+    a_test(tmp_path / "tests", body, "test_x.py")
+    seen = tmp_path / "argv.txt"
+    if seen.exists():
+        seen.unlink()
+    g = gates.build({"gate": "red-test", "command": [
+        sys.executable, "-c",
+        "import sys; open(sys.argv[2], 'w').write(sys.argv[1]);"
+        " raise SystemExit(1)", "{test}", str(seen)]}, where=tmp_path)
+    r = g.run("FAILS: x" + NL + "TEST: " + line)
+    return r, (seen.read_text() if seen.exists() else None)
+
+
+@pytest.mark.parametrize("line", [
+    "tests/test_x.py - test_y",
+    "tests/test_x.py " + EM_DASH + " test_y",
+    "tests/test_x.py " + EN_DASH + " test_y",
+    "tests/test_x.py, test_y",
+    "tests/test_x.py :: test_y",
+    "test_y in tests/test_x.py",
+    "`tests/test_x.py` - `test_y`",
+    "tests/test_x.py::test_y",
+])
+def test_a_test_line_written_as_prose_runs_its_node_id(tmp_path, line):
+    r, argv = ran_as(tmp_path, line)
+    assert r, line + ": " + r.detail
+    assert argv == "tests/test_x.py::test_y"
+
+
+def test_named_test_reads_a_dash_between_the_file_and_the_name():
+    assert gates.redtest_gate.named_test(
+        "TEST: tests/test_x.py - test_y") == "tests/test_x.py::test_y"
+
+
+def test_a_prose_name_missing_from_its_file_is_not_red(tmp_path):
+    r, argv = ran_as(tmp_path, "tests/test_x.py - test_z")
+    assert not r
+    assert argv is None
+    assert "test_z is not a test in tests/test_x.py" in r.detail
+
+
+def test_a_test_line_that_reads_as_no_test_fails_quoting_it(tmp_path):
+    r, argv = ran_as(tmp_path, "the one that checks the id")
+    assert not r
+    assert argv is None
+    assert "cannot read 'the one that checks the id'" in r.detail
+
 
 def test_a_node_id_with_a_class_and_parameters_is_red(tmp_path):
     a_test(tmp_path, "")
