@@ -32,7 +32,7 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import lead, levels, manifest, models, resume, router, ruling
+from . import lead, leftred, levels, manifest, models, resume, router, ruling
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -1036,6 +1036,10 @@ def main():
     if carry is not None and not carry:
         print("--continue needs the run or the commit whose tests it carries")
         return 1
+    if leftred.given(sys.argv) is not None and \
+            leftred.given(sys.argv) not in leftred.CHOICES:
+        print(leftred.FLAG + " takes one of: " + ", ".join(leftred.CHOICES))
+        return 1
     if carry and resuming:
         print("--continue starts a run on an earlier one's tests; --resume"
               " carries a run on. one or the other")
@@ -1336,13 +1340,15 @@ def main():
         record.ended(summary.outcome(stopped, summary.unproven(
             list(earlier) + ran)))
         record.save(run.budget)
+        left = leftred.check(run.start, fm, leftred.chosen(fm, sys.argv)) \
+            if stopped else None
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), decisions.read(run.workdir),
                               run.budget.summary(), stopped=stopped,
                               needs=needs, command=resume_command(flow, run_id),
                               before=earlier, started=started,
                               found=run.produced.get(investigate.STEP, ""),
-                              order=run.order.said())
+                              order=run.order.said(), left=left)
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,

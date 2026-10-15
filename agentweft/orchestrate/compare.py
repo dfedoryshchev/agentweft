@@ -118,6 +118,10 @@ FLOW_ONLY = (
          "the spec, and anything over it still comes to a person. a "
          "workflow's `lead` is the same word for something else, the prompt "
          "that runs the whole thing, so they are not a pair."),
+    Pair("flow.on_stop", "",
+         "what a run that stops short does with the tests it added or changed: "
+         "leaves them, or puts them back to their bytes at the start. a phase "
+         "has no word for it."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

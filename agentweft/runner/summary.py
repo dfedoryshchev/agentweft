@@ -27,7 +27,7 @@ from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
 
-from . import handoff, investigate, manifest, stops, verbs
+from . import handoff, investigate, leftred, manifest, stops, verbs
 
 FILE = "handoff.md"
 
@@ -460,7 +460,7 @@ def asks(passes):
 
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
-          found="", order=""):
+          found="", order="", left=None):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -469,7 +469,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     a run that stopped short; `needs` is the park section's lines when the
     run waits for someone; `command` is the line that carries on; `found` is
     the investigator's answer when the flow ran one; `order` is the line on
-    the red test the run holds before product code, "" for none.
+    the red test the run holds before product code, "" for none; `left` is
+    what a stop found of the tests the run added or changed (`leftred.check`).
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -514,7 +515,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                                   if files else "nothing in the tree")
                    + ", " + str(len(changes["commits"])) + " commit"
                    + ("" if len(changes["commits"]) == 1 else "s")
-                   + " (from git, below).")
+                   + " (from git, below)"
+                   + ("; " + leftred.count(left) if leftred.count(left)
+                      else "") + ".")
     else:
         out.append("changed: not a git checkout, so what changed is not"
                    " recorded here.")
@@ -526,7 +529,12 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.append("")
         out.append("## needs you")
         out.extend(asked)
-        if asked and stopped:
+        red = leftred.lines(left) if stopped else []
+        if red:
+            if asked:
+                out.append("")
+            out.extend(red)
+        if (asked or red) and stopped:
             out.append("")
         if needs:
             out.extend(needs)

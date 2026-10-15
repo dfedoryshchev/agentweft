@@ -93,8 +93,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `lead` grows it by one and is not the workflow's `lead`: the flow's is
     # a step that decides questions, the workflow's a prompt that runs it all.
+    #
+    # `on_stop` is one more on the flow side: what a stop does with the tests
+    # the run wrote, and a phase has no word for a stop.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 28
+    assert len(compare.flow_only()) == 29
     assert len(compare.phase_only()) == 7
 
 

@@ -81,8 +81,11 @@ REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
-         "send_backs", "lead")
+         "send_backs", "lead", "on_stop")
 NO_LEAD = "none"
+# what a stop does with the tests the run added or changed: leave them, or
+# put them back to their bytes at the start (`runner/leftred.py`)
+ON_STOP = ("keep", "revert-tests")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes")
@@ -282,6 +285,8 @@ def check(raw):
     if "send_backs" in raw and not counts(raw["send_backs"]):
         bad.append("send_backs should be a whole number, 0 or more")
     bad.extend(check_lead(raw))
+    if "on_stop" in raw and raw["on_stop"] not in ON_STOP:
+        bad.append("on_stop should be one of " + ", ".join(ON_STOP))
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)

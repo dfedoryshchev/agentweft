@@ -637,6 +637,33 @@ such test. `override:` lets the change stand only if it names each test or
 quotes the spec line that decides it: the step runs again, and its replay
 reads the ruling. `request:` keeps the tests, as above.
 
+## the tests a stop leaves red
+
+a stop can be right and still leave a test failing in the tree: the worker
+appended a red test to a supplied file, then the patcher stopped on a
+conflict. git only says the file changed. so on every stop, whatever the
+cause, the runner runs the tests the run added or changed since it started
+(the start snapshot) once each, with the flow's first one-test command, in a
+fresh python and with no model asked. each that is not green is named, in the
+handoff's "needs you" section and so on the console, and the `changed:` line
+counts them:
+
+    changed: 1 file, 0 commits (from git, below); 1 test the run added or changed is red.
+    ...
+    left red when the run stopped (run once after the stop):
+    - tests/test_export.py::test_amount_is_a_number: red (assertion)
+    nothing was reverted; --on-stop revert-tests puts the test files back to their bytes at the start.
+
+nothing is reverted by default: the red test is often the most useful thing
+the run made. `on_stop: revert-tests` in flow.yaml, or `--on-stop
+revert-tests` for one run (over the flow's), writes each test file the run
+changed back to its bytes at the start and deletes each one it added, after
+the tests ran, and the handoff names the files. a file whose start bytes the
+snapshot cannot give back (outside git) is left and named. outside git, or in
+a repo with no commit, there is no start to tell a changed test from its
+neighbours, so every test in a changed file is run. a stop that changed no
+test, or whose new tests all pass, says nothing about it.
+
 ## reading it from an agent
 
 `python mcp_server.py` exposes the journal, the weekly rollup, the gate results

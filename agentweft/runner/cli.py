@@ -70,6 +70,7 @@ def cmd_help():
                        [--model-for <role>=<model>,...]
                        [--skip-tests "<reason>"] [--continue <run|commit>]
                        [--max-calls <n>] [--max-tokens <n>]
+                       [--on-stop keep|revert-tests]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
@@ -105,7 +106,11 @@ def cmd_help():
           still hold
 --max-calls / --max-tokens  the cap for this run, over the flow's own; 0
           is no cap. a run that parked at its cap carries on only with it
-          raised, and the change is written to decisions.md""")
+          raised, and the change is written to decisions.md
+--on-stop  what a run that stops short does with the tests it added or
+          changed, over the flow's `on_stop`. either way each one left red
+          is named in the handoff; `keep` (the default) leaves them, and
+          `revert-tests` puts the test files back to their bytes at the start""")
     return 0
 
 
