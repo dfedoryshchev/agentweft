@@ -279,7 +279,11 @@ is printed under "not verified" as "claims the record does not show".
 
 a run that picks another up (`--resume`) folds the earlier run's passes in:
 their blocks' constraints and doubts carry, and "run" says what was picked
-up. with `investigate:` on, the investigator's CAUSE, SITES, FEEDS and RULED
+up. a resume of a resume folds in every earlier leg, followed back through
+each manifest's `resumes` to the first: the steps' blocks, the gate records
+and the red-first proof of each leg, every pass marked with its leg
+(`red first: gate-proven on worker.md in leg 1 (...)`). a leg whose folder
+is gone is said under "not verified" instead of read. with `investigate:` on, the investigator's CAUSE, SITES, FEEDS and RULED
 OUT lines go under "carry forward", its REPRO under "tests and checks", its
 RELATED under "doubts" and its DECISIONS under "needs you".
 

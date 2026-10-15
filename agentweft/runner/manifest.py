@@ -257,6 +257,29 @@ def load(folder):
     return Manifest(folder, data)
 
 
+def legs(folder):
+    """-> (the run folders of every leg up to `folder`, first leg first; the
+    run id of an earlier leg whose folder is gone, or None).
+
+    a leg names the one it picked up in `resumes`; one written before that
+    link names only the run the task started as, in `origin`.
+    """
+    folder = Path(folder)
+    out = [folder]
+    seen = set([folder.name])
+    m = load(folder)
+    while m is not None:
+        back = m.resumes or (m.origin if m.origin != m.run else None)
+        if not back or back in seen:
+            break
+        seen.add(back)
+        m = load(folder.parent / back)
+        if m is None:
+            return out[::-1], back
+        out.append(folder.parent / back)
+    return out[::-1], None
+
+
 def task_done(folder, step, task, line, handoff):
     """one task of a fanned-out step, written down the moment it finished."""
     row = {"step": step, "task": task, "line": line, "output": handoff.output,

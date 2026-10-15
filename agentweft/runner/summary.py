@@ -26,7 +26,7 @@ from pathlib import Path
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 
-from . import handoff, investigate, stops, verbs
+from . import handoff, investigate, manifest, stops, verbs
 
 FILE = "handoff.md"
 
@@ -277,8 +277,8 @@ def unproven(passes):
     for p in passes:
         for g in p["gates"]:
             for line in (g.get("unproven", []) if g["ok"] else []):
-                if (p["step"], line) not in out:
-                    out.append((p["step"], line))
+                if (at(p), line) not in out:
+                    out.append((at(p), line))
     return out
 
 
@@ -312,7 +312,29 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said):
 
 
 def passes_of(folder, roles, fm):
-    """-> the passes a run folder recorded, for a run that picks it up."""
+    """-> the passes of every leg up to a run folder, first leg first, for a
+    run that picks it up. with more than one leg, each pass carries the
+    number of its leg; a leg whose folder is gone is one pass that says so."""
+    folders, gone = manifest.legs(folder)
+    out = []
+    if gone:
+        out.append(dict(a_pass(gone, gone, 0, handoff.empty(
+            handoff.UNREADABLE, why="its run folder is gone, so that leg and"
+            " any before it are not read"), [], None, "", ""), leg=1))
+    for n, leg in enumerate(folders, len(out) + 1):
+        for p in _passes_in(leg, roles, fm):
+            if gone or len(folders) > 1:
+                p["leg"] = n
+            out.append(p)
+    return out
+
+
+def at(p):
+    """-> where a pass ran: its step, and its leg when it came from one."""
+    return p["step"] + (" in leg " + str(p["leg"]) if p.get("leg") else "")
+
+
+def _passes_in(folder, roles, fm):
     out = []
     path = folder / "steps.jsonl"
     if not path.exists():
@@ -374,11 +396,11 @@ def red_first(passes):
             if g["gate"] != "red-test" or not g["detail"].startswith("red"):
                 continue
             if not g["ok"]:
-                return "the red-test gate failed on " + p["step"] + ": " \
+                return "the red-test gate failed on " + at(p) + ": " \
                     + g["detail"]
             if "nothing was run" in g["detail"]:
-                return "claimed by " + p["step"] + ", nothing was run"
-            return ("gate-proven on " + p["step"] + " (" + g["detail"]
+                return "claimed by " + at(p) + ", nothing was run"
+            return ("gate-proven on " + at(p) + " (" + g["detail"]
                     + (", " + g["command"] if g["command"] else "") + ")")
     return "not proven by a gate"
 
@@ -547,14 +569,14 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     for p in every:
         if p["gates"]:
             for g in p["gates"]:
-                out.append("- " + p["step"] + ": " + ("PASS " if g["ok"]
+                out.append("- " + at(p) + ": " + ("PASS " if g["ok"]
                                                        else "FAIL ")
                            + g["gate"] + (" - " + stops.flat(g["detail"])
                                           if g["detail"] else "")
                            + (" (" + g["command"] + ")" if g["command"]
                               else ""))
         elif p.get("ungated"):
-            out.append("- " + p["step"] + ": no gates")
+            out.append("- " + at(p) + ": no gates")
     out.append("- red first: " + red_first(every))
     _, shown = replay(every)
     if shown is not None:
@@ -597,9 +619,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     for p in every:
         state = p["block"].get("state")
         if state == handoff.MISSING:
-            said.append("- handoff missing: " + p["step"])
+            said.append("- handoff missing: " + at(p))
         elif state in (handoff.UNREADABLE, handoff.PARTIAL):
-            said.append("- handoff " + state + ": " + p["step"] + " ("
+            said.append("- handoff " + state + ": " + at(p) + " ("
                         + p["block"].get("why", "") + ")")
     out.extend(said or ["- nothing left unverified, or no step said"])
 
@@ -634,7 +656,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("")
     out.append("## run")
     if before:
-        out.append("- picked up: " + " -> ".join(p["step"] for p in before))
+        out.append("- picked up: " + " -> ".join(at(p) for p in before))
     out.append("- steps: " + " -> ".join(
         p["step"] + " " + str(p["seconds"]) + "s"
         + (" (sent back)" if p["outcome"] == "redo" else "")
