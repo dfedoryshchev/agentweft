@@ -14,7 +14,9 @@ from .config import (VERDICTS, asks_for_verdict, config, due, fanout_step,
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
-                                  promises)
+                                  promises, snapshot, worktree)
+from agentweft.guardrails.gates.redfirst_gate import said_of
+from agentweft.guardrails.gates.redtest_gate import named_test
 from agentweft.mcp import context, preflight
 from agentweft.orchestrate import decisions, park, synthesise
 
@@ -273,6 +275,12 @@ class Run(object):
             self.by_step[step_id(s)] = p
         self.briefed = briefing.digest(self.workdir)
         self.fence = fence.at(self.workdir, own=state.RUNS)
+        self.start = None
+        if replays(fm):
+            worktree.prune(self.workdir)
+            self.start = snapshot.take(self.workdir, own=state.RUNS)
+        # what a gate ran and saw, by step, handed to the steps after it
+        self.proven = {}
         self.tree = summary.tree(self.workdir)
         # every MUST NOT MISS line any step handed over, as (role, line): a
         # constraint read from the spec by the first step binds the last
@@ -396,7 +404,8 @@ class Run(object):
             if step_id(s) == step:
                 earlier = [t for k, t in self.produced.items() if k != step]
                 return [gates.build(g, where=self.workdir, ranking=self.ranking,
-                                    earlier=earlier)
+                                    earlier=earlier,
+                                    start=getattr(self, "start", None))
                         for g in (s.get("gates") or [])]
         return []
 
@@ -464,6 +473,11 @@ class Run(object):
         prompt = prompt + boundary.as_prompt(self.grant_for(step))
         if extra:
             prompt = prompt + extra
+        ran = [line for k, lines in getattr(self, "proven", {}).items()
+               if k != step for line in lines]
+        if ran:
+            prompt = (prompt + "\n\nwhat the runner ran and saw itself, not"
+                      " what a step said:\n" + "\n".join(ran))
         block = investigate.handed(found)
         prompt = prompt + block
         reports = self.reports_for(step)
@@ -570,6 +584,36 @@ def run_fanout(run, plan):
     return out
 
 
+def replays(fm):
+    """whether any step of the flow has a red-first gate, which needs the
+    place as the run found it."""
+    return any(g.get("gate") == "red-first" for s in fm.steps
+               for g in (s.get("gates") or []))
+
+
+def shown(step, results, output):
+    """-> the lines a later step is told about what this step's gates ran:
+    a red test seen failing before the next step began, and each new test
+    seen red without the fix and green with it. a gate that ran nothing, or
+    failed, shows nothing."""
+    out = []
+    for r in results:
+        if not r.ok:
+            continue
+        if r.gate == "red-test" and r.detail.startswith("red") \
+                and "nothing was run" not in r.detail:
+            named = named_test(output or "")
+            out.append("- " + step + "'s red-test gate ran "
+                       + (named or "the test") + " before any later step"
+                       " started, and it failed (" + r.detail + ")")
+        if r.gate == "red-first" and r.tests:
+            out.append("- " + step + "'s red-first gate ran each new test on"
+                       " the start commit with only the test files changed,"
+                       " then on the place as it is now:")
+            out.extend("  - " + said_of(t) for t in r.tests)
+    return out
+
+
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
 
@@ -590,6 +634,8 @@ def check_step(run, route, step, out, run_dir=None):
     out.meta["ungated"] = not results
     for r in results:
         print("  " + repr(r))
+    if isinstance(getattr(run, "proven", None), dict):
+        run.proven[step] = shown(step, results, out.output)
     if run_dir is not None:
         run_dir.mkdir(parents=True, exist_ok=True)
         with open(run_dir / "gates.md", "a", encoding="utf-8") as gf:
@@ -782,6 +828,11 @@ def main():
             return 1
         run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
                   chosen=chosen)
+        if pick_up and run.start is not None:
+            # a snapshot taken now would count the tests the first run wrote
+            # as already there
+            run.start = snapshot.Snapshot(run.workdir, why="resumed, start"
+                                          " state not kept")
     except ValueError as e:
         print(str(e))
         return 1

@@ -10,16 +10,18 @@ class Result(object):
 
     `unproven` is the lines of a check the step was asked and said it could
     not decide: neither a pass nor a fail, and carried to the record so a
-    passing gate never hides them.
+    passing gate never hides them. `tests` is what a gate that ran tests one
+    by one saw of each, None for the rest.
     """
 
-    __slots__ = ("gate", "ok", "detail", "unproven")
+    __slots__ = ("gate", "ok", "detail", "unproven", "tests")
 
-    def __init__(self, gate, ok, detail="", unproven=()):
+    def __init__(self, gate, ok, detail="", unproven=(), tests=None):
         self.gate = gate
         self.ok = ok
         self.detail = detail
         self.unproven = list(unproven)
+        self.tests = tests
 
     def __bool__(self):
         return self.ok
@@ -35,6 +37,7 @@ class Gate(object):
     where = None
     ranking = ""
     earlier = ()
+    start = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -57,7 +60,7 @@ def register(cls):
     return cls
 
 
-def build(config, where=None, ranking="", earlier=()):
+def build(config, where=None, ranking="", earlier=(), start=None):
     """{"gate": "regex", ...} -> a Gate. unknown names are an error, not a skip.
 
     the argument was called `spec`, which in this repo means a FlowSpec. it is
@@ -67,6 +70,8 @@ def build(config, where=None, ranking="", earlier=()):
     there is none, for the gates that pick what to run by it. `earlier` is
     what the run's other steps answered in this process, oldest first, for a
     gate that can take something a step before this one already said.
+    `start` is the run's snapshot of the place as it started
+    (`guardrails/snapshot.py`), for a gate that compares against it.
     """
     name = config.get("gate")
     if name not in registry:
@@ -78,4 +83,5 @@ def build(config, where=None, ranking="", earlier=()):
     g.where = where
     g.ranking = ranking or ""
     g.earlier = list(earlier or ())
+    g.start = start
     return g

@@ -18,6 +18,8 @@ steps:
         command: ["python", "-m", "pytest", "-q"]
         expect: 0
         timeout: 300
+      - gate: red-first
+        command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "{test}"]
   - role: reviewer
     prompt: reviewer.md
     tools: [read, grep, shell]

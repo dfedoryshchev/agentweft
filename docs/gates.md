@@ -34,10 +34,10 @@ a gate reads the answer without its HANDOFF block (`journal.md`, "what each
 step hands over"): the block is the step's account of the work, and a length
 cap or a pattern is about the work.
 
-a gate name that is not one of the seven below, or an option the gate does not
+a gate name that is not one of the eight below, or an option the gate does not
 read, is refused when the flow loads, before any step is paid for.
 
-## the seven
+## the eight
 
 - **regex** - `pattern`, and `present: false` to require it is absent.
 - **verdict** - an answer of `PASS` and `FAIL` lines. a line that starts with
@@ -77,6 +77,9 @@ read, is refused when the flow loads, before any step is paid for.
   test fails names it). a `red` that is neither true nor false fails. without a command the pass
   says nothing was run. an empty answer fails as `the step answered nothing`,
   not as a test that never failed.
+- **red-first** - `command: [...]` with `{test}` in it, `expect` (default 1),
+  `timeout`. goes on the step that made the fix, and shows each new test
+  fails without it and passes with it (below).
 - **coverage** - a cobertura xml report, `report` (default `coverage.xml`, read
   in the run's `workdir`), held to a floor from `project.yml` (see
   `docs/orchestrate.md`). `floor` names which one, `overall` (default) or
@@ -92,6 +95,89 @@ read, is refused when the flow loads, before any step is paid for.
   the gate is refused. it reads what the step produced, not the working tree,
   so it belongs on a step whose output is the change. no `project.yml`, or one
   where no rule has a pattern, is a failure and not a pass.
+
+## each new test, without the fix and with it
+
+    steps:
+      - role: patcher
+        prompt: patcher.md
+        gates:
+          - gate: red-first
+            command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "{test}"]
+
+`red-test` shows a test failing at the time a step said it did. nothing in
+that says the test is still the one that failed, or that it fails for want of
+the fix, and a flow that commits nothing leaves no history for a reviewer to
+read the order from. `red-first` runs it.
+
+a run whose flow has a `red-first` gate writes down, as it starts, the commit
+it started from, a sha256 of every test file in its `workdir` (tracked or
+not, ignored ones left out) and the bytes of every file that already differed
+from that commit (`agentweft/guardrails/snapshot.py`). after the step, a test
+file whose content is not what it was is one the run wrote or changed; it
+does not matter whether a step committed it. a test file is one under a test
+path (`tests/`, `test/`, `spec/`, `__tests__/`) or named like one
+(`test_x.py`, `x_test.py`, `x.test.ts`, `XTests.cs`). a python test in it is
+new when its name was not in the file at the start or its code is not what it
+was, and its id is the one pytest takes: `file::name`, `file::Class::name`,
+nested classes included, a class counted when it is named `Test*` or derives
+from a `...TestCase`. a python test module whose tests cannot be read from the
+source (made at import time, or not parsing) is one id, the file. a file in
+another language counts as one test when it is named like a test file
+(`x.test.ts`, `XTests.cs`, `x_test.go`).
+
+then `git worktree add --detach --lock` puts a checkout of the start commit
+in a temp folder, with the repo's hooks switched off for it
+(`core.hooksPath` pointed at an empty folder, so no post-checkout hook runs).
+laid on it are the place's start state and the test files' changes, and
+nothing else: the checkout holds what git tracks at the start commit, plus the
+untracked files that are not ignored, so ignored files (a `.venv`, build
+output, a local `.env`) and submodule contents are absent, and of the run's
+own changes only the files under a test path or named like a test are there.
+each new test runs there on its own and has to fail. an assertion is red, and
+so is any other exception the unfixed code raises: a `KeyError` or a
+`ZeroDivisionError` is the bug a crash fix removes. an `ImportError`,
+`ModuleNotFoundError`, `NameError` or `SyntaxError`, or a collection error
+(pytest's exit 2), is a test that could not run, which is not the same as
+catching the bug, unless the red step's `FAILS:` line names that error: a
+feature's test fails on the name the feature adds. the step that made the fix
+cannot declare it for itself. each then runs in the place, with the fix, and
+has to pass. both runs put the folder they run in, and its `src/`, at the
+front of `PYTHONPATH`, so a project installed in editable mode imports the
+tree being run and not the person's fixed one.
+
+the checkout is removed in a `finally`. it is locked while it exists, with
+the run's pid as the reason, and the next run's start removes any that a
+killed run left: named `agentweft-replay-*`, and unlocked or locked by a pid
+that is no longer running. a replay a live run holds, a worktree a person
+locked, and every other worktree are left alone. the person's checkout is
+never stashed, checked out or reset.
+
+the assertion rule and the ids are pytest's. with another runner the gate
+still runs each new test file as one id with `{test}`, red is the exit
+`expect` names, green is exit 0, and exit 2 reads as could not run (pytest's
+collection error). it cannot tell an assertion from an error in that runner's
+output unless the output happens to read like pytest's, so there a red is the
+`expect` exit and nothing finer.
+
+the gate fails when no test was added or changed, when a new test errors
+without the fix, does not run, or does not pass with it, when every new test
+passes without the fix, and when a test a step named as `file::name` on a
+`TEST:` line is one of those. a new test green both ways is a guard, kept and
+named in the detail. the record is per test, in `steps.jsonl` (the gate's
+`tests` list: `test`, `before` red / green / error, `kind` assertion or the
+error's name, `after`) and in the handoff under "tests and checks", and the
+steps after it are told what it ran: a verify step reads that the test failed
+without the fix as a run, not as something it has to take on trust. so are the
+red-test gate's own red runs, which happened before any later step started.
+
+it shows the tests tell the fixed code from the unfixed, not that they are
+good tests, and one run each way says nothing about a flaky test. a place
+outside git, or a repo with no commit yet, has no start to replay from, and
+the gate passes saying `not replayed` and why. so does a run picked up with
+`--resume` (`not replayed - resumed, start state not kept`, in "tests and
+checks"): the first run's start state is not kept, and a snapshot taken at
+the pick-up would count the tests that run wrote as already there.
 
 ## a rule is checked only if it has a pattern
 
@@ -138,10 +224,10 @@ else.
 fix-with-test is where it earns it. the closing step used to be a model reading
 its own patch and saying the test passes now; it is `python -m pytest -q` and
 an exit code, and a non-zero one stops the run. a `red: false` gate runs the
-test the patcher names, or the worker's when it names none, and the verify
-answer goes through
-`verdict` with `passes: 3`, one for each thing it is asked to check. a check it
-answers unsure does not stop a fix the programs proved; the run ends
+test the patcher names, or the worker's when it names none, a `red-first`
+gate replays each new test without the patch, and the verify answer goes
+through `verdict` with `passes: 3`, one for each thing it is asked to check. a
+check it answers unsure does not stop a fix the programs proved; the run ends
 `done, 1 check unproven` and says which.
 
 ## the short suite or the long one

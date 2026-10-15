@@ -141,7 +141,11 @@ fix-with-test uses it, and that only proves the words `FAILS:` are there. the
 patcher waits on the `red-test` gate, which runs the test the worker named in
 the run's place and wants it to fail (see `docs/gates.md`), and after the patch
 the same gate with `red: false` runs it again and wants it to pass. red before
-green is the flow, not a preference.
+green is the flow, not a preference. a `red-first` gate on the patcher then
+runs each new test on a temporary checkout of the start commit with only the
+test files changed, where it has to fail on an assertion, and on the patched
+place, where it has to pass, so that the test fails for want of the fix is a
+run on record and not a reviewer's reading of an order nobody committed.
 
 ## the files that brief the model
 

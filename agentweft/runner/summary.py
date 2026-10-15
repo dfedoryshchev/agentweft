@@ -24,6 +24,7 @@ import subprocess
 from pathlib import Path
 
 from agentweft.flow.spec import step_id
+from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 
 from . import handoff, investigate, stops, verbs
 
@@ -31,9 +32,6 @@ FILE = "handoff.md"
 
 JUDGING = ("reviewer", "verify", "judge")
 
-TEST_PATH = re.compile(r"(^|/)(tests?|spec|__tests__)/|(^|/)test_[^/]*\.py$"
-                       r"|_tests?\.py$|\.(test|spec)\.[cm]?[jt]sx?$"
-                       r"|Tests?\.cs$")
 AUTHORITY = re.compile(r"\b(user-directed|user-approved|session-settled"
                        r"|as agreed|as discussed|per the user|the user wants"
                        r"|the (?:user|lead|owner|maintainer|reviewer|team)"
@@ -51,12 +49,6 @@ def _git(place, *args):
     except (FileNotFoundError, OSError):
         return None
     return r.stdout if r.returncode == 0 else None
-
-
-def is_test(path):
-    if "__pycache__" in path or path.endswith(".pyc"):
-        return False
-    return TEST_PATH.search(path) is not None
 
 
 def cause(line):
@@ -246,7 +238,10 @@ def gate_commands(fm, step, output):
         out = []
         for g in (s.get("gates") or []):
             cmd = g.get("command")
-            if isinstance(cmd, (list, tuple)):
+            if isinstance(cmd, (list, tuple)) and g.get("gate") == "red-first":
+                # it runs once per new test, so no one name stands for it
+                cmd = " ".join(str(a) for a in cmd)
+            elif isinstance(cmd, (list, tuple)):
                 named = named_test(output or "")
                 cmd = " ".join(named if a == "{test}" and named else str(a)
                                for a in cmd)
@@ -261,11 +256,14 @@ def _gates(results, commands):
         if isinstance(g, dict):
             gate, ok, detail = g.get("gate"), g.get("ok"), g.get("detail")
             unsure = g.get("unproven") or []
+            tests = g.get("tests")
         else:
             gate, ok, detail = g.gate, g.ok, g.detail
             unsure = g.unproven
+            tests = getattr(g, "tests", None)
         kept = {"gate": gate, "ok": bool(ok), "detail": detail or "",
-                "command": commands[i] if i < len(commands) else ""}
+                "command": commands[i] if i < len(commands) else "",
+                "tests": tests}
         if unsure:
             kept["unproven"] = list(unsure)
         out.append(kept)
@@ -354,7 +352,23 @@ def working(passes):
     return None
 
 
+def replay(passes):
+    """-> (the step, the newest red-first result that replayed something),
+    or (None, None) when no red-first gate did."""
+    for p in reversed(passes):
+        for g in p["gates"]:
+            if g["gate"] == "red-first" and \
+                    not g["detail"].startswith("not replayed"):
+                return p["step"], g
+    return None, None
+
+
 def red_first(passes):
+    step, g = replay(passes)
+    if g is not None:
+        if not g["ok"]:
+            return "the red-first gate failed on " + step + ": " + g["detail"]
+        return "shown on " + step + ", " + g["detail"]
     for p in passes:
         for g in p["gates"]:
             if g["gate"] != "red-test" or not g["detail"].startswith("red"):
@@ -542,6 +556,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         elif p.get("ungated"):
             out.append("- " + p["step"] + ": no gates")
     out.append("- red first: " + red_first(every))
+    _, shown = replay(every)
+    if shown is not None:
+        from agentweft.guardrails.gates.redfirst_gate import said_of
+
+        out.extend("- " + said_of(t) for t in shown.get("tests") or [])
     touched = [(path, a, d) for path, a, d, how in changes.get("files", [])
                if is_test(path)]
     if touched:

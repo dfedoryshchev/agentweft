@@ -3,7 +3,7 @@
   "raised": null,
   "path": [
     "1 worker.md ok -> patcher.md  PASS red-test",
-    "2 patcher.md ok -> verify.md  PASS red-test",
+    "2 patcher.md ok -> verify.md  PASS red-test  PASS red-first",
     "3 verify.md ok  PASS verdict  PASS command"
   ],
   "journal": [
@@ -18,7 +18,7 @@
     "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) returns -1.",
     "patcher did:",
     "- add returns a + b; it subtracted",
-    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "checks: 5 of 5 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
@@ -29,6 +29,7 @@
     "## tests and checks",
     "- worker.md: PASS red-test - red, exit 1 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-test - green, exit 0 (python -m pytest -q test_calc.py)",
+    "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
     "- verify.md: PASS verdict - 3 PASS, no FAIL",
     "- verify.md: PASS command - exit 0 (python -m pytest -q)",
     "- red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py)",
@@ -170,6 +171,11 @@
           "gate": "red-test",
           "ok": true,
           "detail": "green, exit 0"
+        },
+        {
+          "gate": "red-first",
+          "ok": true,
+          "detail": "not replayed - the place is not in a git work tree"
         }
       ],
       "ungated": false,
@@ -284,6 +290,7 @@
     "  PASS red-test - red, exit 1",
     "started patcher.md",
     "  PASS red-test - green, exit 0",
+    "  PASS red-first - not replayed - the place is not in a git work tree",
     "started verify.md",
     "  PASS verdict - 3 PASS, no FAIL",
     "  PASS command - exit 0",
@@ -298,13 +305,13 @@
     "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) returns -1.",
     "patcher did:",
     "- add returns a + b; it subtracted",
-    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "checks: 5 of 5 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 2e91c146edc5bdd3fa291e6780ab4e1dc59940cca79e0d23ccbeb79bd14034c5",
-    "verify.md go 1 f44dd62a5641e0be815c473e58c22b95d12f5af0eac70ba421ef65a6284dd08f",
+    "patcher.md go 1 246e2e8330466653b335589cc97dc9c670ecc661d1450a47bde1dbce1cb76308",
+    "verify.md go 1 6bb8e88a132a7695dfee0532a75beccb7fc40e85e7e266fd7a12d157c298a137",
     "worker.md go 1 bb2e42bd82e672c996442889512ac4b7121a16d015c13fe0e060f98218ac89da"
   ]
 }

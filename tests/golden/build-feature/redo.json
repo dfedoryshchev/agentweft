@@ -4,9 +4,9 @@
   "path": [
     "1 planner.md ok -> tester.md",
     "2 tester.md ok -> worker.md  PASS red-test",
-    "3 worker.md ok -> reviewer.md  PASS command",
+    "3 worker.md ok -> reviewer.md  PASS command  PASS red-first",
     "4 reviewer.md redo -> worker.md",
-    "5 worker.md ok -> reviewer.md  PASS command",
+    "5 worker.md ok -> reviewer.md  PASS command  PASS red-first",
     "6 reviewer.md ok"
   ],
   "journal": [
@@ -20,7 +20,7 @@
     "# build-feature build-feature-<run>: finished",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
+    "checks: 5 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
@@ -32,8 +32,10 @@
     "- planner.md: no gates",
     "- tester.md: PASS red-test - red, exit 1 (python -m pytest -q test_mul.py)",
     "- worker.md: PASS command - exit 0 (python -m pytest -q)",
+    "- worker.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
     "- reviewer.md: no gates",
     "- worker.md: PASS command - exit 0 (python -m pytest -q)",
+    "- worker.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
     "- reviewer.md: no gates",
     "- red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py)",
     "## rulings",
@@ -209,6 +211,11 @@
           "gate": "command",
           "ok": true,
           "detail": "exit 0"
+        },
+        {
+          "gate": "red-first",
+          "ok": true,
+          "detail": "not replayed - the place is not in a git work tree"
         }
       ],
       "ungated": false,
@@ -338,6 +345,11 @@
           "gate": "command",
           "ok": true,
           "detail": "exit 0"
+        },
+        {
+          "gate": "red-first",
+          "ok": true,
+          "detail": "not replayed - the place is not in a git work tree"
         }
       ],
       "ungated": false,
@@ -443,10 +455,12 @@
     "  PASS red-test - red, exit 1",
     "started worker.md",
     "  PASS command - exit 0",
+    "  PASS red-first - not replayed - the place is not in a git work tree",
     "started reviewer.md",
     "sent back to worker.md",
     "started worker.md",
     "  PASS command - exit 0",
+    "  PASS red-first - not replayed - the place is not in a git work tree",
     "started reviewer.md",
     "promise not checked: the tests are written before the code, and fail without it",
     "promise not checked: the whole suite passes once the code is in",
@@ -457,16 +471,16 @@
     "# build-feature build-feature-<run>: finished",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
+    "checks: 5 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
     "planner.md go 1 9d1e17ef556ad053dcfb39b2b7b67ad2905719a10111d0fa632cc7a1a1ecb7f8",
-    "reviewer.md go 1 5ea6a1611dafbb19870c6d1a029f4b156e3e4f4f9069158642e5f618a650c94a",
-    "reviewer.md go 2 4bc7ac5b7fdfaff808b5829b50af9f112acaf47529cab9934937c8ec8e6d65fa",
+    "reviewer.md go 1 129b1b78111f0755140d9cc6bc7e820cc5aa8e6ff120aaf59ca8af3c8489d5c6",
+    "reviewer.md go 2 e17eff39006413082e242be79baa6773b45d1d0a125aeb350478f5100643b01f",
     "tester.md go 1 74ff386dd344f997fb8adc91e8b091a101a51696c7a0c45dcf7e88bfacc27881",
-    "worker.md go 1 b8e8e8a99465bf492e0fe04c41f710aeb0f8e3cae9e4e4319c581d8f3c045c35",
-    "worker.md go 2 6431b176eec075194955c58d690fce4eb56cbb83a9fd5170abbef884f7008c6e"
+    "worker.md go 1 3032ced1e85e28f1a3291b59bf0634b84e3a62deb7982d1e51704fe102902c72",
+    "worker.md go 2 ea065c74b689529336ffc0060b90b201ba2eabd32ea850e0ae1c8fc038ef3ab0"
   ]
 }

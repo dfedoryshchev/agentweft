@@ -7,7 +7,8 @@ produced is kept beside it as `steps/<seq>-<step>.md` and the line names that
 file, so a redo no longer writes over the review that asked for it.
 
 a line is the same shape every time and in the same key order, so two runs
-of the same flow differ only in the time, the ids and the seconds. `handoff`
+of the same flow differ only in the time, the ids and the seconds. a gate's
+entry carries `tests` only when that gate ran tests one by one. `handoff`
 is the step's HANDOFF block as `runner/handoff.py` parsed it, with each
 VERIFIED claim marked against the step's transcript; null only on a line
 closed before the step answered.
@@ -220,6 +221,8 @@ def gate_line(g):
     out = {"gate": g.gate, "ok": bool(g.ok), "detail": g.detail}
     if g.unproven:
         out["unproven"] = list(g.unproven)
+    if getattr(g, "tests", None) is not None:
+        out["tests"] = g.tests
     return out
 
 

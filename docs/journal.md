@@ -150,7 +150,11 @@ or crashed. the keys are always all there, in this order:
   crashed). `ungated` tells them apart: `true` when the gates were checked and
   the step had none, `false` when it had some and `gates` holds what they
   said, null when the check never ran. `gates.md` says the same: an ungated
-  step gets its heading and a `no gates` line under it.
+  step gets its heading and a `no gates` line under it. a gate that ran
+  tests one by one (`red-first`, `docs/gates.md`) adds `tests` to its entry,
+  one per test: `{"test": "tests/test_calc.py::test_add", "before": "red",
+  "kind": "assertion", "after": "green"}`; the other gates' entries have no
+  `tests` key.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `over budget`,
   `gate failed`, `failed`, `crashed`. `cause` is the run's stop cause from the
   list above, null when it went on. `why` is the reason the run had in hand
@@ -243,8 +247,10 @@ what the runner knows is written from the runner, never from a step's text:
 the files that changed and the commits (git, against the tree at run start,
 each file `+added -removed` and `committed`, `uncommitted` or `untracked`),
 every gate's verdict with the command behind it, the red-first proof (the
-`red-test` gate's own record: `gate-proven`, `claimed, nothing was run` or
-`not proven by a gate`), the rulings on record (`decisions.md` in the place),
+newest `red-first` gate that replayed something: `shown on <step>` with each
+new test's line, `red without the fix (assertion), green with it`, or the
+failure; else the `red-test` gate's own record: `gate-proven`, `claimed,
+nothing was run` or `not proven by a gate`), the rulings on record (`decisions.md` in the place),
 the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (a markdown file at the top of the checkout) changed at all, each
 name the `decisions.md` entry behind them or print `UNRULED`; an add-only
@@ -260,7 +266,7 @@ is printed under "not verified" as "claims the record does not show".
     patcher did:
     - add returns a + b; it subtracted
     - calc.py: the one line in add
-    checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).
+    checks: 5 of 5 gates passed; red first: shown on patcher.md, 1 of 1 new test red without the fix and green with it: test_calc.py::test_add.
     changed: 2 files, 0 commits (from git, below).
 
     ## assumed - tell me if wrong

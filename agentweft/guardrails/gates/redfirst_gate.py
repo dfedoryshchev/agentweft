@@ -1,0 +1,185 @@
+import os
+import re
+import subprocess
+from pathlib import Path
+
+from agentweft.guardrails import worktree
+
+from .base import Gate, register
+from .redtest_gate import TEST, named_test
+
+SUMMARY = re.compile(r"^(?:FAILED|ERROR) \S+ - (.+)$", re.M)
+E_LINE = re.compile(r"^E\s+(.+)$", re.M)
+ERROR_NAME = re.compile(r"^([A-Za-z_][\w.]*(?:Error|Exception))\b")
+# the errors of a test that never got as far as the code it tests. any other
+# exception is the unfixed code failing, which is the bug a crash fix removes
+COULD_NOT_RUN = ("ImportError", "ModuleNotFoundError", "NameError",
+                 "SyntaxError")
+
+
+def kind_of(output):
+    """-> "assertion", an exception's name, or "" when the output names
+    neither. read from pytest's short summary, else its first `E` line."""
+    for said in (SUMMARY.findall(output or "")[:1]
+                 or E_LINE.findall(output or "")[:1]):
+        m = ERROR_NAME.match(said.strip())
+        if not m:
+            return "assertion"
+        name = m.group(1).rsplit(".", 1)[-1]
+        return "assertion" if name == "AssertionError" else name
+    return ""
+
+
+def said_of(test):
+    """one test's record as a line: what it did without the fix and with it."""
+    before = test["before"]
+    if before == "red":
+        before = "red without the fix (" + (test.get("kind") or "kind not"
+                                           " read") + ")"
+    elif before == "green":
+        before = "green without the fix"
+    elif before == "error":
+        before = "errors without the fix (" + (test.get("kind") or "") + ")"
+    else:
+        before = before + " without the fix"
+    return test["test"] + ": " + before + ", " + test["after"] + " with it"
+
+
+def declared(texts):
+    """-> the FAILS: lines in `texts`, joined: a red step that says its test
+    fails with an error has said that error is the bug."""
+    return "\n".join(line for t in texts for line in (t or "").splitlines()
+                     if line.strip().startswith("FAILS:"))
+
+
+@register
+class RedFirstGate(Gate):
+    """each new test fails without the fix and passes with it, shown by
+    running it rather than by a step saying so.
+
+    the run took a snapshot of the place as it started. after the step that
+    made the fix, the tests that are new or changed since then are found by
+    content (no commit is needed, and commits made by the steps change
+    nothing). a temporary checkout of the start commit gets the place's start
+    state and only the test files' changes, and each new test runs there
+    alone: without the fix it has to fail. an assertion is red, and so is
+    any exception the unfixed code raises (a KeyError is the bug a crash fix
+    removes). an ImportError, ModuleNotFoundError, NameError or SyntaxError,
+    or a collection error (exit 2), is a test that could not run, not one
+    that caught the bug, unless the red step's FAILS: line said that error is
+    the bug (a feature's test fails on the name the feature adds); the fix
+    step cannot declare it for itself. then each runs in the
+    place, with the fix, and has to pass. at least one has to be red without
+    the fix, and a test a step named on a TEST: line as `file::name` has to be
+    one of the red ones; a new test green both ways is recorded as passing
+    without the fix, and the record says so test by test.
+
+    it shows the tests tell the fixed code from the unfixed. it does not
+    show they are good tests, and one run each way says nothing about a
+    flaky one. a place outside git, or a repo with no commit, has no start to
+    replay from: the gate passes saying it was not replayed.
+    """
+
+    name = "red-first"
+    options = ("command", "timeout", "expect")
+
+    def run(self, text):
+        if not (text or "").strip():
+            return self.fail("the step answered nothing")
+        cmd = self.opts.get("command")
+        if not isinstance(cmd, (list, tuple)) or "{test}" not in cmd:
+            return self.fail("command has to be a list with {test} in it")
+        start = self.start
+        if start is None:
+            return self.ok("not replayed - the run took no start snapshot")
+        if start.why:
+            return self.ok("not replayed - " + start.why)
+        changes = start.test_changes()
+        ids = start.new_test_ids(changes)
+        if not ids:
+            return self.fail("no test was added or changed since the run"
+                             " started, so nothing shows the fix is needed")
+        said = declared(self.earlier)
+        try:
+            with worktree.temporary(start.root, start.start) as tree:
+                start.lay_out(tree, changes)
+                there = start.place_in(tree)
+                before = dict((i, self.one(cmd, i, there, said)) for i in ids)
+        except ValueError as e:
+            return self.fail("could not replay without the fix: " + str(e))
+        after = dict((i, self.one(cmd, i, start.place, said)) for i in ids)
+        record = [{"test": i, "before": before[i][0], "kind": before[i][1],
+                   "after": after[i][0]} for i in ids]
+        return self.judge(record, text)
+
+    def one(self, cmd, test, where, said):
+        """-> (red | green | error | exit N | timed out | not on PATH |
+        could not start: why, kind)."""
+        argv = [test if a == "{test}" else a for a in cmd]
+        # an editable install puts the person's own tree on sys.path, and the
+        # checkout without the fix would import the fixed code from there
+        path = [str(where), str(Path(where) / "src")]
+        if os.environ.get("PYTHONPATH"):
+            path.append(os.environ["PYTHONPATH"])
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1",
+                   PYTHONPATH=os.pathsep.join(path))
+        try:
+            r = subprocess.run(argv, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
+                               cwd=str(where), env=env,
+                               timeout=int(self.opts.get("timeout", 120)))
+        except subprocess.TimeoutExpired:
+            return "timed out", ""
+        except OSError as e:
+            if isinstance(e, FileNotFoundError) and Path(where).is_dir():
+                return "not on PATH", ""
+            return "could not start: " + str(e), ""
+        if r.returncode == 0:
+            return "green", ""
+        kind = kind_of(r.stdout + "\n" + r.stderr)
+        broken = kind in COULD_NOT_RUN or r.returncode == 2
+        if broken and kind and kind in said:
+            return "red", kind
+        if broken:
+            return "error", kind or "a collection error"
+        if r.returncode == int(self.opts.get("expect", 1)):
+            return "red", kind
+        return "exit " + str(r.returncode), kind
+
+    def judge(self, record, text):
+        named = [n for n in (named_test(t) for t in [text]
+                             + list(reversed(self.earlier)) if TEST in t)
+                 if n]
+        for t in record:
+            if t["before"] == "error":
+                return self.done(False, t["test"] + " errors without the fix ("
+                                 + t["kind"] + "): it could not run, so it"
+                                 " failed on neither an assertion nor the"
+                                 " code. a FAILS: line from the red step"
+                                 " naming " + t["kind"] + " says that is the"
+                                 " bug", record)
+            if t["before"] not in ("red", "green"):
+                return self.done(False, t["test"] + " did not run without the"
+                                 " fix: " + t["before"], record)
+            if t["after"] != "green":
+                return self.done(False, t["test"] + " does not pass with the"
+                                 " fix: " + t["after"], record)
+        red = [t["test"] for t in record if t["before"] == "red"]
+        green = [t["test"] for t in record if t["before"] == "green"]
+        if not red:
+            return self.done(False, "every new test passes without the fix: "
+                             + ", ".join(green), record)
+        for n in named:
+            if n in green:
+                return self.done(False, n + " passes without the fix", record)
+        detail = (str(len(red)) + " of " + str(len(record)) + " new test"
+                  + ("" if len(record) == 1 else "s") + " red without the fix"
+                  " and green with it: " + ", ".join(red))
+        if green:
+            detail = detail + "; green without it too: " + ", ".join(green)
+        return self.done(True, detail, record)
+
+    def done(self, ok, detail, record):
+        r = self.ok(detail) if ok else self.fail(detail)
+        r.tests = record
+        return r
