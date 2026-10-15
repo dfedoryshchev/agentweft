@@ -302,7 +302,7 @@ def test_every_stop_names_a_cause_from_the_list(tmp_path, monkeypatch):
 def test_the_list_is_the_one_the_rollup_counts():
     assert stops.CAUSES == ("gate failed", "refused", "parked",
                             "provider outage", "budget", "exception",
-                            "interrupt", "no answer", "declined")
+                            "interrupt", "no answer", "declined", "conflict")
 
 
 def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
@@ -340,6 +340,12 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
         (tmp_path / "TASK.md").write_text("amounts are strings\n",
                                           encoding="utf-8")
         fake_cli(answer('REFUSED: TASK.md:1 "amounts are strings"\n'))
+    elif cause == "conflict":
+        a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"])
+        (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                          encoding="utf-8")
+        fake_cli(answer('CONFLICT: TASK.md:1 "amounts are strings" | make'
+                        ' them numbers\n'))
     return engine.main()
 
 
@@ -370,7 +376,8 @@ OUTCOME = {"gate failed": "stopped: gate failed",
            "exception": "stopped: tool fault",
            "interrupt": "stopped: interrupted",
            "no answer": "stopped: tool fault",
-           "declined": "refused (spec cited)"}
+           "declined": "refused (spec cited)",
+           "conflict": "stopped: spec conflict"}
 
 
 def test_every_cause_has_exactly_one_outcome():

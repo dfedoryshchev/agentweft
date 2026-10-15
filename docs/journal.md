@@ -41,8 +41,9 @@ gives a planner that line.
 
 a run that stops short says `parked at <step>` when it is waiting for someone
 (a park, a provider outage, a cap), `refused at <step>` when a step declined
-the work citing the spec, and `failed at <step>` otherwise, and its cause is
-one of a fixed list:
+the work citing the spec, `stopped at <step>` when a step found the request
+contradicts the spec, and `failed at <step>` otherwise, and its cause is one
+of a fixed list:
 
 - `gate failed` - a gate failed the step, or the step did not give the router
   what the flow requires of it (an output it must contain, a verdict it can
@@ -66,6 +67,9 @@ one of a fixed list:
   the last thing the provider said.
 - `declined` - a step answered `REFUSED:` with a spec line it cites (below).
   the run ends there, and that is its answer, so it exits 0.
+- `conflict` - a step answered `CONFLICT:` with a spec line the request
+  contradicts, and the quote was at that line as the run found it (below).
+  nothing broke; the run waits for someone to say which one holds.
 
 the same cause and why go on the step's line in `steps.jsonl` and into
 `runs/<run-id>/why.md`. a cause off the list is refused where the line is
@@ -95,12 +99,14 @@ cause maps to:
 | `no answer` | `stopped: tool fault` |
 | `interrupt` | `stopped: interrupted` |
 | `declined` | `refused (spec cited)` |
+| `conflict` | `stopped: spec conflict` |
 
 the map is `OUTCOME` in `agentweft/runner/stops.py`, with no default: a cause
-with no outcome is refused where the outcome is read. a gate that failed
-because the step would not do what it was asked still reads `stopped: gate
-failed`, so the outcome does not tell a principled stop from a broken step.
-the exit codes do not change with it.
+with no outcome is refused where the outcome is read. a step that will not do
+what it was asked because the spec says otherwise ends `stopped: spec
+conflict` when it says so with a checked `CONFLICT:` line; one that only lets
+a gate fail still reads `stopped: gate failed`. the exit codes do not change
+with it.
 
 and every step's output lands under `runs/<flow>-<date>-<time>/`, one file per
 step, as it is produced. `runs/` is the one beside `run.py`, not one in the
@@ -551,6 +557,48 @@ naming the writer. it goes back `send_backs` times per test, once by default,
 and a second claim on the same test parks for a ruling. a test the run started
 with never goes back: the claim parks for a ruling, quoted in `question.md`. a
 `spec:` line that is not there is read as a question too.
+
+## when the request contradicts the spec
+
+a step that finds the request asks for what a line of the spec rules out
+answers two lines, each on its own:
+
+    CONFLICT: TASK.md:3 "the report lists students alphabetically"
+    request: list them in roster order
+
+the `request:` line counts only straight after the CONFLICT line. the older
+one-line form, `| <the request's words>` after the quote, is still read. the cite may be a range (`TASK.md:51-53`), and the quote is read as one line
+across it, with runs of spaces counted as one. the runner checks the quote is
+at that line as the run found it: from the start snapshot, so `git show
+<start>:<file>` or the bytes of a file that was already loose, never the file
+as a step left it. a step cannot make its own cite true by editing the spec
+first.
+
+when the quote is there, the run stops before that step's gates: the journal
+says `stopped at <step>` with cause `conflict`, the outcome is `stopped: spec
+conflict`, exit 2, and the question is in `question.md` and in the handoff's
+"needs you" section with the two commands that answer it:
+
+    python run.py build-feature --resume <run-id> --answer "override: <the new rule>"
+    python run.py build-feature --resume <run-id> --answer "request: <what to do instead>"
+
+- `override:` lets the request win. the step that stopped runs again, with
+  the answer at the end of its prompt and the line `this authorises changing
+  TASK.md:3, and nothing else`.
+- `request:` keeps the spec. the words are added under the request, which
+  stays word for word above them, and the run starts again from its first
+  step that is handed the request: in fix-with-test a conflict at the patcher
+  goes back to the worker, because the test was written against the request
+  as it was.
+
+either goes into `decisions.md` with the question. an answer that starts with
+neither word is refused for a conflict, since it would not say which one
+holds.
+
+a quote that is not at the line, a cite of a file that was not there when the
+run started, or a line that is not `<file>:<line> "<quote>"` fails the step
+the way a gate does (`conflict` in `gates.md`): it goes again once with what
+was wrong, then the run stops `gate failed`.
 
 ## reading it from an agent
 

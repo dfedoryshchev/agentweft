@@ -14,10 +14,23 @@ the spec says otherwise. with a cite of a line that is there, the run ends on
 it as a finished run: the refusal is the answer. without one it is read as a
 question, because a refusal nobody can check is somebody's opinion.
 
+`CONFLICT: <file>:<line> "<the line>"`, with `request: <the request's
+words>` on the line after it, is a step finding that the request contradicts
+the spec. the older one-line form, `| <the request's words>` after the quote,
+still reads. the quote is checked against
+that line as the run found it, from the start snapshot, so a step cannot make
+its own cite true by editing the file first. a quote that is there stops the
+run on a conflict, with the question in handoff.md; one that is not fails the
+step. the answer to a conflict says which one holds: `override: <the new
+rule>` lets the request win and authorises that spec line to change, and
+nothing else; `request: <what to do instead>` keeps the spec, adds the words
+to the request, and starts again from the first step that reads it.
+
 the lines are read by `verbs`, so one inside a code fence or a `>` quote is
 not a question: a test that asserts on the string "NEEDS:" asks nothing.
 """
 import getpass
+import hashlib
 import re
 from pathlib import Path
 
@@ -28,8 +41,16 @@ from .handoff import without
 PARK = "park"
 ASKED = "ruling"
 DECLINED = "declined"
+OVERRIDE = "override"
+REQUEST = "request"
+ANSWERS = (OVERRIDE, REQUEST)
 
 CITE = re.compile(r"""^\s*[`'"]?([^\s:`'"]+):(\d+)\b""")
+# the quote runs to the last `"` that only a `|` or the end of the line
+# follows, so a quote may hold quotes of its own
+CONFLICT = re.compile(r"""^[`'"]?([^\s:`'"]+):(\d+)(?:-(\d+))?[`'"]?\s+"(.*?)"\s*"""
+                      r"""(?:\|\s*(.*?))?\s*$""")
+CITED = re.compile(r"""^-\s*([^\s:`'"]+:\d+(?:-\d+)?)\b""")
 
 
 def question_of(v):
@@ -89,6 +110,142 @@ def asked_of(output, workdir):
     return None
 
 
+def flat(text):
+    return " ".join((text or "").split())
+
+
+def as_found(workdir, rel, start=None):
+    """-> the text of `rel`, a path from `workdir`, as the run found it, or
+    None when it was not there or cannot be told.
+
+    with a start commit or a file that was already loose, the snapshot gives
+    the bytes back. a place hashed outside git has only hashes, so the file
+    as it is now counts when its hash is still the one it started with. no
+    snapshot at all means the run never changes the place, and the file now
+    is the file it found.
+    """
+    root = Path(workdir).resolve()
+    path = (root / rel).resolve()
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return None
+    if start is None or not getattr(start, "hashed", False):
+        try:
+            return path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+    try:
+        key = path.relative_to(start.root).as_posix()
+    except (TypeError, ValueError):
+        return None
+    if start.start or key in start.loose:
+        data = start.before(key)
+    else:
+        try:
+            data = path.read_bytes()
+        except OSError:
+            return None
+        known = (start.tests.get(key) or start.specs.get(key)
+                 or start.product.get(key))
+        if known != hashlib.sha256(data).hexdigest():
+            return None
+    if data is None:
+        return None
+    return data.decode("utf-8", "replace")
+
+
+def conflict_of(output, workdir, start=None):
+    """-> None for an answer with no CONFLICT line, else (the question, "")
+    when the quote is at the line it cites as the run found it, or ("", what
+    is wrong with it) when it is not."""
+    said = verbs.parse(output).conflict
+    if said is None:
+        return None
+    m = CONFLICT.match(said.strip())
+    if not m:
+        return "", ('the CONFLICT line is not <file>:<line> "<the line>",'
+                    " with request: <the request's words> on the next line: "
+                    + said)
+    rel, first = m.group(1), int(m.group(2))
+    last = int(m.group(3) or first)
+    quote = flat(m.group(4))
+    words = flat(m.group(5)) or request_of(output)
+    cite = rel + ":" + str(first) + ("-" + str(last) if last != first else "")
+    if not quote:
+        return "", "the CONFLICT line cites " + cite + " and quotes nothing"
+    text = as_found(workdir, rel, start)
+    if text is None:
+        return "", ("the CONFLICT line cites " + cite + ", and " + rel
+                    + " was not there when the run started")
+    lines = text.split("\n")
+    if not 1 <= first <= last <= len(lines):
+        return "", ("the CONFLICT line cites " + cite + ", and " + rel
+                    + " had " + str(len(lines)) + " lines when the run"
+                    " started")
+    if quote not in flat(" ".join(lines[first - 1:last])):
+        return "", ('the CONFLICT line quotes "' + quote + '", which is not'
+                    " at " + cite + " as the run found it. quote the line"
+                    " as it is, or answer without a CONFLICT line")
+    return question_of_conflict(cite, quote, words), ""
+
+
+def request_of(output):
+    """-> the words on a `request:` line straight after the CONFLICT line,
+    or "". a `request:` anywhere else in the answer is not them."""
+    seen = verbs.visible(output)
+    for i, (_, line) in enumerate(seen):
+        head = verbs.key_of(line)
+        if head is None or head[0] != "CONFLICT":
+            continue
+        nxt = verbs.key_of(seen[i + 1][1]) if i + 1 < len(seen) else None
+        if nxt is not None and nxt[0] == "REQUEST":
+            return flat(verbs.unquoted(nxt[1]))
+        return ""
+    return ""
+
+
+def question_of_conflict(cite, quote, words):
+    out = ["NEEDS: the request contradicts " + cite
+           + ". which one holds?", "CITES:", "- " + cite + ' - "' + quote + '"']
+    if words:
+        out.append('- the request - "' + words + '"')
+    out.extend(["OPTIONS:",
+                "- override: <the new rule>. the request wins, and " + cite
+                + " may change to match it, nothing else",
+                "- request: <what to do instead>. the spec holds; the words"
+                " are added to the request and the run starts again from its"
+                " first step that reads the request"])
+    return "\n".join(out)
+
+
+def kind_of(answer):
+    """-> OVERRIDE, REQUEST or None, from the word the answer starts with."""
+    m = re.match(r"\s*(\w+)\s*:", answer or "")
+    if m and m.group(1).lower() in ANSWERS:
+        return m.group(1).lower()
+    return None
+
+
+def authorised(question):
+    """-> the spec lines a conflict's question cites, the ones an override
+    may change."""
+    out = []
+    for line in (question or "").split("\n"):
+        m = CITED.match(line.strip())
+        if m:
+            out.append(m.group(1))
+    return out
+
+
+def amended(task, answer):
+    """-> the request with a `request:` answer added after it. the request
+    as it was given stays word for word, first."""
+    words = answer.strip()[len(REQUEST) + 1:].strip()
+    return ((task or "").rstrip("\n") + "\n\nadded after a spec conflict, and"
+            " it decides where the two disagree:\n\n" + words + "\n")
+
+
 def answer_of(argv):
     """-> (the answer or None, what is wrong with how it was given or "")."""
     if "--answer" in argv and "--answer-file" in argv:
@@ -125,14 +282,29 @@ def decided(step, answer):
     return "ruling for " + step + ": " + first
 
 
-def why(step, run_id, question, answer, by):
+def scope(question, kind):
+    """-> the sentence saying what a conflict's answer lets change, or ""
+    for any other answer."""
+    if kind == OVERRIDE and authorised(question):
+        return ("this authorises changing " + ", ".join(authorised(question))
+                + ", and nothing else.")
+    if kind == REQUEST:
+        return ("the spec holds. the request is amended with these words, and"
+                " the run starts again from its first step that reads it.")
+    return ""
+
+
+def why(step, run_id, question, answer, by, kind=None):
+    said = scope(question, kind)
     return ("asked by " + step + " in " + run_id + ":\n\n" + question
-            + "\n\nanswered:\n\n" + answer + "\n\nanswered by " + by
-            + ", with --answer")
+            + "\n\nanswered:\n\n" + answer + ("\n\n" + said if said else "")
+            + "\n\nanswered by " + by + ", with --answer")
 
 
-def told(question, answer):
+def told(question, answer, kind=None):
     """-> the end of the step's prompt on the run that carries on: last, so
     the answer is the final thing the step reads."""
+    said = scope(question, kind)
     return ("\n\nRULING. when this step last ran it asked:\n\n" + question
-            + "\n\nthe answer, which decides it:\n\n" + answer + "\n")
+            + "\n\nthe answer, which decides it:\n\n" + answer
+            + ("\n\n" + said if said else "") + "\n")

@@ -10,6 +10,10 @@ here is the plan. write the tests for it, and no code that makes them pass.
 - import what does not exist yet inside the test, not at the top of the file.
   a file that cannot be imported stops pytest before any test runs, and that
   is not a failing test.
+- write no test for a behaviour the plan marks `contradicts:`, and never
+  change what an existing test expects to make room for the request: a test
+  that encodes the request against the spec decides what nobody has decided.
+  answer the `CONFLICT:` line from the instructions instead, and write nothing.
 
 if the place is a git checkout, commit the test file on its own before you
 answer, so the history shows the tests came first.

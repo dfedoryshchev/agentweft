@@ -278,8 +278,8 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 9d1e17ef556ad053dcfb39b2b7b67ad2905719a10111d0fa632cc7a1a1ecb7f8",
-    "tester.md go 1 74ff386dd344f997fb8adc91e8b091a101a51696c7a0c45dcf7e88bfacc27881",
-    "tester.md go 2 7ecff5e0e29a049d803d98eb5e55ca1c1788281fdf5d1779adef91346bf7f02a"
+    "planner.md go 1 603bcfe9dc813b74d9c6ca800d82fe17a8862f512a0c0050295f24bc83c1ef9a",
+    "tester.md go 1 808f88f19b9041274bc4d2c20ce4c1f2fa9671fc740e6247013b9f1a2440c9ec",
+    "tester.md go 2 72aa76c5610fa47953650ecd277386921d83d91257986104edbb18fd3294bd3a"
   ]
 }

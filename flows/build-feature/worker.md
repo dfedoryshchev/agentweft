@@ -2,8 +2,14 @@
 
 here are the failing tests. now write the code that makes them pass.
 
-- build what the spec asks for and the tests check, nothing more
-- do not edit the tests you were given. if one contradicts the spec, answer `WRONG TEST: <file>::<name>`, then `why:` and `spec: <file>:<line> "<the line>"` lines, and stop.
+- build what the request asks for, the spec allows and the tests check,
+  nothing more
+- do not edit the tests you were given. if one gets the spec wrong (a value
+  the spec gives differently), answer `WRONG TEST: <file>::<name>`, then `why:`
+  and `spec: <file>:<line> "<the line>"` lines, and stop.
+- if the request itself asks for what a line of TASK.md rules out, the tests
+  that encode it are not ones to make green: answer the `CONFLICT:` line from
+  the instructions.
 - a case you find while building that no test covers gets a test of its own,
   written before the code for it. the cases to look for are the tests around
   the change, below.

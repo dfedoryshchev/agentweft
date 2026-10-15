@@ -12,7 +12,8 @@ the journal has three shapes of line, the same first four columns in each:
     <when>  <flow>  ok  <secs>s  <run id>  <saved as>  <spend>  <run id>/handoff.md  [resumes <origin>]
 
 a stop is `parked at` when the run is waiting for someone, `refused at` when
-a step declined the work and cited the spec line that says why, `failed at`
+a step declined the work and cited the spec line that says why, `stopped at`
+when a step found the request contradicts a spec line it quoted, `failed at`
 for everything else. `<when>` is when the run started, on every line it writes.
 
 the run's outcome, the word a program reads, is `done` (with the count of
@@ -41,9 +42,13 @@ NO_ANSWER = "no answer"
 # refusing to start a step, which is a stop; this is an answer, and the run
 # ends on it
 DECLINED = "declined"
+# a step found the request contradicts a line of the spec, quoted it, and the
+# quote was there. nothing broke, so it is not a gate failure; it waits for
+# someone to say which one holds, and carrying on runs that step again
+CONFLICT = "conflict"
 
 CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
-          NO_ANSWER, DECLINED)
+          NO_ANSWER, DECLINED, CONFLICT)
 
 # the run waits for someone on these: a person for a park or a cap, the
 # provider's limit for an outage
@@ -63,7 +68,8 @@ OUTCOME = {GATE: "stopped: gate failed",
            EXCEPTION: "stopped: tool fault",
            INTERRUPT: "stopped: interrupted",
            NO_ANSWER: "stopped: tool fault",
-           DECLINED: "refused (spec cited)"}
+           DECLINED: "refused (spec cited)",
+           CONFLICT: "stopped: spec conflict"}
 OUTCOMES = (DONE,) + tuple(sorted(set(OUTCOME.values())))
 
 EXIT_OK = 0
@@ -89,6 +95,8 @@ def status(cause, step):
     """-> the journal's third column for a stop."""
     if checked(cause) == DECLINED:
         return "refused at " + step
+    if cause == CONFLICT:
+        return "stopped at " + step
     return ("parked at " if cause in WAITING else "failed at ") + step
 
 

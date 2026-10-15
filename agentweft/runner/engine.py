@@ -197,6 +197,17 @@ def resume_command(flow, run_id):
     return " ".join(out)
 
 
+def first_reader(flow, fm, order, start):
+    """-> the first step in `order` that is handed the request, never one
+    after `start`. everything from there was done against the request as it
+    was, so a request amended by a ruling runs it all again."""
+    where = task.places(flow_path(flow), fm)
+    for name in order:
+        if name == start or "instructions.md" in where or name in where:
+            return name
+    return start
+
+
 def next_run_path(flow):
     """-> runs/<flow>-<day>-<n>.md, n one past the day's highest saved run.
 
@@ -740,6 +751,10 @@ def check_step(run, route, step, out, run_dir=None):
         moved = order.after(step, run.writes_for(step))
         if moved:
             results.insert(0, Result("tests-only", False, moved))
+    said = ruling.conflict_of(out.output, getattr(run, "workdir", "."),
+                              getattr(run, "start", None))
+    if said and said[1]:
+        results.insert(0, Result("conflict", False, said[1]))
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:
@@ -825,6 +840,11 @@ def run_once(flow, provider=None, task=None, trail=None):
             why = out.meta.get("why") or "nothing came out of " + step
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
+        said = ruling.conflict_of(out.output, run.workdir, run.start)
+        if said and not said[1]:
+            note("conflict", said[0], stops.CONFLICT, output=out.output)
+            return (out.output, run.budget, "spec conflict at " + step + ": "
+                    + said[0].split("\n")[0][len("NEEDS: "):])
         wrong = wrongtest.judge(out.output, step, run, route)
         if wrong and wrong[0] == "back":
             _, writer, test, told = wrong
@@ -956,11 +976,26 @@ def main():
             print(question)
             print("")
             print("answer it with")
-            print("  " + resume_command(flow, pick_up) + park.ANSWER)
+            if ended.get("cause") == stops.CONFLICT:
+                print("  " + resume_command(flow, pick_up) + park.OVERRIDE)
+                print("  " + resume_command(flow, pick_up) + park.REQUEST)
+            else:
+                print("  " + resume_command(flow, pick_up) + park.ANSWER)
             return stops.EXIT_STOP
     if answer is not None and question is None:
         print(pick_up + " is not waiting for a ruling, so --answer has nothing"
               " to answer")
+        return 1
+    # only a conflict's answer is read for its first word: a free answer to
+    # any other question may well start with "request:" and mean nothing by it
+    conflicted = answer is not None and \
+        (found.data.get("stopped") or {}).get("cause") == stops.CONFLICT
+    kind = ruling.kind_of(answer) if conflicted else None
+    if conflicted and kind is None:
+        print(pick_up + " stopped on a spec conflict, so the answer says which"
+              " one holds: --answer \"override: <the new rule>\" lets the"
+              " request win, --answer \"request: <what to do instead>\" keeps"
+              " the spec")
         return 1
     try:
         asked = task.settle(flow, task.places(flow_path(flow), fm),
@@ -969,6 +1004,8 @@ def main():
                              task.saved(state.RUNS / pick_up))
                             if pick_up else None,
                             pick_up)
+        if kind == ruling.REQUEST:
+            asked = ruling.amended(asked, answer)
         chosen = models.parse(models.pairs(sys.argv))
         kept = {}
         if pick_up:
@@ -1012,6 +1049,8 @@ def main():
         if start is None:
             print("nothing left to run in " + pick_up)
             return stops.EXIT_OK
+        if kind == ruling.REQUEST:
+            start = first_reader(flow, fm, order, start)
         edited = manifest.changed(found.data.get("flow_files"), shape[1]) \
             if found else []
         if edited and "--force" not in sys.argv:
@@ -1145,6 +1184,10 @@ def main():
     if found:
         record = found.carried(folder, run_id, order, shape,
                                workdir=str(run.workdir))
+        if kind == ruling.REQUEST:
+            record.data["task"] = asked
+            for name in order[order.index(start):]:
+                record.mark(name, manifest.NOT_RUN)
     else:
         record = manifest.Manifest.new(folder, run_id, flow, fm["name"], order,
                                        shape, task=asked, models=chosen,
@@ -1156,11 +1199,16 @@ def main():
     for decided, why in notes:
         decisions.record(folder, decided, why)
     if answer is not None:
-        decisions.record(run.workdir, ruling.decided(start, answer),
-                         ruling.why(start, pick_up, question, answer,
-                                    ruling.who()))
-        run.ruled[start] = ruling.told(question, answer)
-        print("ruled: " + start + " runs again with the answer")
+        asker = (found.data.get("stopped") or {}).get("step") or start
+        decisions.record(run.workdir, ruling.decided(asker, answer),
+                         ruling.why(asker, pick_up, question, answer,
+                                    ruling.who(), kind))
+        if kind == ruling.REQUEST:
+            print("ruled: the request is amended, and the run starts again at "
+                  + start)
+        else:
+            run.ruled[start] = ruling.told(question, answer, kind)
+            print("ruled: " + start + " runs again with the answer")
     trail = trace.Trail(folder,
                         after=trace.last_seq(state.RUNS / pick_up)
                         if pick_up else 0)
@@ -1241,11 +1289,13 @@ def main():
         remember(flow, run, run_id, stops.status(cause, at))
         done = [(name, secs) for name, secs, _ in timings]
         if question:
+            conflict = cause == stops.CONFLICT
             needs = park.lines(at, waiting, done,
                                resume.remaining(steps(flow), at),
                                resume_command(flow, run_id),
-                               question=question)
-            print("parked at " + at + ", waiting for a ruling")
+                               question=question, conflict=conflict)
+            print("stopped at " + at + " on a spec conflict" if conflict
+                  else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:
             needs = park.refused(at, why, done)
         elif waiting:
@@ -1415,6 +1465,14 @@ def main():
                             index="FAILED  " + flow + "  at "
                             + (blamed or step), at=blamed)
 
+            said = ruling.conflict_of(out.output, run.workdir, run.start)
+            if said and not said[1]:
+                print(step + " found the request contradicts the spec")
+                return stop(stops.CONFLICT, "spec conflict: "
+                            + said[0].split(NEWLINE)[0][len("NEEDS: "):],
+                            "conflict", entry,
+                            index="CONFLICT  " + flow + "  at " + step,
+                            question=said[0])
             wrong = wrongtest.judge(out.output, step, run, route)
             if wrong and wrong[0] == "back":
                 _, writer, test, told = wrong

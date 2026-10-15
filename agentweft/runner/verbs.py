@@ -1,7 +1,8 @@
 """the labelled lines a step's answer can carry, read one way everywhere.
 
 a step talks to the runner in lines that start with a word in capitals and a
-colon: `NEEDS:`, `ASSUMED:`, `REFUSED:`, the HANDOFF block's own headings.
+colon: `NEEDS:`, `ASSUMED:`, `REFUSED:`, `CONFLICT:`, the HANDOFF block's own
+headings.
 each reader used to find them its own way, and the ways disagreed on the
 cases that matter: a key in lower case, a key behind a bullet or in bold, a
 key inside a fenced code block (a test that asserts on the string "NEEDS:"),
@@ -9,7 +10,7 @@ a key inside a `>` quote of the task. this is the one reader.
 
 a line counts when it is outside a fence and not quoted; its key is read
 whatever its case, and a bullet or bold around it is ignored. the first
-`NEEDS:` or `REFUSED:` wins; the list verbs gather every line.
+`NEEDS:`, `REFUSED:` or `CONFLICT:` wins; the list verbs gather every line.
 """
 import re
 
@@ -18,7 +19,7 @@ QUOTE = re.compile(r"^\s*>")
 BULLET = re.compile(r"^\s*[-*+]\s+(.*?)\s*$")
 KEY = re.compile(r"^[\s#*`_\-+]*([A-Za-z][A-Za-z \-_]*?)[\s*`_]*:\s*(.*?)\s*$")
 
-SINGLE = ("NEEDS", "REFUSED", "INTENT", "INTENT QUOTE")
+SINGLE = ("NEEDS", "REFUSED", "CONFLICT", "INTENT", "INTENT QUOTE")
 LISTED = ("CITES", "OPTIONS", "ASSUMED", "INTENT SCOPE", "CHANGED UNDER")
 
 
@@ -60,12 +61,13 @@ def unquoted(text):
 class Verbs(object):
     """what the answer asked for or declared, None or [] when it did not."""
 
-    __slots__ = ("needs", "cites", "options", "refused", "assumed", "intent",
-                 "intent_quote", "intent_scope", "changed_under")
+    __slots__ = ("needs", "cites", "options", "refused", "conflict", "assumed",
+                 "intent", "intent_quote", "intent_scope", "changed_under")
 
     def __init__(self):
         self.needs = None
         self.refused = None
+        self.conflict = None
         self.intent = None
         self.intent_quote = None
         self.cites = []
@@ -78,7 +80,8 @@ class Verbs(object):
         return any(getattr(self, k) for k in self.__slots__)
 
 
-FIELD = {"NEEDS": "needs", "REFUSED": "refused", "INTENT": "intent",
+FIELD = {"NEEDS": "needs", "REFUSED": "refused", "CONFLICT": "conflict",
+         "INTENT": "intent",
          "INTENT QUOTE": "intent_quote", "CITES": "cites", "OPTIONS": "options",
          "ASSUMED": "assumed", "INTENT SCOPE": "intent_scope",
          "CHANGED UNDER": "changed_under"}

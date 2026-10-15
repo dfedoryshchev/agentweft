@@ -32,6 +32,14 @@ gate sees it. a step that stopped to ask produced nothing to gate
 answer, which sends a test the run wrote back to the step that wrote it, to be
 shown red again by that step's gates, or parks on one the run started with.
 
+a `CONFLICT: <file>:<line> "<quote>"` line, with `request: <the request's
+words>` on the line after it, is read first. when the quote is at that line as the run found it, the run stops on
+cause `conflict` before any gate runs, so a red test the step marked as
+contradicting the spec is never something the step is sent back to turn
+green. when it is not, a `conflict` result goes in front of the step's gates
+and fails it, with what was wrong (`docs/journal.md`, when the request
+contradicts the spec).
+
 nothing goes past a failed gate, but the run does not stop on the first one.
 the step that failed goes again, once, with the gate's line at the very end of
 its prompt (`your last answer failed a gate, so this step runs again. the gate
