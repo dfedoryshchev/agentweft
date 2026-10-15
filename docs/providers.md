@@ -60,6 +60,16 @@ besides the text:
   failure's words only when it is None.
 - `killed` - how many processes a cli call left running that were ended with
   it; None from a provider that starts none.
+- `metered` - where the usage of a go `claude` never answered for came from;
+  None for every go that answered. a call that timed out printed nothing, so
+  its session's transcript is read back: the file under the cli's projects
+  folder started in the call's window whose first message is the prompt (no
+  session id was printed to find it by). its requests are summed, one per
+  message, and `metered` is `"transcript"`. with no such file the go is
+  `"estimate"` and `guess` is the prompt's length in tokens, at four
+  characters a token. a call that exited with an error and printed no result
+  is read back the same way, and left unestimated when there is no
+  transcript, because it most likely never reached a model.
 
 any of these is None when the provider did not say. that is not zero: **fake**,
 a command other than `claude`, and an error that came back without a usage

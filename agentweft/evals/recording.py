@@ -57,19 +57,24 @@ class Goes(object):
 
 def kept(reply):
     usage = reply.usage
-    return {"say": reply.text or "", "detail": reply.detail or "",
-            "retryable": reply.retryable, "outage": reply.outage,
-            "model": reply.model, "session": reply.session, "cost": reply.cost,
-            "usage": None if usage is None
-            else {"raw": usage.raw, "requests": usage.requests},
-            "models": None if not reply.models
-            else {k: u.raw for k, u in reply.models.items()}}
+    out = {"say": reply.text or "", "detail": reply.detail or "",
+           "retryable": reply.retryable, "outage": reply.outage,
+           "model": reply.model, "session": reply.session, "cost": reply.cost,
+           "usage": None if usage is None
+           else {"raw": usage.raw, "requests": usage.requests},
+           "models": None if not reply.models
+           else {k: u.raw for k, u in reply.models.items()}}
+    if reply.metered:
+        out["metered"] = reply.metered
+        out["guess"] = reply.guess
+    return out
 
 
 def reply_of(call):
     usage = call.get("usage")
     models = call.get("models")
     return Reply(call.get("say") or "", detail=call.get("detail") or "",
+                 metered=call.get("metered"), guess=call.get("guess"),
                  usage=None if usage is None
                  else Usage(usage["raw"], usage.get("requests")),
                  cost=call.get("cost"), session=call.get("session"),

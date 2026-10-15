@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.providers import cli_provider
-from agentweft.runner import state
+from agentweft.runner import handoff, state
 
 
 def pytest_addoption(parser):
@@ -39,6 +39,9 @@ def no_real_provider():
             run=refuse("the cli provider's subprocess.run"),
             Popen=refuse("the cli provider's subprocess.Popen"),
             TimeoutExpired=subprocess.TimeoutExpired))
+        # a go that timed out looks for its transcript among the cli's own
+        # sessions, and a test is never handed the machine's
+        mp.setattr(handoff, "PROJECTS", "no-such-projects-folder")
         yield
 
 

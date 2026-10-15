@@ -72,15 +72,65 @@ def tokens(attempts):
                                   for r in replies)}
 
 
-def cost(attempts):
-    """USD as the providers stated it, None when any of them did not say."""
+def stated(r):
+    c = r.cost
+    return isinstance(c, (int, float)) and not isinstance(c, bool)
+
+
+def one_go(table, r, model):
+    """-> Priced for a go the provider never answered for."""
+    from agentweft.guardrails import prices
+
+    if r.usage is not None:
+        return prices.of_reply(table, r, asked=model)
+    return table.estimate(r.model or model, r.guess or 0, 0)
+
+
+def cost(attempts, model=None):
+    """USD as the providers stated it, None when any of them did not say.
+
+    a go that never answered has no stated figure, and is priced from its
+    transcript or its estimate instead: it was paid for all the same.
+    `cost_from` says which figures the sum holds.
+    """
+    from agentweft.guardrails import prices
+
     if attempts and all(a.cached for a in attempts):
         return 0
-    asked = [a for a in attempts if not a.cached]
-    costs = [r.cost for a in asked for r in a.replies]
-    if not costs or any(c is None for c in costs):
+    replies = [r for a in attempts if not a.cached for r in a.replies]
+    if not replies:
         return None
-    return round(sum(costs), 6)
+    total = sum(r.cost for r in replies if stated(r))
+    rest = [r for r in replies if not stated(r)]
+    if any(getattr(r, "metered", None) is None for r in rest):
+        return None
+    if rest:
+        table = prices.load()
+        filled = prices.Priced(Decimal(0))
+        for r in rest:
+            filled = filled + one_go(table, r, model)
+        if filled.usd is None:
+            return None
+        total = total + float(filled.usd)
+    return round(total, 6)
+
+
+def cost_from(attempts):
+    """-> how many goes each figure in `cost` came from, None when every go
+    stated its own or nothing was asked."""
+    out = {}
+    for a in attempts:
+        if a.cached:
+            continue
+        for r in a.replies:
+            if stated(r):
+                kind = "provider"
+            else:
+                kind = getattr(r, "metered", None) or "unreported"
+            out[kind] = out.get(kind, 0) + 1
+    if not out or list(out) == ["provider"]:
+        return None
+    return out
 
 
 def priced(attempts, model=None):
@@ -131,8 +181,9 @@ def seconds(attempts):
 
 
 def facts(attempts, model=None):
-    return {"tokens": tokens(attempts), "cost": cost(attempts),
+    return {"tokens": tokens(attempts), "cost": cost(attempts, model),
             "priced": priced(attempts, model),
+            "cost_from": cost_from(attempts),
             "seconds": seconds(attempts),
             "cached": bool(attempts) and all(a.cached for a in attempts),
             "retries": retries(attempts),
@@ -256,6 +307,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "tokens": said["tokens"],
             "cost": said["cost"],
             "priced": said["priced"],
+            "cost_from": said["cost_from"],
             "session": last(one, "session") if one else None,
             "seconds": said["seconds"],
             "cached": said["cached"],

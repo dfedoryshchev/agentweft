@@ -126,6 +126,135 @@ def per_model(models, usage):
     return out
 
 
+SUMMED = ("input_tokens", "output_tokens", "cache_read_input_tokens",
+          "cache_creation_input_tokens")
+WRITES = ("ephemeral_5m_input_tokens", "ephemeral_1h_input_tokens")
+
+# a file's time can be coarser than the clock it is held against
+SLACK = 2
+
+
+def first_prompt(rows):
+    """-> the text of the first user message among a transcript's rows."""
+    from agentweft.runner.handoff import _text
+
+    for data in rows:
+        message = data.get("message")
+        if data.get("type") == "user" and isinstance(message, dict):
+            return _text(message.get("content"))
+    return None
+
+
+def rows_of(path):
+    out = []
+    for raw in path.read_text(encoding="utf-8", errors="replace").split("\n"):
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(data, dict):
+            out.append(data)
+    return out
+
+
+def summed(blocks):
+    """-> one usage block adding up the requests' own."""
+    out = dict.fromkeys(SUMMED, 0)
+    writes = dict.fromkeys(WRITES, 0)
+    split = True
+    searches = 0
+    for block in blocks:
+        for key in SUMMED:
+            out[key] += count(block.get(key))
+        said = block.get("cache_creation")
+        if isinstance(said, dict):
+            for key in WRITES:
+                writes[key] += count(said.get(key))
+        elif count(block.get("cache_creation_input_tokens")):
+            split = False
+        tools = block.get("server_tool_use")
+        if isinstance(tools, dict):
+            searches += count(tools.get("web_search_requests"))
+    if split:
+        out["cache_creation"] = writes
+    if searches:
+        out["server_tool_use"] = {"web_search_requests": searches}
+    return out
+
+
+def count(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def spent_in(rows):
+    """-> (Usage, {model: Usage} or None, model) for the requests a
+    transcript records, or None when it records none.
+
+    the cli writes one row per piece of an answer and every row of one
+    message repeats its usage, so a message is counted once, by its last row.
+    """
+    last = {}
+    for n, data in enumerate(rows):
+        message = data.get("message")
+        if data.get("type") != "assistant" or not isinstance(message, dict):
+            continue
+        if not isinstance(message.get("usage"), dict):
+            continue
+        key = message.get("id") or data.get("requestId") or n
+        last[key] = message
+    if not last:
+        return None
+    by_model = {}
+    for message in last.values():
+        name = message.get("model") or ""
+        by_model.setdefault(name, []).append(message["usage"])
+    blocks = [b for group in by_model.values() for b in group]
+    usage = Usage(summed(blocks), requests=len(blocks))
+    named = sorted(n for n in by_model if n)
+    models = None
+    if len(by_model) > 1:
+        models = {n: Usage(summed(g), requests=len(g))
+                  for n, g in by_model.items() if n}
+    return usage, models, ", ".join(named) or None
+
+
+def read_back(prompt, since):
+    """-> (Usage, models, model, session) from the transcript the cli wrote
+    for this prompt since `since`, or None when there is none to read.
+
+    a go that never answered printed no session id, so its file is the one
+    started in this window whose first message is the prompt. the folder is
+    never guessed: every project's sessions are looked at.
+    """
+    from agentweft.runner.handoff import projects
+
+    found = []
+    try:
+        for path in projects().glob("*/*.jsonl"):
+            try:
+                when = path.stat().st_mtime
+            except OSError:
+                continue
+            if when >= since - SLACK:
+                found.append((when, path))
+    except OSError:
+        return None
+    for _, path in sorted(found, reverse=True):
+        try:
+            rows = rows_of(path)
+        except OSError:
+            continue
+        if (first_prompt(rows) or "").strip() != prompt.strip():
+            continue
+        spent = spent_in(rows)
+        if spent is None:
+            return None
+        session = next((d.get("sessionId") for d in rows
+                        if d.get("sessionId")), None) or path.stem
+        return spent + (session,)
+    return None
+
+
 USAGE_LIMIT = "usage_limit_reached"
 
 
@@ -459,6 +588,7 @@ class CliProvider(Provider):
         if refused:
             return Reply("", detail=refused, retryable=False)
         argv, stdin = self.argv(prompt)
+        since = time.time()
         try:
             r = call(argv, stdin=stdin,
                      cwd=str(self.where) if self.where else None,
@@ -470,8 +600,11 @@ class CliProvider(Provider):
             return Reply("", detail=(argv[0] + ": " + str(e))[:200],
                          retryable=False)
         if r.timed_out:
-            return Reply("", detail="timed out after " + str(timeout) + "s",
-                         retryable=True, killed=r.killed)
+            reply = Reply("", detail="timed out after " + str(timeout) + "s",
+                          retryable=True, killed=r.killed)
+            if stdin is not None:
+                self.unanswered(reply, prompt, since, ran=True)
+            return reply
         data = answered(r.stdout) if stdin is not None else None
         if data is not None:
             return self.read(data, r)
@@ -479,9 +612,28 @@ class CliProvider(Provider):
             # some failures say nothing on stderr and everything on stdout, and
             # i was throwing that away and reporting an empty error
             detail = (r.stderr.strip() or r.stdout.strip())[:200]
-            return Reply("", detail=detail or ("exit " + str(r.returncode)),
-                         killed=r.killed)
+            reply = Reply("", detail=detail or ("exit " + str(r.returncode)),
+                          killed=r.killed)
+            if stdin is not None:
+                # an exit with no transcript most likely never reached a model
+                self.unanswered(reply, prompt, since, ran=False)
+            return reply
         return Reply(r.stdout, killed=r.killed)
+
+    def unanswered(self, reply, prompt, since, ran):
+        """fills in what a go the cli never answered for used: read back from
+        its transcript, else, when it is known to have run, estimated from the
+        prompt."""
+        found = read_back(prompt, since)
+        if found is not None:
+            reply.usage, reply.models, reply.model, reply.session = found
+            reply.metered = "transcript"
+        elif ran:
+            from agentweft.guardrails.budget import CHARS_PER_TOKEN
+
+            reply.metered = "estimate"
+            reply.guess = len(prompt) // CHARS_PER_TOKEN
+        return reply
 
     def read(self, data, r):
         models = data.get("modelUsage")

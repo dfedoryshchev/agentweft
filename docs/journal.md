@@ -117,7 +117,8 @@ or crashed. the keys are always all there, in this order:
      "model_reported": "a-model-1", "model_choice": null, "grant": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
-     "cost": 0.25, "priced": 0.25, "session": "s-1", "seconds": 8.4,
+     "cost": 0.25, "priced": 0.25, "cost_from": null, "session": "s-1",
+     "seconds": 8.4,
      "cached": false,
      "retries": {}, "background_killed": 0,
      "gates": [{"gate": "length", "ok": true,
@@ -166,6 +167,16 @@ or crashed. the keys are always all there, in this order:
   not zero, unknown. a cached answer sent nothing, so it costs 0 and is not
   counted. `priced` is the same tokens through the price table, null when a
   go was not counted or the table could not price it.
+- a go that never answered, one that timed out say, stated no cost and was
+  paid for all the same. it is in `cost` at the price table's figure: from
+  its session's transcript when the cli wrote one, else estimated from the
+  prompt (`providers.md`, `metered`). `cost_from` then says how many goes
+  each figure came from, `{"provider": 1, "estimate": 1}` for a step whose
+  first go timed out and whose retry answered; it is null when every go
+  stated its own cost or nothing was asked. `"unreported"` in it is a go
+  with no figure at all, and the cost is null then, as it is when the table
+  has no price for the model. the run's money line counts the same goes:
+  a transcript's tokens as counted, an estimate as estimated (`~`).
 - `retries` is the goes that failed, by cause (`{"transient": 2}`); null on a
   crash, where nothing knows how many there were.
 - `background_killed` is how many processes the cli call left running (a
@@ -194,7 +205,7 @@ or crashed. the keys are always all there, in this order:
   `--task-file`, kept beside the line as `runs/<run-id>/task.md`; null when it
   was not. the text is not on the line, so a long task is written once.
 - a fanned-out step is one line: the totals at the top and a `tasks` list with
-  each task's own seconds, tokens, cost, priced, session, retries and
+  each task's own seconds, tokens, cost, priced, cost_from, session, retries and
   background_killed, in plan
   order.
   the gates judged the joined output, so they are on the line, not the tasks.

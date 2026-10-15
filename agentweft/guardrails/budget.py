@@ -63,7 +63,9 @@ class Budget(object):
         self.estimated = 0
         self.estimated_calls = 0
         # failed goes the provider gave no usage for, by error kind. they are
-        # charged as calls and as 0 tokens, which is not the same as free
+        # charged as calls and as 0 tokens, which is not the same as free. a
+        # go the provider knows ran, such as one that timed out, is estimated
+        # from its prompt instead
         self.unreported = {}
         # goes the provider turned away and counted at 0 tokens, such as the
         # account's limit: nothing was worked on, so they are not calls
@@ -95,7 +97,7 @@ class Budget(object):
             self.counted["reasoning"] += usage.reasoning_output_tokens or 0
             self.counted_calls += 1
             self.price(prices.of_reply(self.prices, answer, asked=model))
-        elif error:
+        elif error and getattr(answer, "metered", None) != "estimate":
             self.unreported[error] = self.unreported.get(error, 0) + 1
         else:
             text = getattr(answer, "text", answer) or ""

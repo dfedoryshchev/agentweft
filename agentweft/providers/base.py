@@ -71,14 +71,20 @@ class Reply(object):
     "unknown". `models` is the usage per model when more than one answered,
     None otherwise. `killed` is how many processes the call left running that
     were ended with it, None when it started none or could not tell.
+
+    `metered` is None when what the reply says it used came with the answer.
+    a go that never answered says where its figure came from instead:
+    "transcript" when its usage was read back from what the session wrote
+    down, "estimate" when there was nothing to read and `guess` input tokens
+    were worked out from the length of the prompt.
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
-                 "retryable", "outage", "models", "killed")
+                 "retryable", "outage", "models", "killed", "metered", "guess")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
                  session=None, model=None, retryable=None, outage=None,
-                 models=None, killed=None):
+                 models=None, killed=None, metered=None, guess=None):
         self.text = text
         self.cached = cached
         self.detail = detail
@@ -90,6 +96,8 @@ class Reply(object):
         self.outage = outage
         self.models = models
         self.killed = killed
+        self.metered = metered
+        self.guess = guess
 
     def __bool__(self):
         return bool(self.text)
