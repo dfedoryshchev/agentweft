@@ -79,14 +79,20 @@ class Reply(object):
     "transcript" when its usage was read back from what the session wrote
     down, "estimate" when there was nothing to read and `guess` input tokens
     were worked out from the length of the prompt.
+
+    `writes` is {path: content} for the files a scripted answer left in the
+    place, None for an answer that left none.
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
-                 "retryable", "outage", "models", "killed", "metered", "guess")
+                 "retryable", "outage", "models", "killed", "metered", "guess",
+                 "writes")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
                  session=None, model=None, retryable=None, outage=None,
-                 models=None, killed=None, metered=None, guess=None):
+                 models=None, killed=None, metered=None, guess=None,
+                 writes=None):
+        self.writes = writes
         self.text = text
         self.cached = cached
         self.detail = detail

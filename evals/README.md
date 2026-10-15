@@ -18,6 +18,40 @@ already checks - plus that the run got to the end, plus what it cost, plus
 the steps it took when the case says which (below). a run
 stopped by a gate, or by a step that produced nothing, loses that one.
 
+## a case that brings its own place
+
+a flow whose steps write files and whose gates run them, like fix-with-test,
+needs somewhere to do it that is not this repo. a case says so with
+`place: <folder>`, a folder beside its case.yaml holding the code as the run
+should find it. every run of the case works in a fresh copy of it, made a git
+work tree with those files as one commit so the red-first gate can replay the
+start, and thrown away after. the case's own folder and the tree the command
+was started in are never written to.
+
+the fake provider answers each step from a list of its own, and an answer can
+leave files in the place before the step's gates look at it:
+
+    provider:
+      provider: fake
+      replies:
+        worker.md:
+          - say: |
+              FAILS: assert -1 == 3
+              TEST: test_calc.py
+            writes:
+              test_calc.py: |
+                from calc import add
+                ...
+        patcher.md:
+          - say: "TEST: test_calc.py"
+            writes:
+              calc.py: |
+                def add(a, b):
+                    return a + b
+
+a step that goes again takes the next answer on its list, and the last one
+again once the list runs out. a path that leads out of the place is refused.
+
 ## the steps it took
 
 a right answer reached the wrong way scores like a right answer, so a case can
@@ -66,7 +100,9 @@ calls nothing, so it runs offline and gives the same answers every time.
 runs the case's own provider and writes what it answered, over the old one.
 without `--case` every case of the flow is recorded. each call is kept under
 its step, its task when the step is fanned out, and which go it was, with a
-sha256 of the prompt it was sent and never the prompt itself. a replay stops
+sha256 of the prompt it was sent and never the prompt itself. the files an
+answer left in the place are kept with it and written again on replay. a
+replay stops
 the case, and the command exits 1 without saving the scores, when:
 
 - a prompt changed since it was recorded: `recording is stale: planner.md

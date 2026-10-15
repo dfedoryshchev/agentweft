@@ -7,6 +7,9 @@ matching on the order of the calls alone would hand an edited prompt the old
 answer and score the old work as the new; here it stops the case as stale.
 a call the recording does not have is an error, and so is a recorded answer
 the run never asked for: either way the recording is of some other run.
+
+the files an answer left in the place are kept with it and written again
+when it is replayed, so a step's gates find what they found when it ran.
 """
 import datetime
 import hashlib
@@ -15,6 +18,7 @@ import threading
 from pathlib import Path
 
 from agentweft.providers.base import Provider, Reply, Usage
+from agentweft.providers.fake_provider import write_into
 
 FILE = "recording.json"
 PREFIX = "recording "
@@ -67,6 +71,8 @@ def kept(reply):
     if reply.metered:
         out["metered"] = reply.metered
         out["guess"] = reply.guess
+    if getattr(reply, "writes", None):
+        out["writes"] = dict(reply.writes)
     return out
 
 
@@ -79,7 +85,7 @@ def reply_of(call):
                  else Usage(usage["raw"], usage.get("requests")),
                  cost=call.get("cost"), session=call.get("session"),
                  model=call.get("model"), retryable=call.get("retryable"),
-                 outage=call.get("outage"),
+                 outage=call.get("outage"), writes=call.get("writes"),
                  models=None if not models
                  else {k: Usage(raw) for k, raw in models.items()})
 
@@ -108,6 +114,7 @@ class Recorder(Provider):
 
     def at(self, step, task):
         self.goes.at(step, task)
+        self.inner.at(step, task)
 
     def asks_for(self):
         return self.inner.asks_for()
@@ -187,6 +194,7 @@ class Replay(Provider):
                            + " prompt changed")
         with self.lock:
             self.used.add(key)
+        write_into(self.where, call.get("writes"))
         return reply_of(call)
 
     def unused(self):

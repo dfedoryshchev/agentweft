@@ -9,6 +9,7 @@ expected output, because the output is not deterministic and pretending it is
 would make this useless within a week.
 """
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -44,9 +45,44 @@ def load_case(path):
     return {"name": path.name, "path": path,
             "recording": kept if kept.is_file() else None,
             "inbox": path / cfg.get("inbox", "inbox"),
+            "place": path / cfg["place"] if cfg.get("place") else None,
             "provider": cfg.get("provider") or {},
             "expect": cfg.get("expect") or {},
             "task": task}
+
+
+def committed(place):
+    """make the copy of a case's place a git work tree holding its files as
+    one commit. -> "" when it is, else why not.
+
+    a run is pointed at a repo, and the red-first gate replays the start from
+    its history: a place outside git would pass that gate without running."""
+    import subprocess
+
+    who = ["-c", "user.name=evals", "-c", "user.email=evals@localhost",
+           "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false"]
+    for args in (["init", "-q"], ["add", "-A"],
+                 ["commit", "-q", "--allow-empty", "-m", "the case's place"]):
+        try:
+            r = subprocess.run(["git", "-C", str(place)] + who + args,
+                               capture_output=True, encoding="utf-8")
+        except FileNotFoundError:
+            return "a case with a place needs git, and git is not on PATH"
+        if r.returncode != 0:
+            return "git " + args[0] + " failed in its place: " + (
+                r.stderr or r.stdout).strip()
+    return ""
+
+
+def gone(folder):
+    # git keeps its objects read-only, and on Windows a read-only file
+    # cannot be deleted until that is taken off
+    import stat
+
+    for p in Path(folder).rglob("*"):
+        if p.is_file():
+            os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
+    shutil.rmtree(folder, ignore_errors=True)
 
 
 class Ran(tuple):
@@ -71,6 +107,10 @@ def run_flow_for(flow, case, record=False):
     a case with a recording beside it is answered from that and calls
     nothing. `record` runs the case's provider and writes what it answered
     there, over whatever was recorded before.
+
+    a case with a `place` runs in a copy of it, made fresh for the run, so
+    what its steps write and its gates run never reach the case's own
+    folder or the tree the command was started in.
     """
     from agentweft import providers
     from agentweft.runner import engine, task
@@ -84,6 +124,11 @@ def run_flow_for(flow, case, record=False):
                             case.get("task"))
     except ValueError as e:
         return Ran("", None, str(e))
+    place = case.get("place")
+    if place is not None and not Path(place).is_dir():
+        return Ran("", None, case["name"] + " names a place, "
+                   + Path(place).name + ", that is not a folder beside its "
+                   "case.yaml")
     pinned = case.get("provider")
     replay = recorder = None
     if record:
@@ -93,24 +138,35 @@ def run_flow_for(flow, case, record=False):
         pinned = recorder = recording.Recorder(providers.build(pinned))
     elif case.get("recording"):
         pinned = replay = recording.Replay.load(case["recording"])
+    folder = Path(tempfile.mkdtemp())
+    trail = folder / "trail"
+    trail.mkdir()
+    workdir = None
     old = {k: os.environ.get(k) for k in ("INBOX", "LOGS", "WATCH")}
-    for k in old:
-        # the path is in the prompt, and a recording made on Windows has to
-        # hash the same on Linux
-        os.environ[k] = Path(case["inbox"]).as_posix()
-    with tempfile.TemporaryDirectory() as folder:
+    try:
+        if place is not None:
+            workdir = folder / "place"
+            shutil.copytree(place, workdir)
+            why = committed(workdir)
+            if why:
+                return Ran("", None, case["name"] + ": " + why)
+        for k in old:
+            # the path is in the prompt, and a recording made on Windows has
+            # to hash the same on Linux
+            os.environ[k] = Path(case["inbox"]).as_posix()
         try:
             out = engine.run_once(flow, provider=pinned, task=asked,
-                                  trail=Path(folder))
+                                  trail=trail, workdir=workdir)
         except recording.Mismatch as e:
-            return Ran("", None, str(e), steps.read(Path(folder)))
-        finally:
-            for k, v in old.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
-        took = steps.read(Path(folder))
+            return Ran("", None, str(e), steps.read(trail))
+        took = steps.read(trail)
+    finally:
+        for k, v in old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        gone(folder)
     if recorder is not None:
         recorder.save(case["path"] / recording.FILE)
     if replay is not None and replay.unused():
