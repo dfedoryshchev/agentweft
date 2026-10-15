@@ -65,7 +65,8 @@
     "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> planner.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)",
     "- done",
-    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 6 lines, head <hash> (python run.py verify build-feature-<run>)"
   ],
   "files": [
     "build-feature-<day>-1.md",
@@ -148,6 +149,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -212,6 +220,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -270,6 +285,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -328,6 +350,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -397,6 +426,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -485,6 +521,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     }
   ],

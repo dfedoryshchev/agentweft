@@ -55,7 +55,8 @@
     "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
     "- spend: 5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)",
     "- done",
-    "- record: runs/repo-audit-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/repo-audit-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 4 lines, head <hash> (python run.py verify repo-audit-<run>)"
   ],
   "files": [
     "index.md",
@@ -134,6 +135,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -233,6 +241,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -291,6 +306,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -379,6 +401,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     }
   ],

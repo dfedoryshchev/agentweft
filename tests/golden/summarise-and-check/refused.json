@@ -58,6 +58,7 @@
     "- spend: 1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: declined at worker.md",
     "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 1 lines, head <hash> (python run.py verify summarise-and-check-<run>)",
     "the run ended here; there is nothing to carry on."
   ],
   "files": [
@@ -128,6 +129,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     }
   ],

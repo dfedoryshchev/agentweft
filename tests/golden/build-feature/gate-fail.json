@@ -72,6 +72,7 @@
     "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
     "- cause: gate failed at tester.md",
     "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 3 lines, head <hash> (python run.py verify build-feature-<run>)",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force"
   ],
@@ -151,6 +152,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -215,6 +223,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -279,6 +294,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     }
   ],

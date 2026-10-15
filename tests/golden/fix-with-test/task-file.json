@@ -55,7 +55,8 @@
     "- steps: worker.md <secs>s -> patcher.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
     "- done",
-    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 2 lines, head <hash> (python run.py verify fix-with-test-<run>)"
   ],
   "files": [
     "fix-with-test-<day>-1.md",
@@ -155,6 +156,13 @@
           "calc.py:1-2 - the one function"
         ],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -244,6 +252,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     }
   ],

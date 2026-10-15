@@ -44,7 +44,8 @@
     "- steps: worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
     "- done",
-    "- record: runs/code-review-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/code-review-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 2 lines, head <hash> (python run.py verify code-review-<run>)"
   ],
   "files": [
     "code-review-<day>-1.md",
@@ -124,6 +125,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -217,6 +225,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
       }
     }
   ],

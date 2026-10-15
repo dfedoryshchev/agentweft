@@ -63,6 +63,7 @@
     "- spend: 1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: parked at worker.md",
     "- record: runs/risky-edit-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 2 lines, head <hash> (python run.py verify risky-edit-<run>)",
     "to carry on",
     "  python run.py risky-edit --resume risky-edit-<run> --force"
   ],
@@ -136,6 +137,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -174,7 +182,14 @@
       "file": null,
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": null,
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [

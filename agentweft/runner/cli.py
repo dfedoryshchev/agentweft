@@ -79,6 +79,7 @@ def cmd_help():
   python run.py step <flow> <role-or-step>   one step, nothing written down
   python run.py workflow          the phase list, and where it stops
   python run.py vocab             flow words against phase words, counted
+  python run.py verify <run-id>   does that run's record still hold
   python rollup.py [--flow x] [--failed]
 
 --force   ignore the schedule
@@ -86,7 +87,8 @@ def cmd_help():
           one named, or the newest of that flow. one that died starts again
           at the step that died; one that parked for a person carries on at
           the step after it. it keeps the task, the models, the place and what
-          the run had spent; a flow edited since then needs --force
+          the run had spent; a flow edited since then needs --force, and
+          so does a run whose record no longer holds (see verify)
 --workdir the directory the run works in, over the flow's own `workdir`.
           a resumed run stays in the one it started in
 --task    what this run is for: a bug, a feature, a question. it goes where
@@ -263,6 +265,39 @@ def cmd_spend():
     return 0
 
 
+def cmd_verify():
+    """python run.py verify <run id> - does the run's record still hold.
+
+    reads its steps.jsonl back against the chain each line carries, the head
+    the manifest kept and the files the last line names, and says the first
+    line that was edited, dropped or put out of order. exit 1 when it breaks
+    or there is nothing to check.
+    """
+    if not need(2, "python run.py verify <run id>"):
+        return 1
+    from . import chain
+
+    run_id = sys.argv[2]
+    folder = state.RUNS / run_id
+    if not folder.is_dir():
+        print("no run called " + run_id + " in " + str(state.RUNS))
+        return 1
+    found = chain.verify(folder)
+    if found.broken:
+        print(run_id + ": broken: " + found.broken)
+        return 1
+    if found.unchained:
+        print(run_id + ": " + str(found.lines) + " lines written before the"
+              " record was chained, so there is nothing to check them by")
+        return 1
+    if not found.lines:
+        print(run_id + ": no steps.jsonl lines to check")
+        return 1
+    print(run_id + ": holds, " + str(found.lines) + " lines, head "
+          + found.head[:16])
+    return 0
+
+
 def command(name):
     """-> the exit code of one of COMMANDS. `--flows` is read here, so it
     names the folder for every command and not only for a run."""
@@ -286,4 +321,5 @@ def entrypoint():
 
 COMMANDS = {"list": cmd_list, "show": cmd_show, "help": cmd_help, "spend": cmd_spend,
             "step": cmd_step, "provider": cmd_provider, "workflow": cmd_workflow,
-            "vocab": cmd_vocab, "--help": cmd_help, "-h": cmd_help}
+            "vocab": cmd_vocab, "verify": cmd_verify, "--help": cmd_help,
+            "-h": cmd_help}

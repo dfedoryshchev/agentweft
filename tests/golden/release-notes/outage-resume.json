@@ -69,6 +69,7 @@
     "- spend: 1 call, 1 refused, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: provider outage at reviewer.md",
     "- record: runs/release-notes-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 2 lines, head <hash> (python run.py verify release-notes-<run>)",
     "to carry on",
     "  python run.py release-notes --resume release-notes-<run> --force",
     "# release-notes release-notes-<run>: done",
@@ -108,7 +109,8 @@
     "- steps: reviewer.md <secs>s",
     "- spend: 2 calls, 1 refused, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
     "- done",
-    "- record: runs/release-notes-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/release-notes-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 1 lines, head <hash> (python run.py verify release-notes-<run>)"
   ],
   "files": [
     "index.md",
@@ -188,6 +190,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -267,7 +276,14 @@
       "file": null,
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": null,
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     },
     {
       "seq": 3,
@@ -355,6 +371,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     }
   ],

@@ -51,7 +51,8 @@
     "- steps: planner.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
     "- done",
-    "- record: runs/ops-check-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/ops-check-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 3 lines, head <hash> (python run.py verify ops-check-<run>)"
   ],
   "files": [
     "index.md",
@@ -127,6 +128,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -185,6 +193,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -273,6 +288,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     }
   ],

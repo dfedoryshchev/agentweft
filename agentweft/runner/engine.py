@@ -32,7 +32,8 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import lead, leftred, levels, manifest, models, resume, router, ruling
+from . import (chain, lead, leftred, levels, manifest, models, resume, router,
+               ruling)
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -1335,6 +1336,15 @@ def main():
             notes.append(("carried " + pick_up + " on over an edited flow",
                           ", ".join(edited) + " changed since " + pick_up
                           + " stopped, and --force was given."))
+        broke = chain.verify(state.RUNS / pick_up).broken
+        if broke and "--force" not in sys.argv:
+            print(pick_up + "'s record does not hold: " + broke + ". what it"
+                  " says ran is not what ran; --force carries on anyway")
+            return 1
+        if broke:
+            notes.append(("carried " + pick_up + " on over a broken record",
+                          "runs/" + pick_up + "/steps.jsonl: " + broke
+                          + ", and --force was given."))
     try:
         if started_in and named and where(fm, named) != Path(started_in):
             print(pick_up + " was working in " + started_in + ", not "
@@ -1530,6 +1540,7 @@ def main():
         ran = passes(trail, run, fm)
         record.ended(summary.outcome(stopped, summary.unproven(
             list(earlier) + ran)))
+        record.data[chain.FIELD] = trail.head()
         record.save(run.budget)
         left = leftred.check(run.start, fm, leftred.chosen(fm, sys.argv)) \
             if stopped else None
@@ -1545,7 +1556,8 @@ def main():
                               before=earlier, started=started,
                               found=run.produced.get(investigate.STEP, ""),
                               order=run.order.said(), left=left,
-                              suite=baseline.lines(known))
+                              suite=baseline.lines(known),
+                              chained=record.data[chain.FIELD])
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,

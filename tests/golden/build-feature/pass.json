@@ -58,7 +58,8 @@
     "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
     "- done",
-    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 4 lines, head <hash> (python run.py verify build-feature-<run>)"
   ],
   "files": [
     "build-feature-<day>-1.md",
@@ -139,6 +140,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -203,6 +211,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -272,6 +287,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -360,6 +382,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     }
   ],

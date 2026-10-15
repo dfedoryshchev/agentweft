@@ -739,7 +739,7 @@ def changed_lines(changes):
 
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
-          found="", order="", left=None, suite=()):
+          found="", order="", left=None, suite=(), chained=None):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -750,7 +750,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     the investigator's answer when the flow ran one; `order` is the line on
     the red test the run holds before product code, "" for none; `left` is
     what a stop found of the tests the run added or changed (`leftred.check`);
-    `suite` is the lines on the suite as the run found it (`baseline.lines`).
+    `suite` is the lines on the suite as the run found it (`baseline.lines`);
+    `chained` is the head of steps.jsonl it was written from (`chain.head`).
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -956,6 +957,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))
     out.append("- record: runs/" + run_id + "/steps.jsonl, gates.md, steps/")
+    if chained and chained.get("head"):
+        out.append("- chain: " + str(chained["lines"]) + " lines, head "
+                   + chained["head"][:16] + " (python run.py verify " + run_id
+                   + ")")
     if stopped:
         out.append("")
         out.extend(carry_on(needs, command))

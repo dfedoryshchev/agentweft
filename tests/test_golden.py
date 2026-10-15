@@ -512,8 +512,18 @@ STAMPS = (
     # the retro's "- won none: 3 passes, 4.2s, $0.0300"
     (re.compile(r"(?<=pass, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
     (re.compile(r"(?<=passes, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
+    # the handoff's chain head hashes lines that carry the time
+    (re.compile(r"(?<=lines, head )[0-9a-f]{16}"), "<hash>"),
 )
 CLOCKED = ("time", "seconds")
+# a line's chain hashes the line before it, clock and run id included
+HASHED = ("chain",)
+
+
+def hashes_out(value):
+    if isinstance(value, dict):
+        return {k: hashes_out(v) for k, v in value.items()}
+    return "<hash>" if isinstance(value, str) else value
 
 
 def spellings(path):
@@ -542,6 +552,7 @@ def normalise(value, tmp_path):
     script: no clock, no run id, no seconds, no temp or checkout path."""
     if isinstance(value, dict):
         return {k: ("<" + k + ">" if k in CLOCKED and v is not None
+                    else hashes_out(v) if k in HASHED
                     else normalise(v, tmp_path)) for k, v in value.items()}
     if isinstance(value, list):
         return [normalise(v, tmp_path) for v in value]
@@ -663,11 +674,15 @@ def test_the_normaliser_takes_out_what_differs_between_two_runs(tmp_path):
     one = {"time": "2026-01-02T03:04:05", "seconds": 1.5,
            "why": str(tmp_path / "place" / "a.py") + " at 2026-01-02 03:04",
            "line": "2026-01-02 03:04  flow  ok  7s  flow-2026-01-02-1.md",
-           "run": "flow-2026-01-02-030405"}
+           "run": "flow-2026-01-02-030405",
+           "chain": {"prev": "ab" * 32, "files": {"red-proof.json": None}}}
     two = {"time": "2027-11-30T23:59:59", "seconds": 0.0,
            "why": (tmp_path / "place" / "a.py").as_posix()
            + " at 2027-11-30 23:59",
            "line": "2027-11-30 23:59  flow  ok  0s  flow-2027-11-30-1.md",
-           "run": "flow-2027-11-30-235959"}
+           "run": "flow-2027-11-30-235959",
+           "chain": {"prev": "cd" * 32, "files": {"red-proof.json": None}}}
     assert normalise(one, tmp_path) == normalise(two, tmp_path)
+    assert normalise(one, tmp_path)["chain"] == {
+        "prev": "<hash>", "files": {"red-proof.json": None}}
     assert normalise(one, tmp_path)["why"] == "<tmp>/place/a.py at <time>"

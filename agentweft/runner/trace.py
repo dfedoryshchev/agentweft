@@ -11,13 +11,15 @@ of the same flow differ only in the time, the ids and the seconds. a gate's
 entry carries `tests` only when that gate ran tests one by one. `handoff`
 is the step's HANDOFF block as `runner/handoff.py` parsed it, with each
 VERIFIED claim marked against the step's transcript; null only on a line
-closed before the step answered.
+closed before the step answered. every line ends on `chain`, which ties it
+to the line before it (`runner/chain.py`).
 """
 import datetime
 import json
 import time
 from decimal import Decimal
 
+from . import chain
 from .task import FILE as TASK
 
 FILE = "steps.jsonl"
@@ -264,6 +266,11 @@ class Trail(object):
         self.closed = []
         self.held = []
         self.task_file = TASK if (folder / TASK).is_file() else None
+        self.lines = chain.raw(folder)
+
+    def head(self):
+        """-> {"lines": n, "head": hash of the newest line} of the chain."""
+        return chain.head(self.lines)
 
     def open(self, step, attempts, provider, came_from, output=None,
              fanned=False):
@@ -298,7 +305,12 @@ class Trail(object):
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
             for done, said in ready:
                 self.closed.append((done, said))
-                f.write(json.dumps(done.written, ensure_ascii=False) + "\n")
+                done.written[chain.FIELD] = {
+                    "prev": chain.head(self.lines)["head"],
+                    "files": chain.files(self.folder)}
+                text = json.dumps(done.written, ensure_ascii=False)
+                f.write(text + "\n")
+                self.lines.append(text)
 
     def still_open(self):
         """-> the entry opened and not yet given an outcome, or None."""

@@ -72,6 +72,7 @@
     "- spend: 1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: budget at reviewer.md",
     "- record: runs/capped-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 2 lines, head <hash> (python run.py verify capped-<run>)",
     "to carry on",
     "  python run.py capped --resume capped-<run> --force --max-calls <n>",
     "# capped capped-<run>: done",
@@ -111,7 +112,8 @@
     "- steps: reviewer.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
     "- done",
-    "- record: runs/capped-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/capped-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 1 lines, head <hash> (python run.py verify capped-<run>)"
   ],
   "files": [
     "capped-<day>-1.md",
@@ -191,6 +193,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -229,7 +238,14 @@
       "file": null,
       "task_file": null,
       "tasks": null,
-      "handoff": null
+      "handoff": null,
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     },
     {
       "seq": 3,
@@ -287,6 +303,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
       }
     }
   ],

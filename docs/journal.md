@@ -291,9 +291,41 @@ or crashed. the keys are always all there, in this order:
   excerpt), `unchecked` when there is no transcript
   to read (the fake, the api, a cli command other than claude). null only on
   a line closed before the step answered.
+- `chain` comes last: `{"prev": "<sha256>", "files": {"start-snapshot.json":
+  "<sha256>", "red-proof.json": null}}`. `prev` is the sha256 of the line
+  before it as it stands in the file, null on the first line; `files` is the
+  sha256 of the run's start snapshot and red proof as they were on disk when
+  the line was written, null for one the run did not write.
 
 the time, the seconds and the session are the only parts that differ between
-two runs of the same flow on the same answers.
+two runs of the same flow on the same answers, and the chain's hashes, which
+take in the time.
+
+### the chain
+
+the start snapshot and the red proof hold the hashes the test files are held
+to, and a step that may rewrite a test may as well rewrite those. so each
+line hashes the one before it and those two files, the manifest keeps the
+line count and the head (the newest line's hash) each time the handoff is
+written, and the handoff names the head. a line edited, dropped or put out of
+order after it was written then shows:
+
+    python run.py verify fix-with-test-2026-10-13-091402
+    fix-with-test-2026-10-13-091402: broken: line 3 (seq 3, verify.md) was edited after it was written
+
+it names the first line that breaks: an edited line (a gate's `"ok": false`
+turned to true), the seq of a dropped one, a line out of order, a last line
+dropped or edited (against the manifest's head), or a start snapshot or red
+proof changed after the last line. exit 0 when it holds, 1 when it breaks or
+the record was written before lines were chained.
+
+`--resume` checks the same before it picks a run up, and refuses one that
+breaks with what broke; `--force` carries it on anyway and writes the break to
+`decisions.md`.
+
+it has no key. a writer who rewrites a line and every hash after it, the
+manifest's head and the handoff's line with them, is not caught: it catches
+an edit, a drop or a reorder, not a determined forger.
 
 ## what each step hands over
 
@@ -441,6 +473,7 @@ four sections are written by the runner alone:
     - spend: 2 calls, ...
     - done
     - record: runs/fix-with-test-2026-10-13-091402/steps.jsonl, gates.md, steps/
+    - chain: 2 lines, head 3f1c9a07be52d4e8 (python run.py verify fix-with-test-2026-10-13-091402)
 
 a run that picks another up (`--resume`) folds the earlier run's passes in:
 their blocks' constraints and doubts carry, and "run" says what was picked

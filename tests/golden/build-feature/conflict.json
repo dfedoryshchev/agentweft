@@ -85,6 +85,7 @@
     "- spend: 1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: conflict at planner.md",
     "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 1 lines, head <hash> (python run.py verify build-feature-<run>)",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force --answer \"override: <the new rule>\"",
     "  python run.py build-feature --resume build-feature-<run> --force --answer \"request: <what to do instead>\"",
@@ -135,7 +136,8 @@
     "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)",
     "- done",
-    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/build-feature-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 4 lines, head <hash> (python run.py verify build-feature-<run>)"
   ],
   "files": [
     "build-feature-<day>-1.md",
@@ -227,6 +229,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -285,6 +294,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -349,6 +365,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -418,6 +441,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -506,6 +536,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     }
   ],

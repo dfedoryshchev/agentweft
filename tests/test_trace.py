@@ -36,7 +36,7 @@ KEYS = ["seq", "time", "step", "from", "to", "provider", "command", "model",
         "cost_parts", "session", "seconds", "cached",
         "retries", "background_killed", "shell_writes_denied",
         "shell_trap_recoveries", "gates", "ungated", "outcome", "won", "cause", "why", "file",
-        "task_file", "tasks", "handoff"]
+        "task_file", "tasks", "handoff", "chain"]
 
 # an en dash, a CJK word and a Cyrillic letter: cp1252 has the first under
 # another byte and no byte at all for the rest

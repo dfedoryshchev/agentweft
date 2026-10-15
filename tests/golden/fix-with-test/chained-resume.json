@@ -83,6 +83,7 @@
     "- spend: 1 call, 1 refused, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: provider outage at patcher.md",
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 2 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force",
     "# fix-with-test fix-with-test-<run>: waiting: provider limit at patcher.md - limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1) - add(1, 2) is -1: calc.py:2 returns a - b",
@@ -141,6 +142,7 @@
     "- spend: 1 call, 2 refused, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: provider outage at patcher.md",
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 1 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force",
     "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
@@ -189,7 +191,8 @@
     "- steps: patcher.md <secs>s",
     "- spend: 2 calls, 2 refused, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
     "- done",
-    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 1 lines, head <hash> (python run.py verify fix-with-test-<run>)"
   ],
   "files": [
     "fix-with-test-<day>-1.md",
@@ -306,6 +309,13 @@
           "calc.py:1-2 - the one function"
         ],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     },
     {
@@ -355,7 +365,14 @@
       "file": null,
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": null,
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     },
     {
       "seq": 3,
@@ -404,7 +421,14 @@
       "file": null,
       "task_file": "task.md",
       "tasks": null,
-      "handoff": null
+      "handoff": null,
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     },
     {
       "seq": 4,
@@ -493,6 +517,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
       }
     }
   ],

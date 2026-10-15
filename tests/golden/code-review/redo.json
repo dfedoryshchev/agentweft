@@ -54,7 +54,8 @@
     "- steps: worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
     "- done",
-    "- record: runs/code-review-<run>/steps.jsonl, gates.md, steps/"
+    "- record: runs/code-review-<run>/steps.jsonl, gates.md, steps/",
+    "- chain: 4 lines, head <hash> (python run.py verify code-review-<run>)"
   ],
   "files": [
     "code-review-<day>-1.md",
@@ -130,6 +131,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": null,
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -218,6 +226,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -276,6 +291,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
       }
     },
     {
@@ -364,6 +386,13 @@
         "tried": [],
         "read": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
       }
     }
   ],
