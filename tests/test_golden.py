@@ -136,7 +136,7 @@ CASES = {
                                      "args": ["--task", FEATURE], "answers": {
         "planner.md": [MUL_PLAN],
         "tester.md": [say("TEST: test_mul.py\n\n" + MUL_TEST,
-                          {"test_mul.py": MUL_TEST})]}},
+                          {"test_mul.py": MUL_TEST})] * 2}},
     ("code-review", "pass"): {"answers": {
         "worker.md": [ONE_FINDING],
         "reviewer.md": ["VERDICT: ok\n\n" + ONE_FINDING]}},
@@ -161,7 +161,8 @@ CASES = {
     ("fix-with-test", "gate-fail"): {"place": {"calc.py": BUGGY},
                                      "args": ["--task", BUG], "task": BUG,
                                      "answers": {
-        "worker.md": ["could not make it fail: add(1, 2) looks right to me\n"]}},
+        "worker.md": ["could not make it fail: add(1, 2) looks right to me\n"]
+        * 2}},
     ("code-review", "task-refused"): {"args": ["--task", BUG], "answers": {}},
     ("ops-check", "pass"): {"answers": {
         "planner.md": ["- app.log: the nightly export\n"],
@@ -220,7 +221,7 @@ CASES = {
         "worker.md": {1: ["- notes.md: the plan moved to friday\n"],
                       2: ["- rent.md: due on the 1st\n"]},
         "merge.md": [DIGEST],
-        "reviewer.md": ["VERDICT: ok\n\nhere is your digest\n\n" + DIGEST]}},
+        "reviewer.md": ["VERDICT: ok\n\nhere is your digest\n\n" + DIGEST] * 2}},
     ("weekly-digest", "redo"): {"answers": {
         "planner.md": [DIGEST_PLAN],
         "worker.md": {1: ["- notes.md: the plan moved to friday\n",

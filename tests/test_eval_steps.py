@@ -186,7 +186,7 @@ def test_a_scored_run_records_the_path_its_golden_run_does(root, golden,
     ran = harness.run_flow_for(FLOW, case)
     want = json.loads((REPO / "tests" / "golden" / FLOW / (golden + ".json"))
                       .read_bytes().decode("utf-8"))["path"]
-    assert [l["seq"] for l in ran.steps] == [1, 2, 3, 4]
+    assert [l["seq"] for l in ran.steps] == list(range(1, len(want) + 1))
     assert [steps.said(l) for l in ran.steps] == [
         p.split(" ", 1)[1] for p in want]
 

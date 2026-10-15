@@ -93,7 +93,7 @@ def go(tmp_path, monkeypatch, command):
 def test_a_non_zero_exit_stops_the_run(tmp_path, monkeypatch):
     asked = go(tmp_path, monkeypatch,
                [sys.executable, "-c", "raise SystemExit(1)"])
-    assert asked == ["worker.md"]
+    assert asked == ["worker.md", "worker.md"]
     written = (tmp_path / "runs")
     gates_md = [p / "gates.md" for p in written.iterdir() if p.is_dir()]
     assert "FAIL command" in gates_md[0].read_text(encoding="utf-8")

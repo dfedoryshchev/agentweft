@@ -405,4 +405,4 @@ def test_a_run_stops_when_the_test_already_passes(tmp_path, monkeypatch):
     asked = a_flow(tmp_path, monkeypatch, CLAIM)
     engine.main()
     assert "FAIL red-test" in gates_md(tmp_path)
-    assert asked == ["worker.md"]
+    assert asked == ["worker.md", "worker.md"]

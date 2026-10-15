@@ -24,6 +24,21 @@ make the first one do the second.
 results print under the step and land in `runs/<run id>/gates.md`. the journal
 only hears about a gate that failed, because that one stops the run.
 
+nothing goes past a failed gate, but the run does not stop on the first one.
+the step that failed goes again, once, with the gate's line at the very end of
+its prompt (`your last answer failed a gate, so this step runs again. the gate
+said: ...`), so a patcher that answered in prose and changed nothing is told
+the test is still red and gets one more go. it is the step itself that goes
+again, not its `on_redo` target: the gate judged what that step produced. the
+first try's line in `steps.jsonl` says `gate failed` with `to` naming the step;
+the count is kept per step, so one step going again never uses up another's.
+if it fails a second time the run stops there as before, and the why says how
+often it was sent back. a provider failure retried inside one call is not a
+go and never spends the count.
+
+a command or red-test gate keeps the last 160 characters of what the command
+printed, not the first: a test runner says what failed at the end.
+
 a step with no gates gets its heading in `gates.md` too, with `no gates`
 under it, and its line in `steps.jsonl` says `"ungated": true` (see
 `docs/journal.md`). without it, a step missing from `gates.md` could have
@@ -223,11 +238,12 @@ else.
 
 fix-with-test is where it earns it. the closing step used to be a model reading
 its own patch and saying the test passes now; it is `python -m pytest -q` and
-an exit code, and a non-zero one stops the run. a `red: false` gate runs the
-test the patcher names, or the worker's when it names none, a `red-first`
-gate replays each new test without the patch, and the verify answer goes
-through `verdict` with `passes: 3`, one for each thing it is asked to check. a
-check it answers unsure does not stop a fix the programs proved; the run ends
+an exit code, and a non-zero one sends the step back once, then stops the run.
+a `red: false` gate runs the test the patcher names, or the worker's when it
+names none, a `red-first` gate replays each new test without the patch, and the
+verify answer goes through `verdict` with `passes: 3`, one for each thing it is
+asked to check. a check it answers unsure does not stop a fix the programs
+proved; the run ends
 `done, 1 check unproven` and says which.
 
 ## the short suite or the long one

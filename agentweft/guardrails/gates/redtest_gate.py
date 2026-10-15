@@ -87,7 +87,7 @@ class RedTestGate(Gate):
         if want_red and code == 0:
             return self.fail("the test passed before the patch")
         return self.fail("exit " + str(code) + ", wanted " + str(want) + ": "
-                         + (r.stderr or r.stdout).strip()[:160])
+                         + (r.stderr or r.stdout).strip()[-160:])
 
 
 def truth(value):

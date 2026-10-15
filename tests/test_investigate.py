@@ -181,7 +181,7 @@ def test_an_investigator_naming_no_site_stops_the_run_there(tmp_path,
     answer = FOUND.replace(SITE_ONE + NL + SITE_TWO, "- somewhere in calc")
     code, asked = run_it(tmp_path, monkeypatch, dict(ANSWERS, **{
         "investigator.md": answer}))
-    assert [s for s, _ in asked] == ["investigator.md"]
+    assert [s for s, _ in asked] == ["investigator.md", "investigator.md"]
     assert "  failed at investigator.md  " in journal(tmp_path)
 
 
@@ -190,7 +190,7 @@ def test_an_investigator_that_says_nothing_about_rooted_stops_the_run_there(
     answer = FOUND.replace("ROOTED: yes" + NL, "")
     code, asked = run_it(tmp_path, monkeypatch, dict(ANSWERS, **{
         "investigator.md": answer}))
-    assert [s for s, _ in asked] == ["investigator.md"]
+    assert [s for s, _ in asked] == ["investigator.md", "investigator.md"]
     assert "  failed at investigator.md  " in journal(tmp_path)
 
 

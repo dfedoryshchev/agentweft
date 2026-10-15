@@ -56,7 +56,7 @@ def test_a_case_runs_every_step_of_its_flow(monkeypatch):
 
 def test_a_gate_on_the_last_step_is_in_the_score(monkeypatch):
     r = scored(monkeypatch, DIGEST + chr(10) + "here is the digest" + chr(10))
-    assert r["calls"] == 5
+    assert r["calls"] == 6
     assert r["passed"] < r["checked"]
     assert [row["detail"] for row in r["rows"] if row["ok"] is False] == [
         "gate regex failed at reviewer.md"]

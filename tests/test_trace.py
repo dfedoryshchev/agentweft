@@ -163,13 +163,17 @@ def test_a_failed_gate_writes_the_line_of_the_step_it_stopped(
            ["worker\ngates:\n  - gate: length\n    max_lines: 1", "reviewer"])
     fake_cli(answer("one\ntwo\n"))
     engine.main()
-    [line] = lines(folders(tmp_path)[0])
+    back, line = lines(folders(tmp_path)[0])
+    assert (back["outcome"], back["to"], back["cause"]) == \
+        ("gate failed", "worker.md", None)
+    assert back["why"] == "length: 2 lines, cap is 1"
     assert line["outcome"] == "gate failed" and line["to"] is None
     assert line["cause"] == "gate failed"
-    assert line["why"] == "length: 2 lines, cap is 1"
+    assert line["why"] == ("length: 2 lines, cap is 1; worker.md was sent"
+                           " back 1 time already")
     assert line["gates"] == [{"gate": "length", "ok": False,
                               "detail": "2 lines, cap is 1"}]
-    assert line["file"] == "steps/001-worker.md"
+    assert line["file"] == "steps/002-worker.md"
 
 
 def test_a_step_the_flow_parks_on_gets_its_line(tmp_path, monkeypatch):
@@ -352,9 +356,9 @@ def test_a_failed_gate_is_not_ungated_and_the_run_stops_before_the_next(
     engine.main()
     [folder] = folders(tmp_path)
     assert gate_notes(folder) == \
-        "## worker.md\nFAIL length - 2 lines, cap is 1\n"
-    [line] = lines(folder)
-    assert line["ungated"] is False
+        "## worker.md\nFAIL length - 2 lines, cap is 1\n" * 2
+    assert [line["ungated"] for line in lines(folder)] == [False, False]
+    assert [line["step"] for line in lines(folder)] == ["worker.md"] * 2
 
 
 def test_a_line_closed_before_the_gates_ran_does_not_claim_either(

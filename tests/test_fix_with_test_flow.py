@@ -129,7 +129,7 @@ def test_a_patcher_that_names_no_test_and_fixes_nothing_stops(tmp_path,
                                                               monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": "return a + b"}, fixes=False)
-    assert asked == ["worker.md", "patcher.md"]
+    assert asked == ["worker.md", "patcher.md", "patcher.md"]
     assert "wanted 0" in written.split("## patcher.md")[1]
 
 
@@ -138,7 +138,7 @@ def test_a_patch_that_leaves_the_test_red_stops_at_the_patcher(tmp_path,
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": PATCHER, "verify.md": VERIFIED},
         fixes=False)
-    assert asked == ["worker.md", "patcher.md"]
+    assert asked == ["worker.md", "patcher.md", "patcher.md"]
     assert "FAIL red-test" in written.split("## patcher.md")[1]
 
 
@@ -147,7 +147,7 @@ def test_a_bulleted_fail_from_verify_stops_the_run(tmp_path, monkeypatch):
                               "- FAIL: the patch is not")
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": PATCHER, "verify.md": answer})
-    assert asked == ["worker.md", "patcher.md", "verify.md"]
+    assert asked == ["worker.md", "patcher.md", "verify.md", "verify.md"]
     assert "FAIL verdict" in written
 
 

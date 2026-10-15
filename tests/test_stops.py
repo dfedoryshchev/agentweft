@@ -116,7 +116,8 @@ def test_a_gate_stop_exits_2(tmp_path, monkeypatch, fake_cli):
     assert engine.main() == 2
     [end] = ends()
     assert (end.status, end.cause) == ("failed at worker.md", "gate failed")
-    assert end.why == "length: 2 lines, cap is 1"
+    assert end.why == ("length: 2 lines, cap is 1; worker.md was sent back 1"
+                       " time already")
 
 
 def test_the_first_saved_run_of_a_day_is_1(tmp_path, monkeypatch, capsys):

@@ -25,6 +25,8 @@ from agentweft.flow.spec import step_id
 
 from .config import VERDICTS
 
+GATE_CAP = 1
+
 
 class Router(object):
     def __init__(self, spec, cap=2):
@@ -46,6 +48,7 @@ class Router(object):
                 self.must[step_id(s)] = s["must_produce"]
         self.cap = cap
         self.sent_back = 0
+        self.gate_tries = {}
 
     def first(self):
         return self.order[0] if self.order else None
@@ -87,6 +90,27 @@ class Router(object):
                 return target
         i = self.order.index(step)
         return self.order[i + 1] if i + 1 < len(self.order) else None
+
+    def gate_cap(self, step):
+        """how many times a failed gate sends this step back before the run
+        stops on it."""
+        return GATE_CAP
+
+    def gate_back(self, step):
+        """-> the step a failed gate sends the work to, or None when it has
+        gone back as often as the cap allows. asked once per failure, which is
+        what spends it.
+
+        it is the step itself: the gate failed what that step produced, and
+        the `on_redo` target is where a judge's verdict sends work, which
+        here would redo a step that did nothing wrong. it counts per step, so
+        one step's failures never use up another's.
+        """
+        tries = self.gate_tries.get(step, 0)
+        if tries >= self.gate_cap(step):
+            return None
+        self.gate_tries[step] = tries + 1
+        return step
 
     def _back_to(self, step):
         # nothing declared, so back to whoever produced the thing being judged

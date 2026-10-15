@@ -95,7 +95,7 @@ def test_a_reviewer_redo_sends_the_worker_back(tmp_path, monkeypatch):
 
 def test_a_failing_suite_stops_the_run_at_the_worker(tmp_path, monkeypatch):
     asked, written, _, _ = run_it(tmp_path, monkeypatch, ALL, builds=False)
-    assert asked == ["planner.md", "tester.md", "worker.md"]
+    assert asked == ["planner.md", "tester.md", "worker.md", "worker.md"]
     at_worker = written.split("## worker.md")[1]
     assert "FAIL command - exit 1" in at_worker
     journal = (tmp_path / "runs" / "journal.md").read_text(encoding="utf-8")
@@ -106,7 +106,7 @@ def test_a_failing_suite_stops_the_run_at_the_worker(tmp_path, monkeypatch):
 def test_a_test_that_already_passes_stops_the_run_before_any_code(
         tmp_path, monkeypatch):
     asked, written, _, _ = run_it(tmp_path, monkeypatch, ALL, before=AFTER)
-    assert asked == ["planner.md", "tester.md"]
+    assert asked == ["planner.md", "tester.md", "tester.md"]
     assert "the test passed before the patch" in written
 
 

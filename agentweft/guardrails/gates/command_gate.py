@@ -70,5 +70,6 @@ class CommandGate(Gate):
         said = (" (" + why + ")") if why else ""
         if r.returncode == want:
             return self.ok("exit " + str(r.returncode) + said)
+        # a test runner's verdict is at the end of what it prints
         return self.fail("exit " + str(r.returncode) + ": "
-                         + (r.stderr or r.stdout).strip()[:160] + said)
+                         + (r.stderr or r.stdout).strip()[-160:] + said)

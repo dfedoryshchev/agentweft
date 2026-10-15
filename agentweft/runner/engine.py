@@ -230,6 +230,7 @@ class Run(object):
         self.reuse = {}
         self.answers = {}
         self.attempts = []
+        self.gate_said = {}
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
         # an override replaces the per-step ones too. half a run on the pinned
@@ -489,6 +490,8 @@ class Run(object):
             prompt = prompt + previous.as_brief()
         else:
             prompt = prompt + previous.as_prompt()
+        # last, so every go at the step shares the whole prompt before it
+        prompt = prompt + self.gate_said.get(step, "")
         tried = trace.Attempt(task)
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
@@ -682,11 +685,13 @@ def run_once(flow, provider=None, task=None, trail=None):
         if refused:
             note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
+        handed = out
         try:
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
                 out = run.step(step, previous=out)
+            run.gate_said.pop(step, None)
         except Outage as e:
             note("parked", outage_why(e), stops.OUTAGE)
             return (out.output, run.budget, "provider outage at " + step
@@ -700,6 +705,14 @@ def run_once(flow, provider=None, task=None, trail=None):
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
         failed, blocked = check_step(run, route, step, out)
+        again = route.gate_back(step) if failed else None
+        if again:
+            note("gate failed", gate_why(out.meta["gates"]), to=again,
+                 output=out.output)
+            run.gate_said[again] = gate_told(out.meta["gates"])
+            out = handed
+            step = again
+            continue
         if failed or blocked:
             why = gate_why(out.meta["gates"]) if failed else blocked
             note("gate failed", why, stops.GATE, output=out.output)
@@ -1073,6 +1086,7 @@ def main():
                     extra = "\n\nthe last run was " + str(seen) + \
                         ". only tell me what is different since then."
                 out = run.step(step, previous=out, extra=extra)
+            run.gate_said.pop(step, None)
             step_dir = state.RUNS / run_id
             step_dir.mkdir(parents=True, exist_ok=True)
             (step_dir / step).write_text(out.output, encoding="utf-8")
@@ -1120,10 +1134,23 @@ def main():
             entry.gates = out.meta.get("gates", [])
             entry.ungated = out.meta.get("ungated")
             if failed:
-                # a gate is not advice. it was failing the STEP, which meant the
-                # run carried on and wrote the output anyway.
+                # nothing goes past a failed gate: the step goes again with
+                # what the gate said, and once the cap is spent the run stops
+                again = route.gate_back(step)
+                if again:
+                    print("gate " + failed + " failed at " + step
+                          + ", sent back to " + again)
+                    trail.close(entry, "gate failed",
+                                why=gate_why(out.meta["gates"]), to=again)
+                    record.mark(step, manifest.REDO, run_id, out.output)
+                    record.save(run.budget)
+                    run.gate_said[again] = gate_told(out.meta["gates"])
+                    out = handed
+                    step = again
+                    continue
                 print("gate failed at " + step + ", stopping")
-                return stop(stops.GATE, gate_why(out.meta["gates"]),
+                return stop(stops.GATE, gate_why(out.meta["gates"])
+                            + sent_back_times(route, step),
                             "gate failed", entry,
                             index="GATE  " + flow + "  " + failed + " at "
                             + step)
@@ -1283,6 +1310,21 @@ def gate_why(results):
         if not r.ok:
             return r.gate + (": " + r.detail if r.detail else " failed")
     return "a gate failed"
+
+
+def gate_told(results):
+    """-> the end of a step's next prompt, once a gate has sent it back."""
+    return ("\n\nyour last answer failed a gate, so this step runs again. the"
+            " gate said:\n\n" + gate_why(results) + NEWLINE)
+
+
+def sent_back_times(route, step):
+    """-> how often a failed gate already sent the step back, for the why."""
+    n = route.gate_tries.get(step, 0)
+    if not n:
+        return ""
+    return ("; " + step + " was sent back " + str(n) + " time"
+            + ("" if n == 1 else "s") + " already")
 
 
 def nothing_why(step, entry):

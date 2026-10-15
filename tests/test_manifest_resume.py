@@ -89,7 +89,7 @@ def test_a_gate_failing_at_step_three_and_passing_on_resume_runs_one_and_two_onc
     (tmp_path / "ok").write_text("", encoding="utf-8")
     assert run(monkeypatch, "gated", "--force", "--resume",
                first.name) == stops.EXIT_OK
-    assert steps_of(asked) == ["a.md", "b.md", "c.md", "c.md"]
+    assert steps_of(asked) == ["a.md", "b.md", "c.md", "c.md", "c.md"]
 
 
 def test_two_parked_runs_of_one_flow_resume_each_at_its_own_step(tmp_path,
