@@ -113,6 +113,11 @@ FLOW_ONLY = (
          "how many times a verdict or a failed gate sends the work back before "
          "the run stops for a person. a phase's `loop` counts rounds, not "
          "trips back, so it stays where it is."),
+    Pair("flow.lead", "",
+         "the step a question goes to before the operator: it decides inside "
+         "the spec, and anything over it still comes to a person. a "
+         "workflow's `lead` is the same word for something else, the prompt "
+         "that runs the whole thing, so they are not a pair."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

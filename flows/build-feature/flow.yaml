@@ -1,4 +1,5 @@
 name: build-feature
+lead: planner
 steps:
   - role: planner
     prompt: planner.md

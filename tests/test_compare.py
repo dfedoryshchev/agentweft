@@ -90,14 +90,20 @@ def test_the_sides_are_not_the_same_size():
     #
     # `send_backs` grows it by one and is not `loop`'s pair: it counts trips
     # back, and `loop` counts rounds.
+    #
+    # `lead` grows it by one and is not the workflow's `lead`: the flow's is
+    # a step that decides questions, the workflow's a prompt that runs it all.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 27
+    assert len(compare.flow_only()) == 28
     assert len(compare.phase_only()) == 7
 
 
 def test_two_words_mean_different_things_depending_on_the_file():
     found = dict((word, (left, right)) for word, left, right in compare.collisions())
-    assert sorted(found) == ["gate", "name"]
+    assert sorted(found) == ["gate", "lead", "name"]
+    # a flow's lead is one of its steps, deciding the others' questions; a
+    # workflow's is the prompt that runs every phase and implements nothing.
+    assert found["lead"] == (["flow.lead"], ["workflow.lead"])
     # a step's gates are a program that fails the run; a phase's gate is a
     # person it waits for. same word, and only one of them checks anything.
     assert found["gate"] == (["step.gates"], ["phase.gate"])

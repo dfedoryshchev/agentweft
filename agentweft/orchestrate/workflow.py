@@ -126,9 +126,10 @@ RESIDUE = (
             "rather than a copy per flow; what is still missing is the word. "
             "a step names a role, and nothing in a flow file names a stance."),
     Missing(("workflow.lead",),
-            "the prompt that runs the whole thing and does not implement. a "
-            "flow's lead is the runner, which is code, so there is nothing "
-            "here for it to turn into."),
+            "the prompt that runs the whole thing and does not implement. "
+            "what runs a flow is the runner, which is code, so there is "
+            "nothing here for it to turn into. a flow's `lead:` is one of its "
+            "own steps that decides the others' questions; it runs nothing."),
     Missing(("workflow.name", "workflow.phases"),
             "an ordered list of flows, and what that list is called. a flow "
             "spec says nothing about what runs after it, so the sequence the "

@@ -12,7 +12,7 @@ from agentweft.roles import resolver
 from .config import (VERDICTS, asks_for_verdict, config, due, fanout_step,
                      steps, verdict, where)
 from agentweft import providers
-from agentweft.flow.spec import step_id, step_name, steps_named
+from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
                                   promises, redorder, shellwrite, snapshot,
                                   starttests, worktree)
@@ -32,7 +32,7 @@ from . import investigate
 from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
-from . import levels, manifest, models, resume, router, ruling
+from . import lead, levels, manifest, models, resume, router, ruling
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -308,6 +308,10 @@ class Run(object):
         self.authors = {}
         self.test_seen = {}
         self.start_green = {}
+        # the step a question goes to before the operator, and what it
+        # decided, by question
+        self.lead = lead_of(fm)
+        self.led = {}
 
     def wrote_tests(self, step):
         """note `step` as the writer of each test file it made or changed."""
@@ -560,7 +564,7 @@ class Run(object):
         out, self.attempts = self.attempts, []
         return out
 
-    def step(self, step, previous=EMPTY, extra="", task=None):
+    def step(self, step, previous=EMPTY, extra="", task=None, last=""):
         import time as _t
 
         began = _t.time()
@@ -606,7 +610,7 @@ class Run(object):
             prompt = prompt + previous.as_prompt()
         # last, so every go at the step shares the whole prompt before it
         prompt = prompt + self.gate_said.get(step, "")
-        prompt = prompt + getattr(self, "ruled", {}).get(step, "")
+        prompt = prompt + getattr(self, "ruled", {}).get(step, "") + last
         tried = trace.Attempt(task)
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
@@ -756,6 +760,53 @@ def shown(step, results, output):
     return out
 
 
+def to_lead(run, step, question, given, where):
+    """-> (the lead's Handoff or None, the end of `step`'s next prompt when
+    the lead decided or "", the question as the operator gets it when it
+    did not). a flow with no lead, and the lead's own question, go to the
+    operator as they were asked."""
+    head = getattr(run, "lead", None)
+    if head is None or head == step:
+        return None, "", question
+    asked = lead.key(question)
+    if asked in run.led:
+        return None, "", lead.again(question, head, run.led[asked])
+    waits = run.budget.ahead(1)
+    if waits:
+        return None, "", lead.passed(question, "the run cannot pay for "
+                                     + head + " to decide it, " + waits[1])
+    run.led[asked] = ""
+    was = run.produced.get(head)
+    try:
+        out = run.step(head, previous=given.get(head, EMPTY),
+                       last=lead.brief(step, question))
+    finally:
+        # the lead's decision is not its work: a step that reads what the
+        # lead produced still reads its own pass
+        if was is None:
+            run.produced.pop(head, None)
+        else:
+            run.produced[head] = was
+    decided, why, wrong = lead.judged(out.output, head, run.workdir,
+                                      run.start)
+    if wrong:
+        return out, "", lead.passed(question, wrong)
+    run.led[asked] = decided
+    decisions.record(Path(run.workdir),
+                     *lead.recorded(head, step, where, question, decided, why))
+    return out, lead.told(head, question, decided, why), ""
+
+
+def lead_pass(trail, run, out, asker, decided):
+    """write the lead's go at a question into the trail, as its own line."""
+    entry = trail.open(run.lead, run.taken(),
+                       run.by_step.get(run.lead, run.provider), asker,
+                       output=out.output)
+    entry.handoff = out.block
+    trail.close(entry, "decided" if decided else "escalated",
+                to=asker if decided else None)
+
+
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
 
@@ -898,9 +949,21 @@ def run_once(flow, provider=None, task=None, trail=None):
             note("refused", said[1], stops.DECLINED, output=out.output)
             return out.output, run.budget, ""
         if said:
-            note("parked", said[1], stops.PARKED, output=out.output)
+            mine = run.taken()
+            head, decided, question = to_lead(run, step, said[1], given,
+                                              "a run of " + flow)
+            if head is not None and kept is not None:
+                lead_pass(kept, run, head, step, decided)
+            run.attempts = mine + run.taken()
+            if decided:
+                note("asked", said[1].split("\n")[0], to=run.lead,
+                     output=out.output)
+                run.ruled[step] = decided
+                out = handed
+                continue
+            note("parked", question, stops.PARKED, output=out.output)
             return (out.output, run.budget, "parked at " + step
-                    + " for a ruling: " + said[1].split("\n")[0])
+                    + " for a ruling: " + question.split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
         held = out.meta.pop("conflict", None)
         if held:
@@ -1540,12 +1603,26 @@ def main():
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)
             if said:
+                head, decided, question = to_lead(run, step, said[1], given,
+                                                  run_id)
+                if head is not None:
+                    lead_pass(trail, run, head, step, decided)
+                if decided:
+                    print(run.lead + " decided what " + step + " asked, and "
+                          + step + " runs again with it")
+                    trail.close(entry, "asked",
+                                why=said[1].split(NEWLINE)[0], to=run.lead)
+                    record.mark(step, manifest.REDO, run_id, out.output)
+                    record.save(run.budget)
+                    run.ruled[step] = decided
+                    out = handed
+                    continue
                 print(step + " asks for a ruling")
                 return stop(stops.PARKED, "needs a ruling: "
                             + said[1].split(NEWLINE)[0][len("NEEDS: "):],
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", question=said[1])
+                            waiting="user", question=question)
 
             failed, blocked = check_step(run, route, step, out,
                                          run_dir=step_dir)

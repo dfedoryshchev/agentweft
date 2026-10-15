@@ -225,7 +225,9 @@ or crashed. the keys are always all there, in this order:
   `"added": "after green"` and `"counts": "coverage"` or `"pin"`, and an
   allowed pin `"pin_ok": "<role>: <reason>"`.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `gate failed`,
-  `failed`, `crashed`; a line written before the cap was checked ahead of
+  `failed`, `crashed`, or for a question that went to the flow's lead,
+  `asked` on the step that asked and `decided` or `escalated` on the lead's
+  go; a line written before the cap was checked ahead of
   each step can say `over budget`. `cause` is the run's stop cause from the
   list above, null when it went on. `why` is the reason the run had in hand
   when it stopped there, null when it went on.
@@ -532,6 +534,29 @@ that asked nothing is refused.
 the line is read the way every labelled line is (`agentweft/runner/verbs.py`):
 its key in any case, behind a bullet or in bold; never inside a code fence or
 a `>` quote, so a test that asserts on the string "NEEDS:" asks nothing.
+
+a flow with a lead (`lead: <step>` in `flow.yaml`; build-feature's is the
+planner) asks its lead before it asks you. a question from any other step
+goes to the lead with the question, its CITES and its OPTIONS at the very end
+of the lead's prompt, and the lead answers on lines of its own:
+
+    DECIDED: numbers
+    why: TASK.md:158 is about the JSON, and the code works in numbers
+
+the decision goes into `decisions.md` as the lead's (`planner.md decided for
+worker.md: numbers`, with the question and the why under it), and the step
+that asked runs again with it at the very end of its prompt. in
+`steps.jsonl` the asking step's line is `asked` with `to` naming the lead,
+and the lead's go is a line of its own, `decided`. the run parks for you
+instead, the lead's go then `escalated`, when the lead answers `ESCALATE:
+<why>`, gives no `why:` line, or decides something that names a spec file or
+a test that was there when the run started: a lead decides inside the spec
+and the tests, never over them. a question gets one round with the lead, so
+the same `NEEDS:` asked again after the lead decided it parks too. the
+question in `question.md` then says why the lead did not decide it. a flow
+with `lead: none` or no `lead:` (fix-with-test), and a question the lead
+itself asks, park at once. a spec conflict never goes to the lead: which of
+the request and the spec holds is yours.
 
 a step can also decline:
 

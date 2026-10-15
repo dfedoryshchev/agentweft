@@ -115,7 +115,25 @@ another step's goes. leave it out and a verdict sends the work back twice and
 a gate once, which is how every shipped flow runs. the stop says which cap it
 hit and its value: `the work has gone back 3 times already (send_backs: 3)`.
 
-## 7. run it three times before you trust it
+## 7. say who decides first
+
+a step that cannot go on without a decision asks with a `NEEDS:` line, and the
+run parks for you. `lead` names a step that is asked first:
+
+    lead: planner
+
+it is a step or a role of the flow (a role means its first step), or `none`,
+which is the same as leaving it out. a fanned-out step cannot lead, and a name
+that is no step is refused when the flow loads. the lead decides with
+`DECIDED: <option>` and a `why:` line under it, and the step that asked runs
+again with the decision; anything that would change the spec or a test the
+run started with, an `ESCALATE:`, or a second ask of the same question comes
+to you. pick the step that already reads the spec for the whole flow:
+build-feature leads with its planner, and fix-with-test, whose first step
+writes the test, has `lead: none`. how it reads in a run is in
+[the journal](journal.md#when-a-step-asks-for-a-ruling).
+
+## 8. run it three times before you trust it
 
     python run.py my-flow --force
 

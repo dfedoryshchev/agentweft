@@ -81,7 +81,8 @@ REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
-         "send_backs")
+         "send_backs", "lead")
+NO_LEAD = "none"
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes")
@@ -280,6 +281,7 @@ def check(raw):
         bad.append("tests_integration should be true, false or auto")
     if "send_backs" in raw and not counts(raw["send_backs"]):
         bad.append("send_backs should be a whole number, 0 or more")
+    bad.extend(check_lead(raw))
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)
@@ -356,6 +358,42 @@ def check(raw):
         bad.append("verify: judge, but no step has the role verify")
     bad.extend(check_tiers(with_investigator(raw)))
     return bad
+
+
+def lead_of(raw):
+    """-> the id of the step a flow's `lead:` names, or None when it names
+    none. a role stands for its first step."""
+    said = raw.get("lead") if hasattr(raw, "get") else None
+    if not isinstance(said, str) or said == NO_LEAD:
+        return None
+    steps = [s for s in raw.get("steps") or [] if isinstance(s, dict)
+             and "role" in s]
+    named = steps_named(steps, said) or [s for s in steps
+                                         if step_id(s) == said]
+    return step_id(named[0]) if named else None
+
+
+def check_lead(raw):
+    """`lead:` is a step or a role of the flow, or `none`, and never the
+    fanned step: one decision cannot come from N copies."""
+    if "lead" not in raw:
+        return []
+    said = raw["lead"]
+    if not isinstance(said, str) or not said.strip():
+        return ["lead should be a step of the flow, or " + NO_LEAD]
+    if said == NO_LEAD:
+        return []
+    steps = [s for s in raw.get("steps") or [] if isinstance(s, dict)
+             and "role" in s]
+    found = lead_of(raw)
+    if found is None:
+        names = [step_name(s) for s in steps]
+        return ["lead names no step of the flow: " + said + meant(said, names)
+                + ". there is: " + ", ".join(names + [NO_LEAD])]
+    if any(step_id(s) == found and s.get("fanout") for s in steps):
+        return ["lead: " + said + " is fanned out, and a question needs one"
+                " step to decide it"]
+    return []
 
 
 def check_tiers(raw):

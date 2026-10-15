@@ -192,7 +192,9 @@ at all:
   copies, which is the other kind of many. `sequential` is the only mark the
   phase file makes, and it marks the exception.
 - **`lead`**, the prompt that runs the whole thing and does not implement. a
-  flow's lead is the runner, which is code.
+  what runs a flow is the runner, which is code. a flow's own `lead:` is a
+  different thing: one of its steps, which decides the others' questions and
+  runs nothing.
 - **`personality`**, the same prompt twice from a fixed position. the second
   prompt file has a home now that a role's words are a library, but a step
   still names a role and nothing names a stance.

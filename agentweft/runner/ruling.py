@@ -7,7 +7,8 @@ that step's gates, because a step that stopped to ask has produced nothing to
 gate, and it waits for a ruling. `--resume <run id> --answer "<text>"` (or
 `--answer-file <path>`) runs that same step again with the answer at the end
 of its prompt, and the question, the answer and who gave it go into
-decisions.md in the place the run works in.
+decisions.md in the place the run works in. a flow with a `lead:` step asks
+that step first, and parks only when it does not decide (`lead`).
 
 `REFUSED: <file>:<line> "<the line>"` is a step declining the work because
 the spec says otherwise. with a cite of a line that is there, the run ends on
