@@ -219,3 +219,24 @@ def test_a_run_that_makes_the_fix_is_correct_and_a_test_that_needs_none_is_a_pin
     assert probe["core_correct"] is False
     assert probe["false_refusal"] is False
     assert results(out)["summary"]["correct"] == 1
+    assert "mutants" not in total
+
+
+def test_mutants_score_the_added_tests_only_when_asked(example, tmp_path,
+                                                     monkeypatch, capsys):
+    one_step_flow(tmp_path, monkeypatch)
+    monkeypatch.setitem(base.registry, Fixing.name, Fixing)
+    set_flow(example, flow="one-step", provider={"provider": "fixing"})
+    out = tmp_path / "s.json"
+    assert bench(example, "--live", "--mutants", "--out", out) == 0
+    got = results(out)
+    total = [r for r in got["runs"] if r["task"] == "total-spent"][0]
+    kills = total["mutants"]["tests"]
+    assert sorted(kills) == ["test_pin::test_balance_of_nothing",
+                             "test_spent_new::test_spent"]
+    assert "unpatch" in kills["test_spent_new::test_spent"]
+    assert total["mutants"]["pins"] == ["test_pin::test_balance_of_nothing"]
+    assert got["summary"]["duplicate_at"] == total["mutants"]["duplicate_at"]
+    printed = capsys.readouterr().out
+    assert "duplicate threshold" in printed
+    assert "distinct signatures" in printed

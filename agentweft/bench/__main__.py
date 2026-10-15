@@ -6,7 +6,7 @@ from pathlib import Path
 from . import runner, scorer
 
 USAGE = ("usage: python -m agentweft.bench <set> [--k <n>] [--flow <flow>]"
-         " [--out <file>] [--live]")
+         " [--out <file>] [--live] [--mutants]")
 FAKE = "fake"
 
 
@@ -68,7 +68,7 @@ def main(argv=None):
               "runs it, and it is charged")
         return 1
     print("bench " + flow + " over " + str(len(tasks)) + " tasks, k " + str(k))
-    rows = runner.run(flow, provider, tasks, k)
+    rows = runner.run(flow, provider, tasks, k, mutate="--mutants" in argv)
     total = scorer.summary(rows, k)
     blob = {"flow": flow, "set": folder.name, "k": k,
             "date": datetime.datetime.now().isoformat(timespec="seconds"),

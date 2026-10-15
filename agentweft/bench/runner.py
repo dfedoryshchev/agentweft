@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-from . import scorer
+from . import mutants, scorer
 
 CONF = "bench.yaml"
 ASK = "TASK.md"
@@ -59,8 +59,9 @@ def load(folder):
     return conf, tasks, problems
 
 
-def one(flow, spec, provider, t, attempt, start):
-    """-> the scored row for one run of `flow` on task `t`."""
+def one(flow, spec, provider, t, attempt, start, mutate=False):
+    """-> the scored row for one run of `flow` on task `t`, with each added
+    test's kill signature when `mutate`."""
     from agentweft.evals import harness, steps
     from agentweft.runner import engine, task
     from agentweft.runner.prompts import flow_path
@@ -85,6 +86,7 @@ def one(flow, spec, provider, t, attempt, start):
         end = scorer.hidden(t["hidden"], place)
         new = scorer.added(t["repo"], place)
         pinned = scorer.pins(t["repo"], place, new)
+        killed = mutants.score(t["repo"], place) if mutate else None
     row = {"task": t["name"], "kind": t["kind"], "attempt": attempt}
     row.update(scorer.axes(t["kind"], scorer.outcome(stopped, record), start,
                            end))
@@ -100,10 +102,12 @@ def one(flow, spec, provider, t, attempt, start):
                 "wall": wall,
                 "key": harness.produced_by(flow, spec, {"provider": provider},
                                            record)})
+    if killed is not None:
+        row["mutants"] = killed
     return row
 
 
-def run(flow, provider, tasks, k, said=print):
+def run(flow, provider, tasks, k, said=print, mutate=False):
     """-> every run's row, k per task, in task order."""
     from agentweft.runner.config import config
 
@@ -116,7 +120,8 @@ def run(flow, provider, tasks, k, said=print):
             start = scorer.hidden(t["hidden"], seed)
         for attempt in range(1, k + 1):
             said("  " + t["name"] + " " + str(attempt) + "/" + str(k))
-            rows.append(one(flow, spec, provider, t, attempt, start))
+            rows.append(one(flow, spec, provider, t, attempt, start,
+                            mutate))
     return rows
 
 
@@ -175,4 +180,16 @@ def table(flow, rows, total):
             + ", every attempt counted",
             "  wall " + str(total["wall"]) + "s (per run "
             + "-".join(str(w) for w in total["wall_spread"]) + "s)"]
+    if "duplicate_at" in total:
+        out.append("  mutants: distinct signatures " + str(total["signatures"])
+                   + ", likely duplicate tests " + str(total["duplicates"])
+                   + ", not enough mutants to judge "
+                   + str(total["undecided"])
+                   + ", pins " + str(total["mutant_pins"])
+                   + ", duplicate threshold " + str(total["duplicate_at"])
+                   + ", minimum to judge " + str(total["minimum"]))
+    for r in rows:
+        if "mutants" in r:
+            out += ["", "## " + r["task"] + " " + str(r["attempt"])]
+            out += ["  " + line for line in mutants.lines(r["mutants"])]
     return "\n".join(out)

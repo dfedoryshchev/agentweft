@@ -95,3 +95,49 @@ or none so the flow's own is used, is refused unless the command says
 - `--flow <flow>` the flow, over `flow:` in bench.yaml
 - `--out <file>` where the scores are written
 - `--live` let the set's provider call a real model
+- `--mutants` score each added test by the mutants of the fix it kills
+
+## mutants
+
+a pass count cannot show that sixteen new tests all guard the same one line.
+`--mutants` breaks the run's fix on purpose and reads which tests notice.
+
+the mutants cover the changed lines of the source the run changed, never the
+whole module, and no model is asked:
+
+- `unpatch`: the fix taken out whole
+- `hunk <file>:<line>`: one hunk of the fix taken out
+- up to 20 small edits of a changed line: a comparison flipped (`<` to `<=`,
+  `==` to `!=`), a whole number one up or one down, a condition negated, a
+  statement deleted, a statement swapped with the next one. past 20, a seeded
+  pick of 20
+
+a mutant that reads the same as the fix or as an earlier mutant is dropped.
+each test the run added or changed runs against each mutant on a copy of the
+place, and the mutants it fails on are its kill signature. the same place
+gives the same mutants, in the same order.
+
+the row gets `mutants`, and the report a section per run:
+
+- `tests`: each test green with the fix, and the mutants it kills
+- `signatures`: how many distinct signatures there are
+- `duplicates`: the likely duplicates, groups of tests whose signatures are
+  alike. sixteen tests that die on the same deleted line are one group
+- `undecided`: the same groups when the run has fewer than `minimum`
+  mutants (8). two different tests can kill the same few mutants by chance,
+  so the report says not enough mutants to judge instead. a test that kills
+  nothing is never in a group
+- `pins`: tests green without the fix that kill nothing
+- `red_with_fix`: tests that fail with the fix, so kill nothing that can be
+  read
+- `duplicate_at`: the threshold, shared kills over all kills, at which two
+  signatures count as one. 1.0, the same set, by default
+- `minimum`: how many mutants a run needs before a shared signature is
+  called a likely duplicate
+
+a shared signature is a lead, not proof. the report only labels: no test is
+deleted or skipped because of it.
+
+the summary adds the threshold, the minimum, the signatures, the likely
+duplicate tests and the undecided ones (each group past its first) and the
+pins.

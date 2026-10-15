@@ -28,6 +28,7 @@ KINDS = (FEATURE, PROBE)
 DECLINED = (stops.outcome(stops.DECLINED), stops.outcome(stops.CONFLICT),
             stops.outcome(stops.PARKED))
 RED_GATES = ("red-test", "red-first")
+TIMEOUT = 600
 SKIP = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache")
 
 
@@ -45,7 +46,7 @@ def tests_in(folder):
                   if p.is_file() and is_test(p))
 
 
-def pytest(where, targets, env=None):
+def pytest(where, targets, env=None, timeout=None):
     """-> {case: passed} for one pytest over `targets` in `where`, every case
     by its file and name, with a config of its own so nothing above `where`
     is read as one."""
@@ -59,7 +60,7 @@ def pytest(where, targets, env=None):
                     "no:cacheprovider", "-c", str(ini), "--rootdir",
                     str(where), "--junitxml", str(report)] + list(targets),
                    cwd=str(where), env=run_env, capture_output=True,
-                   timeout=600)
+                   timeout=timeout or TIMEOUT)
     out = {}
     if report.is_file():
         for case in ElementTree.parse(str(report)).iter("testcase"):
@@ -189,20 +190,31 @@ def summary(rows, k):
     stopped = {}
     for r in probes:
         stopped[r["probe_stop"]] = stopped.get(r["probe_stop"], 0) + 1
-    return {"tasks": len(tasks), "k": k, "runs": len(rows),
-            "correct": correct,
-            "finished": len([r for r in rows if r["finished"]]),
-            "false_success": len([r for r in rows if r["false_success"]]),
-            "false_refusal": len([r for r in rows if r["false_refusal"]]),
-            "probe_stops": stopped,
-            "red_first": {w: len([r for r in rows if r["red_first"] == w])
-                          for w in ("proven", "failed", "no gate")},
-            "tests_added": sum(len(r["tests_added"]) for r in rows),
-            "pins": sum(len(r["pins"]) for r in rows),
-            "rate_per_repeat": rates,
-            "rate_spread": spread(rates),
-            "usd": round(sum(priced), 6) if priced else None,
-            "usd_estimated": any(r.get("usd_estimated") for r in rows),
-            "cost_per_correct": per,
-            "wall": round(sum(r["wall"] for r in rows), 1),
-            "wall_spread": spread([r["wall"] for r in rows])}
+    out = {"tasks": len(tasks), "k": k, "runs": len(rows),
+           "correct": correct,
+           "finished": len([r for r in rows if r["finished"]]),
+           "false_success": len([r for r in rows if r["false_success"]]),
+           "false_refusal": len([r for r in rows if r["false_refusal"]]),
+           "probe_stops": stopped,
+           "red_first": {w: len([r for r in rows if r["red_first"] == w])
+                         for w in ("proven", "failed", "no gate")},
+           "tests_added": sum(len(r["tests_added"]) for r in rows),
+           "pins": sum(len(r["pins"]) for r in rows),
+           "rate_per_repeat": rates,
+           "rate_spread": spread(rates),
+           "usd": round(sum(priced), 6) if priced else None,
+           "usd_estimated": any(r.get("usd_estimated") for r in rows),
+           "cost_per_correct": per,
+           "wall": round(sum(r["wall"] for r in rows), 1),
+           "wall_spread": spread([r["wall"] for r in rows])}
+    scored = [r["mutants"] for r in rows if "mutants" in r]
+    if scored:
+        out.update({"duplicate_at": scored[0]["duplicate_at"],
+                    "minimum": scored[0]["minimum"],
+                    "signatures": sum(m["signatures"] for m in scored),
+                    "duplicates": sum(len(g) - 1 for m in scored
+                                      for g in m["duplicates"]),
+                    "undecided": sum(len(g) - 1 for m in scored
+                                     for g in m["undecided"]),
+                    "mutant_pins": sum(len(m["pins"]) for m in scored)})
+    return out
