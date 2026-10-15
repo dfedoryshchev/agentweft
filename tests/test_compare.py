@@ -96,8 +96,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `on_stop` is one more on the flow side: what a stop does with the tests
     # the run wrote, and a phase has no word for a stop.
+    #
+    # `spec_files` is one more, one way: a phase asks for the spec to be
+    # respected in prose, and nothing reads the file afterwards.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 29
+    assert len(compare.flow_only()) == 30
     assert len(compare.phase_only()) == 7
 
 

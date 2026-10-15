@@ -35,6 +35,7 @@ promises:
     - every line names a file
     - the tests are written before the code, and fail without it
     - the whole suite passes once the code is in
+spec_files: additions
 max_calls: 10
 timeout: 600
 retries: 2

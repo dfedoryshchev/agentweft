@@ -584,6 +584,18 @@ and a second claim on the same test parks for a ruling. a test the run started
 with never goes back: the claim parks for a ruling, quoted in `question.md`. a
 `spec:` line that is not there is read as a question too.
 
+the runner asks one of its own when a step in a flow with `spec_files:
+additions` removes or rewrites a line of the spec the run started with
+(`docs/guardrails.md`, "the spec files"). the run parks after that step's
+gates, cause `parked`, outcome `needs you: ruling`, `gates.md` has a failed
+`spec-files` line, and `question.md` quotes each line as it was and as it is
+now (`TASK.md:3 - was "...", now "..."` or `now removed`). `--answer
+"override: <why the change holds>"` lets those lines change, and the step runs
+again to read the ruling; any other answer is told to the step, which has to
+put the lines back or park again. in a `read-only` flow the same edit is a
+failed gate instead: the step goes again once, then the run stops `gate
+failed`.
+
 ## when the request contradicts the spec
 
 a step that finds the request asks for what a line of the spec rules out

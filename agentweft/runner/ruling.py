@@ -332,6 +332,55 @@ def covering(decided, test, workdir, start=None):
     return None
 
 
+def quotes_line(text, line):
+    """whether `text` quotes `line`, between double quotes: all of it, or
+    QUOTE_WORDS words of it or more."""
+    line = flat(line)
+    for q in QUOTED.findall(text or ""):
+        q = flat(q)
+        if q == line or (len(q.split()) >= QUOTE_WORDS and q in line):
+            return True
+    return False
+
+
+def spec_line_ruled(decided, line):
+    """-> the decisions.md entry that lets a spec line the run started with
+    be removed or rewritten, or None. it quotes the line in its own words,
+    or it is an `override:` answer to the question that quoted it. an
+    answer of `request:` keeps the spec, so it never rules one."""
+    for d in decided:
+        said = answered(d)
+        kind = kind_of(said or d.decided)
+        if kind == REQUEST:
+            continue
+        if quotes_line(own_words(d), line):
+            return d
+        if said and kind == OVERRIDE and quotes_line(d.why, line):
+            return d
+    return None
+
+
+def question_of_spec_lines(step, left):
+    """-> the question a removed or rewritten spec line parks the run on.
+    `left` is [(path, line number, the line as the run found it, what is
+    there now or None)]."""
+    one = len(left) == 1
+    out = ["NEEDS: " + step + " removed or rewrote "
+           + ("a line" if one else str(len(left)) + " lines")
+           + " of the spec the run started with. may "
+           + ("it" if one else "they") + " change?", "CITES:"]
+    for rel, n, was, now in left:
+        out.append("- " + rel + ":" + str(n) + ' - was "' + flat(was) + '", '
+                   + ('now "' + flat(now) + '"' if now is not None
+                      else "now removed"))
+    out.extend(["OPTIONS:",
+                "- override: <why the change holds>. the lines above may"
+                " change as shown, and nothing else",
+                "- anything else is told to " + step + ", which runs again:"
+                " to keep the spec as it was, say put it back"])
+    return "\n".join(out)
+
+
 def answer_of(argv):
     """-> (the answer or None, what is wrong with how it was given or "")."""
     if "--answer" in argv and "--answer-file" in argv:

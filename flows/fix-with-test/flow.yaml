@@ -31,6 +31,7 @@ steps:
     gates:
       - gate: verdict
 verify: "off"
+spec_files: read-only
 promises:
   inputs: a bug report and the file it is probably in
   outputs: a failing test, then a patch, then the test passing

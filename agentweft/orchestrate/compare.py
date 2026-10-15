@@ -122,6 +122,10 @@ FLOW_ONLY = (
          "what a run that stops short does with the tests it added or changed: "
          "leaves them, or puts them back to their bytes at the start. a phase "
          "has no word for it."),
+    Pair("flow.spec_files", "",
+         "what a step may do to the spec: nothing, or add lines. a phase "
+         "says to respect the spec in prose, where nothing reads the file "
+         "afterwards."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

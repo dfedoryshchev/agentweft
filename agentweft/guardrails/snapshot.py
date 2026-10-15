@@ -10,7 +10,8 @@ a test file whose content is not what it was is one the run wrote or changed.
 content, never mtimes: a stash and pop rewrites the time of every file it
 touches without changing a byte, and an editor can save a file unchanged.
 
-it also hashes the spec files and every other file (the product), and the
+it also hashes the spec files and every other file (the product), keeps the
+spec files' bytes when there is no commit to read them back from, and the
 run keeps it as runs/<id>/start-snapshot.json, so a run picked up later
 compares against the place as it first started and not as it was left.
 """
@@ -181,6 +182,9 @@ class Snapshot(object):
         if self.start:
             for rel in self._dirty():
                 self.loose[rel] = _read(self.root / rel)
+        else:
+            for rel in self.specs:
+                self.loose[rel] = _read(self.root / rel)
 
     def _mine(self, rel):
         return bool(self.own) and rel.startswith(self.own)
@@ -275,9 +279,11 @@ class Snapshot(object):
 
     def before(self, rel):
         """-> the bytes `rel` had when the run started, None when it was not
-        there."""
+        there or there is no start commit that kept them."""
         if rel in self.loose:
             return self.loose[rel]
+        if not self.start:
+            return None
         return _git(self.root, "show", self.start + ":" + rel, text=False)
 
     def test_changes(self):

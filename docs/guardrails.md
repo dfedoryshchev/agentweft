@@ -187,6 +187,42 @@ quotes the spec line that decides it; a test red at the start is not counted
 "do not edit the tests you were given" is a sentence in a prompt; this is a
 pytest run.
 
+## the spec files
+
+    # flow.yaml
+    spec_files: read-only
+
+a step that cannot make the work match the spec can make the spec match the
+work. `spec_files:` says what a step may do to the spec files (`TASK.md` or
+`SPEC*.md` at the top of the place, or a file under `docs/spec*` there), and
+after every step the runner reads them against how the run found them:
+
+- `read-only` (fix-with-test): any change, added lines included, fails the
+  step the way a gate does (`spec-files` in `gates.md`, the files named). it
+  goes again once with that at the end of its prompt, and the run stops
+  `gate failed` if the file is still changed. a fix is checked against the
+  spec, so the spec is not the fix's to move.
+- `additions` (build-feature): a new line passes, and `gates.md` says how
+  many were added. a line the run started with that is removed or rewritten
+  parks the run for a ruling, cause `parked`, outcome `needs you: ruling`,
+  with each line quoted in `question.md` as it was and as it is now:
+
+      - TASK.md:3 - was "the report lists students in the order given.", now "the report lists students alphabetically."
+
+  an entry in `decisions.md` that quotes the line (all of it, or three words
+  of it or more, between double quotes) lets the change stand, and so does an
+  `override:` answer to the question that quoted it. any other answer goes to
+  the step, which runs again; an answer starting `request:` never rules one.
+  the check waits for the step's other gates to pass, since a failed one
+  sends the step back anyway.
+
+the text a spec file had is read from the start commit, or from the start
+snapshot for a file already loose or a place with no commit, and which files
+changed from content hashes. so a step that commits its edit is read the same
+as one that leaves it in the work tree. blank lines and trailing spaces are
+not lines. a flow without `spec_files:` is not checked, and the handoff's
+rulings section still lists a changed spec file as before.
+
 ## the files that brief the model
 
 a `cli` step starts its model in the run's place, and a model cli can take

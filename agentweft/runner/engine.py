@@ -15,7 +15,7 @@ from agentweft import providers
 from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
                                   promises, redorder, shellwrite, snapshot,
-                                  starttests, worktree)
+                                  specfiles, starttests, worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -295,7 +295,7 @@ class Run(object):
         self.start = None
         if replays(fm):
             worktree.prune(self.workdir)
-        if replays(fm) or redorder.ordered(fm):
+        if replays(fm) or redorder.ordered(fm) or fm.get("spec_files"):
             self.start = snapshot.take(self.workdir, own=state.RUNS)
         self.order = redorder.Order(self.start)
         # what a gate ran and saw, by step, handed to the steps after it
@@ -372,6 +372,37 @@ class Run(object):
         line = Result(starttests.NAME, False, starttests.said_of(left))
         return line, ("spec conflict: " + line.detail,
                       ruling.question_of_start_tests(step, left))
+
+    def spec_held(self, step, ok=True):
+        """-> (the spec files' line for the record or None, (why, question)
+        when a line the run started with is removed or rewritten and no
+        ruling quotes it, else None). a `read-only` flow fails the step on
+        any change; an `additions` flow is only read once the step's other
+        gates passed, since one that failed sends the step back anyway."""
+        mode = self.fm.get("spec_files")
+        if not mode:
+            return None, None
+        found = specfiles.changes(getattr(self, "start", None))
+        if not found:
+            return None, None
+        if mode == specfiles.READ_ONLY:
+            return specfiles.read_only(step, found), None
+        if not ok:
+            return None, None
+        decided = decisions.read(self.workdir)
+        left, ruled = [], []
+        for rel, was, now in found:
+            for n, line, there in specfiles.lost(was, now):
+                d = ruling.spec_line_ruled(decided, line)
+                if d is None:
+                    left.append((rel, n, line, there))
+                else:
+                    ruled.append((rel, n, summary.stamp(d)))
+        if not left:
+            return specfiles.passed(found, ruled), None
+        line = specfiles.held(left)
+        return line, ("needs a ruling: " + line.detail,
+                      ruling.question_of_spec_lines(step, left))
 
     def keep(self, role, block):
         for line in block.get("must_not_miss", []):
@@ -833,6 +864,13 @@ def check_step(run, route, step, out, run_dir=None):
                               getattr(run, "start", None))
     if said and said[1]:
         results.insert(0, Result("conflict", False, said[1]))
+    guarded = getattr(run, "spec_held", None)
+    if guarded is not None:
+        line, spec_asks = guarded(step, all(r.ok for r in results))
+        if line is not None:
+            results.append(line)
+        if spec_asks:
+            out.meta["spec_ruling"] = spec_asks
     replayed = getattr(run, "replayed", None)
     if replayed is not None and all(r.ok for r in results):
         line, held = replayed(step)
@@ -965,6 +1003,11 @@ def run_once(flow, provider=None, task=None, trail=None):
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + question.split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
+        spec_asks = out.meta.pop("spec_ruling", None)
+        if spec_asks:
+            note("parked", spec_asks[1], stops.PARKED, output=out.output)
+            return (out.output, run.budget, "parked at " + step
+                    + " for a ruling: " + spec_asks[1].split("\n")[0])
         held = out.meta.pop("conflict", None)
         if held:
             note("conflict", held[1], stops.CONFLICT, output=out.output)
@@ -1634,6 +1677,12 @@ def main():
                                          run_dir=step_dir)
             entry.gates = out.meta.get("gates", [])
             entry.ungated = out.meta.get("ungated")
+            spec_asks = out.meta.pop("spec_ruling", None)
+            if spec_asks:
+                print(step + " removed or rewrote a line of the spec")
+                return stop(stops.PARKED, spec_asks[0], "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user", question=spec_asks[1])
             held = out.meta.pop("conflict", None)
             if held:
                 print(step + " turned a test the run started with red")
