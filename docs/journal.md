@@ -130,6 +130,7 @@ or crashed. the keys are always all there, in this order:
      "seconds": 8.4,
      "cached": false,
      "retries": {}, "background_killed": 0,
+     "shell_writes_denied": null, "shell_trap_recoveries": null,
      "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
      "ungated": false,
@@ -165,7 +166,9 @@ or crashed. the keys are always all there, in this order:
   used.
 - `grant` is null for a step that declared no `tools`. otherwise it is the
   grant and what was done with it: `{"tools": ["read"], "enforced": true,
-  "argv": [...], "cli_version": "2.1.296"}`. `argv` is the command line
+  "argv": [...], "cli_version": "2.1.296", "shell_writes": null}`.
+  `shell_writes` is `refused` when a `shell` grant came with the shell-write
+  check, `not enforced` when it did not, null without a `shell` grant. `argv` is the command line
   `claude` was started with, minus the command itself (the prompt goes on
   stdin, so nothing of it is in there), which pins the permission mode and
   every flag the grant became; `cli_version` is what `claude --version` said.
@@ -192,6 +195,16 @@ or crashed. the keys are always all there, in this order:
   shell it moved to the background, say) that were ended when it answered or
   timed out, summed over every go; null for a provider that starts no process
   (the fake, the api) and when it could not be told.
+- `shell_writes_denied` is how many shell commands that write a file the cli
+  refused this step (`providers.md`, a shell step writes files with the write
+  tool), counted from `runs/<run-id>/tool-denials.jsonl` by the step's
+  sessions; null for a step that was not handed the check, and when no
+  session says which refusals were its own.
+- `shell_trap_recoveries` is how many of the model's messages in the step's
+  transcript name a shell trap it walked into: a `sed` that did not match, a
+  heredoc that turned escapes into newlines, flipped CRLF line ends. null when
+  there was no transcript to read. it counts what the model said, so it is a
+  floor, not a census.
 - `gates` is `[]` for a step that declares none, and also for one whose line
   was closed before its gates were checked (refused, fenced, parked at the
   cap, crashed). `ungated` tells them apart: `true` when the gates were checked and

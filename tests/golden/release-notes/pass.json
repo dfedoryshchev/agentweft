@@ -85,6 +85,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -129,7 +131,7 @@
           "--output-format",
           "json",
           "--settings",
-          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/release-notes-<run>/tool-denials.jsonl\"]}]}]}}",
           "--tools",
           "Read,Glob,Grep,Bash,PowerShell",
           "--allowedTools",
@@ -145,7 +147,8 @@
           "--model",
           "model-in-replay"
         ],
-        "cli_version": "2.1.296"
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
       },
       "tokens": {
         "counted": true,
@@ -162,6 +165,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": 0,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -204,7 +209,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 9d93f42b680e260b45e5c3df0780d8b4d5328f02aac4abcf0c8132792c3b11fe",
+    "reviewer.md go 1 4f345acb5acdcc93be24786b4911ec5a94b65c31f7cf1412ac3d4ed3421cdb63",
     "worker.md go 1 218ea9cb08baaa01dba5b163c32ee9e02a7750f0c3991dd0fb5cde41f44c2efc"
   ]
 }

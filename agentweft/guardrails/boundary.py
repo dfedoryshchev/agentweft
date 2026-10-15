@@ -119,13 +119,16 @@ def as_note(found):
     return chr(10).join(lines) + chr(10)
 
 
-def as_prompt(granted):
+def as_prompt(granted, shell_writes=None):
     """the grant on its way out, so the check on the way back is fair.
 
     a step judged against a boundary nobody told it about is a trap rather
     than a check. this is the asking half, it is a prompt, and a prompt is the
     weakest thing in the repo - which matters more here than anywhere else,
     because there is no half after it that can stop anything.
+
+    `shell_writes` is "refused" when the provider hands its cli the
+    shell-write check (`guardrails/shellwrite.py`), and the step is told so.
     """
     if granted is None:
         return ""
@@ -135,4 +138,16 @@ def as_prompt(granted):
         lines.append("you do not have " + ", ".join(withheld) + ". if the job "
                      "needs one of those, name it and stop, rather than "
                      "writing out what you would have run.")
+    writes = "write" in granted or "edit" in granted
+    if "shell" in granted and shell_writes == "refused":
+        lines.append("a shell command that writes a file is refused: a "
+                     "redirect or a heredoc into a file, tee, sed -i, cp or "
+                     "mv, a script that opens a file to write."
+                     + (" create a file with the Write tool and change one "
+                        "with Edit." if writes else ""))
+    if writes:
+        lines.append("Write and Edit store the characters they are given: a "
+                     "U+2028 or U+2029 meant as an escape has to be written "
+                     "as its backslash form, or the file gets the raw "
+                     "character.")
     return chr(10).join(lines) + chr(10)

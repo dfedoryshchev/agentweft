@@ -420,7 +420,9 @@ def spellings(path):
 
 def scrub(text, tmp_path):
     text = text.replace("\r\n", "\n")
-    for where, name in ((tmp_path, "<tmp>"), (REPO, "<repo>")):
+    # the interpreter first: it may sit inside the checkout, in a venv
+    for where, name in ((Path(sys.executable), "<python>"),
+                        (tmp_path, "<tmp>"), (REPO, "<repo>")):
         for spelt in spellings(where):
             text = text.replace(spelt, name)
     text = text.replace("\\", "/")

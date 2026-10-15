@@ -98,7 +98,8 @@ def test_another_command_gets_no_fence_and_no_version_call(fake_cli):
     assert cli_.calls[0]["argv"] == ["echo", "-p", "hi"]
     assert cli_.asides == []
     assert p.granted() == {"tools": ["read"], "enforced": False,
-                           "argv": None, "cli_version": None}
+                           "argv": None, "cli_version": None,
+                           "shell_writes": None}
 
 
 # the settings handed over

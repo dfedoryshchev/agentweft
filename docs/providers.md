@@ -212,6 +212,56 @@ the step's line in `steps.jsonl` keeps the grant, every flag it became (the
 command line minus the command; the prompt is on stdin) and the version
 (`journal.md`).
 
+### a shell step writes files with the write tool
+
+a `shell` grant is Bash and PowerShell, and both can write any file. that is
+where the turns go: a heredoc turns the `\n` escapes it carries into real
+newlines, a `sed` that matches nothing changes nothing and says nothing, a
+script run on Windows flips every line end in the file, and each costs the
+step turns to notice and undo. the Write and Edit tools have none of those.
+
+so a `claude` step granted `shell` is also handed a PreToolUse hook on Bash
+and PowerShell in its `--settings`, next to the attribution setting below:
+
+    {"hooks": {"PreToolUse": [{"matcher": "Bash|PowerShell",
+      "hooks": [{"type": "command", "command": "<python>",
+                 "args": ["-I", "<agentweft>/guardrails/shellwrite.py",
+                          "runs/<run-id>/tool-denials.jsonl"]}]}]}}
+
+`args` is the exec form: python is spawned with no shell between, so nothing
+is quoted differently by platform, and `-I` keeps the script's own folder off
+its import path. permission rules cannot do this job, since they match a
+command by its prefix and "Bash, but not the Bash that writes" has none.
+
+the hook reads the command and exits 2, which the cli takes as a refusal and
+shows the model, for a redirect or a heredoc into a file (`/dev/null`, a
+duplicated descriptor such as `2>&1` and the temp dir excepted), `tee`, `cp`,
+`mv` and `install`, `sed -i` and `perl -i`, `dd of=`, `truncate`, a
+`python -c` or python heredoc that opens a file to write or calls
+`write_text`, and PowerShell's `Set-Content`, `Add-Content`, `Out-File` and
+`WriteAllText`. the reason names Write and Edit, and a step that cannot make
+the change with them says so on a `NEEDS:` line. a call it cannot read, and
+an error of its own, are refused too: a check that crashes and lets the call
+through is no check. it catches the shell's write syntax and the programs
+whose job is writing, not every program that writes a file on the way to
+something else.
+
+each refusal is one json line in `runs/<run-id>/tool-denials.jsonl`, with the
+session, the tool, the command and the part that writes. the step's line in
+`steps.jsonl` counts its own as `shell_writes_denied`, and counts as
+`shell_trap_recoveries` the model's messages in its transcript that name one
+of the three traps above (`journal.md`).
+
+the step is told both halves in its prompt: that a shell write is refused, and
+for a step granted `write` or `edit`, one known trap of those tools: they
+store the characters they are given, so a U+2028 or U+2029 meant as an escape
+has to be written as its backslash form.
+
+the hook can be switched off from outside the run: `disableAllHooks` in the
+user's own settings is not overridden here, and `allowManagedHooksOnly` in
+managed settings can block it, and the run cannot tell. a command other than `claude` is handed no
+hook, and its grant records `shell_writes` as `not enforced`.
+
 every flag and setting above is checked against `claude --help` and the
 cli's own reference for 2.1.296. a command other than `claude` is handed
 none of this, because which flags it takes is not ours to guess: its grant is

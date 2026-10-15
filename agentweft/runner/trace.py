@@ -260,7 +260,7 @@ class Trail(object):
         self.closed.append((entry, outcome))
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(line(entry, outcome, why, to, cause,
-                                    self.task_file),
+                                    self.task_file, self.folder),
                                ensure_ascii=False) + "\n")
 
     def still_open(self):
@@ -277,7 +277,37 @@ def gate_line(g):
     return out
 
 
-def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
+def sessions(attempts):
+    return {r.session for a in attempts for r in a.replies
+            if getattr(r, "session", None)}
+
+
+def shell_writes_denied(p, attempts, folder):
+    """-> how many shell writes the cli refused this step, None when it was
+    not handed the check or no session says which refusals were its own."""
+    from agentweft.guardrails import shellwrite
+
+    granted = p.granted()
+    if not granted or granted.get("shell_writes") != "refused":
+        return None
+    seen = sessions(attempts)
+    if folder is None or not seen:
+        return None
+    return shellwrite.denied(folder, seen)
+
+
+def shell_trap_recoveries(attempts):
+    """-> the model's messages naming a shell trap it walked into, summed over
+    the step's sessions; None when no transcript could be read."""
+    from agentweft.guardrails import shellwrite
+
+    found = [shellwrite.recovered(s) for s in sorted(sessions(attempts))]
+    found = [n for n in found if n is not None]
+    return sum(found) if found else None
+
+
+def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
+         folder=None):
     attempts = entry.attempts
     first = attempts[0] if attempts else None
     p = entry.provider
@@ -313,6 +343,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None):
             "cached": said["cached"],
             "retries": said["retries"],
             "background_killed": said["background_killed"],
+            "shell_writes_denied": shell_writes_denied(p, attempts, folder),
+            "shell_trap_recoveries": shell_trap_recoveries(attempts),
             "gates": [gate_line(g) for g in entry.gates],
             "ungated": entry.ungated,
             "outcome": outcome,

@@ -141,6 +141,7 @@ class Provider(object):
     where = None
     command = None
     grant = None
+    denials = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -153,7 +154,9 @@ class Provider(object):
         if self.grant is None:
             return None
         return {"tools": list(self.grant), "enforced": False, "argv": None,
-                "cli_version": None}
+                "cli_version": None,
+                "shell_writes": "not enforced" if "shell" in self.grant
+                else None}
 
     def refuses(self):
         """-> why a step on this provider may not be asked at all, or ""."""

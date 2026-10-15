@@ -14,7 +14,8 @@ from .config import (VERDICTS, asks_for_verdict, config, due, fanout_step,
 from agentweft import providers
 from agentweft.flow.spec import step_id, step_name, steps_named
 from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
-                                  promises, redorder, snapshot, worktree)
+                                  promises, redorder, shellwrite, snapshot,
+                                  worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -292,6 +293,11 @@ class Run(object):
         # constraint read from the spec by the first step binds the last
         self.constraints = []
 
+    def keep_in(self, folder):
+        """every provider of this run notes a refused shell write in folder."""
+        for p in list(self.by_step.values()) + [self.provider]:
+            p.denials = folder / shellwrite.FILE
+
     def rulings(self):
         """-> the decisions on record in the place, as lines."""
         return [summary.stamp(d) for d in decisions.read(self.workdir)]
@@ -506,7 +512,10 @@ class Run(object):
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its
         # grant is one this cannot fairly hold to it afterwards.
-        prompt = prompt + boundary.as_prompt(self.grant_for(step))
+        said = self.by_step.get(step, self.provider).granted()
+        prompt = prompt + boundary.as_prompt(
+            self.grant_for(step),
+            shell_writes=said.get("shell_writes") if said else None)
         if extra:
             prompt = prompt + extra
         ran = [line for k, lines in getattr(self, "proven", {}).items()
@@ -734,6 +743,8 @@ def run_once(flow, provider=None, task=None, trail=None):
     run = Run(flow, fm, by_role, provider=provider, task=task)
     route = router.Router(fm)
     kept = trace.Trail(trail) if trail is not None else None
+    if trail is not None:
+        run.keep_in(Path(trail))
     out = EMPTY
     step = steps(flow)[0]
     came_from = None
@@ -1072,6 +1083,7 @@ def main():
     folder = state.RUNS / run_id
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
+    run.keep_in(folder)
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
     if run.start is not None and run.start.hashed:
         run.start.save(folder)

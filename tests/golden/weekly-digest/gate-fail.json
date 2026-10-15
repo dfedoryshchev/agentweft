@@ -120,6 +120,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -168,6 +170,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -255,6 +259,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -299,7 +305,7 @@
           "--output-format",
           "json",
           "--settings",
-          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/weekly-digest-<run>/tool-denials.jsonl\"]}]}]}}",
           "--tools",
           "Read,Glob,Grep,Bash,PowerShell",
           "--allowedTools",
@@ -315,7 +321,8 @@
           "--model",
           "model-in-replay"
         ],
-        "cli_version": "2.1.296"
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
       },
       "tokens": {
         "counted": true,
@@ -332,6 +339,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": 0,
+      "shell_trap_recoveries": null,
       "gates": [
         {
           "gate": "length",
@@ -387,7 +396,7 @@
           "--output-format",
           "json",
           "--settings",
-          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/weekly-digest-<run>/tool-denials.jsonl\"]}]}]}}",
           "--tools",
           "Read,Glob,Grep,Bash,PowerShell",
           "--allowedTools",
@@ -403,7 +412,8 @@
           "--model",
           "model-in-replay"
         ],
-        "cli_version": "2.1.296"
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
       },
       "tokens": {
         "counted": true,
@@ -420,6 +430,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": 0,
+      "shell_trap_recoveries": null,
       "gates": [
         {
           "gate": "length",
@@ -491,8 +503,8 @@
   "prompts": [
     "merge.md go 1 be5330d894b06366bc4458785bfeb9ec9376d7133a1c8af86719066a010cf417",
     "planner.md go 1 f45cc5c5d52384d61f553ad7394643973bc3b5c97cf661ed648f18e8a23c3d94",
-    "reviewer.md go 1 8cabe6f499005b57830c3f1e2b9aa058cc8d97803fbbe6efe54d57982749db1a",
-    "reviewer.md go 2 123af1e365c0aa5af0a25d693f0acde63f9705d8774bda4cb4cc4a694dfefdf3",
+    "reviewer.md go 1 406e3bebc5916b44b1546752d11a0ca75cd34ee76d5f6b2b72a2edc5d311c85c",
+    "reviewer.md go 2 2b0314c1de9e31f9ab7fd66303ec3967d7b50561dacee19d62f9dbb472f370f3",
     "worker.md task 1 go 1 f0b5a60325c2b084ab251a4368a688e8bc7df630c9fdf93ea18f37467f632227",
     "worker.md task 2 go 1 97e5b440cd05e07ca1e16ce56809419254526b4952fb9c1efd08d95c6c159f33"
   ]

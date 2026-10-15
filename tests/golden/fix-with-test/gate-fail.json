@@ -103,6 +103,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [
         {
           "gate": "red-test",
@@ -157,6 +159,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [
         {
           "gate": "red-test",

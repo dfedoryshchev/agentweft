@@ -96,6 +96,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -144,6 +146,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -231,6 +235,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -275,7 +281,7 @@
           "--output-format",
           "json",
           "--settings",
-          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/repo-audit-<run>/tool-denials.jsonl\"]}]}]}}",
           "--tools",
           "Read,Glob,Grep,Bash,PowerShell",
           "--allowedTools",
@@ -291,7 +297,8 @@
           "--model",
           "model-in-replay"
         ],
-        "cli_version": "2.1.296"
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
       },
       "tokens": {
         "counted": true,
@@ -308,6 +315,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": 0,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -353,7 +362,7 @@
   "prompts": [
     "merge.md go 1 1c2fab1c9388b5bfec83f903b0b24a6ca72860905b008ef70ae26dd5c3e923c1",
     "planner.md go 1 68f60d475646ce60a200400582d500f81eb8382ee42188e5cfdc090e5cbf66cd",
-    "reviewer.md go 1 dca7f844cfaa0187c5149022f9122933553d230ad4e11a0f14a5ca45786d4ad5",
+    "reviewer.md go 1 3e0d5ad2fefed6691e44bac45812f6cbe11b052ffcc2f2610792d0f3f64c1ed8",
     "worker.md task 1 go 1 6f66b70ea2e739d18735a0d6ff45c055386a8a32589fc86e11bfe46e840367a7",
     "worker.md task 2 go 1 59c7b5871bb734308eabc7c9c99df0c76be838e2f2ae7b316c9de8aa04718a02"
   ]

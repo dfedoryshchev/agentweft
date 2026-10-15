@@ -4,8 +4,10 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
+from pathlib import Path
 
 from .base import Provider, Reply, Usage, again, model_for, register
 
@@ -33,6 +35,25 @@ ACTS = ("write", "edit", "shell")
 FLOOR = (2, 1, 295)
 
 NO_TRAILER = {"attribution": {"commit": "", "pr": "", "sessionUrl": False}}
+
+
+def shell_hook(denials):
+    """-> the `hooks` setting that hands every Bash and PowerShell call to the
+    shell-write check before it runs (`guardrails/shellwrite.py`).
+
+    the exec form, `args`, spawns python with no shell between, so no quoting
+    differs by platform. `-I` keeps the script's own folder off the import
+    path. the denials file is an argument, never the environment."""
+    from agentweft.guardrails import shellwrite
+
+    args = ["-I", Path(shellwrite.__file__).as_posix()]
+    if denials is not None:
+        args.append(Path(denials).as_posix())
+    return {"PreToolUse": [{"matcher": "|".join(shellwrite.TOOLS),
+                            "hooks": [{"type": "command",
+                                       "command": Path(sys.executable)
+                                       .as_posix(),
+                                       "args": args}]}]}
 
 
 def version_of(text):
@@ -552,7 +573,13 @@ class CliProvider(Provider):
         return {"tools": list(self.grant), "enforced": True,
                 "argv": self.argv("")[0][1:],
                 "cli_version": dotted(self.seen_version)
-                if self.seen_version else None}
+                if self.seen_version else None,
+                "shell_writes": "refused" if self.refuses_shell_writes()
+                else None}
+
+    def refuses_shell_writes(self):
+        return self.grant is not None and "shell" in self.grant \
+            and is_claude(self.command)
 
     def asks_for(self):
         return (model_for(self.opts) or None) if is_claude(self.command) \
@@ -571,9 +598,14 @@ class CliProvider(Provider):
         if not is_claude(cmd):
             return [cmd, "-p", prompt], None
         argv = [cmd, "-p", "--output-format", "json"]
+        settings = {}
         if not self.opts.get("co_author"):
+            settings.update(NO_TRAILER)
+        if self.refuses_shell_writes():
+            settings["hooks"] = shell_hook(self.denials)
+        if settings:
             argv = argv + ["--settings",
-                           json.dumps(NO_TRAILER, separators=(",", ":"))]
+                           json.dumps(settings, separators=(",", ":"))]
         if self.grant is not None:
             argv = argv + fence(self.grant)
         model = self.asks_for()

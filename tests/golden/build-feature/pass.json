@@ -100,6 +100,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -148,6 +150,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [
         {
           "gate": "red-test",
@@ -202,6 +206,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
       "gates": [
         {
           "gate": "command",
@@ -257,7 +263,7 @@
           "--output-format",
           "json",
           "--settings",
-          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\"]}]}]}}",
           "--tools",
           "Read,Glob,Grep,Bash,PowerShell",
           "--allowedTools",
@@ -273,7 +279,8 @@
           "--model",
           "model-in-replay"
         ],
-        "cli_version": "2.1.296"
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
       },
       "tokens": {
         "counted": true,
@@ -290,6 +297,8 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
+      "shell_writes_denied": 0,
+      "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
       "outcome": "ok",
@@ -333,7 +342,7 @@
   ],
   "prompts": [
     "planner.md go 1 9d1e17ef556ad053dcfb39b2b7b67ad2905719a10111d0fa632cc7a1a1ecb7f8",
-    "reviewer.md go 1 129b1b78111f0755140d9cc6bc7e820cc5aa8e6ff120aaf59ca8af3c8489d5c6",
+    "reviewer.md go 1 39cfc96cb5074e2a0e116d7550d82482a1b0c29c11ceea96eea3cae748f159f9",
     "tester.md go 1 74ff386dd344f997fb8adc91e8b091a101a51696c7a0c45dcf7e88bfacc27881",
     "worker.md go 1 3032ced1e85e28f1a3291b59bf0634b84e3a62deb7982d1e51704fe102902c72"
   ]
