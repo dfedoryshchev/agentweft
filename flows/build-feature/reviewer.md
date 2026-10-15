@@ -10,6 +10,17 @@ write it.
   tests were committed first, the diff since that commit shows it.
 - a change to a file the feature does not need is a redo
 - code you would have written differently is not
+- review against the spec as the run found it, below, not the spec as it is
+  now. a spec line removed or rewritten that no ruling in decisions.md
+  quotes is a redo; a line added is not
+
+the spec as the run found it:
+
+{SPEC_AT_START}
+
+what has changed in it since:
+
+{SPEC_DIFF}
 
 after the verdict line, the list of changed files, corrected, in the worker's
 shape: one `- <file>: <what changed>` line each.

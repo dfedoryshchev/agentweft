@@ -56,6 +56,34 @@ the mcp `run_flow` tool takes an optional `task`, an eval case gives one as
 `task:` in case.yaml or a `task.md` beside it, and `cron.py` skips a flow that
 takes a task, saying so, since it has none to give.
 
+## the spec as the run found it
+
+a reviewer called after a step edited the spec, and handed only the spec as
+it is now, reviews the change against the edit it was there to catch. so a
+step's own words can name two more values, filled each time the step is
+called:
+
+- `{SPEC_AT_START}`: every spec file (`TASK.md`, `SPEC*.md`, `docs/spec*`
+  from the top of the place) as the run found it, under its path, read from
+  the start commit, or from the start snapshot for a file already loose, and
+  never from the work tree
+- `{SPEC_DIFF}`: what has changed in them since, as a unified diff, or
+  `(no change: ...)`
+
+a flow whose prompts name either takes the start snapshot even without
+`spec_files:`. both reviewers that ship with it, `build-feature` and
+`code-review`, read them.
+
+a step whose own words name one of them and ask for a verdict is held to it:
+an `ok` while the spec has moved is a redo, unless each line that moved,
+added, removed or rewritten, is quoted by an entry in `decisions.md` (the
+same quote that lets a spec line change, `guardrails.md` "the spec files").
+in a flow with `spec_files: additions` an added line is allowed, so only a
+removed or rewritten one counts there; under `read-only`, or with no
+`spec_files:`, every moved line does. the reviewer's answer goes back with the lines named, `TASK.md:4` and so on,
+and the step it sends back to puts the spec back or asks for a ruling. a
+reviewer's own redo stays its own.
+
 ## flow.yaml
 
     name: weekly digest

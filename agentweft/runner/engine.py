@@ -297,8 +297,8 @@ class Run(object):
         self.baseline = None
         if replays(fm) or self.suite == baseline.ON:
             worktree.prune(self.workdir)
-        if replays(fm) or redorder.ordered(fm) or fm.get("spec_files") or \
-                self.suite == baseline.ON:
+        if replays(fm) or redorder.ordered(fm) or fm.get("spec_files") \
+                or self.suite == baseline.ON or self.reads_spec():
             self.start = snapshot.take(self.workdir, own=state.RUNS)
         self.order = redorder.Order(self.start)
         # what a gate ran and saw, by step, handed to the steps after it
@@ -431,6 +431,32 @@ class Run(object):
         line = specfiles.held(left)
         return line, ("needs a ruling: " + line.detail,
                       ruling.question_of_spec_lines(step, left))
+
+    def reads_spec(self):
+        """whether any step's prompt names the spec as the run found it."""
+        for s in self.fm.steps:
+            try:
+                text = load_prompt(self.flow, step_id(s),
+                                   self.by_role.get(s["role"], ""), s["role"])
+            except (FileNotFoundError, KeyError, AttributeError, TypeError):
+                continue
+            if prompts.reads_spec(text):
+                return True
+        return False
+
+    def spec_unruled(self):
+        """-> "path:line" for each line of the spec that moved since the run
+        started, added, removed or rewritten, with no ruling in decisions.md
+        quoting it. added lines count only when the flow's `spec_files:` is
+        not `additions`."""
+        found = specfiles.changes(getattr(self, "start", None))
+        if not found:
+            return []
+        mode = self.fm.get("spec_files")
+        decided = decisions.read(self.workdir)
+        return [rel + ":" + str(n) for rel, was, now in found
+                for n, line in specfiles.moved(was, now, mode)
+                if ruling.spec_line_ruled(decided, line) is None]
 
     def keep(self, role, block):
         for line in block.get("must_not_miss", []):
@@ -633,11 +659,13 @@ class Run(object):
         # earlier step produced, or a task quoting a review, can carry its own
         # verdict line, and that does not ask this one for one
         asked = asks_for_verdict(prompt)
+        reviews_spec = asked and prompts.reads_spec(prompt)
         found = self.produced.get(investigate.STEP, "") \
             if step != investigate.STEP else ""
         prompt = investigate.scope(prompt, found)
         if step == investigate.STEP:
             prompt = prompt + investigate.plan_words(self.fm)
+        prompt = prompts.put_spec(prompt, getattr(self, "start", None))
         prompt = prompts.put_task(prompt, self.task_text)
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
@@ -686,9 +714,18 @@ class Run(object):
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
             self.charge(prompt, answer, used.name, used.asks_for())
+        said = verdict(text, asked=asked)
+        left = self.spec_unruled() if reviews_spec and said == "ok" else []
+        if left:
+            said = "redo"
+            rest = text.strip().split("\n", 1)
+            text = ("VERDICT: redo\n\n" + specfiles.unruled_redo(left)
+                    + "\n\n" + (rest[1].strip() if len(rest) > 1 else "")
+                    ).rstrip() + "\n"
+            self.produced[step] = text
         block = back(parse(text), transcript(trace.last(tried, "session")))
         self.keep(role, block)
-        return Handoff(role, text, verdict(text, asked=asked),
+        return Handoff(role, text, said,
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,
                              "asked": asked,

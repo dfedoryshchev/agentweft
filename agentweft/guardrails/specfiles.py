@@ -79,6 +79,88 @@ def added(was, now):
     return count
 
 
+def new_lines(was, now):
+    """-> [(its line number now, the line)] for each line of `now` that
+    `was` did not have and that does not stand in for one `lost` names.
+    blank lines and trailing spaces do not count."""
+    old = [l.rstrip() for l in was.split("\n")]
+    new = [l.rstrip() for l in now.split("\n")]
+    out = []
+    match = difflib.SequenceMatcher(None, old, new, autojunk=False)
+    for op, i1, i2, j1, j2 in match.get_opcodes():
+        if op not in ("insert", "replace"):
+            continue
+        took = len([l for l in old[i1:i2] if l.strip()]) \
+            if op == "replace" else 0
+        for k in range(j1, j2):
+            if not new[k].strip():
+                continue
+            if took:
+                took -= 1
+                continue
+            out.append((k + 1, new[k]))
+    return out
+
+
+def moved(was, now, mode=None):
+    """-> [(line number, the line)] for every line a ruling has to quote for
+    the change from `was` to `now` to stand: each line removed or rewritten,
+    numbered as the run found it, and each line added, numbered as it is.
+    an `additions` flow allows added lines, so under it they need none."""
+    gone = [(n, line) for n, line, _ in lost(was, now)]
+    return gone if mode == ADDITIONS else gone + new_lines(was, now)
+
+
+NO_START = "(no start snapshot was taken, so the spec as the run found it" \
+    " is not known)"
+
+
+def at_start(start):
+    """-> every spec file as the run found it, each under its path from the
+    place, read from the start commit or the snapshot and never from the
+    work tree."""
+    if start is None or not start.hashed:
+        return NO_START
+    out = []
+    for rel in sorted(start.specs):
+        out.append("--- " + start.from_place(rel) + "\n"
+                   + _text(start.before(rel)).rstrip("\n"))
+    if not out:
+        return "(the place had no spec file when the run started)"
+    return "\n\n".join(out)
+
+
+def diff(start):
+    """-> the spec files' change since the run started, as a unified diff,
+    or a line saying there is no change."""
+    if start is None or not start.hashed:
+        return NO_START
+    found = changes(start)
+    if not found:
+        return "(no change: the spec files are as the run found them)"
+    out = []
+    for rel, was, now in found:
+        # the start commit is read back through git, which with autocrlf
+        # hands back LF for a file the work tree holds as CRLF
+        out.extend(difflib.unified_diff(
+            [l.rstrip() for l in was.split("\n")],
+            [l.rstrip() for l in now.split("\n")],
+            rel + " (as the run found it)", rel + " (now)", lineterm=""))
+    if not out:
+        return "(no change: the spec files are as the run found them)"
+    return "\n".join(out)
+
+
+def unruled_redo(left):
+    """-> what a reviewer's ok turned into a redo carries back: the spec
+    lines that moved with no ruling quoting them, `left` as ["path:line"]."""
+    return ("the spec changed since the run started and no ruling in"
+            " decisions.md quotes " + ("this line" if len(left) == 1
+                                       else "these lines") + ": "
+            + ", ".join(left) + ". put the spec back as the run found it, or"
+            " ask for a ruling quoting each line")
+
+
 def read_only(step, found):
     """-> the failed gate for a step that changed a read-only spec file."""
     return Result(NAME, False, step + " changed " + ", ".join(

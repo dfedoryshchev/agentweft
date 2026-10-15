@@ -226,7 +226,10 @@ snapshot for a file already loose or a place with no commit, and which files
 changed from content hashes. so a step that commits its edit is read the same
 as one that leaves it in the work tree. blank lines and trailing spaces are
 not lines. a flow without `spec_files:` is not checked, and the handoff's
-rulings section still lists a changed spec file as before.
+rulings section still lists a changed spec file as before. a reviewer reads
+the spec as the run found it and the diff since (`{SPEC_AT_START}` and
+`{SPEC_DIFF}` in `flows.md`), and its ok on a spec that moved with no ruling
+is a redo; under `additions`, added lines do not count.
 
 ## the files that brief the model
 

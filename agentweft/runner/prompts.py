@@ -21,6 +21,27 @@ def substitute(text, task=None):
     return put_task(text, task)
 
 
+SPEC_AT_START = "{SPEC_AT_START}"
+SPEC_DIFF = "{SPEC_DIFF}"
+
+
+def reads_spec(text):
+    """whether a prompt names the spec as the run found it or its diff."""
+    return SPEC_AT_START in text or SPEC_DIFF in text
+
+
+def put_spec(text, start):
+    """{SPEC_AT_START} and {SPEC_DIFF}, from the run's start snapshot and
+    read as the step is called: a step after an edit to the spec gets the
+    spec the edit moved away from, and what moved."""
+    if not reads_spec(text):
+        return text
+    from agentweft.guardrails import specfiles
+
+    text = text.replace(SPEC_AT_START, specfiles.at_start(start))
+    return text.replace(SPEC_DIFF, specfiles.diff(start))
+
+
 def put_task(text, task):
     """{TASK}, on its own because the runner reads a prompt between the two."""
     if task is None:

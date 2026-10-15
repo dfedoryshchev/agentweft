@@ -59,6 +59,7 @@
     "code-review-<run>/handoff.md",
     "code-review-<run>/manifest.json",
     "code-review-<run>/reviewer.md",
+    "code-review-<run>/start-snapshot.json",
     "code-review-<run>/steps.jsonl",
     "code-review-<run>/steps/001-worker.md",
     "code-review-<run>/steps/002-reviewer.md",
@@ -351,8 +352,8 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 70977313787cb314aac4efa2fa7d8f4f8488c82e03d4f9f9621970950d9337bd",
-    "reviewer.md go 2 46171dd8f6afd23951345d14f2f386dffb43400b681099d5a2f636f871e09d68",
+    "reviewer.md go 1 b2c609c3de02b9cf11a2c7be5cc6cd2f39106ae99544a4840165993780e9fdc2",
+    "reviewer.md go 2 937921c51c25162039ba062bea80781df1e3c8e093eec029483478fcade76afa",
     "worker.md go 1 3cd0ab00f19605aec54f22c958df9e2fb199285b7533f8cb2caf19888fa73174",
     "worker.md go 2 d0c8e528140e27f302e9a399b49c4dd3648092c6e6cea35d94447bc10e6b94e0"
   ]
