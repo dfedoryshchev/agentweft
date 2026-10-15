@@ -300,6 +300,41 @@ the spec as the run found it and the diff since (`{SPEC_AT_START}` and
 `{SPEC_DIFF}` in `flows.md`), and its ok on a spec that moved with no ruling
 is a redo; under `additions`, added lines do not count.
 
+## the rulings only the runner writes
+
+the start-tests replay, the spec-files rule, the reviewer's spec diff and a
+conflict's `override:` all let a change stand on an entry in `decisions.md`,
+and `decisions.md` is a file in the place. a step with file tools could
+write the ruling that lets its own change through, so the runner keeps its
+own record, `runs/<id>/rulings.json`, outside the place: a sha256 of every
+entry that was there when the run started and of every entry it writes
+itself, from `--answer`, the lead's decision or a raised cap, with who wrote
+it (`answer`, `lead`, `cap`). every check that reads a ruling, and the
+handoff's rulings section, reads only the entries in that record.
+
+after every step the file is compared with what the runner last wrote. a
+step that added, edited or removed an entry fails the way a gate does
+(`rulings` in `gates.md`):
+
+    decisions.md was changed by worker.md; rulings come only from --answer or the lead. ...
+
+the file is put back as the runner left it, so the forged lines count for
+nothing, and the step goes again once with that at the end of its prompt.
+this is read before anything else the step said: a `NEEDS:`, a `CONFLICT:`,
+a `REFUSED:` or a `WRONG TEST:` from a step that changed the file is not
+acted on, so a stop cannot hide the change. a
+lead that writes the file instead of deciding has not decided, and the
+question goes to the operator. entries already there when the run started
+count: between runs the file is the person's, and a ruling written by hand
+is theirs.
+
+before it gets that far, a `claude` step granted `write` or `edit` has the
+shell-write hook on Write, Edit, MultiEdit and NotebookEdit too, refusing a
+call whose `file_path` (or `notebook_path`) is `decisions.md` in the place
+and letting every other path through; a step granted `shell` already has
+every shell write refused. the record is what holds when the hook does not
+reach: a step on another provider, or a write the hook cannot see.
+
 ## the files that brief the model
 
 a `cli` step starts its model in the run's place, and a model cli can take

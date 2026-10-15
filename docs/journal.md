@@ -400,7 +400,9 @@ steps say what they write (`- test order: red before any product code:
 red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or
 `tests carried from <sha>`, or `tests skipped: <reason> (--skip tests)`, which
 the checks line repeats), each gate skipped by name with its reason (`- regex
-skipped: <reason> (--skip)`, also on the checks line), the rulings on record (`decisions.md` in the place),
+skipped: <reason> (--skip)`, also on the checks line), the rulings on record
+(the entries of `decisions.md` in the place that the runner wrote or found
+there when the run started),
 the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
 `docs/spec*` there; a `*` never crosses a `/`) changed at all, each
@@ -651,7 +653,12 @@ step that asked again, AT that step and not after it, on what it was handed
 before, with the question and the answer at the very end of its prompt. the
 question, the answer and who gave it go into `decisions.md` in the place the
 run works in, so the ruling sits beside the code it changes and the handoff
-lists it as on record. `--resume` on that run without an answer runs nothing:
+lists it as on record. the runner also keeps its own record of every entry
+it writes, with a sha256 and who wrote it (`answer`, `lead`, `cap`), as
+`runs/<run-id>/rulings.json`; an entry in `decisions.md` that is neither in
+it nor there when the run started rules nothing, and a step that changes the
+file fails as a `rulings` gate with the file put back ("the rulings only the
+runner writes" in `guardrails.md`). `--resume` on that run without an answer runs nothing:
 it prints the question and the command, and exits 2. an `--answer` to a run
 that asked nothing is refused.
 

@@ -14,8 +14,9 @@ from .config import (VERDICTS, asks_for_verdict, config, declared, due,
 from agentweft import providers
 from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
-                                  fence, gates, promises, redorder, shellwrite,
-                                  skips, snapshot, specfiles, starttests,
+                                  fence, gates, promises, redorder, rulings,
+                                  shellwrite, skips, snapshot, specfiles,
+                                  starttests,
                                   worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
@@ -333,6 +334,32 @@ class Run(object):
         # decided, by question
         self.lead = lead_of(fm)
         self.led = {}
+        self.kept = rulings.Kept(self.workdir)
+        self.forged = {}
+
+    def decided(self):
+        """-> the rulings in decisions.md the runner has on record."""
+        kept = getattr(self, "kept", None)
+        if kept is None:
+            return decisions.read(Path(self.workdir))
+        return kept.read()
+
+    def rule(self, decided, why, by):
+        """write a ruling to decisions.md and to the runner's own record."""
+        kept = getattr(self, "kept", None)
+        if kept is None:
+            return decisions.record(Path(self.workdir), decided, why)
+        return kept.record(decided, why, by)
+
+    def held_rulings(self, step):
+        """note why `step` fails when it changed decisions.md."""
+        kept = getattr(self, "kept", None)
+        said = kept.check(step) if kept is not None else ""
+        if said:
+            forged = getattr(self, "forged", None)
+            if forged is None:
+                forged = self.forged = {}
+            forged[step] = said
 
     def wrote_tests(self, step):
         """note `step` as the writer of each test file it made or changed."""
@@ -367,7 +394,7 @@ class Run(object):
 
     def rulings(self):
         """-> the decisions on record in the place, as lines."""
-        return [summary.stamp(d) for d in decisions.read(self.workdir)]
+        return [summary.stamp(d) for d in self.decided()]
 
     def suite_baseline(self):
         """-> the state of the suite the run started from, read from the
@@ -405,7 +432,7 @@ class Run(object):
                                   green=self.start_green, known=known)
         if not found.red:
             return found.result, None
-        decided = decisions.read(self.workdir)
+        decided = self.decided()
         left, ruled = [], []
         for test, said in found.red:
             d = ruling.covering(decided, test, self.workdir, self.start)
@@ -436,7 +463,7 @@ class Run(object):
             return specfiles.read_only(step, found), None
         if not ok:
             return None, None
-        decided = decisions.read(self.workdir)
+        decided = self.decided()
         left, ruled = [], []
         for rel, was, now in found:
             for n, line, there in specfiles.lost(was, now):
@@ -472,7 +499,7 @@ class Run(object):
         if not found:
             return []
         mode = self.fm.get("spec_files")
-        decided = decisions.read(self.workdir)
+        decided = self.decided()
         return [rel + ":" + str(n) for rel, was, now in found
                 for n, line in specfiles.moved(was, now, mode)
                 if ruling.spec_line_ruled(decided, line) is None]
@@ -743,12 +770,16 @@ class Run(object):
         used.at(step, task)
         tried.effort = self.effort_for(step, used)
         used.going = tried.effort["base"] and tried.effort["asked"]
+        if step != getattr(self, "fan", None):
+            getattr(self, "forged", {}).pop(step, None)
         try:
             answer = tried.answered(self.ask(prompt, step, used))
         except (Outage, Fatal) as e:
             refused = tried.answered(Answer("", False, e.replies, e.retries))
             self.charge(prompt, refused, used.name, used.asks_for())
             raise
+        finally:
+            self.held_rulings(step)
         text, cached = answer
         self.produced[step] = text
         if not cached:
@@ -809,6 +840,7 @@ def run_fanout(run, plan):
 
     done = getattr(run, "reuse", {}) if back is EMPTY else {}
     run.reuse = {}
+    getattr(run, "forged", {}).pop(run.fan, None)
     folder = getattr(run, "folder", None)
 
     def one(i):
@@ -928,13 +960,16 @@ def to_lead(run, step, question, given, where):
             run.produced.pop(head, None)
         else:
             run.produced[head] = was
+    forged = getattr(run, "forged", {}).pop(head, "")
+    if forged:
+        return out, "", lead.passed(question, forged)
     decided, why, wrong = lead.judged(out.output, head, run.workdir,
                                       run.start)
     if wrong:
         return out, "", lead.passed(question, wrong)
     run.led[asked] = decided
-    decisions.record(Path(run.workdir),
-                     *lead.recorded(head, step, where, question, decided, why))
+    run.rule(*lead.recorded(head, step, where, question, decided, why),
+             by="lead")
     return out, lead.told(head, question, decided, why), ""
 
 
@@ -946,6 +981,12 @@ def lead_pass(trail, run, out, asker, decided):
     entry.handoff = out.block
     trail.close(entry, "decided" if decided else "escalated",
                 to=asker if decided else None)
+
+
+def forged_by(run, step):
+    """whether `step` changed decisions.md, and so fails before anything it
+    asked or claimed is read."""
+    return bool(getattr(run, "forged", {}).get(step))
 
 
 def check_step(run, route, step, out, run_dir=None):
@@ -974,6 +1015,9 @@ def check_step(run, route, step, out, run_dir=None):
                               getattr(run, "start", None))
     if said and said[1]:
         results.insert(0, Result("conflict", False, said[1]))
+    forged = getattr(run, "forged", {}).pop(step, "")
+    if forged:
+        results.insert(0, Result(rulings.GATE, False, forged))
     guarded = getattr(run, "spec_held", None)
     if guarded is not None:
         line, spec_asks = guarded(step, all(r.ok for r in results))
@@ -1075,12 +1119,15 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             why = out.meta.get("why") or "nothing came out of " + step
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
-        said = ruling.conflict_of(out.output, run.workdir, run.start)
+        honest = not forged_by(run, step)
+        said = ruling.conflict_of(out.output, run.workdir, run.start) \
+            if honest else None
         if said and not said[1]:
             note("conflict", said[0], stops.CONFLICT, output=out.output)
             return (out.output, run.budget, "spec conflict at " + step + ": "
                     + said[0].split("\n")[0][len("NEEDS: "):])
-        wrong = wrongtest.judge(out.output, step, run, route)
+        wrong = wrongtest.judge(out.output, step, run, route) \
+            if honest else None
         if wrong and wrong[0] == "back":
             _, writer, test, told = wrong
             note("redo", test + " is wrong, back to " + writer, to=writer,
@@ -1095,7 +1142,7 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + wrong[1].split("\n")[0])
         said = ruling.asked_of(out.output, run.workdir, out.verdict,
-                               out.meta.get("allowed"))
+                               out.meta.get("allowed")) if honest else None
         if said and said[0] == ruling.DECLINED:
             note("refused", said[1], stops.DECLINED, output=out.output)
             return out.output, run.budget, ""
@@ -1486,6 +1533,7 @@ def main():
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
     run.keep_in(folder)
+    run.kept.keep_in(folder)
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
     if run.start is not None and run.start.hashed:
         run.start.save(folder)
@@ -1522,12 +1570,12 @@ def main():
     if raised:
         # a raised cap is a person letting the run spend more, a ruling like
         # an --answer, so it is kept where the handoff reads the rulings
-        decisions.record(Path(run.workdir), *raised)
+        run.rule(*raised, by="cap")
     if answer is not None:
         asker = (found.data.get("stopped") or {}).get("step") or start
-        decisions.record(run.workdir, ruling.decided(asker, answer),
-                         ruling.why(asker, pick_up, question, answer,
-                                    ruling.who(), kind))
+        run.rule(ruling.decided(asker, answer),
+                 ruling.why(asker, pick_up, question, answer, ruling.who(),
+                            kind), by="answer")
         if kind == ruling.REQUEST:
             print("ruled: the request is amended, and the run starts again at "
                   + start)
@@ -1574,7 +1622,7 @@ def main():
             else None
         left = baseline.label(left, known)
         lines = summary.build(run_id, fm["name"], asked, ran,
-                              run.tree.changes(), decisions.read(run.workdir),
+                              run.tree.changes(), run.decided(),
                               run.budget.summary(), stopped=stopped,
                               needs=needs, command=resume_command(flow, run_id, run.caps),
                               before=earlier, started=started,
@@ -1813,7 +1861,9 @@ def main():
                             index="FAILED  " + flow + "  at "
                             + (blamed or step), at=blamed)
 
-            said = ruling.conflict_of(out.output, run.workdir, run.start)
+            honest = not forged_by(run, step)
+            said = ruling.conflict_of(out.output, run.workdir, run.start) \
+                if honest else None
             if said and not said[1]:
                 print(step + " found the request contradicts the spec")
                 return stop(stops.CONFLICT, "spec conflict: "
@@ -1821,7 +1871,8 @@ def main():
                             "conflict", entry,
                             index="CONFLICT  " + flow + "  at " + step,
                             question=said[0])
-            wrong = wrongtest.judge(out.output, step, run, route)
+            wrong = wrongtest.judge(out.output, step, run, route) \
+                if honest else None
             if wrong and wrong[0] == "back":
                 _, writer, test, told = wrong
                 print(step + " says " + test + " is wrong, sent back to "
@@ -1844,7 +1895,7 @@ def main():
                             waiting="user", question=wrong[1])
 
             said = ruling.asked_of(out.output, run.workdir, out.verdict,
-                                   out.meta.get("allowed"))
+                                   out.meta.get("allowed")) if honest else None
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)

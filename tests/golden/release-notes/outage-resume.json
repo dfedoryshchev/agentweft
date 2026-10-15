@@ -126,6 +126,8 @@
     "release-notes-<run>/manifest.json",
     "release-notes-<run>/manifest.json",
     "release-notes-<run>/reviewer.md",
+    "release-notes-<run>/rulings.json",
+    "release-notes-<run>/rulings.json",
     "release-notes-<run>/steps.jsonl",
     "release-notes-<run>/steps.jsonl",
     "release-notes-<run>/steps/001-worker.md",

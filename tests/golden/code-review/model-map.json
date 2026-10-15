@@ -55,6 +55,7 @@
     "code-review-<run>/manifest.json",
     "code-review-<run>/models",
     "code-review-<run>/reviewer.md",
+    "code-review-<run>/rulings.json",
     "code-review-<run>/start-snapshot.json",
     "code-review-<run>/steps.jsonl",
     "code-review-<run>/steps/001-worker.md",

@@ -21,6 +21,12 @@ effect of something else is not seen. anything the hook cannot read, a call it
 cannot parse or an error of its own, is refused too: a check that crashes and
 lets the call through is no check.
 
+the same hook also stands on Write, Edit, MultiEdit and NotebookEdit for a
+step granted `write` or `edit`, for one thing only: each `--keep <path>`
+argument is a file no tool may write, and the runner passes decisions.md in
+the place. a ruling there lets a change stand, so a step writing one would be
+ruling on its own work (`guardrails/rulings.py` catches whatever gets past).
+
 the module runs as a script, by path, in a process of its own, so nothing at
 its top level may import from the package.
 """
@@ -35,6 +41,9 @@ import tempfile
 FILE = "tool-denials.jsonl"
 
 TOOLS = ("Bash", "PowerShell")
+# MultiEdit is an older name the cli still maps onto Edit
+EDITORS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
+KEEP = "--keep"
 
 SEPARATORS = {";", ";;", "&", "&&", "|", "||", "|&", "(", ")", "{", "}"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>", ">&"}
@@ -57,6 +66,9 @@ REASON = ("refused: `{0}` writes a file from the shell. create a file with the"
           " Write tool and change one with Edit; a step granted neither may"
           " not write files. if the change cannot be made that way, say what"
           " you needed on a NEEDS: line and stop.")
+KEPT = ("refused: `{0}` is the run's record of rulings, and only the runner"
+        " writes it. a ruling comes from the operator or the lead: ask on a"
+        " NEEDS: line and stop.")
 UNREAD = ("refused: the shell-write check could not read this call ({0}), so"
           " it is not let through. create or change files with the Write or"
           " Edit tool.")
@@ -277,26 +289,67 @@ def note(path, data, hit):
         f.write(json.dumps(line, ensure_ascii=False) + "\n")
 
 
+def arguments(argv):
+    """-> (the denials file or None, [the files no tool may write])."""
+    denials, kept = None, []
+    i = 0
+    while i < len(argv):
+        if argv[i] == KEEP and i + 1 < len(argv):
+            kept.append(argv[i + 1])
+            i = i + 2
+            continue
+        if denials is None:
+            denials = argv[i]
+        i = i + 1
+    return denials, kept
+
+
+def same(path, other, cwd):
+    def full(p):
+        return os.path.normcase(os.path.realpath(os.path.join(cwd, p)))
+    return full(path) == full(other)
+
+
+def edited(data, kept):
+    """-> the kept file an edit tool call writes, or ""."""
+    given = data["tool_input"]
+    path = given.get("file_path") or given.get("notebook_path")
+    if not isinstance(path, str) or not path:
+        raise TypeError("no file path")
+    cwd = data.get("cwd") or os.getcwd()
+    for k in kept:
+        if same(path, k, cwd):
+            return path
+    return ""
+
+
 def decide(argv, raw):
     """-> (exit code, what to print on stderr) for one PreToolUse call. 0 lets
     it run, 2 refuses it."""
+    denials, kept = arguments(argv)
     try:
         data = json.loads(raw)
-        if data.get("tool_name") not in TOOLS:
+        tool = data.get("tool_name")
+        if tool in EDITORS:
+            hit = edited(data, kept) if kept else ""
+            said = KEPT
+        elif tool in TOOLS:
+            command = data["tool_input"]["command"]
+            if not isinstance(command, str):
+                raise TypeError("the command is not text")
+            hit = writes(command, data.get("cwd") or None)
+            said = REASON
+        else:
             return 0, ""
-        command = data["tool_input"]["command"]
-        if not isinstance(command, str):
-            raise TypeError("the command is not text")
-        hit = writes(command, data.get("cwd") or None)
     except Exception as e:
         return 2, UNREAD.format(type(e).__name__)
     if not hit:
         return 0, ""
     try:
-        note(argv[0] if argv else None, data, hit)
+        note(denials, data, hit)
     except OSError:
         pass
-    return 2, REASON.format(snippet(hit))
+    return 2, said.format(snippet(hit))
 
 
 def denied(folder, sessions):

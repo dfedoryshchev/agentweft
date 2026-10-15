@@ -84,6 +84,7 @@
     "repo-audit-<run>/merge.md",
     "repo-audit-<run>/planner.md",
     "repo-audit-<run>/reviewer.md",
+    "repo-audit-<run>/rulings.json",
     "repo-audit-<run>/steps.jsonl",
     "repo-audit-<run>/steps/001-planner.md",
     "repo-audit-<run>/steps/002-worker.md",

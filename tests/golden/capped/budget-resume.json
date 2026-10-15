@@ -126,6 +126,8 @@
     "capped-<run>/manifest.json",
     "capped-<run>/manifest.json",
     "capped-<run>/reviewer.md",
+    "capped-<run>/rulings.json",
+    "capped-<run>/rulings.json",
     "capped-<run>/steps.jsonl",
     "capped-<run>/steps.jsonl",
     "capped-<run>/steps/001-worker.md",

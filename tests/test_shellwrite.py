@@ -192,12 +192,21 @@ def test_a_step_granted_a_shell_gets_the_hook_in_its_settings(fake_cli):
     assert json.loads(flag(argv, "--settings"))["attribution"]["commit"] == ""
 
 
-def test_the_hook_never_reaches_the_write_or_edit_tool(fake_cli):
+def test_the_hook_reaches_the_write_or_edit_tool_only_with_a_kept_file(
+        fake_cli, tmp_path):
     cli_ = fake_cli(answer("ok\n"))
     claude(grant=["read", "edit", "write", "shell"]).ask("x")
-    matcher, _ = hook_of(cli_.calls[0]["argv"])
+    matcher, hook = hook_of(cli_.calls[0]["argv"])
     for tool in ("Edit", "Write", "NotebookEdit"):
         assert tool not in matcher.split("|")
+    placed = claude(grant=["read", "edit", "write", "shell"])
+    placed.where = tmp_path
+    placed.ask("x")
+    matcher, hook = hook_of(cli_.calls[1]["argv"])
+    assert matcher.split("|")[:2] == ["Bash", "PowerShell"]
+    for tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+        assert tool in matcher.split("|")
+    assert "--keep" in hook["args"]
 
 
 def test_a_run_that_opts_into_the_trailer_still_gets_the_hook(fake_cli):
@@ -208,12 +217,18 @@ def test_a_run_that_opts_into_the_trailer_still_gets_the_hook(fake_cli):
     assert "attribution" not in said and "hooks" in said
 
 
-def test_a_step_without_a_shell_gets_no_hook(fake_cli):
+def test_a_step_without_a_shell_gets_no_shell_hook(fake_cli, tmp_path):
     cli_ = fake_cli(answer("ok\n"))
     claude(grant=["read", "edit"]).ask("x")
+    claude(grant=["read"]).ask("x")
     claude().ask("x")
     for call in cli_.calls:
         assert "hooks" not in json.loads(flag(call["argv"], "--settings"))
+    placed = claude(grant=["read", "edit"])
+    placed.where = tmp_path
+    placed.ask("x")
+    matcher, _ = hook_of(cli_.calls[-1]["argv"])
+    assert "Bash" not in matcher.split("|")
 
 
 def test_the_record_says_whether_shell_writes_were_refused(fake_cli):

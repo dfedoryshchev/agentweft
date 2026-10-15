@@ -314,6 +314,15 @@ session, the tool, the command and the part that writes. the step's line in
 `shell_trap_recoveries` the model's messages in its transcript that name one
 of the three traps above (`journal.md`).
 
+a `claude` step granted `write` or `edit` gets the same hook on Write, Edit,
+MultiEdit (an older name the cli still maps onto Edit) and NotebookEdit,
+added to the matcher, with `--keep <place>/decisions.md` among its `args`.
+for those tools it reads `file_path` (`notebook_path` for NotebookEdit) and
+refuses only a call on a kept file, so a step cannot write the ruling that
+lets its own change stand ("the rulings only the runner writes" in
+`guardrails.md`); every other path goes through. a step granted neither
+`shell` nor `write` nor `edit` gets no hook.
+
 the step is told both halves in its prompt: that a shell write is refused, and
 for a step granted `write` or `edit`, one known trap of those tools: they
 store the characters they are given, so a U+2028 or U+2029 meant as an escape

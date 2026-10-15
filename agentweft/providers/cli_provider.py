@@ -56,9 +56,10 @@ OWN = ("ANTHROPIC_", "CLAUDE_")
 EFFORT_VAR = "CLAUDE_CODE_EFFORT_LEVEL"
 
 
-def shell_hook(denials):
-    """-> the `hooks` setting that hands every Bash and PowerShell call to the
-    shell-write check before it runs (`guardrails/shellwrite.py`).
+def shell_hook(denials, kept=(), tools=None):
+    """-> the `hooks` setting that hands every call to `tools` (Bash and
+    PowerShell when not given) to the shell-write check before it runs
+    (`guardrails/shellwrite.py`). each of `kept` is a file no tool may write.
 
     the exec form, `args`, spawns python with no shell between, so no quoting
     differs by platform. `-I` keeps the script's own folder off the import
@@ -68,7 +69,9 @@ def shell_hook(denials):
     args = ["-I", Path(shellwrite.__file__).as_posix()]
     if denials is not None:
         args.append(Path(denials).as_posix())
-    return {"PreToolUse": [{"matcher": "|".join(shellwrite.TOOLS),
+    for path in kept:
+        args = args + [shellwrite.KEEP, Path(path).as_posix()]
+    return {"PreToolUse": [{"matcher": "|".join(tools or shellwrite.TOOLS),
                             "hooks": [{"type": "command",
                                        "command": Path(sys.executable)
                                        .as_posix(),
@@ -619,6 +622,28 @@ class CliProvider(Provider):
         return self.grant is not None and "shell" in self.grant \
             and is_claude(self.command)
 
+    def kept_files(self):
+        """-> the files no tool of this step may write: decisions.md in the
+        place, when there is a place."""
+        from agentweft.orchestrate import decisions
+
+        if self.where is None:
+            return []
+        return [Path(self.where).resolve() / decisions.FILE]
+
+    def hooked(self):
+        """-> the tools the PreToolUse hook stands on for this step: the
+        shell for a step granted one, the edit tools for a step granted
+        `write` or `edit` in a place."""
+        from agentweft.guardrails import shellwrite
+
+        out = list(shellwrite.TOOLS) if self.refuses_shell_writes() else []
+        if self.grant is not None and is_claude(self.command) \
+                and self.kept_files() \
+                and any(word in self.grant for word in ("write", "edit")):
+            out = out + list(shellwrite.EDITORS)
+        return out
+
     def asks_for(self):
         return (model_for(self.opts) or None) if is_claude(self.command) \
             else None
@@ -642,8 +667,10 @@ class CliProvider(Provider):
         settings = {}
         if not self.opts.get("co_author"):
             settings.update(NO_TRAILER)
-        if self.refuses_shell_writes():
-            settings["hooks"] = shell_hook(self.denials)
+        hooked = self.hooked()
+        if hooked:
+            kept = self.kept_files() if "Write" in hooked else []
+            settings["hooks"] = shell_hook(self.denials, kept, hooked)
         if settings:
             argv = argv + ["--settings",
                            json.dumps(settings, separators=(",", ":"))]

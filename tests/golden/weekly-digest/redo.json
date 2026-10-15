@@ -86,6 +86,7 @@
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
     "weekly-digest-<run>/reviewer.md",
+    "weekly-digest-<run>/rulings.json",
     "weekly-digest-<run>/steps.jsonl",
     "weekly-digest-<run>/steps/001-planner.md",
     "weekly-digest-<run>/steps/002-worker.md",

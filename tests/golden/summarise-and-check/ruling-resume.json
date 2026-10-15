@@ -137,6 +137,8 @@
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/question.md",
     "summarise-and-check-<run>/reviewer.md",
+    "summarise-and-check-<run>/rulings.json",
+    "summarise-and-check-<run>/rulings.json",
     "summarise-and-check-<run>/steps.jsonl",
     "summarise-and-check-<run>/steps.jsonl",
     "summarise-and-check-<run>/steps/001-worker.md",

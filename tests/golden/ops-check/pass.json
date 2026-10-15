@@ -65,6 +65,7 @@
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
     "ops-check-<run>/reviewer.md",
+    "ops-check-<run>/rulings.json",
     "ops-check-<run>/steps.jsonl",
     "ops-check-<run>/steps/001-planner.md",
     "ops-check-<run>/steps/002-worker.md",

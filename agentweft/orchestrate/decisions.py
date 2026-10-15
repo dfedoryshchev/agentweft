@@ -76,8 +76,13 @@ def read(root):
     path = root / FILE
     if not path.exists():
         return []
+    return parse(path.read_text(encoding="utf-8"))
+
+
+def parse(text):
+    """-> every Decision in the text of a log, oldest first."""
     out = []
-    for line in path.read_text(encoding="utf-8").split("\n"):
+    for line in text.split("\n"):
         m = ENTRY.match(line)
         if m:
             at = datetime.datetime.strptime(m.group(1), STAMP)
