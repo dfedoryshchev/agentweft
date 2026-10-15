@@ -1,0 +1,33 @@
+place: place
+provider:
+  provider: fake
+  replies:
+    planner.md:
+      - |
+        app.py | the entry point
+        config.py | reads the settings
+    worker.md:
+      - |
+        app.py parses argv and calls run().
+        config.py loads settings.yml and has no defaults.
+    merge.md:
+      - |
+        app.py parses argv and calls run().
+        config.py loads settings.yml and has no defaults, which is the risk.
+    reviewer.md:
+      - |
+        VERDICT: ok
+
+        app.py parses argv and calls run().
+        config.py loads settings.yml and has no defaults, which is the risk.
+expect:
+  invariants: all
+  outcome: done
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> worker.md
+      - worker.md ok -> merge.md
+      - merge.md ok -> reviewer.md
+      - reviewer.md ok
+  calls: 5

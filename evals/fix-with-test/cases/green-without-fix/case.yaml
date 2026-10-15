@@ -1,0 +1,38 @@
+task: add(1, 2) returns -1, it should return 3
+place: place
+provider:
+  provider: fake
+  replies:
+    worker.md:
+      - say: |
+          FAILS: assert -1 == 3
+          TEST: tests/test_add.py
+        writes:
+          tests/test_add.py: |
+            from calc import add
+
+
+            def test_add():
+                assert add(1, 2) == 3
+    patcher.md:
+      - say: |
+          TEST: tests/test_add.py
+
+          tests/test_add.py: the test only checks that add answers a number
+        writes:
+          tests/test_add.py: |
+            from calc import add
+
+
+            def test_add():
+                assert isinstance(add(1, 2), int)
+expect:
+  invariants: all
+  outcome: "stopped: gate failed"
+  steps:
+    match: strict
+    path:
+      - worker.md ok -> patcher.md  PASS red-test
+      - patcher.md gate failed -> patcher.md  PASS red-test  FAIL red-first  PASS command
+      - patcher.md gate failed  PASS red-test  FAIL red-first  PASS command
+  calls: 3

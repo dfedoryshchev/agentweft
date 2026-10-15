@@ -1,0 +1,106 @@
+{
+  "recorded": "2026-10-15T19:32:56",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "planner.md",
+      "task": null,
+      "go": 1,
+      "prompt": "603bcfe9dc813b74d9c6ca800d82fe17a8862f512a0c0050295f24bc83c1ef9a",
+      "say": "- mul(2, 3) is 6 | calc.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "reviewer.md",
+      "task": null,
+      "go": 1,
+      "prompt": "4ca4448a2a2963b5ab044c484d46d25b22788dbf34cf20d350553bde04b68001",
+      "say": "VERDICT: ok\n\n- calc.py: mul(a, b) added\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "tester.md",
+      "task": null,
+      "go": 1,
+      "prompt": "214e96819765041850763f22a6701af7e417f3a770f8f3b213179b8e454447e8",
+      "say": "FAILS: ImportError: cannot import name 'mul' from 'calc'\nTEST: tests/test_mul.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_mul.py": "def test_mul():\n    from calc import mul\n\n    assert mul(2, 3) == 5\n"
+      }
+    },
+    {
+      "step": "tester.md",
+      "task": null,
+      "go": 2,
+      "prompt": "b2ccbce0320e32b5156aeb1fb64aaaef8a28dbb8dd7cf80b010ad60bd4eaed67",
+      "say": "FAILS: ImportError: cannot import name 'mul' from 'calc'\nTEST: tests/test_mul.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_mul.py": "def test_mul():\n    from calc import mul\n\n    assert mul(2, 3) == 6\n"
+      }
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "7b3afddbca2c6e5b9c9d7aed91cb68083f3cbd6095967f1aaf133cb18e2900e5",
+      "say": "WRONG TEST: tests/test_mul.py::test_mul\nwhy: it wants mul(2, 3) to be 5\nspec: TASK.md:3 \"mul(a, b) returns a times b\"\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 2,
+      "prompt": "57f8df56813e454a426a264fb23e8d107d2a3c2ad576217913cb89b4c4dc3bbe",
+      "say": "- calc.py: mul(a, b) added\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "calc.py": "def add(a, b):\n    return a + b\n\n\ndef mul(a, b):\n    return a * b\n"
+      }
+    }
+  ]
+}

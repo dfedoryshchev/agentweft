@@ -1,0 +1,60 @@
+task: calc gets mul(a, b), which multiplies
+place: place
+provider:
+  provider: fake
+  replies:
+    planner.md:
+      - |
+        - mul(2, 3) is 6 | calc.py
+    tester.md:
+      - say: |
+          FAILS: ImportError: cannot import name 'mul' from 'calc'
+          TEST: tests/test_mul.py
+        writes:
+          tests/test_mul.py: |
+            def test_mul():
+                from calc import mul
+
+                assert mul(2, 3) == 5
+      - say: |
+          FAILS: ImportError: cannot import name 'mul' from 'calc'
+          TEST: tests/test_mul.py
+        writes:
+          tests/test_mul.py: |
+            def test_mul():
+                from calc import mul
+
+                assert mul(2, 3) == 6
+    worker.md:
+      - |
+        WRONG TEST: tests/test_mul.py::test_mul
+        why: it wants mul(2, 3) to be 5
+        spec: TASK.md:3 "mul(a, b) returns a times b"
+      - say: |
+          - calc.py: mul(a, b) added
+        writes:
+          calc.py: |
+            def add(a, b):
+                return a + b
+
+
+            def mul(a, b):
+                return a * b
+    reviewer.md:
+      - |
+        VERDICT: ok
+
+        - calc.py: mul(a, b) added
+expect:
+  invariants: all
+  outcome: done
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> tester.md
+      - tester.md ok -> worker.md  PASS red-test
+      - worker.md redo -> tester.md
+      - tester.md ok -> worker.md  PASS red-test
+      - worker.md ok -> reviewer.md  PASS command  PASS red-first
+      - reviewer.md ok
+  calls: 6

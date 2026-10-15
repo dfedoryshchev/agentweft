@@ -14,6 +14,8 @@ when it is replayed, so a step's gates find what they found when it ran.
 import datetime
 import hashlib
 import json
+import re
+import sys
 import threading
 from pathlib import Path
 
@@ -22,12 +24,47 @@ from agentweft.providers.fake_provider import write_into
 
 FILE = "recording.json"
 PREFIX = "recording "
+# the head of what the runner adds to a prompt when a gate sent the step back
+GATE_SAID = "your last answer failed a gate, so this step runs again."
+DURATION = re.compile(r"(?<= in )\d+(?:\.\d+)?s\b")
 
 
-def digest(prompt):
-    """-> the sha256 of a prompt, the same for a checkout with CRLF endings."""
+def spellings(path):
+    """-> every way a path may be written into a prompt, longest first."""
+    p = Path(str(path))
+    out = {str(path), str(path).replace("\\", "/"), str(p), p.as_posix()}
+    try:
+        out.add(str(p.resolve()))
+        out.add(p.resolve().as_posix())
+    except OSError:
+        pass
+    return sorted(out, key=len, reverse=True)
+
+
+def neutral(prompt, place=None):
+    """-> the prompt as any machine would have sent it.
+
+    the place a case runs in is a new temp folder every run, named the way
+    its OS names it, and a gate that failed says it, says the python it ran
+    and hands on the tail of what that printed, separators, timings and all.
+    those become `<place>` and `<python>` wherever they are, and in what a
+    gate said a backslash is a slash and a duration is `<secs>s`. the words
+    the step was given are left as they are."""
     text = (prompt or "").replace("\r\n", "\n")
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+    for where, name in ((sys.executable, "<python>"), (place, "<place>")):
+        if where:
+            for spelt in spellings(where):
+                text = text.replace(spelt, name)
+    head, said, tail = text.partition(GATE_SAID)
+    if said:
+        tail = DURATION.sub("<secs>s", tail.replace("\\", "/"))
+    return head + said + tail
+
+
+def digest(prompt, place=None):
+    """-> the sha256 of a prompt made `neutral`, so a recording made on one
+    machine is not stale on another."""
+    return hashlib.sha256(neutral(prompt, place).encode("utf-8")).hexdigest()
 
 
 class Mismatch(Exception):
@@ -142,7 +179,8 @@ class Recorder(Provider):
     def ask(self, prompt, timeout=None):
         step, task, go = self.goes.next()
         reply = self.inner.ask(prompt, timeout=timeout)
-        call = {"step": step, "task": task, "go": go, "prompt": digest(prompt)}
+        call = {"step": step, "task": task, "go": go,
+                "prompt": digest(prompt, self.where)}
         call.update(kept(reply))
         with self.lock:
             self.calls.append(call)
@@ -189,7 +227,7 @@ class Replay(Provider):
         call = self.calls.get(key)
         if call is None:
             raise Mismatch(PREFIX + "has no answer for " + named(*key))
-        if call["prompt"] != digest(prompt):
+        if call["prompt"] != digest(prompt, self.where):
             raise Mismatch(PREFIX + "is stale: " + named(key[0], key[1])
                            + " prompt changed")
         with self.lock:

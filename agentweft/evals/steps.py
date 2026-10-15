@@ -95,6 +95,19 @@ def match(mode, want, got):
     return ""
 
 
+def ended(record, stopped):
+    """-> the run's outcome word, the one its handoff and manifest carry:
+    what the cause on the step that stopped it maps to, else `done`. a run
+    stopped with no step to blame, a recording that does not match, is
+    `stopped` and nothing more."""
+    from agentweft.runner import stops
+
+    for line in reversed(record):
+        if line.get("cause"):
+            return stops.outcome(line["cause"])
+    return "stopped" if stopped else stops.DONE
+
+
 def rows(expect, record, calls):
     """-> the score rows for what a case expects of the run's steps and its
     number of calls, none when it expects neither."""

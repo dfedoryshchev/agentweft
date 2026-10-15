@@ -1,0 +1,40 @@
+{
+  "recorded": "2026-10-15T19:32:53",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "patcher.md",
+      "task": null,
+      "go": 1,
+      "prompt": "73664ab59580654b90fa93d1c25a451bbbcda754cb7cc74ccf213c7bb35fa422",
+      "say": "CONFLICT: SPEC.md:3 \"add(a, b) returns a minus b, the ledger import depends on it\"\nrequest: add(1, 2) returns 3\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "cf08db6039e0b2f911739b5c67d1596e6e39a3e23c4674298c77908e8aba0312",
+      "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_add.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      }
+    }
+  ]
+}

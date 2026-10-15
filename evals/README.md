@@ -90,6 +90,34 @@ case that fails one says the mode and the passes:
 these hold the runner's own path - the steps, the redos, the gates - and
 not anything a model did inside a step.
 
+## how it ended
+
+a case there to show a gate stopping the run would lose "the run got to the
+end" every time it worked. it names the outcome word instead, the same word
+the run's handoff and manifest carry, and is held to that:
+
+    expect:
+      outcome: "stopped: spec conflict"
+
+`done`, or one of the stops: `stopped: gate failed`, `stopped: spec
+conflict`, `needs you: ruling` and the rest. a run that ended any other way
+fails the row and says how it did end.
+
+## the cases shipped
+
+- `fix-with-test/clean-fix`: the test is red, the patch turns it green,
+  `done`
+- `fix-with-test/green-without-fix`: the patcher swaps the test for one that
+  passes without a fix, red-first fails it, it is sent back once and fails
+  again, `stopped: gate failed`
+- `fix-with-test/spec-conflict`: the bug report asks for what a spec line
+  rules out, the patcher quotes the line, `stopped: spec conflict`
+- `build-feature/wrong-test`: the worker says the tester's test contradicts
+  the spec, it goes back to the tester, the new test is proven red again,
+  `done`
+- `repo-audit/two-files`: plan, two workers fanned out, merge, review, five
+  calls, `done`
+
 ## recorded cases
 
 a case with a `recording.json` beside its `case.yaml` is answered from it and
@@ -101,9 +129,16 @@ runs the case's own provider and writes what it answered, over the old one.
 without `--case` every case of the flow is recorded. each call is kept under
 its step, its task when the step is fanned out, and which go it was, with a
 sha256 of the prompt it was sent and never the prompt itself. the files an
-answer left in the place are kept with it and written again on replay. a
-replay stops
-the case, and the command exits 1 without saving the scores, when:
+answer left in the place are kept with it and written again on replay.
+
+a recording made on windows replays on linux. before the prompt is hashed,
+the place the case ran in and the python that ran it become `<place>` and
+`<python>`, and in what a failed gate said a backslash becomes a slash and a
+duration `<secs>s`. nothing else in the prompt is touched, so an edit to it
+still makes the recording stale.
+
+a replay stops the case, and the command exits 1 without saving the scores,
+when:
 
 - a prompt changed since it was recorded: `recording is stale: planner.md
   prompt changed`. record it again once the change is meant

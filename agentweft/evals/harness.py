@@ -186,13 +186,24 @@ def score(spec, output, budget=None, stopped="", seconds=None, steps=(),
     every promise there is.
 
     a case can also expect the steps the run took and how many calls it
-    made, held against `steps`, the run's own record of them."""
+    made, held against `steps`, the run's own record of them.
+
+    a case that names its `outcome` is held to that word instead of to
+    getting to the end: a case there to show a gate stopping the run keeps
+    its promise when the gate stops it."""
     from agentweft.guardrails import promises
 
     from . import steps as took
 
-    rows = [{"invariant": "the run got to the end", "ok": not stopped,
-             "detail": stopped or "every step ran"}]
+    want = (expect or {}).get("outcome")
+    if want is None:
+        rows = [{"invariant": "the run got to the end", "ok": not stopped,
+                 "detail": stopped or "every step ran"}]
+    else:
+        got = took.ended(steps, stopped)
+        rows = [{"invariant": "it ended " + str(want), "ok": got == want,
+                 "detail": "it ended " + got
+                 + (" - " + stopped if stopped else "")}]
     for inv, ok, detail in promises.check(output, spec.promises.invariants):
         rows.append({"invariant": inv, "ok": ok, "detail": detail})
     rows.extend(took.rows(expect or {}, steps,

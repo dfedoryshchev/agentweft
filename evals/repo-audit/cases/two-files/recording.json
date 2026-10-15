@@ -1,0 +1,82 @@
+{
+  "recorded": "2026-10-15T19:33:04",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "merge.md",
+      "task": null,
+      "go": 1,
+      "prompt": "dfa56be17dcdf5d59513b4d0284a6ce49ec8ecb5ba6f167db1c62a81e503d8a0",
+      "say": "app.py parses argv and calls run().\nconfig.py loads settings.yml and has no defaults, which is the risk.\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "planner.md",
+      "task": null,
+      "go": 1,
+      "prompt": "68f60d475646ce60a200400582d500f81eb8382ee42188e5cfdc090e5cbf66cd",
+      "say": "app.py | the entry point\nconfig.py | reads the settings\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "reviewer.md",
+      "task": null,
+      "go": 1,
+      "prompt": "dca7f844cfaa0187c5149022f9122933553d230ad4e11a0f14a5ca45786d4ad5",
+      "say": "VERDICT: ok\n\napp.py parses argv and calls run().\nconfig.py loads settings.yml and has no defaults, which is the risk.\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "worker.md",
+      "task": 1,
+      "go": 1,
+      "prompt": "6f66b70ea2e739d18735a0d6ff45c055386a8a32589fc86e11bfe46e840367a7",
+      "say": "app.py parses argv and calls run().\nconfig.py loads settings.yml and has no defaults.\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "worker.md",
+      "task": 2,
+      "go": 1,
+      "prompt": "59c7b5871bb734308eabc7c9c99df0c76be838e2f2ae7b316c9de8aa04718a02",
+      "say": "app.py parses argv and calls run().\nconfig.py loads settings.yml and has no defaults.\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    }
+  ]
+}
