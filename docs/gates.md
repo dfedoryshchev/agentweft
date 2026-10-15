@@ -178,6 +178,13 @@ turns only that gate off: the order checks still want a red proof.
   the gate is refused. it reads what the step produced, not the working tree,
   so it belongs on a step whose output is the change. no `project.yml`, or one
   where no rule has a pattern, is a failure and not a pass.
+- **project** - `name`, one of the `gates:` in `project.yml` (see
+  `docs/orchestrate.md`), run as a command gate: in the run's `workdir`, with
+  `{file}` replaced, passing on `expect` (default 0), `timeout`. the argv only
+  comes from `project.yml`, so a `command` on the gate is refused. a name the
+  file does not declare, or no `project.yml`, stops the run before any step is
+  called. the detail starts with the name: `lint: exit 0`. `--skip project
+  "<reason>"` skips every project gate in the run.
 
 ## each new test, without the fix and with it
 
@@ -466,6 +473,17 @@ the flow says which report and which floor. what the floor IS comes from
 `coverage:` in `project.yml`, and a number written on the gate is refused.
 test-qa used to carry it as a sentence, where it could be read, agreed with and
 then not met. it is a check now.
+
+## the command is not in the flow either
+
+    gates:
+      - gate: project
+        name: lint
+
+a project gate goes on the step whose work it checks, like every other gate,
+and runs once that step is done. the flow says which one and where; what it
+runs is `gates: lint:` in `project.yml`, so one codebase's linter is not
+written into a flow every codebase shares.
 
 ## why command matters
 

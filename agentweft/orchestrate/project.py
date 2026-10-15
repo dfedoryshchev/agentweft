@@ -23,10 +23,11 @@ reason `standards` and `gates` are not one key:
                 which is why the number is here and not in the role.
     gates:      PROGRAMS. argv, an exit code, no opinion involved.
 
-nothing reads any of this yet, and saying so is half the point of the row it
-arrives in. what it has is a format and a loader that refuses a word it has no
-name for, on the pattern flow.yaml has used for months - a typo in a file like
-this would otherwise sit there looking exactly like a rule.
+a gate here runs only when a flow names it on a step, `gate: project` with
+`name:` (`guardrails/gates/project_gate.py`). under all of it is a format and
+a loader that refuses a word it has no name for, on the pattern flow.yaml has
+used for months - a typo in a file like this would otherwise sit there looking
+exactly like a rule.
 
 the two closed vocabularies it does not own are borrowed rather than restated.
 a tier is `spec.TIERS` and a grant is `spec.GRANTS`, because a second list of
@@ -106,6 +107,10 @@ class Project(object):
 
     def gate(self, name):
         return list(self._block("gates", name) or [])
+
+    def gates(self):
+        """-> the names of the gates it declares, sorted."""
+        return sorted(self.raw.get("gates") or {})
 
     def role(self, name):
         return dict(self._block("roles", name) or {})

@@ -59,7 +59,12 @@ coverage:
 # involved, nothing to agree with.
 #
 # a list rather than one string on purpose: there is no shell in the middle, so
-# nothing gets word-split or glob-expanded on the way.
+# nothing gets word-split or glob-expanded on the way. a flow runs one by name,
+# on the step whose work it checks:
+#
+#   gates:
+#     - gate: project
+#       name: lint
 gates:
   tests: ["pytest", "-q"]
   lint: ["ruff", "check"]

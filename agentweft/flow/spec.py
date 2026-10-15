@@ -255,7 +255,37 @@ def check_gates(at, gates):
                 bad.append(at + "gate " + str(name) + " has no option " + str(k)
                            + meant(k, takes)
                            + ". it takes: " + (", ".join(takes) or "nothing"))
+        if name == "project":
+            bad.extend(at + c for c in check_project_gate(g.get("name")))
     return bad
+
+
+def check_project_gate(said):
+    """-> complaints about a `project` gate's name, against project.yml now.
+
+    the gate reads the file again when it runs; this is so a name the file
+    does not have stops the run before any step is paid for.
+    """
+    import yaml
+
+    from agentweft.orchestrate import project
+
+    if not project.path().exists():
+        return ["gate project " + str(said or "") + " needs a project.yml at "
+                + str(project.path()) + ", where its command comes from"]
+    try:
+        have = project.read().gates()
+    except ValueError as e:
+        return [str(e)]
+    except yaml.YAMLError as e:
+        return ["project.yml: " + str(e)]
+    if not said:
+        return ["gate project needs a name, one of: "
+                + (", ".join(have) or "none")]
+    if said not in have:
+        return ["project.yml has no gate " + str(said) + meant(said, have)
+                + ". there is: " + (", ".join(have) or "none")]
+    return []
 
 
 def ordered(raw):
