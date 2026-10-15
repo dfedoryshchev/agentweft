@@ -9,7 +9,7 @@ from . import harness, recording
 def main():
     if len(sys.argv) < 2:
         print("usage: python -m agentweft.evals <flow> [--case <name>]"
-              " [--record] [--no-save]")
+              " [--record] [--no-save] [--accept]")
         return 1
     flow = sys.argv[1]
     spec = config(flow)
@@ -49,6 +49,15 @@ def main():
         print(", ".join(unmatched) + ": the recording does not match this run,"
               " so these scores are not saved. python -m agentweft.evals "
               + flow + " --record makes a new one")
+        return 1
+    dropped = harness.worse(flow, results)
+    accept = "--accept" in sys.argv
+    if dropped and not accept:
+        print("")
+        print(", ".join(dropped) + ": scored worse than the last run by the"
+              " same model, prompts and settings, so the command fails and"
+              " these scores are not saved. --accept keeps them as the new"
+              " baseline")
         return 1
     if "--no-save" not in sys.argv:
         harness.save_scores(flow, results)

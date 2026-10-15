@@ -286,6 +286,7 @@ def compare(flow, results):
     if not was:
         return ["  (no previous run to compare against)"]
     out = []
+    any_ab = False
     for name, r in results:
         before = was.get(name)
         if not before:
@@ -297,10 +298,28 @@ def compare(flow, results):
         mark = "same" if d == 0 else ("BETTER +" + str(d) if d > 0 else "WORSE " + str(d))
         if ab:
             mark = "A/B on " + "; ".join(ab)
+            any_ab = True
         out.append("  " + name.ljust(20) + mark
                    + "  (" + str(before["passed"]) + "/" + str(before["checked"])
                    + " -> " + str(r["passed"]) + "/" + str(r["checked"]) + ")"
                    + ("  tokens " + ("+" if dt >= 0 else "") + str(dt) if dt else ""))
+    if any_ab:
+        out.append("")
+        out.append("  an A/B never fails the command, only WORSE does")
+    return out
+
+
+def worse(flow, results):
+    """-> the cases that passed fewer promises than last time, produced by the
+    same model, prompts and settings. these are the ones that fail the
+    command; an A/B is not one of them."""
+    was = previous(flow)
+    out = []
+    for name, r in results:
+        before = was.get(name)
+        if (before and r["passed"] < before["passed"]
+                and not differs(before.get("key"), r.get("key"))):
+            out.append(name)
     return out
 
 

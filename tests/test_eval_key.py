@@ -165,3 +165,71 @@ def test_a_score_kept_before_the_key_existed_still_compares(root, monkeypatch,
         encoding="utf-8")
     line = scored_line(monkeypatch, capsys)
     assert "same" in line
+
+
+def run(monkeypatch, capsys, *flags):
+    monkeypatch.setattr(sys, "argv", ["evals", FLOW, *flags])
+    code = evals_main.main()
+    return code, capsys.readouterr().out
+
+
+WORSE_REPLY = DIGEST + "\nhere is the digest\n"
+
+
+def test_a_worse_score_under_the_same_key_fails_and_keeps_the_baseline(
+        root, monkeypatch, capsys):
+    a_case(root)
+    assert run(monkeypatch, capsys)[0] == 0
+    baseline = harness.LAST.read_text(encoding="utf-8")
+    a_case(root, reply=WORSE_REPLY)
+    code, out = run(monkeypatch, capsys)
+    assert code == 1
+    assert "two-files: scored worse" in out
+    assert "not saved" in out
+    assert harness.LAST.read_text(encoding="utf-8") == baseline
+
+
+def test_a_worse_score_on_an_a_b_does_not_fail_and_says_so(
+        root, monkeypatch, capsys):
+    a_case(root, model="m-1")
+    run(monkeypatch, capsys)
+    a_case(root, model="m-2", reply=WORSE_REPLY)
+    code, out = run(monkeypatch, capsys)
+    assert code == 0
+    assert "an A/B never fails the command" in out
+    kept = json.loads(harness.LAST.read_text(encoding="utf-8"))
+    assert kept[FLOW]["two-files"]["key"]["models"]["planner.md"] == \
+        "modelled m-2"
+
+
+def test_the_same_or_a_better_score_passes(root, monkeypatch, capsys):
+    a_case(root, reply=WORSE_REPLY)
+    run(monkeypatch, capsys)
+    assert run(monkeypatch, capsys)[0] == 0
+    a_case(root)
+    code, out = run(monkeypatch, capsys)
+    assert code == 0
+    assert "BETTER" in out
+    assert "scored worse" not in out
+
+
+def test_accept_keeps_a_worse_score_as_the_new_baseline(root, monkeypatch,
+                                                        capsys):
+    a_case(root)
+    run(monkeypatch, capsys)
+    a_case(root, reply=WORSE_REPLY)
+    assert run(monkeypatch, capsys, "--accept")[0] == 0
+    assert run(monkeypatch, capsys)[0] == 0
+
+
+def test_a_worse_score_with_no_save_still_fails(root, monkeypatch, capsys):
+    a_case(root)
+    run(monkeypatch, capsys)
+    a_case(root, reply=WORSE_REPLY)
+    assert run(monkeypatch, capsys, "--no-save")[0] == 1
+
+
+def test_a_flow_with_no_cases_fails(root, monkeypatch, capsys):
+    code, out = run(monkeypatch, capsys)
+    assert code == 1
+    assert "no cases under evals/" + FLOW + "/cases" in out

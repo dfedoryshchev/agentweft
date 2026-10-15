@@ -116,3 +116,18 @@ flow.yaml edit that changed none of the above is an A/B on flow. a score kept
 before scores carried any of this is compared as before.
 
 `--no-save` runs without overwriting the baseline.
+
+## when the command fails
+
+a case that passes fewer promises than last time, produced by the same model,
+prompts and settings, fails the command: it exits 1 and the scores are not
+saved, so running it again does not wash the drop out of the baseline.
+
+    two-files: scored worse than the last run by the same model, prompts and
+    settings, so the command fails and these scores are not saved. --accept
+    keeps them as the new baseline
+
+an A/B never fails the command, whichever way it went, and the comparison
+says so under its lines. a replayed case gives the same answers every time,
+so any drop on replay is a change in the code, never noise. `--accept`
+saves a worse score as the new baseline when the drop is meant.
