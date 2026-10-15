@@ -131,16 +131,35 @@ class Plan(object):
         self.allowed = dict(self.blocks)
         self.used = {}
         self.seen = self.now()
-        self.risky = []
-        need = sum(self.calls.values())
+        self.cut = {}
+        self.risky = self.short(self.steps)
+
+    def short(self, ahead):
+        """-> why the blocks of `ahead` do not fit what the cap leaves of the
+        run now, [] when they do."""
+        out = []
+        need = sum(self.calls[s] for s in ahead)
         room = self.left(CALLS)
         if room is not None and need > room:
-            self.risky.append("the steps take ~" + str(need) + " calls, the "
-                              "call cap leaves " + str(room))
+            out.append("the steps take ~" + str(need) + " calls, the "
+                       "call cap leaves " + str(room))
+        total = sum(self.blocks[s] for s in ahead)
         room = self.left(TOKENS)
         if self.unit == TOKENS and room is not None and total > room:
-            self.risky.append("the blocks add up to ~" + str(total)
-                              + " tokens, the token cap leaves " + str(room))
+            out.append("the blocks add up to ~" + str(total)
+                       + " tokens, the token cap leaves " + str(room))
+        return out
+
+    def drop(self, step, why):
+        """take `step` out of the plan; its block goes to the buffer."""
+        self.steps.remove(step)
+        self.cut[step] = why
+        block = self.blocks.pop(step)
+        self.calls.pop(step)
+        self.allowed.pop(step, None)
+        if self.buffer is not None:
+            self.buffer += block
+        self.risky = self.short(self.steps)
 
     def left(self, unit):
         """-> what the cap in `unit` leaves of the run, None when uncapped."""
@@ -208,10 +227,13 @@ class Plan(object):
         else:
             source = ("one call per step; a fanned-out step counts once until"
                       " its width is known")
-        width = max([len(s) for s in self.steps] + [len("buffer")]) + 2
+        width = max([len(s) for s in self.steps + list(self.cut)]
+                    + [len("buffer")]) + 2
         rows = ["step".ljust(width) + "estimate"]
         for s in self.steps:
             rows.append(s.ljust(width) + str(self.blocks[s]))
+        for s in self.cut:
+            rows.append(s.ljust(width) + "cut")
         if self.buffer is not None:
             rows.append("buffer".ljust(width) + str(self.buffer))
         out = ["# budget plan", "",
@@ -220,6 +242,9 @@ class Plan(object):
                "estimate  " + source,
                "realism   " + self.realism(), ""]
         out = out + ["    " + r for r in rows]
+        if self.cut:
+            out = out + [""] + ["cut " + s + ": " + why
+                                for s, why in self.cut.items()]
         if self.risky:
             out = out + ["", RISKY + ": " + "; ".join(self.risky)]
         return "\n".join(out) + "\n"

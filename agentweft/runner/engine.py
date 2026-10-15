@@ -26,8 +26,8 @@ from agentweft.orchestrate import decisions, park, synthesise
 
 NEWLINE = chr(10)
 RED_MARKER = "FAILS:"
-from agentweft.guardrails.budget import Budget
-from agentweft.guardrails import blocks
+from agentweft.guardrails.budget import REACHING, Budget
+from agentweft.guardrails import blocks, sacrifice
 
 from .handoff import EMPTY, Handoff, back, merge, parse, transcript, without
 from . import errors
@@ -1623,6 +1623,28 @@ def main():
     plan = blocks.Plan(run.budget, todo, roles_of(run, todo),
                        blocks.history(state.RUNS, flow, run.workdir,
                                       skip=run_id))
+    run.cut = sacrifice.earlier(fm, run.skipped)
+    for cut in [s for s in todo if s in run.cut]:
+        plan.drop(cut, run.skipped[run.cut[cut]])
+
+    def cut_for(chosen):
+        """leave the chosen steps out of the run, each as a named skip."""
+        for name, cut, why in chosen:
+            reason = sacrifice.BUDGET + why
+            run.skipped[name] = reason
+            for one in cut:
+                run.cut[one] = name
+                plan.drop(one, reason)
+                print("cut " + one + ": " + reason)
+            decisions.record(folder, name + " cut for the budget", reason
+                             + NEWLINE + "sacrifice: in flow.yaml lists it, and"
+                             " the steps ahead did not fit what the cap"
+                             " leaves: " + ", ".join(cut) + " did not run.")
+        if chosen:
+            skips.save(folder, run.skipped)
+            plan.write(folder)
+
+    cut_for(sacrifice.choose(fm, plan.steps, plan.short, run.skipped)[0])
     plan.write(folder)
     if plan.warning():
         print(plan.warning())
@@ -1774,9 +1796,26 @@ def main():
                          why)
         return investigate.STEP
 
+    def near(step, waits):
+        """-> whether the run goes on past the token cap's warning: the
+        flow's sacrifice list makes the steps ahead fit what is left."""
+        if not sacrifice.listed(fm) or waits[0] != REACHING:
+            return False
+        ahead = [s for s in order[order.index(step):] if s in plan.steps]
+        chosen, short = sacrifice.choose(
+            fm, ahead, plan.short, run.skipped)
+        if short:
+            return False
+        cut_for([(name, cut, waits[1] + "; " + why)
+                 for name, cut, why in chosen])
+        return True
+
     switched = False
     try:
         while step:
+            if step in run.cut:
+                step = route.next(step, EMPTY)
+                continue
             used = run.by_step.get(step, run.provider)
             refused = run.refused(step)
             if refused:
@@ -1792,6 +1831,10 @@ def main():
                             entry=trail.open(step, [], used, came_from),
                             index="REFUSED  " + flow + "  " + step)
             waits = run.budget.ahead(run.calls_for(step, out))
+            if waits and near(step, waits):
+                if step in run.cut:
+                    continue
+                waits = None
             if waits:
                 why = (waits[0] + ", completion " + completion(record, order)
                        + ", " + waits[1])

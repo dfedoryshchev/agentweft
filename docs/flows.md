@@ -141,6 +141,11 @@ under a step's own `effort`, and `--effort-for` on the run is over both. a
 step sent back goes again one level higher (`providers.md`, "how hard the
 model thinks").
 
+`sacrifice:` at the top of the flow is what a run gives up, in order, when
+its budget plan does not fit the cap: steps or roles, one per line, never one
+that guards the tests (`guardrails.md`, "what a flow gives up when it does
+not fit").
+
 `tools` on a step is what it may touch: any of `read`, `grep`, `write`,
 `edit`, `shell`, `browser`, and the checker refuses a word that is not one of
 those. it is not a sandbox of agentweft's own, and `guardrails.md` is exact

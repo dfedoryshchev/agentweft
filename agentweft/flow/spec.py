@@ -82,7 +82,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
-         "efforts", "commits", "worktree")
+         "efforts", "commits", "worktree", "sacrifice")
 NO_LEAD = "none"
 # whether the run commits as it goes (`runner/commits.py`)
 COMMITS = ("none", "wip", "squash")
@@ -195,6 +195,75 @@ def with_verify(raw):
         out["steps"] = [s for s in raw.get("steps") or []
                         if s.get("role") != VERIFIER]
     return out
+
+
+# `sacrifice:` is what a flow gives up, in order, when its budget is short
+# (`guardrails/sacrifice.py`): steps or roles. what guards the tests is never
+# on it, by the word a person would reach for or by the step that carries it.
+NEVER = {"tests": "the red test", "red-test": "the red test",
+         "red-first": "the red test",
+         "start-tests": "the tests the run started with",
+         "command": "the suite gate"}
+
+
+def guards(step):
+    """-> what of NEVER the step carries, "" for none."""
+    gates = [g.get("gate") for g in step.get("gates") or []
+             if isinstance(g, dict)]
+    if step.get("writes") == "tests" or "red-test" in gates \
+            or "red-first" in gates:
+        return "the red test"
+    if "command" in gates:
+        return "the suite gate"
+    if step.get("writes") == "product":
+        return "the tests the run started with"
+    return ""
+
+
+def check_sacrifice(raw):
+    """-> complaints about `sacrifice:`, made at load and not when the money
+    runs short."""
+    from agentweft.guardrails.gates import registry
+
+    said = raw.get("sacrifice")
+    if said is None:
+        return []
+    if not isinstance(said, list):
+        return ["sacrifice should be a list, one step or role per line"]
+    steps = [s for s in with_investigator(raw).get("steps") or []
+             if isinstance(s, dict) and "role" in s]
+    names = []
+    for s in steps:
+        for name in (s["role"], step_name(s)):
+            if name not in names:
+                names.append(name)
+    bad = []
+    seen = []
+    for name in said:
+        at = "sacrifice: "
+        if not isinstance(name, str):
+            bad.append(at + str(name) + " is not a step or a role, one name"
+                       " per line")
+            continue
+        if name in seen:
+            bad.append(at + name + " is listed twice; name it once")
+            continue
+        seen.append(name)
+        if name in NEVER:
+            bad.append(at + name + " is never cut: it is " + NEVER[name])
+        elif name in registry:
+            bad.append(at + name + " is a gate, and a gate spends no calls;"
+                       " the list cuts steps")
+        elif name not in names:
+            bad.append(at + "no step or role called " + name
+                       + meant(name, names) + ". there is: "
+                       + ", ".join(names))
+        else:
+            kept = [guards(s) for s in steps_named(steps, name) if guards(s)]
+            if kept:
+                bad.append(at + name + " is never cut: it carries "
+                           + kept[0])
+    return bad
 
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
@@ -419,6 +488,7 @@ def check(raw):
         bad.append("verify: judge, but no step has the role verify")
     bad.extend(check_tiers(with_investigator(raw)))
     bad.extend(check_tiers(with_investigator(raw), "efforts", LEVELS, "level"))
+    bad.extend(check_sacrifice(raw))
     return bad
 
 

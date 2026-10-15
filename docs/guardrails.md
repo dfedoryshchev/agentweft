@@ -139,6 +139,44 @@ and says the red test is never where the saving comes from. a plan that fits
 reads `comfortable` with a buffer of a tenth of the cap or more, and `lower
 bound` under that.
 
+### what a flow gives up when it does not fit
+
+`sacrifice:` in flow.yaml says what may go when the money is short, first to
+go first, one step or role per line:
+
+    sacrifice:
+      - reviewer-wide
+      - verify
+      - investigator
+
+when the plan says RISKY, the run cuts from the top of the list, one name at
+a time, and stops cutting as soon as the steps left fit what the cap leaves.
+a role cuts each of its steps, so `reviewer-wide` is the second of two
+reviewer steps and `reviewer` would be both. a list that cannot make the plan
+fit is cut whole, and the run still says RISKY. the same list is read again
+when the token cap warns that 80% of it is spent: the steps still ahead are
+cut in the same order until their blocks fit the rest of the cap, and the run
+goes on; a rest that fits already goes on with nothing cut. if the whole list would not make them fit, nothing is cut and the
+run waits at the cap as it always did. a name with no step left ahead is
+passed over.
+
+each cut is a named skip under the name the list gave, with a reason that
+says what did not fit:
+
+    cut verify.md: budget: the steps take ~3 calls, the call cap leaves 2
+
+it is kept in `runs/<id>/skips.json`, so a run picked up later leaves the same
+steps out, written to decisions.md, and said in the handoff with
+`(sacrifice)` where a `--skip` says `(--skip)`. the plan file marks the step
+`cut` and gives the reason under its table.
+
+never on the list, refused when the flow loads: the red test (`tests`,
+`red-test`, `red-first`, or a step that writes tests or carries those gates),
+the tests the run started with (`start-tests`, or a `writes: product` step,
+which is where they run again) and the suite gate (`command`, or a step that
+carries one). any other gate is refused too: a gate spends no calls, so
+cutting one saves nothing.
+
 a block is accounting inside the run's total, not a second cap. every line in
 `steps.jsonl` carries `budget`, the pass held against its block:
 

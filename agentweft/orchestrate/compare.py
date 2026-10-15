@@ -134,6 +134,9 @@ FLOW_ONLY = (
          "whether the run commits as it goes: never, after each step on a "
          "branch of its own, or that and one commit per task at the end. a "
          "phase leaves its commits to whoever runs it."),
+    Pair("flow.sacrifice", "",
+         "what the run may cut, in order, when its budget plan does not fit. "
+         "a phase has no budget plan to cut from."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

@@ -26,6 +26,7 @@ from pathlib import Path
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
+from agentweft.guardrails import skips
 
 from . import handoff, investigate, leftred, manifest, stops, trace, verbs
 
@@ -753,7 +754,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     what a stop found of the tests the run added or changed (`leftred.check`);
     `suite` is the lines on the suite as the run found it (`baseline.lines`);
     `chained` is the head of steps.jsonl it was written from (`chain.head`).
-    `skipped` is a line per reason the run skipped gates by name for.
+    `skipped` is a line per reason the run skipped gates or cut steps by
+    name for.
     `kept` is the line on the run's own commits, "" when it makes none.
     `worktree` is the section on the run's own worktree and `headline` its
     line at the top, both empty for a run in the tree it was started from.
@@ -877,7 +879,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if kept:
         out.append("- commits: " + kept)
     out.extend(suite)
-    out.extend("- " + s + " (--skip)" for s in skipped)
+    out.extend("- " + s + " (" + skips.source(s) + ")" for s in skipped)
     _, shown = replay(every)
     if shown is not None:
         from agentweft.guardrails.gates.redfirst_gate import said_of

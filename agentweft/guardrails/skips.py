@@ -7,6 +7,10 @@ name for the red-test and red-first gates and the test order checks
 (`guardrails/redorder.py`) together, and `--skip-tests "<reason>"` is short
 for `--skip tests "<reason>"`.
 
+a step the flow's `sacrifice:` list cut for the budget is a skip too, under
+the name the list gave and with a reason that starts `budget: `
+(`sacrifice.py`).
+
 a skip with no reason is refused, and so is a name that is no gate, one the
 flow has no step with, or one named twice. the skips are kept as
 runs/<id>/skips.json, so a run picked up later skips the same gates.
@@ -20,6 +24,7 @@ FILE = "skips.json"
 TESTS = "tests"
 FLAG = "--skip"
 SHORT = "--skip-tests"
+BUDGET = "budget: "
 
 
 def _value(argv, i):
@@ -79,6 +84,11 @@ def said(skipped):
     """-> the handoff's lines on the skipped gates, [] for none."""
     return [", ".join(names) + " skipped: " + reason
             for names, reason in grouped(skipped)]
+
+
+def source(line):
+    """-> what asked for the skip one of `said`'s lines is about."""
+    return "sacrifice" if " skipped: " + BUDGET in line else FLAG
 
 
 def save(folder, skipped):
