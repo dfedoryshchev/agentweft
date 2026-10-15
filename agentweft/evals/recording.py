@@ -115,6 +115,20 @@ class Recorder(Provider):
     def chooses_model(self):
         return self.inner.chooses_model()
 
+    @property
+    def going(self):
+        return self.inner.going
+
+    @going.setter
+    def going(self, value):
+        self.inner.going = value
+
+    def own_effort(self):
+        return self.inner.own_effort()
+
+    def chooses_effort(self):
+        return self.inner.chooses_effort()
+
     def check(self):
         return self.inner.check()
 

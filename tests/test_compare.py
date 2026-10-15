@@ -102,8 +102,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `baseline` is one more, one way: the state of the suite a run was
     # handed, where a phase is handed a place and no word for its state.
+    #
+    # `efforts` and a step's `effort` are two more, one way: an agent file
+    # names a tier and says nothing about how hard its model thinks.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 31
+    assert len(compare.flow_only()) == 33
     assert len(compare.phase_only()) == 7
 
 

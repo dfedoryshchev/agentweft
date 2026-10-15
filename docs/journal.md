@@ -130,7 +130,10 @@ or crashed. the keys are always all there, in this order:
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
      "from": null, "to": "reviewer.md",
      "provider": "cli", "command": "claude", "model": "a-model",
-     "model_reported": "a-model-1", "model_choice": null, "grant": null,
+     "model_reported": "a-model-1", "model_choice": null,
+     "effort": {"asked": "provider default", "base": null, "raised": 0,
+                "applies": true},
+     "grant": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
      "cost": 0.25, "priced": 0.25, "cost_from": null, "session": "s-1",
@@ -171,6 +174,14 @@ or crashed. the keys are always all there, in this order:
   `applies` is false when the provider cannot act on a model choice (the fake,
   a cli command other than claude), so the choice is written down and was not
   used.
+- `effort` is how hard the step's model was asked to think: `asked` is the
+  level sent, `"provider default"` when none was set anywhere and the
+  provider's own default answered; `base` is the step's own level before any
+  send-back, null for none; `raised` is how many times the step had been sent
+  back when this go started (a gate, a verdict of redo, a wrong test), each
+  one level up from the base to `xhigh` at most; `applies` is false when the
+  provider cannot act on a level, as for `model_choice`. null on a line closed
+  before the step was asked.
 - `grant` is null for a step that declared no `tools`. otherwise it is the
   grant and what was done with it: `{"tools": ["read"], "enforced": true,
   "argv": [...], "cli_version": "2.1.296", "shell_writes": null}`.

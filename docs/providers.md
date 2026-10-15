@@ -11,7 +11,7 @@ a provider answers a prompt. that is the whole interface:
   otherwise. how this started and still what i run. the command is started in
   the run's place (`workdir`, see `flows.md`), so it reads and edits files
   there. `claude` is called as `claude -p --output-format json` (plus
-  `--model`, see tiers) with the prompt on stdin, because Windows caps a
+  `--model` and `--effort`, see tiers) with the prompt on stdin, because Windows caps a
   command line at about 32k characters; it is never passed `--resume` or
   `--continue`, so what a call reports is that call. it is also handed
   `--settings` with the commit and pull request attribution off (below), and
@@ -159,6 +159,68 @@ from the step or the flow does not, as above. a resumed run keeps the models it
 was started with and refuses a different `--model-for`. every step's line in
 `steps.jsonl` says what was asked for, where, and whether the provider could
 act on it (`docs/journal.md`).
+
+## how hard the model thinks
+
+a tier picks a model; it can also pick how hard that model thinks. the levels
+are `low`, `medium`, `high`, `xhigh` and `max`, the words both the cli's
+`--effort` and the api's `output_config.effort` take, and they live in the
+environment beside the model ids:
+
+    EFFORT_LOW=low
+    EFFORT_HIGH=high
+    EFFORT=...         the one level when a tier has nothing of its own
+
+an `effort` named inside a `provider:` block wins over both. a role or a step
+can name its own level, in the same three places a model is named:
+
+    python run.py fix-with-test --force --effort-for reviewer=high
+
+    efforts:
+      reviewer: medium
+
+    steps:
+      - role: worker
+        prompt: worker.md
+        effort: low
+
+highest first: `--effort-for`, the step's `effort:`, the flow's `efforts:`,
+then the provider's own (its block, `EFFORT_<TIER>`, `EFFORT`). a level that is
+not one of the five is refused before anything is asked, and a resumed run
+keeps the levels it was started with.
+
+nothing set anywhere is the default, and then nothing is sent: no `--effort`,
+no `output_config`, and the provider's own default answers (on the cli that
+is its own resolution - `CLAUDE_CODE_EFFORT_LEVEL`, its settings, then the
+model's default, which is `medium` on the current Opus).
+
+**a step sent back thinks harder.** every time the work goes back to a step -
+a failed gate sending the step itself again, a verdict of `redo` sending it to
+the step before, a step calling a test wrong sending it to the step that wrote
+the test - that step's next go is asked one level above its previous one,
+counted from its own base, and up to `xhigh` and no further. `max` is only
+ever run when it is named. each step counts its own send-backs, so one step
+going round twice never raises another. a step with no level set anywhere is
+not raised: the provider's default is not a level this can count up from.
+every line in `steps.jsonl` says which level that go was asked at, the base
+it was raised from and how many send-backs raised it (`journal.md`).
+
+`claude` gets the level as `--effort <level>` (checked against
+`claude --help` and the cli reference for 2.1.296). the cli ranks its
+`CLAUDE_CODE_EFFORT_LEVEL` beside `--effort` without saying which of the two
+wins, so a call that names a level starts without that variable. a command
+other than `claude` and **fake** carry the level and do not act on it.
+
+the **api** provider sends `"output_config": {"effort": <level>}`. thinking is
+spent inside `max_tokens`, so with no `max_tokens` in the provider block the
+cap is 64000 at `high` and above and 32000 otherwise. it sends the
+`anthropic-version` header with every request.
+
+an answer cut off at its cap is not a whole answer, and neither is a model
+declining to answer, though both come back with a 200: `stop_reason`
+`max_tokens` or `refusal`, on the api's response and on `claude`'s json
+result alike, fails the step with that reason, and keeps the usage the
+attempt was paid for.
 
 ## a grant reaches the cli
 
@@ -328,6 +390,7 @@ step.
 
 for `claude` the line says the version, whether it is logged in and how
 (`claude auth status`, by its exit code and its `authMethod`; the account is
-never printed), and the model a step would ask for, or the cli's default. a
+never printed), the model a step would ask for, or the cli's default, and
+the effort level, or that the cli's own answers. a
 version below the floor fails the check, because every shipped reviewer
 carries a grant and would be refused. neither question makes a model call.

@@ -135,6 +135,12 @@ which is the normal case. `tiers:` at the top of the flow gives a tier to a
 role at every step it runs, under a step's own `model`, and `--model-for` on
 the run is over both (`providers.md`, "a model per role").
 
+`effort` on a step is how hard its model thinks: `low`, `medium`, `high`,
+`xhigh` or `max`. `efforts:` at the top of the flow gives a level to a role,
+under a step's own `effort`, and `--effort-for` on the run is over both. a
+step sent back goes again one level higher (`providers.md`, "how hard the
+model thinks").
+
 `tools` on a step is what it may touch: any of `read`, `grep`, `write`,
 `edit`, `shell`, `browser`, and the checker refuses a word that is not one of
 those. it is not a sandbox of agentweft's own, and `guardrails.md` is exact

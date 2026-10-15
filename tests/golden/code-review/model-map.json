@@ -77,6 +77,12 @@
         "from": "run",
         "applies": true
       },
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
       "grant": null,
       "tokens": {
         "counted": true,
@@ -130,6 +136,12 @@
         "role": "reviewer",
         "asked": "opus",
         "from": "run",
+        "applies": true
+      },
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
         "applies": true
       },
       "grant": {

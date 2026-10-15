@@ -142,6 +142,12 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
       "grant": null,
       "tokens": {
         "counted": true,
@@ -192,6 +198,7 @@
       "model": "model-in-replay",
       "model_reported": null,
       "model_choice": null,
+      "effort": null,
       "grant": null,
       "tokens": {
         "counted": false
@@ -227,6 +234,12 @@
       "model": "model-in-replay",
       "model_reported": "model-in-replay",
       "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
       "grant": null,
       "tokens": {
         "counted": true,

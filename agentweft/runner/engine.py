@@ -242,9 +242,11 @@ class Run(object):
     through five functions just so two of them could read a timeout."""
 
     def __init__(self, flow, fm, by_role, provider=None, workdir=None,
-                 task=None, chosen=None):
+                 task=None, chosen=None, efforts=None):
         self.flow = flow
         self.chosen = dict(chosen or {})
+        self.efforts = dict(efforts or {})
+        self.ups = {}
         self.fm = fm
         self.task_text = task
         self.by_role = by_role
@@ -346,6 +348,7 @@ class Run(object):
         end of its prompt, and the red proof that test gave dropped, so the
         corrected test has to be shown red again before product code."""
         self.gate_said[writer] = told
+        self.ups[writer] = self.ups.get(writer, 0) + 1
         if writer != step:
             self.gate_said[step] = wrongtest.back_to(writer, test)
         proof = self.order.proof
@@ -612,6 +615,22 @@ class Run(object):
                         for g in (s.get("gates") or [])]
         return []
 
+    def effort_for(self, step, used):
+        """-> what the step's line keeps about how hard its model is asked to
+        think: the level asked ("provider default" for none), the step's own
+        base, how many send-backs raised it, and whether the
+        provider acts on it."""
+        level = None
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                level, _ = models.effort_of(s, self.fm, self.efforts)
+        base = level or used.own_effort() or None
+        ups = self.ups.get(step, 0) if base else 0
+        return {"asked": providers.base.raised(base, ups) if base
+                else "provider default",
+                "base": base, "raised": ups,
+                "applies": used.chooses_effort()}
+
     def width_for(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
@@ -647,7 +666,7 @@ class Run(object):
         run's own: a second run or a second eval case handed the first one's
         answer was scored on work it never did. an answer given up on is not
         kept, so the next time it is asked again."""
-        key = (used, prompt)
+        key = (used, prompt, used.going)
         if key in self.answers:
             print("step " + step + " came from the cache")
             return Answer(self.answers[key], True)
@@ -715,6 +734,8 @@ class Run(object):
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
         used.at(step, task)
+        tried.effort = self.effort_for(step, used)
+        used.going = tried.effort["base"] and tried.effort["asked"]
         try:
             answer = tried.answered(self.ask(prompt, step, used))
         except (Outage, Fatal) as e:
@@ -994,6 +1015,7 @@ def run_once(flow, provider=None, task=None, trail=None):
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     run = Run(flow, fm, by_role, provider=provider, task=task)
     route = router.Router(fm)
+    run.ups = route.ups
     kept = trace.Trail(trail) if trail is not None else None
     if trail is not None:
         run.keep_in(Path(trail))
@@ -1258,6 +1280,19 @@ def main():
         wrong = models.unknown(chosen, fm)
         if wrong:
             raise ValueError(wrong)
+        efforts = models.efforts(sys.argv)
+        had = models.load(state.RUNS / pick_up, models.EFFORT_FILE) \
+            if pick_up else {}
+        if pick_up and efforts and efforts != had:
+            print(pick_up + " was started with " + (models.said(had) or
+                                                    "no efforts chosen")
+                  + ", not " + models.said(efforts)
+                  + ". a run carries on with the efforts it started with")
+            return 1
+        efforts = efforts or had
+        wrong = models.unknown(efforts, fm)
+        if wrong:
+            raise ValueError(wrong)
     except ValueError as e:
         print(str(e))
         return 1
@@ -1306,7 +1341,7 @@ def main():
                   + named + ". a run carries on where it started")
             return 1
         run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
-                  chosen=chosen)
+                  chosen=chosen, efforts=efforts)
         if pick_up and run.start is not None:
             # a snapshot taken now would count the tests the first run wrote
             # as already there
@@ -1371,6 +1406,7 @@ def main():
                       (found.data.get("stopped") or {}).get("why")
                       or "the caps were changed before carrying on.")
     route = router.Router(fm)
+    run.ups = route.ups
     started = datetime.datetime.now()
     run_id = new_run_id(flow, started)
     timings = []
@@ -1435,6 +1471,7 @@ def main():
     if asked is not None:
         task.save(folder, asked)
     models.save(folder, chosen)
+    models.save(folder, efforts, models.EFFORT_FILE)
     if found:
         record = found.carried(folder, run_id, order, shape,
                                workdir=str(run.workdir))

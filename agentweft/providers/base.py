@@ -7,6 +7,8 @@ of whatever is implementing it, and the engine is not allowed to know.
 
 import os
 
+from agentweft.flow.spec import LEVELS
+
 
 def count(value):
     return value if isinstance(value, int) and not isinstance(value, bool) else 0
@@ -128,6 +130,50 @@ def model_for(opts):
     return os.environ.get("MODEL", "")
 
 
+# a step that was sent back is raised this far and no further. `max` is only
+# ever asked for by name.
+CEILING = "xhigh"
+
+# an answer that came back whole as far as the http status goes, and is not
+CUT = {"max_tokens": "the answer was cut off at its token cap "
+                     "(stop_reason max_tokens)",
+       "refusal": "the model declined to answer (stop_reason refusal)"}
+
+
+def effort_env_for(tier):
+    """the variable a tier's effort reads. `high` -> EFFORT_HIGH."""
+    return "EFFORT_" + tier.upper()
+
+
+def effort_for(opts):
+    """the level the provider block names, then the tier's, then the one
+    level there is, or "" for none: the provider's own default answers."""
+    named = opts.get("effort")
+    if named:
+        return named
+    tier = opts.get("tier")
+    if tier:
+        return os.environ.get(effort_env_for(tier), "") \
+            or os.environ.get("EFFORT", "")
+    return os.environ.get("EFFORT", "")
+
+
+def effort_said(p, default="provider default"):
+    """-> what `python run.py provider` says about p's effort."""
+    return "effort " + (p.asks_effort() or default)
+
+
+def raised(level, times):
+    """-> `level` raised `times` levels, stopping at CEILING. a level at or
+    above the ceiling, or one this does not know, is left as it is."""
+    if not times or level not in LEVELS:
+        return level
+    i, top = LEVELS.index(level), LEVELS.index(CEILING)
+    if i >= top:
+        return level
+    return LEVELS[min(i + times, top)]
+
+
 def again(status):
     """-> whether an http-style status is worth going again for."""
     if not isinstance(status, int) or isinstance(status, bool):
@@ -142,6 +188,8 @@ class Provider(object):
     command = None
     grant = None
     denials = None
+    # the level the runner settled on for the call about to be made
+    going = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -175,6 +223,19 @@ class Provider(object):
 
     def chooses_model(self):
         """-> whether a model asked for by name or tier can reach the call."""
+        return False
+
+    def asks_effort(self):
+        """-> the effort level this provider sends with a prompt, None for
+        none."""
+        return self.going or self.own_effort() or None
+
+    def own_effort(self):
+        """-> the level this provider's config sets, "" for none."""
+        return effort_for(self.opts)
+
+    def chooses_effort(self):
+        """-> whether an effort level can reach the call."""
         return False
 
     def check(self):

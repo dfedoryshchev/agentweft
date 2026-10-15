@@ -7,26 +7,32 @@ is a tier (high, mid, low) or a model id, handed over as typed.
 
 order, highest first: the run, the step, the flow's `tiers:`, then whatever
 the provider would have used anyway (its block, MODEL_<TIER>, MODEL).
+
+the same map for how hard each role's model thinks is `--effort-for
+reviewer=high`, a step's `effort:` and the flow's `efforts:`, in the same
+order, before the provider's own (its block, EFFORT_<TIER>, EFFORT).
 """
-from agentweft.flow.spec import TIERS
+from agentweft.flow.spec import LEVELS, TIERS
 
 FLAG = "--model-for"
 FILE = "models"
+EFFORT_FLAG = "--effort-for"
+EFFORT_FILE = "efforts"
 
 
-def pairs(argv, flag=FLAG):
+def pairs(argv, flag=FLAG, what="model"):
     """-> every value given after `flag`, in the order typed."""
     out = []
     for i, word in enumerate(argv):
         if word != flag:
             continue
         if i + 1 >= len(argv) or argv[i + 1].startswith("--"):
-            raise ValueError(flag + " needs role=model")
+            raise ValueError(flag + " needs role=" + what)
         out.append(argv[i + 1])
     return out
 
 
-def parse(values):
+def parse(values, what="model"):
     """-> {role: model} out of `role=model[,role=model]` values."""
     out = {}
     for value in values:
@@ -35,16 +41,41 @@ def parse(values):
             if not pair:
                 continue
             if "=" not in pair:
-                raise ValueError(pair + " is not role=model")
+                raise ValueError(pair + " is not role=" + what)
             role, model = (part.strip() for part in pair.split("=", 1))
             if not role:
                 raise ValueError(pair + " has no role")
             if not model:
-                raise ValueError(role + " has no model")
+                raise ValueError(role + " has no " + what)
             if role in out:
                 raise ValueError(role + " is given twice")
             out[role] = model
     return out
+
+
+def efforts(argv):
+    """-> {role: level} out of every `--effort-for` typed, each level one
+    the providers take."""
+    out = parse(pairs(argv, EFFORT_FLAG, "level"), "level")
+    for role, level in out.items():
+        if level not in LEVELS:
+            raise ValueError(EFFORT_FLAG + ": " + role + " should be one of "
+                             + ", ".join(LEVELS))
+    return out
+
+
+def effort_of(step, fm, chosen):
+    """-> (the level asked for, where it was asked) for this step, or
+    (None, None) when nothing chose and the provider decides."""
+    role = step["role"]
+    if chosen and chosen.get(role):
+        return chosen[role], "run"
+    if step.get("effort"):
+        return step["effort"], "step"
+    flow = fm.get("efforts") or {}
+    if flow.get(role):
+        return flow[role], "flow"
+    return None, None
 
 
 def roles(fm):
@@ -87,14 +118,14 @@ def is_tier(value):
     return value in TIERS
 
 
-def save(folder, chosen):
+def save(folder, chosen, name=FILE):
     if chosen:
-        (folder / FILE).write_text(said(chosen), encoding="utf-8")
+        (folder / name).write_text(said(chosen), encoding="utf-8")
 
 
-def load(folder):
+def load(folder, name=FILE):
     """-> the map a run was started with, {} for one that had none."""
-    p = folder / FILE
+    p = folder / name
     if not p.exists():
         return {}
     return parse([p.read_text(encoding="utf-8").strip()])

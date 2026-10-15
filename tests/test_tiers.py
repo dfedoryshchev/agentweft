@@ -204,6 +204,9 @@ def test_the_provider_check_asks_about_each_tier_it_finds(tmp_path, capsys, monk
     monkeypatch.setenv("MODEL", "the-only-one")
     monkeypatch.delenv("MODEL_HIGH", raising=False)
     monkeypatch.delenv("MODEL_MID", raising=False)
+    for key in ("EFFORT", "EFFORT_MID"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("EFFORT_HIGH", "high")
     was = prompts.FLOW_ROOT[0]
     prompts.FLOW_ROOT[0] = str(tmp_path)
     try:
@@ -211,9 +214,9 @@ def test_the_provider_check_asks_about_each_tier_it_finds(tmp_path, capsys, monk
     finally:
         prompts.FLOW_ROOT[0] = was
     lines = [l for l in capsys.readouterr().out.split("\n") if l.strip()]
-    assert lines == ["  ok   api  the-only-one",
-                     "  ok   api mid  the-only-one",
-                     "  ok   api high  the-only-one"]
+    assert lines == ["  ok   api  the-only-one, effort provider default",
+                     "  ok   api mid  the-only-one, effort provider default",
+                     "  ok   api high  the-only-one, effort high"]
 
 
 def test_a_tier_nothing_answers_for_fails_the_check_on_its_own_line(tmp_path, capsys,
@@ -223,6 +226,8 @@ def test_a_tier_nothing_answers_for_fails_the_check_on_its_own_line(tmp_path, ca
     monkeypatch.delenv("MODEL", raising=False)
     monkeypatch.delenv("MODEL_HIGH", raising=False)
     monkeypatch.setenv("MODEL_MID", "a-small-one")
+    for key in ("EFFORT", "EFFORT_MID"):
+        monkeypatch.delenv(key, raising=False)
     was = prompts.FLOW_ROOT[0]
     prompts.FLOW_ROOT[0] = str(tmp_path)
     try:
@@ -230,7 +235,7 @@ def test_a_tier_nothing_answers_for_fails_the_check_on_its_own_line(tmp_path, ca
     finally:
         prompts.FLOW_ROOT[0] = was
     lines = [l for l in capsys.readouterr().out.split("\n") if l.strip()]
-    assert lines[1] == "  ok   api mid  a-small-one"
+    assert lines[1] == "  ok   api mid  a-small-one, effort provider default"
     assert lines[2].startswith("  FAIL api high")
     assert "MODEL_HIGH" in lines[2]
 

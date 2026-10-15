@@ -54,6 +54,14 @@ class Router(object):
         self.sent_back = 0
         self.gate_tries = {}
         self.wrong_tries = {}
+        # how often each step has been sent back, by any route: its next go
+        # thinks that many levels harder
+        self.ups = {}
+
+    def sent_to(self, step):
+        """note that the work went back to `step`, and hand it back."""
+        self.ups[step] = self.ups.get(step, 0) + 1
+        return step
 
     def first(self):
         return self.order[0] if self.order else None
@@ -98,7 +106,7 @@ class Router(object):
             target = self.on_redo.get(step) or self._back_to(step)
             if target:
                 self.sent_back = self.sent_back + 1
-                return target
+                return self.sent_to(target)
         i = self.order.index(step)
         return self.order[i + 1] if i + 1 < len(self.order) else None
 
@@ -123,7 +131,7 @@ class Router(object):
         if tries >= self.gate_cap(step):
             return None
         self.gate_tries[step] = tries + 1
-        return step
+        return self.sent_to(step)
 
     def wrong_back(self, test):
         """whether a test a step called wrong may go back to the step that

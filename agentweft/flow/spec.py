@@ -81,7 +81,8 @@ REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
-         "send_backs", "lead", "on_stop", "spec_files", "baseline")
+         "send_backs", "lead", "on_stop", "spec_files", "baseline",
+         "efforts")
 NO_LEAD = "none"
 # when the run reads the state of the suite it started from
 # (`guardrails/baseline.py`)
@@ -93,7 +94,7 @@ ON_STOP = ("keep", "revert-tests")
 SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
-              "reports", "writes_tests", "writes")
+              "reports", "writes_tests", "writes", "effort")
 WRITES = ("tests", "product", "none")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
@@ -104,6 +105,10 @@ PREFLIGHT_KNOWN = ("mode", "threshold")
 # means something to any provider and a version string means something to one
 # of them for about a quarter. a flow file naming one would put them back.
 TIERS = ("high", "mid", "low")
+
+# `effort` on a step is how hard its model thinks, lowest first: the words
+# `claude --effort` and the api's `output_config.effort` both take.
+LEVELS = ("low", "medium", "high", "xhigh", "max")
 
 # `tools` on a step is what it is allowed to touch, and these are the six words
 # the imported agent files have been granting each other since they arrived.
@@ -332,6 +337,9 @@ def check(raw):
         if step.get("model") and step["model"] not in TIERS:
             bad.append("step " + str(i) + ": model should be one of "
                        + ", ".join(TIERS))
+        if step.get("effort") is not None and step["effort"] not in LEVELS:
+            bad.append("step " + str(i) + ": effort should be one of "
+                       + ", ".join(LEVELS))
         # `is not None` rather than truthiness: `tools: []` is a step saying it
         # may touch nothing, which is a boundary and not a missing one.
         if step.get("tools") is not None:
@@ -371,6 +379,7 @@ def check(raw):
             for s in raw.get("steps") or []):
         bad.append("verify: judge, but no step has the role verify")
     bad.extend(check_tiers(with_investigator(raw)))
+    bad.extend(check_tiers(with_investigator(raw), "efforts", LEVELS, "level"))
     return bad
 
 
@@ -410,13 +419,14 @@ def check_lead(raw):
     return []
 
 
-def check_tiers(raw):
-    """`tiers:` is a tier per role, held to the same rule as a step's own."""
-    chosen = raw.get("tiers")
+def check_tiers(raw, key="tiers", allowed=TIERS, word="tier"):
+    """`tiers:` is a tier per role, held to the same rule as a step's own,
+    and `efforts:` a level per role the same way."""
+    chosen = raw.get(key)
     if chosen is None:
         return []
     if not isinstance(chosen, dict):
-        return ["tiers should be a mapping of role to tier"]
+        return [key + " should be a mapping of role to " + word]
     known = []
     for step in raw.get("steps") or []:
         if isinstance(step, dict) and step.get("role") not in known:
@@ -424,11 +434,11 @@ def check_tiers(raw):
     bad = []
     for role, tier in chosen.items():
         if role not in known:
-            bad.append("tiers: no role called " + str(role) + ". there is: "
+            bad.append(key + ": no role called " + str(role) + ". there is: "
                        + ", ".join(str(r) for r in known))
-        elif tier not in TIERS:
-            bad.append("tiers: " + str(role) + " should be one of "
-                       + ", ".join(TIERS))
+        elif tier not in allowed:
+            bad.append(key + ": " + str(role) + " should be one of "
+                       + ", ".join(allowed))
     return bad
 
 

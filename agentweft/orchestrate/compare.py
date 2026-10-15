@@ -146,6 +146,9 @@ FLOW_ONLY = (
     Pair("flow.tiers", "",
          "a tier per role, under a step's own `model`. a phase has no word "
          "for it: each agent carries its tier in its own file."),
+    Pair("flow.efforts", "",
+         "how hard each role's model thinks, under a step's own `effort`. a "
+         "phase has no word for it, and neither does an agent's file."),
     Pair("flow.investigate", "",
          "a step put in front of the flow's own that finds the cause and the "
          "sites it reaches before anything is written. a phase that wants one "
@@ -191,6 +194,9 @@ FLOW_ONLY = (
     Pair("step.gates", "",
          "a check that is a program. the phase side has no program anywhere."),
     Pair("step.provider", "", "who answers this one step."),
+    Pair("step.effort", "",
+         "how hard this step's model thinks, raised a level each time the "
+         "step is sent back. an agent names a tier and nothing about effort."),
     Pair("step.preflight", "", "what to do when a step touches a risky file."),
 )
 

@@ -9,7 +9,8 @@ import threading
 import time
 from pathlib import Path
 
-from .base import Provider, Reply, Usage, again, model_for, register
+from .base import (CUT, Provider, Reply, Usage, again, effort_said, model_for,
+                   register)
 
 PIPE = subprocess.PIPE
 NEW_GROUP = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
@@ -49,6 +50,10 @@ BASE = ("PATH", "PATHEXT", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC",
 # `claude` reads its login, config folder, endpoint and provider switch from
 # names under these.
 OWN = ("ANTHROPIC_", "CLAUDE_")
+
+# the cli ranks this beside `--effort` without saying which wins, so a call
+# that names a level does not take it along
+EFFORT_VAR = "CLAUDE_CODE_EFFORT_LEVEL"
 
 
 def shell_hook(denials):
@@ -562,8 +567,11 @@ class CliProvider(Provider):
             listed = [listed]
         keep.update(str(name).upper() for name in listed)
         own = OWN if is_claude(self.command) else ()
+        drop = EFFORT_VAR if self.chooses_effort() and self.asks_effort() \
+            else None
         return {k: v for k, v in os.environ.items()
-                if k.upper() in keep or k.upper().startswith(own)}
+                if (k.upper() in keep or k.upper().startswith(own))
+                and k.upper() != drop}
 
     def version(self):
         """-> the cli's version, None when it could not be read. asked once
@@ -618,6 +626,9 @@ class CliProvider(Provider):
     def chooses_model(self):
         return is_claude(self.command)
 
+    def chooses_effort(self):
+        return is_claude(self.command)
+
     def argv(self, prompt):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for
         json, and never `--resume` or `--continue`: a carried-on session
@@ -641,6 +652,9 @@ class CliProvider(Provider):
         model = self.asks_for()
         if model:
             argv = argv + ["--model", model]
+        effort = self.asks_effort()
+        if effort:
+            argv = argv + ["--effort", effort]
         # Windows caps a whole command line at about 32k characters, and a
         # prompt with a diff in it is past that long before the model minds.
         return argv, prompt
@@ -718,6 +732,9 @@ class CliProvider(Provider):
             return Reply("", detail=why[:200], outage=outage,
                          retryable=False if outage
                          else again(data.get("api_error_status")), **said)
+        cut = CUT.get(data.get("stop_reason"))
+        if cut:
+            return Reply("", detail=cut, retryable=False, **said)
         if not isinstance(text, str) or not text:
             return Reply("", detail="an empty answer", **said)
         return Reply(text, **said)
@@ -744,6 +761,7 @@ class CliProvider(Provider):
         ok = ok and logged
         said.append(how)
         said.append("model " + (self.asks_for() or "the cli's default"))
+        said.append(effort_said(self, "the cli's default"))
         return ok, ", ".join(said)
 
     def login(self):

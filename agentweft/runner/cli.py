@@ -68,6 +68,7 @@ def cmd_help():
                        [--workdir <dir>]
                        [--task "<text>" | --task-file <path>]
                        [--model-for <role>=<model>,...]
+                       [--effort-for <role>=<level>,...]
                        [--skip-tests "<reason>"] [--continue <run|commit>]
                        [--max-calls <n>] [--max-tokens <n>]
                        [--on-stop keep|revert-tests]
@@ -97,6 +98,10 @@ def cmd_help():
 --model-for  the model one role runs on for this run: a tier (high, mid,
           low) or a model id, over the step's and the flow's own. a resumed
           run keeps the ones it started with
+--effort-for  how hard one role's model thinks for this run: low, medium,
+          high, xhigh or max, over the step's and the flow's own. a step sent
+          back goes again one level higher, up to xhigh. a resumed run keeps
+          the ones it started with
 --skip-tests  run a flow whose steps say what they write without any test
           check: no red test is needed before product code. the reason is
           required and goes into decisions.md and the handoff
