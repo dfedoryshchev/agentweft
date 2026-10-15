@@ -11,7 +11,7 @@
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  ok, 2 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  build-feature-<run>/handoff.md"
+    "<time>  build-feature  ok, 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "build-feature-<day>-1.md  build-feature  4 steps"
@@ -472,7 +472,6 @@
     "  PASS red-first - not replayed - the place is not in a git work tree",
     "started reviewer.md",
     "promise not checked: the tests are written before the code, and fail without it",
-    "promise not checked: the whole suite passes once the code is in",
     "saved <tmp>/runs/build-feature-<day>-1.md",
     "VERDICT: ok",
     "- calc.py: mul(a, b) added",

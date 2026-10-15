@@ -228,12 +228,16 @@ def test_no_transcript_leaves_a_claim_unchecked(tmp_path, monkeypatch):
 
 
 def composed(flow):
+    """every step the flow file declares, a switched-off judge included."""
+    from agentweft.flow import reader
     cfg = runner.config(flow)
-    by_role = resolver.resolve(cfg.raw, runner.flow_path(flow),
+    declared = reader.read((runner.flow_path(flow) / "flow.yaml").read_text(
+        encoding="utf-8"))
+    by_role = resolver.resolve(declared, runner.flow_path(flow),
                                cfg.promises.as_prompt())
     return {s["role"]: prompts.load_prompt(flow, s["prompt"],
                                            by_role[s["role"]], s["role"])
-            for s in cfg.raw["steps"]}
+            for s in declared["steps"]}
 
 
 @pytest.mark.parametrize("flow,role", [

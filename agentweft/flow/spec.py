@@ -80,7 +80,7 @@ def steps_named(steps, name):
 REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
-         "tiers", "investigate", "tests_e2e", "tests_integration")
+         "tiers", "investigate", "tests_e2e", "tests_integration", "verify")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes")
@@ -142,6 +142,39 @@ def with_investigator(raw):
         return raw
     out = dict(raw)
     out["steps"] = [investigator()] + list(raw.get("steps") or [])
+    return out
+
+
+# `verify:` says whether the flow's `verify` steps run. `judge` runs them as
+# written, `off` takes them out, so a flow whose checks are all programs on the
+# steps before keeps its judge as a line to switch on rather than a file to
+# rewrite. a flow that does not say is run as written.
+VERIFY = ("judge", "off")
+VERIFIER = "verify"
+
+
+def verifying(raw):
+    """-> "judge" or "off". a flow that does not say gets "judge" when it has
+    a verify step and "off" when it has none; a bare `off` reads as false."""
+    value = raw.get("verify")
+    if value is False:
+        return "off"
+    if value is None:
+        steps = raw.get("steps") or []
+        return "judge" if any(isinstance(s, dict) and s.get("role") == VERIFIER
+                              for s in steps) else "off"
+    return value
+
+
+def with_verify(raw):
+    """-> raw, with its verify steps taken out when it said `verify: off`."""
+    if raw.get("verify") is None:
+        return raw
+    out = dict(raw)
+    out["verify"] = verifying(raw)
+    if out["verify"] == "off":
+        out["steps"] = [s for s in raw.get("steps") or []
+                        if s.get("role") != VERIFIER]
     return out
 
 
@@ -276,6 +309,13 @@ def check(raw):
                 earlier.append(name)
     if investigating(raw) not in INVESTIGATE:
         bad.append("investigate should be one of " + ", ".join(INVESTIGATE))
+    said = raw.get("verify")
+    if said is not None and verifying(raw) not in VERIFY:
+        bad.append("verify should be one of " + ", ".join(VERIFY))
+    elif said == "judge" and not any(
+            isinstance(s, dict) and s.get("role") == VERIFIER
+            for s in raw.get("steps") or []):
+        bad.append("verify: judge, but no step has the role verify")
     bad.extend(check_tiers(with_investigator(raw)))
     return bad
 
@@ -306,4 +346,4 @@ def load(raw):
     bad = check(raw)
     if bad:
         raise ValueError("flow.yaml: " + "; ".join(bad))
-    return FlowSpec(with_investigator(raw))
+    return FlowSpec(with_verify(with_investigator(raw)))

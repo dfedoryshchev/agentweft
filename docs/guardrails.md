@@ -130,6 +130,12 @@ deliberately dumb - a handful of shapes i can actually assert. anything it
 cannot check it reports as not checkable rather than passing quietly, because
 a green tick you cannot trust is worse than no tick.
 
+a promise the output cannot show can still be one a gate shows: "the new test
+fails on the unpatched code" is the `red-test` and `red-first` gates, "the
+whole suite passes" is a `command` gate. a run that finished passed every gate
+its steps declare, so those are not counted as not checked, and
+`python run.py show <flow>` names the gate beside each one.
+
 ## the gates
 
     steps:

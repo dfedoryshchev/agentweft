@@ -136,6 +136,10 @@ FLOW_ONLY = (
     Pair("flow.tests_e2e", "",
          "whether a step that writes tests writes e2e tests. off unless a flow "
          "turns it on, for the same reason as the one above."),
+    Pair("flow.verify", "",
+         "whether the flow's verify steps run: judge, or off where every check "
+         "they would answer is a program on the steps before. a phase's checks "
+         "are agents, so there is nothing to switch off."),
     Pair("step.writes_tests", "",
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),

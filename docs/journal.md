@@ -304,18 +304,18 @@ is printed under "not verified" as "claims the record does not show".
 
     # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 
-    fix-with-test ran worker.md -> patcher.md -> verify.md in 41.2s on: add(1, 2) returns -1.
+    fix-with-test ran worker.md -> patcher.md in 27.1s on: add(1, 2) returns -1.
     patcher did:
     - add returns a + b; it subtracted
     - calc.py: the one line in add
-    checks: 5 of 5 gates passed; red first: shown on patcher.md, 1 of 1 new test red without the fix and green with it: test_calc.py::test_add.
+    checks: 4 of 4 gates passed; red first: shown on patcher.md, 1 of 1 new test red without the fix and green with it: test_calc.py::test_add.
     changed: 2 files, 0 commits (from git, below).
 
     ## assumed - tell me if wrong
     ...
     ## run
-    - steps: worker.md 12.0s -> patcher.md 15.1s -> verify.md 14.1s
-    - spend: 3 calls, ...
+    - steps: worker.md 12.0s -> patcher.md 15.1s
+    - spend: 2 calls, ...
     - done
     - record: runs/fix-with-test-2026-10-13-091402/steps.jsonl, gates.md, steps/
 

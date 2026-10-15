@@ -54,6 +54,43 @@ def check(text, invariants):
     return out
 
 
+def _red_test(g, red):
+    return g.get("gate") == "red-test" and bool(g.get("red", True)) == red
+
+
+# what a gate shows when it passes, in the words a promise says it with. a
+# promise the output cannot show can still be one a program shows, and that is
+# a different answer from "not checkable here".
+# the first shape a promise's words fit is the one it is held to, so "the
+# suite passes with the patch" is the suite's and not the one test's.
+SHOWN = (
+    (("suite passes",), lambda g: g.get("gate") == "command"),
+    (("fails on the unpatched code", "fails without the fix"),
+     lambda g: _red_test(g, True) or g.get("gate") == "red-first"),
+    (("passes with the patch", "passes with the fix"),
+     lambda g: _red_test(g, False)),
+)
+
+
+def shown_by(steps, invariants):
+    """-> list of (invariant, ["<gate> on <step>", ...]): the gates the steps
+    declare that show each promise when they pass. an empty list is a promise
+    no program in the flow shows."""
+    out = []
+    for inv in invariants:
+        low = inv.lower()
+        shows = next((test for words, test in SHOWN
+                      if any(w in low for w in words)), None)
+        by = []
+        for step in steps or []:
+            name = step.get("prompt", step.get("role", "?") + ".md")
+            for g in step.get("gates") or []:
+                if shows and isinstance(g, dict) and shows(g):
+                    by.append(g["gate"] + " on " + name)
+        out.append((inv, by))
+    return out
+
+
 def failures(text, invariants):
     return [(inv, detail) for inv, ok, detail in check(text, invariants) if ok is False]
 

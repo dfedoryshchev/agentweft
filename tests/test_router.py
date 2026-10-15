@@ -34,7 +34,11 @@ def test_the_cap_binds():
 
 
 def test_on_redo_is_honoured_when_the_flow_declares_it():
-    r = route("fix-with-test")
+    from agentweft.flow import reader, spec
+    raw = reader.read((runner.flow_path("fix-with-test") / "flow.yaml")
+                      .read_text(encoding="utf-8"))
+    raw["verify"] = "judge"
+    r = Router(spec.load(raw), cap=2)
     assert r.next("verify.md", REDO) == "patcher.md"
 
 

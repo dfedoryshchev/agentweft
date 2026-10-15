@@ -298,13 +298,26 @@ else.
 
 fix-with-test is where it earns it. the closing step used to be a model reading
 its own patch and saying the test passes now; it is `python -m pytest -q` and
-an exit code, and a non-zero one sends the step back once, then stops the run.
-a `red: false` gate runs the test the patcher names, or the worker's when it
-names none, a `red-first` gate replays each new test without the patch, and the
-verify answer goes through `verdict` with `passes: 3`, one for each thing it is
-asked to check. a check it answers unsure does not stop a fix the programs
-proved; the run ends
-`done, 1 check unproven` and says which.
+an exit code on the patcher, and a non-zero one sends the step back once, then
+stops the run. a `red: false`
+gate runs the test the patcher names, or the worker's when it names none, and
+a `red-first` gate replays each new test without the patch, the cases the
+patcher adds after the fix included.
+
+that is every promise the flow makes, and each one is a program, so its verify
+judge is off (`verify: off`). the judge used to be asked three things: that the
+test failed on the unpatched code, which the gates above now run; that the
+whole suite passed, which the `command` gate runs; and that the test was
+written before the patch, which nothing in a working tree can show, so it is
+no longer asked. on real fixes it caught nothing the suite did not, and it
+failed correct fixes on the order question, most often over the extra cases a
+patcher is told to add once it is green. `python run.py show fix-with-test`
+prints each promise with the gate that shows it.
+
+`verify: judge` puts it back for the one thing no program here shows: whether
+the patch is the smallest one. it is asked that and nothing else, through
+`verdict`, and an answer it is unsure of is recorded as unproven, not as a
+pass. the run then ends `done, 1 check unproven` and says which.
 
 ## the short suite or the long one
 

@@ -1,13 +1,10 @@
 # verify
 
-here is a test and a patch. check the order was kept:
+here is a test and a patch. the runner has already shown that the new test
+fails without the patch and passes with it, and that the whole suite passes.
+what it cannot show is the size of the patch, so answer that, one line:
 
-    PASS the test is written before the patch
-    FAIL the test is written before the patch - <what happened>
+    PASS the patch is the smallest thing that turns it green
+    FAIL the patch is the smallest thing that turns it green - <what is extra>
 
-then the same for: the test fails on the unpatched code, and the patch is the
-smallest thing that turns it green.
-
-a check the runner already ran is listed under "what the runner ran and saw
-itself". that is a run, not a claim: a check it settles is a PASS that names
-the line, not a question about an order you cannot see.
+if you cannot tell, say UNSURE and why rather than a PASS you did not check.

@@ -1493,7 +1493,12 @@ def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
     for inv, detail in broken:
         print("promise broken: " + inv + " (" + detail + ")")
         write_index("BROKE  " + flow + "  " + inv)
-    skipped = promises.unchecked(body, fm.promises.invariants)
+    # a run that got here passed every gate its steps declare, so a promise
+    # one of those gates shows has been checked, by a program, on the way
+    gated = dict((inv, by) for inv, by in promises.shown_by(
+        fm.steps, fm.promises.invariants) if by)
+    skipped = [inv for inv in promises.unchecked(body, fm.promises.invariants)
+               if inv not in gated]
     for inv in skipped:
         print("promise not checked: " + inv)
 

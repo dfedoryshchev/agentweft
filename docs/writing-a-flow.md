@@ -76,6 +76,28 @@ red-test or red-first gate in this run has seen a test the run wrote fail; a
 commit>` carries tests already written. the rules are in `docs/gates.md`, "no
 product code before a red test".
 
+`fix-with-test` is the same shape with one step fewer: the worker's `red-test`
+gate wants the new test red, and the patcher's gates want it green, replay
+each new test without the patch (`red-first`) and run the whole suite
+(`command`). a promise you write should be one of those: "the new test fails on
+the unpatched code" is a gate, "the test is written before the patch" is a
+sentence a model is asked to agree with. `python run.py show <flow>` prints
+each promise with the gate that shows it, and one with none beside it is only
+asked for.
+
+when every promise is a program, a judge at the end has nothing left to check
+and a way to fail correct work, so `verify:` at the top of the flow switches it:
+
+    verify: "off"     # the verify steps are declared and not run
+    verify: judge     # they run as written
+
+`fix-with-test` ships `verify: "off"`, with its verify step left in the file
+asking only whether the patch is the smallest one, the one thing no program
+there shows. a flow that does not say runs its verify steps as written.
+`verify: judge` with no step of role `verify` is refused when the flow loads.
+quote the `"off"`: unquoted, yaml reads it as false, which is read as off too,
+but anything that reads the file without the loader sees `false`.
+
 ## 6. run it three times before you trust it
 
     python run.py my-flow --force

@@ -21,23 +21,23 @@ steps:
         command: ["python", "-m", "pytest", "-q", "{test}"]
       - gate: red-first
         command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "{test}"]
+      - gate: command
+        command: ["python", "-m", "pytest", "-q"]
+        expect: 0
   - role: verify
     prompt: verify.md
     writes: none
     on_redo: patcher
     gates:
       - gate: verdict
-        passes: 3
-      - gate: command
-        command: ["python", "-m", "pytest", "-q"]
-        expect: 0
+verify: "off"
 promises:
   inputs: a bug report and the file it is probably in
   outputs: a failing test, then a patch, then the test passing
   invariants:
-    - the test is written before the patch
-    - the test fails on the unpatched code
-    - the patch is the smallest thing that turns it green
+    - the new test fails on the unpatched code
+    - the new test passes with the patch
+    - the whole suite passes with the patch
 max_calls: 9
 timeout: 300
 retries: 2

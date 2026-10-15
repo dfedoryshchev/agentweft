@@ -99,7 +99,11 @@ def test_with_e2e_off_the_prompt_says_not_to_write_them(tmp_path,
 
 
 def test_the_patcher_gets_the_same_brief(tmp_path, monkeypatch):
-    sent, _ = fix_run(tmp_path, monkeypatch)
+    flows = copied_flow(tmp_path, "")
+    flow = flows / "fix-with-test" / "flow.yaml"
+    flow.write_text(flow.read_text(encoding="utf-8").replace(
+        'verify: "off"', "verify: judge"), encoding="utf-8")
+    sent, _ = fix_run(tmp_path, monkeypatch, flows=flows)
     assert "both sides of every boundary" in sent["patcher.md"]
     assert "    e2e: off" in sent["patcher.md"]
     assert "both sides of every boundary" not in sent["verify.md"]

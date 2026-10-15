@@ -93,14 +93,7 @@ FIXES = {
                                " test_calc.py | saw: 1 passed",
                                doubts="nothing else calls add, so no caller"
                                " was checked"),
-                       {"calc.py": FIXED})],
-    "verify.md": ["PASS the test is written before the patch\n"
-                  "PASS the test fails on the unpatched code\n"
-                  "PASS the patch is the smallest thing that turns it "
-                  "green\n"
-                  + block("the three promises hold",
-                          "the whole suite is green | cmd: python -m pytest"
-                          " -q | saw: 1 passed")]}
+                       {"calc.py": FIXED})]}
 
 FEATURE = "calc gets mul(a, b), which multiplies"
 ADD_ONLY = "def add(a, b):\n    return a + b\n"

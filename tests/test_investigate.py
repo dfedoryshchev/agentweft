@@ -107,7 +107,7 @@ def test_the_library_has_words_for_the_role_and_it_is_not_the_planner():
 def test_the_shipped_flow_says_off():
     fm = runner.config("fix-with-test")
     assert fm.get("investigate") in ("off", False)
-    assert [s["role"] for s in fm.steps] == ["worker", "patcher", "verify"]
+    assert [s["role"] for s in fm.steps] == ["worker", "patcher"]
 
 
 def flow_with(tmp_path, mode):
@@ -208,7 +208,7 @@ def test_a_two_site_cause_reaches_the_worker_as_anchors_not_code(
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS)
     assert code == 0
     assert [s for s, _ in asked] == ["investigator.md", "worker.md",
-                                     "patcher.md", "verify.md"]
+                                     "patcher.md"]
     told = prompt_of(asked, "worker.md")
     assert SITE_ONE in told and SITE_TWO in told
     assert "CAUSE: calc.py:2" in told
@@ -230,14 +230,14 @@ def test_the_patcher_is_told_to_fix_every_named_site(tmp_path, monkeypatch):
 def test_related_defects_go_to_the_output_and_not_to_the_fix(tmp_path,
                                                              monkeypatch):
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS)
-    for step in ("worker.md", "patcher.md", "verify.md"):
+    for step in ("worker.md", "patcher.md"):
         assert "header row is printed twice" not in prompt_of(asked, step)
     saved = [p for p in (tmp_path / "runs").iterdir()
              if p.is_file() and p.name.startswith("fix-with-test-")]
     assert len(saved) == 1
     text = saved[0].read_text(encoding="utf-8")
     assert RELATED in text
-    assert text.startswith(VERIFIED)
+    assert text.startswith(PATCHER)
 
 
 def test_an_unrooted_cause_parks_with_the_gap_named(tmp_path, monkeypatch):
@@ -259,7 +259,7 @@ def test_a_resumed_park_hands_the_worker_the_sites(tmp_path, monkeypatch):
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS,
                          more=["--resume", parked])
     assert code == 0
-    assert [s for s, _ in asked] == ["worker.md", "patcher.md", "verify.md"]
+    assert [s for s, _ in asked] == ["worker.md", "patcher.md"]
     assert SITE_TWO in prompt_of(asked, "worker.md")
     assert SITE_TWO in prompt_of(asked, "patcher.md")
 
@@ -284,7 +284,7 @@ def test_plan_asks_for_the_tests_and_the_decisions_as_well(tmp_path,
 
 def test_off_sends_the_patcher_the_words_it_always_had(tmp_path, monkeypatch):
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="off")
-    assert [s for s, _ in asked] == ["worker.md", "patcher.md", "verify.md"]
+    assert [s for s, _ in asked] == ["worker.md", "patcher.md"]
     told = prompt_of(asked, "patcher.md")
     assert "- do not touch anything the test does not reach" + NL in told
     assert "{SCOPE}" not in told

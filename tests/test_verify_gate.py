@@ -1,7 +1,8 @@
-"""the closing step of fix-with-test runs the suite rather than reading about it.
+"""fix-with-test's patcher runs the suite rather than a model reading about it.
 
 the flow promised that the patch turns the test green and then asked a model
-whether it had. the check that says so now shells out.
+whether it had. the check that says so shells out, on the step that made the
+patch, so it runs whether the judge is on or off.
 """
 import json
 import sys
@@ -15,19 +16,19 @@ from agentweft.runner import engine, prompts
 NL = chr(10)
 
 
-def verify_step():
+def patcher_step():
     for s in runner.config("fix-with-test").steps:
-        if s["role"] == "verify":
+        if s["role"] == "patcher":
             return s
-    raise AssertionError("fix-with-test has no verify step")
+    raise AssertionError("fix-with-test has no patcher step")
 
 
 def declared():
-    return [g for g in (verify_step().get("gates") or [])
+    return [g for g in (patcher_step().get("gates") or [])
             if g.get("gate") == "command"]
 
 
-def test_the_verify_step_asks_for_the_suite_to_be_run():
+def test_the_patcher_asks_for_the_suite_to_be_run():
     assert len(declared()) == 1
     entry = declared()[0]
     assert "pytest" in entry["command"]
@@ -39,7 +40,8 @@ def test_the_declaration_resolves_to_a_gate_that_shells_out():
     fm = runner.config("fix-with-test")
     by_role = resolver.resolve(fm.raw, runner.flow_path("fix-with-test"))
     run = runner.Run("fix-with-test", fm, by_role)
-    built = [g for g in run.gates_for("verify.md") if isinstance(g, CommandGate)]
+    built = [g for g in run.gates_for("patcher.md")
+             if isinstance(g, CommandGate)]
     assert len(built) == 1
     assert built[0].opts["command"] == declared()[0]["command"]
     assert int(built[0].opts.get("expect", 0)) == 0

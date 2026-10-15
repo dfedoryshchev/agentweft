@@ -137,6 +137,13 @@ with `investigate:` on takes one. a flow file that writes `{SCOPE}` gets
 what a patch may touch there: what the test reaches when nothing was
 investigated, the named sites when something was (`fix-with-test/patcher.md`).
 
+`verify:` is `judge` or `off`. `judge` runs the flow's steps of role `verify` as
+written, `off` takes them out when the flow loads, and a flow that does not
+say runs them as written. it is for a flow whose promises are all gates on the
+steps before, where the judge can only fail what the programs passed:
+`fix-with-test` ships `verify: "off"` (`gates.md` has the why, and
+`writing-a-flow.md` how to write promises a gate can show).
+
 `fanout: true` on a step means the step before it produced a list, one line
 each, and every line gets its own call instead of the whole list going to one
 worker. the calls run side by side and the results are joined in the order

@@ -3,22 +3,21 @@
   "raised": null,
   "path": [
     "1 worker.md ok -> patcher.md  PASS red-test",
-    "2 patcher.md ok -> verify.md  PASS red-test  PASS red-first",
-    "3 verify.md ok  PASS verdict  PASS command"
+    "2 patcher.md ok  PASS red-test  PASS red-first  PASS command"
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  ok, 3 promise(s) not checked  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  fix-with-test-<run>/handoff.md"
+    "<time>  fix-with-test  ok  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  fix-with-test-<run>/handoff.md"
   ],
   "index": [
-    "fix-with-test-<day>-1.md  fix-with-test  3 steps"
+    "fix-with-test-<day>-1.md  fix-with-test  2 steps"
   ],
   "handoff": [
     "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
-    "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) \u2192 -1.",
+    "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) \u2192 -1.",
     "patcher did:",
     "- add returns a + b; it subtracted",
-    "checks: 5 of 5 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
@@ -30,13 +29,11 @@
     "- worker.md: PASS red-test - red, exit 1 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-test - green, exit 0 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
-    "- verify.md: PASS verdict - 3 PASS, no FAIL",
-    "- verify.md: PASS command - exit 0 (python -m pytest -q)",
+    "- patcher.md: PASS command - exit 0 (python -m pytest -q)",
     "- red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py)",
     "- test order: red before any product code: red-test on worker.md (test_calc.py)",
     "- worker verified: the test fails on the code as it stands | cmd: python -m pytest -q test_calc.py | saw: 1 failed -> unchecked: no transcript for this step",
     "- patcher verified: 1 passed | cmd: python -m pytest -q test_calc.py | saw: 1 passed -> unchecked: no transcript for this step",
-    "- verify verified: the whole suite is green | cmd: python -m pytest -q | saw: 1 passed -> unchecked: no transcript for this step",
     "## rulings",
     "- no pre-existing test or spec file changed",
     "- none on record in decisions.md",
@@ -47,8 +44,8 @@
     "- keep: the task - add(1, 2) is 3 (worker)",
     "- already read: worker: calc.py:1-2 - the one function",
     "## run",
-    "- steps: worker.md <secs>s -> patcher.md <secs>s -> verify.md <secs>s",
-    "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
+    "- steps: worker.md <secs>s -> patcher.md <secs>s",
+    "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
     "- done",
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/"
   ],
@@ -63,9 +60,7 @@
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",
     "fix-with-test-<run>/steps/002-patcher.md",
-    "fix-with-test-<run>/steps/003-verify.md",
     "fix-with-test-<run>/task.md",
-    "fix-with-test-<run>/verify.md",
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
     "index.md",
@@ -149,7 +144,7 @@
       "time": "<time>",
       "step": "patcher.md",
       "from": "worker.md",
-      "to": "verify.md",
+      "to": null,
       "provider": "cli",
       "command": "claude",
       "model": "model-in-replay",
@@ -181,6 +176,11 @@
           "gate": "red-first",
           "ok": true,
           "detail": "not replayed - the place is not in a git work tree"
+        },
+        {
+          "gate": "command",
+          "ok": true,
+          "detail": "exit 0"
         }
       ],
       "ungated": false,
@@ -217,78 +217,6 @@
         "read": [],
         "other": {}
       }
-    },
-    {
-      "seq": 3,
-      "time": "<time>",
-      "step": "verify.md",
-      "from": "patcher.md",
-      "to": null,
-      "provider": "cli",
-      "command": "claude",
-      "model": "model-in-replay",
-      "model_reported": "model-in-replay",
-      "model_choice": null,
-      "grant": null,
-      "tokens": {
-        "counted": true,
-        "input": 100,
-        "output": 20,
-        "cache_read": 0,
-        "cache_creation": 0
-      },
-      "cost": 0.01,
-      "priced": null,
-      "cost_from": null,
-      "session": "verify-1",
-      "seconds": "<seconds>",
-      "cached": false,
-      "retries": {},
-      "background_killed": 0,
-      "gates": [
-        {
-          "gate": "verdict",
-          "ok": true,
-          "detail": "3 PASS, no FAIL"
-        },
-        {
-          "gate": "command",
-          "ok": true,
-          "detail": "exit 0"
-        }
-      ],
-      "ungated": false,
-      "outcome": "ok",
-      "cause": null,
-      "why": null,
-      "file": "steps/003-verify.md",
-      "task_file": "task.md",
-      "tasks": null,
-      "handoff": {
-        "state": "present",
-        "did": [
-          "the three promises hold"
-        ],
-        "verified": [
-          {
-            "claim": "the whole suite is green",
-            "cmd": "python -m pytest -q",
-            "saw": "1 passed",
-            "excerpts": [
-              "1 passed"
-            ],
-            "backed": "unchecked",
-            "why": "no transcript for this step"
-          }
-        ],
-        "not_verified": [],
-        "assumed": [],
-        "doubts": [],
-        "must_not_miss": [],
-        "tried": [],
-        "read": [],
-        "other": {}
-      }
     }
   ],
   "printed": [
@@ -297,27 +225,22 @@
     "started patcher.md",
     "  PASS red-test - green, exit 0",
     "  PASS red-first - not replayed - the place is not in a git work tree",
-    "started verify.md",
-    "  PASS verdict - 3 PASS, no FAIL",
     "  PASS command - exit 0",
-    "promise not checked: the test is written before the patch",
-    "promise not checked: the test fails on the unpatched code",
-    "promise not checked: the patch is the smallest thing that turns it green",
     "saved <tmp>/runs/fix-with-test-<day>-1.md",
-    "PASS the test is written before the patch",
-    "PASS the test fails on the unpatched code",
-    "PASS the patch is the smallest thing that turns it green",
+    "TEST: test_calc.py",
+    "-    return a - b",
+    "+    total = a + b",
+    "+    return total",
     "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
-    "fix-with-test ran worker.md -> patcher.md -> verify.md in <secs>s on: add(1, 2) \u2192 -1.",
+    "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) \u2192 -1.",
     "patcher did:",
     "- add returns a + b; it subtracted",
-    "checks: 5 of 5 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 246e2e8330466653b335589cc97dc9c670ecc661d1450a47bde1dbce1cb76308",
-    "verify.md go 1 6bb8e88a132a7695dfee0532a75beccb7fc40e85e7e266fd7a12d157c298a137",
-    "worker.md go 1 d599e0265a32b856cbe616ff6ada62afd110a6e8dc4dfc5f1d19635fc440025c"
+    "patcher.md go 1 60575b09583dd377044051894116c942d38cffde4ffb21363abff49e4d1fb30b",
+    "worker.md go 1 f135630092201b2970b06744f8217cee7f9d54650b7fd9aefad19e99dc852858"
   ]
 }

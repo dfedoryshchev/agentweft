@@ -68,4 +68,6 @@ def test_the_ranking_a_run_holds_reaches_its_gates():
     by_role = resolver.resolve(fm.raw, runner.flow_path("fix-with-test"))
     run = runner.Run("fix-with-test", fm, by_role)
     run.ranking = RANKING
-    assert all(g.ranking == RANKING for g in run.gates_for("verify.md"))
+    built = run.gates_for("patcher.md")
+    assert built
+    assert all(g.ranking == RANKING for g in built)

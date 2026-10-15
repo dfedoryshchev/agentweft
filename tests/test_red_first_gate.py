@@ -185,21 +185,20 @@ def test_a_place_outside_git_passes_saying_it_was_not_replayed(tmp_path):
     assert r.detail.startswith("not replayed")
 
 
-def a_flow_run(tmp_path, monkeypatch, place, mode):
+def a_flow_run(tmp_path, monkeypatch, place, mode, verify="off"):
     """the shipped fix-with-test on the fake provider, each step writing what
     a model would, and committing it when the steps commit."""
     flows = tmp_path / "flows"
     shutil.copytree(FLOWS / "fix-with-test", flows / "fix-with-test")
     yml = flows / "fix-with-test" / "flow.yaml"
-    yml.write_text(yml.read_text(encoding="utf-8") + "provider:" + NL
-                   + "  provider: fake" + NL, encoding="utf-8")
+    yml.write_text(yml.read_text(encoding="utf-8").replace(
+        'verify: "off"', "verify: " + verify) + "provider:" + NL
+        + "  provider: fake" + NL, encoding="utf-8")
     prompts_seen = {}
     answers = {
         "worker.md": WORKER_SAID,
         "patcher.md": "TEST: tests/test_calc.py" + NL + "patched it" + NL,
-        "verify.md": "PASS the test is written before the patch" + NL
-                     + "PASS the test fails on the unpatched code" + NL
-                     + "PASS the patch is the smallest thing" + NL}
+        "verify.md": "PASS the patch is the smallest thing" + NL}
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         prompts_seen[step] = prompt
@@ -222,11 +221,10 @@ def a_flow_run(tmp_path, monkeypatch, place, mode):
 @pytest.mark.parametrize("mode", MODES)
 def test_a_correct_fix_gets_its_red_first_proof_from_the_gate_record(
         tmp_path, monkeypatch, mode):
-    """a correct fix whose verify step could not see the order for itself:
-    the runner shows it and hands it on, and the handoff reads it from the
-    gate record."""
+    """a correct fix, with the judge switched on: the runner shows the red
+    and hands it on, and the handoff reads it from the gate record."""
     place = a_repo(tmp_path / "repo")
-    seen = a_flow_run(tmp_path, monkeypatch, place, mode)
+    seen = a_flow_run(tmp_path, monkeypatch, place, mode, verify="judge")
     engine.main()
     folder = [p for p in state.RUNS.iterdir() if p.is_dir()][0]
     gates_md = (folder / "gates.md").read_text(encoding="utf-8")
@@ -457,7 +455,7 @@ def test_a_resumed_run_replays_from_the_snapshot_it_started_with(
     monkeypatch.setattr(sys, "argv", ["run.py", "fix-with-test", "--force",
                                       "--resume", first.name])
     engine.main()
-    assert goes == ["worker.md", "patcher.md", "patcher.md", "verify.md"]
+    assert goes == ["worker.md", "patcher.md", "patcher.md"]
     second = [p for p in state.RUNS.iterdir() if p.is_dir() and p != first][0]
     handoff = (second / "handoff.md").read_text(encoding="utf-8")
     assert "red first: shown on patcher.md" in handoff

@@ -50,8 +50,12 @@ def cmd_show():
         print("  in:  " + spec.promises.inputs)
     if spec.promises.outputs:
         print("  out: " + spec.promises.outputs)
-    for i in spec.promises.invariants:
-        print("  always: " + i)
+    from agentweft.guardrails import promises
+    for i, by in promises.shown_by(spec.steps, spec.promises.invariants):
+        print("  always: " + i + ("  (shown by " + ", ".join(by) + ")"
+                                  if by else ""))
+    if spec.get("verify") is not None:
+        print("  verify: " + spec.get("verify"))
     where = task.places(flow_path(name), spec)
     if where:
         print("  task: " + task.MARK + " in " + ", ".join(where))

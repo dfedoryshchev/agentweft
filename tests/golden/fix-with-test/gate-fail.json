@@ -29,7 +29,6 @@
     "left",
     "  worker.md",
     "  patcher.md",
-    "  verify.md",
     "worker.md runs again when you carry on; the steps before it do not.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force",
@@ -209,14 +208,13 @@
     "left",
     "  worker.md",
     "  patcher.md",
-    "  verify.md",
     "worker.md runs again when you carry on; the steps before it do not.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 bb2e42bd82e672c996442889512ac4b7121a16d015c13fe0e060f98218ac89da",
-    "worker.md go 2 6fd48a328b774783957fc3779bdfb7740d1d4c477781aa482c302b5dcdb4a6b4"
+    "worker.md go 1 40280b0e881069be3f61ab3d5bcd29797665f7d26c5af58a3a8d1511164d09a6",
+    "worker.md go 2 19ecaebc1b70b201bece66637715c15c5dcf80eadfae0fba9ab5492ead91ffa2"
   ]
 }

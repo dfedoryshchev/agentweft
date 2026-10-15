@@ -84,8 +84,11 @@ def test_the_sides_are_not_the_same_size():
     # the test levels and the step that writes tests are three more: a phase
     # asks for tests in prose, never as a value. what a step writes is one
     # more: a phase states the order in prose, where nothing holds it.
+    #
+    # `verify` is one more on the flow side: a switch for the judge steps,
+    # where a phase's checks are agents and there is nothing to switch.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 25
+    assert len(compare.flow_only()) == 26
     assert len(compare.phase_only()) == 7
 
 
@@ -136,7 +139,7 @@ def test_the_census_counts_the_grant_on_both_sides():
     a reviewer that reproduces a finding has to be granted the shell it runs
     the command in."""
     rows = by_label(compare.census())
-    assert rows["declares a tool grant"].flow == "7 of 24 steps"
+    assert rows["declares a tool grant"].flow == "7 of 23 steps"
     assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 
@@ -148,7 +151,7 @@ def test_the_census_counts_the_paths_a_prompt_names_itself():
     what `project.yml` exists to take to zero, and nothing takes it there yet.
     """
     rows = by_label(compare.census())
-    assert rows["names a path in its prose"].flow == "0 of 24 steps"
+    assert rows["names a path in its prose"].flow == "0 of 23 steps"
     assert rows["names a path in its prose"].phase == "17 of 20 seats"
 
 
@@ -165,7 +168,7 @@ def test_the_census_says_whether_a_seat_reads_its_pre_work_from_the_project():
 
 def test_the_census_says_which_side_runs():
     rows = by_label(compare.census())
-    assert rows["something executes it"].flow == "24 of 24 steps"
+    assert rows["something executes it"].flow == "23 of 23 steps"
     assert rows["something executes it"].phase == "0 of 8 phases"
     assert rows["checks that are programs"].phase == "none"
 
