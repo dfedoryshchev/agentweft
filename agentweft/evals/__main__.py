@@ -41,6 +41,7 @@ def main():
                                time.time() - started, steps=ran.steps,
                                expect=case["expect"])
         scored["replayed"] = bool(case["recording"]) and not record
+        scored["key"] = harness.produced_by(flow, spec, case, ran.steps)
         results.append((case["name"], scored))
     print(harness.table(flow, results))
     if unmatched:

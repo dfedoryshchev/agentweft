@@ -157,6 +157,96 @@ def score(spec, output, budget=None, stopped="", seconds=None, steps=(),
             "seconds": int(seconds or 0)}
 
 
+def prompt_files(flow):
+    """-> one digest over every file a step's words are made of: the flow's
+    own prompts, the role library, the fragments and the skills. flow.yaml
+    is left out, it has a digest of its own."""
+    from agentweft.roles import resolver
+    from agentweft.runner import manifest
+    from agentweft.runner.prompts import flow_path
+
+    files = {}
+    for where, folder in (("flow", flow_path(flow)),
+                          ("roles", resolver.LIBRARY),
+                          ("fragments", resolver.HERE / "fragments"),
+                          ("skills", resolver.HERE / "skills")):
+        for name, digest in manifest.flow_digest(folder)[1].items():
+            if not (where == "flow" and name == "flow.yaml"):
+                files[where + "/" + name] = digest
+    return manifest.sha("\n".join(k + " " + v for k, v in sorted(files.items()))
+                        .encode("utf-8"))
+
+
+def answered_by(line, pinned):
+    """-> "<provider> <model>" for one line of steps.jsonl.
+
+    a replayed case's lines say `replay`, so the case's own provider is the
+    one named: a recording replayed is the provider that recorded it."""
+    model = line.get("model_reported") or line.get("model")
+    for t in line.get("tasks") or []:
+        model = model or t.get("model_reported")
+    who = pinned or line.get("provider") or ""
+    return (who + " " + model) if model else who
+
+
+def produced_by(flow, spec, case, record):
+    """-> what a score was produced by: the model at each step, the prompts,
+    the flow file, the settings that change what runs, and the day."""
+    import datetime
+
+    from agentweft.flow import spec as flowspec
+    from agentweft.runner import manifest
+    from agentweft.runner.prompts import flow_path
+
+    pinned = (case.get("provider") or {}).get("provider")
+    models = {}
+    for line in record:
+        said = answered_by(line, pinned)
+        if said not in models.setdefault(line["step"], []):
+            models[line["step"]].append(said)
+    raw = spec.raw if hasattr(spec, "raw") else dict(spec)
+    judged = any(s.get("role") == "verify" for s in raw.get("steps") or [])
+    return {"models": {k: ", ".join(v) for k, v in sorted(models.items())},
+            "prompts": prompt_files(flow),
+            "flow": manifest.of_file(flow_path(flow, "flow.yaml")),
+            "investigate": flowspec.investigating(raw),
+            "verify": raw.get("verify") or ("judge" if judged else "off"),
+            "date": datetime.date.today().isoformat()}
+
+
+SETTINGS = ("investigate", "verify")
+
+
+def differs(before, now):
+    """-> the fields two scores were produced differently on, [] when they can
+    be compared. a step that ran in only one of them is the flow changing,
+    not its model."""
+    if not before or not now:
+        return []
+    out = [k for k in SETTINGS if before.get(k) != now.get(k)]
+    was, has = before.get("models") or {}, now.get("models") or {}
+    swapped = [s for s in sorted(set(was) & set(has)) if was[s] != has[s]]
+    if swapped:
+        out.append("model at " + ", ".join(swapped))
+    if before.get("prompts") != now.get("prompts"):
+        out.append("prompts")
+    if not out and before.get("flow") != now.get("flow"):
+        out.append("flow")
+    return out
+
+
+def by(key):
+    """-> the line under a case's score that says what produced it."""
+    models = key["models"]
+    said = sorted(set(models.values()))
+    who = (said[0] + " at every step" if len(said) == 1 else
+           ", ".join(s + " " + m for s, m in models.items())) if said \
+        else "no step"
+    return ("by " + who + ", prompts " + key["prompts"][:12]
+            + ", investigate " + str(key["investigate"])
+            + ", verify " + str(key["verify"]))
+
+
 LAST = ROOT / ".last.json"
 
 
@@ -171,7 +261,8 @@ def save_scores(flow, results):
         {name: {"passed": r["passed"], "checked": r["checked"],
                 "calls": r["calls"], "tokens": r["tokens"],
                 "usd": r.get("usd"),
-                "usd_estimated": r.get("usd_estimated", False)}
+                "usd_estimated": r.get("usd_estimated", False),
+                "key": r.get("key")}
          for name, r in results})
     LAST.write_text(json.dumps(blob, indent=2), encoding="utf-8")
 
@@ -186,7 +277,11 @@ def previous(flow):
 
 def compare(flow, results):
     """what got worse since the last scored run. this is the whole point - a
-    single score tells me nothing, a score against last time is a decision."""
+    single score tells me nothing, a score against last time is a decision.
+
+    a score produced by another model, other prompts or other settings is an
+    A/B on that, and never BETTER or WORSE: a model swap is not a regression.
+    a score kept before scores carried what produced them is compared."""
     was = previous(flow)
     if not was:
         return ["  (no previous run to compare against)"]
@@ -198,7 +293,10 @@ def compare(flow, results):
             continue
         d = r["passed"] - before["passed"]
         dt = r["tokens"] - before["tokens"]
+        ab = differs(before.get("key"), r.get("key"))
         mark = "same" if d == 0 else ("BETTER +" + str(d) if d > 0 else "WORSE " + str(d))
+        if ab:
+            mark = "A/B on " + "; ".join(ab)
         out.append("  " + name.ljust(20) + mark
                    + "  (" + str(before["passed"]) + "/" + str(before["checked"])
                    + " -> " + str(r["passed"]) + "/" + str(r["checked"]) + ")"
@@ -219,6 +317,8 @@ def table(flow, results):
                    + r.get("metered", "estimated")
                    + (", " + r["spent"] if r.get("spent") else "")
                    + (", replayed" if r.get("replayed") else ""))
+        if r.get("key"):
+            out.append("      " + by(r["key"]))
         for row in r["rows"]:
             if row["ok"] is False:
                 out.append("      FAIL " + row["invariant"] + " - " + row["detail"])

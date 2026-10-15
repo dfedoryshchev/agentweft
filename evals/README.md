@@ -89,4 +89,30 @@ that is the number i did not have for the first year of this. every prompt
 change before it was judged by reading one output and deciding it looked
 better.
 
+## what produced a score
+
+every score is kept with what produced it, and the table prints it under the
+case's line:
+
+      by api m-1 at every step, prompts 3f9a0c1d2e4b, investigate off, verify off
+
+- the model at each step: the provider and the model id the reply named, or
+  the one it was asked for when the reply named none. a replayed case names
+  the provider in its case.yaml, the one that recorded it
+- a sha256 over every file a step's words come from: the flow's own prompt
+  files, the role library, the fragments and the skills
+- a sha256 of flow.yaml
+- the `investigate:` mode, and whether a verify judge runs
+- the day it was scored
+
+two scores produced differently are not a better or a worse score, they are
+an A/B, and the comparison says on what:
+
+      quiet-week          A/B on model at reviewer.md  (2/2 -> 1/2)
+      busy-week           A/B on investigate; prompts  (2/2 -> 2/2)
+
+a step that ran in only one of the two runs is not a model change; a
+flow.yaml edit that changed none of the above is an A/B on flow. a score kept
+before scores carried any of this is compared as before.
+
 `--no-save` runs without overwriting the baseline.
