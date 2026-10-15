@@ -29,7 +29,7 @@ sys.path.insert(0, ".")
 from agentweft.evals import recording
 from agentweft.evals import steps as took
 from agentweft.providers import cli_provider
-from agentweft.runner import engine, prompts, resume, trace
+from agentweft.runner import engine, prompts, resume, ruling, trace
 
 HERE = Path(__file__).resolve().parent
 GOLDEN = HERE / "golden"
@@ -117,6 +117,21 @@ MUL_PLAN = "- mul(2, 3) is 6 | calc.py\n"
 MUL_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
               "TEST: test_mul.py\n\n" + MUL_TEST, {"test_mul.py": MUL_TEST})
 MUL_BUILT = "- calc.py: mul(a, b) added\n"
+MUL_SPEC = "# calc\n\nmul(a, b) returns a times b\n"
+MUL_NEEDS = ("NEEDS: should mul round a float product to an int?\n"
+             "CITES:\n- TASK.md:3 - mul(a, b) returns a times b\n"
+             "OPTIONS:\n- keep: return the product as it is\n"
+             "- round: round it to an int\n")
+MUL_DECIDED = ("DECIDED: keep: return the product as it is\n"
+               "why: TASK.md:3 says a times b and nothing about rounding\n")
+ADD_SPEC = "# calc\n\ncalc only adds; it has no other operation\n"
+ADD_CONFLICT = ('CONFLICT: TASK.md:3 "calc only adds; it has no other'
+                ' operation"\nrequest: ' + FEATURE + "\n")
+
+NOTES_MD = "the plan moved to friday\nthe rent is due on the 1st\n"
+ASKS = ("NEEDS: notes.md has a plan line and a money line; summarise both?\n"
+        "OPTIONS:\n- only the plan line\n- both lines\n")
+DECLINES = 'REFUSED: notes.md:2 "the rent is due on the 1st" is money, not notes\n'
 LAST = "<the run the leg before left>"
 
 CASES = {
@@ -268,6 +283,34 @@ CASES = {
         "answers": {"worker.md": FIXES["worker.md"],
                     "patcher.md": [limited(), limited()]
                     + FIXES["patcher.md"]}},
+    ("summarise-and-check", "ruling-resume"): {
+        "place": {"notes.md": NOTES_MD},
+        "legs": [[], ["--resume", LAST],
+                 ["--resume", LAST, "--answer", "only the plan line"]],
+        "answers": {
+            "worker.md": [ASKS, SUMMARY],
+            "reviewer.md": ["VERDICT: ok\n\n" + SUMMARY]}},
+    ("summarise-and-check", "refused"): {
+        "place": {"notes.md": NOTES_MD},
+        "legs": [[], ["--resume", LAST]],
+        "answers": {"worker.md": [DECLINES]}},
+    ("build-feature", "conflict"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": ADD_SPEC},
+        "args": ["--task", FEATURE],
+        "legs": [[], ["--resume", LAST, "--answer",
+                      "override: calc may multiply now"]],
+        "answers": {
+            "planner.md": [ADD_CONFLICT, MUL_PLAN],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "lead-decides"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "answers": {
+            "planner.md": [MUL_PLAN, MUL_DECIDED],
+            "tester.md": [MUL_RED],
+            "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
 }
 
 
@@ -371,6 +414,9 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=script.run, TimeoutExpired=subprocess.TimeoutExpired))
     monkeypatch.setattr(cli_provider, "call", answering(script.run))
+
+    # an answer says who gave it, and that is whoever runs the suite
+    monkeypatch.setattr(ruling, "who", lambda: "the operator")
 
     legs = case.get("legs")
     codes, raises, prints = [], [], []

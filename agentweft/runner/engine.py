@@ -182,19 +182,31 @@ def write_index(line):
     index.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def resume_command(flow, run_id):
+def resume_command(flow, run_id, caps=None, raise_cap=None):
     """the line a person types to carry on after a park.
 
     it goes in the handoff, so it has to work as printed: the switches this run
     was started with come along, or the command in front of them is one they
-    have to debug before they can use it.
+    have to debug before they can use it. `caps` are the caps the run was
+    given on the command line, repeated as they are; `raise_cap` is the one
+    a budget park needs raised, written as `<n>`.
     """
     out = ["python run.py", flow, "--resume", run_id]
     if "--force" in sys.argv:
         out.append("--force")
     if "--flows" in sys.argv:
         out = out + ["--flows", sys.argv[sys.argv.index("--flows") + 1]]
+    for flag, key in CAPS:
+        if key == raise_cap:
+            out = out + [flag, "<n>"]
+        elif key in (caps or {}):
+            out = out + [flag, str(caps[key])]
     return " ".join(out)
+
+
+def cap_of(why):
+    """-> the cap a budget park's why names, max_calls or max_tokens."""
+    return "max_tokens" if "token cap" in why else "max_calls"
 
 
 def first_reader(flow, fm, order, start):
@@ -249,6 +261,7 @@ class Run(object):
         self.ruled = {}
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
+        self.caps = {}
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.
         if isinstance(provider, providers.Provider):
@@ -1060,16 +1073,20 @@ def run_once(flow, provider=None, task=None, trail=None):
             mine = run.taken()
             head, decided, question = to_lead(run, step, said[1], given,
                                               "a run of " + flow)
-            if head is not None and kept is not None:
-                lead_pass(kept, run, head, step, decided)
-            run.attempts = mine + run.taken()
+            theirs = run.taken()
+            run.attempts = mine
             if decided:
                 note("asked", said[1].split("\n")[0], to=run.lead,
                      output=out.output)
+            else:
+                note("parked", question, stops.PARKED, output=out.output)
+            if head is not None and kept is not None:
+                run.attempts = theirs
+                lead_pass(kept, run, head, step, decided)
+            if decided:
                 run.ruled[step] = decided
                 out = handed
                 continue
-            note("parked", question, stops.PARKED, output=out.output)
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + question.split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
@@ -1195,11 +1212,12 @@ def main():
             print(question)
             print("")
             print("answer it with")
+            again = resume_command(flow, pick_up, found.data.get("caps"))
             if ended.get("cause") == stops.CONFLICT:
-                print("  " + resume_command(flow, pick_up) + park.OVERRIDE)
-                print("  " + resume_command(flow, pick_up) + park.REQUEST)
+                print("  " + again + park.OVERRIDE)
+                print("  " + again + park.REQUEST)
             else:
-                print("  " + resume_command(flow, pick_up) + park.ANSWER)
+                print("  " + again + park.ANSWER)
             return stops.EXIT_STOP
     if answer is not None and question is None:
         print(pick_up + " is not waiting for a ruling, so --answer has nothing"
@@ -1318,26 +1336,40 @@ def main():
                       "given with --continue " + carry + ": "
                       + ", ".join(sorted(run.order.proof["tests"]))))
     try:
-        for key, value in caps_given(sys.argv).items():
-            setattr(run.budget, key, value)
+        given = caps_given(sys.argv)
     except ValueError as e:
         print(str(e))
         return 1
+    # a cap given on the command line is the run's, not one leg's: a resume
+    # without it would carry on under the flow's, past the one it parked on
+    held = dict((found.data.get("caps") or {}) if found else {})
+    held.update(given)
+    for key, value in held.items():
+        setattr(run.budget, key, value)
+    run.caps = held
+    raised = None
     if found:
         run.budget.restore(found.spend)
         waits = run.budget.ahead()
         if waits:
-            print(pick_up + " is at its cap (" + waits[1] + "). carry on with"
-                  " --resume " + pick_up + " --max-calls <n> or --max-tokens"
-                  " <n>, or raise max_calls or max_tokens in " + flow
-                  + "/flow.yaml and add --force")
+            flag = FLAG_OF[cap_of(waits[1])]
+            if cap_of(waits[1]) in held:
+                print(pick_up + " is at its cap (" + waits[1] + "). " + flag
+                      + " was given on the command line and holds until a"
+                      " higher one is: carry on with " + resume_command(
+                          flow, pick_up, held, raise_cap=cap_of(waits[1])))
+            else:
+                print(pick_up + " is at its cap (" + waits[1] + "). carry on"
+                      " with --resume " + pick_up + " --max-calls <n> or"
+                      " --max-tokens <n>, or raise max_calls or max_tokens in "
+                      + flow + "/flow.yaml and add --force")
             return 1
         moved = run.budget.moved(found.spend)
         if moved:
-            notes.append(("carried " + pick_up + " on with the "
-                          + ", the ".join(moved),
-                          (found.data.get("stopped") or {}).get("why")
-                          or "the caps were changed before carrying on."))
+            raised = ("carried " + pick_up + " on with the "
+                      + ", the ".join(moved),
+                      (found.data.get("stopped") or {}).get("why")
+                      or "the caps were changed before carrying on.")
     route = router.Router(fm)
     started = datetime.datetime.now()
     run_id = new_run_id(flow, started)
@@ -1417,9 +1449,15 @@ def main():
                                        resumes=pick_up)
         for name in order[:order.index(start)]:
             record.mark(name, manifest.PASSED, pick_up)
+    if held:
+        record.data["caps"] = held
     record.save(run.budget)
     for decided, why in notes:
         decisions.record(folder, decided, why)
+    if raised:
+        # a raised cap is a person letting the run spend more, a ruling like
+        # an --answer, so it is kept where the handoff reads the rulings
+        decisions.record(Path(run.workdir), *raised)
     if answer is not None:
         asker = (found.data.get("stopped") or {}).get("step") or start
         decisions.record(run.workdir, ruling.decided(asker, answer),
@@ -1466,7 +1504,7 @@ def main():
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), decisions.read(run.workdir),
                               run.budget.summary(), stopped=stopped,
-                              needs=needs, command=resume_command(flow, run_id),
+                              needs=needs, command=resume_command(flow, run_id, run.caps),
                               before=earlier, started=started,
                               found=run.produced.get(investigate.STEP, ""),
                               order=run.order.said(), left=left,
@@ -1522,7 +1560,7 @@ def main():
             conflict = cause == stops.CONFLICT
             needs = park.lines(at, waiting, done,
                                resume.remaining(steps(flow), at),
-                               resume_command(flow, run_id),
+                               resume_command(flow, run_id, run.caps),
                                question=question, conflict=conflict,
                                replayed=replayed)
             print("stopped at " + at + " on a spec conflict" if conflict
@@ -1534,21 +1572,26 @@ def main():
             left = (resume.remaining if again or handed else resume.after)(
                 steps(flow), at)
             needs = park.lines(at, waiting, done, left,
-                               resume_command(flow, run_id),
+                               resume_command(flow, run_id, run.caps),
                                why=why + "," if told is None else told,
                                again=again, handed=handed)
             print("parked at " + at + ", waiting for " + waiting)
         else:
             told = why
+            carry = resume_command(flow, run_id, run.caps)
             if cause == stops.BUDGET:
-                told = (why + NEWLINE + "raise the cap to carry on: add"
-                        " --max-calls <n> or --max-tokens <n> to the command"
-                        " below, or edit max_calls or max_tokens in " + flow
-                        + "/flow.yaml. a resume starts at what this run"
+                key = cap_of(why)
+                carry = resume_command(flow, run_id, run.caps, raise_cap=key)
+                told = (why + NEWLINE + "raise the cap to carry on: put the new"
+                        " cap where the command below says <n>"
+                        + ("; " + FLAG_OF[key] + " was given on the command"
+                           " line, so it holds until a higher one is"
+                           if key in run.caps else ", or raise " + key
+                           + " in " + flow + "/flow.yaml and leave the flag"
+                           " off") + ". a resume starts at what this run"
                         " spent.")
             needs = park.lines(at, None, done, resume.remaining(steps(flow), at),
-                               resume_command(flow, run_id), why=told,
-                               cause=cause, handed=handed)
+                               carry, why=told, cause=cause, handed=handed)
         note = leave({"cause": cause, "why": why, "at": at}, needs)
         if index:
             write_index(index)
@@ -1931,6 +1974,7 @@ def outage_why(e):
 
 
 CAPS = (("--max-calls", "max_calls"), ("--max-tokens", "max_tokens"))
+FLAG_OF = dict((key, flag) for flag, key in CAPS)
 
 
 def caps_given(argv):

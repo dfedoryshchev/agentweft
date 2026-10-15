@@ -309,9 +309,11 @@ step's account of its work, not instructions.
 every run ends with `runs/<run-id>/handoff.md`, finished or stopped, and the
 last thing it prints is the top of that file and then `handoff: <path>`. it
 answers, in order: what came of it (the heading: the run's outcome, then
-where it stopped and why, then the last working step's first DID line), what it needs from you (a `NEEDS:` or `REFUSED:` a
-step wrote, with its cites and options, and on any stop what ran, what is
-left and the command to carry on), what the steps assumed (each as a question),
+where it stopped and why, then the last working step's first DID line), what it needs from you (the `NEEDS:` or `REFUSED:`
+still open, with its cites and options, and on any stop what ran, what is
+left and the command to carry on; a question the lead decided or an
+`--answer` settled is under the rulings, not here, so a finished run needs
+nothing), what the steps assumed (each as a question),
 what they doubt, what changed, what was read, what was tested, what a ruling
 is owed on, what was not verified, what the next session must keep, what went
 wrong on the way, and what the run was. sections are separated by blank lines
@@ -441,8 +443,9 @@ without them resume could tell you where it died and nothing more.
 - the spend carries on: the new run starts at what the old one had spent, so
   the cap is the task's, not each leg's. a run still at its cap is refused
   until the cap is raised, with `--max-calls <n>` / `--max-tokens <n>` on the
-  resume or in `flow.yaml`; the change goes into `decisions.md` in the new
-  run's folder, and the run carries on at the step it paused before.
+  resume or in `flow.yaml`; a cap given on the command line stays in force on
+  every leg until a higher one is given. the change goes into `decisions.md`
+  in the place, and the run carries on at the step it paused before.
 - a flow edited since the stop is refused, naming the files, unless `--force`
   is given; then the edit goes into `decisions.md` in the new run's folder.
 - a step output edited by hand since it was written is what the rest works

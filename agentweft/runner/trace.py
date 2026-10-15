@@ -237,6 +237,7 @@ class Trail(object):
         self.seq = max(after, last_seq(folder))
         self.unclosed = []
         self.closed = []
+        self.held = []
         self.task_file = TASK if (folder / TASK).is_file() else None
 
     def open(self, step, attempts, provider, came_from, output=None,
@@ -255,14 +256,24 @@ class Trail(object):
         return entry
 
     def close(self, entry, outcome, why=None, to=None, cause=None):
+        """write entry's line, after the line of every entry opened before it
+        that is still open: the lead's pass closes inside the pass of the
+        step that asked it, and the file keeps the order the steps ran in."""
         self.folder.mkdir(parents=True, exist_ok=True)
         if entry in self.unclosed:
             self.unclosed.remove(entry)
-        self.closed.append((entry, outcome))
         entry.written = line(entry, outcome, why, to, cause, self.task_file,
                              self.folder)
+        self.held.append((entry, outcome))
+        first = min(e.seq for e in self.unclosed) if self.unclosed else None
+        ready = sorted((h for h in self.held
+                        if first is None or h[0].seq < first),
+                       key=lambda h: h[0].seq)
+        self.held = [h for h in self.held if h not in ready]
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry.written, ensure_ascii=False) + "\n")
+            for done, said in ready:
+                self.closed.append((done, said))
+                f.write(json.dumps(done.written, ensure_ascii=False) + "\n")
 
     def still_open(self):
         """-> the entry opened and not yet given an outcome, or None."""

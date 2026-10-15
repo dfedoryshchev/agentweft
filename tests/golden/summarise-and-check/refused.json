@@ -1,0 +1,151 @@
+{
+  "exit": [
+    0,
+    1
+  ],
+  "raised": [
+    null,
+    null
+  ],
+  "path": [
+    "1 worker.md refused"
+  ],
+  "journal": [
+    "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
+    "<time>  summarise-and-check  refused at worker.md  <secs>s  summarise-and-check-<run>  declined  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  summarise-and-check-<run>/handoff.md"
+  ],
+  "index": [],
+  "handoff": [
+    "# summarise-and-check summarise-and-check-<run>: refused (spec cited) at worker.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+    "summarise-and-check ran worker.md in <secs>s.",
+    "no step handed over a block, so what was done is only what git and the gates show below.",
+    "checks: no gates ran; red first: not proven by a gate.",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## needs you",
+    "- worker refused: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+    "refused at     worker.md",
+    "worker.md declined the work, citing:",
+    "  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+    "nothing failed. the run ends here, and that is its answer. to have",
+    "the work done anyway, change that line or start a new run whose",
+    "task says to.",
+    "ran",
+    "  worker.md       <secs>s",
+    "## assumed - tell me if wrong",
+    "- nothing assumed, or no step said",
+    "## doubts",
+    "- none raised",
+    "## changed",
+    "- not a git checkout, so what changed is not recorded",
+    "## read",
+    "- no pass has a transcript or a READ line",
+    "## tests and checks",
+    "- red first: not proven by a gate",
+    "## rulings",
+    "- no pre-existing test or spec file changed",
+    "- none on record in decisions.md",
+    "## not verified",
+    "- handoff missing: worker.md",
+    "## carry forward",
+    "- nothing beyond the record",
+    "## retro",
+    "- worker.md <secs>s ($0.0100): refused",
+    "## run",
+    "- steps: worker.md <secs>s",
+    "- spend: 1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
+    "- cause: declined at worker.md",
+    "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.md, steps/",
+    "the run ended here; there is nothing to carry on."
+  ],
+  "files": [
+    "journal.md",
+    "last-run-summarise-and-check-<key>.json",
+    "summarise-and-check-<run>/handoff.md",
+    "summarise-and-check-<run>/manifest.json",
+    "summarise-and-check-<run>/steps.jsonl",
+    "summarise-and-check-<run>/steps/001-worker.md",
+    "summarise-and-check-<run>/why.md",
+    "summarise-and-check-<run>/workdir",
+    "summarise-and-check-<run>/worker.md"
+  ],
+  "steps": [
+    {
+      "seq": 1,
+      "time": "<time>",
+      "step": "worker.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "grant": null,
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "session": "worker-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "refused",
+      "cause": "declined",
+      "why": "REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+      "file": "steps/001-worker.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "other": {}
+      }
+    }
+  ],
+  "printed": [
+    [
+      "started worker.md",
+      "refused at worker.md: REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+      "# summarise-and-check summarise-and-check-<run>: refused (spec cited) at worker.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+      "summarise-and-check ran worker.md in <secs>s.",
+      "no step handed over a block, so what was done is only what git and the gates show below.",
+      "checks: no gates ran; red first: not proven by a gate.",
+      "changed: not a git checkout, so what changed is not recorded here.",
+      "## needs you",
+      "- worker refused: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+      "refused at     worker.md",
+      "worker.md declined the work, citing:",
+      "  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+      "nothing failed. the run ends here, and that is its answer. to have",
+      "the work done anyway, change that line or start a new run whose",
+      "task says to.",
+      "ran",
+      "  worker.md       <secs>s",
+      "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
+    ],
+    [
+      "summarise-and-check-<run> ended refused at worker.md: REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes. that is its answer; there is nothing to pick up"
+    ]
+  ],
+  "prompts": [
+    "worker.md go 1 d0d9bef8b27594a30bb3318db09f75ffbef21598a6da60a8342c9f4a8462bca1"
+  ]
+}

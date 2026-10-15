@@ -117,7 +117,7 @@ def test_a_raised_cap_carries_on_at_the_step_that_did_not_run(tmp_path,
     assert asked == ["c.md"]
     [resumed] = [p for p in folders(tmp_path) if p != first]
     assert Budget().restore(manifest.load(resumed).spend).calls == 3
-    [said] = decisions.read(resumed)
+    [said] = decisions.read(tmp_path)
     assert "call cap" in said.decided
     assert "2" in said.decided and "3" in said.decided
 

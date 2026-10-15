@@ -187,7 +187,7 @@ def test_a_budget_stop_leaves_a_handoff(tmp_path, monkeypatch):
     note = (first / "handoff.md").read_text(encoding="utf-8")
     assert "call cap: 1 of 1 calls spent" in note
     assert note.rstrip(NL).split(NL)[-1].strip() == \
-        "python run.py spent --resume " + first.name + " --force"
+        "python run.py spent --resume " + first.name + " --force --max-calls <n>"
 
 
 def test_resume_followed_by_another_switch_is_not_a_run_id(tmp_path,

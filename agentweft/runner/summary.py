@@ -770,7 +770,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.append("changed: not a git checkout, so what changed is not"
                    " recorded here.")
 
-    asked = asks(every)
+    asked = asks(still_open(every, stopped))
     asked.extend("- " + investigate.STEP + " leaves to you: " + l[2:]
                  for l in investigate.listed(dug, "DECISIONS"))
     if stopped or asked:
@@ -924,13 +924,37 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))
     out.append("- record: runs/" + run_id + "/steps.jsonl, gates.md, steps/")
-    if stopped and command:
-        # the file ends on the line to type, so the end of a long handoff is
-        # the same answer as the top of it
+    if stopped:
         out.append("")
-        out.append("to carry on")
-        out.append("  " + command)
+        out.extend(carry_on(needs, command))
     return out
+
+
+CARRY_ON = "to carry on"
+
+
+def carry_on(needs, command):
+    """-> the lines a stopped run's handoff ends on: the "to carry on" block
+    of its needs section, word for word, so the end of a long handoff is the
+    same answer as the top of it. a section with no such block is a run that
+    ended on its answer, and nothing carries it on."""
+    if needs and CARRY_ON in needs:
+        at = len(needs) - 1 - needs[::-1].index(CARRY_ON)
+        return [l for l in needs[at:] if l.strip()]
+    if needs or not command:
+        return ["the run ended here; there is nothing to carry on."]
+    return [CARRY_ON, "  " + command]
+
+
+def still_open(passes, stopped):
+    """-> the passes whose questions nobody has answered yet: on a stopped
+    run, the last pass of the step it stopped at. a finished run has none,
+    and a question an earlier pass asked was answered before the run went
+    past it, by the lead or with --answer."""
+    if not stopped:
+        return []
+    at = [p for p in passes if p["step"] == stopped["at"]]
+    return at[-1:]
 
 
 def top(lines):

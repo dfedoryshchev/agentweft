@@ -30,13 +30,19 @@ the cap is for the task, not for one go at it: a resumed run starts at what
 the run it picks up had spent, and one still at its cap is refused, so a budget
 park carries on only once the cap is raised. raise it for that resume with
 `--max-calls <n>` or `--max-tokens <n>`, or in `flow.yaml` (which edits the
-flow, so the resume then needs `--force`):
+flow, so the resume then needs `--force`). the handoff ends on that command,
+with `<n>` where the new cap goes:
 
     python run.py weekly-digest --resume <run-id> --max-calls 30
 
+a cap given on the command line is the run's, kept in its manifest: a resume
+that does not name it carries on under it, every carry-on command the run
+prints repeats it, and only a higher one on the command line gets past it.
+
 the resume starts at the step the run paused before, and writes the change
-into `decisions.md` in its folder: `carried <run-id> on with the call cap from
-20 to 30`, under the why the run paused with. a flow that says nothing gets the
+into `decisions.md` in the place the run works in, beside the `--answer`
+rulings, so the resumed run's handoff shows it: `carried <run-id> on with the
+call cap from 20 to 30`, under the why the run paused with. a flow that says nothing gets the
 defaults in `runner/settings.py`: 25 calls and no token cap. the call cap is
 the one that catches a run going round in a loop, so it is on until a flow
 sets its own.
