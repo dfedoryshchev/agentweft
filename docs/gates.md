@@ -358,9 +358,9 @@ records it as a `start-tests` line in `gates.md`:
 - a test green when the run started and red now (failed, errored, or in a
   file that no longer collects) stops the run `stopped: spec conflict`, cause
   `conflict`, naming the test id and its assertion (`docs/journal.md`). which
-  tests were green at the start is read by running the same tests on the
-  start state, once per run, and only when something came back red: a test
-  red at the start is never blamed on the run.
+  tests were green at the start is read from the suite baseline below, and
+  only when something came back red: a test red at the start is never blamed
+  on the run.
 - unless a ruling in `decisions.md` covers it: one that names the test (its
   id, with or without the folders before the file), or one that quotes in
   double quotes, three words or more, a line of a spec file as the run found
@@ -371,6 +371,38 @@ records it as a `start-tests` line in `gates.md`:
 a place outside git has no start commit and says `not replayed`. a checkout
 that cannot be made, or a pytest that cannot start, fails the line like a
 gate. with `--skip-tests` it does not run.
+
+## the suite as the run found it
+
+    # flow.yaml
+    baseline: on
+
+the same start tests, run on the start state alone: a temporary checkout of
+the start commit given the files that were already loose, no product change,
+one pytest run, no model. what each test did is kept as
+`runs/<id>/baseline.json`: the start commit, the dirty-tree id, the passed
+tests, the red ones with what they said, the flaky ones, and `from: run` or
+`from: cache`.
+
+- when: `baseline: on` runs it as the run starts; `auto`, the default, only
+  when it is needed, which is once the start-tests replay comes back red or a
+  stop finds a test the run added or changed red; `off` never, and then the
+  replay runs the start state for itself and nothing is kept.
+- cached by what decides it: the start commit, a hash of the files loose at
+  the start (none for a clean tree), the command that starts pytest, the
+  python version and the lock files at the start. the cache is a
+  `baseline-<key>.json` under the runs root, so a second run on the same
+  commit reads it and runs nothing.
+- a test red at the start is run again alone, up to three times, in the same
+  checkout. one that passes on a retry is flaky: it is not read as green at
+  the start, so it is never blamed on the run either.
+- the handoff's tests section names each one: `red when the run started, not
+  the run's doing: <id>: <what it said>` and `flaky when the run started (red,
+  then green on a retry): <id>`. a test left red by a stop that was already
+  red at the start says `red when the run started` after it.
+
+a place outside git, or with no commit, has no start state to run and keeps
+no baseline; neither does a run with `--skip-tests`.
 
 ## a rule is checked only if it has a pattern
 

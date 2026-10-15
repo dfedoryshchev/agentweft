@@ -184,6 +184,11 @@ now. a test that was green then and is red now stops the run as a spec
 conflict naming it, unless a ruling in `decisions.md` names the test or
 quotes the spec line that decides it; a test red at the start is not counted
 (`docs/gates.md`, "the tests the run started with, after product code").
+which tests were red at the start is the run's suite baseline, kept as
+`runs/<id>/baseline.json` and cached by start commit; `baseline: on | auto |
+off` says when it is read, and the handoff names a test red when the run
+started as that, never as the run's doing (`docs/gates.md`, "the suite as
+the run found it").
 "do not edit the tests you were given" is a sentence in a prompt; this is a
 pytest run.
 

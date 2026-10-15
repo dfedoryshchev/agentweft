@@ -707,7 +707,7 @@ def changed_lines(changes):
 
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
-          found="", order="", left=None):
+          found="", order="", left=None, suite=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -717,7 +717,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     run waits for someone; `command` is the line that carries on; `found` is
     the investigator's answer when the flow ran one; `order` is the line on
     the red test the run holds before product code, "" for none; `left` is
-    what a stop found of the tests the run added or changed (`leftred.check`).
+    what a stop found of the tests the run added or changed (`leftred.check`);
+    `suite` is the lines on the suite as the run found it (`baseline.lines`).
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -832,6 +833,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("- red first: " + red_first(every))
     if order:
         out.append("- test order: " + order)
+    out.extend(suite)
     _, shown = replay(every)
     if shown is not None:
         from agentweft.guardrails.gates.redfirst_gate import said_of

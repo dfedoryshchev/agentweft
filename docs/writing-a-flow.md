@@ -81,6 +81,21 @@ runs without tests and says so; `--continue <run or commit>` carries tests
 already written, committed or not. the rules are in `docs/gates.md`, "no
 product code before a red test".
 
+a test that was red before the run touched anything is not the run's doing,
+and `baseline:` says when the runner finds those out:
+
+    baseline: auto    # once a test comes back red (the default)
+    baseline: "on"    # as the run starts
+    baseline: "off"   # never
+
+it runs the start tests on the start state, keeps what each did in
+`runs/<id>/baseline.json`, and caches it by start commit under the runs root,
+so a second run on the same commit runs nothing. a red test is run again up
+to three times and one that turns green is called flaky. the handoff names a
+test red at the start as `red when the run started`. as with `verify:`, an
+unquoted `on` or `off` is read as true or false, which the loader reads as on
+and off (`docs/gates.md`, "the suite as the run found it").
+
 `fix-with-test` is the same shape with one step fewer: the worker's `red-test`
 gate wants the new test red, and the patcher's gates want it green, replay
 each new test without the patch (`red-first`) and run the whole suite

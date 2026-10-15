@@ -126,6 +126,10 @@ FLOW_ONLY = (
          "what a step may do to the spec: nothing, or add lines. a phase "
          "says to respect the spec in prose, where nothing reads the file "
          "afterwards."),
+    Pair("flow.baseline", "",
+         "when the run reads the state of the suite it started from: as it "
+         "starts, once a test comes back red, or never. a phase has no word "
+         "for the state it was handed."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

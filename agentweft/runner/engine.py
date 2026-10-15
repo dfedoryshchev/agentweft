@@ -13,8 +13,8 @@ from .config import (VERDICTS, asks_for_verdict, config, declared, due,
                      fanout_step, steps, verdict, where)
 from agentweft import providers
 from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
-from agentweft.guardrails import (boundary, briefing, defaults, fence, gates,
-                                  promises, redorder, shellwrite, snapshot,
+from agentweft.guardrails import (baseline, boundary, briefing, defaults,
+                                  fence, gates, promises, redorder, shellwrite, snapshot,
                                   specfiles, starttests, worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
@@ -293,9 +293,12 @@ class Run(object):
         self.briefed = briefing.digest(self.workdir)
         self.fence = fence.at(self.workdir, own=state.RUNS)
         self.start = None
-        if replays(fm):
+        self.suite = baseline.mode(fm)
+        self.baseline = None
+        if replays(fm) or self.suite == baseline.ON:
             worktree.prune(self.workdir)
-        if replays(fm) or redorder.ordered(fm) or fm.get("spec_files"):
+        if replays(fm) or redorder.ordered(fm) or fm.get("spec_files") or \
+                self.suite == baseline.ON:
             self.start = snapshot.take(self.workdir, own=state.RUNS)
         self.order = redorder.Order(self.start)
         # what a gate ran and saw, by step, handed to the steps after it
@@ -347,6 +350,30 @@ class Run(object):
         """-> the decisions on record in the place, as lines."""
         return [summary.stamp(d) for d in decisions.read(self.workdir)]
 
+    def suite_baseline(self):
+        """-> the state of the suite the run started from, read from the
+        cache or run once and kept in the run's folder; None when the flow
+        says `baseline: off` or there is none to have."""
+        if self.suite == baseline.OFF or self.order.skip:
+            return None
+        if self.baseline is None:
+            found, why = baseline.ensure(self.start,
+                                         redorder.test_command(self.fm),
+                                         state.RUNS)
+            self.baseline = found or {"why": why}
+            if found and self.folder is not None:
+                baseline.save(found, self.folder)
+        return self.baseline if "tests" in self.baseline else None
+
+    def known_at_start(self):
+        found = self.suite_baseline()
+        if found is None:
+            return starttests.tests_in(
+                self.start, starttests.modules(self.start),
+                starttests.base_of(redorder.test_command(self.fm)),
+                starttests.TIMEOUT, now=False)
+        return baseline.outcomes(found), ""
+
     def replayed(self, step):
         """-> (the start tests' line for the record or None, (why, question)
         when a test green at the start is red now and no ruling covers it,
@@ -354,8 +381,9 @@ class Run(object):
         run skips tests."""
         if self.writes_for(step) != "product" or self.order.skip:
             return None, None
+        known = None if self.suite == baseline.OFF else self.known_at_start
         found = starttests.replay(self.start, redorder.test_command(self.fm),
-                                  green=self.start_green)
+                                  green=self.start_green, known=known)
         if not found.red:
             return found.result, None
         decided = decisions.read(self.workdir)
@@ -1330,6 +1358,9 @@ def main():
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
     if run.start is not None and run.start.hashed:
         run.start.save(folder)
+    if run.suite == baseline.ON and run.suite_baseline() is None:
+        print("no suite baseline: " + (run.baseline or {}).get(
+            "why", "the run skips tests"))
     if redorder.ordered(fm) or run.order.skip or run.order.proof:
         run.order.save(folder)
     if asked is not None:
@@ -1390,13 +1421,19 @@ def main():
         record.save(run.budget)
         left = leftred.check(run.start, fm, leftred.chosen(fm, sys.argv)) \
             if stopped else None
+        if left and left["red"]:
+            run.suite_baseline()
+        known = run.baseline if run.baseline and "tests" in run.baseline \
+            else None
+        left = baseline.label(left, known)
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), decisions.read(run.workdir),
                               run.budget.summary(), stopped=stopped,
                               needs=needs, command=resume_command(flow, run_id),
                               before=earlier, started=started,
                               found=run.produced.get(investigate.STEP, ""),
-                              order=run.order.said(), left=left)
+                              order=run.order.said(), left=left,
+                              suite=baseline.lines(known))
         return summary.write(state.RUNS / run_id, lines), lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,

@@ -13,8 +13,10 @@ run, no model.
 
 a test green when the run started and red now is the run's doing. a test that
 was red when the run started is not counted, so an inherited red is never
-blamed on the run; which ones were green is read by running the same tests on
-the start state, once per run, and only when something came back red.
+blamed on the run; which ones were green is read from the run's suite
+baseline (`baseline.py`, cached by start commit), and only when something
+came back red, unless the flow asked for it as the run starts. with
+`baseline: off` the same tests run here on the start state, once per run.
 
 the commits a step makes change nothing here: the start commit is the one
 the snapshot kept, and the product is read from the files. product files
@@ -164,10 +166,11 @@ def gone_red(after, before):
     return out
 
 
-def replay(start, cmd=None, timeout=TIMEOUT, green=None):
+def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
     """-> a Replay of the run's start tests against the product as it is now.
     `green` is a dict the run keeps the start state's outcomes in, so they
-    are run once."""
+    are run once. `known` gives them instead of a run here: a function that
+    returns (outcomes, "") or (None, why), the run's suite baseline."""
     if start is None or not start.hashed:
         return Replay()
     files = modules(start)
@@ -186,7 +189,8 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None):
     if green is None:
         green = {}
     if "found" not in green:
-        before, why = tests_in(start, files, base, timeout, now=False)
+        before, why = known() if known else \
+            tests_in(start, files, base, timeout, now=False)
         if before is None:
             return Replay(Result(NAME, False, "could not run the start tests"
                                  " on the start state: " + why))

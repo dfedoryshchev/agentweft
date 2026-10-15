@@ -81,8 +81,11 @@ REQUIRED = ("name", "steps")
 KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers",
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
-         "send_backs", "lead", "on_stop", "spec_files")
+         "send_backs", "lead", "on_stop", "spec_files", "baseline")
 NO_LEAD = "none"
+# when the run reads the state of the suite it started from
+# (`guardrails/baseline.py`)
+BASELINE = ("auto", "on", "off")
 # what a stop does with the tests the run added or changed: leave them, or
 # put them back to their bytes at the start (`runner/leftred.py`)
 ON_STOP = ("keep", "revert-tests")
@@ -291,6 +294,8 @@ def check(raw):
         bad.append("on_stop should be one of " + ", ".join(ON_STOP))
     if "spec_files" in raw and raw["spec_files"] not in SPEC_FILES:
         bad.append("spec_files should be one of " + ", ".join(SPEC_FILES))
+    if "baseline" in raw and raw["baseline"] not in BASELINE + (True, False):
+        bad.append("baseline should be one of " + ", ".join(BASELINE))
     if raw.get("promises") is not None:
         more = block("promises", raw["promises"], PROMISES_KNOWN)
         bad.extend(more)

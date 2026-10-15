@@ -99,8 +99,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `spec_files` is one more, one way: a phase asks for the spec to be
     # respected in prose, and nothing reads the file afterwards.
+    #
+    # `baseline` is one more, one way: the state of the suite a run was
+    # handed, where a phase is handed a place and no word for its state.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 30
+    assert len(compare.flow_only()) == 31
     assert len(compare.phase_only()) == 7
 
 
