@@ -91,6 +91,50 @@ def _numstat(text):
     return out
 
 
+HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+
+
+def _unquote(path):
+    path = path.strip()
+    if len(path) > 1 and path[0] == path[-1] == '"':
+        path = path[1:-1]
+    return path
+
+
+def _ranges(text):
+    """-> {path: "2, 5-7"} for a `git diff --unified=0`: the lines each file
+    holds now that the diff added or changed, and where lines were only
+    taken out."""
+    out = {}
+    path = None
+    old = None
+    for line in (text or "").split("\n"):
+        if line.startswith("--- "):
+            old = _unquote(line[4:])
+            old = old[2:] if old.startswith("a/") else old
+        elif line.startswith("+++ "):
+            new = _unquote(line[4:])
+            path = new[2:] if new.startswith("b/") else old
+            out.setdefault(path, [])
+        elif path is not None:
+            m = HUNK.match(line)
+            if not m:
+                continue
+            first = int(m.group(1))
+            many = 1 if m.group(2) is None else int(m.group(2))
+            if many == 0:
+                out[path].append("removed after " + str(first))
+            elif many == 1:
+                out[path].append(str(first))
+            else:
+                out[path].append(str(first) + "-" + str(first + many - 1))
+    return dict((p, ", ".join(r)) for p, r in out.items())
+
+
+def _lines(text):
+    return [l.rstrip() for l in (text or "").split("\n") if l.strip()]
+
+
 def _porcelain(place):
     out = []
     for line in (_git(place, "status", "--porcelain", "--untracked-files=all",
@@ -128,17 +172,33 @@ class Tree(object):
     def changes(self):
         """-> what is different now, from git: commits since the start, each
         file with its line counts and whether it is committed, uncommitted or
-        untracked, and the test and spec files among them."""
+        untracked, and the test and spec files among them. `ranges` holds
+        the lines each file's change covers, by (path, how), and `status` and
+        `log` are what `git status --short` and `git log --oneline
+        <start>..HEAD` print, line for line."""
         out = {"git": self.git, "start": self.start, "commits": [],
-               "files": [], "tests_changed": [], "spec_changed": []}
+               "files": [], "tests_changed": [], "spec_changed": [],
+               "ranges": {}, "status": [], "log": []}
         if not self.git:
             return out
+        out["status"] = _lines(_git(self.place, "-c", "core.quotepath=false",
+                                    "status", "--short",
+                                    "--untracked-files=all", "--", "."))
         if self.start:
+            out["log"] = _lines(_git(self.place, "log", "--oneline",
+                                     "--no-decorate", self.start + "..HEAD"))
             for line in (_git(self.place, "log", "--format=%h%x09%s",
                               self.start + "..HEAD") or "").split("\n"):
                 if "\t" in line:
                     sha, subject = line.split("\t", 1)
                     out["commits"].append((sha, subject))
+            for kind, args in (("committed", (self.start, "HEAD")),
+                               ("uncommitted", ("HEAD",))):
+                found = _ranges(_git(self.place, "-c", "core.quotepath=false",
+                                     "diff", "--unified=0", "--no-color",
+                                     "--no-ext-diff", *(args + ("--", "."))))
+                for path, span in found.items():
+                    out["ranges"][(path, kind)] = span
         committed = _numstat(_git(self.place, "diff", "--numstat",
                                   self.start, "HEAD", "--", ".")
                              if self.start else "")
@@ -153,6 +213,9 @@ class Tree(object):
             except OSError:
                 lines = 0
             untracked.append((path, lines, 0))
+            if lines:
+                out["ranges"][(path, "untracked")] = (
+                    "1" if lines == 1 else "1-" + str(lines))
         for kind, found in (("committed", committed),
                             ("uncommitted", uncommitted),
                             ("untracked", untracked)):
@@ -307,13 +370,43 @@ def _redo_why(said):
     return ""
 
 
-def a_pass(step, role, seconds, block, gates, ungated, outcome, said):
-    """one pass of one step, the shape `build` reads."""
+def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
+           facts=None):
+    """one pass of one step, the shape `build` reads. `facts` is what its
+    steps.jsonl line holds for the retro and the files its transcript shows
+    it read (`facts_of`)."""
     return {"step": step, "role": role, "seconds": seconds,
             "block": block if isinstance(block, dict) else handoff.empty(),
             "gates": gates, "ungated": ungated, "outcome": outcome,
             "verbs": verbs.parse(said),
-            "redo_why": _redo_why(said) if outcome == "redo" else ""}
+            "redo_why": _redo_why(said) if outcome == "redo" else "",
+            "facts": facts or {}}
+
+
+RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
+         "shell_writes_denied", "shell_trap_recoveries")
+
+
+def read_of(sessions, root=None):
+    """-> [(path, range)] the sessions' transcripts show read, None when not
+    one of them has a transcript."""
+    out = None
+    for session in sessions:
+        found = handoff.reads(session, root)
+        if found is not None:
+            out = (out or []) + found
+    return out
+
+
+def facts_of(line, root=None):
+    """-> a pass's facts from its steps.jsonl line: the retro's fields, and
+    what its sessions read, from `root` when the path is under it."""
+    out = dict((k, line.get(k)) for k in RETRO)
+    sessions = [line["session"]] if line.get("session") else []
+    sessions.extend(t["session"] for t in (line.get("tasks") or [])
+                    if isinstance(t, dict) and t.get("session"))
+    out["read"] = read_of(sessions, root)
+    return out
 
 
 def passes_of(folder, roles, fm):
@@ -344,6 +437,9 @@ def _passes_in(folder, roles, fm):
     path = folder / "steps.jsonl"
     if not path.exists():
         return out
+    root = None
+    if (folder / "workdir").is_file():
+        root = (folder / "workdir").read_text(encoding="utf-8").strip() or None
     for raw in path.read_text(encoding="utf-8").split("\n"):
         try:
             line = json.loads(raw)
@@ -359,7 +455,7 @@ def _passes_in(folder, roles, fm):
                           _gates(line.get("gates"),
                                  gate_commands(fm, step, said)),
                           line.get("ungated"), line.get("outcome") or "",
-                          said))
+                          said, facts=facts_of(line, root)))
     return out
 
 
@@ -455,6 +551,157 @@ def asks(passes):
         if v.needs or v.refused:
             out.extend("  cites: " + c for c in v.cites)
             out.extend("  option: " + o for o in v.options)
+    return out
+
+
+def _grouped(found):
+    """[(path, range)] -> "a.py:1-2, 9-12; b.py (whole file)", in the order
+    first read."""
+    order, spans = [], {}
+    for path, span in found:
+        if path not in spans:
+            order.append(path)
+            spans[path] = []
+        if span not in spans[path]:
+            spans[path].append(span)
+    return "; ".join(path + " (whole file)" if "" in spans[path]
+                     else path + ":" + ", ".join(spans[path])
+                     for path in order)
+
+
+ITEM_PATH = re.compile(r"^[`\"']?([^\s:`\"']+)")
+
+
+def _named(item, paths):
+    """whether a READ line a step wrote names one of the files read."""
+    m = ITEM_PATH.match(item.strip())
+    if not m:
+        return False
+    said = m.group(1).replace("\\", "/")
+    return any(said == p or p.endswith("/" + said) or said.endswith("/" + p)
+               for p in paths)
+
+
+def read_lines(passes):
+    """the files and ranges each pass read, from its transcript, and the
+    READ lines the step wrote beside them; a READ line its transcript does not
+    show is marked so."""
+    out = []
+    for p in passes:
+        found = p.get("facts", {}).get("read")
+        said = p["block"]["read"] if _present(p["block"]) else []
+        if found is None and not said:
+            continue
+        if found is None:
+            out.append("- " + at(p) + ": no transcript to read it from")
+        elif found:
+            out.append("- " + at(p) + " read: " + _grouped(found))
+        else:
+            out.append("- " + at(p) + " read no file, by its transcript")
+        paths = [path for path, _ in found or []]
+        for item in said:
+            shown = found is None or _named(item, paths)
+            out.append(("  said: " if shown else
+                        "  said, not in its transcript: ") + item)
+    return out or ["- no pass has a transcript or a READ line"]
+
+
+SPEC_REF = re.compile(r"[\w./-]+\.md:\d+(?:-\d+)?")
+
+
+def spec_for(test, blocks):
+    """-> " - encodes <spec line> (<role>)" from the first line a step wrote
+    naming the test and a spec line, "" when none did."""
+    name = (test or "").split("::")[-1]
+    if not name:
+        return ""
+    for role, b in blocks:
+        if not _present(b):
+            continue
+        items = [i for key in ("did", "must_not_miss", "assumed", "doubts")
+                 for i in b[key]] + [i["claim"] for i in b["verified"]]
+        for item in items:
+            ref = SPEC_REF.search(item)
+            if name in item and ref:
+                return " - encodes " + ref.group(0) + " (" + role + ")"
+    return ""
+
+
+def _money(facts):
+    if facts.get("cached"):
+        return "cached"
+    cost = facts.get("cost")
+    if not isinstance(cost, (int, float)) or isinstance(cost, bool):
+        return "cost not stated"
+    out = "$%.4f" % cost
+    came = facts.get("cost_from") or {}
+    if came:
+        out = out + ", " + ", ".join(k + " x" + str(n)
+                                     for k, n in sorted(came.items()))
+    return out
+
+
+def retro(passes):
+    """one line per pass: its seconds and cost, its outcome when not ok, the
+    gates it failed, its retries, the limit and refusals it met, the shell
+    trouble it recovered from; then one line per send-back with why."""
+    out = []
+    for p in passes:
+        f = p.get("facts") or {}
+        said = []
+        if p["outcome"] == "redo":
+            said.append("sent back")
+        elif p["outcome"] not in ("ok", ""):
+            said.append(p["outcome"])
+        said.extend("failed " + g["gate"] + (" - " + stops.flat(g["detail"])
+                                             if g["detail"] else "")
+                    for g in p["gates"] if not g["ok"])
+        for cause, n in sorted((f.get("retries") or {}).items()):
+            if not n:
+                continue
+            if cause == "outage":
+                said.append("limit events " + str(n))
+            elif cause == "fatal":
+                said.append("refused calls " + str(n))
+            else:
+                said.append("retried after " + cause + " " + str(n))
+        for key, words in (("shell_writes_denied", "shell writes refused"),
+                           ("shell_trap_recoveries", "shell-trap recoveries"),
+                           ("background_killed", "leftover processes ended")):
+            if f.get(key):
+                said.append(words + " " + str(f[key]))
+        took = p["seconds"] if p["seconds"] is not None else 0
+        out.append("- " + at(p) + " " + str(took) + "s ("
+                   + _money(f) + "): " + ("; ".join(said) or "no events"))
+    out.extend("- " + p["step"] + " sent the work back: " + p["redo_why"]
+               for p in passes if p["outcome"] == "redo" and p["redo_why"])
+    return out or ["- no step ran"]
+
+
+def changed_lines(changes):
+    """the changed section: each file with its line counts, how it stands
+    and the lines it covers, then what git status and git log print."""
+    if not changes.get("git"):
+        return ["- not a git checkout, so what changed is not recorded"]
+    out = []
+    spans = changes.get("ranges") or {}
+    for path, a, d, how in changes["files"]:
+        span = spans.get((path, how.split(",")[0]))
+        out.append("- " + path + " +" + str(a) + " -" + str(d) + " (" + how
+                   + ")" + (", lines " + span if span else ""))
+    if not changes["files"]:
+        out.append("- nothing changed in the tree")
+    status = changes.get("status") or []
+    out.append("- git status --short:" + ("" if status else " prints nothing"))
+    out.extend("    " + l for l in status)
+    start = changes.get("start")
+    if not start:
+        out.append("- git log: no commit to start from")
+        return out
+    log = changes.get("log") or []
+    out.append("- git log --oneline " + start[:7] + "..HEAD:"
+               + ("" if log else " prints nothing"))
+    out.extend("    " + l for l in log)
     return out
 
 
@@ -563,17 +810,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## changed")
-    if not changes.get("git"):
-        out.append("- not a git checkout, so what changed is not recorded")
-    else:
-        out.append("- commits: " + ("; ".join(sha + " " + subject for sha, subject
-                                              in changes["commits"])
-                                    if changes["commits"] else "none"))
-        if changes["files"]:
-            out.extend("- " + path + " +" + str(a) + " -" + str(d) + " (" + how
-                       + ")" for path, a, d, how in changes["files"])
-        else:
-            out.append("- nothing changed in the tree")
+    out.extend(changed_lines(changes))
+
+    out.append("")
+    out.append("## read")
+    out.extend(read_lines(every))
 
     out.append("")
     out.append("## tests and checks")
@@ -595,7 +836,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if shown is not None:
         from agentweft.guardrails.gates.redfirst_gate import said_of
 
-        out.extend("- " + said_of(t) for t in shown.get("tests") or [])
+        out.extend("- " + said_of(t) + spec_for(t.get("test"), blocks)
+                   for t in shown.get("tests") or [])
     touched = [(path, a, d) for path, a, d, how in changes.get("files", [])
                if is_test(path)]
     if touched:
@@ -661,10 +903,12 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                        + l[2:] for l in investigate.listed(dug, label))
     out.extend("- tried and dropped: " + role + ": " + i for role, b in blocks
                if _present(b) for i in b["tried"])
-    out.extend("- already read: " + role + ": " + i for role, b in blocks
-               if _present(b) for i in b["read"])
     if out[-1] == "## carry forward":
         out.append("- nothing beyond the record")
+
+    out.append("")
+    out.append("## retro")
+    out.extend(retro(every))
 
     out.append("")
     out.append("## run")
@@ -674,8 +918,6 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         p["step"] + " " + str(p["seconds"]) + "s"
         + (" (sent back)" if p["outcome"] == "redo" else "")
         for p in passes) if passes else "- steps: none ran")
-    out.extend("- " + p["step"] + " sent the work back: " + p["redo_why"]
-               for p in every if p["outcome"] == "redo" and p["redo_why"])
     out.append("- spend: " + (spend or "0 calls, 0 tokens"))
     out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))

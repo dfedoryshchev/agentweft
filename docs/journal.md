@@ -312,8 +312,10 @@ answers, in order: what came of it (the heading: the run's outcome, then
 where it stopped and why, then the last working step's first DID line), what it needs from you (a `NEEDS:` or `REFUSED:` a
 step wrote, with its cites and options, and on any stop what ran, what is
 left and the command to carry on), what the steps assumed (each as a question),
-what they doubt, what changed, what was tested, what a ruling is owed on,
-what was not verified, what the next session must keep, and what the run was.
+what they doubt, what changed, what was read, what was tested, what a ruling
+is owed on, what was not verified, what the next session must keep, what went
+wrong on the way, and what the run was. sections are separated by blank lines
+and `## ` headings, never by `|`.
 
 what the runner knows is written from the runner, never from a step's text:
 the files that changed and the commits (git, against the tree at run start,
@@ -337,6 +339,47 @@ ruled ("the user approved", "as agreed") with none on record is printed under "r
 claimed, no ruling on record"; an open question ("nobody has ruled", "not
 approved yet") is not a claim. a VERIFIED claim the transcript does not show
 is printed under "not verified" as "claims the record does not show".
+
+four sections are written by the runner alone:
+
+- **changed**: each file with `+added -removed`, how it stands, and the lines
+  the change covers (from `git diff --unified=0`; an untracked file is all of
+  its lines), then what `git status --short` and `git log --oneline
+  <start>..HEAD` print, line for line. "nothing is committed" is a claim about
+  a moment; the two commands' output, taken when the handoff is written, is
+  the record.
+- **read**: per pass, the files and ranges its session's transcript shows it
+  read (a Read call by offset and limit, a `cat`, `head`, `tail` or `sed -n`
+  target in a shell call), with the step's own READ lines under it as `said:`;
+  a READ line its transcript does not show is `said, not in its transcript:`.
+  a pass with no transcript says so.
+- **tests and checks**: each new test's red-first record, ending `- encodes
+  TASK.md:12 (patcher)` when a step's line names the test and a spec line.
+- **retro**: per pass, its seconds and cost, its outcome when it was not ok,
+  each gate it failed, its retries (`limit events`, `refused calls`,
+  `retried after transient`), refused shell writes, shell-trap recoveries and
+  leftover processes ended, all from `steps.jsonl`; then one line per send-back
+  with the reviewer's reason.
+
+    ## changed
+    - calc.py +1 -1 (committed), lines 2
+    - notes.md +1 -1 (uncommitted), lines 3
+    - git status --short:
+         M notes.md
+    - git log --oneline 44b0532..HEAD:
+        47b60ab fix add
+
+    ## read
+    - worker.md read: calc.py:1-2; TASK.md:1-3
+      said: calc.py:1-2 - add subtracts
+      said, not in its transcript: docs/old.md:1-9 - the old notes
+
+    ## retro
+    - worker.md 12.0s ($0.2500): no events
+    - reviewer.md 4.1s ($0.2500): sent back
+    - worker.md 9.3s ($0.2500): no events
+    - reviewer.md 3.9s ($0.2500): no events
+    - reviewer.md sent the work back: notes.md still says three
 
     # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 

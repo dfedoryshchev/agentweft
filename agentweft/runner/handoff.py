@@ -254,9 +254,9 @@ def _text(content):
     return ""
 
 
-def transcript(session):
-    """-> [(command, output)] for every Bash call in the session's transcript,
-    or None when there is no transcript to read.
+def _pieces(session):
+    """-> every content piece of the session's transcript in order, or None
+    when there is no transcript to read.
 
     the cli keeps one file per session under its projects folder, in a folder
     named after the working directory. the session id is unique on its own,
@@ -270,7 +270,6 @@ def transcript(session):
         return None
     if not found:
         return None
-    asked = {}
     out = []
     for raw in found[0].read_text(encoding="utf-8", errors="replace").split("\n"):
         try:
@@ -279,19 +278,116 @@ def transcript(session):
             continue
         message = data.get("message") if isinstance(data, dict) else None
         content = message.get("content") if isinstance(message, dict) else None
-        if not isinstance(content, list):
+        if isinstance(content, list):
+            out.extend(p for p in content if isinstance(p, dict))
+    return out
+
+
+def transcript(session):
+    """-> [(command, output)] for every Bash call in the session's transcript,
+    or None when there is no transcript to read."""
+    pieces = _pieces(session)
+    if pieces is None:
+        return None
+    asked = {}
+    out = []
+    for piece in pieces:
+        if piece.get("type") == "tool_use" and piece.get("name") == "Bash":
+            cmd = (piece.get("input") or {}).get("command")
+            if isinstance(cmd, str):
+                asked[piece.get("id")] = cmd
+        elif piece.get("type") == "tool_result":
+            cmd = asked.pop(piece.get("tool_use_id"), None)
+            if cmd is not None:
+                out.append((cmd, _text(piece.get("content"))))
+    return out
+
+
+READERS = ("cat", "nl", "less", "more", "bat", "type")
+SEGMENT = re.compile(r"\s*(?:&&|\|\||;|\||\n)\s*")
+REDIRECT = re.compile(r"\d*>>?&?\s*\S+|<\s*\S+")
+SED_RANGE = re.compile(r"^(\d+)(?:,(\d+))?p$")
+
+
+def _relative(path, root):
+    path = path.replace("\\", "/")
+    if root is None or not Path(path).is_absolute():
+        return path
+    try:
+        return Path(path).resolve().relative_to(
+            Path(root).resolve()).as_posix()
+    except (ValueError, OSError):
+        return path
+
+
+def _shell_reads(command):
+    """-> [(path, range)] a shell command reads with cat, head, tail or
+    `sed -n`; a sed without -n edits, so it is not a read."""
+    import shlex
+
+    out = []
+    for part in SEGMENT.split(command or ""):
+        try:
+            words = shlex.split(REDIRECT.sub(" ", part))
+        except ValueError:
             continue
-        for piece in content:
-            if not isinstance(piece, dict):
-                continue
-            if piece.get("type") == "tool_use" and piece.get("name") == "Bash":
-                cmd = (piece.get("input") or {}).get("command")
-                if isinstance(cmd, str):
-                    asked[piece.get("id")] = cmd
-            elif piece.get("type") == "tool_result":
-                cmd = asked.pop(piece.get("tool_use_id"), None)
-                if cmd is not None:
-                    out.append((cmd, _text(piece.get("content"))))
+        if not words:
+            continue
+        tool = words[0].replace("\\", "/").rsplit("/", 1)[-1]
+        args = words[1:]
+        if tool in READERS:
+            out.extend((a, "") for a in args if not a.startswith("-"))
+        elif tool in ("head", "tail"):
+            n, files, skip = "10", [], False
+            for i, a in enumerate(args):
+                if skip:
+                    skip = False
+                elif a in ("-n", "--lines"):
+                    n, skip = (args[i + 1] if i + 1 < len(args) else n), True
+                elif a.startswith("--lines="):
+                    n = a.split("=", 1)[1]
+                elif a.startswith("-") and a[1:].isdigit():
+                    n = a[1:]
+                elif not a.startswith("-"):
+                    files.append(a)
+            n = n.lstrip("+-")
+            span = ("1-" + n if tool == "head" else "last " + n)
+            out.extend((f, span) for f in files)
+        elif tool == "sed" and "-n" in args:
+            rest = [a for a in args if not a.startswith("-")]
+            m = SED_RANGE.match(rest[0]) if rest else None
+            if m:
+                span = m.group(1) + "-" + (m.group(2) or m.group(1))
+                out.extend((f, span) for f in rest[1:])
+    return out
+
+
+def reads(session, root=None):
+    """-> [(path, range)] for every file the session read, in order: a Read
+    call by its offset and limit, a cat, head, tail or `sed -n` in a Bash
+    call by its target; range "" is the whole file. paths under `root` are
+    given from it. None when there is no transcript to read."""
+    pieces = _pieces(session)
+    if pieces is None:
+        return None
+    out = []
+    for piece in pieces:
+        if piece.get("type") != "tool_use":
+            continue
+        given = piece.get("input") or {}
+        if piece.get("name") == "Read" and isinstance(
+                given.get("file_path"), str):
+            start, many = given.get("offset"), given.get("limit")
+            span = ""
+            if isinstance(many, int):
+                first = start if isinstance(start, int) else 1
+                span = str(first) + "-" + str(first + many - 1)
+            elif isinstance(start, int):
+                span = str(start) + "-"
+            out.append((_relative(given["file_path"], root), span))
+        elif piece.get("name") == "Bash":
+            out.extend((_relative(p, root), span) for p, span in
+                       _shell_reads(given.get("command")))
     return out
 
 

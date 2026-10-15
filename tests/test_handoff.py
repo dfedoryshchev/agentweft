@@ -599,7 +599,7 @@ def test_a_run_in_a_git_checkout_lists_what_changed_from_the_tree(
     assert engine.main() == 0
     note = (run_dir(tmp_path) / summary.FILE).read_text(encoding="utf-8")
     assert "calc.py +1 -1 (uncommitted)" in note
-    assert "commits: none" in note
+    assert "..HEAD: prints nothing" in note
 
 
 # --- the fanned-out step ---------------------------------------------------

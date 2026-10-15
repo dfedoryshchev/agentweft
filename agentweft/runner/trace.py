@@ -209,9 +209,10 @@ class Entry(object):
     """a line that has a number and a file but not yet an outcome."""
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
-                 "fanned", "gates", "ungated", "handoff")
+                 "fanned", "gates", "ungated", "handoff", "written")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
+        self.written = None
         self.seq = seq
         self.step = step
         self.attempts = sorted(attempts, key=lambda a: a.task or 0)
@@ -258,10 +259,10 @@ class Trail(object):
         if entry in self.unclosed:
             self.unclosed.remove(entry)
         self.closed.append((entry, outcome))
+        entry.written = line(entry, outcome, why, to, cause, self.task_file,
+                             self.folder)
         with open(self.folder / FILE, "a", encoding="utf-8") as f:
-            f.write(json.dumps(line(entry, outcome, why, to, cause,
-                                    self.task_file, self.folder),
-                               ensure_ascii=False) + "\n")
+            f.write(json.dumps(entry.written, ensure_ascii=False) + "\n")
 
     def still_open(self):
         """-> the entry opened and not yet given an outcome, or None."""
