@@ -187,7 +187,9 @@ can name its own level, in the same three places a model is named:
 highest first: `--effort-for`, the step's `effort:`, the flow's `efforts:`,
 then the provider's own (its block, `EFFORT_<TIER>`, `EFFORT`). a level that is
 not one of the five is refused before anything is asked, and a resumed run
-keeps the levels it was started with.
+keeps the levels it was started with. `runs/<id>/efforts` is read the same
+way on a resume: a level edited into it that is not one of the five is
+refused, not handed to the cli.
 
 nothing set anywhere is the default, and then nothing is sent: no `--effort`,
 no `output_config`, and the provider's own default answers (on the cli that

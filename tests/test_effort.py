@@ -11,7 +11,7 @@ from agentweft.flow import spec
 from agentweft.providers import api_provider, base, cli_provider
 from agentweft.runner import engine
 
-from test_trace import a_flow, answer, every_line
+from test_trace import a_flow, answer, every_line, folders, no_waiting
 
 
 def argv_efforts(calls):
@@ -85,6 +85,24 @@ def test_a_level_the_run_does_not_know_is_refused_before_anything_is_asked(
     assert engine.main() == 1
     assert cli.calls == []
     assert "worker should be one of low, medium, high, xhigh, max" in \
+        capsys.readouterr().out
+
+
+def test_a_level_in_a_resumed_runs_file_is_refused_before_the_cli_is_asked(
+        tmp_path, monkeypatch, fake_cli, no_levels, capsys):
+    a_flow(tmp_path, monkeypatch, "edited", ["worker", "reviewer"],
+           args=["--effort-for", "reviewer=high"])
+    no_waiting(monkeypatch)
+    fake_cli(answer("worked\n"), answer(""), answer(""), answer(""))
+    engine.main()
+    [first] = folders(tmp_path)
+    (first / "efforts").write_text("reviewer=ultra", encoding="utf-8")
+    cli = fake_cli(answer("VERDICT: ok\n\nfine\n"))
+    monkeypatch.setattr(sys, "argv", ["run.py", "edited", "--force",
+                                      "--resume", first.name])
+    assert engine.main() == 1
+    assert cli.calls == []
+    assert "reviewer should be one of low, medium, high, xhigh, max" in \
         capsys.readouterr().out
 
 

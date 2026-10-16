@@ -56,12 +56,17 @@ def parse(values, what="model"):
 def efforts(argv):
     """-> {role: level} out of every `--effort-for` typed, each level one
     the providers take."""
-    out = parse(pairs(argv, EFFORT_FLAG, "level"), "level")
-    for role, level in out.items():
+    return levels(parse(pairs(argv, EFFORT_FLAG, "level"), "level"),
+                  EFFORT_FLAG)
+
+
+def levels(chosen, where):
+    """-> chosen, once each level in it is one the providers take."""
+    for role, level in chosen.items():
         if level not in LEVELS:
-            raise ValueError(EFFORT_FLAG + ": " + role + " should be one of "
+            raise ValueError(where + ": " + role + " should be one of "
                              + ", ".join(LEVELS))
-    return out
+    return chosen
 
 
 def effort_of(step, fm, chosen):
@@ -128,4 +133,6 @@ def load(folder, name=FILE):
     p = folder / name
     if not p.exists():
         return {}
-    return parse([p.read_text(encoding="utf-8").strip()])
+    chosen = parse([p.read_text(encoding="utf-8").strip()])
+    # the file can be edited by hand between legs, and the cli takes any word
+    return levels(chosen, str(p)) if name == EFFORT_FILE else chosen
