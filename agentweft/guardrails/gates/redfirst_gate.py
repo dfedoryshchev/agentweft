@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from agentweft.guardrails import worktree
+from agentweft.guardrails.snapshot import _sha
 
 from .base import Gate, fresh_python, register
 from .redtest_gate import TEST, named_test
@@ -291,8 +292,9 @@ class RedFirstGate(Gate):
     replay from: the gate passes saying it was not replayed. a run that wrote
     no test but carried its red in (`--continue`), or whose red is a test
     supplied at the start, runs each of those tests with the fix, and each
-    has to pass. the same holds when every test it did add passes without
-    the fix: those are pins beside the given red, labelled as pins.
+    has to pass, byte for byte the file the red was shown on. the same holds
+    when every test it did add passes without the fix: those are pins beside
+    the given red, labelled as pins.
     """
 
     name = "red-first"
@@ -355,11 +357,19 @@ class RedFirstGate(Gate):
             if t["before"] == "green" and allowed:
                 t["pin_ok"] = allowed
 
-    def carried_green(self, cmd, carried, came, start):
-        """a run that wrote no test: its red was shown on tests carried in
-        or supplied at the start, so what is left to show is each of them
-        green with the fix."""
+    def carried_green(self, cmd, carried, came, start, same=True):
+        """the tests the red was shown on that the run did not write, carried
+        in or supplied at the start: each has to be green with the fix and,
+        when `same`, still the file the red was shown on."""
         for f in sorted(carried):
+            try:
+                now = _sha((start.place / f).read_bytes())
+            except OSError:
+                now = None
+            if same and now != carried[f]:
+                return self.fail(f + ", " + came + ", is not the file its red"
+                                 " was shown on: a test the fix changed shows"
+                                 " nothing about the fix")
             after = self.one(cmd, f, start.place)[0]
             if after != "green":
                 return self.fail(f + ", " + came + ", does not pass with the"
@@ -507,6 +517,9 @@ class RedFirstGate(Gate):
                                  " fix: " + t["after"], record)
         red = [t["test"] for t in record if t["before"] == "red"]
         green = [t["test"] for t in record if t["before"] == "green"]
+        for n in named:
+            if n in green:
+                return self.done(False, n + " passes without the fix", record)
         if not red and given and given[1]:
             r = self.carried_green(*given)
             if not r.ok:
@@ -517,14 +530,18 @@ class RedFirstGate(Gate):
         if not red:
             return self.done(False, "every new test passes without the fix: "
                              + ", ".join(green), record)
-        for n in named:
-            if n in green:
-                return self.done(False, n + " passes without the fix", record)
         detail = (str(len(red)) + " of " + str(len(record)) + " new test"
                   + ("" if len(record) == 1 else "s") + " red without the fix"
                   " and green with it: " + ", ".join(red))
         if green:
             detail = detail + "; green without it too: " + ", ".join(green)
+        if given and given[1]:
+            # a new test red now does not show the given one was about this
+            # bug, so it still has to pass with the fix
+            r = self.carried_green(*given, same=False)
+            if not r.ok:
+                return self.done(False, r.detail, record)
+            detail = detail + "; " + r.detail
         return self.done(True, detail + added_after(record), record)
 
     def done(self, ok, detail, record):

@@ -415,12 +415,18 @@ handoff's "tests and checks":
   that could not run carries nothing and the run does not start.
 - a red-first gate on the product step of a continued run that wrote no new
   test runs each carried test in the place with the fix; each has to pass,
-  and the gate says `carried from <sha or run>, green with the fix`. a run
+  and the gate says `carried from <sha or run>, green with the fix`. each
+  has to be byte for byte the file its red was shown on: a carried test the
+  product step edited, or shadowed with a line of its own, fails. a run
   whose proof is a supplied test is held the same way: the gate says
   `supplied, red at the start, green with the fix`. a test such a run does
-  add is replayed as usual; when every one of them passes without the fix
-  too, they are pins beside the given red (listed, never coverage), and
-  the given tests still have to pass with the fix.
+  add, the tests step's own included, is replayed as usual; when every one
+  of them passes without the fix too, they are pins beside the given red
+  (listed, never coverage), and the given tests still have to pass with
+  the fix. a new test a step named on its `TEST:` line still has to be red
+  without the fix. when some new test is red without the fix, the given
+  tests are run with the fix too and each has to pass: a red that nothing
+  fixed was not the bug the run fixed.
 
 a run picked up with `--resume` keeps its snapshot and its proof, and reads
 the proved test files again: one whose content is not what was proved drops

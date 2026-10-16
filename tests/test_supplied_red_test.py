@@ -44,7 +44,8 @@ def a_project(tmp_path):
     return project
 
 
-def run_it(tmp_path, monkeypatch, added=None, fixes=True):
+def run_it(tmp_path, monkeypatch, added=None, fixes=True, said=PATCHER,
+           worker_adds=None):
     """-> (exit code, steps asked, the red-first gate line of the patcher)."""
     project = a_project(tmp_path)
     asked = []
@@ -56,7 +57,9 @@ def run_it(tmp_path, monkeypatch, added=None, fixes=True):
                 (project / "calc.py").write_text(FIXED, encoding="utf-8")
             for rel, text in (added or {}).items():
                 (project / rel).write_text(text, encoding="utf-8")
-            return PATCHER, False
+            return said, False
+        for rel, text in (worker_adds or {}).items():
+            (project / rel).write_text(text, encoding="utf-8")
         return WORKER, False
 
     monkeypatch.setattr(engine, "call", fake_call)
@@ -114,3 +117,44 @@ def test_a_pin_does_not_carry_a_supplied_test_the_patch_leaves_red(
     code, _, _ = run_it(tmp_path, monkeypatch, {"tests/test_more.py": PIN},
                         fixes=False)
     assert code != stops.EXIT_OK
+
+
+INVERTED = ("from calc import add" + NL + NL + NL + "def test_add():" + NL
+            + "    assert add(1, 2) == -1" + NL)
+SHADOWED = RED + NL + NL + "add = lambda a, b: 3" + NL
+
+
+def test_a_patch_that_inverts_the_supplied_test_and_fixes_nothing_stops(
+        tmp_path, monkeypatch):
+    code, _, red_first = run_it(tmp_path, monkeypatch, {SUPPLIED: INVERTED},
+                                fixes=False)
+    assert code != stops.EXIT_OK, red_first
+    assert not red_first[-1]["ok"]
+
+
+def test_a_patch_that_shadows_the_code_in_the_supplied_test_stops(
+        tmp_path, monkeypatch):
+    code, _, red_first = run_it(tmp_path, monkeypatch, {SUPPLIED: SHADOWED},
+                                fixes=False)
+    assert code != stops.EXIT_OK, red_first
+    assert not red_first[-1]["ok"]
+
+
+def test_a_new_test_the_patch_names_must_be_red_beside_a_supplied_test(
+        tmp_path, monkeypatch):
+    code, _, red_first = run_it(
+        tmp_path, monkeypatch, {"tests/test_more.py": PIN},
+        said="TEST: tests/test_more.py::test_zero" + NL + "fixed" + NL)
+    assert code != stops.EXIT_OK, red_first
+    assert "tests/test_more.py::test_zero passes without the fix" in \
+        red_first[-1]["detail"]
+
+
+def test_a_green_test_the_worker_wrote_beside_a_supplied_test_is_a_pin(
+        tmp_path, monkeypatch):
+    code, _, red_first = run_it(tmp_path, monkeypatch,
+                                worker_adds={"tests/test_more.py": PIN})
+    assert code == stops.EXIT_OK, red_first
+    [pin] = red_first[-1]["tests"]
+    assert pin["counts"] == "pin"
+    assert "pins current behaviour" in red_first[-1]["detail"]

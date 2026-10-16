@@ -571,3 +571,28 @@ def test_fix_with_test_on_a_bug_report_with_its_own_red_test_ends_done(
     handoff = read(folders()[-1] / "handoff.md")
     assert "supplied" in handoff
     assert proof_of_last_run()["source"] == "supplied"
+
+
+UNRELATED = "tests/test_unrelated.py"
+RED_FIRST_GATE = ("    gates:" + NL + "      - gate: red-first" + NL
+                  + "        command: [\"python\", \"-m\", \"pytest\","
+                  " \"-q\", \"{test}\"]" + NL)
+
+
+def test_a_supplied_red_the_fix_leaves_red_fails_red_first(tmp_path,
+                                                         monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    (place / UNRELATED).write_text("def test_other():" + NL
+                                   + "    assert 1 == 2" + NL,
+                                   encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "an old failing test")
+    a_flow(tmp_path, "build", TESTER + WORKER + RED_FIRST_GATE)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, "FAILS: assert 1 == 2" + NL + "TEST: " + UNRELATED
+                      + NL),
+        "worker.md": ({"calc.py": FIXED, "tests/test_calc.py": RED_TEST},
+                      "done")})
+    assert code != stops.EXIT_OK
+    assert UNRELATED + ", supplied, red at the start, does not pass" in read(
+        folders()[-1] / "gates.md")

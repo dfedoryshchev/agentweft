@@ -8,8 +8,9 @@ snapshot). a red-test gate's test may also be one the run started with and
 left as it was, a bug report that ships its own failing test, once it also
 fails on an assertion in a checkout of the start commit (`red_at_start`): then
 the proof says `supplied` rather than `written`. the proof keeps the new test
-ids there were when it was shown, so a test added after that is known as one
-(the red-first gate replays it). a `writes: product` step does not start until
+ids there were when it was shown (none for a supplied one, which was red at
+the start), so a test added after that is known as one (the red-first gate
+replays it). a `writes: product` step does not start until
 there is one, and a `writes: tests` step that changes a product file fails. it
 is fail-closed: no start snapshot, no proof record or a gate that ran nothing
 is no proof.
@@ -162,10 +163,13 @@ class Order(object):
                 if found and not self.red_at_start(named):
                     found = []
             if found:
+                # a supplied red was there at the start, so every test the
+                # run writes comes after it, even one this step wrote
+                ids = [] if source == "supplied" else (
+                    self.start.new_test_ids() if self.start.start else None)
                 self.proof = {"how": "gate", "step": step, "gate": r.gate,
                               "source": source, "tests": dict(found),
-                              "ids": self.start.new_test_ids()
-                              if self.start.start else None}
+                              "ids": ids}
                 self.lost = ""
                 return True
         return False
