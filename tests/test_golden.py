@@ -62,6 +62,7 @@ def limited():
 BUGGY = "def add(a, b):\n    return a - b\n"
 FIXED = "def add(a, b):\n    total = a + b\n    return total\n"
 TEST = "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+KEPT_TEST = "from calc import add\n\n\ndef test_zero():\n    assert add(0, 0) == 0\n"
 
 ONE_FINDING = "- [high] app.py:12 the loop reads one past the end of items\n"
 NOTES = ("## added\n- a --dry-run switch on the export\n\n"
@@ -196,6 +197,12 @@ CASES = {
                                      "answers": {
         "worker.md": ["could not make it fail: add(1, 2) looks right to me\n"]
         * 2}},
+    ("fix-with-test", "start-test-edited"): {
+        "place": {"calc.py": BUGGY, "test_calc.py": KEPT_TEST},
+        "args": ["--task", BUG], "task": BUG,
+        "answers": {"worker.md": [say("FAILS: assert -1 == 3\nTEST: "
+                                      "test_calc.py\n\n" + TEST,
+                                      {"test_calc.py": TEST})] * 2}},
     ("code-review", "task-refused"): {"args": ["--task", BUG], "answers": {}},
     ("ops-check", "pass"): {"answers": {
         "planner.md": ["- app.log: the nightly export\n"],

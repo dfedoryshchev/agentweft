@@ -18,7 +18,7 @@ from agentweft.flow.spec import (RESUME, lead_of, step_id, step_name,
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
                                   shellwrite, signoff, skips, snapshot,
-                                  specfiles, starttests, worktree)
+                                  specfiles, starttests, testedits, worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -523,6 +523,32 @@ class Run(object):
         return [rel + ":" + str(n) for rel, was, now in found
                 for n, line in specfiles.moved(was, now, mode)
                 if ruling.spec_line_ruled(decided, line) is None]
+
+    def tests_held(self, step, last=False):
+        """-> (the line for the record when a test file the run started with
+        changed, else None; (why, question) when it changed in a way no
+        ruling covers and this is the step's `last` go, else None). a step
+        with a go left fails like a gate and goes back."""
+        start = getattr(self, "start", None)
+        found = testedits.changes(start)
+        if not found:
+            return None, None
+        decided = self.decided()
+        left, ruled = [], []
+        for edit in found:
+            for test, how in edit.items:
+                d = ruling.edit_ruled(decided, test, self.workdir, start)
+                if d is None:
+                    left.append((test, how))
+                else:
+                    ruled.append((test, summary.stamp(d)))
+        if not left:
+            return testedits.passed(found, ruled), None
+        line = testedits.held(step, left)
+        if not last:
+            return line, None
+        return line, ("needs a ruling: " + line.detail,
+                      ruling.question_of_test_edits(step, left))
 
     def keep(self, role, block):
         for line in block.get("must_not_miss", []):
@@ -1194,6 +1220,17 @@ def check_step(run, route, step, out, run_dir=None):
             results.append(line)
         if spec_asks:
             out.meta["spec_ruling"] = spec_asks
+    kept = getattr(run, "tests_held", None)
+    if kept is not None:
+        ok = all(r.ok for r in results)
+        tries = getattr(route, "gate_tries", None)
+        last = ok and tries is not None and \
+            tries.get(step, 0) >= route.gate_cap(step)
+        line, test_asks = kept(step, last)
+        if line is not None:
+            results.append(line)
+        if test_asks and "spec_ruling" not in out.meta:
+            out.meta["test_ruling"] = test_asks
     replayed = getattr(run, "replayed", None)
     if replayed is not None and all(r.ok for r in results):
         line, held = replayed(step)
@@ -1351,7 +1388,8 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + question.split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
-        spec_asks = out.meta.pop("spec_ruling", None)
+        spec_asks = out.meta.pop("spec_ruling", None) or \
+            out.meta.pop("test_ruling", None)
         if spec_asks:
             note("parked", spec_asks[1], stops.PARKED, output=out.output)
             return (out.output, run.budget, "parked at " + step
@@ -2255,6 +2293,12 @@ def run_flow():
                 return stop(stops.PARKED, spec_asks[0], "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=spec_asks[1])
+            test_asks = out.meta.pop("test_ruling", None)
+            if test_asks:
+                print(step + " changed a test the run started with")
+                return stop(stops.PARKED, test_asks[0], "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user", question=test_asks[1])
             held = out.meta.pop("conflict", None)
             if held:
                 print(step + " turned a test the run started with red")

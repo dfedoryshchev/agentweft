@@ -436,6 +436,47 @@ a place outside git has no start commit and says `not replayed`. a checkout
 that cannot be made, or a pytest that cannot start, fails the line like a
 gate. with `--skip tests` it does not run.
 
+## the tests the run started with, as it found them
+
+the replay above catches a rewritten test once product code runs against it.
+this catches the rewrite itself, at the step that made it, test step or
+product step. after every step of a run that keeps a start snapshot (any flow
+with a `writes: tests` or `writes: product` step or a `red-first` gate, or
+with `spec_files:` or `baseline: on`), each test file the snapshot hashed is
+read against how the run found it, and a changed one gets a `test-edits` line
+in `gates.md`:
+
+- python test files are compared per test function, by syntax tree, not by
+  diff lines: a test the run started with that is gone (`removed`) or whose
+  code is not what it was (`changed`) counts, and so does a change to the
+  code its tests share, such as a constant or a fixture. formatting,
+  comments and imports do not. a file deleted counts for every test it held
+  (`deleted with its file`).
+- test files in other languages named like one (`*.test.ts`, `*Tests.cs`,
+  `*_test.go`) are compared by line: one removed or rewritten counts. other
+  files under a test folder are not read.
+- a test added to a file the run found is the run's own and passes, as
+  `<file>: 1 test added, none the run started with changed`; red-first
+  proves it.
+- a change fails the step like a gate, naming each test, and the step goes
+  again with that at the end of its prompt. on its last go (the flow's
+  `send_backs`, once by default) the run parks for a ruling instead, cause
+  `parked`, with each test cited in `question.md`.
+- unless a ruling in `decisions.md` covers the test: one that names it (its
+  id, its name alone, or its file), or one that quotes in double quotes,
+  three words or more, a line of a spec file as the run found it, in an entry
+  that names the test, such as an `override:` answer to the park. so a test
+  the run was handed with a wrong assertion can be fixed once a ruling quotes
+  the spec line that decides it. an answer of `request:` covers nothing.
+  covered tests pass as `changed, each covered by a ruling`.
+
+which files changed is read from content hashes, and what they held from the
+start commit (or the snapshot, for a file already loose), so a step that
+commits its edit, or commits the file's deletion, is read the same as one
+that leaves it in the work tree. a place with no start commit has only the
+hashes, so a test file the run found that changed there is held as changed
+(nothing can show the change was only an addition) until a ruling names it.
+
 ## the suite as the run found it
 
     # flow.yaml

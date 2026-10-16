@@ -1,0 +1,300 @@
+"""the tests a run started with cannot change without a ruling.
+
+a step that edits a test file the run found (an assertion rewritten, a test
+removed, the file deleted) fails like a gate and goes back once; on its last
+go the run parks for a ruling. a test added to the same file is the run's
+own and passes. a ruling that names the test, or quotes the spec line that
+decides it, lets the edit stand.
+
+the tests are compared per test function, read from the start commit, so
+each case runs once with steps that commit nothing and once with steps that
+commit their work.
+"""
+import datetime
+import importlib.util
+import subprocess
+import sys
+
+import pytest
+
+sys.path.insert(0, ".")
+from agentweft.guardrails import snapshot
+from agentweft.orchestrate import decisions
+from agentweft.runner import engine, prompts, resume, ruling, state, stops
+
+from test_red_order import RED_GATE, a_flow
+
+NL = chr(10)
+LINE = "the report lists students alphabetically."
+SPEC = "# report" + NL + NL + LINE + NL
+SORTED = "def report(names):" + NL + "    return sorted(names)" + NL
+COUNTED = SORTED + NL + NL + "def count(names):" + NL \
+    + "    return len(names)" + NL
+HEAD = "import report" + NL + "from report import report as listed" + NL
+RIGHT = ("def test_alphabetical():" + NL
+         + "    assert listed(['b', 'a']) == ['a', 'b']" + NL)
+WRONG = ("def test_alphabetical():" + NL
+         + "    assert listed(['b', 'a']) == ['b', 'a']" + NL)
+LOOSER = ("def test_alphabetical():" + NL
+          + "    assert len(listed(['b', 'a'])) == 2" + NL)
+COUNT = ("def test_count():" + NL
+         + "    assert report.count(['a']) == 1" + NL)
+TESTER = ("  - role: tester" + NL + "    prompt: tester.md" + NL
+          + "    writes: tests" + NL + RED_GATE)
+WORKER = ("  - role: worker" + NL + "    prompt: worker.md" + NL
+          + "    writes: product" + NL)
+TESTER_SAID = "FAILS: assert False" + NL \
+    + "TEST: tests/test_report.py::test_count" + NL
+APART_SAID = "FAILS: assert False" + NL + "TEST: tests/test_count.py" + NL
+WORKER_SAID = "- report.py: count" + NL
+ID = "tests/test_report.py::test_alphabetical"
+
+
+def module(*tests):
+    return HEAD + "".join(NL + NL + t for t in tests)
+
+
+def git(where, *args):
+    return subprocess.run(["git", "-C", str(where)] + list(args),
+                          capture_output=True, text=True, check=True).stdout
+
+
+def a_place(where, baseline=RIGHT):
+    where.mkdir(parents=True)
+    git(where, "init", "-q")
+    git(where, "config", "user.email", "t@t")
+    git(where, "config", "user.name", "t")
+    git(where, "config", "commit.gpgsign", "false")
+    for rel, text in (("TASK.md", SPEC), ("report.py", SORTED),
+                      ("conftest.py", ""),
+                      ("tests/test_report.py", module(baseline))):
+        (where / rel).parent.mkdir(parents=True, exist_ok=True)
+        (where / rel).write_text(text, encoding="utf-8")
+    git(where, "add", ".")
+    git(where, "commit", "-qm", "start")
+    return where
+
+
+def running(tmp_path, monkeypatch, place, does, commits, *args):
+    """main() over the flow `build` in `place`; `does[step]` is (files it
+    writes, None for one it deletes, and what it answers), or a list of them,
+    one per go. a step that commits commits what it wrote. -> (exit code,
+    steps called)."""
+    called = []
+    goes = {}
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        called.append(step)
+        plan = does[step]
+        if isinstance(plan, list):
+            i = goes.get(step, 0)
+            goes[step] = i + 1
+            plan = plan[min(i, len(plan) - 1)]
+        writes, said = plan
+        for rel, text in writes.items():
+            if text is None:
+                if (place / rel).exists():
+                    (place / rel).unlink()
+                continue
+            (place / rel).parent.mkdir(parents=True, exist_ok=True)
+            (place / rel).write_text(text, encoding="utf-8")
+        if commits and writes:
+            git(place, "add", "-A", "--", *sorted(writes))
+            git(place, "commit", "-qm", step, "--allow-empty")
+        return said, False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
+    monkeypatch.setattr(sys, "argv", ["run.py", "build", "--force",
+                                      "--workdir", str(place)] + list(args))
+    return engine.main(), called
+
+
+def folders():
+    return sorted((p for p in state.RUNS.iterdir() if p.is_dir()),
+                  key=lambda p: resume.order_of(p.name))
+
+
+def read(path):
+    return path.read_text(encoding="utf-8")
+
+
+def writes_of(tests, said=TESTER_SAID, more=None):
+    files = {"tests/test_report.py": tests}
+    files.update(more or {})
+    return {"tester.md": (files, said),
+            "worker.md": ({"report.py": COUNTED}, WORKER_SAID)}
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_rewritten_assertion_fails_the_step_and_it_goes_back_once(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place,
+                           writes_of(module(LOOSER, COUNT)), commits)
+    assert called == ["tester.md", "tester.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    folder = folders()[-1]
+    gates = read(folder / "gates.md")
+    assert "test-edits" in gates
+    assert ID + " (changed)" in gates
+    question = read(folder / "question.md")
+    assert "- " + ID + " - changed" in question
+    assert "override:" in read(folder / "handoff.md")
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_test_appended_to_a_file_the_run_found_passes(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place,
+                           writes_of(module(RIGHT, COUNT)), commits)
+    assert called == ["tester.md", "worker.md"]
+    assert code == 0
+    gates = read(folders()[-1] / "gates.md")
+    assert "test-edits" in gates
+    assert "tests/test_report.py: 1 test added, none the run started with" \
+        " changed" in gates
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_test_put_back_on_the_second_go_passes(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    does = writes_of(module(LOOSER, COUNT))
+    does["tester.md"] = [does["tester.md"],
+                         ({"tests/test_report.py": module(RIGHT, COUNT)},
+                          TESTER_SAID)]
+    code, called = running(tmp_path, monkeypatch, place, does, commits)
+    assert called == ["tester.md", "tester.md", "worker.md"]
+    assert code == 0
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_deleted_test_file_fails(tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    count = HEAD + NL + NL + COUNT
+    code, called = running(
+        tmp_path, monkeypatch, place,
+        writes_of(None, APART_SAID, {"tests/test_count.py": count}),
+        commits)
+    assert called == ["tester.md", "tester.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    gates = read(folders()[-1] / "gates.md")
+    assert ID + " (deleted with its file)" in gates
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_ruling_quoting_the_deciding_spec_line_lets_the_fix_stand(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo", baseline=WRONG)
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    does = writes_of(module(RIGHT, COUNT))
+    code, _ = running(tmp_path, monkeypatch, place, does, commits)
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    code, called = running(tmp_path, monkeypatch, place, does, commits,
+                           "--resume", first.name, "--answer",
+                           'override: "' + LINE + '" decides it')
+    assert called == ["tester.md", "worker.md"]
+    assert code == 0
+    gates = read(folders()[-1] / "gates.md")
+    assert "each covered by a ruling: " + ID in gates
+
+
+def test_a_ruling_on_record_naming_the_test_lets_it_change(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo", baseline=WRONG)
+    decisions.record(place, "test_alphabetical asserted the input order",
+                     "the spec asks for sorted output")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place,
+                           writes_of(module(RIGHT, COUNT)), False)
+    assert called == ["tester.md", "worker.md"]
+    assert code == 0
+
+
+def test_a_ruling_the_step_wrote_itself_never_lets_its_edit_stand(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo", baseline=WRONG)
+    forge = tmp_path / "forge"
+    forge.mkdir()
+    decisions.record(forge, "test_alphabetical asserted the input order",
+                     "the spec asks for sorted output")
+    written = next(forge.rglob("*.md"))
+    rel = written.relative_to(forge).as_posix()
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(
+        tmp_path, monkeypatch, place,
+        writes_of(module(RIGHT, COUNT), more={rel: read(written)}), False)
+    assert called[:2] == ["tester.md", "tester.md"]
+    assert "worker.md" not in called
+    assert code != 0
+
+
+# the comparison on its own
+
+def edits_of(tmp_path, now):
+    place = a_place(tmp_path / "repo")
+    shot = snapshot.take(place)
+    if now is None:
+        (place / "tests" / "test_report.py").unlink()
+    else:
+        (place / "tests" / "test_report.py").write_text(now, encoding="utf-8")
+    assert importlib.util.find_spec("agentweft.guardrails.testedits"), \
+        "nothing compares the tests a run started with"
+    from agentweft.guardrails import testedits
+    return testedits.changes(shot)
+
+
+def test_a_changed_test_with_no_start_to_compare_against_is_held(tmp_path):
+    from agentweft.guardrails import testedits
+
+    place = tmp_path / "plain"
+    (place / "tests").mkdir(parents=True)
+    (place / "tests" / "test_report.py").write_text(module(RIGHT),
+                                                    encoding="utf-8")
+    shot = snapshot.take(place)
+    (place / "tests" / "test_report.py").write_text(module(LOOSER),
+                                                    encoding="utf-8")
+    found = testedits.changes(shot)
+    assert [e.path for e in found] == ["tests/test_report.py"]
+    assert found[0].items, "a change nothing could compare passed"
+
+
+def test_a_reformatted_test_is_not_a_change(tmp_path):
+    spaced = RIGHT.replace("['b', 'a']", "[ 'b','a' ]") + "    # sorted" + NL
+    found = edits_of(tmp_path, module(spaced))
+    assert [e.items for e in found] == [[]]
+
+
+def test_code_added_beside_a_test_is_not_a_change_but_its_body_is(tmp_path):
+    found = edits_of(tmp_path, module(RIGHT).replace(
+        "import report" + NL, "import report" + NL + "EXPECTED = 3" + NL, 1))
+    assert [e.items for e in found] == [[]]
+    found = edits_of(tmp_path / "again", module(RIGHT).replace(
+        "listed(['b', 'a'])", "listed(['b', 'a']) or []"))
+    assert found[0].items == [(ID, "changed")]
+
+
+def entry(decided, why):
+    return decisions.Decision(decided, why, datetime.datetime(2026, 1, 1))
+
+
+def test_a_request_answer_never_covers_an_edit(tmp_path):
+    assert hasattr(ruling, "edit_ruled"), \
+        "nothing reads a ruling for a test the run started with"
+    kept = entry(ruling.decided("tester.md", "request: keep it"),
+                 ruling.why("tester.md", "build-1", "NEEDS: may it?\n- "
+                            + ID, "request: keep " + ID, "someone"))
+    assert ruling.edit_ruled([kept], ID, tmp_path) is None
+    named = entry("the file goes", "test_report.py is replaced")
+    assert ruling.edit_ruled([named], ID, tmp_path) is named
+    other = entry("one test goes", "tests/test_report.py::test_other changes")
+    assert ruling.edit_ruled([other], ID, tmp_path) is None

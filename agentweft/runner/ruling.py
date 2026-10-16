@@ -361,6 +361,52 @@ def covering(decided, test, workdir, start=None):
     return None
 
 
+def names_file(text, path):
+    """whether `text` names the file `path`, with or without the folders
+    before it, and not as the start of one test's id in it."""
+    short = path.rsplit("/", 1)[-1]
+    return re.search(r"(?<![\w.-])" + re.escape(short) + r"(?!\w|::)",
+                     text or "", re.I) is not None
+
+
+def edit_ruled(decided, test, workdir, start=None):
+    """-> the decisions.md entry that lets `test`, a test the run started
+    with, be changed or removed, or None. `test` is a test id, or a file when
+    the change is the file's. what covers a start test gone red covers it,
+    and so does an entry naming the test by its name alone or naming its
+    file. an answer of `request:` never covers one."""
+    found = covering(decided, test, workdir, start)
+    if found is not None:
+        return found
+    path, _, name = test.partition("::")
+    for d in decided:
+        if kind_of(answered(d) or d.decided) == REQUEST:
+            continue
+        own = own_words(d)
+        if (name and names_test(own, name.rsplit("::", 1)[-1])) or \
+                names_file(own, path):
+            return d
+    return None
+
+
+def question_of_test_edits(step, left):
+    """-> the question a step that still changes tests the run started with
+    on its last go parks the run on. `left` is [(test id or file, how it
+    changed)]."""
+    one = len(left) == 1
+    out = ["NEEDS: " + step + " changed "
+           + ("a test" if one else str(len(left)) + " tests")
+           + " the run started with. may " + ("it" if one else "they")
+           + " change?", "CITES:"]
+    out.extend("- " + test + " - " + how for test, how in left)
+    out.extend(["OPTIONS:",
+                "- override: <why the change holds>. name each test above, or"
+                " quote the spec line that decides it, and the change stands",
+                "- anything else is told to " + step + ", which runs again:"
+                " to keep the tests as they were, say put them back"])
+    return "\n".join(out)
+
+
 def quotes_line(text, line):
     """whether `text` quotes `line`, between double quotes: all of it, or
     QUOTE_WORDS words of it or more."""

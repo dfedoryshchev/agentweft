@@ -302,6 +302,14 @@ the run found it").
 "do not edit the tests you were given" is a sentence in a prompt; this is a
 pytest run.
 
+the edit itself is caught at the step that makes it, too: after every step a
+test file the run started with is compared per test function against how the
+run found it, and a test removed or changed, or its file deleted, fails the
+step like a gate and parks the run for a ruling on its last go. a test added
+beside the others passes. a ruling that names the test, or quotes the spec
+line that decides it, lets the change stand (`docs/gates.md`, "the tests the
+run started with, as it found them").
+
 ## the spec files
 
     # flow.yaml
