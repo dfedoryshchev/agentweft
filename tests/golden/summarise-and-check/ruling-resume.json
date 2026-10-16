@@ -500,8 +500,8 @@
     ]
   ],
   "prompts": [
-    "reviewer.md go 1 dab18fbed4576f718f16bddc3a1131c593cf8b19fbc83fc1ab6b2d9bed2601e1",
-    "worker.md go 1 d0f61969d0c917d9f1e5c7e7316144530077196584eed943b1c5920dad7bc650",
-    "worker.md go 2 c59509713495938f86a30377c3298ed346ef19ba4eb4b54b55b39b9793761812"
+    "reviewer.md go 1 f2cab787165a6fc46d628175ad0ac2e2c0d531f282b1c693e19182cc036f957b",
+    "worker.md go 1 b6e8e426686964c76bdfc566646112bbe2afee7ce0ca138fe012eaa6a759497d",
+    "worker.md go 2 2bb9610d33a5fc9232ab6d31871b37324b000b319dc50af9accf6c5202719d59"
   ]
 }

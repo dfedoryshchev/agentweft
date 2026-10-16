@@ -224,6 +224,8 @@
   ],
   "files": [
     "fix-with-test-<day>-1.md",
+    "fix-with-test-<run>/brief.md",
+    "fix-with-test-<run>/brief.md",
     "fix-with-test-<run>/budget-plan.md",
     "fix-with-test-<run>/budget-plan.md",
     "fix-with-test-<run>/budget-plan.md",
@@ -693,9 +695,9 @@
     ]
   ],
   "prompts": [
-    "patcher.md go 1 307107bcbf4f145ec02c14c52e02531657b038b74c67dcea23a4382c85c9cfe4",
-    "patcher.md go 2 309a6cc7542fdc26e3928348992230ad6605463e932e2e7cbf6540dc2a1f313b",
-    "patcher.md go 3 309a6cc7542fdc26e3928348992230ad6605463e932e2e7cbf6540dc2a1f313b",
-    "worker.md go 1 30b1548b9b9dc1d03728e943b2a4fc76b13ba9b3954a0088f5895fdc4112c4e9"
+    "patcher.md go 1 c61d3a347aa146ea95a50503e39502cbed34b979d30175fd673c88846e108df7",
+    "patcher.md go 2 ca5884bab763ba2a97d7d4349208242defc97b93feadf63c741c3e81449336b7",
+    "patcher.md go 3 ca5884bab763ba2a97d7d4349208242defc97b93feadf63c741c3e81449336b7",
+    "worker.md go 1 acda42c67b65f272dd8bf37392ac81128fc324ad3ea501bcdcd1f252d25620c4"
   ]
 }

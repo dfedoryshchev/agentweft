@@ -30,6 +30,7 @@ from agentweft.guardrails.budget import REACHING, Budget
 from agentweft.guardrails import blocks, sacrifice
 
 from .handoff import EMPTY, Handoff, back, merge, parse, transcript, without
+from . import brief as kept
 from . import errors
 from . import investigate
 from .errors import Fatal, Outage, kind_of
@@ -337,6 +338,7 @@ class Run(object):
         # every MUST NOT MISS line any step handed over, as (role, line): a
         # constraint read from the spec by the first step binds the last
         self.constraints = []
+        self.brief = kept.Brief(self.workdir, [step_id(s) for s in fm.steps])
         # the step that first wrote each test file, by path from the place
         self.authors = {}
         self.test_seen = {}
@@ -753,6 +755,8 @@ class Run(object):
         if step == investigate.STEP:
             prompt = prompt + investigate.plan_words(self.fm)
         prompt = prompts.put_spec(prompt, getattr(self, "start", None))
+        notes = getattr(self, "brief", None)
+        prompt = prompts.put_brief(prompt, notes.text(step) if notes else "")
         prompt = prompts.put_task(prompt, self.task_text)
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
@@ -823,6 +827,10 @@ class Run(object):
             self.produced[step] = text
         block = back(parse(text), transcript(trace.last(tried, "session")))
         self.keep(role, block)
+        if notes is not None:
+            notes.add(step, task, role, block)
+            if getattr(self, "folder", None) is not None:
+                notes.save(self.folder)
         return Handoff(role, text, said,
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,

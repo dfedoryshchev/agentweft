@@ -42,6 +42,19 @@ def put_spec(text, start):
     return text.replace(SPEC_DIFF, specfiles.diff(start))
 
 
+BRIEF = "{BRIEF}"
+
+
+def put_brief(text, brief):
+    """{BRIEF}, what the steps before this one found, with the lines they
+    read quoted."""
+    if BRIEF not in text:
+        return text
+    from .brief import NONE_YET
+
+    return text.replace(BRIEF, brief or NONE_YET)
+
+
 def put_task(text, task):
     """{TASK}, on its own because the runner reads a prompt between the two."""
     if task is None:

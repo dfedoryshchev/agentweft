@@ -70,6 +70,7 @@
   ],
   "files": [
     "fix-with-test-<day>-1.md",
+    "fix-with-test-<run>/brief.md",
     "fix-with-test-<run>/budget-plan.md",
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/handoff.md",
@@ -319,7 +320,7 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 307107bcbf4f145ec02c14c52e02531657b038b74c67dcea23a4382c85c9cfe4",
-    "worker.md go 1 ea43f96ad890736fe66f51b878f2ce7f3fc86c6e8a8da41813daa300b016d4ff"
+    "patcher.md go 1 c61d3a347aa146ea95a50503e39502cbed34b979d30175fd673c88846e108df7",
+    "worker.md go 1 ac57bca8f0d9000f5a1cc45a6f9d25c92d40cf066462b37a2fc2926e6444f0b6"
   ]
 }

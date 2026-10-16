@@ -278,7 +278,7 @@
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 7c6bd0419e0fe5c9b4ec821b7b7fff56c399e269aec430fb04e77ff8119e762c",
-    "worker.md go 1 d0f61969d0c917d9f1e5c7e7316144530077196584eed943b1c5920dad7bc650"
+    "reviewer.md go 1 04004efe1a16674c77ad7940266af56ed0e23b939c2136973414e2551cec1356",
+    "worker.md go 1 b6e8e426686964c76bdfc566646112bbe2afee7ce0ca138fe012eaa6a759497d"
   ]
 }

@@ -84,6 +84,26 @@ removed or rewritten one counts there; under `read-only`, or with no
 and the step it sends back to puts the spec back or asks for a ruling. a
 reviewer's own redo stays its own.
 
+## the brief the run keeps
+
+every step starts in a fresh session, and a handoff that only names the files
+it read sends the next step to read them again. so the run keeps a brief and
+every step's rules carry it as `{BRIEF}`, with the words to start from it and
+open a file only for what it does not show, for lines about to change, or for
+a quote in doubt:
+
+- rules: each MUST NOT MISS line, with the `path:line` it names quoted
+- facts: each step's first DID line, and each VERIFIED claim the transcript
+  did not contradict, with the command it was checked with
+- lines read: each READ line, `path:lines - what mattered`, with those lines
+  quoted from the place as it is when the step starts, 12 at most per line
+
+a step gets what the steps before it in the flow's order found, so a step
+asked again with nothing new above it still gets the same prompt and the
+cached answer. a step sent back replaces what its earlier go said. the brief
+is capped at 8000 characters, about 2k tokens; what does not fit is named at
+its end. the whole of it is kept as `brief.md` in the run's folder.
+
 ## flow.yaml
 
     name: weekly digest
