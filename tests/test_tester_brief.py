@@ -87,7 +87,33 @@ def test_the_fix_with_test_worker_writes_only_the_driving_test(tmp_path,
         assert ask not in flat, ask
     assert "the minimum that fails for the reason the report gives" in flat
     assert "written after it is green" in flat
-    assert "never from running the code" in flat
+    assert "never from what the code gives back" in flat
+
+
+def test_the_fix_with_test_worker_looks_for_every_cause_before_its_test(
+        tmp_path, monkeypatch):
+    sent, _ = fix_run(tmp_path, monkeypatch)
+    flat = " ".join(sent["worker.md"].split())
+    search = flat.find("find every place the report's symptom can come from")
+    assert search != -1, flat
+    assert search < flat.find("    FAILS:".strip())
+    assert ("follow the input from where the product reads it to where the"
+            " symptom shows") in flat
+    assert ("a probe run may show you where it breaks; it never sets what a"
+            " test expects") in flat
+    assert "DID names every cause you found" in flat
+    assert "never from running the code" not in flat
+    for ask in BREADTH:
+        assert ask not in flat, ask
+
+
+def test_the_fix_with_test_patcher_answers_for_every_cause_the_worker_named(
+        tmp_path, monkeypatch):
+    sent, _ = fix_run(tmp_path, monkeypatch)
+    flat = " ".join(sent["patcher.md"].split())
+    assert "every cause the worker's DID names" in flat
+    assert ("a named cause your patch did not fix is fixed and tested too, or"
+            " is a DOUBTS line saying why not") in flat
 
 
 def test_the_fix_with_test_patcher_is_asked_for_more_than_the_red_test(

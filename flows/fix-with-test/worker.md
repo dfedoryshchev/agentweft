@@ -10,7 +10,15 @@ make it fail, say so and stop, because then i have described the bug wrong.
 write the minimum that fails for the reason the report gives, and nothing
 more: the other cases the fix will reach are written after it is green, by
 the step that makes it green, once nothing has stopped the run. take what the
-test expects from the report or the spec, never from running the code.
+test expects from the report or the spec, never from what the code gives back.
+
+before you write it, find every place the report's symptom can come from:
+follow the input from where the product reads it to where the symptom shows
+(for a command, from its entry point through each module that handles the
+input), and try the report's words on each. a probe run may show you where it
+breaks; it never sets what a test expects. DID names every cause you found;
+the test drives one, and the others stay in DID for the step that makes it
+green. a place you checked and ruled out is a TRIED line, with why.
 
 the spec is TASK.md, with any SPEC*.md and docs/spec* beside it. if a line of
 it says the code does what it should, the report is wrong, not the code, and
@@ -31,5 +39,5 @@ say how it fails and where the tests are, each on its own line, before them:
 
 then the tests, and nothing else before the handoff block. the test file is
 run after you answer, and a file that is not there or does not fail stops
-the run. in the block, DID names the cause as you understand it, and
+the run. in the block, DID names each cause as you understand it, and
 VERIFIED carries the run that showed the first test failing.

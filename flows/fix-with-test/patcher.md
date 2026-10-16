@@ -14,8 +14,10 @@ here is a failing test. now make it pass.
 
       CONFLICT: <file>:<line> "<the spec line, word for word>"
       request: <the report's words>
-- once it is green, and not before, read what your change reaches and add,
-  in new tests of their own, the cases from the tests around the change
+- once it is green, and not before, read what your change reaches, and every
+  cause the worker's DID names: a named cause your patch did not fix is fixed
+  and tested too, or is a DOUBTS line saying why not. then add, in new tests
+  of their own, the cases from the tests around the change
   (below) that are not there yet. the worker wrote only the test that shows
   the bug, so these are yours
 - each new case is run on the unpatched code too: one that passes there is

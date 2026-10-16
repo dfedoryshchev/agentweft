@@ -236,7 +236,11 @@ named in the prompt as one not to write. `fix-with-test` marks its patcher,
 `build-feature` its worker. the step that writes the first tests is not
 marked: the fix-with-test worker writes the minimum that fails for the reason
 the report gives, and the build-feature tester one test per planned behaviour
-and nothing beyond them. those are what the request is checked against the
+and nothing beyond them. the fix-with-test worker still looks for every place
+the symptom can come from before it writes that test, following the input
+through the code and probing it (a probe never sets what a test expects), and
+names each cause it finds; the patcher fixes and tests each named cause or
+says in a doubt why not. those first tests are what the request is checked against the
 spec on, so a run that stops on a `CONFLICT:` stops before anything is spent
 on cases for a request that may be wrong. the cases written after green are
 replayed by the `red-first` gate, which reports each one as red without the

@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-16T06:19:33",
+  "recorded": "2026-10-16T07:06:32",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 1,
-      "prompt": "28e4d89db350f0a5b2a41699f6d2577ff3b1bcdc1e543b978ca89b2872a96d2d",
+      "prompt": "89255187be4edae63d9d6e0a6cec2287928f26c5bc290c638c20658b3dbc5951",
       "say": "TEST: tests/test_add.py\n\ntests/test_add.py: the test only checks that add answers a number\n",
       "detail": "",
       "retryable": null,
@@ -25,7 +25,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 2,
-      "prompt": "22212c816d4fc07632a938e2ec12091c202692c6fd2911fb8212e39bc631df5b",
+      "prompt": "e1f7d623474dcd59a66be6b0ebd0ea37d8edb855dcc9f44fc14dc105e32d95e2",
       "say": "TEST: tests/test_add.py\n\ntests/test_add.py: the test only checks that add answers a number\n",
       "detail": "",
       "retryable": null,
@@ -43,7 +43,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "f30c515fbd82303f6435373e1cadf6ff25b09f0bba3aef1a837cda0bfb88efae",
+      "prompt": "414362db4ced05c7977957d5e588b000b4a8997c6386d2d561b28fbd98cd24be",
       "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
       "detail": "",
       "retryable": null,
