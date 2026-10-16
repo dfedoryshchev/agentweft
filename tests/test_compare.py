@@ -115,8 +115,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # a step's `verbosity` is one more, one way: an agent says how long to be
     # in prose, if it says it at all.
+    #
+    # `retro` is one more, one way: a step after the last that reads the
+    # run's own record, where a phase has no step after its last.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 37
+    assert len(compare.flow_only()) == 38
     assert len(compare.phase_only()) == 7
 
 

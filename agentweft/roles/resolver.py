@@ -27,18 +27,36 @@ def fragment(name):
     return _read([name])
 
 
-def skill_rules():
-    # the skill files have frontmatter and the fragments do not, so this is
-    # _read again with three extra lines. wrong, sort it later.
+def _skill(path):
+    """-> (the role its frontmatter names or "", its body)."""
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return "", text
+    _, head, body = text.split("---", 2)
+    role = ""
+    for line in head.split("\n"):
+        key, _, value = line.partition(":")
+        if key.strip() == "role":
+            role = value.strip()
+    return role, body
+
+
+def skill(name):
+    """-> one skill's body, without its frontmatter."""
+    return _skill(HERE / "skills" / name / "SKILL.md")[1]
+
+
+def skill_rules(role=None):
+    """every skill's body, in name order. a skill whose frontmatter names a
+    role is that role's procedure and goes to no other."""
     out = ""
     skills = HERE / "skills"
     if not skills.exists():
         return out
-    for skill in sorted(skills.iterdir()):
-        text = (skill / "SKILL.md").read_text(encoding="utf-8")
-        if text.startswith("---"):
-            text = text.split("---", 2)[2]
-        out = out + text
+    for path in sorted(skills.iterdir()):
+        own, body = _skill(path / "SKILL.md")
+        if not own or own == role:
+            out = out + body
     return out
 
 
@@ -72,9 +90,10 @@ def resolve(flow, flow_dir, promises=""):
     """role name -> the rules that role gets. built once, handed to every step."""
     own = flow_dir / "instructions.md"
     words = own.read_text(encoding="utf-8") if own.is_file() else ""
-    base = shared_rules() + skill_rules() + words + promises
+    shared = shared_rules()
     out = {}
     for step in flow["steps"]:
         role = step["role"]
-        out[role] = base + _read(EXTRA.get(role, []))
+        out[role] = shared + skill_rules(role) + words + promises \
+            + _read(EXTRA.get(role, []))
     return out

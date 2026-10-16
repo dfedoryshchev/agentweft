@@ -367,7 +367,7 @@ def outcome(stopped, unsure=()):
     return stops.done(len(unsure))
 
 
-def _redo_why(said):
+def redo_why(said):
     for line in handoff.without(said or "").split("\n"):
         if line.strip() and not line.strip().upper().startswith("VERDICT:"):
             return line.strip()
@@ -383,7 +383,7 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
             "block": block if isinstance(block, dict) else handoff.empty(),
             "gates": gates, "ungated": ungated, "outcome": outcome,
             "verbs": verbs.parse(said),
-            "redo_why": _redo_why(said) if outcome == "redo" else "",
+            "redo_why": redo_why(said) if outcome == "redo" else "",
             "facts": facts or {}}
 
 
@@ -960,9 +960,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 + i["claim"] + " (" + i["why"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
                 if i["backed"] == "unbacked")
+    from .retro import STEP as RETRO
+
     for p in every:
         state = p["block"].get("state")
-        if state == handoff.MISSING:
+        if state == handoff.MISSING and p["step"] != RETRO:
             said.append("- handoff missing: " + at(p))
         elif state in (handoff.UNREADABLE, handoff.PARTIAL):
             said.append("- handoff " + state + ": " + at(p) + " ("

@@ -18,7 +18,8 @@ prompts and a runner for the flows i run against my own stuff.
 the general ones live in their own repo now.
 
 what stays here is only what is true about THIS project: the flow layout, the
-role names, and the fact that fragments/ and skills/ both feed every prompt.
+role names, and the fact that fragments/ and skills/ both feed every prompt
+(a skill whose frontmatter names a `role:` feeds that role only).
 
 ## code
 

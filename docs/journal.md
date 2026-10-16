@@ -274,6 +274,10 @@ or crashed. the keys are always all there, in this order:
     again.
   - `none`: anything else, an all-pass judge among them.
   the retro in `handoff.md` sums seconds and money by it.
+- a flow with `retro: true` can end on one more line, step `retro.md`,
+  written after the handoff: `outcome` `ok` or `failed` with its why, never
+  a cause, `won` `none`, `budget` null (`writing-a-flow.md`). what it wrote
+  is `runs/<run-id>/retro.md`.
 - `file` is what this pass produced, `steps/<seq>-<step>.md`. a redo's second
   review is a second file, so the finding that sent the work back is still
   there. `<step>` beside it is still the last pass, the one `--resume` reads.

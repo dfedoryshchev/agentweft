@@ -1,0 +1,11 @@
+name: retro
+steps:
+  - role: worker
+    prompt: worker.md
+    gates:
+      - gate: length
+        max_lines: 1
+  - role: reviewer
+    prompt: reviewer.md
+retro: true
+timeout: 300

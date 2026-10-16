@@ -82,7 +82,9 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
-         "efforts", "commits", "worktree", "sacrifice")
+         "efforts", "commits", "worktree", "sacrifice", "retro")
+# the runner's own last step (`runner/retro.py`): its role, skill and file
+RETRO = "retro"
 NO_LEAD = "none"
 # whether the run commits as it goes (`runner/commits.py`)
 COMMITS = ("none", "wip", "squash")
@@ -273,7 +275,7 @@ def check_sacrifice(raw):
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
          "max_tokens": int, "journal": bool, "name": str, "workdir": str,
-         "tests_e2e": bool}
+         "tests_e2e": bool, "retro": bool}
 
 
 def counts(value):
@@ -431,6 +433,9 @@ def check(raw):
         for key in step:
             if key not in STEP_KNOWN:
                 bad.append(at + unknown(key, STEP_KNOWN))
+        if step["role"] == RETRO or step_id(step) == RETRO + ".md":
+            bad.append(at + "retro is the runner's look-back step (`retro:"
+                       " true`), so no step is called retro or reads retro.md")
         if not isinstance(step.get("writes_tests", False), bool):
             bad.append(at + "writes_tests should be true or false")
         if step.get("writes") is not None and step["writes"] not in WRITES:

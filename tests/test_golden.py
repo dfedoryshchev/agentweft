@@ -29,7 +29,7 @@ sys.path.insert(0, ".")
 from agentweft.evals import recording
 from agentweft.evals import steps as took
 from agentweft.providers import cli_provider
-from agentweft.runner import engine, prompts, resume, ruling, trace
+from agentweft.runner import engine, prompts, resume, retro, ruling, trace
 
 HERE = Path(__file__).resolve().parent
 GOLDEN = HERE / "golden"
@@ -134,6 +134,13 @@ ASKS = ("NEEDS: notes.md has a plan line and a money line; summarise both?\n"
         "OPTIONS:\n- only the plan line\n- both lines\n")
 DECLINES = 'REFUSED: notes.md:2 "the rent is due on the 1st" is money, not notes\n'
 LAST = "<the run the leg before left>"
+RETRO = ("## seq 1 worker.md\nfailed: length: 2 lines, cap is 1\n"
+         "why: the two changes went on two lines\n"
+         "change: worker.md - say both changes share the one line\n\n"
+         "## seq 3 reviewer.md\nfailed: sent back, the file is not named\n"
+         "why: worker.md never asks for the file\n"
+         "change: worker.md - name the file the change is in\n\n"
+         "## change first\nworker.md - name the file the change is in\n")
 
 CASES = {
     ("build-feature", "pass"): {"place": {"calc.py": ADD_ONLY},
@@ -305,6 +312,18 @@ CASES = {
             "tester.md": [MUL_RED],
             "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
             "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("retro", "two-fails"): {
+        "flows": TEST_FLOWS,
+        "answers": {
+            "worker.md": ["- a --dry-run switch\n- the last row is kept\n",
+                          "- a --dry-run switch, the last row is kept\n",
+                          "- export.py: a --dry-run switch, the last row is"
+                          " kept\n"],
+            "reviewer.md": ["VERDICT: redo\n\nthe line does not name the"
+                            " file\n",
+                            "VERDICT: ok\n\n- export.py: a --dry-run switch,"
+                            " the last row is kept\n"],
+            "retro.md": [RETRO]}},
     ("build-feature", "lead-decides"): {
         "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
         "args": ["--task", FEATURE], "answers": {
@@ -412,6 +431,13 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
                          last=last)
 
     monkeypatch.setattr(engine.Run, "step", step)
+    real_ask = retro.ask
+
+    def ask(run, text, used):
+        script.asking(retro.STEP, None)
+        return real_ask(run, text, used)
+
+    monkeypatch.setattr(retro, "ask", ask)
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=script.run, TimeoutExpired=subprocess.TimeoutExpired))
     monkeypatch.setattr(cli_provider, "call", answering(script.run))

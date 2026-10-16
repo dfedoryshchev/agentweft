@@ -12,7 +12,8 @@ entry carries `tests` only when that gate ran tests one by one. `handoff`
 is the step's HANDOFF block as `runner/handoff.py` parsed it, with each
 VERIFIED claim marked against the step's transcript; null only on a line
 closed before the step answered. `budget` is the pass against the run's
-budget plan (spent, planned, buffer, risk), null when there is no plan.
+budget plan (spent, planned, buffer, risk), null when there is no plan and
+on the retro's line, which the plan never held.
 every line ends on `chain`, which ties it to the line before it
 (`runner/chain.py`).
 """
@@ -295,16 +296,18 @@ class Trail(object):
         self.unclosed.append(entry)
         return entry
 
-    def close(self, entry, outcome, why=None, to=None, cause=None):
+    def close(self, entry, outcome, why=None, to=None, cause=None,
+              planned=True):
         """write entry's line, after the line of every entry opened before it
         that is still open: the lead's pass closes inside the pass of the
-        step that asked it, and the file keeps the order the steps ran in."""
+        step that asked it, and the file keeps the order the steps ran in.
+        a pass that is not `planned` is kept off the budget plan."""
         self.folder.mkdir(parents=True, exist_ok=True)
         if entry in self.unclosed:
             self.unclosed.remove(entry)
         entry.written = line(entry, outcome, why, to, cause, self.task_file,
                              self.folder)
-        if self.plan is not None:
+        if self.plan is not None and planned:
             entry.written["budget"] = self.plan.closed(entry.step, outcome,
                                                        entry.took)
         self.held.append((entry, outcome))

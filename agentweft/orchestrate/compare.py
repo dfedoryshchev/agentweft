@@ -160,6 +160,10 @@ FLOW_ONLY = (
     Pair("flow.efforts", "",
          "how hard each role's model thinks, under a step's own `effort`. a "
          "phase has no word for it, and neither does an agent's file."),
+    Pair("flow.retro", "",
+         "one last step that reads why each failed attempt failed and says "
+         "which gate or prompt to change. it is advice and never a gate; a "
+         "phase has no step after its last, and no record of its own to read."),
     Pair("flow.investigate", "",
          "a step put in front of the flow's own that finds the cause and the "
          "sites it reaches before anything is written. a phase that wants one "

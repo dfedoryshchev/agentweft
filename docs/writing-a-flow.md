@@ -211,7 +211,41 @@ nature and that write nothing big through a tool: a plan, a verdict, a list.
 
 any other word in either key is refused when the flow loads.
 
-## 9. run it three times before you trust it
+## 9. say whether the run looks back
+
+every failed attempt already has a why on its line in `steps.jsonl`, and
+`retro:` adds one last step that reads them:
+
+    retro: true
+
+once the handoff is written, a run with a failed attempt (a gate that
+failed, a send-back, a stop) hands the retro role (`roles/library/retro.md`)
+the why line of each, `why.md` when the run stopped short, and `handoff.md`,
+with the retro skill (`skills/retro/SKILL.md`) as the procedure. it writes
+`runs/<run-id>/retro.md`: per failed attempt what failed, why, and which
+gate, prompt or `flow.yaml` key to change, then the one change to make first.
+it is granted `read` and nothing else, whatever the flow's steps are granted.
+
+it is advice, never a gate. nothing reads `retro.md`. a retro that errors or
+comes back empty is a `retro.md` line in `steps.jsonl` with `outcome:
+failed` and the why; one that cannot even write that line only prints why.
+either way the run's outcome, exit code and journal status stay what they
+were. its line has its cost and seconds like any step's and `won: none`; it
+is not in the budget plan (`budget` is null), it comes after the handoff, so
+the handoff's spend and chain leave it out while the journal line and
+`manifest.json` count it, and a resumed run's handoff counts it among the
+passes it picked up.
+
+a run that stops to wait (for a ruling, a person, the provider's limit, the
+budget or an interrupt), or one at its call cap, holds its retro and prints
+`retro not run:` and why. its failed attempts are not lost: the leg that
+carries the run on hands them to its own retro, with its own. an attempt one
+retro was handed is not handed to the next, and a stop that waited is not a
+failed attempt. a clean run spends nothing on it. `retro: false` or no
+`retro:` adds no step. it is true or false, anything else is refused when the
+flow loads, and so is a step whose role is `retro` or that reads `retro.md`.
+
+## 10. run it three times before you trust it
 
     python run.py my-flow --force
 

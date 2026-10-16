@@ -36,8 +36,8 @@ from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
 from . import commits
-from . import (chain, lead, leftred, levels, manifest, models, resume, router,
-               ruling)
+from . import (chain, lead, leftred, levels, manifest, models, resume, retro,
+               router, ruling)
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -311,6 +311,11 @@ class Run(object):
                 p.choice = {"role": s["role"], "asked": asked, "from": source,
                             "applies": p.chooses_model()}
             self.by_step[step_id(s)] = p
+        if retro.on(fm):
+            self.by_step[retro.STEP] = pinned if isinstance(
+                provider, providers.Provider) else providers.build(
+                    provider or fm.get("provider") or {}, where=self.workdir,
+                    grant=retro.GRANT)
         self.briefed = briefing.digest(self.workdir)
         self.fence = fence.at(self.workdir, own=state.RUNS)
         self.start = None
@@ -1736,7 +1741,14 @@ def main():
                               kept=run.committer.said(),
                               worktree=worktrees.lines(made, run_id),
                               headline=worktrees.headline(made))
-        return summary.write(state.RUNS / run_id, lines), lines
+        path = summary.write(state.RUNS / run_id, lines)
+        if retro.on(fm):
+            retro.after(run, trail, run_id, fm["name"],
+                        record.data["outcome"], folder, stopped,
+                        state.RUNS / pick_up if pick_up else None)
+            record.data[chain.FIELD] = trail.head()
+            record.save(run.budget)
+        return path, lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None, handed=None, question=None, replayed=False):
