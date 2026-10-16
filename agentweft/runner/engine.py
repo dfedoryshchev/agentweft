@@ -12,7 +12,8 @@ from agentweft.roles import resolver
 from .config import (VERDICTS, asks_for_verdict, config, declared, due,
                      fanout_step, steps, verdict, where)
 from agentweft import providers
-from agentweft.flow.spec import lead_of, step_id, step_name, steps_named
+from agentweft.flow.spec import (RESUME, lead_of, step_id, step_name,
+                                 steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
                                   shellwrite, skips, snapshot, specfiles,
@@ -349,6 +350,9 @@ class Run(object):
         self.led = {}
         self.kept = rulings.Kept(self.workdir)
         self.forged = {}
+        # the session each `continue: resume` step carries on, by step
+        self.sessions = {}
+        self.record = None
 
     def decided(self):
         """-> the rulings in decisions.md the runner has on record."""
@@ -566,6 +570,55 @@ class Run(object):
                 return s["role"]
         raise KeyError("no step called " + step + " in " + str(self.fm.name))
 
+    def continues(self, step):
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                return s.get("continue") == RESUME
+        return False
+
+    def carry_for(self, step, used, head):
+        """-> what the call `step` is about to make carries on: None for a
+        step that starts fresh every time, {"from": None} for one that
+        starts a session to carry on later, else the session it kept.
+
+        the session is carried on only while the step would be started the
+        same way: the same model, and the same words before what is new to
+        it. a model change or an amended task starts it fresh, with the
+        whole prompt and the handoff in it."""
+        if not self.continues(step) or not used.continues():
+            return None
+        kept = self.sessions.get(step) or {}
+        if kept and kept.get("model") == used.asks_for() \
+                and kept.get("head") == manifest.of_text(head) \
+                and used.holds(kept.get("id")):
+            return providers.base.carry_of(kept)
+        return {"from": None}
+
+    def keep_session(self, step, used, head, answer, carry):
+        """note the session the step's answer left, for its next call. a
+        session that would not carry on is dropped, so the next call starts
+        the step fresh rather than failing on it again."""
+        if carry is None or answer[1]:
+            return
+        kept = None
+        for reply in getattr(answer, "replies", ()):
+            if reply and reply.session and reply.kept is not None:
+                kept = reply
+        if kept is not None:
+            self.sessions[step] = {
+                "id": kept.session, "model": used.asks_for(),
+                "head": manifest.of_text(head),
+                "usage": kept.kept.get("usage"),
+                "models": kept.kept.get("models"),
+                "cost": kept.kept.get("cost")}
+        elif carry.get("from"):
+            self.sessions.pop(step, None)
+        else:
+            return
+        if self.record is not None:
+            self.record.data["sessions"] = self.sessions
+            self.record.save(self.budget)
+
     def preflight_for(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
@@ -720,7 +773,7 @@ class Run(object):
         run's own: a second run or a second eval case handed the first one's
         answer was scored on work it never did. an answer given up on is not
         kept, so the next time it is asked again."""
-        key = (used, prompt, used.going)
+        key = (used, prompt, used.going, (used.carry or {}).get("from"))
         if key in self.answers:
             print("step " + step + " came from the cache")
             return Answer(self.answers[key], True)
@@ -756,7 +809,8 @@ class Run(object):
             prompt = prompt + investigate.plan_words(self.fm)
         prompt = prompts.put_spec(prompt, getattr(self, "start", None))
         notes = getattr(self, "brief", None)
-        prompt = prompts.put_brief(prompt, notes.text(step) if notes else "")
+        briefed = notes.text(step) if notes else ""
+        prompt = prompts.put_brief(prompt, briefed)
         prompt = prompts.put_task(prompt, self.task_text)
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
@@ -768,6 +822,12 @@ class Run(object):
         prompt = prompt + boundary.as_prompt(
             self.grant_for(step),
             shell_writes=said.get("shell_writes") if said else None)
+        # everything after this is what a step carrying its session on has
+        # not been sent already
+        head = prompt
+        # the brief quotes files as they are now, so a step's own edit between
+        # its goes would move a head that holds nothing new for it
+        held = head.replace(briefed, notes.key(step), 1) if briefed else head
         if extra:
             prompt = prompt + extra
         ran = [line for k, lines in getattr(self, "proven", {}).items()
@@ -800,22 +860,33 @@ class Run(object):
             limit = used.output_limit()
             tried.verbosity = {"asked": "terse", "limit": limit,
                                "applies": limit is not None}
+        carry = getattr(self, "sessions", None) is not None \
+            and self.carry_for(step, used, held)
+        used.carry = carry or None
+        sent = prompt
+        if carry and carry.get("from"):
+            tried.continued = carry["from"]
+            sent = prompts.CARRIED_ON + prompt[len(head):]
         if step != getattr(self, "fan", None):
             getattr(self, "forged", {}).pop(step, None)
         try:
-            answer = tried.answered(self.ask(prompt, step, used))
+            answer = tried.answered(self.ask(sent, step, used))
         except (Outage, Fatal) as e:
             refused = tried.answered(Answer("", False, e.replies, e.retries))
-            self.charge(prompt, refused, used.name, used.asks_for())
+            self.charge(sent, refused, used.name, used.asks_for())
+            if carry and isinstance(e, Fatal):
+                self.keep_session(step, used, held, refused, carry)
             raise
         finally:
             self.held_rulings(step)
+        if carry:
+            self.keep_session(step, used, held, answer, carry)
         text, cached = answer
         self.produced[step] = text
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
-            self.charge(prompt, answer, used.name, used.asks_for())
+            self.charge(sent, answer, used.name, used.asks_for())
         said = verdict(text, asked=asked)
         left = self.spec_unruled() if reviews_spec and said == "ok" else []
         if left:
@@ -825,7 +896,8 @@ class Run(object):
                     + "\n\n" + (rest[1].strip() if len(rest) > 1 else "")
                     ).rstrip() + "\n"
             self.produced[step] = text
-        block = back(parse(text), transcript(trace.last(tried, "session")))
+        block = back(parse(text), transcript(trace.last(tried, "session"),
+                                                  tried.continued))
         self.keep(role, block)
         if notes is not None:
             notes.add(step, task, role, block)
@@ -1657,6 +1729,8 @@ def main():
         record.data["caps"] = held
     if made:
         record.data["worktree"] = made
+    run.record = record
+    run.sessions = dict(record.data.get("sessions") or {})
     record.save(run.budget)
     for decided, why in notes:
         decisions.record(folder, decided, why)

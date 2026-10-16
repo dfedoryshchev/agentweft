@@ -87,6 +87,11 @@ def read(flow, name, role=None):
         return text
     return text.rstrip("\n") + "\n\n" + shared
 
+# what a step that carries its own session on is sent ahead of what is new
+CARRIED_ON = ("this carries on your own session from earlier in this run. your"
+              " instructions, the task and what you read there still hold;"
+              " what follows is new since your last answer.\n")
+
 FLOW_ROOT = ["flows"]
 ENV_KEYS = ("INBOX", "LOGS", "WATCH")
 

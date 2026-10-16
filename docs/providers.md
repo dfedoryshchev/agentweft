@@ -12,8 +12,21 @@ a provider answers a prompt. that is the whole interface:
   the run's place (`workdir`, see `flows.md`), so it reads and edits files
   there. `claude` is called as `claude -p --output-format json` (plus
   `--model` and `--effort`, see tiers) with the prompt on stdin, because Windows caps a
-  command line at about 32k characters; it is never passed `--resume` or
-  `--continue`, so what a call reports is that call. it is also handed
+  command line at about 32k characters. it is never passed `--continue`, and
+  `--resume` only for a step with `continue: resume` (`writing-a-flow.md`):
+  `--resume <id> --fork-session --session-id <new id>`, a copy of the step's
+  last session under an id chosen before the call. a fresh step is passed no
+  session flags at all. what a carried-on call reports was read off
+  `claude` 2.1.301, one fresh call and one `--resume --fork-session` of it:
+  `usage` is that call's own, while `modelUsage` and `total_cost_usd` run on
+  from the session it was copied from. so the reply's `usage` is kept as it
+  came, and its `models` and `cost` are the reported ones less the
+  session's earlier figures; a figure below the earlier one is kept as it
+  came, and a cost with no earlier figure to take out is None. the copy's
+  transcript starts with the earlier session's rows, message ids unchanged,
+  so the checks that read a transcript (a VERIFIED claim's command, what a
+  pass read, shell traps, a go that never answered) leave those rows out.
+  it is also handed
   `--settings` with the commit and pull request attribution off (below), and
   a step with `tools` gets its grant as flags (below). any other command is
   called as `<command> -p <prompt>` and its stdout is the answer, as before,
@@ -31,7 +44,10 @@ a provider answers a prompt. that is the whole interface:
 - **api** - plain http, no sdk. reads `API_KEY`, `API_URL` and `MODEL` (or
   `MODEL_HIGH` and friends, see tiers) from the environment. the model id is
   never written down in the source, because a version string in a file is a
-  thing that rots quietly and then surprises you.
+  thing that rots quietly and then surprises you. a step with `continue:
+  resume` is sent its earlier messages and answers with the new prompt, the
+  new prompt marked `cache_control` with the hour lifetime (`"ttl": "1h"`);
+  the messages live as long as the process.
 - **fake** - replays canned text. see below.
 
 ## what an answer carries
@@ -49,7 +65,11 @@ besides the text:
 - `cost` - USD, as the provider stated it. `claude` reports `total_cost_usd`;
   the api provider reports none. it is kept beside the money the price table
   gives (`guardrails.md`), never in place of it.
-- `session` - `claude`'s `session_id`.
+- `session` - `claude`'s `session_id`, or for a step that carries its
+  session on, the id its call wrote.
+- `kept` - for a call made to be carried on, what its session used as a
+  whole (`usage`, `models`, `cost`, as reported), which the next call's is
+  taken from; None otherwise.
 - `model` - the model that answered: the keys of `claude`'s `modelUsage`
   (comma-joined when more than one did), or the api response's `model`.
 - `models` - when more than one model answered a `claude` call, the usage of

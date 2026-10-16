@@ -272,9 +272,11 @@ def _text(content):
     return ""
 
 
-def _pieces(session):
+def _pieces(session, earlier=None):
     """-> every content piece of the session's transcript in order, or None
-    when there is no transcript to read.
+    when there is no transcript to read. a session carried on from `earlier`
+    starts with a copy of its rows, and a tool call in that copy is not this
+    session's: a result whose call is gone is never paired.
 
     the cli keeps one file per session under its projects folder, in a folder
     named after the working directory. the session id is unique on its own,
@@ -298,13 +300,16 @@ def _pieces(session):
         content = message.get("content") if isinstance(message, dict) else None
         if isinstance(content, list):
             out.extend(p for p in content if isinstance(p, dict))
-    return out
+    old = set(p.get("id") for p in (_pieces(earlier) or [])
+              if p.get("type") == "tool_use") - {None}
+    return [p for p in out if p.get("id") not in old]
 
 
-def transcript(session):
+def transcript(session, earlier=None):
     """-> [(command, output)] for every Bash call in the session's transcript,
-    or None when there is no transcript to read."""
-    pieces = _pieces(session)
+    or None when there is no transcript to read. `earlier` is the session it
+    was carried on from."""
+    pieces = _pieces(session, earlier)
     if pieces is None:
         return None
     asked = {}
@@ -380,12 +385,13 @@ def _shell_reads(command):
     return out
 
 
-def reads(session, root=None):
+def reads(session, root=None, earlier=None):
     """-> [(path, range)] for every file the session read, in order: a Read
     call by its offset and limit, a cat, head, tail or `sed -n` in a Bash
     call by its target; range "" is the whole file. paths under `root` are
-    given from it. None when there is no transcript to read."""
-    pieces = _pieces(session)
+    given from it. None when there is no transcript to read. `earlier` is the
+    session it was carried on from."""
+    pieces = _pieces(session, earlier)
     if pieces is None:
         return None
     out = []

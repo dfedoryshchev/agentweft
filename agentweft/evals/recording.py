@@ -110,6 +110,8 @@ def kept(reply):
         out["guess"] = reply.guess
     if getattr(reply, "writes", None):
         out["writes"] = dict(reply.writes)
+    if getattr(reply, "kept", None) is not None:
+        out["kept"] = reply.kept
     return out
 
 
@@ -123,6 +125,7 @@ def reply_of(call):
                  cost=call.get("cost"), session=call.get("session"),
                  model=call.get("model"), retryable=call.get("retryable"),
                  outage=call.get("outage"), writes=call.get("writes"),
+                 kept=call.get("kept"),
                  models=None if not models
                  else {k: Usage(raw) for k, raw in models.items()})
 
@@ -178,6 +181,20 @@ class Recorder(Provider):
     def output_limit(self):
         return self.inner.output_limit()
 
+    @property
+    def carry(self):
+        return self.inner.carry
+
+    @carry.setter
+    def carry(self, value):
+        self.inner.carry = value
+
+    def continues(self):
+        return self.inner.continues()
+
+    def holds(self, session):
+        return self.inner.holds(session)
+
     def own_effort(self):
         return self.inner.own_effort()
 
@@ -219,6 +236,10 @@ class Replay(Provider):
         self.recorded = blob.get("asked")
         self.calls = {(c["step"], c["task"], c["go"]): c
                       for c in blob.get("calls") or []}
+        # the sessions a recorded step went on from, so a replay sends the
+        # same carried-on prompts the recording did
+        self.sessions = set(c.get("session") for c in self.calls.values()
+                            if c.get("kept") is not None) - {None}
         self.used = set()
         self.goes = Goes()
         self.lock = threading.Lock()
@@ -232,6 +253,12 @@ class Replay(Provider):
 
     def asks_for(self):
         return self.recorded
+
+    def continues(self):
+        return bool(self.sessions)
+
+    def holds(self, session):
+        return session in self.sessions
 
     def ask(self, prompt, timeout=None):
         key = self.goes.next()

@@ -38,12 +38,14 @@ class Attempt(object):
     """
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
-                 "retries", "effort", "verbosity")
+                 "retries", "effort", "verbosity", "continued")
 
     def __init__(self, task=None):
         self.task = task
         self.effort = None
         self.verbosity = None
+        # the session this go carried on, None for one started fresh
+        self.continued = None
         self.began = datetime.datetime.now()
         self.started = time.time()
         self.seconds = None
@@ -363,11 +365,18 @@ def shell_writes_denied(p, attempts, folder):
 
 def shell_trap_recoveries(attempts):
     """-> the model's messages naming a shell trap it walked into, summed over
-    the step's sessions; None when no transcript could be read."""
+    the step's sessions; None when no transcript could be read. a session
+    carried on is a copy of the one before it, whose messages are not this
+    go's."""
     from agentweft.guardrails import shellwrite
 
-    found = [shellwrite.recovered(s) for s in sorted(sessions(attempts))]
-    found = [n for n in found if n is not None]
+    found = []
+    for a in attempts:
+        before = shellwrite.recovered(a.continued) if a.continued else None
+        for s in sorted(sessions([a])):
+            n = shellwrite.recovered(s)
+            if n is not None:
+                found.append(max(0, n - (before or 0)))
     return sum(found) if found else None
 
 
@@ -429,40 +438,44 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             task["model_reported"] = last(a, "model")
             tasks.append(task)
     gates = [gate_line(g) for g in entry.gates]
-    return {"seq": entry.seq,
-            "time": (first.began if first else datetime.datetime.now())
-            .isoformat(timespec="seconds"),
-            "step": entry.step,
-            "from": entry.came_from,
-            "to": to,
-            "provider": p.name,
-            "command": p.command,
-            "model": p.asks_for(),
-            "model_reported": last(one, "model") if one else None,
-            "model_choice": getattr(p, "choice", None),
-            "effort": first.effort if first else None,
-            "verbosity": first.verbosity if first else None,
-            "grant": p.granted(),
-            "tokens": said["tokens"],
-            "cost": said["cost"],
-            "priced": said["priced"],
-            "cost_from": said["cost_from"],
-            "cost_parts": said["cost_parts"],
-            "budget": None,
-            "session": last(one, "session") if one else None,
-            "seconds": said["seconds"],
-            "cached": said["cached"],
-            "retries": said["retries"],
-            "background_killed": said["background_killed"],
-            "shell_writes_denied": shell_writes_denied(p, attempts, folder),
-            "shell_trap_recoveries": shell_trap_recoveries(attempts),
-            "gates": gates,
-            "ungated": entry.ungated,
-            "outcome": outcome,
-            "won": won(outcome, cause, gates, to),
-            "cause": cause,
-            "why": why,
-            "file": entry.file,
-            "task_file": task_file,
-            "tasks": tasks,
-            "handoff": entry.handoff}
+    out = {"seq": entry.seq,
+           "time": (first.began if first else datetime.datetime.now())
+           .isoformat(timespec="seconds"),
+           "step": entry.step,
+           "from": entry.came_from,
+           "to": to,
+           "provider": p.name,
+           "command": p.command,
+           "model": p.asks_for(),
+           "model_reported": last(one, "model") if one else None,
+           "model_choice": getattr(p, "choice", None),
+           "effort": first.effort if first else None,
+           "verbosity": first.verbosity if first else None,
+           "grant": p.granted(),
+           "tokens": said["tokens"],
+           "cost": said["cost"],
+           "priced": said["priced"],
+           "cost_from": said["cost_from"],
+           "cost_parts": said["cost_parts"],
+           "budget": None,
+           "session": last(one, "session") if one else None,
+           "seconds": said["seconds"],
+           "cached": said["cached"],
+           "retries": said["retries"],
+           "background_killed": said["background_killed"],
+           "shell_writes_denied": shell_writes_denied(p, attempts, folder),
+           "shell_trap_recoveries": shell_trap_recoveries(attempts),
+           "gates": gates,
+           "ungated": entry.ungated,
+           "outcome": outcome,
+           "won": won(outcome, cause, gates, to),
+           "cause": cause,
+           "why": why,
+           "file": entry.file,
+           "task_file": task_file,
+           "tasks": tasks,
+           "handoff": entry.handoff}
+    went_on = [a.continued for a in attempts if a.continued]
+    if went_on:
+        out["continued"] = went_on[-1]
+    return out

@@ -160,7 +160,44 @@ request is really a change to the spec gets one more line in its file:
 answered, it parks the run for a ruling with the judge's reason, the lines
 after the verdict, instead of sending anything back.
 
-## 7. say who decides first
+## 7. let a step that goes again carry its own session on
+
+a step sent back starts from nothing by default: its whole prompt again, and
+every file it read, read again. `continue:` on a step says otherwise:
+
+    - role: worker
+      prompt: worker.md
+      continue: resume
+
+- `fresh` (the default) asks the step with its whole prompt every time.
+- `resume` carries the step's own session from its last call in the run on:
+  the call after the first is sent only what is new since its last answer
+  (the send-back, the failed gate, the lead's question or decision), and
+  what it read before comes from the cache.
+
+each call is a copy of the session before it (`claude --resume <id>
+--fork-session`), never the session itself, so a call that fails goes again
+from the same point. the id of every session is chosen before its call
+(`--session-id`) and kept in the run's `manifest.json` under `sessions`, so
+`--resume` of a run that stopped carries the step's session on too. the run
+is charged only what the call added (`providers.md`), and a VERIFIED claim
+or a READ line is held only to what this go did, not to the session it was
+copied from. the step's line names the session it carried on as
+`continued`.
+
+the step starts fresh, with the whole prompt and the handoff, when its model
+is not the one the session ran on, or when the words before what is new have
+changed (an amended task, an edited role file, a brief that grew because a
+step before it ran again). a different effort, such as
+the level a send-back raises it to, carries on. a fanned-out step runs its
+tasks side by side and cannot say `resume`; it is refused when the flow
+loads. a provider that cannot carry a session on, such as `fake`, asks the
+step fresh. an eval case records which sessions its steps went on from, and
+its replay sends the same carried-on prompts. the api provider keeps a step's
+messages for as long as the run runs and marks each prompt for the cache with the hour lifetime; a run
+carried on in a new process starts its api steps fresh.
+
+## 8. say who decides first
 
 a step that cannot go on without a decision asks with a `NEEDS:` line, and the
 run parks for you. `lead` names a step that is asked first:
@@ -178,7 +215,7 @@ build-feature leads with its planner, and fix-with-test, whose first step
 writes the test, has `lead: none`. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
-## 8. say how hard a step thinks and how much it says
+## 9. say how hard a step thinks and how much it says
 
 two keys on a step trim what its model spends:
 
@@ -211,7 +248,7 @@ nature and that write nothing big through a tool: a plan, a verdict, a list.
 
 any other word in either key is refused when the flow loads.
 
-## 9. say whether the run looks back
+## 10. say whether the run looks back
 
 every failed attempt already has a why on its line in `steps.jsonl`, and
 `retro:` adds one last step that reads them:
@@ -245,7 +282,7 @@ failed attempt. a clean run spends nothing on it. `retro: false` or no
 `retro:` adds no step. it is true or false, anything else is refused when the
 flow loads, and so is a step whose role is `retro` or that reads `retro.md`.
 
-## 10. run it three times before you trust it
+## 11. run it three times before you trust it
 
     python run.py my-flow --force
 

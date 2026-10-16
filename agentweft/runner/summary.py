@@ -391,12 +391,13 @@ RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
          "shell_writes_denied", "shell_trap_recoveries", "won")
 
 
-def read_of(sessions, root=None):
+def read_of(sessions, root=None, earlier=None):
     """-> [(path, range)] the sessions' transcripts show read, None when not
-    one of them has a transcript."""
+    one of them has a transcript. `earlier` is the session a carried-on pass
+    went on from, whose reads are not this pass's."""
     out = None
     for session in sessions:
-        found = handoff.reads(session, root)
+        found = handoff.reads(session, root, earlier)
         if found is not None:
             out = (out or []) + found
     return out
@@ -412,7 +413,7 @@ def facts_of(line, root=None):
     sessions = [line["session"]] if line.get("session") else []
     sessions.extend(t["session"] for t in (line.get("tasks") or [])
                     if isinstance(t, dict) and t.get("session"))
-    out["read"] = read_of(sessions, root)
+    out["read"] = read_of(sessions, root, line.get("continued"))
     return out
 
 

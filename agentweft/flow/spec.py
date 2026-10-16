@@ -98,7 +98,8 @@ ON_STOP = ("keep", "revert-tests")
 SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
-              "reports", "writes_tests", "writes", "effort", "verbosity")
+              "reports", "writes_tests", "writes", "effort", "verbosity",
+              "continue")
 WRITES = ("tests", "product", "none")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
@@ -128,6 +129,12 @@ VERBOSITY = ("normal", "terse")
 GRANTS = ("read", "grep", "write", "edit", "shell", "browser")
 
 PREFLIGHT_MODES = ("flag", "refuse", "park")
+
+# `continue` on a step: `fresh` asks it with the whole prompt every time,
+# `resume` carries its own earlier session in the run on and sends only what
+# is new (`runner/engine.py`, `Run.carry_for`).
+CONTINUE = ("fresh", "resume")
+RESUME = "resume"
 
 # `investigate:` puts one step in front of the flow's own that finds the cause
 # of the task and everything it reaches before anything is written. `cause` is
@@ -473,6 +480,8 @@ def check(raw):
                         bad.append("step " + str(i) + ": no such tool "
                                    + str(tool) + ". there is: "
                                    + ", ".join(GRANTS))
+        if step.get("continue") is not None:
+            bad.extend(at + c for c in check_continue(step))
         pre = step.get("preflight")
         if isinstance(pre, dict) and \
                 pre.get("mode", "flag") not in PREFLIGHT_MODES:
@@ -504,6 +513,15 @@ def check(raw):
     bad.extend(check_tiers(with_investigator(raw), "efforts", LEVELS, "level"))
     bad.extend(check_sacrifice(raw))
     return bad
+
+
+def check_continue(step):
+    if step["continue"] not in CONTINUE:
+        return ["continue should be one of " + ", ".join(CONTINUE)]
+    if step["continue"] == RESUME and step.get("fanout"):
+        return ["continue: resume on a fanned-out step, whose tasks run side"
+                " by side with no one session to carry on"]
+    return []
 
 
 def lead_of(raw):

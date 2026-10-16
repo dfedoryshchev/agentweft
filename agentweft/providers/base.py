@@ -82,16 +82,21 @@ class Reply(object):
 
     `writes` is {path: content} for the files a scripted answer left in the
     place, None for an answer that left none.
+
+    `kept` is what the session this call wrote has used as a whole, for a
+    call made to be carried on: {"usage": the raw block, "models": the raw
+    per-model block, "cost"}. None for a call that keeps no session.
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
                  "retryable", "outage", "models", "killed", "metered", "guess",
-                 "writes")
+                 "writes", "kept")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
                  session=None, model=None, retryable=None, outage=None,
                  models=None, killed=None, metered=None, guess=None,
-                 writes=None):
+                 writes=None, kept=None):
+        self.kept = kept
         self.writes = writes
         self.text = text
         self.cached = cached
@@ -194,6 +199,39 @@ def raised(level, times):
     return LEVELS[min(i + times, top)]
 
 
+def number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def less(now, then):
+    """-> `now` with what `then` already counted taken out, number by number
+    and through nested blocks; None when any count in `now` is below its
+    own in `then`, which a running total never is."""
+    if not isinstance(now, dict):
+        return now
+    then = then if isinstance(then, dict) else {}
+    out = {}
+    for key, value in now.items():
+        was = then.get(key)
+        if isinstance(value, dict):
+            value = less(value, was)
+            if value is None:
+                return None
+        elif number(value) and number(was):
+            if value < was:
+                return None
+            value = value - was
+        out[key] = value
+    return out
+
+
+def carry_of(kept):
+    """-> the carry for a call that goes on from `kept`, a session the runner
+    noted down."""
+    return {"from": kept["id"], "usage": kept.get("usage"),
+            "models": kept.get("models"), "cost": kept.get("cost")}
+
+
 def again(status):
     """-> whether an http-style status is worth going again for."""
     if not isinstance(status, int) or isinstance(status, bool):
@@ -212,6 +250,11 @@ class Provider(object):
     going = None
     # whether the step about to ask said `verbosity: terse`
     terse = False
+
+    # the session the call about to be made carries on: None for a call that
+    # keeps none, else {"from": the session's id or None to start one, and
+    # what it had used as a whole: "usage", "models", "cost"}
+    carry = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -264,6 +307,14 @@ class Provider(object):
         """-> the token cap a terse step's answer is held to, None when the
         step is not terse or this provider cannot hold an answer to one."""
         return None
+
+    def continues(self):
+        """-> whether a call can carry an earlier session on."""
+        return False
+
+    def holds(self, session):
+        """-> whether `session` can be carried on from here."""
+        return False
 
     def check(self):
         """-> (ok, detail). is this thing usable right now."""

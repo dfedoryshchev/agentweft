@@ -118,8 +118,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `retro` is one more, one way: a step after the last that reads the
     # run's own record, where a phase has no step after its last.
+    #
+    # a step's `continue` is one more, one way: an agent is one session from
+    # start to end, so there is nothing for it to carry on.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 38
+    assert len(compare.flow_only()) == 39
     assert len(compare.phase_only()) == 7
 
 

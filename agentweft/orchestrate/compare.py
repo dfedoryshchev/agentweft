@@ -217,6 +217,10 @@ FLOW_ONLY = (
          "on its model's output. an agent's prose says how long to be, if "
          "anything."),
     Pair("step.preflight", "", "what to do when a step touches a risky file."),
+    Pair("step.continue", "",
+         "whether a step that goes again carries its own session on or reads "
+         "everything again. an agent is one session from start to end, and a "
+         "phase has no word for going again."),
 )
 
 

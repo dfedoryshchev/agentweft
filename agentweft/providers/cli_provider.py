@@ -7,10 +7,11 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from pathlib import Path
 
 from .base import (CUT, TERSE_SHARE, Provider, Reply, Usage, again, cap_for,
-                   effort_said, model_for, register)
+                   effort_said, less, model_for, number, register)
 
 PIPE = subprocess.PIPE
 NEW_GROUP = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
@@ -305,6 +306,59 @@ def read_back(prompt, since):
                         if d.get("sessionId")), None) or path.stem
         return spent + (session,)
     return None
+
+
+def session_flags(carry, chosen):
+    """-> the flags that carry `carry`'s session on into a copy named
+    `chosen`, the saved one left as it was."""
+    out = []
+    if carry.get("from"):
+        out = ["--resume", carry["from"], "--fork-session"]
+    return out + ["--session-id", chosen]
+
+
+def carried_on(data, carry):
+    """-> `data` with what `carry`'s session had cost before this call taken
+    out. a carried-on call reports `usage` for itself, and `modelUsage` and
+    `total_cost_usd` for the whole session, earlier calls included (seen on
+    `claude` 2.1.301). a figure below the session's earlier one was never the
+    whole session's and is kept as it came; a cost with no earlier figure to
+    take out is not known."""
+    out = dict(data)
+    models = less(data.get("modelUsage"), carry.get("models"))
+    if models is not None and carry.get("models") is not None:
+        out["modelUsage"] = models
+    cost, was = data.get("total_cost_usd"), carry.get("cost")
+    if number(cost) and not number(was):
+        out["total_cost_usd"] = None
+    elif number(cost) and cost >= was:
+        out["total_cost_usd"] = cost - was
+    return out
+
+
+def read_session(session, earlier=None):
+    """-> (Usage, models, model, session) from the transcript of `session`
+    itself, or None when there is none. a carried-on session's file starts
+    with a copy of `earlier`'s rows, whose messages are not its own."""
+    from agentweft.runner.handoff import projects
+
+    try:
+        found = sorted(projects().glob("*/" + session + ".jsonl"))
+        if not found:
+            return None
+        rows = rows_of(found[0])
+        old = set()
+        if earlier:
+            for path in projects().glob("*/" + earlier + ".jsonl"):
+                old.update((d.get("message") or {}).get("id")
+                           for d in rows_of(path)
+                           if isinstance(d.get("message"), dict))
+    except OSError:
+        return None
+    rows = [d for d in rows if not (isinstance(d.get("message"), dict)
+                                    and d["message"].get("id") in old - {None})]
+    spent = spent_in(rows)
+    return None if spent is None else spent + (session,)
 
 
 USAGE_LIMIT = "usage_limit_reached"
@@ -674,12 +728,32 @@ class CliProvider(Provider):
         had = os.environ.get(CAP_VAR, "").strip()
         return min(limit, int(had)) if had.isdigit() and int(had) else limit
 
-    def argv(self, prompt):
+    def continues(self):
+        return is_claude(self.command)
+
+    def holds(self, session):
+        """the cli keeps its sessions itself, under its projects folder. one
+        that folder does not have would fail every go at carrying it on; a
+        folder that is not there at all says nothing either way."""
+        from agentweft.runner.handoff import projects
+
+        if not is_claude(self.command) or not session:
+            return False
+        try:
+            folder = projects()
+            if not folder.is_dir():
+                return True
+            return any(folder.glob("*/" + session + ".jsonl"))
+        except OSError:
+            return True
+
+    def argv(self, prompt, session=(), effort=None):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for
-        json, and never `--resume` or `--continue`: a carried-on session
-        reports the whole session's usage, not this call's. any other command
-        is called the way it always was, grant or none: which flags it takes
-        is not ours to guess."""
+        json. it carries a session on only by `session`, the flags of
+        `session_flags`, and never `--continue`: a carried-on session reports
+        the whole session's usage, not this call's, which `carried_on` takes
+        apart again. any other command is called the way it always was, grant
+        or none: which flags it takes is not ours to guess."""
         cmd = self.command
         if not is_claude(cmd):
             return [cmd, "-p", prompt], None
@@ -699,18 +773,28 @@ class CliProvider(Provider):
         model = self.asks_for()
         if model:
             argv = argv + ["--model", model]
-        effort = self.asks_effort()
+        effort = effort or self.asks_effort()
         if effort:
             argv = argv + ["--effort", effort]
+        argv = argv + list(session)
         # Windows caps a whole command line at about 32k characters, and a
         # prompt with a diff in it is past that long before the model minds.
         return argv, prompt
 
     def ask(self, prompt, timeout=None):
+        carry = self.carry
+        chosen = str(uuid.uuid4()) if carry is not None else None
+        return self.go(prompt, timeout, carry, chosen)
+
+    def go(self, prompt, timeout, carry=None, chosen=None, effort=None):
+        """one call. with `carry`, it writes the session `chosen` (a new id
+        every go, so a go that failed is never in the way of the next) or,
+        with none chosen, a session that is not kept."""
         refused = self.refuses()
         if refused:
             return Reply("", detail=refused, retryable=False)
-        argv, stdin = self.argv(prompt)
+        flags = session_flags(carry, chosen) if carry is not None else ()
+        argv, stdin = self.argv(prompt, flags, effort)
         since = time.time()
         try:
             r = call(argv, stdin=stdin,
@@ -727,11 +811,12 @@ class CliProvider(Provider):
             reply = Reply("", detail="timed out after " + str(timeout) + "s",
                           retryable=True, killed=r.killed)
             if stdin is not None:
-                self.unanswered(reply, prompt, since, ran=True)
+                self.unanswered(reply, prompt, since, ran=True,
+                                session=chosen, earlier=(carry or {}).get("from"))
             return reply
         data = answered(r.stdout) if stdin is not None else None
         if data is not None:
-            return self.read(data, r)
+            return self.read(data, r, carry, chosen)
         if r.returncode != 0:
             # some failures say nothing on stderr and everything on stdout, and
             # i was throwing that away and reporting an empty error
@@ -740,15 +825,18 @@ class CliProvider(Provider):
                           killed=r.killed)
             if stdin is not None:
                 # an exit with no transcript most likely never reached a model
-                self.unanswered(reply, prompt, since, ran=False)
+                self.unanswered(reply, prompt, since, ran=False,
+                                session=chosen, earlier=(carry or {}).get("from"))
             return reply
         return Reply(r.stdout, killed=r.killed)
 
-    def unanswered(self, reply, prompt, since, ran):
+    def unanswered(self, reply, prompt, since, ran, session=None,
+                   earlier=None):
         """fills in what a go the cli never answered for used: read back from
-        its transcript, else, when it is known to have run, estimated from the
-        prompt."""
-        found = read_back(prompt, since)
+        its transcript, by the id it was given when it had one, else, when it
+        is known to have run, estimated from the prompt."""
+        found = read_session(session, earlier) if session \
+            else read_back(prompt, since)
         if found is not None:
             reply.usage, reply.models, reply.model, reply.session = found
             reply.metered = "transcript"
@@ -759,12 +847,21 @@ class CliProvider(Provider):
             reply.guess = len(prompt) // CHARS_PER_TOKEN
         return reply
 
-    def read(self, data, r):
+    def read(self, data, r, carry=None, chosen=None):
+        kept = None
+        if carry is not None:
+            if chosen:
+                kept = {"usage": data.get("usage"),
+                        "models": data.get("modelUsage"),
+                        "cost": data.get("total_cost_usd")}
+            if carry.get("from"):
+                data = carried_on(data, carry)
         models = data.get("modelUsage")
         cost = data.get("total_cost_usd")
         said = dict(usage=Usage.of(data.get("usage")),
                     cost=cost if isinstance(cost, (int, float)) else None,
-                    session=data.get("session_id") or None,
+                    session=data.get("session_id") or chosen,
+                    kept=kept,
                     model=", ".join(sorted(models)) if isinstance(models, dict)
                     and models else None,
                     models=per_model(models, data.get("usage")),

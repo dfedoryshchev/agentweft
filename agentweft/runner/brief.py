@@ -94,6 +94,11 @@ class Brief(object):
                         out[key].append(entry)
         return out["rules"], out["facts"], out["read"]
 
+    def key(self, before=None):
+        """-> what the brief for `before` holds, without the lines it quotes
+        from the place."""
+        return repr(self.entries(before))
+
     def quote(self, path, first, last):
         """-> the lines as the place has them now, numbered, or [] for a
         file outside the place or not there."""

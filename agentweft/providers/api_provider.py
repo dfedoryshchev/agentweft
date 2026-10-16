@@ -1,4 +1,6 @@
 import os
+import threading
+import uuid
 
 import httpx
 
@@ -6,6 +8,24 @@ from .base import (CUT, TERSE_SHARE, Provider, Reply, Usage, again, cap_for,
                    effort_said, env_for, model_for, register)
 
 VERSION = "2023-06-01"
+
+# a step that carries its session on marks the end of each prompt for the
+# cache, with the long lifetime: its next go may be a whole step away
+HOUR = {"type": "ephemeral", "ttl": "1h"}
+
+
+def said(role, text):
+    return {"role": role, "content": [{"type": "text", "text": text}]}
+
+
+def marked(messages):
+    """-> messages with the last block of the last one marked for the
+    cache. the kept history stays unmarked, so the marks never pile up."""
+    last = dict(messages[-1])
+    blocks = [dict(b) for b in last["content"]]
+    blocks[-1]["cache_control"] = HOUR
+    last["content"] = blocks
+    return list(messages[:-1]) + [last]
 
 
 @register
@@ -15,6 +35,14 @@ class ApiProvider(Provider):
     rots quietly."""
 
     name = "api"
+
+    def __init__(self, **opts):
+        Provider.__init__(self, **opts)
+        # the messages of each session a step can carry on, by id. they live
+        # as long as this process: a run carried on in another one starts
+        # the step afresh
+        self.kept = {}
+        self.lock = threading.Lock()
 
     def _model(self):
         return model_for(self.opts)
@@ -28,23 +56,54 @@ class ApiProvider(Provider):
     def chooses_effort(self):
         return True
 
-    def _cap(self):
-        return int(self.opts.get("max_tokens", cap_for(self.asks_effort())))
+    def _cap(self, effort=None):
+        return int(self.opts.get("max_tokens",
+                                 cap_for(effort or self.asks_effort())))
 
     def output_limit(self):
         if not self.terse:
             return None
         return min(self._cap(), cap_for(self.asks_effort()) // TERSE_SHARE)
 
+    def continues(self):
+        return True
+
+    def holds(self, session):
+        with self.lock:
+            return session in self.kept
+
+    def history(self, carry):
+        with self.lock:
+            return list(self.kept.get(carry.get("from")) or [])
+
     def ask(self, prompt, timeout=None):
+        carry = self.carry
+        if carry is None:
+            return self.post([{"role": "user", "content": prompt}], timeout)
+        sent = self.history(carry) + [said("user", prompt)]
+        reply = self.post(marked(sent), timeout)
+        if reply:
+            # a new id for every answer: the session carried on is left as
+            # it was, so a go that fails goes again from the same point
+            chosen = str(uuid.uuid4())
+            with self.lock:
+                self.kept[chosen] = sent + [said("assistant", reply.text)]
+                # the runner goes on only from a step's newest session
+                self.kept.pop(carry.get("from"), None)
+            reply.session = chosen
+            reply.kept = {"usage": reply.usage.raw if reply.usage else None,
+                          "models": None, "cost": None}
+        return reply
+
+    def post(self, messages, timeout, effort=None, cap=None):
         key = os.environ.get("API_KEY", "")
         if not key:
             return Reply("", detail="no API_KEY set", retryable=False)
         url = self.opts.get("url") or os.environ.get("API_URL", "")
-        effort = self.asks_effort()
-        body = {"model": self._model(),
-                "max_tokens": self.output_limit() or self._cap(),
-                "messages": [{"role": "user", "content": prompt}]}
+        effort = effort or self.asks_effort()
+        cap = cap or self.output_limit() or self._cap(effort)
+        body = {"model": self._model(), "max_tokens": cap,
+                "messages": messages}
         if effort:
             body["output_config"] = {"effort": effort}
         try:

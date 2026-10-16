@@ -183,6 +183,8 @@ class Manifest(object):
                 if s["state"] == PARKED:
                     s["state"] = PASSED
         out.data["spend"] = dict(self.spend)
+        if self.data.get("sessions"):
+            out.data["sessions"] = dict(self.data["sessions"])
         return out
 
     @property
