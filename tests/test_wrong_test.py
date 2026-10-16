@@ -37,7 +37,8 @@ WRONG = a_test(5)
 RIGHT = a_test(6)
 OLD = ("def test_old():" + NL + "    from calc import add" + NL + NL
        + "    assert add(2, 2) == 5" + NL)
-PLAN = "- mul(2, 3) is 6 | calc.py" + NL
+PLAN = ("- behaviour: mul(2, 3) is 6" + NL + "  file: calc.py" + NL
+        + "  spec: nothing in the spec" + NL)
 TESTER = ("FAILS: ImportError: cannot import name 'mul' from 'calc'" + NL
           + "TEST: tests/test_mul.py" + NL)
 WORKER = "- calc.py: mul(a, b) added" + NL

@@ -113,7 +113,8 @@ ADD_ONLY = "def add(a, b):\n    return a + b\n"
 WITH_MUL = ADD_ONLY + "\n\ndef mul(a, b):\n    return a * b\n"
 MUL_TEST = ("def test_mul():\n    from calc import mul\n\n"
             "    assert mul(2, 3) == 6\n")
-MUL_PLAN = "- mul(2, 3) is 6 | calc.py\n"
+MUL_PLAN = ("- behaviour: mul(2, 3) is 6\n  file: calc.py\n"
+            "  spec: nothing in the spec\n")
 MUL_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
               "TEST: test_mul.py\n\n" + MUL_TEST, {"test_mul.py": MUL_TEST})
 MUL_BUILT = "- calc.py: mul(a, b) added\n"

@@ -17,7 +17,8 @@ BEFORE = "def add(a, b):" + NL + "    return a + b" + NL
 AFTER = BEFORE + NL + NL + "def mul(a, b):" + NL + "    return a * b" + NL
 TEST = ("def test_mul():" + NL + "    from calc import mul" + NL + NL
         + "    assert mul(2, 3) == 6" + NL)
-PLAN = "- mul(2, 3) is 6 | calc.py" + NL
+PLAN = ("- behaviour: mul(2, 3) is 6" + NL + "  file: calc.py" + NL
+        + "  spec: nothing in the spec" + NL)
 TESTER = ("FAILS: ImportError: cannot import name 'mul' from 'calc'" + NL
           + "TEST: tests/test_mul.py" + NL)
 WORKER = "- calc.py: mul(a, b) added" + NL
