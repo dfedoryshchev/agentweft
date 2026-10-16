@@ -9,6 +9,7 @@ sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.evals import harness, recording
 from agentweft.providers import fake_provider
+from agentweft.runner import prompts
 
 FLOW = "fix-with-test"
 BUGGY = "def add(a, b):\n    return a - b\n"
@@ -139,3 +140,31 @@ def test_a_case_place_that_is_not_there_does_not_run(case_dir):
     _, out = ran(case_dir)
     assert "nowhere" in out[2]
     assert out.steps == []
+
+
+def test_a_fake_with_no_place_does_not_write_where_it_was_started(
+        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    fake = fake_provider.FakeProvider(replies={
+        "a.md": [{"say": "x", "writes": {"calc.py": FIXED}}]})
+    fake.where = None
+    fake.at("a.md", None)
+    with pytest.raises(ValueError):
+        fake.ask("p")
+    assert not (tmp_path / "calc.py").exists()
+
+
+def test_a_case_that_scripts_writes_and_has_no_place_does_not_run(
+        case_dir, tmp_path, monkeypatch):
+    cfg = yaml.safe_load((case_dir / "case.yaml").read_text(encoding="utf-8"))
+    del cfg["place"]
+    (case_dir / "case.yaml").write_text(yaml.safe_dump(cfg), encoding="utf-8")
+    started = tmp_path / "started"
+    started.mkdir()
+    monkeypatch.setattr(prompts, "FLOW_ROOT",
+                        [str(Path("flows").resolve())])
+    monkeypatch.chdir(started)
+    _, out = ran(case_dir)
+    assert "writes" in out[2] and "place" in out[2]
+    assert out.steps == []
+    assert list(started.iterdir()) == []

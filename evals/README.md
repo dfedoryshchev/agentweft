@@ -50,7 +50,9 @@ leave files in the place before the step's gates look at it:
                     return a + b
 
 a step that goes again takes the next answer on its list, and the last one
-again once the list runs out. a path that leads out of the place is refused.
+again once the list runs out. a path that leads out of the place is refused,
+and so is a case with `writes` and no `place`: it does not run, and says it
+needs one, so the tree the command was started in is never where they land.
 
 ## the steps it took
 

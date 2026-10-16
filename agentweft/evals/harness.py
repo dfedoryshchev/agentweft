@@ -51,6 +51,15 @@ def load_case(path):
             "task": task}
 
 
+def scripts_writes(provider):
+    """-> whether a case's provider block has an answer with `writes`."""
+    for listed in ((provider or {}).get("replies") or {}).values():
+        for reply in listed if isinstance(listed, list) else [listed]:
+            if isinstance(reply, dict) and reply.get("writes"):
+                return True
+    return False
+
+
 def committed(place):
     """make the copy of a case's place a git work tree holding its files as
     one commit. -> "" when it is, else why not.
@@ -125,6 +134,10 @@ def run_flow_for(flow, case, record=False):
     except ValueError as e:
         return Ran("", None, str(e))
     place = case.get("place")
+    if place is None and scripts_writes(case.get("provider")):
+        return Ran("", None, case["name"] + " has answers that leave files"
+                   " (writes:) and no place to leave them in. give it one"
+                   " with place: <folder> in case.yaml")
     if place is not None and not Path(place).is_dir():
         return Ran("", None, case["name"] + " names a place, "
                    + Path(place).name + ", that is not a folder beside its "

@@ -6,11 +6,16 @@ from .base import Provider, Reply, register
 
 def write_into(where, writes):
     """leave each file of `writes` ({path: content}) in the place, the way a
-    model working there would. a path that leads out of the place is refused
-    before anything is written."""
+    model working there would. with no place, or a path that leads out of
+    it, nothing is written: the tree the command was started in is never
+    the place."""
     if not writes:
         return
-    place = Path(where or ".").resolve()
+    if where is None:
+        raise ValueError("an answer that writes files needs a place to write"
+                         " them, so " + ", ".join(sorted(writes))
+                         + " was not written")
+    place = Path(where).resolve()
     targets = []
     for name, content in writes.items():
         target = (place / name).resolve()
