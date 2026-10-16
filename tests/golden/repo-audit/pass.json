@@ -17,9 +17,18 @@
   "handoff": [
     "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/repo-audit-<run>/steps/ and its record in runs/repo-audit-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -142,6 +151,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -254,6 +264,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -325,6 +336,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -426,6 +438,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -452,16 +465,23 @@
     "config.py loads settings.yml and has no defaults, which is the risk.",
     "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 1c2fab1c9388b5bfec83f903b0b24a6ca72860905b008ef70ae26dd5c3e923c1",
-    "planner.md go 1 68f60d475646ce60a200400582d500f81eb8382ee42188e5cfdc090e5cbf66cd",
-    "reviewer.md go 1 3e0d5ad2fefed6691e44bac45812f6cbe11b052ffcc2f2610792d0f3f64c1ed8",
-    "worker.md task 1 go 1 6f66b70ea2e739d18735a0d6ff45c055386a8a32589fc86e11bfe46e840367a7",
-    "worker.md task 2 go 1 59c7b5871bb734308eabc7c9c99df0c76be838e2f2ae7b316c9de8aa04718a02"
+    "merge.md go 1 d9711ca74256e313b5e4be5380ea13e85b1cf6c514178b48d3f4ce977ebb18ea",
+    "planner.md go 1 e75c7342542aef0028093c294982090256d65f67feb4258d5324421fac390ae5",
+    "reviewer.md go 1 99948555ac6eb403b1454d26619ecba78ebd495623cb14e6b2bd7fb3cd34fcb6",
+    "worker.md task 1 go 1 4cdf7f5ef9bb29f0d13718392e838ff004d27262ca03cc9a5bc831222307d0e4",
+    "worker.md task 2 go 1 c4178fe65c4cb94434328fc151d0cf305f4c488dd8fe621128131035c9dea5ab"
   ]
 }

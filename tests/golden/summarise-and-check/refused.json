@@ -18,9 +18,18 @@
   "handoff": [
     "# summarise-and-check summarise-and-check-<run>: refused (spec cited) at worker.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
     "summarise-and-check ran worker.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/summarise-and-check-<run>/steps/ and its record in runs/summarise-and-check-<run>/steps.jsonl.",
     "## needs you",
     "- worker refused: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
     "refused at     worker.md",
@@ -136,6 +145,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -153,9 +163,16 @@
       "refused at worker.md: REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
       "# summarise-and-check summarise-and-check-<run>: refused (spec cited) at worker.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
       "summarise-and-check ran worker.md in <secs>s.",
-      "no step handed over a block, so what was done is only what git and the gates show below.",
-      "checks: no gates ran; red first: not proven by a gate.",
+      "suite: no gates ran; red first: not proven by a gate.",
       "changed: not a git checkout, so what changed is not recorded here.",
+      "## the one decision",
+      "- no step asked one; what the stop needs from you is under needs you, below.",
+      "## why",
+      "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+      "## not done",
+      "- none",
+      "## product gaps",
+      "- none",
       "## needs you",
       "- worker refused: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
       "refused at     worker.md",
@@ -173,6 +190,6 @@
     ]
   ],
   "prompts": [
-    "worker.md go 1 d0d9bef8b27594a30bb3318db09f75ffbef21598a6da60a8342c9f4a8462bca1"
+    "worker.md go 1 d0f61969d0c917d9f1e5c7e7316144530077196584eed943b1c5920dad7bc650"
   ]
 }

@@ -37,6 +37,8 @@ code and copying what it gives back. when the spec does not decide a case, do
 not decide it yourself. put it on a line of its own and go on with the rest:
 
     NEEDS: <the case, and what the spec leaves open>
+    RECOMMEND: <the answer you would pick, and why>
+    SIZE: <what that answer costs: one line, one file, a design change>
 
 that line is for a real gap in the spec only, never for a question the code
 can answer.

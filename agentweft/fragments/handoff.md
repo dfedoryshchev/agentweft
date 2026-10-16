@@ -19,6 +19,9 @@ seen your work and cannot ask you:
     - <a choice the task or the spec does not make, that you made> | why: <reason> | if wrong: <what breaks>
     DOUBTS:
     - <something you are not sure is right, or found and did not fix, with the options you see>
+    QUESTION: <a question only a person can answer, citing the <file>:<line> it turns on>
+    RECOMMEND: <the answer you would pick, and why>
+    SIZE: <what that answer costs: one line, one file, a design change>
     MUST NOT MISS:
     - <file>:<line> - <a rule in the spec, the task or the tests that binds the rest of the work>
     TRIED:
@@ -30,5 +33,6 @@ seen your work and cannot ask you:
 - every section is there, every time; one with nothing in it says `none`
 - a VERIFIED line needs a command you ran in this step and a piece of its output; a check you believe but did not run goes under NOT VERIFIED or ASSUMED. the record is held against your transcript, and a claim it does not show is printed as such
 - a doubt is a question when it is one; a choice you made is an ASSUMED line, not a doubt
+- a question only a person can answer is a QUESTION line, with its RECOMMEND and SIZE lines under it, each on a line of its own; one set per question, and none when you have none. it does not stop the work: the person reads it with your recommendation and how big that is, after the run. ask it once; the same question in a doubt is printed once anyway
 - never claim a ruling, an approval or an agreement you were not handed. name the file and line that decides a thing, or say nobody has
 - the block is read by a program: keep the key names in capitals, one item per `-` line, a VERIFIED item's `cmd:` and `saw:` each on its own line under its claim, the `|` separators of an ASSUMED line as shown, and no code fence around it

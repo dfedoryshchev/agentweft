@@ -19,9 +19,18 @@
   "handoff": [
     "# build-feature build-feature-<run>: done",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 5 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
+    "suite: 5 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/build-feature-<run>/steps/ and its record in runs/build-feature-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -40,7 +49,7 @@
     "- worker.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
     "- reviewer.md: no gates",
     "- red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py)",
-    "- test order: red before any product code: red-test on tester.md (test_mul.py)",
+    "- test order: red before any product code: red-test on tester.md (test_mul.py, written)",
     "## rulings",
     "- no pre-existing test or spec file changed",
     "- none on record in decisions.md",
@@ -160,6 +169,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -237,6 +247,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -319,6 +330,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -420,6 +432,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -502,6 +515,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -603,6 +617,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -634,17 +649,24 @@
     "- test_mul.py: mul(-2, 3) is -6",
     "# build-feature build-feature-<run>: done",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 5 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
+    "suite: 5 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 603bcfe9dc813b74d9c6ca800d82fe17a8862f512a0c0050295f24bc83c1ef9a",
-    "reviewer.md go 1 0ad3f4fbd4263b4acbb078d5d7abf20fd6e435fe051781d873b8ba9970c7469c",
-    "reviewer.md go 2 91ad5a276415ea56fe4d67a8cbbbb5f476e2b8e798dd5ccc9d2175fa1e63ce76",
-    "tester.md go 1 214e96819765041850763f22a6701af7e417f3a770f8f3b213179b8e454447e8",
-    "worker.md go 1 88c9584be7af9d782eff09494bd3ab65c61ced5cda5ba655d8e5c3e6238f5d22",
-    "worker.md go 2 17c250436c8056caeab8a3a632f3b803eea9e24282fa85bcbdee079f910e5ab6"
+    "planner.md go 1 b5c9d027516769eb47f500fa46bf4c55845b7f46c3f400b8459d1aa68b6e7bf4",
+    "reviewer.md go 1 34a27f011a4fe86326535d338d8e189d4a8b4802162d9226e126c307b2215913",
+    "reviewer.md go 2 1a608719f4fe48eb3206e3e03994ec538e76fae75b6cfe788c03d21143ad45b2",
+    "tester.md go 1 bd2b2fc20447b74000c2e6ee96e762b0a1939188b677a72d696a4d40ad4da737",
+    "worker.md go 1 15acad4fb9472ecc784b64c5b9f5b06e63494c25390152c452b638b31d30dd91",
+    "worker.md go 2 41eb3d37c699f2ca79e064495a4ae3d183b4d08e86f4ea117c4d0dcd33bdcd83"
   ]
 }

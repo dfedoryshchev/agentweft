@@ -326,8 +326,21 @@ the checker holds the shape: once any step says what it writes, every step
 has to, and every `writes: tests` step needs a red-test gate with `red: true`
 and a command. that gate on the tests step is what gives the run its red
 proof: it ran its command on a test file whose content is not what it was at
-the start, and the test failed. (a red-first gate runs after the product step
-it sits on, so it can never let that same step start.) the proof is kept as
+the start, and the test failed. a test the run started with and left as it
+was counts too, the failing test a bug report ships with, once it is shown
+red at the start and not only now: the tests step names it on its `TEST:`
+line, the red-test gate runs it red, and then the runner runs it again in a
+checkout of the start commit holding the place as it started (the files not
+committed then included), with the flow's first red-test or red-first
+command. there it has to fail on a test failing, by pytest's count: a setup
+error such as a missing fixture, or a test that cannot even be collected, is
+no proof. so is a supplied test made red by a `conftest.py`, a helper or
+tooling the tests step wrote, since the checkout has none of them. a place
+with no start commit has nothing to run it in, and gets no supplied proof.
+the proof says which, `written` or `supplied`, and so does the handoff.
+without a red-test gate that ran it there is still no proof. (a red-first
+gate runs after the product step it sits on, so it can never let that same
+step start, and it only counts tests the run wrote.) the proof is kept as
 `runs/<run-id>/red-proof.json`. then:
 
 - a `writes: product` step does not start until the run holds a red proof.
@@ -352,7 +365,7 @@ handoff's "tests and checks":
   `tests-only` check, a `must_produce: "FAILS:"` is not asked for, and every
   `red-test` and `red-first` gate passes as `not run - tests skipped:
   <reason>`. a `command` gate that runs the whole suite still runs: it checks
-  the product, not the order. the handoff's checks line says `tests skipped:
+  the product, not the order. the handoff's suite line says `tests skipped:
   <reason>`. a resumed run keeps it.
 - `--continue <run>` carries the red proof an earlier run of the same place
   holds, as `tests carried from run <run>`, once each test file it proved is
@@ -369,7 +382,9 @@ handoff's "tests and checks":
   that could not run carries nothing and the run does not start.
 - a red-first gate on the product step of a continued run that wrote no new
   test runs each carried test in the place with the fix; each has to pass,
-  and the gate says `carried from <sha or run>, green with the fix`.
+  and the gate says `carried from <sha or run>, green with the fix`. a run
+  whose proof is a supplied test is held the same way: the gate says
+  `supplied, red at the start, green with the fix`.
 
 a run picked up with `--resume` keeps its snapshot and its proof, and reads
 the proved test files again: one whose content is not what was proved drops

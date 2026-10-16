@@ -28,7 +28,8 @@ from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
 from agentweft.guardrails import skips
 
-from . import handoff, investigate, leftred, manifest, stops, trace, verbs
+from . import (front, handoff, investigate, leftred, manifest, stops, trace,
+               verbs)
 
 FILE = "handoff.md"
 
@@ -767,7 +768,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     first_line = (task or "").strip().split("\n")[0] if task else ""
     unsure = unproven(every)
     out = ["# " + flow_name + " " + run_id + ": " + ended(stopped, unsure)]
-    if last and last["block"]["did"]:
+    if last and last["block"]["did"] and not stopped:
         out[0] = out[0] + " - " + last["block"]["did"][0]
     out.append("")
 
@@ -783,17 +784,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append(line + ("" if line.endswith((".", "!", "?")) else "."))
     if dug.get("CAUSE"):
         out.append(cause(dug["CAUSE"][0]))
-    if last:
-        out.append(last["role"] + " did:")
-        out.extend("- " + i for i in did_of(every, last["role"]))
-    else:
-        out.append("no step handed over a block, so what was done is only"
-                   " what git and the gates show below.")
     gates = [g for p in every for g in p["gates"]]
     passed = sum(1 for g in gates if g["ok"])
     checks = (str(passed) + " of " + str(len(gates)) + " gates passed"
               if gates else "no gates ran")
-    out.append("checks: " + checks + "; red first: " + red_first(every)
+    out.append("suite: " + checks + "; red first: " + red_first(every)
                + ("; " + order if order.startswith("tests skipped") else "")
                + "".join("; " + s for s in skipped) + ".")
     if changes.get("git"):
@@ -812,7 +807,47 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if headline:
         out.append(headline)
 
-    asked = asks(still_open(every, stopped))
+    still = still_open(every, stopped)
+    owed = rulings(changes, decided)
+    extra = [front.point(investigate.STEP, l[2:]) for l in
+             investigate.listed(dug, "DECISIONS")]
+    extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
+                 if "UNRULED" in l)
+    points, taken = front.questions(every, extra, asking=still)
+    found = front.clusters(points)
+    if last and stopped:
+        why = [(last["role"] + " handed over this before the stop, not taken"
+                " as done:", did_of(every, last["role"]))]
+    elif last:
+        why = [(last["role"] + " did:", did_of(every, last["role"]))]
+    else:
+        why = [(None, ["no step handed over a block, so what was done is"
+                       " only what git and the gates show in the full"
+                       " record."])]
+    why.append(("assumed - tell me if wrong:",
+                [role + ": " + assumed(i) for role, b in blocks
+                 if _present(b) for i in b["assumed"]]))
+    left_out = []
+    for role, b in blocks:
+        if _present(b):
+            for i in b["not_verified"]:
+                line = role + ": " + i
+                if all(front.norm(i) != front.norm(l.split(": ", 1)[1])
+                       for l in left_out):
+                    left_out.append(line)
+    not_done = [("not verified:", left_out + [step + " unproven: " + line
+                                              for step, line in unsure]),
+                ("doubts, left as they are:",
+                 [text + " (" + ", ".join(roles) + ")" for text, roles in
+                  front.doubts(every, taken)]
+                 + [investigate.STEP + " saw and did not fix: " + l[2:]
+                    for l in investigate.listed(dug, "RELATED")])]
+    out[:] = front.view(out, found, not stopped, why, not_done,
+                        front.gaps(found, changes.get("spec_changed", [])))
+    out.append("")
+    out.extend(front.pointer(run_id))
+
+    asked = asks(still)
     asked.extend("- " + investigate.STEP + " leaves to you: " + l[2:]
                  for l in investigate.listed(dug, "DECISIONS"))
     if stopped or asked:
@@ -846,8 +881,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## doubts")
-    said = ["- " + role + ": " + i for role, b in blocks if _present(b)
-            for i in b["doubts"]]
+    said = ["- " + ", ".join(roles) + ": " + text for text, roles in
+            front.doubts(every, front.printed(every, taken, found),
+                         by_line=False)]
     said.extend("- " + investigate.STEP + " saw and did not fix: " + l[2:]
                 for l in investigate.listed(dug, "RELATED"))
     out.extend(said or ["- none raised"])
@@ -1008,8 +1044,19 @@ def still_open(passes, stopped):
 
 
 def top(lines):
-    """-> the lines the console prints last: the heading, the prose, and the
-    "needs you" section when there is one."""
+    """-> the lines the console prints last: the default view, everything
+    above the full record, and the "needs you" section when there is one."""
+    if front.pointer("")[0] in lines:
+        cut = lines.index(front.pointer("")[0])
+        out = list(lines[:cut])
+        if "## needs you" in lines:
+            at = lines.index("## needs you")
+            end = next((n for n in range(at + 1, len(lines))
+                        if lines[n].startswith("## ")), len(lines))
+            out.extend(lines[at:end])
+        while out and not out[-1].strip():
+            out.pop()
+        return out
     out = []
     for line in lines:
         if line.startswith("## ") and line != "## needs you":

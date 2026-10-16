@@ -16,9 +16,18 @@
   "handoff": [
     "# ops-check ops-check-<run>: done",
     "ops-check ran planner.md -> worker.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/ops-check-<run>/steps/ and its record in runs/ops-check-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -135,6 +144,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -206,6 +216,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -307,6 +318,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -329,14 +341,21 @@
     "- [high] app.log: ERROR nightly-export failed: disk full",
     "# ops-check ops-check-<run>: done",
     "ops-check ran planner.md -> worker.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 4ab59c937b8ef73ade8fe020adbf8ade2b22a08401dbcc8d8a25566b407fc412",
-    "reviewer.md go 1 65f1c6fd6cbe250bab8c5c5d7b96c5ea98843fbe8661a037e682a0823979e6ae",
-    "worker.md go 1 264889321028febeca6d9454f10c52975bcd28703927ad5f893b0fff766fbc12"
+    "planner.md go 1 382f0eae5ad87a0403b347843d056eb01d2b7369955f7e9745b389e59e216f8e",
+    "reviewer.md go 1 570351ca118262a8b270929f08c4eca23f4d2c5a469b0d76b34c7f99bbf0ca1d",
+    "worker.md go 1 b4de53082139590db05173bdf2f3019becac1a86d7ac0f820ffb3c984afdd761"
   ]
 }

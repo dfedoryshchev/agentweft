@@ -15,9 +15,18 @@
   "handoff": [
     "# risky-edit risky-edit-<run>: needs you: ruling at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
     "risky-edit ran planner.md -> worker.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/risky-edit-<run>/steps/ and its record in runs/risky-edit-<run>/steps.jsonl.",
     "## needs you",
     "waiting for    user",
     "stopped after  worker.md",
@@ -147,6 +156,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -218,6 +228,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -237,9 +248,16 @@
     "parked at worker.md, waiting for user",
     "# risky-edit risky-edit-<run>: needs you: ruling at worker.md - worker.md touches src/hooks.ts (0.94), at or above the 0.7 the risk map counts as hot",
     "risky-edit ran planner.md -> worker.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "## needs you",
     "waiting for    user",
     "stopped after  worker.md",
@@ -258,7 +276,7 @@
     "handoff: <tmp>/runs/risky-edit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 8170335cd5db8708cb4f649de18e702be20df61bfca759950673d50cf3d6a22d",
-    "worker.md go 1 ab71391a2a578cf2c00d770c6b56752186201629a01f4d507ce6d9a0fa038d3e"
+    "planner.md go 1 a24d6f96b4e2871e7cbe85727ac6f9af1f36fbd06ebdf76ac3e8c85d53d8436b",
+    "worker.md go 1 20dbb03a5a0b04943eff9b77fcadf0b3a2a01a67a241ebc0c8eff12bd839e658"
   ]
 }

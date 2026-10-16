@@ -17,9 +17,18 @@
   "handoff": [
     "# release-notes release-notes-<run>: done",
     "release-notes ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/release-notes-<run>/steps/ and its record in runs/release-notes-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -141,6 +150,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -242,6 +252,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -313,6 +324,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -414,6 +426,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -442,15 +455,22 @@
     "- the export no longer drops the last row",
     "# release-notes release-notes-<run>: done",
     "release-notes ran worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 46b907f28ed0ccd85a27269cffba8346c18c2d48c1ebd594b6ec195b2f0117ec",
-    "reviewer.md go 2 4f345acb5acdcc93be24786b4911ec5a94b65c31f7cf1412ac3d4ed3421cdb63",
-    "worker.md go 1 218ea9cb08baaa01dba5b163c32ee9e02a7750f0c3991dd0fb5cde41f44c2efc",
-    "worker.md go 2 b4fa30b2234eb2ac67016267017962a2b809d486dc11a2aba2bee124eb08e401"
+    "reviewer.md go 1 26cdd636ae95f4a818cbe17be55c4848c201f3f85f0eba15a175c672c84ba82f",
+    "reviewer.md go 2 06d3975b246c7e8948491fb4d13e72f642d78c5f6979c776b0e2b975efba1d1e",
+    "worker.md go 1 c8546d0985f3d8074fbc0655c2c759783836a367e03070fd61940d9a4a51eb94",
+    "worker.md go 2 61f9891b0513e525b8a70ee9df440ddc712189217234f8c9def40cc85a733d72"
   ]
 }

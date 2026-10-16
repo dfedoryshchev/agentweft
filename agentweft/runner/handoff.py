@@ -36,6 +36,9 @@ SECTIONS = (("DID", "did"), ("VERIFIED", "verified"),
             ("TRIED", "tried"), ("READ", "read"))
 KEYS = dict((head, key) for head, key in SECTIONS)
 KNOWN = set(KEYS.values())
+# an open question in the block and what it carries, each on a line of its
+# own; it never stops the run the way a NEEDS line does
+ASKING = {"QUESTION": "question", "RECOMMEND": "recommend", "SIZE": "size"}
 
 MISSING = "missing"
 PRESENT = "present"
@@ -59,6 +62,7 @@ def empty(state=MISSING, why=None):
         out["why"] = why
     for _, key in SECTIONS:
         out[key] = []
+    out["questions"] = []
     out["other"] = {}
     return out
 
@@ -88,7 +92,9 @@ def parse(text):
     its line is its first item. items are bullets, a line that is neither
     joins the item above it, and `none` is an empty section rather than an
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
-    is kept under `other` as the step wrote it.
+    is kept under `other` as the step wrote it. `QUESTION:` opens an open
+    question, and the `RECOMMEND:` and `SIZE:` lines after it are its own,
+    under `questions`.
     """
     shown = verbs.visible(text)
     found, why = _bounds(shown)
@@ -102,6 +108,18 @@ def parse(text):
             items[-1] = items[-1] + "\n" + _labelled(line)
             continue
         head = verbs.key_of(line)
+        if head is not None and head[0] in ASKING and not head[2]:
+            name, rest = head[0], head[1]
+            asked = out["questions"]
+            if name == "QUESTION":
+                known = True
+                asked.append({"question": rest, "recommend": "", "size": ""})
+                items = None
+                continue
+            if asked:
+                asked[-1][ASKING[name]] = rest
+                items = None
+                continue
         if head is not None:
             name, rest, bulleted, caps = head
             key = KEYS.get(name, name)
@@ -407,6 +425,7 @@ def merge(blocks):
     for b in present:
         for _, key in SECTIONS:
             out[key].extend(b[key])
+        out["questions"].extend(b.get("questions") or [])
         for key, items in b["other"].items():
             out["other"].setdefault(key, []).extend(items)
     return out

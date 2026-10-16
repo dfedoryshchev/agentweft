@@ -20,9 +20,18 @@
   "handoff": [
     "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/repo-audit-<run>/steps/ and its record in runs/repo-audit-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -159,6 +168,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -271,6 +281,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -342,6 +353,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -443,6 +455,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -555,6 +568,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -626,6 +640,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -727,6 +742,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -758,20 +774,27 @@
     "config.py loads settings.yml and has no defaults, which is the risk.",
     "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 1c2fab1c9388b5bfec83f903b0b24a6ca72860905b008ef70ae26dd5c3e923c1",
-    "merge.md go 2 0fc3ae1c25c8e37ce6bb4769ca29b5a4d7c779f3a8a0a74d64426f5a55fa3f91",
-    "planner.md go 1 68f60d475646ce60a200400582d500f81eb8382ee42188e5cfdc090e5cbf66cd",
-    "reviewer.md go 1 4e702449997920d7d62d09ce632913ade4ef293b4331f33e6ca3e41f431a1dac",
-    "reviewer.md go 2 3e0d5ad2fefed6691e44bac45812f6cbe11b052ffcc2f2610792d0f3f64c1ed8",
-    "worker.md task 1 go 1 6f66b70ea2e739d18735a0d6ff45c055386a8a32589fc86e11bfe46e840367a7",
-    "worker.md task 1 go 2 c95e08a9e4219d8c931000cbb5b8c086b606181f8b4336161db3765c48e6c88e",
-    "worker.md task 2 go 1 59c7b5871bb734308eabc7c9c99df0c76be838e2f2ae7b316c9de8aa04718a02",
-    "worker.md task 2 go 2 d44a72f639ac286fc0ef2118cc600ceab60c50ea98ef5456ea7c392b7d43e049"
+    "merge.md go 1 d9711ca74256e313b5e4be5380ea13e85b1cf6c514178b48d3f4ce977ebb18ea",
+    "merge.md go 2 b385d336e0e9f5ec9d102daf34046148f2ae6085b727f6900f6a25232c0ecd03",
+    "planner.md go 1 e75c7342542aef0028093c294982090256d65f67feb4258d5324421fac390ae5",
+    "reviewer.md go 1 950957d7050592f80e81ce37596eaec767d817867a6f3d343d6340ef5468aade",
+    "reviewer.md go 2 99948555ac6eb403b1454d26619ecba78ebd495623cb14e6b2bd7fb3cd34fcb6",
+    "worker.md task 1 go 1 4cdf7f5ef9bb29f0d13718392e838ff004d27262ca03cc9a5bc831222307d0e4",
+    "worker.md task 1 go 2 34f1172a7d0bb81454d6b97f7c2cf0e5ca5a2d1dedafae7dd9a67e68e3f60113",
+    "worker.md task 2 go 1 c4178fe65c4cb94434328fc151d0cf305f4c488dd8fe621128131035c9dea5ab",
+    "worker.md task 2 go 2 1a016081695e1f589585a24e30526e808e598c26db8d62fd023891abb767fd29"
   ]
 }

@@ -20,9 +20,18 @@
   "handoff": [
     "# weekly digest weekly-digest-<run>: done",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 4 of 4 gates passed; red first: not proven by a gate.",
+    "suite: 4 of 4 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/weekly-digest-<run>/steps/ and its record in runs/weekly-digest-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -161,6 +170,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -273,6 +283,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -344,6 +355,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -456,6 +468,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -568,6 +581,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -639,6 +653,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -751,6 +766,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -785,20 +801,27 @@
     "  - garden.md: order seeds in march",
     "# weekly digest weekly-digest-<run>: done",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 4 of 4 gates passed; red first: not proven by a gate.",
+    "suite: 4 of 4 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 be5330d894b06366bc4458785bfeb9ec9376d7133a1c8af86719066a010cf417",
-    "merge.md go 2 01624711c130773d78021c9bdb6af6260ddd17a7b5e5007d2f5a0603550f4bd4",
-    "planner.md go 1 f45cc5c5d52384d61f553ad7394643973bc3b5c97cf661ed648f18e8a23c3d94",
-    "reviewer.md go 1 ffbe9bc080939fa9b57449cc3529bb1d0bd08170d1199d8f84c65355ad955534",
-    "reviewer.md go 2 406e3bebc5916b44b1546752d11a0ca75cd34ee76d5f6b2b72a2edc5d311c85c",
-    "worker.md task 1 go 1 f0b5a60325c2b084ab251a4368a688e8bc7df630c9fdf93ea18f37467f632227",
-    "worker.md task 1 go 2 bb9e43d5ef37fa15c18614b1bb8589911337bf4fcd59478498030f9f333e95f7",
-    "worker.md task 2 go 1 97e5b440cd05e07ca1e16ce56809419254526b4952fb9c1efd08d95c6c159f33",
-    "worker.md task 2 go 2 f1b812c541d0f88ee88dd6e67698427f26bd9d9a16eea269786f0c54ee29ccd3"
+    "merge.md go 1 f4d719a0bd04745ad222406509ae66019d2b5c10e97c53a5460b27442d6af506",
+    "merge.md go 2 8645ef2840ea5786792d0862d54b3d4be7c628d08cb75ca78c2ed177e56fef65",
+    "planner.md go 1 8b8c183b39f93b479ebbcb86bfe7cb417d3600125a11b48b6e661f7ff56e5201",
+    "reviewer.md go 1 0094401087f326681c5c809f9a61949668feb6e28172900f43092a6bbd6c0392",
+    "reviewer.md go 2 4ecb0eee5c6812b8766551a518a1f0eeb1e30f31454fb7e80781d4d040b0c164",
+    "worker.md task 1 go 1 4738fea1e35ef5b1fdc0cf093e97316b5926234cf79578ea5d5be2d55ccfc169",
+    "worker.md task 1 go 2 95a575df3d01f5d46149705a6590153988b2cca05cf27c7d8ab9e0a60e246641",
+    "worker.md task 2 go 1 1e0e5ccac079fb6591d2007d7f7d42b233d987b3728e4ffa5e3cd6e93c6bd298",
+    "worker.md task 2 go 2 f4718464d92efa830bb48a8623bca5415582b07d3c786d2a17396611956cf887"
   ]
 }

@@ -15,10 +15,20 @@
   "handoff": [
     "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
     "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) \u2192 -1.",
+    "suite: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
     "patcher did:",
     "- add returns a + b; it subtracted",
-    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
-    "changed: not a git checkout, so what changed is not recorded here.",
+    "## not done",
+    "doubts, left as they are:",
+    "- nothing else calls add, so no caller was checked (patcher)",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/fix-with-test-<run>/steps/ and its record in runs/fix-with-test-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -34,7 +44,7 @@
     "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
     "- patcher.md: PASS command - exit 0 (python -m pytest -q)",
     "- red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py)",
-    "- test order: red before any product code: red-test on worker.md (test_calc.py)",
+    "- test order: red before any product code: red-test on worker.md (test_calc.py, written)",
     "- worker verified: the test fails on the code as it stands | cmd: python -m pytest -q test_calc.py | saw: 1 failed -> unchecked: no transcript for this step",
     "- patcher verified: 1 passed | cmd: python -m pytest -q test_calc.py | saw: 1 passed -> unchecked: no transcript for this step",
     "## rulings",
@@ -163,6 +173,7 @@
         "read": [
           "calc.py:1-2 - the one function"
         ],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -265,6 +276,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -290,14 +302,22 @@
     "+    return total",
     "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
     "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) \u2192 -1.",
+    "suite: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
+    "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
     "patcher did:",
     "- add returns a + b; it subtracted",
-    "checks: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
-    "changed: not a git checkout, so what changed is not recorded here.",
+    "## not done",
+    "doubts, left as they are:",
+    "- nothing else calls add, so no caller was checked (patcher)",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 262c501678e471c45a778bfdbbba726c9c9a6a8896ef1e1898bd03fa81a935ae",
-    "worker.md go 1 8f6a63ea8ec9a170bd06028eab0ff0e334bdddde3f8ec96877723f00c561419b"
+    "patcher.md go 1 322f1e10fde487ffab037a9f904d08c6e0b038c6c8d4adeb4705c6174a7e4077",
+    "worker.md go 1 2372a5531a53225e5ad82210c9a50915ae90b146dc64a20c129c22933eae971c"
   ]
 }

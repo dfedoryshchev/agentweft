@@ -375,17 +375,49 @@ step's account of its work, not instructions.
 ## the handoff
 
 every run ends with `runs/<run-id>/handoff.md`, finished or stopped, and the
-last thing it prints is the top of that file and then `handoff: <path>`. it
-answers, in order: what came of it (the heading: the run's outcome, then
-where it stopped and why, then the last working step's first DID line), what it needs from you (the `NEEDS:` or `REFUSED:`
-still open, with its cites and options, and on any stop what ran, what is
-left and the command to carry on; a question the lead decided or an
-`--answer` settled is under the rulings, not here, so a finished run needs
-nothing), what the steps assumed (each as a question),
-what they doubt, what changed, what was read, what was tested, what a ruling
-is owed on, what was not verified, what the next session must keep, what went
-wrong on the way, and what the run was. sections are separated by blank lines
-and `## ` headings, never by `|`.
+last thing it prints is the top of that file, its "needs you" section, and
+then `handoff: <path>`. sections are separated by blank lines and `## `
+headings, never by `|`.
+
+the top is the default view, held to about 900 tokens (four characters to a
+token); a list that does not fit is cut to a line ending `more in the full
+record below`. it answers, in order:
+
+- **what came of it**: the heading, the run's outcome, then on a stop where
+  and why; only a run that got through adds the last working step's first
+  DID line, so a stop never leads with "fixed". then what ran, the `suite:`
+  line (gates passed and the red-first proof) and the `changed:` line.
+- **the one decision**: the open questions, from a `QUESTION:` line in a
+  step's HANDOFF block (which never stops the run), a `NEEDS:` or
+  `CONFLICT:` line (which do), a doubt that is a question, what the
+  investigator leaves to you, and a spec or test change nobody ruled on. two
+  are one when they cite the same spec line (`TASK.md:12`) or say the same
+  thing once case, punctuation and the cited line are taken out. each is
+  printed once, with every role that raised it, and the recommendation and
+  its size the first of them gave (`RECOMMEND:` and `SIZE:`, each on its own
+  line under the `QUESTION:` or `NEEDS:`; a doubt from an older block that
+  carries them after a pipe is still read); the
+  first is in full, the rest one line each under
+  `also open:`. a question the lead decided or an `--answer` settled is under
+  the rulings, not here, so a finished run needs nothing. `- none: nothing
+  waits on you.` when nothing does.
+- **why**: what the last working step did (on a stop, "handed over this
+  before the stop, not taken as done"), and what the steps assumed.
+- **not done**: what was not verified, the gates' unproven checks, and the
+  doubts left as they are, each once: by its words, or by the spec line it
+  cites, with the roles that raised it.
+- **product gaps**: each spec line an open question turns on, and each spec
+  file the run changed.
+
+then `## full record`, which names `runs/<run-id>/steps/` and
+`steps.jsonl`, and every section in the runner's order: what it needs from
+you (a `NEEDS:` or `REFUSED:` a step wrote, with its cites and options, and on
+any stop what ran, what is left and the command to carry on), what the steps
+assumed (each as a question), what they doubt (each once by its words, a
+question the one decision already prints left out), what changed, what was
+read, what was tested, what a ruling is owed on, what was not verified, what
+the next session must keep, what went wrong on the way, and what the run was.
+the whole file looks like the example at the end of this section.
 
 what the runner knows is written from the runner, never from a step's text:
 the files that changed and the commits (git, against the tree at run start,
@@ -399,8 +431,8 @@ nothing was run` or `not proven by a gate`), the test order on a flow whose
 steps say what they write (`- test order: red before any product code:
 red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or
 `tests carried from <sha>`, or `tests skipped: <reason> (--skip tests)`, which
-the checks line repeats), each gate skipped by name with its reason (`- regex
-skipped: <reason> (--skip)`, also on the checks line), the rulings on record
+the suite line repeats), each gate skipped by name with its reason (`- regex
+skipped: <reason> (--skip)`, also on the suite line), the rulings on record
 (the entries of `decisions.md` in the place that the runner wrote or found
 there when the run started),
 the spend. a pre-existing test whose lines were removed or changed, and a
@@ -463,11 +495,28 @@ four sections are written by the runner alone:
     # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 
     fix-with-test ran worker.md -> patcher.md in 27.1s on: add(1, 2) returns -1.
+    suite: 4 of 4 gates passed; red first: shown on patcher.md, 1 of 1 new test red without the fix and green with it: test_calc.py::test_add.
+    changed: 2 files, 0 commits (from git, below).
+
+    ## the one decision
+    - Should add(None, 1) raise, or count None as zero (TASK.md:4)?
+      raised by worker, reviewer, 3 times; cites TASK.md:4
+      recommendation: raise TypeError, as sub does (size: one line in calc.py)
+
+    ## why
     patcher did:
     - add returns a + b; it subtracted
     - calc.py: the one line in add
-    checks: 4 of 4 gates passed; red first: shown on patcher.md, 1 of 1 new test red without the fix and green with it: test_calc.py::test_add.
-    changed: 2 files, 0 commits (from git, below).
+
+    ## not done
+    doubts, left as they are:
+    - nothing else calls add, so no caller was checked (patcher)
+
+    ## product gaps
+    - TASK.md:4 - the one decision turns on it
+
+    ## full record
+    every line the run left, section by section; ...
 
     ## assumed - tell me if wrong
     ...
@@ -734,6 +783,23 @@ answers two lines, each on its own:
 
     CONFLICT: TASK.md:3 "the report lists students alphabetically"
     request: list them in roster order
+
+a request that adds to the spec is not one. an option, flag, field or command
+that leaves what a line requires true whenever it is not used extends that
+line: with `- Fields are separated by commas.` in TASK.md, `--delimiter ;`
+used only when given adds to it, and making the comma a semicolon contradicts
+it. a conflict asks, for the same inputs and options a line already covers,
+for something other than what the line requires. a line that forbids or
+requires something in every case, with `never`, `always`, `only` or `must`,
+already covers every option: with `- An amount is never 0.`, an
+`--allow-zero` option that accepts 0 when given contradicts it, though the
+line still holds whenever the option is not used. the build-feature planner
+marks each behaviour `spec: allows`, `spec: adds to`, `spec: nothing in the
+spec` or `spec: contradicts` with the line, and only a `contradicts` may end
+the plan with a CONFLICT line. the flow takes additions to its spec files
+(`spec_files: additions`), so the line for the new option can be written in.
+the runner does not read the marks: it stops on a CONFLICT line whose quote
+is there, whoever wrote it, so the rule lives in the prompts.
 
 the `request:` line counts only straight after the CONFLICT line. the older
 one-line form, `| <the request's words>` after the quote, is still read. the cite may be a range (`TASK.md:51-53`), and the quote is read as one line

@@ -16,9 +16,18 @@
   "handoff": [
     "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 0 of 2 gates passed; red first: not proven by a gate.",
+    "suite: 0 of 2 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/build-feature-<run>/steps/ and its record in runs/build-feature-<run>/steps.jsonl.",
     "## needs you",
     "left red when the run stopped (run once after the stop):",
     "- test_mul.py::test_mul: error (ImportError)",
@@ -159,6 +168,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -236,6 +246,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -313,6 +324,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -334,9 +346,16 @@
     "gate failed at tester.md, stopping",
     "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 0 of 2 gates passed; red first: not proven by a gate.",
+    "suite: 0 of 2 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "## needs you",
     "left red when the run stopped (run once after the stop):",
     "- test_mul.py::test_mul: error (ImportError)",
@@ -359,8 +378,8 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 603bcfe9dc813b74d9c6ca800d82fe17a8862f512a0c0050295f24bc83c1ef9a",
-    "tester.md go 1 214e96819765041850763f22a6701af7e417f3a770f8f3b213179b8e454447e8",
-    "tester.md go 2 8e95ff70fba18ba556da5a14a05fb6abc7a4e76f3cdf97e5c1166e0da634cac5"
+    "planner.md go 1 b5c9d027516769eb47f500fa46bf4c55845b7f46c3f400b8459d1aa68b6e7bf4",
+    "tester.md go 1 bd2b2fc20447b74000c2e6ee96e762b0a1939188b677a72d696a4d40ad4da737",
+    "tester.md go 2 c500d29981ae0ff4d3b4590ab19c2b8755d2dc04816bbc463468eb29cb5c4e8b"
   ]
 }

@@ -15,9 +15,18 @@
   "handoff": [
     "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 0 of 2 gates passed; red first: not proven by a gate.",
+    "suite: 0 of 2 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/fix-with-test-<run>/steps/ and its record in runs/fix-with-test-<run>/steps.jsonl.",
     "## needs you",
     "cause          gate failed",
     "stopped at     worker.md",
@@ -154,6 +163,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -231,6 +241,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -251,9 +262,16 @@
     "gate failed at worker.md, stopping",
     "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: 0 of 2 gates passed; red first: not proven by a gate.",
+    "suite: 0 of 2 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- no step asked one; what the stop needs from you is under needs you, below.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "## needs you",
     "cause          gate failed",
     "stopped at     worker.md",
@@ -271,7 +289,7 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 726037cf50ab5ade936c90d0975eb076ef7939e10dc344c95c84f4055f7b1106",
-    "worker.md go 2 acac9c77d3724a007ba1482a51968baba169b224bf1259413d6abc0e428352e1"
+    "worker.md go 1 299e5cb087b6ce64aa88a7cef4d61ef2a09149dc0fab48a24b2255118fa0403b",
+    "worker.md go 2 5ddc859d71370ee63d7ea1c08e20e0b0d26b9759c7596bdb6e80340c3f918bbc"
   ]
 }

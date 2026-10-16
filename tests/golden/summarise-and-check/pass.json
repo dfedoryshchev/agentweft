@@ -15,9 +15,18 @@
   "handoff": [
     "# summarise-and-check summarise-and-check-<run>: done",
     "summarise-and-check ran worker.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
+    "## full record",
+    "every line the run left, section by section; each step's own answer is in runs/summarise-and-check-<run>/steps/ and its record in runs/summarise-and-check-<run>/steps.jsonl.",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -129,6 +138,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -230,6 +240,7 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
+        "questions": [],
         "other": {}
       },
       "chain": {
@@ -252,13 +263,20 @@
     "deleted: nothing, every line was backed",
     "# summarise-and-check summarise-and-check-<run>: done",
     "summarise-and-check ran worker.md -> reviewer.md in <secs>s.",
-    "no step handed over a block, so what was done is only what git and the gates show below.",
-    "checks: no gates ran; red first: not proven by a gate.",
+    "suite: no gates ran; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
+    "## the one decision",
+    "- none: nothing waits on you.",
+    "## why",
+    "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
+    "## not done",
+    "- none",
+    "## product gaps",
+    "- none",
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 d9ebbd681e9b3029d7cd9a33f048d3dd2eb283c1bea63bb2877b859c0f721c59",
-    "worker.md go 1 d0d9bef8b27594a30bb3318db09f75ffbef21598a6da60a8342c9f4a8462bca1"
+    "reviewer.md go 1 7c6bd0419e0fe5c9b4ec821b7b7fff56c399e269aec430fb04e77ff8119e762c",
+    "worker.md go 1 d0f61969d0c917d9f1e5c7e7316144530077196584eed943b1c5920dad7bc650"
   ]
 }

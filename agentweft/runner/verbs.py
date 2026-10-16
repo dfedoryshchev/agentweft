@@ -11,6 +11,8 @@ a key inside a `>` quote of the task. this is the one reader.
 a line counts when it is outside a fence and not quoted; its key is read
 whatever its case, and a bullet or bold around it is ignored. the first
 `NEEDS:`, `REFUSED:` or `CONFLICT:` wins; the list verbs gather every line.
+a question can carry `RECOMMEND:`, the answer the step would pick, and
+`SIZE:`, what that answer costs to do.
 """
 import re
 
@@ -19,7 +21,8 @@ QUOTE = re.compile(r"^\s*>")
 BULLET = re.compile(r"^\s*[-*+]\s+(.*?)\s*$")
 KEY = re.compile(r"^[\s#*`_\-+]*([A-Za-z][A-Za-z \-_]*?)[\s*`_]*:\s*(.*?)\s*$")
 
-SINGLE = ("NEEDS", "REFUSED", "CONFLICT", "INTENT", "INTENT QUOTE")
+SINGLE = ("NEEDS", "REFUSED", "CONFLICT", "INTENT", "INTENT QUOTE",
+          "RECOMMEND", "SIZE")
 LISTED = ("CITES", "OPTIONS", "ASSUMED", "INTENT SCOPE", "CHANGED UNDER")
 
 
@@ -62,7 +65,8 @@ class Verbs(object):
     """what the answer asked for or declared, None or [] when it did not."""
 
     __slots__ = ("needs", "cites", "options", "refused", "conflict", "assumed",
-                 "intent", "intent_quote", "intent_scope", "changed_under")
+                 "intent", "intent_quote", "intent_scope", "changed_under",
+                 "recommend", "size")
 
     def __init__(self):
         self.needs = None
@@ -70,6 +74,8 @@ class Verbs(object):
         self.conflict = None
         self.intent = None
         self.intent_quote = None
+        self.recommend = None
+        self.size = None
         self.cites = []
         self.options = []
         self.assumed = []
@@ -84,7 +90,8 @@ FIELD = {"NEEDS": "needs", "REFUSED": "refused", "CONFLICT": "conflict",
          "INTENT": "intent",
          "INTENT QUOTE": "intent_quote", "CITES": "cites", "OPTIONS": "options",
          "ASSUMED": "assumed", "INTENT SCOPE": "intent_scope",
-         "CHANGED UNDER": "changed_under"}
+         "CHANGED UNDER": "changed_under", "RECOMMEND": "recommend",
+         "SIZE": "size"}
 
 
 def parse(text):
