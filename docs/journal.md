@@ -796,7 +796,8 @@ a step can say a test it was given is wrong, on lines of its own:
 a test that was not in the place when the run started (the start snapshot) is
 the run's own: it goes back to the step that wrote it, with the claim at the
 very end of its prompt, and that step's gates have to show it red again before
-the work walks on; the step's line in `steps.jsonl` is a `redo` with `to`
+the work walks on, on the start commit when the step that made the claim
+had already written code (`docs/gates.md`, red-test); the step's line in `steps.jsonl` is a `redo` with `to`
 naming the writer. it goes back `send_backs` times per test, once by default,
 and a second claim on the same test parks for a ruling. a test the run started
 with never goes back: the claim parks for a ruling, quoted in `question.md`. a

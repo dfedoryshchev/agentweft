@@ -158,8 +158,15 @@ turns only that gate off: the order checks still want a red proof.
   name; a line that reads as none of these fails quoting it. red
   passes on `expect` (default 1, a pytest run with a failing test) and on
   nothing else, so a test that passes, was never written, or was not
-  collected is not red. `red: false` (or `"false"`, `no`, `0`) wants exit 0,
-  and a step with no `TEST:` line of its own is held to the one the newest
+  collected is not red. red runs on the code as the run found it: while
+  every product file is as the start snapshot hashed it, in the `workdir`;
+  once a step has changed one (the code was written, then the test went
+  back to be fixed), on a temporary checkout of the start commit holding
+  the place as it started plus the run's test changes, and the pass says
+  `on the start commit, without the product code written since`. a place
+  with no start commit runs it in the `workdir`. `red: false` (or
+  `"false"`, `no`, `0`) wants exit 0, in the `workdir`, and a step with no
+  `TEST:` line of its own is held to the one the newest
   earlier step in the run named (red never borrows one: the step that says a
   test fails names it). a `red` that is neither true nor false fails. without a command the pass
   says nothing was run. an empty answer fails as `the step answered nothing`,

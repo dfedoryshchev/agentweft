@@ -458,3 +458,57 @@ def test_a_run_stops_when_the_test_already_passes(tmp_path, monkeypatch):
     engine.main()
     assert "FAIL red-test" in gates_md(tmp_path)
     assert asked == ["worker.md", "worker.md"]
+
+
+BUGGY = "def add(a, b):" + NL + "    return a - b" + NL
+FIXED = "def add(a, b):" + NL + "    return a + b" + NL
+ADD_TEST = ("from calc import add" + NL + NL + NL + "def test_add():" + NL
+            + "    assert add(1, 2) == 3" + NL)
+NAMES_IT = "FAILS: assert -1 == 3" + NL + "TEST: tests/test_calc.py" + NL
+
+
+def a_started_place(tmp_path):
+    import subprocess
+
+    from agentweft.guardrails import snapshot
+    place = tmp_path / "repo"
+    (place / "tests").mkdir(parents=True)
+    (place / "calc.py").write_text(BUGGY, encoding="utf-8")
+    for args in (["init", "-q"], ["config", "user.email", "t@t"],
+                 ["config", "user.name", "t"], ["add", "."],
+                 ["commit", "-qm", "start"]):
+        subprocess.run(["git", "-C", str(place)] + args, check=True,
+                       capture_output=True)
+    return place, snapshot.take(place)
+
+
+def a_command_gate(place, start):
+    return gates.build({"gate": "red-test", "command": [
+        sys.executable, "-m", "pytest", "-q", "{test}"]}, where=str(place),
+        start=start)
+
+
+def test_a_red_test_is_run_without_the_product_code_written_since_the_start(
+        tmp_path):
+    place, start = a_started_place(tmp_path)
+    (place / "calc.py").write_text(FIXED, encoding="utf-8")
+    (place / "tests" / "test_calc.py").write_text(ADD_TEST, encoding="utf-8")
+    r = a_command_gate(place, start).run(NAMES_IT)
+    assert r, r.detail
+    assert r.detail.startswith("red, exit 1")
+    assert (place / "calc.py").read_text(encoding="utf-8") == FIXED
+
+
+def test_a_red_test_with_the_product_as_it_started_runs_in_the_place(
+        tmp_path, monkeypatch):
+    from agentweft.guardrails import worktree
+    place, start = a_started_place(tmp_path)
+    (place / "tests" / "test_calc.py").write_text(ADD_TEST, encoding="utf-8")
+
+    def no_checkout(*args):
+        raise AssertionError("a checkout was made")
+
+    monkeypatch.setattr(worktree, "temporary", no_checkout)
+    r = a_command_gate(place, start).run(NAMES_IT)
+    assert r, r.detail
+    assert r.detail.startswith("red, exit 1")

@@ -117,6 +117,9 @@ fails the row and says how it did end.
 - `build-feature/wrong-test`: the worker says the tester's test contradicts
   the spec, it goes back to the tester, the new test is proven red again,
   `done`
+- `build-feature/wrong-test-after-code`: the worker writes the code, then
+  says the test contradicts the spec; the tester's new test is red on the
+  start commit though the code would pass it, and the run goes on, `done`
 - `repo-audit/two-files`: plan, two workers fanned out, merge, review, five
   calls, `done`
 

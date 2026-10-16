@@ -9,6 +9,7 @@ from agentweft import runner
 from agentweft.evals import harness
 from agentweft.guardrails.gates import base as gates_base
 from agentweft.guardrails.gates import redfirst_gate
+from agentweft.guardrails.gates import redtest_gate
 from agentweft.providers import fake_provider
 from agentweft.runner import ruling, wrongtest
 
@@ -16,6 +17,7 @@ CASES = [("fix-with-test", "clean-fix", "done"),
          ("fix-with-test", "green-without-fix", "stopped: gate failed"),
          ("fix-with-test", "spec-conflict", "stopped: spec conflict"),
          ("build-feature", "wrong-test", "done"),
+         ("build-feature", "wrong-test-after-code", "done"),
          ("repo-audit", "two-files", "done")]
 
 
@@ -82,6 +84,16 @@ def test_without_the_wrong_test_send_back_the_wrong_test_case_drops(
     r = scored("build-feature", live("build-feature", "wrong-test"))
     assert r["passed"] < r["checked"]
     assert any(f.startswith("the steps it took") for f in failed(r))
+
+
+def test_a_red_proof_run_beside_the_code_drops_the_after_code_case(
+        monkeypatch):
+    monkeypatch.setattr(redtest_gate.RedTestGate, "product_moved",
+                        lambda self: False)
+    r = scored("build-feature", live("build-feature", "wrong-test-after-code"))
+    assert r["passed"] < r["checked"]
+    assert any(f.startswith("it ended done - it ended stopped: gate failed")
+               for f in failed(r))
 
 
 def row(expect, stopped="", record=()):

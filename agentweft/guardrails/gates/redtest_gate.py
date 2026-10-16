@@ -1,6 +1,10 @@
+import os
 import re
 import subprocess
 from pathlib import Path
+
+from agentweft.guardrails import worktree
+from agentweft.guardrails.snapshot import changed
 
 from .base import Gate, fresh_python, register
 
@@ -24,6 +28,12 @@ class RedTestGate(Gate):
     held to the test it was given: with no `TEST:` line of its own it runs the
     one the newest earlier step of the run named. red never borrows one, since
     the step that says a test fails is the one that has to name it.
+
+    red is shown on the code as the run found it. while every product file
+    is as the start snapshot hashed it, the test runs in the place. once one
+    is not (a step wrote code, then the test went back to be fixed), the
+    test changes are laid onto a temporary checkout of the start commit and
+    it runs there, so code written since cannot turn it green.
 
     without a command it is still only the marker, and the pass says so. an
     empty answer fails as one, not as a test that never failed.
@@ -78,9 +88,42 @@ class RedTestGate(Gate):
                 return self.fail(name + " is not a test in "
                                  + named.split("::")[0])
             argv = [named if a == "{test}" else a for a in argv]
+        if want_red and self.product_moved():
+            return self.on_start(argv, said)
+        return self.judged(argv, place, want_red, said, {})
 
+    def product_moved(self):
+        """whether a product file is not as the start snapshot hashed it."""
+        s = self.start
+        if s is None or not s.hashed or not s.start:
+            return False
+        return bool(changed(s.product, s.product_now()))
+
+    def on_start(self, argv, said):
+        """run the test on a checkout of the start commit holding the place
+        as it started and the run's test changes, and no other change."""
+        s = self.start
         try:
-            with fresh_python() as env:
+            with worktree.temporary(s.root, s.start) as tree:
+                s.lay_out(tree, s.test_changes())
+                there = s.place_in(tree)
+                # an editable install puts the person's own tree on sys.path,
+                # and the checkout would import the changed code from there
+                path = [str(there), str(there / "src")]
+                if os.environ.get("PYTHONPATH"):
+                    path.append(os.environ["PYTHONPATH"])
+                r = self.judged(argv, there, True, said,
+                                {"PYTHONPATH": os.pathsep.join(path)})
+        except ValueError as e:
+            return self.fail("could not set out the start to run it on: "
+                             + str(e))
+        r.detail = r.detail + " (on the start commit, without the product" \
+            " code written since)"
+        return r
+
+    def judged(self, argv, place, want_red, said, extra):
+        try:
+            with fresh_python(dict(os.environ, **extra)) as env:
                 r = subprocess.run(argv, capture_output=True, text=True,
                                    encoding="utf-8", errors="replace",
                                    cwd=str(place), env=env,
