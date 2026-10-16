@@ -93,6 +93,10 @@ written, and `rollup.py` refuses one it finds.
 `run.py` exits 0 when the run finished, was not due or a step declined with a
 cite, 1 when it could not start, 2 when it stopped, and 130 on an interrupt.
 
+what it prints is UTF-8 when piped to a file or a program, whatever the
+locale, unless `PYTHONIOENCODING` says otherwise. on a terminal a character
+the console has no byte for is printed as `?` rather than stopping the run.
+
 ## how a run ended
 
 every run that ends has one outcome, for a program to read where the cause

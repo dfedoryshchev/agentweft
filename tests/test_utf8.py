@@ -151,3 +151,27 @@ def test_the_env_file_is_read_as_utf8(tmp_path, monkeypatch, cp1252):
     (tmp_path / ".env").write_bytes(("AW_SAID=" + SAID + "\n").encode("utf-8"))
     engine.load_env()
     assert os.environ["AW_SAID"] == SAID
+
+
+def test_a_piped_console_gets_utf8_bytes(monkeypatch):
+    raw = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout",
+                        io.TextIOWrapper(raw, encoding="cp1252"))
+    monkeypatch.delenv("PYTHONIOENCODING", raising=False)
+    engine.console()
+    print(SAID)
+    sys.stdout.flush()
+    assert raw.getvalue().replace(b"\r\n", b"\n") == \
+        (SAID + "\n").encode("utf-8")
+
+
+def test_a_piped_run_on_an_ascii_locale_prints_utf8():
+    import subprocess
+    env = dict(os.environ, LC_ALL="C", LANG="C", PYTHONUTF8="0",
+               PYTHONCOERCECLOCALE="0")
+    env.pop("PYTHONIOENCODING", None)
+    out = subprocess.run(
+        [sys.executable, "-c", "from agentweft.runner import engine;"
+         " engine.console(); print(" + ascii(SAID) + ")"],
+        capture_output=True, env=env, cwd=os.getcwd()).stdout
+    assert out.replace(b"\r\n", b"\n") == (SAID + "\n").encode("utf-8")

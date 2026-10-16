@@ -69,14 +69,19 @@ def load_env():
 
 
 def console():
-    """a character the console has no byte for is printed as `?`.
+    """output piped to a file or a program is UTF-8; on a terminal a
+    character the console has no byte for is printed as `?`.
 
     a model answers in any script and a Windows console is often cp1252, so
     printing an answer raised after the run's work was done and written down.
+    a PYTHONIOENCODING the person set is kept.
     """
     for stream in (sys.stdout, sys.stderr):
         try:
-            stream.reconfigure(errors="replace")
+            if stream.isatty() or os.environ.get("PYTHONIOENCODING"):
+                stream.reconfigure(errors="replace")
+            else:
+                stream.reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, ValueError):
             pass
 
