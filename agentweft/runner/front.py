@@ -27,6 +27,9 @@ CHARS_PER_TOKEN = 4
 SPEC_REF = re.compile(r"[\w./-]+\.md:\d+(?:-\d+)?")
 WORD = re.compile(r"[a-z0-9]+")
 MORE = "more in the full record below"
+# the kinds a stopped run waits on: they lead the decisions, before any
+# question that did not stop it
+WAITS = ("needs", "conflict")
 
 # (most items per list, widest line) tried in turn until the view fits
 STEPS = ((6, 300), (4, 240), (3, 200), (2, 160), (1, 120), (1, 80))
@@ -83,7 +86,9 @@ def is_question(text, rec=""):
 
 def clusters(points):
     """-> the points made one: a point joins the first cluster it shares a
-    cited line with or says the same as, else starts its own."""
+    cited line with or says the same as, else starts its own. the clusters
+    holding what the run stopped on (a NEEDS or CONFLICT nobody answered)
+    come first; the rest keep the order they were raised in."""
     out = []
     for p in points:
         key = norm(p["text"])
@@ -110,7 +115,7 @@ def clusters(points):
         home["options"].extend(o for o in p["options"]
                                if o not in home["options"])
         home["kind"] = home["kind"] or p["kind"]
-    return out
+    return sorted(out, key=lambda c: c["kind"] not in WAITS)
 
 
 def questions(passes, extra=(), asking=None):

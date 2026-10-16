@@ -193,6 +193,33 @@ def test_a_step_that_asks_in_its_block_finishes_and_the_decision_shows_it(
     assert "## needs you" not in note
 
 
+def decision_of(lines):
+    top = "\n".join(default_view(lines))
+    return top.split("## the one decision\n")[1].split("\n## ")[0]
+
+
+def test_on_a_stop_the_one_decision_is_the_question_the_run_waits_on():
+    early = block(did=["calc.py: read it"],
+                  doubts=["should the log line be shorter?"])
+    asking = ("NEEDS: TASK.md:7 does not say whether a blank amount is zero\n"
+              "RECOMMEND: treat it as zero\nSIZE: one line\n")
+    lines = build([a_pass("worker", early), a_pass("patcher", asking, "asked")],
+                  stopped={"cause": stops.PARKED, "at": "patcher.md",
+                           "why": "patcher.md needs a ruling"})
+    decision = decision_of(lines)
+    assert "blank amount" in decision.split("\n")[0], decision
+    assert "log line" in decision.split("also open:")[1], decision
+    gaps = "\n".join(default_view(lines)).split("## product gaps\n")[1]
+    assert "TASK.md:7 - the one decision turns on it" in gaps
+
+
+def test_a_finished_run_keeps_its_questions_in_the_order_they_were_asked():
+    lines = build([
+        a_pass("worker", block(doubts=["should the log line be shorter?"])),
+        a_pass("reviewer", block(doubts=["should a blank amount be zero?"]))])
+    assert "log line" in decision_of(lines).split("\n")[0]
+
+
 def test_no_shipped_prompt_teaches_needs_as_a_way_to_file_a_doubt():
     text = (Path("agentweft") / "fragments" / "handoff.md").read_text(
         encoding="utf-8")
