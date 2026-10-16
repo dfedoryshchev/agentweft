@@ -1,0 +1,37 @@
+task: add(1, 2) returns -1, it should return 3. tests/test_report.py shows it
+place: place
+provider:
+  provider: fake
+  replies:
+    worker.md:
+      - say: |
+          FAILS: assert -1 == 3
+          TEST: tests/test_report.py
+    patcher.md:
+      - say: |
+          TEST: tests/test_report.py
+
+          calc.py: add returned a - b, it returns a + b now
+        writes:
+          calc.py: |
+            def add(a, b):
+                return a + b
+
+
+            def sub(a, b):
+                return a - b
+          tests/test_add_zero.py: |
+            from calc import add
+
+
+            def test_add_zero():
+                assert add(0, 0) == 0
+expect:
+  invariants: all
+  outcome: done
+  steps:
+    match: strict
+    path:
+      - worker.md ok -> patcher.md  PASS red-test
+      - patcher.md ok  PASS red-test  PASS red-first  PASS command  PASS start-tests
+  calls: 2

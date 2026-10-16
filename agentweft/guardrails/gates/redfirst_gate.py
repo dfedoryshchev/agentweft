@@ -130,7 +130,8 @@ class RedFirstGate(Gate):
     replay from: the gate passes saying it was not replayed. a run that wrote
     no test but carried its red in (`--continue`), or whose red is a test
     supplied at the start, runs each of those tests with the fix, and each
-    has to pass.
+    has to pass. the same holds when every test it did add passes without
+    the fix: those are pins beside the given red, labelled as pins.
     """
 
     name = "red-first"
@@ -168,7 +169,7 @@ class RedFirstGate(Gate):
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
         self.label(record)
-        return self.judge(record, text)
+        return self.judge(record, text, (cmd, carried, came, start, said))
 
     def label(self, record):
         """mark each test added after the red was first shown: red without
@@ -240,7 +241,11 @@ class RedFirstGate(Gate):
             return None, "could not start: " + str(e)
         return r, ""
 
-    def judge(self, record, text):
+    def judge(self, record, text, given=None):
+        """`given` is (cmd, carried, came, start, said) when the red proof is
+        on tests the run did not write: then new tests that all pass without
+        the fix are pins beside it, and what has to hold is the given tests
+        green with the fix."""
         named = [n for n in (named_test(t) for t in [text]
                              + list(reversed(self.earlier)) if TEST in t)
                  if n]
@@ -260,6 +265,13 @@ class RedFirstGate(Gate):
                                  " fix: " + t["after"], record)
         red = [t["test"] for t in record if t["before"] == "red"]
         green = [t["test"] for t in record if t["before"] == "green"]
+        if not red and given and given[1]:
+            r = self.carried_green(*given)
+            if not r.ok:
+                return self.done(False, r.detail, record)
+            return self.done(True, r.detail + "; every new test passes"
+                             " without the fix too: " + ", ".join(green)
+                             + added_after(record), record)
         if not red:
             return self.done(False, "every new test passes without the fix: "
                              + ", ".join(green), record)

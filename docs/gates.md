@@ -388,7 +388,10 @@ handoff's "tests and checks":
   test runs each carried test in the place with the fix; each has to pass,
   and the gate says `carried from <sha or run>, green with the fix`. a run
   whose proof is a supplied test is held the same way: the gate says
-  `supplied, red at the start, green with the fix`.
+  `supplied, red at the start, green with the fix`. a test such a run does
+  add is replayed as usual; when every one of them passes without the fix
+  too, they are pins beside the given red (listed, never coverage), and
+  the given tests still have to pass with the fix.
 
 a run picked up with `--resume` keeps its snapshot and its proof, and reads
 the proved test files again: one whose content is not what was proved drops
