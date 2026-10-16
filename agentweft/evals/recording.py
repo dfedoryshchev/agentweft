@@ -167,6 +167,17 @@ class Recorder(Provider):
     def going(self, value):
         self.inner.going = value
 
+    @property
+    def terse(self):
+        return self.inner.terse
+
+    @terse.setter
+    def terse(self, value):
+        self.inner.terse = value
+
+    def output_limit(self):
+        return self.inner.output_limit()
+
     def own_effort(self):
         return self.inner.own_effort()
 

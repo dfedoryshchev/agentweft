@@ -9,8 +9,8 @@ import threading
 import time
 from pathlib import Path
 
-from .base import (CUT, Provider, Reply, Usage, again, effort_said, model_for,
-                   register)
+from .base import (CUT, TERSE_SHARE, Provider, Reply, Usage, again, cap_for,
+                   effort_said, model_for, register)
 
 PIPE = subprocess.PIPE
 NEW_GROUP = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
@@ -60,6 +60,8 @@ OWN = ("ANTHROPIC_", "CLAUDE_")
 # the cli ranks this beside `--effort` without saying which wins, so a call
 # that names a level does not take it along
 EFFORT_VAR = "CLAUDE_CODE_EFFORT_LEVEL"
+# the cli has no flag for its answer's token cap, only this
+CAP_VAR = "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
 
 
 def shell_hook(denials, kept=(), tools=None):
@@ -579,9 +581,13 @@ class CliProvider(Provider):
         own = OWN if is_claude(self.command) else ()
         drop = EFFORT_VAR if self.chooses_effort() and self.asks_effort() \
             else None
-        return {k: v for k, v in os.environ.items()
-                if (k.upper() in keep or k.upper().startswith(own))
-                and k.upper() != drop}
+        out = {k: v for k, v in os.environ.items()
+               if (k.upper() in keep or k.upper().startswith(own))
+               and k.upper() != drop}
+        limit = self.output_limit()
+        if limit:
+            out[CAP_VAR] = str(limit)
+        return out
 
     def version(self):
         """-> the cli's version, None when it could not be read. asked once
@@ -660,6 +666,13 @@ class CliProvider(Provider):
 
     def chooses_effort(self):
         return is_claude(self.command)
+
+    def output_limit(self):
+        if not self.terse or not is_claude(self.command):
+            return None
+        limit = cap_for(self.asks_effort()) // TERSE_SHARE
+        had = os.environ.get(CAP_VAR, "").strip()
+        return min(limit, int(had)) if had.isdigit() and int(had) else limit
 
     def argv(self, prompt):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for

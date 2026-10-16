@@ -96,7 +96,7 @@ ON_STOP = ("keep", "revert-tests")
 SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
-              "reports", "writes_tests", "writes", "effort")
+              "reports", "writes_tests", "writes", "effort", "verbosity")
 WRITES = ("tests", "product", "none")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
@@ -111,6 +111,11 @@ TIERS = ("high", "mid", "low")
 # `effort` on a step is how hard its model thinks, lowest first: the words
 # `claude --effort` and the api's `output_config.effort` both take.
 LEVELS = ("low", "medium", "high", "xhigh", "max")
+
+# `verbosity` on a step is how much it says back. `terse` adds
+# `fragments/terse.md` to its prompt and caps its answer; `normal` is the
+# same as saying nothing.
+VERBOSITY = ("normal", "terse")
 
 # `tools` on a step is what it is allowed to touch, and these are the six words
 # the imported agent files have been granting each other since they arrived.
@@ -448,6 +453,10 @@ def check(raw):
         if step.get("effort") is not None and step["effort"] not in LEVELS:
             bad.append("step " + str(i) + ": effort should be one of "
                        + ", ".join(LEVELS))
+        if step.get("verbosity") is not None \
+                and step["verbosity"] not in VERBOSITY:
+            bad.append("step " + str(i) + ": verbosity should be one of "
+                       + ", ".join(VERBOSITY))
         # `is not None` rather than truthiness: `tools: []` is a step saying it
         # may touch nothing, which is a boundary and not a missing one.
         if step.get("tools") is not None:

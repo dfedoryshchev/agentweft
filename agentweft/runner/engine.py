@@ -671,6 +671,13 @@ class Run(object):
                 "base": base, "raised": ups,
                 "applies": used.chooses_effort()}
 
+    def verbosity_for(self, step):
+        """-> the step's `verbosity`, None when it names none."""
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                return s.get("verbosity")
+        return None
+
     def width_for(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
@@ -727,6 +734,9 @@ class Run(object):
         began = _t.time()
         role = self.role_for(step)
         prompt = load_prompt(self.flow, step, self.by_role[role], role)
+        terse = self.verbosity_for(step) == "terse"
+        if terse:
+            prompt = prompt + resolver.fragment("terse")
         # read before anything is appended or the task is put in: what an
         # earlier step produced, or a task quoting a review, can carry its own
         # verdict line, and that does not ask this one for one
@@ -776,6 +786,11 @@ class Run(object):
         used.at(step, task)
         tried.effort = self.effort_for(step, used)
         used.going = tried.effort["base"] and tried.effort["asked"]
+        used.terse = terse
+        if terse:
+            limit = used.output_limit()
+            tried.verbosity = {"asked": "terse", "limit": limit,
+                               "applies": limit is not None}
         if step != getattr(self, "fan", None):
             getattr(self, "forged", {}).pop(step, None)
         try:

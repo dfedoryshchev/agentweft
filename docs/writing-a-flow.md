@@ -178,7 +178,40 @@ build-feature leads with its planner, and fix-with-test, whose first step
 writes the test, has `lead: none`. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
-## 8. run it three times before you trust it
+## 8. say how hard a step thinks and how much it says
+
+two keys on a step trim what its model spends:
+
+    - role: planner
+      effort: low
+      verbosity: terse
+
+`effort` is how hard the step's model thinks: `low`, `medium`, `high`,
+`xhigh` or `max`. it is over the tier's level and under `--effort-for`
+(`providers.md`, "how hard the model thinks"). the api sends it as
+`output_config.effort`, `claude` as `--effort`, and a command that is not
+`claude` cannot act on it: its line says `"applies": false`.
+
+`verbosity` is how much the step says back: `normal`, which is the same as
+leaving it out, or `terse`. a terse step gets `fragments/terse.md` after its
+rules and a token cap: 8000, or 16000 at `high` and above, where thinking
+needs the room. that is a quarter of the api provider's own default cap, not
+of whatever cap the step would have had. a lower cap already set stays: a
+`max_tokens` in the provider block on the api, a
+`CLAUDE_CODE_MAX_OUTPUT_TOKENS` in the run's environment on `claude`.
+
+the api sends the cap as `max_tokens`, so it holds the answer and the
+thinking before it. `claude` gets it as `CLAUDE_CODE_MAX_OUTPUT_TOKENS`, which
+holds every model turn of the step, a tool call's input included: a terse
+step that writes a large file through a tool can be cut off inside that call.
+a command that is not `claude` gets the words and no cap, which its line says.
+an answer cut off at the cap fails the step when the provider reports
+`stop_reason` `max_tokens`. keep `terse` for steps whose answer is short by
+nature and that write nothing big through a tool: a plan, a verdict, a list.
+
+any other word in either key is refused when the flow loads.
+
+## 9. run it three times before you trust it
 
     python run.py my-flow --force
 

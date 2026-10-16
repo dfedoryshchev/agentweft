@@ -37,11 +37,12 @@ class Attempt(object):
     """
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
-                 "retries", "effort")
+                 "retries", "effort", "verbosity")
 
     def __init__(self, task=None):
         self.task = task
         self.effort = None
+        self.verbosity = None
         self.began = datetime.datetime.now()
         self.started = time.time()
         self.seconds = None
@@ -437,6 +438,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             "model_reported": last(one, "model") if one else None,
             "model_choice": getattr(p, "choice", None),
             "effort": first.effort if first else None,
+            "verbosity": first.verbosity if first else None,
             "grant": p.granted(),
             "tokens": said["tokens"],
             "cost": said["cost"],

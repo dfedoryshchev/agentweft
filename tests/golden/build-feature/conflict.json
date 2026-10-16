@@ -214,6 +214,7 @@
         "raised": 0,
         "applies": true
       },
+      "verbosity": null,
       "grant": null,
       "tokens": {
         "counted": true,
@@ -286,6 +287,7 @@
         "raised": 0,
         "applies": true
       },
+      "verbosity": null,
       "grant": null,
       "tokens": {
         "counted": true,
@@ -358,6 +360,7 @@
         "raised": 0,
         "applies": true
       },
+      "verbosity": null,
       "grant": null,
       "tokens": {
         "counted": true,
@@ -436,6 +439,7 @@
         "raised": 0,
         "applies": true
       },
+      "verbosity": null,
       "grant": null,
       "tokens": {
         "counted": true,
@@ -519,6 +523,7 @@
         "raised": 0,
         "applies": true
       },
+      "verbosity": null,
       "grant": {
         "tools": [
           "read",

@@ -208,6 +208,10 @@ FLOW_ONLY = (
     Pair("step.effort", "",
          "how hard this step's model thinks, raised a level each time the "
          "step is sent back. an agent names a tier and nothing about effort."),
+    Pair("step.verbosity", "",
+         "how much this step says back: terse words in its prompt and a cap "
+         "on its model's output. an agent's prose says how long to be, if "
+         "anything."),
     Pair("step.preflight", "", "what to do when a step touches a risky file."),
 )
 

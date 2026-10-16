@@ -109,6 +109,7 @@
         "raised": 0,
         "applies": true
       },
+      "verbosity": null,
       "grant": null,
       "tokens": {
         "counted": true,
@@ -176,6 +177,7 @@
       "model_reported": null,
       "model_choice": null,
       "effort": null,
+      "verbosity": null,
       "grant": null,
       "tokens": {
         "counted": false

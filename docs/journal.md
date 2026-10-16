@@ -137,6 +137,7 @@ or crashed. the keys are always all there, in this order:
      "model_reported": "a-model-1", "model_choice": null,
      "effort": {"asked": "provider default", "base": null, "raised": 0,
                 "applies": true},
+     "verbosity": null,
      "grant": null,
      "tokens": {"counted": true, "input": 12, "output": 4,
                 "cache_read": 2, "cache_creation": 0},
@@ -187,6 +188,11 @@ or crashed. the keys are always all there, in this order:
   one level up from the base to `xhigh` at most; `applies` is false when the
   provider cannot act on a level, as for `model_choice`. null on a line closed
   before the step was asked.
+- `verbosity` is null for a step that is not terse. a `verbosity: terse` step
+  has `{"asked": "terse", "limit": 8000, "applies": true}`: `limit` is the
+  token cap its answer was held to, and `applies` is false, `limit` null, when
+  the provider cannot hold an answer to one (the fake, a cli command other
+  than claude), so the step got the terse words and no cap.
 - `grant` is null for a step that declared no `tools`. otherwise it is the
   grant and what was done with it: `{"tools": ["read"], "enforced": true,
   "argv": [...], "cli_version": "2.1.296", "shell_writes": null}`.

@@ -218,6 +218,14 @@ spent inside `max_tokens`, so with no `max_tokens` in the provider block the
 cap is 64000 at `high` and above and 32000 otherwise. it sends the
 `anthropic-version` header with every request.
 
+**a terse step answers under a quarter of that default cap**: 8000, or
+16000 at `high` and above. the api sends it as `max_tokens`, unless the
+provider block names a lower one. `claude` has no flag for it and gets
+`CLAUDE_CODE_MAX_OUTPUT_TOKENS`, unless the run's environment already holds a
+lower one; that variable caps every model turn of the step, tool calls
+included, not only the last answer. a command other than `claude` and
+**fake** get no cap, and the step's line says so (`journal.md`).
+
 an answer cut off at its cap is not a whole answer, and neither is a model
 declining to answer, though both come back with a 200: `stop_reason`
 `max_tokens` or `refusal`, on the api's response and on `claude`'s json

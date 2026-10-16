@@ -146,6 +146,20 @@ CUT = {"max_tokens": "the answer was cut off at its token cap "
        "refusal": "the model declined to answer (stop_reason refusal)"}
 
 
+# thinking is spent inside the cap, so a level that thinks longer gets a cap
+# that leaves room to answer after it
+TOKENS = 32000
+DEEP_TOKENS = 64000
+DEEP = ("high", "xhigh", "max")
+# a terse step keeps this share of that cap: room to think, none for an essay
+TERSE_SHARE = 4
+
+
+def cap_for(effort):
+    """-> the token cap a call at `effort` is given when nothing names one."""
+    return DEEP_TOKENS if effort in DEEP else TOKENS
+
+
 def effort_env_for(tier):
     """the variable a tier's effort reads. `high` -> EFFORT_HIGH."""
     return "EFFORT_" + tier.upper()
@@ -196,6 +210,8 @@ class Provider(object):
     denials = None
     # the level the runner settled on for the call about to be made
     going = None
+    # whether the step about to ask said `verbosity: terse`
+    terse = False
 
     def __init__(self, **opts):
         self.opts = opts
@@ -243,6 +259,11 @@ class Provider(object):
     def chooses_effort(self):
         """-> whether an effort level can reach the call."""
         return False
+
+    def output_limit(self):
+        """-> the token cap a terse step's answer is held to, None when the
+        step is not terse or this provider cannot hold an answer to one."""
+        return None
 
     def check(self):
         """-> (ok, detail). is this thing usable right now."""

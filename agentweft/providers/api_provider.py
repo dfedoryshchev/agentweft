@@ -2,16 +2,10 @@ import os
 
 import httpx
 
-from .base import (CUT, Provider, Reply, Usage, again, effort_said, env_for,
-                   model_for, register)
+from .base import (CUT, TERSE_SHARE, Provider, Reply, Usage, again, cap_for,
+                   effort_said, env_for, model_for, register)
 
 VERSION = "2023-06-01"
-
-# thinking is spent inside the cap, so a level that thinks longer gets a cap
-# that leaves room to answer after it
-TOKENS = 32000
-DEEP_TOKENS = 64000
-DEEP = ("high", "xhigh", "max")
 
 
 @register
@@ -34,15 +28,22 @@ class ApiProvider(Provider):
     def chooses_effort(self):
         return True
 
+    def _cap(self):
+        return int(self.opts.get("max_tokens", cap_for(self.asks_effort())))
+
+    def output_limit(self):
+        if not self.terse:
+            return None
+        return min(self._cap(), cap_for(self.asks_effort()) // TERSE_SHARE)
+
     def ask(self, prompt, timeout=None):
         key = os.environ.get("API_KEY", "")
         if not key:
             return Reply("", detail="no API_KEY set", retryable=False)
         url = self.opts.get("url") or os.environ.get("API_URL", "")
         effort = self.asks_effort()
-        cap = DEEP_TOKENS if effort in DEEP else TOKENS
         body = {"model": self._model(),
-                "max_tokens": int(self.opts.get("max_tokens", cap)),
+                "max_tokens": self.output_limit() or self._cap(),
                 "messages": [{"role": "user", "content": prompt}]}
         if effort:
             body["output_config"] = {"effort": effort}

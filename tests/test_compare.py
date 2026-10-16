@@ -112,8 +112,11 @@ def test_the_sides_are_not_the_same_size():
     # `worktree` is one more, one way, for the reason `workdir` was.
     #
     # `sacrifice` is one more, one way: a phase has no budget plan to cut.
+    #
+    # a step's `verbosity` is one more, one way: an agent says how long to be
+    # in prose, if it says it at all.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 36
+    assert len(compare.flow_only()) == 37
     assert len(compare.phase_only()) == 7
 
 
