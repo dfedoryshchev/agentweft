@@ -41,7 +41,7 @@
     "## tests and checks",
     "- worker.md: PASS red-test - red, exit 1 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-test - green, exit 0 (python -m pytest -q test_calc.py)",
-    "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider {test})",
+    "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider --junitxml={results} {test})",
     "- patcher.md: PASS command - exit 0 (python -m pytest -q)",
     "- red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py)",
     "- test order: red before any product code: red-test on worker.md (test_calc.py, written)",

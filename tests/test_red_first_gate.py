@@ -429,13 +429,13 @@ def test_the_replay_worktree_is_locked_while_it_runs(tmp_path, monkeypatch):
     write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
     write(place, "calc.py", FIXED, "no commits", "")
     seen = []
-    real = redfirst_gate.RedFirstGate.one
+    real = redfirst_gate.RedFirstGate.ran
 
-    def one(self, *args):
+    def ran(self, *args):
         seen.append(git(place, "worktree", "list", "--porcelain"))
         return real(self, *args)
 
-    monkeypatch.setattr(redfirst_gate.RedFirstGate, "one", one)
+    monkeypatch.setattr(redfirst_gate.RedFirstGate, "ran", ran)
     assert replayed(run)
     assert "locked" in seen[0]
 

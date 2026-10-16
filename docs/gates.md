@@ -165,8 +165,9 @@ turns only that gate off: the order checks still want a red proof.
   says nothing was run. an empty answer fails as `the step answered nothing`,
   not as a test that never failed.
 - **red-first** - `command: [...]` with `{test}` in it, `expect` (default 1),
-  `timeout`. goes on the step that made the fix, and shows each new test
-  fails without it and passes with it (below).
+  `timeout`, `results` (`junit`, with `{results}` in the command). goes on
+  the step that made the fix, and shows each new test fails without it and
+  passes with it (below).
 - **coverage** - a cobertura xml report, `report` (default `coverage.xml`, read
   in the run's `workdir`), held to a floor from `project.yml` (see
   `docs/orchestrate.md`). `floor` names which one, `overall` (default) or
@@ -197,7 +198,8 @@ turns only that gate off: the order checks still want a red proof.
         prompt: patcher.md
         gates:
           - gate: red-first
-            command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "{test}"]
+            command: ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "--junitxml={results}", "{test}"]
+            results: junit
 
 `red-test` shows a test failing at the time a step said it did. nothing in
 that says the test is still the one that failed, or that it fails for want of
@@ -246,6 +248,26 @@ bug. no step's `FAILS:` line changes either verdict. each then runs in the
 place, with the fix, and has to pass. both runs put the folder they run in,
 and its `src/`, at the front of `PYTHONPATH`, so a project installed in
 editable mode imports the tree being run and not the person's fixed one.
+
+without `results`, "on its own" is literal: one process per new test, once
+without the fix and once with it, so 2N processes for N new tests. a command
+that takes every id at once and writes a junit xml file can say so with
+`results: junit` and `{results}` in the command (pytest's own
+`--junitxml={results}` in the shipped flows): then `{test}` expands to every
+new id and each side is one process. `{results}` becomes a path in a fresh
+temp folder for each run, outside the place, so no file is left behind and
+no file from an earlier run can be read. the outcome of each id is read from
+that file and labelled by the rules above: a failure is red, or an error
+when it is one of the could-not-run errors the fix does not explain; a
+module that could not be collected gives every id in it the verdict a run of
+that id alone would give. pytest stops a whole run on a collection error, so
+when one is read, the ids it did not reach get one more batch. an id the file
+does not settle (not in it, skipped, an error in setup, not a python id, or a
+file that is missing or not xml) runs on its own, as without `results`: a
+results file that cannot be read never reads as a pass. the one-test checks
+elsewhere that take a red-first command (the supplied red test, the tests
+left red) point `{results}` at a throwaway path. with `results`, red is a
+failure in the file, not the `expect` exit.
 
 the checkout is removed in a `finally`. it is locked while it exists, with
 the run's pid as the reason, and the next run's start removes any that a

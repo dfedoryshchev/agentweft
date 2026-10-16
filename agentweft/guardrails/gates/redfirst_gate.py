@@ -2,6 +2,8 @@ import ast
 import os
 import re
 import subprocess
+import tempfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from agentweft.guardrails import worktree
@@ -23,6 +25,8 @@ PIN_OK = re.compile(r"^PIN OK:(.*)$")
 # the steps that decide what is built, not the ones that write it: a step
 # cannot excuse the pins it wrote itself
 PIN_ROLES = ("planner", "architect", "ba")
+RESULTS = "{results}"
+FORMATS = ("junit",)
 
 
 def kind_of(output):
@@ -191,6 +195,61 @@ def fix_adds(output, start, now):
     return exists(start, *missing) is False and exists(now, *missing) is True
 
 
+def junit_cases(path):
+    """-> [(classname, name, outcome, text)] from a junit xml file, outcome
+    one of passed / failure / error / skipped; None when the file is not
+    there or does not parse."""
+    try:
+        root = ET.parse(str(path)).getroot()
+    except (OSError, ET.ParseError):
+        return None
+    out = []
+    for case in root.iter("testcase"):
+        outcome, text = "passed", ""
+        for child in case:
+            if child.tag in ("failure", "error", "skipped"):
+                outcome = child.tag
+                text = child.text or ""
+                if child.tag == "failure":
+                    text = "E   " + (child.get("message") or "") + "\n" + text
+                break
+        out.append((case.get("classname") or "", case.get("name") or "",
+                    outcome, text))
+    return out
+
+
+def junit_address(test):
+    """-> (module, classname, name) a pytest id reads as in junit: name ""
+    for an id that is a whole file. None for an id that is not a python
+    file."""
+    parts = test.replace("\\", "/").split("::")
+    if not parts[0].endswith(".py"):
+        return None
+    module = parts[0][:-3].replace("/", ".")
+    if len(parts) == 1:
+        return module, module, ""
+    return module, ".".join([module] + parts[1:-1]), parts[-1]
+
+
+def junit_matches(test, cases):
+    """-> the cases of `cases` that ran `test`, and the collection error of
+    its module, None for none."""
+    address = junit_address(test)
+    if address is None:
+        return [], None
+    module, cls, name = address
+    ran, broken = [], None
+    for c in cases:
+        if c[0] == "" and c[1] == module:
+            broken = c
+        elif not name and (c[0] == cls or c[0].startswith(cls + ".")):
+            ran.append(c)
+        elif name and c[0] == cls and (c[1] == name
+                                        or c[1].startswith(name + "[")):
+            ran.append(c)
+    return ran, broken
+
+
 @register
 class RedFirstGate(Gate):
     """each new test fails without the fix and passes with it, shown by
@@ -214,6 +273,11 @@ class RedFirstGate(Gate):
     is recorded as passing without the fix, and the record says so test by
     test.
 
+    "alone" is one process per test unless the flow names a results file
+    (`results: junit`, `{results}` in the command): then each side runs every
+    new test in one process and reads each one's outcome from the file, and
+    a test the file does not settle still runs alone.
+
     a test added after the red was first shown (the run's red proof keeps
     the ids there were then) is new test work too. red without the fix, it
     is coverage; green there, it pins current behaviour, which the record
@@ -232,7 +296,7 @@ class RedFirstGate(Gate):
     """
 
     name = "red-first"
-    options = ("command", "timeout", "expect")
+    options = ("command", "timeout", "expect", "results")
 
     def run(self, text):
         if not (text or "").strip():
@@ -240,6 +304,13 @@ class RedFirstGate(Gate):
         cmd = self.opts.get("command")
         if not isinstance(cmd, (list, tuple)) or "{test}" not in cmd:
             return self.fail("command has to be a list with {test} in it")
+        results = self.opts.get("results")
+        if results is not None and results not in FORMATS:
+            return self.fail("results has to be one of: " + ", ".join(FORMATS)
+                             + ", not " + str(results))
+        if results and not any(RESULTS in str(a) for a in cmd):
+            return self.fail("results: " + str(results) + " needs " + RESULTS
+                             + " in the command, where the runner writes it")
         start = self.start
         if start is None:
             return self.ok("not replayed - the run took no start snapshot")
@@ -258,11 +329,11 @@ class RedFirstGate(Gate):
             with worktree.temporary(start.root, start.start) as tree:
                 start.lay_out(tree, changes)
                 there = start.place_in(tree)
-                before = dict((i, self.one(cmd, i, there, lambda out: fix_adds(
-                    out, there, start.place))) for i in ids)
+                before = self.side(cmd, ids, there, lambda out: fix_adds(
+                    out, there, start.place))
         except ValueError as e:
             return self.fail("could not replay without the fix: " + str(e))
-        after = dict((i, self.one(cmd, i, start.place)) for i in ids)
+        after = self.side(cmd, ids, start.place)
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
         self.label(record)
@@ -296,6 +367,65 @@ class RedFirstGate(Gate):
         return self.ok(came + ", green with the fix: "
                        + ", ".join(sorted(carried)))
 
+    def side(self, cmd, ids, where, adds=None):
+        """-> {id: what `one` would say of it} for every id in `where`. with
+        a `results` file the ids run together, and an id the file does not
+        settle runs on its own."""
+        said = {}
+        for _ in range(2 if self.opts.get("results") else 0):
+            read, stopped = self.batch(cmd, [i for i in ids if i not in said],
+                                       where, adds)
+            said.update(read)
+            # a collection error stops pytest before any other file runs,
+            # so the rest get one more batch rather than a process each
+            if not stopped:
+                break
+        for i in ids:
+            if i not in said:
+                said[i] = self.one(cmd, i, where, adds)
+        return said
+
+    def batch(self, cmd, ids, where, adds=None):
+        """-> ({id: (red | green | error, kind)} for the ids the results
+        file settles, whether a module of them failed to collect). an id
+        the file does not name, or names as skipped or as an error in setup,
+        is left out."""
+        if not ids:
+            return {}, False
+        timeout = int(self.opts.get("timeout", 120)) * len(ids)
+        with tempfile.TemporaryDirectory(prefix="agentweft-results-") as tmp:
+            path = Path(tmp) / "results.xml"
+            r, _ = self.ran(cmd, ids, where, path, timeout)
+            cases = junit_cases(path) if r is not None else None
+        if not cases:
+            return {}, False
+        said, stopped = {}, False
+        for i in ids:
+            ran, broken = junit_matches(i, cases)
+            if broken is not None and not ran:
+                said[i] = self.could_not_run(broken[3], adds) or (
+                    "error", "a collection error")
+                stopped = True
+            elif ran and all(c[2] in ("passed", "failure") for c in ran):
+                failed = [c for c in ran if c[2] == "failure"]
+                if not failed:
+                    said[i] = ("green", "")
+                else:
+                    text = failed[0][3]
+                    said[i] = self.could_not_run(text, adds, False) or (
+                        "red", kind_of(text))
+        return said, stopped
+
+    def could_not_run(self, output, adds, collection=True):
+        """-> (red | error, kind) for a test that never reached the code it
+        tests, None for one that did. a collection error never does."""
+        kind = kind_of(output)
+        if not (kind in COULD_NOT_RUN or collection):
+            return None
+        if kind in MISSES and adds and adds(output):
+            return "red", kind
+        return "error", kind or "a collection error"
+
     def one(self, cmd, test, where, adds=None):
         """-> (red | green | error | exit N | timed out | not on PATH |
         could not start: why, kind). `adds(output)` says whether an import
@@ -305,21 +435,33 @@ class RedFirstGate(Gate):
             return why, ""
         if r.returncode == 0:
             return "green", ""
-        kind = kind_of(r.stdout + "\n" + r.stderr)
-        broken = kind in COULD_NOT_RUN or r.returncode == 2
-        if broken and kind in MISSES and adds \
-                and adds(r.stdout + "\n" + r.stderr):
-            return "red", kind
-        if broken:
-            return "error", kind or "a collection error"
+        output = r.stdout + "\n" + r.stderr
+        said = self.could_not_run(output, adds, r.returncode == 2)
+        if said:
+            return said
+        kind = kind_of(output)
         if r.returncode == int(self.opts.get("expect", 1)):
             return "red", kind
         return "exit " + str(r.returncode), kind
 
-    def ran(self, cmd, test, where):
-        """-> (the finished process, "") for `cmd` run on one test in
-        `where`, or (None, timed out | not on PATH | could not start: why)."""
-        argv = [test if a == "{test}" else a for a in cmd]
+    def ran(self, cmd, test, where, results=None, timeout=None):
+        """-> (the finished process, "") for `cmd` run on one test, or on
+        every test of a list, in `where`, or (None, timed out | not on PATH
+        | could not start: why). `results` is the path {results} becomes; a
+        command that names one gets a throwaway path when none is given."""
+        if results is None and any(RESULTS in str(a) for a in cmd):
+            with tempfile.TemporaryDirectory(prefix="agentweft-results-") as t:
+                return self.ran(cmd, test, where, Path(t) / "results.xml",
+                                timeout)
+        tests = list(test) if isinstance(test, (list, tuple)) else [test]
+        argv = []
+        for a in cmd:
+            if a == "{test}":
+                argv.extend(tests)
+            elif results is not None and RESULTS in str(a):
+                argv.append(str(a).replace(RESULTS, str(results)))
+            else:
+                argv.append(a)
         # an editable install puts the person's own tree on sys.path, and the
         # checkout without the fix would import the fixed code from there
         path = [str(where), str(Path(where) / "src")]
@@ -331,7 +473,8 @@ class RedFirstGate(Gate):
                 r = subprocess.run(argv, capture_output=True, text=True,
                                    encoding="utf-8", errors="replace",
                                    cwd=str(where), env=env,
-                                   timeout=int(self.opts.get("timeout", 120)))
+                                   timeout=timeout or int(
+                                       self.opts.get("timeout", 120)))
         except subprocess.TimeoutExpired:
             return None, "timed out"
         except OSError as e:

@@ -314,7 +314,7 @@ def gate_commands(fm, step, output):
         for g in (s.get("gates") or []):
             cmd = g.get("command")
             if isinstance(cmd, (list, tuple)) and g.get("gate") == "red-first":
-                # it runs once per new test, so no one name stands for it
+                # it runs every new test, so no one name stands for it
                 cmd = " ".join(str(a) for a in cmd)
             elif isinstance(cmd, (list, tuple)):
                 named = named_test(output or "")
