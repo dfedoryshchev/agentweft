@@ -150,3 +150,81 @@ def test_the_handoff_names_the_head_it_was_written_from(tmp_path, monkeypatch):
     head = json.loads((first / "manifest.json").read_text(
         encoding="utf-8"))["chain"]["head"]
     assert head[:16] in chained[0]
+
+
+class Asked(object):
+    name = "fake"
+    command = "fake"
+    choice = None
+
+    def asks_for(self):
+        return "m"
+
+    def granted(self):
+        return None
+
+
+def test_a_red_proof_rewritten_during_a_step_breaks_the_chain(tmp_path):
+    from agentweft.runner import chain, trace
+
+    proof = tmp_path / "red-proof.json"
+    proof.write_text('{"proof": {"tests": {"t.py": "aaa"}}}',
+                     encoding="utf-8")
+    t = trace.Trail(tmp_path)
+    e = t.open("tester.md", [], Asked(), None, output="x")
+    t.close(e, "ok")
+    assert chain.verify(tmp_path).broken is None
+    proof.write_text('{"proof": {"tests": {"t.py": "bbb"}}}',
+                     encoding="utf-8")
+    e = t.open("worker.md", [], Asked(), "tester.md", output="y")
+    t.close(e, "ok")
+    assert "red-proof.json was changed" in chain.verify(tmp_path).broken
+
+
+def test_a_file_the_runner_rewrites_itself_keeps_the_chain(tmp_path):
+    from agentweft.runner import chain, trace
+
+    proof = tmp_path / "red-proof.json"
+    t = trace.Trail(tmp_path)
+    e = t.open("tester.md", [], Asked(), None, output="x")
+    t.close(e, "ok")
+    proof.write_text('{"proof": {"tests": {"t.py": "aaa"}}}',
+                     encoding="utf-8")
+    chain.wrote(tmp_path)
+    e = t.open("worker.md", [], Asked(), "tester.md", output="y")
+    t.close(e, "ok")
+    assert chain.verify(tmp_path).broken is None
+
+
+def test_a_worker_that_rewrites_its_red_proof_is_named_by_verify(
+        tmp_path, monkeypatch, capsys):
+    from agentweft.runner import engine
+    from test_red_order import (FIXED, RED_TEST, TESTER, TESTER_SAID, WORKER,
+                                a_repo)
+    from test_red_order import a_flow as order_flow
+    from test_red_order import folders as runs
+    from test_red_order import running
+
+    place = a_repo(tmp_path / "repo")
+    order_flow(tmp_path, "build", TESTER + WORKER)
+
+    def forged():
+        proof = runs()[-1] / "red-proof.json"
+        said = json.loads(proof.read_text(encoding="utf-8"))
+        for f in said["proof"]["tests"]:
+            said["proof"]["tests"][f] = "0" * 64
+        proof.write_text(json.dumps(said), encoding="utf-8")
+        return {"calc.py": FIXED}
+
+    class Forging(dict):
+        def __getitem__(self, step):
+            if step == "worker.md":
+                return forged(), "done"
+            return dict.__getitem__(self, step)
+
+    code, called = running(tmp_path, monkeypatch, place, "build", Forging({
+        "tester.md": ({"tests/test_calc.py": RED_TEST}, TESTER_SAID)}))
+    assert called == ["tester.md", "worker.md"]
+    code, said = verify(monkeypatch, capsys, runs()[-1].name)
+    assert code != 0
+    assert "red-proof.json was changed" in said

@@ -141,3 +141,39 @@ def test_skips_and_skip_tests_go_together(tmp_path, monkeypatch):
     assert code == stops.EXIT_OK
     assert json.loads(read(folders()[-1] / SKIPS)) == {
         "regex": "the pattern is wrong", "tests": "hotfix"}
+
+
+CHECKED = ("  - role: worker" + NL + "    prompt: worker.md" + NL
+           + "    gates:" + NL + "      - gate: command" + NL
+           + "        command: [\"python\", \"-c\", \"pass\"]" + NL
+           + "      - gate: regex" + NL + "        pattern: \"done\"" + NL)
+
+
+def test_a_gate_skipped_by_name_is_marked_skipped_and_proves_nothing(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", CHECKED)
+    code, _ = running(tmp_path, monkeypatch, place, "build",
+                      {"worker.md": ({}, "done")},
+                      "--skip", "command", "the suite is down")
+    assert code == stops.EXIT_OK
+    folder = folders()[-1]
+    said = dict((g["gate"], g) for g in gate_lines(folder))
+    assert said["command"]["skipped"] is True
+    assert "skipped" not in said["regex"]
+    lines = [json.loads(x) for x in read(folder / "steps.jsonl").splitlines()]
+    assert lines[-1]["won"] == "none"
+    assert "1 of 2 gates passed, 1 skipped" in read(folder / "handoff.md")
+
+
+def test_a_red_gate_skipped_with_the_tests_is_marked_skipped(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, _ = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, "no test for a hotfix"),
+        "worker.md": ({"calc.py": FIXED}, "done")},
+        "--skip-tests", "hotfix")
+    assert code == stops.EXIT_OK
+    said = [g for g in gate_lines(folders()[-1]) if g["gate"] == "red-test"]
+    assert said and all(g["skipped"] is True for g in said)

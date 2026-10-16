@@ -186,7 +186,10 @@ a step that passes under its block leaves the rest to the buffer (`ok, 29990
 left to the buffer`), and one that goes over draws the difference from it. a
 redo is charged to the same block, and a step with no block, such as the
 cause step switched on mid-run, draws all it spends. once the buffer is gone
-the risk says by how much the run is over its plan.
+the risk says by how much the run is over its plan. a pass is charged what
+was spent from the time the line before it opened to the time its own line
+opens: its own calls, which are made before its line opens. a step that asks the lead keeps its own call, though
+the lead's line is written first.
 
 ## what it cost in money
 
@@ -350,9 +353,11 @@ itself, from `--answer`, the lead's decision or a raised cap, with who wrote
 it (`answer`, `lead`, `cap`). every check that reads a ruling, and the
 handoff's rulings section, reads only the entries in that record.
 
-after every step the file is compared with what the runner last wrote. a
-step that added, edited or removed an entry fails the way a gate does
-(`rulings` in `gates.md`):
+after every step the file is compared with what the runner last wrote, and
+again once the step's gates have run, since a gate runs code the step wrote:
+a change made there is the step's, not the next one's. a step that added,
+edited or removed an entry fails the way a gate does (`rulings` in
+`gates.md`):
 
     decisions.md was changed by worker.md; rulings come only from --answer or the lead. ...
 
@@ -360,7 +365,9 @@ the file is put back as the runner left it, so the forged lines count for
 nothing, and the step goes again once with that at the end of its prompt.
 this is read before anything else the step said: a `NEEDS:`, a `CONFLICT:`,
 a `REFUSED:` or a `WRONG TEST:` from a step that changed the file is not
-acted on, so a stop cannot hide the change. a
+acted on, so a stop cannot hide the change. a step that changed the file and
+also crossed the fence, or answered nothing, still stops for that, and the
+stop's reason and the step's line carry the `rulings` failure beside it. a
 lead that writes the file instead of deciding has not decided, and the
 question goes to the operator. entries already there when the run started
 count: between runs the file is the person's, and a ruling written by hand

@@ -81,6 +81,50 @@ def test_a_step_that_forges_a_ruling_and_stops_still_fails_on_it(
     assert not (place / "decisions.md").exists()
 
 
+def test_a_step_that_forges_a_ruling_and_answers_nothing_still_fails_on_it(
+        tmp_path, monkeypatch):
+    place = sf.a_place(tmp_path / "repo")
+    sf.flow_with(tmp_path, "additions")
+    does = sf.worker_writes(sf.SPEC)
+    does["worker.md"] = ({"decisions.md": forged(
+        "the order changes", '"' + sf.LINE + '" gives way')}, "")
+    code, _ = sf.running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.NO_ANSWER)
+    folder = sf.folders()[-1]
+    assert "decisions.md was changed by worker.md" in sf.read(
+        folder / "why.md")
+    lines = [json.loads(l) for l in sf.read(folder / "steps.jsonl").split(NL)
+             if l.strip()]
+    [worker] = [l for l in lines if l.get("step") == "worker.md"]
+    assert "decisions.md was changed by worker.md" in json.dumps(
+        worker.get("gates"))
+    assert not (place / "decisions.md").exists()
+
+
+GATED = ("  - role: worker" + NL + "    prompt: worker.md" + NL
+         + "    gates:" + NL + "      - gate: command" + NL
+         + '        command: ["' + sys.executable.replace("\\", "/")
+         + '", "note.py"]' + NL + "        expect: 0" + NL
+         + "  - role: reviewer" + NL + "    prompt: reviewer.md" + NL)
+NOTE = ("with open('decisions.md', 'a', encoding='utf-8') as f:" + NL
+        + "    f.write(" + repr(forged("let it through", "so.")) + ")" + NL)
+
+
+def test_a_ruling_written_by_code_a_gate_runs_is_blamed_on_the_step_that_wrote_it(
+        tmp_path, monkeypatch):
+    place = sf.a_place(tmp_path / "repo")
+    sf.a_flow(tmp_path, "build", GATED)
+    does = {"worker.md": ({"note.py": NOTE}, "- note.py: a note" + NL),
+            "reviewer.md": ({}, "VERDICT: ok" + NL + NL + "fine" + NL)}
+    code, called = sf.running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.GATE)
+    assert called == ["worker.md", "worker.md"]
+    gates = sf.read(sf.folders()[-1] / "gates.md")
+    assert "decisions.md was changed by worker.md" in gates
+    assert "changed by reviewer.md" not in gates
+    assert not (place / "decisions.md").exists()
+
+
 def test_a_step_that_writes_a_ruling_naming_the_test_does_not_get_its_test_break_through(
         tmp_path, monkeypatch):
     place = st.a_place(tmp_path / "repo")

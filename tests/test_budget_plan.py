@@ -158,3 +158,55 @@ def test_a_step_that_overruns_draws_from_the_buffer_and_says_so(
     assert "drawn from the buffer" in health["risk"]
     assert health["buffer"] == b["budget"]["buffer"] - (health["spent"]
                                                         - health["planned"])
+
+
+GOLDEN = __import__("pathlib").Path(__file__).resolve().parent / "golden"
+
+
+def test_the_step_that_asked_the_lead_is_charged_its_own_call():
+    steps = json.loads((GOLDEN / "build-feature" / "lead-decides.json")
+                       .read_text(encoding="utf-8"))["steps"]
+    asked = [s for s in steps if s["outcome"] == "asked"][0]
+    assert asked["tokens"]["counted"] and asked["cost"]
+    assert asked["budget"]["spent"] == 1, asked["budget"]
+    lead = [i for i, s in enumerate(steps) if s["outcome"] == "decided"][0]
+    before = [s for s in steps[:lead] if s["step"] == steps[lead]["step"]]
+    assert steps[lead]["budget"]["spent"] == \
+        before[-1]["budget"]["spent"] + 1, steps[lead]["budget"]
+
+
+def test_a_line_closed_after_one_opened_inside_it_keeps_its_own_calls(
+        tmp_path):
+    from agentweft.guardrails import blocks
+    from agentweft.runner import trace
+
+    class Spent(object):
+        max_tokens = None
+        max_calls = 10
+        capped = 0
+        calls = 0
+
+    class P(object):
+        name = "fake"
+        command = "fake"
+        choice = None
+
+        def asks_for(self):
+            return "m"
+
+        def granted(self):
+            return None
+
+    budget = Spent()
+    plan = blocks.Plan(budget, ["worker.md", "lead.md"], {})
+    t = trace.Trail(tmp_path, plan=plan)
+    budget.calls = 2
+    asker = t.open("worker.md", [], P(), None, output="asks")
+    budget.calls = 3
+    lead = t.open("lead.md", [], P(), "worker.md", output="decides")
+    t.close(lead, "decided", to="worker.md")
+    t.close(asker, "asked", to="lead.md")
+    said = dict((json.loads(x)["step"], json.loads(x)["budget"]["spent"])
+                for x in (tmp_path / "steps.jsonl").read_text(
+                    encoding="utf-8").splitlines())
+    assert said == {"worker.md": 2, "lead.md": 1}

@@ -26,17 +26,20 @@ class Result(object):
     `unproven` is the lines of a check the step was asked and said it could
     not decide: neither a pass nor a fail, and carried to the record so a
     passing gate never hides them. `tests` is what a gate that ran tests one
-    by one saw of each, None for the rest.
+    by one saw of each, None for the rest. `skipped` is a pass the run gave a
+    gate it did not run, which proves nothing.
     """
 
-    __slots__ = ("gate", "ok", "detail", "unproven", "tests")
+    __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped")
 
-    def __init__(self, gate, ok, detail="", unproven=(), tests=None):
+    def __init__(self, gate, ok, detail="", unproven=(), tests=None,
+                 skipped=False):
         self.gate = gate
         self.ok = ok
         self.detail = detail
         self.unproven = list(unproven)
         self.tests = tests
+        self.skipped = skipped
 
     def __bool__(self):
         return self.ok

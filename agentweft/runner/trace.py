@@ -238,7 +238,7 @@ class Entry(object):
     """a line that has a number and a file but not yet an outcome."""
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
-                 "fanned", "gates", "ungated", "handoff", "written")
+                 "fanned", "gates", "ungated", "handoff", "written", "took")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -252,6 +252,7 @@ class Entry(object):
         self.gates = []
         self.ungated = None
         self.handoff = None
+        self.took = None
 
 
 class Trail(object):
@@ -270,6 +271,7 @@ class Trail(object):
         self.held = []
         self.task_file = TASK if (folder / TASK).is_file() else None
         self.lines = chain.raw(folder)
+        chain.kept(folder)
 
     def head(self):
         """-> {"lines": n, "head": hash of the newest line} of the chain."""
@@ -287,6 +289,8 @@ class Trail(object):
             path.write_text(output, encoding="utf-8")
         entry = Entry(self.seq, step, attempts, provider, came_from, kept,
                       fanned)
+        if self.plan is not None:
+            entry.took = self.plan.opened()
         self.unclosed.append(entry)
         return entry
 
@@ -300,7 +304,8 @@ class Trail(object):
         entry.written = line(entry, outcome, why, to, cause, self.task_file,
                              self.folder)
         if self.plan is not None:
-            entry.written["budget"] = self.plan.closed(entry.step, outcome)
+            entry.written["budget"] = self.plan.closed(entry.step, outcome,
+                                                       entry.took)
         self.held.append((entry, outcome))
         first = min(e.seq for e in self.unclosed) if self.unclosed else None
         ready = sorted((h for h in self.held
@@ -312,7 +317,7 @@ class Trail(object):
                 self.closed.append((done, said))
                 done.written[chain.FIELD] = {
                     "prev": chain.head(self.lines)["head"],
-                    "files": chain.files(self.folder)}
+                    "files": chain.kept(self.folder)}
                 text = json.dumps(done.written, ensure_ascii=False)
                 f.write(text + "\n")
                 self.lines.append(text)
@@ -328,6 +333,8 @@ def gate_line(g):
         out["unproven"] = list(g.unproven)
     if getattr(g, "tests", None) is not None:
         out["tests"] = g.tests
+    if getattr(g, "skipped", False):
+        out["skipped"] = True
     return out
 
 
@@ -366,7 +373,7 @@ CHECKS = ("command", "coverage")
 
 def proof(g):
     """whether a passing gate entry is a program's word, not a model's."""
-    if not g.get("ok"):
+    if not g.get("ok") or g.get("skipped"):
         return False
     detail = g.get("detail") or ""
     if g.get("gate") == "red-test":

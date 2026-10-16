@@ -149,3 +149,17 @@ def test_spend_keeps_reported_table_priced_and_estimated_apart(tmp_path):
     (runs / "journal.md").write_text(line + "\n", encoding="utf-8")
     out = "\n".join(spend.report(runs))
     assert "reported $0.5000, table-priced $0.1000, estimated $0.0500" in out
+
+
+def test_a_gate_skipped_by_name_proved_nothing():
+    for gate in ("command", "coverage", "red-test", "red-first"):
+        g = {"gate": gate, "ok": True, "skipped": True,
+             "detail": "not run - skipped: the pattern predates the format"}
+        assert trace.won("ok", None, [g], "next.md") == "none", gate
+
+
+def test_the_handoff_never_says_a_skipped_red_first_was_shown():
+    p = {"step": "worker.md", "gates": [
+        {"gate": "red-first", "ok": True, "skipped": True,
+         "detail": "not run - skipped: no replay here", "command": None}]}
+    assert summary.red_first([p]) == "not proven by a gate"

@@ -2,10 +2,11 @@
 
 every `steps.jsonl` line ends on a `chain` field: `prev`, the sha256 of the
 line written before it as it stands in the file (null on the first), and
-`files`, the sha256 of the run's start snapshot and red proof as they were on
-disk when the line was written (null for one the run never wrote). the test
-hashes those files hold are then in the chain, so the step that rewrites a
-test cannot quietly rewrite the hash it was held to as well.
+`files`, the sha256 of the run's start snapshot and red proof as the runner
+last wrote them (null for one the run never wrote), never as a step left
+them. the test hashes those files hold are then in the chain, so the step
+that rewrites a test cannot quietly rewrite the hash it was held to as well:
+a rewrite made during a step leaves the file unlike its hash on the line.
 
 the run's manifest keeps the count and the head (the hash of the newest
 line) each time the handoff is written, and the handoff names the head, so a
@@ -32,6 +33,11 @@ def digest(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+# what the runner itself last wrote into each run folder, by folder: the
+# hashes a line carries, so a file a step rewrote is not taken in with it
+WROTE = {}
+
+
 def files(folder):
     """-> {name: sha256 or None} of the files in FILES, as they are now."""
     out = {}
@@ -39,6 +45,21 @@ def files(folder):
         p = Path(folder) / name
         out[name] = manifest.of_file(p) if p.is_file() else None
     return out
+
+
+def wrote(folder):
+    """the runner has just written the files in FILES: keep their hashes as
+    the ones the next lines carry."""
+    WROTE[str(Path(folder).resolve())] = files(folder)
+
+
+def kept(folder):
+    """-> the hashes the runner last kept for folder, taken from the disk
+    the first time it is asked."""
+    key = str(Path(folder).resolve())
+    if key not in WROTE:
+        WROTE[key] = files(folder)
+    return dict(WROTE[key])
 
 
 def raw(folder):

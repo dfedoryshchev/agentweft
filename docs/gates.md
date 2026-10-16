@@ -100,7 +100,11 @@ leaves three:
 
 - every step's gate of that name still gets its line, a pass that reads `not
   run - skipped: <reason>`, in `gates.md` and in the step's line in
-  `steps.jsonl`.
+  `steps.jsonl`, where it carries `"skipped": true`. a skipped gate proves
+  nothing: the step's `won` never counts it as `proved`, the handoff never
+  says a skipped red-first gate showed anything, and the checks line counts
+  it apart (`1 of 2 gates passed, 1 skipped`). a gate passed for
+  `--skip-tests` is marked the same way.
 - `decisions.md` in the run's folder gets an entry naming the gates, with the
   reason.
 - the handoff's checks line and its "tests and checks" say which gates were

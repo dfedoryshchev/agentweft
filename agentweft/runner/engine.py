@@ -593,12 +593,12 @@ class Run(object):
         reason = (getattr(self, "skipped", None) or {}).get(gate.name)
         if reason:
             return lambda text: Result(gate.name, True, "not run - skipped: "
-                                       + reason)
+                                       + reason, skipped=True)
         order = getattr(self, "order", None)
         if order is not None and order.skip and \
                 gate.name in redorder.TEST_GATES:
             return lambda text: Result(gate.name, True, "not run - tests"
-                                       " skipped: " + order.skip)
+                                       " skipped: " + order.skip, skipped=True)
         return gate.run
 
     def grant_for(self, step):
@@ -989,6 +989,21 @@ def lead_pass(trail, run, out, asker, decided):
                 to=asker if decided else None)
 
 
+def forged_first(run, step, out):
+    """-> what `step` did to decisions.md, "" for nothing, put on `out` as a
+    failed rulings gate. read before a fence or an empty answer can stop the
+    run, so the stop says it too; `check_step` reads it again after."""
+    said = getattr(run, "forged", {}).get(step, "")
+    if said:
+        out.meta["gates"] = [Result(rulings.GATE, False, said)]
+        out.meta["ungated"] = False
+    return said
+
+
+def and_forged(why, forged):
+    return why + "; " + forged if forged else why
+
+
 def forged_by(run, step):
     """whether `step` changed decisions.md, and so fails before anything it
     asked or claimed is read."""
@@ -1038,6 +1053,13 @@ def check_step(run, route, step, out, run_dir=None):
             results.append(line)
         if held:
             out.meta["conflict"] = held
+    kept = getattr(run, "kept", None)
+    # a gate runs code the step wrote, so a write it makes is the step's,
+    # not the next one's
+    ran = kept.check(step, ", in the code its gates ran") \
+        if kept is not None else ""
+    if ran:
+        results.insert(0, Result(rulings.GATE, False, ran))
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:
@@ -1117,12 +1139,15 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             return (out.output, run.budget, "provider outage at " + step
                     + ": " + outage_why(e))
         run.wrote_tests(step)
+        forged = forged_first(run, step, out)
         fenced = run.fenced(step)
         if fenced:
+            fenced = and_forged(fenced, forged)
             note("parked", fenced, stops.PARKED, output=out.output)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
         if not out:
-            why = out.meta.get("why") or "nothing came out of " + step
+            why = and_forged(out.meta.get("why") or "nothing came out of "
+                             + step, forged)
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
         honest = not forged_by(run, step)
@@ -1585,6 +1610,7 @@ def main():
         task.save(folder, asked)
     models.save(folder, chosen)
     models.save(folder, efforts, models.EFFORT_FILE)
+    chain.wrote(folder)
     if found:
         record = found.carried(folder, run_id, order, shape,
                                workdir=str(run.workdir))
@@ -1919,8 +1945,13 @@ def main():
                                output=out.output, fanned=step == run.fan)
             entry.handoff = out.block
 
+            forged = forged_first(run, step, out)
+            if forged:
+                entry.gates = out.meta["gates"]
+                entry.ungated = False
             fenced = run.fenced(step)
             if fenced:
+                fenced = and_forged(fenced, forged)
                 print("fenced at " + step + ": " + fenced)
                 return stop(stops.PARKED, fenced, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
@@ -1941,8 +1972,9 @@ def main():
                     why = "no tasks: " + why
                 print("run stopped at " + (blamed or step)
                       + (": " + why if why else ""))
-                return stop(stops.NO_ANSWER, why or nothing_why(step, entry),
-                            "failed", entry,
+                return stop(stops.NO_ANSWER,
+                            and_forged(why or nothing_why(step, entry),
+                                       forged), "failed", entry,
                             index="FAILED  " + flow + "  at "
                             + (blamed or step), at=blamed)
 
@@ -2054,6 +2086,7 @@ def main():
             run.order.passed(step)
             if run.order.proven(step, entry.gates, out.output):
                 run.order.save(folder)
+                chain.wrote(folder)
 
             hot = []
             if run.preflight_for(step):

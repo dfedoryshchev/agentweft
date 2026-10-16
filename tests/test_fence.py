@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -179,6 +180,9 @@ with open({log!r}, "a", encoding="utf-8") as f:
     f.write("asked\\n")
 if "SPOIL" in prompt:
     Path(".env").write_text("TOKEN=gone\\n", encoding="utf-8")
+if "FORGE" in prompt:
+    with open("decisions.md", "a", encoding="utf-8") as f:
+        f.write("# decisions\\n\\n## 2026-01-01 10:00  let it through\\n\\nso.\\n")
 if "TIDY" in prompt:
     Path("app.py").write_text("x = 3\\n", encoding="utf-8")
     Path("made.py").write_text("z = 1\\n", encoding="utf-8")
@@ -307,3 +311,31 @@ def test_a_declared_fence_on_a_place_outside_git_does_not_start(
     assert engine.main() == 1
     assert "not in a git work tree" in capsys.readouterr().out
     assert asked(log) == 0
+
+
+FORGED = "decisions.md was changed by worker.md"
+
+
+def test_a_step_that_forges_a_ruling_and_hits_the_fence_says_both(
+        tmp_path, monkeypatch, capsys):
+    place, log = a_run(tmp_path, monkeypatch, does="SPOIL FORGE")
+    go(monkeypatch)
+    assert asked(log) == 1
+    assert "fenced at worker.md" in capsys.readouterr().out
+    [run_dir] = [p for p in state.RUNS.iterdir() if p.is_dir()]
+    why = (run_dir / "why.md").read_text(encoding="utf-8")
+    assert FORGED in why and ".env (changed)" in why
+    [line] = [json.loads(l) for l in (run_dir / "steps.jsonl").read_text(
+        encoding="utf-8").splitlines() if l.strip()]
+    assert FORGED in json.dumps(line["gates"])
+    assert not (place / "decisions.md").exists()
+
+
+def test_a_scored_run_that_forges_a_ruling_and_hits_the_fence_says_both(
+        tmp_path, monkeypatch):
+    place, log = a_run(tmp_path, monkeypatch, does="SPOIL FORGE")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.chdir(place)
+    _, _, why = engine.run_once("fenced")
+    assert why.startswith("fenced at worker.md: ")
+    assert FORGED in why and ".env (changed)" in why

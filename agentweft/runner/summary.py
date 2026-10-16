@@ -332,13 +332,15 @@ def _gates(results, commands):
             gate, ok, detail = g.get("gate"), g.get("ok"), g.get("detail")
             unsure = g.get("unproven") or []
             tests = g.get("tests")
+            skipped = g.get("skipped")
         else:
             gate, ok, detail = g.gate, g.ok, g.detail
             unsure = g.unproven
             tests = getattr(g, "tests", None)
+            skipped = getattr(g, "skipped", False)
         kept = {"gate": gate, "ok": bool(ok), "detail": detail or "",
                 "command": commands[i] if i < len(commands) else "",
-                "tests": tests}
+                "tests": tests, "skipped": bool(skipped)}
         if unsure:
             kept["unproven"] = list(unsure)
         out.append(kept)
@@ -485,7 +487,7 @@ def replay(passes):
     or (None, None) when no red-first gate did."""
     for p in reversed(passes):
         for g in p["gates"]:
-            if g["gate"] == "red-first" and \
+            if g["gate"] == "red-first" and not g.get("skipped") and \
                     not g["detail"].startswith("not replayed"):
                 return p["step"], g
     return None, None
@@ -499,7 +501,8 @@ def red_first(passes):
         return "shown on " + step + ", " + g["detail"]
     for p in passes:
         for g in p["gates"]:
-            if g["gate"] != "red-test" or not g["detail"].startswith("red"):
+            if g["gate"] != "red-test" or g.get("skipped") or \
+                    not g["detail"].startswith("red"):
                 continue
             if not g["ok"]:
                 return "the red-test gate failed on " + at(p) + ": " \
@@ -785,8 +788,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if dug.get("CAUSE"):
         out.append(cause(dug["CAUSE"][0]))
     gates = [g for p in every for g in p["gates"]]
-    passed = sum(1 for g in gates if g["ok"])
+    unrun = sum(1 for g in gates if g.get("skipped"))
+    passed = sum(1 for g in gates if g["ok"] and not g.get("skipped"))
     checks = (str(passed) + " of " + str(len(gates)) + " gates passed"
+              + (", " + str(unrun) + " skipped" if unrun else "")
               if gates else "no gates ran")
     out.append("suite: " + checks + "; red first: " + red_first(every)
                + ("; " + order if order.startswith("tests skipped") else "")

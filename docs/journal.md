@@ -260,7 +260,9 @@ or crashed. the keys are always all there, in this order:
     bought nothing.
   - `proved`: it went on, and a gate it carries passed on a program's word: a
     `command` or `coverage` gate, a `red-test` gate that ran its command, a
-    `red-first` gate that replayed something.
+    `red-first` gate that replayed something. a gate line marked
+    `"skipped": true` (`--skip`, `--skip-tests`) ran nothing and is never
+    one.
   - `decided`: the lead's go that decided a question (`outcome` `decided`),
     the one that records the ruling; the pass that asked is `none`, it runs
     again.
@@ -294,8 +296,9 @@ or crashed. the keys are always all there, in this order:
 - `chain` comes last: `{"prev": "<sha256>", "files": {"start-snapshot.json":
   "<sha256>", "red-proof.json": null}}`. `prev` is the sha256 of the line
   before it as it stands in the file, null on the first line; `files` is the
-  sha256 of the run's start snapshot and red proof as they were on disk when
-  the line was written, null for one the run did not write.
+  sha256 of the run's start snapshot and red proof as the runner last wrote
+  them, null for one the run did not write. it is never read off what a step
+  left on disk.
 
 the time, the seconds and the session are the only parts that differ between
 two runs of the same flow on the same answers, and the chain's hashes, which
@@ -316,7 +319,10 @@ order after it was written then shows:
 it names the first line that breaks: an edited line (a gate's `"ok": false`
 turned to true), the seq of a dropped one, a line out of order, a last line
 dropped or edited (against the manifest's head), or a start snapshot or red
-proof changed after the last line. exit 0 when it holds, 1 when it breaks or
+proof that is not what the runner last wrote. that takes in a rewrite made
+during a step: the step's own line carries the hash the runner wrote, not the
+one the step left, so the step that rewrites a test and the hash it is held
+to is named too. exit 0 when it holds, 1 when it breaks or
 the record was written before lines were chained.
 
 `--resume` checks the same before it picks a run up, and refuses one that

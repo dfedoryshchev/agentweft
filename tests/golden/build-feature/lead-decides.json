@@ -284,9 +284,9 @@
       "cost_from": null,
       "cost_parts": null,
       "budget": {
-        "spent": 0,
+        "spent": 1,
         "planned": 1,
-        "buffer": 4,
+        "buffer": 5,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -356,10 +356,10 @@
       "cost_from": null,
       "cost_parts": null,
       "budget": {
-        "spent": 3,
+        "spent": 2,
         "planned": 1,
-        "buffer": 4,
-        "risk": "over by 2, drawn from the buffer"
+        "buffer": 5,
+        "risk": "over by 1, drawn from the buffer"
       },
       "session": "planner-2",
       "seconds": "<seconds>",
@@ -428,10 +428,10 @@
       "cost_from": null,
       "cost_parts": null,
       "budget": {
-        "spent": 1,
+        "spent": 2,
         "planned": 1,
         "buffer": 4,
-        "risk": "ok"
+        "risk": "over by 1, drawn from the buffer"
       },
       "session": "worker-2",
       "seconds": "<seconds>",

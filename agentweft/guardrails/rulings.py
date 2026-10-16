@@ -73,9 +73,10 @@ class Kept(object):
         known = self.known()
         return [d for d in decisions.read(self.root) if digest(d) in known]
 
-    def check(self, step):
+    def check(self, step, how=""):
         """-> "" when decisions.md is as the runner left it, else why `step`
-        fails, with the file put back."""
+        fails, with the file put back. `how` says what of the step changed
+        it, when that was not its answer."""
         with self.lock:
             now = self.now()
             if now == self.data:
@@ -93,7 +94,8 @@ class Kept(object):
         if gone:
             said.append("removed " + str(gone) + (" entry" if gone == 1
                                                   else " entries"))
-        return (decisions.FILE + " was changed by " + step + "; rulings come"
+        return (decisions.FILE + " was changed by " + step + how
+                + "; rulings come"
                 " only from --answer or the lead. "
                 + (", ".join(said) + ". " if said else "")
                 + "it was put back, and the change counts for nothing")

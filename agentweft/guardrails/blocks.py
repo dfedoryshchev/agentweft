@@ -258,11 +258,20 @@ class Plan(object):
             return ""
         return RISKY + ": " + "; ".join(self.risky) + " (" + FILE + ")"
 
-    def closed(self, step, outcome):
-        """-> the health line for a pass of `step` that has just ended."""
+    def opened(self):
+        """-> what was spent since the last line opened: a step's calls are
+        made before its line opens, so they are its own, whichever line
+        closes first."""
         now = self.now()
         took = now - self.seen
         self.seen = now
+        return took
+
+    def closed(self, step, outcome, took=None):
+        """-> the health line for a pass of `step` that has just ended,
+        charged `took`, what `opened` measured for it."""
+        if took is None:
+            took = self.opened()
         self.used[step] = self.used.get(step, 0) + took
         allowed = self.allowed.get(step, 0)
         over = self.used[step] - allowed
