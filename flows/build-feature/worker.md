@@ -10,6 +10,9 @@ here are the failing tests. now write the code that makes them pass.
 - if the request itself asks for what a line of TASK.md rules out, the tests
   that encode it are not ones to make green: answer the `CONFLICT:` line from
   the instructions.
+- if the request asks for the spec to describe what you built, add new lines
+  under the line it extends. never rewrite or remove a line the spec has: a
+  rewritten line stops the run for a ruling.
 - once the tests you were given are green, read what your code reaches and
   add, in new tests of their own, the cases from the tests around the change
   (below) that they do not cover. the tester wrote one test per planned

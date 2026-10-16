@@ -1,0 +1,74 @@
+{
+  "recorded": "2026-10-16T07:06:57",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "planner.md",
+      "task": null,
+      "go": 1,
+      "prompt": "159b950dcd5ca663a897a76d860254139d693193a0301135a3f95c0dde2f4306",
+      "say": "- behaviour: fields(\"a;b\", delimiter=\";\") is [\"a\", \"b\"]\n  file: roster.py\n  spec: adds to TASK.md:3\n- behaviour: fields(\"a,b\") with no delimiter is still [\"a\", \"b\"]\n  file: roster.py\n  spec: allows TASK.md:3\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "reviewer.md",
+      "task": null,
+      "go": 1,
+      "prompt": "76e3f095a25c3cc459de6c7681e587681e84c2046e51fbceaa94967c93a2aae8",
+      "say": "VERDICT: ok\n\n- roster.py: fields takes a delimiter, the comma by default\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "tester.md",
+      "task": null,
+      "go": 1,
+      "prompt": "28a5b4432b5100fcc145862cbf637f2e4d699ff4ebdb68562bd507b7854c9d25",
+      "say": "FAILS: TypeError: fields() got an unexpected keyword argument 'delimiter'\nTEST: tests/test_delimiter.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_delimiter.py": "def test_delimiter():\n    from roster import fields\n\n    assert fields(\"a;b\", delimiter=\";\") == [\"a\", \"b\"]\n"
+      }
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "6f10a68e6ed42b4e054310d34f2408aef17ac356450aea23217b984ee75cd215",
+      "say": "- roster.py: fields takes a delimiter, the comma by default\n- TASK.md: a new line under the comma line describes the option\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "roster.py": "def fields(line, delimiter=\",\"):\n    return line.split(delimiter)\n",
+        "TASK.md": "# roster\n\n- Fields are separated by commas.\n- With a delimiter given, fields are separated by it instead.\n"
+      }
+    }
+  ]
+}

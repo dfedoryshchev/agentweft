@@ -803,7 +803,10 @@ line still holds whenever the option is not used. the build-feature planner
 marks each behaviour `spec: allows`, `spec: adds to`, `spec: nothing in the
 spec` or `spec: contradicts` with the line, and only a `contradicts` may end
 the plan with a CONFLICT line. the flow takes additions to its spec files
-(`spec_files: additions`), so the line for the new option can be written in.
+(`spec_files: additions`), so the line for the new option can be written in,
+as a new line: the steps are told to add under the line an option extends and
+never to rewrite it, since a rewritten line waits for a ruling even when it
+still says what it said.
 the runner does not read the marks: it stops on a CONFLICT line whose quote
 is there, whoever wrote it, so the rule lives in the prompts.
 

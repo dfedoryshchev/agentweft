@@ -25,6 +25,10 @@ and any file the request names.
   with fields separated by commas in the spec, a `--delimiter` option used
   only when given adds to it. with an amount that is never 0, an
   `--allow-zero` option contradicts it.
+- when the spec has to describe an addition, add new lines under the line it
+  extends, and never rewrite or remove a line the spec has: a line the run
+  started with that is changed or gone stops the run for a ruling, even when
+  the new words still say what the old ones did.
 - when the request asks for something a line of the spec rules out, which one
   wins is not yours to decide. answer these two lines, each on its own:
 

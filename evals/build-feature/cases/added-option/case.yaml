@@ -1,0 +1,52 @@
+task: fields takes a delimiter, the comma unless one is given. describe it in TASK.md
+place: place
+provider:
+  provider: fake
+  replies:
+    planner.md:
+      - |
+        - behaviour: fields("a;b", delimiter=";") is ["a", "b"]
+          file: roster.py
+          spec: adds to TASK.md:3
+        - behaviour: fields("a,b") with no delimiter is still ["a", "b"]
+          file: roster.py
+          spec: allows TASK.md:3
+    tester.md:
+      - say: |
+          FAILS: TypeError: fields() got an unexpected keyword argument 'delimiter'
+          TEST: tests/test_delimiter.py
+        writes:
+          tests/test_delimiter.py: |
+            def test_delimiter():
+                from roster import fields
+
+                assert fields("a;b", delimiter=";") == ["a", "b"]
+    worker.md:
+      - say: |
+          - roster.py: fields takes a delimiter, the comma by default
+          - TASK.md: a new line under the comma line describes the option
+        writes:
+          roster.py: |
+            def fields(line, delimiter=","):
+                return line.split(delimiter)
+          TASK.md: |
+            # roster
+
+            - Fields are separated by commas.
+            - With a delimiter given, fields are separated by it instead.
+    reviewer.md:
+      - |
+        VERDICT: ok
+
+        - roster.py: fields takes a delimiter, the comma by default
+expect:
+  invariants: all
+  outcome: done
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> tester.md
+      - tester.md ok -> worker.md  PASS red-test
+      - worker.md ok -> reviewer.md  PASS command  PASS red-first
+      - reviewer.md ok
+  calls: 4

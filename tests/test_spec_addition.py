@@ -199,6 +199,67 @@ def test_a_literal_planner_builds_an_added_delimiter(tmp_path, monkeypatch):
     assert code == stops.EXIT_OK
 
 
+APPENDED = "- With --delimiter C, fields are separated by C instead." + NL
+REWRITTEN = ("# roster" + NL + NL + "- Fields are separated by commas, or by"
+             " the --delimiter character when it is given." + NL)
+ADD_A_LINE = "add new lines under the line it extends"
+
+
+def described(place, rewrite):
+    """roster edits by a worker that also describes the option in TASK.md,
+    by a new line or by rewriting the comma line."""
+    code = roster_edits(place)
+
+    def edits(step, n):
+        code(step, n)
+        if step == "worker.md":
+            task = place / "TASK.md"
+            if rewrite:
+                task.write_text(REWRITTEN, encoding="utf-8")
+            else:
+                with open(str(task), "a", encoding="utf-8") as f:
+                    f.write(APPENDED)
+    return edits
+
+
+def test_every_step_is_told_to_describe_an_addition_in_a_new_line(
+        monkeypatch):
+    for step in ("planner.md", "tester.md", "worker.md"):
+        said = composed(monkeypatch, step)
+        assert ADD_A_LINE in said, step
+        assert "never rewrite or remove a line the spec has" in said, step
+    worker = composed(monkeypatch, "worker.md")
+    assert "a rewritten line stops the run for a ruling" in worker
+
+
+def test_an_added_option_described_in_a_new_spec_line_ends_done(
+        tmp_path, monkeypatch):
+    roster_place(tmp_path)
+    place = tmp_path / "project"
+    edits = described(place, rewrite=False)
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [PLAN], "tester.md": [TESTER],
+                               "worker.md": [BUILT],
+                               "reviewer.md": [REVIEWED]}),
+                        edits, "--task", ADDS + ". describe it in TASK.md")
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md"]
+    assert code == stops.EXIT_OK
+    assert (place / "TASK.md").read_text(encoding="utf-8") == SPEC + APPENDED
+
+
+def test_the_same_option_described_by_rewriting_the_line_waits_for_a_ruling(
+        tmp_path, monkeypatch):
+    roster_place(tmp_path)
+    edits = described(tmp_path / "project", rewrite=True)
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [PLAN], "tester.md": [TESTER],
+                               "worker.md": [BUILT],
+                               "reviewer.md": [REVIEWED]}),
+                        edits, "--task", ADDS + ". describe it in TASK.md")
+    assert code == stops.EXIT_STOP
+    assert "reviewer.md" not in asked
+
+
 def pay_place(tmp_path):
     return a_place(tmp_path / "project", {
         "TASK.md": PAY_SPEC, "pay.py": PAY, "conftest.py": "",
