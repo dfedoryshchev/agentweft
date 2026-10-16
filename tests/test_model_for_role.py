@@ -168,7 +168,7 @@ def test_every_fanned_out_task_runs_on_the_role_model(
     a_flow(tmp_path, monkeypatch, "wide",
            ["planner", "worker\nfanout: true\nworkers: 2", "merge"],
            args=["--model-for", "worker=low"])
-    cli_ = fake_cli(answer("a.py | look at a\nb.py | look at b\n"))
+    cli_ = fake_cli(answer("TASK: look at a\nFILES:\n- a.py\n\nTASK: look at b\nFILES:\n- b.py\n"))
     engine.main()
     assert argv_models(cli_.calls) == ["m-small", "small-id", "small-id",
                                        "m-small"]

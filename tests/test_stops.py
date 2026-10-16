@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, ".")
+from agentweft.guardrails import signoff
 from agentweft.guardrails.gates import redtest_gate
 from agentweft.mcp import server
 from agentweft.providers import cli_provider
@@ -93,7 +94,8 @@ def test_an_interrupt_in_a_fanout_is_written_down_with_spend_and_a_why(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "wide",
            ["planner", "worker\nfanout: true\nworkers: 2", "merge"])
-    fake_cli(answer("a.py | look at a\nb.py | look at b\n"),
+    fake_cli(answer("TASK: look at a\nFILES:\n- a.py\n\n"
+                    "TASK: look at b\nFILES:\n- b.py\n"),
              (KeyboardInterrupt(), b"", b""))
     assert engine.main() == 130
     [end] = ends()
@@ -221,7 +223,8 @@ def test_a_limit_in_a_fanout_parks_the_fanned_step(tmp_path, monkeypatch,
                                                    fake_cli):
     a_flow(tmp_path, monkeypatch, "wide",
            ["planner", "worker\nfanout: true\nworkers: 2", "merge"])
-    fake_cli(answer("a.py | look at a\nb.py | look at b\n"),
+    fake_cli(answer("TASK: look at a\nFILES:\n- a.py\n\n"
+                    "TASK: look at b\nFILES:\n- b.py\n"),
              refused_by_the_limit())
     assert engine.main() == 2
     [end] = ends()
@@ -302,7 +305,8 @@ def test_every_stop_names_a_cause_from_the_list(tmp_path, monkeypatch):
 def test_the_list_is_the_one_the_rollup_counts():
     assert stops.CAUSES == ("gate failed", "refused", "parked",
                             "provider outage", "budget", "exception",
-                            "interrupt", "no answer", "declined", "conflict")
+                            "interrupt", "no answer", "declined", "conflict",
+                            "overlap", "target moved", "merge unchecked")
 
 
 def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
@@ -346,6 +350,22 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
                                           encoding="utf-8")
         fake_cli(answer('CONFLICT: TASK.md:1 "amounts are strings" | make'
                         ' them numbers\n'))
+    elif cause == "overlap":
+        a_flow(tmp_path, monkeypatch, "f",
+               ["planner", "worker\nfanout: true", "reviewer"],
+               tail=FAKE + "  replies:\n"
+               "    planner.md: \"TASK: tidy a\\nFILES:\\n- a.py\\n\"\n"
+               "    worker.md:\n"
+               "      - say: \"tidied\"\n"
+               "        writes:\n"
+               "          c.py: \"c = 1\\n\"\n")
+    elif cause in ("target moved", "merge unchecked"):
+        a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=FAKE)
+        ends_as = signoff.CONFLICT if cause == "target moved" \
+            else signoff.UNCHECKED
+        monkeypatch.setattr(engine.signoff, "check", lambda place, start:
+                            signoff.Signed(ends_as, "main", "abc123",
+                                           ["a.py"], why="main moved"))
     return engine.main()
 
 
@@ -377,7 +397,10 @@ OUTCOME = {"gate failed": "stopped: gate failed",
            "interrupt": "stopped: interrupted",
            "no answer": "stopped: tool fault",
            "declined": "refused (spec cited)",
-           "conflict": "stopped: spec conflict"}
+           "conflict": "stopped: spec conflict",
+           "overlap": "stopped: tasks overlap",
+           "target moved": "stopped: target moved",
+           "merge unchecked": "stopped: merge unchecked"}
 
 
 def test_every_cause_has_exactly_one_outcome():

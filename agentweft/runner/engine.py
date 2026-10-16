@@ -17,9 +17,8 @@ from agentweft.flow.spec import (RESUME, lead_of, step_id, step_name,
                                  steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
-                                  shellwrite, skips, snapshot, specfiles,
-                                  starttests,
-                                  worktree)
+                                  shellwrite, signoff, skips, snapshot,
+                                  specfiles, starttests, worktree)
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -39,8 +38,8 @@ from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import flow_path, load_prompt, read
 from . import commits
-from . import (chain, lead, leftred, levels, manifest, models, resume, retro,
-               router, ruling, warm)
+from . import (chain, fan, lead, leftred, levels, manifest, models, resume,
+               retro, router, ruling, warm)
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -764,8 +763,7 @@ class Run(object):
         plan, done = handed, getattr(self, "reuse", {})
         if handed.verdict == "redo" and getattr(self, "plan", None) is not None:
             plan, done = self.plan, {}
-        tasks = [l for l in plan.output.split("\n") if "|" in l]
-        return max(1, len(tasks) - len(done))
+        return max(1, len(fan.tasks(plan.output)) - len(done))
 
     def charge(self, prompt, answer, provider, model=None):
         """every go the answer took, the failed ones too: each was paid for."""
@@ -941,7 +939,8 @@ def fanned_verdict(parts):
 
 
 def run_fanout(run, plan):
-    """-> the fanned step's tasks, one per line of the plan, run side by side.
+    """-> the fanned step's tasks, one per TASK: block of the plan, run side
+    by side, but for tasks that name the same file, which go in turn.
 
     a redo arrives here carrying the reviewer's words, not a plan. the tasks
     are still the planner's, so the plan that fed the first pass is kept and
@@ -955,38 +954,68 @@ def run_fanout(run, plan):
         back, plan = plan, kept
     else:
         run.plan = plan
-    tasks = [l for l in plan.output.split("\n") if "|" in l]
+    tasks = fan.tasks(plan.output)
     if not tasks:
         return Handoff(role, "", meta={
             "tasks": 0, "seconds": round(time.time() - began, 1),
-            "why": run.fan + " is fanned out one task per line with a | in it,"
-                   " and what " + plan.role + " handed it has none"})
+            "why": run.fan + " is fanned out one task per " + fan.TASK
+                   + " block, and what " + plan.role + " handed it has none"})
 
     done = getattr(run, "reuse", {}) if back is EMPTY else {}
     run.reuse = {}
     getattr(run, "forged", {}).pop(run.fan, None)
     folder = getattr(run, "folder", None)
+    own = state.RUNS
+    got = {}
+    windows = []
+    # a fan carried on from a run that stopped in it is held to the place as
+    # the first leg found it: a stray file that leg wrote is already in this
+    # leg's own before and after
+    carried = getattr(run, "fan_start", None)
+    run.fan_start = None
+    if folder is not None:
+        fan.save(folder, carried or fan.hashes(run.workdir, own))
 
-    def one(i):
-        kept = done.get((i + 1, tasks[i]))
+    def one(t, before):
+        kept = done.get((t.n, t.text))
         if kept is not None:
-            part = Handoff(role, kept["output"], kept["verdict"],
-                           meta={"asked": kept["asked"]})
-        else:
+            return Handoff(role, kept["output"], kept["verdict"],
+                           meta={"asked": kept["asked"]}), before
+        window = fan.Window(t, time.monotonic(),
+                            before or fan.hashes(run.workdir, own))
+        try:
             part = run.step(run.fan, previous=back,
                             extra="\n\nyour task, only this one:\n\n"
-                            + tasks[i], task=i + 1)
+                            + t.text + "\n\nchange no file but the ones"
+                            " under " + fan.FILES, task=t.n)
+        finally:
+            window.after = fan.hashes(run.workdir, own)
+            window.ended = time.monotonic()
+            windows.append(window)
         if folder is not None and part:
-            manifest.task_done(folder, run.fan, i + 1, tasks[i], part)
-        return part
+            manifest.task_done(folder, run.fan, t.n, t.text, part)
+        return part, window.after
+
+    def in_turn(turn):
+        before = None
+        for t in turn:
+            got[t.n], before = one(t, before)
 
     # three workers and two tasks means an idle thread and a pool i paid to
     # build. no point.
     # planner 1, workers N, reviewer 1. the fanned out step is the only one
     # that gets to be plural, and it says so itself.
-    width = min(run.width_for(run.fan), len(tasks)) or 1
+    turns = fan.turns(tasks)
+    width = min(run.width_for(run.fan), len(turns)) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=width) as pool:
-        parts = list(pool.map(one, range(len(tasks))))
+        list(pool.map(in_turn, turns))
+    parts = [got[t.n] for t in tasks]
+    overlap = "; ".join(said for said in (
+        fan.check(windows),
+        fan.since(carried, fan.hashes(run.workdir, own), tasks, run.fan)
+        if carried is not None else "") if said)
+    if folder is not None and not overlap:
+        fan.done(folder)
     out = Handoff(role, "\n\n".join(p.output for p in parts),
                   verdict=fanned_verdict(parts),
                   meta={"tasks": len(tasks),
@@ -994,7 +1023,8 @@ def run_fanout(run, plan):
                         "asked": any(p.meta.get("asked") for p in parts),
                         "allowed": next((p.meta["allowed"] for p in parts
                                          if p.meta.get("allowed")), ()),
-                        "rulings": run.rulings()},
+                        "rulings": run.rulings(),
+                        "overlap": overlap},
                   block=merge(p.block for p in parts),
                   carried=list(run.constraints))
     # every task went through Run.step, so what it recorded is whichever one
@@ -1263,6 +1293,11 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             fenced = and_forged(fenced, forged)
             note("parked", fenced, stops.PARKED, output=out.output)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
+        overlap = out.meta.get("overlap")
+        if overlap:
+            note("failed", overlap, stops.OVERLAP, output=out.output)
+            return (out.output, run.budget, "tasks overlap at " + step + ": "
+                    + overlap)
         if not out:
             why = and_forged(out.meta.get("why") or "nothing came out of "
                              + step, forged)
@@ -1402,6 +1437,10 @@ def run_flow():
     carry = valued("--continue")
     if carry is not None and not carry:
         print("--continue needs the run or the commit whose tests it carries")
+        return 1
+    target = valued("--target")
+    if target is not None and not target:
+        print("--target needs the branch the run's change is for")
         return 1
     if leftred.given(sys.argv) is not None and \
             leftred.given(sys.argv) not in leftred.CHOICES:
@@ -1598,6 +1637,26 @@ def run_flow():
     except ValueError as e:
         print(str(e))
         return undo(1)
+    if found and "signoff" in found.data:
+        run.signoff = found.data["signoff"]
+        meant = (run.signoff or {}).get("target")
+        if target and target != meant:
+            print(pick_up + " was started for " + (meant or "no branch")
+                  + ", not " + target + ". a run carries on for the branch"
+                  " it started for")
+            return undo(1)
+    else:
+        run.signoff = signoff.mark(run.workdir, target,
+                                   origin=made["repo"] if made else None)
+        if target and run.signoff is None:
+            print("--target " + target + ": " + str(run.workdir) + " is not"
+                  " a git work tree with a commit, so there is no branch to"
+                  " sign the change off against")
+            return undo(1)
+        if target and not run.signoff["head"]:
+            print("--target " + target + ": git knows no branch or commit of"
+                  " that name in " + str(run.workdir))
+            return undo(1)
     run.skipped = {}
     run.worktree = made
     if pick_up:
@@ -1709,6 +1768,8 @@ def run_flow():
         if found and start == run.fan and not (found.step(start) or {}).get(
                 "digest"):
             run.reuse = manifest.tasks_done(state.RUNS / pick_up, start)
+        if start == run.fan:
+            run.fan_start = fan.load(state.RUNS / pick_up)
         if investigate.on(fm) and investigate.STEP not in todo:
             held = found.step(investigate.STEP) if found else None
             run.produced[investigate.STEP] = resume.step_output(
@@ -1758,6 +1819,7 @@ def run_flow():
     run.sessions = dict(record.data.get("sessions") or {})
     if warm.wanted(sys.argv):
         warm.Warmer(run).start()
+    record.data["signoff"] = run.signoff
     record.save(run.budget)
     for decided, why in notes:
         decisions.record(folder, decided, why)
@@ -1822,7 +1884,7 @@ def run_flow():
             and (found.step(start) or {}).get("state") == manifest.NOT_RUN:
         cleared = start
 
-    def leave(stopped=None, needs=None):
+    def leave(stopped=None, needs=None, signed=()):
         """write the run's handoff.md from what the runner knows, and hand
         back (its path, its lines)."""
         # a warm call still in flight is ended, and charged, before anything
@@ -1852,7 +1914,8 @@ def run_flow():
                               skipped=skips.said(run.skipped),
                               kept=run.committer.said(),
                               worktree=worktrees.lines(made, run_id),
-                              headline=worktrees.headline(made))
+                              headline=worktrees.headline(made),
+                              signed=signed)
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],
@@ -2095,6 +2158,11 @@ def run_flow():
                 return stop(stops.PARKED, fenced, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user")
+            overlap = out.meta.get("overlap")
+            if overlap:
+                print("tasks overlap at " + step + ": " + overlap)
+                return stop(stops.OVERLAP, overlap, "failed", entry,
+                            index="FAILED  " + flow + "  at " + step)
 
 
             if not out:
@@ -2329,8 +2397,18 @@ def run_flow():
             run.committer.step(step, flow)
             came_from = step
             step = nxt
+        signed = signoff.check(run.workdir, run.signoff)
+        if signed.state in (signoff.CONFLICT, signoff.UNCHECKED):
+            cause = stops.MOVED if signed.state == signoff.CONFLICT \
+                else stops.UNCHECKED
+            print("not signed off: " + signed.why)
+            return stop(cause, signed.why, "stopped",
+                        entry=trail.open(came_from, [], used, came_from),
+                        index=("MOVED  " if cause == stops.MOVED
+                               else "UNCHECKED  ") + flow + "  "
+                        + signed.target)
         return finish(flow, fm, run, out, started, run_id, pick_up, leave,
-                      record, origin)
+                      record, origin, signed=signed.lines())
     except BaseException as e:
         cause = stops.of(e)
         if cause == stops.EXCEPTION:
@@ -2487,7 +2565,7 @@ def remember(flow, run, run_id, ended, saved=None):
 
 
 def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
-           origin=None):
+           origin=None, signed=()):
     """the end of a run that got through every step. -> the exit code.
 
     what is saved and printed is the last step's answer without its HANDOFF
@@ -2543,7 +2621,9 @@ def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
 
     run.committer.finish(flow, run.task_text,
                          sorted((run.order.proof or {}).get("tests") or {}))
-    note = leave()
+    for line in signed:
+        print(line[2:])
+    note = leave(signed=signed)
     # last, so that anything above that raises is this run's only end line
     # rather than a second one after an `ok`.
     # code-review runs per diff, several times an hour. it drowns the weekly

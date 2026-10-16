@@ -20,7 +20,8 @@ from agentweft.runner.router import Router
 
 NL = chr(10)
 REDO = Handoff("reviewer", "VERDICT: redo", "redo")
-PLAN = "a.py | look at a" + NL + "b.py | look at b" + NL
+PLAN = ("TASK: look at a" + NL + "FILES:" + NL + "- a.py" + NL + NL
+        + "TASK: look at b" + NL + "FILES:" + NL + "- b.py" + NL)
 
 MINIMAL = "cut it down. say less." + NL
 MAXIMAL = "say what else it could have been." + NL

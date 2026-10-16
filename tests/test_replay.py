@@ -18,6 +18,8 @@ REPO = Path(__file__).resolve().parent.parent
 FLOW = "weekly-digest"
 DIGEST = ("VERDICT: ok\n\n## what changed\n- a.md | changed | x\n\n"
           "## needs me\n- b.md | needs-me | y\n")
+PLAN = ("TASK: a.md\nLIST: changed\nWHY: x\nFILES:\n- a.md\n\n"
+        "TASK: b.md\nLIST: needs-me\nWHY: y\nFILES:\n- b.md\n")
 
 
 def nothing_is_called(monkeypatch):
@@ -39,7 +41,8 @@ def evals_root(tmp_path, monkeypatch):
     shutil.copytree(REPO / "evals" / FLOW / "cases" / "busy-week" / "inbox",
                     case / "inbox")
     (case / "case.yaml").write_text(yaml.safe_dump(
-        {"inbox": "inbox", "provider": {"provider": "fake", "reply": DIGEST},
+        {"inbox": "inbox", "provider": {"provider": "fake", "reply": DIGEST,
+                                        "replies": {"planner.md": PLAN}},
          "expect": {"invariants": "all"}}), encoding="utf-8")
     monkeypatch.setattr(harness, "ROOT", root)
     monkeypatch.setattr(harness, "LAST", root / ".last.json")
@@ -93,7 +96,7 @@ def test_a_recording_is_keyed_by_step_task_and_go_and_holds_the_prompt_hash(
                     ("worker.md", 2, 1)]
     for c in blob["calls"]:
         assert len(c["prompt"]) == 64
-        assert c["say"] == DIGEST
+        assert c["say"] == (PLAN if c["step"] == "planner.md" else DIGEST)
     assert "modified in the last 7 days" not in json.dumps(blob)
 
 
@@ -147,12 +150,17 @@ class Flaky(Provider):
     def __init__(self, **opts):
         Provider.__init__(self, **opts)
         self.goes = 0
+        self.step = None
+
+    def at(self, step, task):
+        self.step = step
 
     def ask(self, prompt, timeout=None):
         self.goes += 1
         if self.goes == 1:
             return Reply("", detail="timed out", retryable=True)
-        return Reply(DIGEST, model="flaky-1", cost=0.02,
+        said = PLAN if self.step == "planner.md" else DIGEST
+        return Reply(said, model="flaky-1", cost=0.02,
                      usage=Usage({"input_tokens": 10, "output_tokens": 3}))
 
 
@@ -165,7 +173,7 @@ def test_a_failed_go_is_recorded_and_replayed_as_one(evals_root, monkeypatch):
     blob = live.blob()
     first = [c for c in blob["calls"] if c["step"] == "planner.md"]
     assert [(c["go"], c["say"], c["detail"]) for c in first] == [
-        (1, "", "timed out"), (2, DIGEST, "")]
+        (1, "", "timed out"), (2, PLAN, "")]
     again = recording.Replay(json.loads(json.dumps(blob)))
     out, budget, _ = engine.run_once(FLOW, provider=again)
     assert again.unused() == []

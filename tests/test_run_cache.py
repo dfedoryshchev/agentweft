@@ -143,7 +143,9 @@ def test_two_eval_cases_on_one_flow_do_not_share_answers(monkeypatch):
     for word in ("first", "second"):
         case["provider"] = {"provider": "fake", "reply": (
             "VERDICT: ok\n\n## what changed\n- a.md | changed | " + word
-            + "\n\n## needs me\n- b.md | needs-me | y\n")}
+            + "\n\n## needs me\n- b.md | needs-me | y\n"),
+            "replies": {"planner.md": "TASK: a.md\nFILES:\n- a.md\n\n"
+                                      "TASK: b.md\nFILES:\n- b.md\n"}}
         out, budget, _ = harness.run_flow_for("weekly-digest", case)
         seen.append((out, budget.calls))
     assert seen[0][0] != seen[1][0]

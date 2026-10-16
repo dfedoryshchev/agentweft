@@ -23,6 +23,8 @@ FLOW = "weekly-digest"
 DIGEST = ("VERDICT: ok\n\n## what changed\n- a.md | changed | x\n\n"
           "## needs me\n- b.md | needs-me | y\n")
 CHATTY = DIGEST + "\nhere is the digest\n"
+PLAN = ("TASK: a.md\nLIST: changed\nWHY: x\nFILES:\n- a.md\n\n"
+        "TASK: b.md\nLIST: needs-me\nWHY: y\nFILES:\n- b.md\n")
 WHOLE = ["planner.md", "worker.md", "merge.md", "reviewer.md"]
 
 
@@ -50,6 +52,7 @@ def a_case(root, expect, reply=DIGEST, name="case"):
     provider = {"provider": "fake"}
     if reply is not None:
         provider["reply"] = reply
+        provider["replies"] = {"planner.md": PLAN}
     (case / "case.yaml").write_text(yaml.safe_dump(
         {"inbox": "inbox", "provider": provider,
          "expect": dict({"invariants": "all"}, **expect)}), encoding="utf-8")

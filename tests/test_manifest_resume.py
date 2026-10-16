@@ -289,13 +289,14 @@ def test_a_fanned_step_that_died_runs_only_the_tasks_that_did_not_finish(
 
     def answer(step, prompt):
         if step == "planner.md":
-            return "a.py | look at a" + NL + "b.py | look at b" + NL
+            return ("TASK: a.py" + NL + "FILES:" + NL + "- a.py" + NL + NL
+                    + "TASK: b.py" + NL + "FILES:" + NL + "- b.py" + NL)
         if step == "worker.md":
             task = prompt.split("your task, only this one:")[1].strip()
-            if task.startswith("b.py") and dying[0]:
+            if task.startswith("TASK: b.py") and dying[0]:
                 dying[0] = False
                 raise RuntimeError("the process died")
-            return "- " + task.split(" |")[0] + " looked at" + NL
+            return "- " + task.split(NL)[0][len("TASK: "):] + " looked at" + NL
         return "VERDICT: ok" + NL + NL + "done" + NL
 
     asked = asking(monkeypatch, answer)
@@ -305,7 +306,7 @@ def test_a_fanned_step_that_died_runs_only_the_tasks_that_did_not_finish(
     assert run(monkeypatch, "fan", "--force", "--resume",
                first.name) == stops.EXIT_OK
     assert steps_of(asked) == ["worker.md", "reviewer.md"]
-    assert "b.py | look at b" in asked[0][1]
+    assert "TASK: b.py" in asked[0][1]
     assert "- a.py looked at" in asked[1][1]
 
 

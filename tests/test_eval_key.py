@@ -22,16 +22,23 @@ REPO = Path(__file__).resolve().parent.parent
 FLOW = "weekly-digest"
 DIGEST = ("VERDICT: ok\n\n## what changed\n- a.md | changed | x\n\n"
           "## needs me\n- b.md | needs-me | y\n")
+PLAN = ("TASK: a.md\nLIST: changed\nWHY: x\nFILES:\n- a.md\n\n"
+        "TASK: b.md\nLIST: needs-me\nWHY: y\nFILES:\n- b.md\n")
 
 
 class Modelled(Provider):
-    """answers like the fake and says which model answered."""
+    """answers like the fake, the planner with a plan, and says which model
+    answered."""
 
     name = "modelled"
 
+    def at(self, step, task):
+        self.step = step
+
     def ask(self, prompt, timeout=None):
-        return Reply(self.opts.get("reply", DIGEST),
-                     model=self.opts.get("model"))
+        said = PLAN if getattr(self, "step", None) == "planner.md" \
+            else self.opts.get("reply", DIGEST)
+        return Reply(said, model=self.opts.get("model"))
 
 
 @pytest.fixture

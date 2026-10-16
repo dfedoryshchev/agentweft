@@ -746,7 +746,7 @@ def changed_lines(changes):
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
-          skipped=(), kept="", worktree=(), headline=""):
+          skipped=(), kept="", worktree=(), headline="", signed=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -764,6 +764,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `kept` is the line on the run's own commits, "" when it makes none.
     `worktree` is the section on the run's own worktree and `headline` its
     line at the top, both empty for a run in the tree it was started from.
+    `signed` is what the sign-off said of the change (`signoff.Signed`).
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -921,6 +922,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if kept:
         out.append("- commits: " + kept)
     out.extend(suite)
+    out.extend(signed)
     out.extend("- " + s + " (" + skips.source(s) + ")" for s in skipped)
     _, shown = replay(every)
     if shown is not None:

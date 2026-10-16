@@ -74,6 +74,7 @@ def cmd_help():
                        [--skip-tests "<reason>"] [--continue <run|commit>]
                        [--max-calls <n>] [--max-tokens <n>]
                        [--on-stop keep|revert-tests] [--keep-warm]
+                       [--target <branch>]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
@@ -144,7 +145,14 @@ init      asks the provider, a model per tier, the permission mode, the
           `revert-tests` puts the test files back to their bytes at the start
 --keep-warm  a `continue: resume` step whose session has waited close to
           its cache's lifetime gets one cheap call that keeps the cache and
-          uses no tool, at most three per session. off unless given""")
+          uses no tool, at most three per session. off unless given
+--target  the branch the run's change is for. without it, a run in a
+          worktree of its own is for the branch checked out in your tree,
+          and any other run for the upstream of the branch checked out. a
+          run that changed files and got through is signed off only if the
+          change still merges onto that branch's head as it is at the end,
+          checked with read-only git; a resumed run keeps the one it started
+          for. a branch git does not know is refused before the first step""")
     return 0
 
 

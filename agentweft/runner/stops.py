@@ -13,8 +13,9 @@ the journal has three shapes of line, the same first four columns in each:
 
 a stop is `parked at` when the run is waiting for someone, `refused at` when
 a step declined the work and cited the spec line that says why, `stopped at`
-when a step found the request contradicts a spec line it quoted, `failed at`
-for everything else. `<when>` is when the run started, on every line it writes.
+when a step found the request contradicts a spec line it quoted or the run's
+change could not be signed off against its branch, `failed at` for
+everything else. `<when>` is when the run started, on every line it writes.
 
 the run's outcome, the word a program reads, is `done` (with the count of
 checks nobody could decide, when there were any) or the one OUTCOME maps the
@@ -46,9 +47,18 @@ DECLINED = "declined"
 # quote was there. nothing broke, so it is not a gate failure; it waits for
 # someone to say which one holds, and carrying on runs that step again
 CONFLICT = "conflict"
+# the tasks of a fanned-out step wrote a file one of them did not name, or
+# the same file twice
+OVERLAP = "overlap"
+# the branch the run's change is for moved while it ran, and the change no
+# longer merges onto it
+MOVED = "target moved"
+# the change could not be checked against the branch with read-only git, so
+# a person has to
+UNCHECKED = "merge unchecked"
 
 CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
-          NO_ANSWER, DECLINED, CONFLICT)
+          NO_ANSWER, DECLINED, CONFLICT, OVERLAP, MOVED, UNCHECKED)
 
 # the run waits for someone on these: a person for a park or a cap, the
 # provider's limit for an outage
@@ -69,7 +79,10 @@ OUTCOME = {GATE: "stopped: gate failed",
            INTERRUPT: "stopped: interrupted",
            NO_ANSWER: "stopped: tool fault",
            DECLINED: "refused (spec cited)",
-           CONFLICT: "stopped: spec conflict"}
+           CONFLICT: "stopped: spec conflict",
+           OVERLAP: "stopped: tasks overlap",
+           MOVED: "stopped: target moved",
+           UNCHECKED: "stopped: merge unchecked"}
 OUTCOMES = (DONE,) + tuple(sorted(set(OUTCOME.values())))
 
 EXIT_OK = 0
@@ -95,7 +108,7 @@ def status(cause, step):
     """-> the journal's third column for a stop."""
     if checked(cause) == DECLINED:
         return "refused at " + step
-    if cause == CONFLICT:
+    if cause in (CONFLICT, MOVED, UNCHECKED):
         return "stopped at " + step
     return ("parked at " if cause in WAITING else "failed at ") + step
 

@@ -19,7 +19,8 @@ from agentweft.guardrails.budget import Budget
 from agentweft.runner import engine, prompts
 
 NL = chr(10)
-PLAN = "a.py | look at a" + NL + "b.py | look at b" + NL + "c.py | look at c" + NL
+PLAN = NL.join("TASK: look at " + f + NL + "FILES:" + NL + "- " + f + ".py"
+               + NL for f in "abc")
 WIDTH = 3
 WAIT = 0.5
 

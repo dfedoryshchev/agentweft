@@ -366,7 +366,8 @@ def test_a_fanned_out_step_is_reported_as_the_whole_of_what_it_produced(
     """every task goes through the same per-step call, so what a judge is
     handed has to be the joined output and not whichever one finished last."""
     sent = go(tmp_path, monkeypatch, FANNED,
-              {"planner.md": "a.py | look at a" + NL + "b.py | look at b",
+              {"planner.md": "TASK: look at a" + NL + "FILES:" + NL + "- a.py"
+               + NL + NL + "TASK: look at b" + NL + "FILES:" + NL + "- b.py",
                "worker.md": "one task done", "judge.md": RULED})
     judge = sent["judge.md"]
     assert "--- planner ---" in judge

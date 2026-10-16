@@ -5,11 +5,15 @@ anything yet, and do not write the digest.
 
 ## what to give me
 
-one line per file, in this shape:
+one task per file, in this shape:
 
-    <filename> | <list> | <why, under ten words>
+    TASK: <filename>
+    LIST: <changed, needs-me or can-wait>
+    WHY: <under ten words>
+    FILES:
+    - <filename>
 
-where list is one of: changed, needs-me, can-wait.
+a blank line between tasks.
 
 ## how to decide
 
@@ -21,6 +25,6 @@ where list is one of: changed, needs-me, can-wait.
 ## what not to do
 
 - do not open files that have not changed in 7 days
-- do not merge two files into one line
-- if a file is empty or unreadable, say so on its line and move on
+- do not merge two files into one task
+- if a file is empty or unreadable, say so in its WHY and move on
 - if nothing changed at all, print "nothing to report" and stop

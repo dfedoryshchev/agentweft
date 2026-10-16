@@ -71,10 +71,13 @@ SUMMARY = ("notes.md: the plan moved to friday (line 3)\n\n"
 DIGEST = ("## changed\n- notes.md: the plan moved to friday\n\n"
           "## needs me\n- rent.md: due on the 1st\n\n"
           "## can wait\n- garden.md: order seeds in march\n")
-DIGEST_PLAN = ("notes.md | changed | the plan moved to friday\n"
-               "rent.md | needs-me | due on the 1st\n")
-AUDIT_PLAN = ("app.py | the entry point\n"
-              "config.py | reads the settings\n")
+DIGEST_PLAN = ("TASK: notes.md\nLIST: changed\nWHY: the plan moved to friday\n"
+               "FILES:\n- notes.md\n\n"
+               "TASK: rent.md\nLIST: needs-me\nWHY: due on the 1st\n"
+               "FILES:\n- rent.md\n")
+AUDIT_PLAN = ("TASK: app.py\nWHY: the entry point\nFILES:\n- app.py\n\n"
+              "TASK: config.py\nWHY: reads the settings\nFILES:\n"
+              "- config.py\n")
 AUDIT = ("app.py parses argv and calls run().\n"
          "config.py loads settings.yml and has no defaults, which is the risk.\n")
 

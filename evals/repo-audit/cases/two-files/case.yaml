@@ -4,8 +4,15 @@ provider:
   replies:
     planner.md:
       - |
-        app.py | the entry point
-        config.py | reads the settings
+        TASK: app.py
+        WHY: the entry point
+        FILES:
+        - app.py
+
+        TASK: config.py
+        WHY: reads the settings
+        FILES:
+        - config.py
     worker.md:
       - |
         app.py parses argv and calls run().

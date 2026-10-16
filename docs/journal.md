@@ -46,8 +46,9 @@ gives a planner that line.
 a run that stops short says `parked at <step>` when it is waiting for someone
 (a park, a provider outage, a cap), `refused at <step>` when a step declined
 the work citing the spec, `stopped at <step>` when a step found the request
-contradicts the spec, and `failed at <step>` otherwise, and its cause is one
-of a fixed list:
+contradicts the spec or the run's change could not be signed off against its
+branch, and `failed at <step>` otherwise, and its cause is one of a fixed
+list:
 
 - `gate failed` - a gate failed the step, or the step did not give the router
   what the flow requires of it (an output it must contain, a verdict it can
@@ -75,6 +76,15 @@ of a fixed list:
   contradicts, and the quote was at that line as the run found it (below),
   or a test the run started with went red after a product step (below).
   nothing broke; the run waits for someone to say which one holds.
+- `overlap` - a task of a fanned-out step wrote a file it did not name under
+  `FILES:`, two tasks wrote the same file, or a file changed while two tasks
+  ran side by side and one did not name it (`docs/flows.md`). the why names
+  the files and the tasks.
+- `target moved` - the branch the run's change is for moved while the run
+  worked, and the change conflicts with its new head (`docs/guardrails.md`,
+  the sign-off). the why names the files and the head to rebase onto.
+- `merge unchecked` - the sign-off could not check the change against its
+  branch with read-only git. the why says what to check by hand.
 
 the same cause and why go on the step's line in `steps.jsonl` and into
 `runs/<run-id>/why.md`. a cause off the list is refused where the line is
@@ -105,6 +115,9 @@ cause maps to:
 | `interrupt` | `stopped: interrupted` |
 | `declined` | `refused (spec cited)` |
 | `conflict` | `stopped: spec conflict` |
+| `overlap` | `stopped: tasks overlap` |
+| `target moved` | `stopped: target moved` |
+| `merge unchecked` | `stopped: merge unchecked` |
 
 the map is `OUTCOME` in `agentweft/runner/stops.py`, with no default: a cause
 with no outcome is refused where the outcome is read. a step that will not do

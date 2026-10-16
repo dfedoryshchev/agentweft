@@ -37,13 +37,18 @@ DIGEST = ("VERDICT: ok" + chr(10) + chr(10) + "## what changed" + chr(10) + "- a
           + chr(10) + "## needs me" + chr(10) + "- b.md | needs-me | y" + chr(10))
 
 
+PLAN = ("TASK: a.md\nLIST: changed\nWHY: x\nFILES:\n- a.md\n\n"
+        "TASK: b.md\nLIST: needs-me\nWHY: y\nFILES:\n- b.md\n")
+
+
 def scored(monkeypatch, reply=None):
     """a real case through the real flow, scored the way the harness scores it."""
     from agentweft.runner import engine
 
     case = harness.load_case(harness.cases_for("weekly-digest")[0])
     if reply is not None:
-        case["provider"] = {"provider": "fake", "reply": reply}
+        case["provider"] = {"provider": "fake", "reply": reply,
+                            "replies": {"planner.md": PLAN}}
     return harness.score(runner.config("weekly-digest"),
                          *harness.run_flow_for("weekly-digest", case))
 
@@ -68,8 +73,8 @@ def test_a_run_that_stops_early_is_not_scored_on_the_empty_text(monkeypatch):
     r = scored(monkeypatch)
     assert r["passed"] < r["checked"]
     assert [row["detail"] for row in r["rows"] if row["ok"] is False] == [
-        "worker.md is fanned out one task per line with a | in it, and what"
-        " planner handed it has none"]
+        "worker.md is fanned out one task per TASK: block, and what planner"
+        " handed it has none"]
 
 
 def test_scoring_counts_only_what_can_be_checked():

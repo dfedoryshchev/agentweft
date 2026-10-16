@@ -215,13 +215,52 @@ steps before, where the judge can only fail what the programs passed:
 `fix-with-test` ships `verify: "off"` (`gates.md` has the why, and
 `writing-a-flow.md` how to write promises a gate can show).
 
-`fanout: true` on a step means the step before it produced a list, one line
-each, and every line gets its own call instead of the whole list going to one
-worker. the calls run side by side and the results are joined in the order
-of the list, so a fanout step almost always wants a merge step after it.
-a line is a task when it has a `|` in it. a list with none stops the run at
-the step that wrote it, `failed at <that step>` with `no tasks:` at the start
-of the why, and `--resume` asks that step again.
+`fanout: true` on a step means the step before it produced a list of tasks,
+and every task gets its own call instead of the whole list going to one
+worker. the results are joined in the order of the list, so a fanout step
+almost always wants a merge step after it. a task is a block, one item per
+line:
+
+    TASK: <what to do>
+    FILES:
+    - <a file it touches>
+    - <another>
+
+it runs to the next `TASK:` line or the first blank line, and the worker is
+handed the block as it is. lines with a `|` in them are not tasks any more. a
+list with no task stops the run at the step that wrote it, `failed at <that
+step>` with `no tasks:` at the start of the why, and `--resume` asks that step
+again.
+
+the tasks work in one place, so FILES is what keeps them apart. tasks that
+name no file in common run side by side, up to `workers` at a time. tasks
+that name the same file, directly or through a third task, run one after
+another in plan order. a path is compared as the place spells it:
+`src/../a.py` is `a.py`, and on windows and macos `A.py` is `a.py`. a FILES
+list after a blank line still belongs to the task above it, when that task
+has none.
+
+the runner hashes the place before and after each task, and after the fan it
+stops the run, cause `overlap`, outcome `stopped: tasks overlap`, naming each
+file and task:
+
+- a task wrote a file it did not name (`task 2 wrote c.py, which it did not
+  name`).
+- a file was written by two tasks, in turn (`a.py was written by task 1 and
+  task 3`).
+- a file changed while two tasks ran side by side and one of them did not
+  name it (`a.py changed while task 1 and task 2 ran side by side, and task 2
+  did not name it`). the hashes cannot say which of the two wrote it, so it is
+  not put on the one that named it. a fanned step whose tasks write files
+  therefore wants `workers: 1`: one task at a time, every change is its own
+  task's. side by side is for tasks that read.
+
+a file is written when its bytes changed; one written back as it was is not
+seen. files git ignores, bytecode and the run's own `runs/` folder are left
+out. a run that stopped in the fan (on an overlap, a crash or an outage) is
+carried on against the place as the fan first found it: a file that changed
+since then and that no task names stops the carried-on run too, until it is
+taken out or a task names it.
 
 `reports: [worker, reviewer]` on a step names the steps whose output it is
 handed, instead of only the one before it. it is the other kind of many:

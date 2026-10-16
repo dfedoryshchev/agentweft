@@ -13,7 +13,8 @@ sys.path.insert(0, ".")
 from agentweft.runner import engine, prompts
 
 NL = chr(10)
-PLAN = "a.py | look at a" + NL + "b.py | look at b" + NL
+PLAN = ("TASK: look at a" + NL + "FILES:" + NL + "- a.py" + NL + NL
+        + "TASK: look at b" + NL + "FILES:" + NL + "- b.py" + NL)
 RANKING = "src/hooks.ts 0.94" + NL + "src/util.ts 0.11" + NL
 
 HEAD = ("name: {name}" + NL

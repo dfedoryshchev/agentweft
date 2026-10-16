@@ -130,7 +130,8 @@ def test_a_fanned_step_wider_than_what_is_left_parks_before_it(tmp_path,
 
     def answer(step, prompt):
         if step == "planner.md":
-            return NL.join(f + ".py | look at " + f for f in "abc") + NL
+            return NL.join("TASK: look at " + f + NL + "FILES:" + NL + "- "
+                           + f + ".py" + NL for f in "abc")
         return "looked" + NL
 
     asked = asking(monkeypatch, answer)

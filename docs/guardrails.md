@@ -438,6 +438,51 @@ which can write outside the place or into a skipped path. it is not a security
 boundary. the gates a step runs are commands in the same place, and what they
 touch shows up at the next step's check, and after the last step at none.
 
+## the sign-off
+
+    python run.py build-feature --task "..." --target main
+
+a run that got through every step and changed files in a git repo is signed
+off only if its change still merges onto the branch it is for. the branch is
+the one `--target` names (a local or remote-tracking branch). without it, a
+run in a worktree of its own (`--worktree`) is for the branch checked out in
+the person's tree, which moves as the person keeps working; any other run is
+for the upstream of the branch checked out, since the branch itself cannot
+move without HEAD moving with it. a branch with no upstream and no
+`--target`, or a detached HEAD, has nothing to check against, and the
+handoff says the change was not checked. a resumed run keeps the branch, and
+the head, it started for. heads are read as the repo has them: nothing is
+fetched.
+
+a `--target` git does not know, or one given in a place that is not a git
+work tree with a commit, is refused before the first step.
+
+the run's change is HEAD now with every file that differs from what the
+tree held at the start. a file that was already loose when the run started
+and still holds those bytes is the person's, not the run's, and is left out.
+
+- not moved: nothing more is said.
+- moved, and the change merges onto the new head with no conflict: the run
+  is `done`, and the handoff's checks say `sign-off: main moved to <sha>
+  since the run started; the change was re-checked on it and merges with no
+  conflict`.
+- moved, and it conflicts: the run stops, cause `target moved`, outcome
+  `stopped: target moved`, `stopped at <last step>` in the journal. the why
+  and the handoff name the files and say `rebase onto main (<sha>) and
+  settle <files>, then carry on`.
+
+the check is read only. it asks `git merge-tree --write-tree`, with an index
+and an object folder of its own in a temporary folder (the repo's objects
+read through an alternate), removed after. the person's tree, index, HEAD,
+branches and object store are as they were, and nothing is staged or
+committed in them. anything more than that is not done, and the run stops,
+cause `merge unchecked`, outcome `stopped: merge unchecked`, `stopped at
+<last step>` in the journal, with the why saying to check by hand: git that
+cannot read the place at the end, a branch that cannot be read now, a
+changed file git reads through a filter program (an lfs: a program outside
+git that may write where it likes), or a git without `merge-tree
+--write-tree` (2.38 and later).
+
 ## the boundary check, which is not a sandbox
 
     steps:

@@ -122,7 +122,8 @@ def a_flow(tmp_path, monkeypatch, name, review, fan=False):
     merge that only runs if the reviewer let the work through."""
     flow = tmp_path / "flows" / name
     flow.mkdir(parents=True)
-    worker = '"- a.md | look at a\\n- b.md | look at b\\n"'
+    worker = ('"TASK: look at a\\nFILES:\\n- a.md\\n\\n'
+              'TASK: look at b\\nFILES:\\n- b.md\\n"')
     body = ("name: " + name + NL
             + "steps:" + NL
             + "  - role: worker" + NL

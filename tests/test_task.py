@@ -179,7 +179,8 @@ def test_a_flow_with_a_place_for_a_task_will_not_start_without_one(
 FAN = ("  - role: planner\n    prompt: planner.md\n"
        "  - role: worker\n    prompt: worker.md\n    fanout: true\n"
        "  - role: reviewer\n    prompt: reviewer.md\n")
-PLAN = "a.py | the entry point\nb.py | the settings\n"
+PLAN = ("TASK: a.py, the entry point\nFILES:\n- a.py\n\n"
+        "TASK: b.py, the settings\nFILES:\n- b.py\n")
 
 
 def test_in_a_fanout_the_task_goes_where_the_flow_put_it_and_no_further(

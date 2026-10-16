@@ -275,7 +275,7 @@ def test_a_fanned_out_step_is_one_line_with_a_task_each(tmp_path,
                                                          fake_cli):
     a_flow(tmp_path, monkeypatch, "wide",
            ["planner", "worker\nfanout: true\nworkers: 2", "merge"])
-    fake_cli(answer("a.py | look at a\nb.py | look at b\n"))
+    fake_cli(answer("TASK: look at a\nFILES:\n- a.py\n\nTASK: look at b\nFILES:\n- b.py\n"))
     engine.main()
     got = lines(folders(tmp_path)[0])
     assert [l["step"] for l in got] == ["planner.md", "worker.md", "merge.md"]
@@ -342,7 +342,7 @@ def test_a_fanned_out_step_with_no_gates_says_so_once(tmp_path, monkeypatch,
                                                       fake_cli):
     a_flow(tmp_path, monkeypatch, "wide",
            ["planner", "worker\nfanout: true\nworkers: 2", "merge"])
-    fake_cli(answer("a.py | look at a\nb.py | look at b\n"))
+    fake_cli(answer("TASK: look at a\nFILES:\n- a.py\n\nTASK: look at b\nFILES:\n- b.py\n"))
     engine.main()
     [folder] = folders(tmp_path)
     assert gate_notes(folder) == ("## planner.md\nno gates\n"

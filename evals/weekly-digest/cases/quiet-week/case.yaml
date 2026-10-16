@@ -1,6 +1,25 @@
 inbox: inbox
 provider:
   provider: fake
+  replies:
+    planner.md: |
+      TASK: budget.md
+      LIST: needs-me
+      WHY: sign the renewal by friday
+      FILES:
+      - budget.md
+
+      TASK: notes.md
+      LIST: can-wait
+      WHY: nothing much happened
+      FILES:
+      - notes.md
+
+      TASK: empty.md
+      LIST: can-wait
+      WHY: the file is empty
+      FILES:
+      - empty.md
   reply: |
     VERDICT: ok
 

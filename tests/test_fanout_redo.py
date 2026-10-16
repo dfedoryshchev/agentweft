@@ -1,7 +1,7 @@
 """a reviewer that sends a fanned-out step back gets the planner's tasks again.
 
 the redo used to hand the fanned step the reviewer's words as if they were the
-plan. no line of a review has a | in it, so the step split it into no tasks,
+plan. no line of a review is a TASK: line, so the step split it into no tasks,
 produced nothing, and the run stopped at the worker on the first redo it saw.
 """
 import json
@@ -11,7 +11,8 @@ sys.path.insert(0, ".")
 from agentweft.runner import engine, prompts, resume, trace
 
 NL = chr(10)
-PLAN = "a.py | look at a" + NL + "b.py | look at b" + NL
+PLAN = ("TASK: look at a" + NL + "FILES:" + NL + "- a.py" + NL + NL
+        + "TASK: look at b" + NL + "FILES:" + NL + "- b.py" + NL)
 FINDING = "b.py: the line number is missing"
 
 
@@ -105,7 +106,7 @@ def test_a_redo_runs_the_plans_tasks_again_and_reaches_the_reviewer(
                                "reviewer.md"]
     again = workers_in_round(asked, 2)
     assert sorted(p.split("your task, only this one:")[1].strip().split(NL)[0]
-                  for p in again) == ["a.py | look at a", "b.py | look at b"]
+                  for p in again) == ["TASK: look at a", "TASK: look at b"]
     assert all(FINDING in p for p in again)
     assert not any(FINDING in p for p in workers_in_round(asked, 1))
     assert journal(tmp_path) == "ok"
@@ -132,7 +133,8 @@ def test_redos_go_round_until_the_cap_then_park(tmp_path, monkeypatch):
 
 
 def test_a_plan_with_one_task_redoes_that_one_task(tmp_path, monkeypatch):
-    asked = go(tmp_path, monkeypatch, "a.py | look at a" + NL,
+    asked = go(tmp_path, monkeypatch,
+               "TASK: look at a" + NL + "FILES:" + NL + "- a.py" + NL,
                ["VERDICT: redo" + NL + NL + FINDING + NL,
                 "VERDICT: ok" + NL + NL + "fine" + NL])
     assert steps_of(asked) == ["planner.md", "worker.md", "reviewer.md",
