@@ -68,17 +68,22 @@ def main(argv=None):
               "runs it, and it is charged")
         return 1
     print("bench " + flow + " over " + str(len(tasks)) + " tasks, k " + str(k))
-    rows = runner.run(flow, provider, tasks, k, mutate="--mutants" in argv)
-    total = scorer.summary(rows, k)
-    blob = {"flow": flow, "set": folder.name, "k": k,
-            "date": datetime.datetime.now().isoformat(timespec="seconds"),
-            "summary": total, "runs": rows}
+    date = datetime.datetime.now()
     path = Path(out) if out else (
         Path(state.RUNS) / "bench" / (folder.name + "-"
-                                      + datetime.datetime.now()
-                                      .strftime("%Y%m%d-%H%M%S") + ".json"))
+                                      + date.strftime("%Y%m%d-%H%M%S")
+                                      + ".json"))
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(blob, indent=2), encoding="utf-8")
+
+    def scored(rows):
+        blob = {"flow": flow, "set": folder.name, "k": k,
+                "date": date.isoformat(timespec="seconds"),
+                "summary": scorer.summary(rows, k), "runs": rows}
+        path.write_text(json.dumps(blob, indent=2), encoding="utf-8")
+
+    rows = runner.run(flow, provider, tasks, k, mutate="--mutants" in argv,
+                      scored=scored)
+    total = scorer.summary(rows, k)
     print("")
     print(runner.table(flow, rows, total))
     print("")

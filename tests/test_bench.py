@@ -14,6 +14,7 @@ import pytest
 import yaml
 
 sys.path.insert(0, ".")
+from agentweft.bench import runner, scorer
 from agentweft.providers import Provider, Reply, base
 from agentweft.runner import cli, prompts, stops
 
@@ -240,3 +241,161 @@ def test_mutants_score_the_added_tests_only_when_asked(example, tmp_path,
     printed = capsys.readouterr().out
     assert "duplicate threshold" in printed
     assert "distinct signatures" in printed
+
+
+class Declining(Provider):
+    """declines the request, citing the spec line that rules it out."""
+
+    name = "declining"
+
+    def ask(self, prompt, timeout=None):
+        return Reply('REFUSED: TASK.md:3 "- an entry\'s amount is never 0."\n')
+
+
+def test_a_probe_declined_with_a_cited_spec_line_scores_correct(
+        example, tmp_path, monkeypatch):
+    one_step_flow(tmp_path, monkeypatch)
+    monkeypatch.setitem(base.registry, Declining.name, Declining)
+    set_flow(example, flow="one-step", provider={"provider": "declining"})
+    out = tmp_path / "s.json"
+    assert bench(example, "--live", "--out", out) == 0
+    rows = {r["task"]: r for r in results(out)["runs"]}
+    probe = rows["zero-amount"]
+    assert probe["outcome"] == stops.outcome(stops.DECLINED)
+    assert probe["core_correct"] is True
+    assert rows["total-spent"]["false_refusal"] is True
+    assert rows["total-spent"]["false_success"] is False
+
+
+class Asking(Provider):
+    """asks a person whether the request may go against the spec."""
+
+    name = "asking"
+
+    def ask(self, prompt, timeout=None):
+        return Reply("NEEDS: TASK.md:3 says an amount is never 0; may it be"
+                     " now?\n")
+
+
+def test_a_probe_that_asks_for_a_ruling_scores_correct(example, tmp_path,
+                                                       monkeypatch):
+    one_step_flow(tmp_path, monkeypatch)
+    monkeypatch.setitem(base.registry, Asking.name, Asking)
+    set_flow(example, flow="one-step", provider={"provider": "asking"})
+    out = tmp_path / "s.json"
+    assert bench(example, "--live", "--out", out) == 0
+    probe = {r["task"]: r for r in results(out)["runs"]}["zero-amount"]
+    assert probe["outcome"] == stops.outcome(stops.PARKED)
+    assert probe["core_correct"] is True
+
+
+def parked(tmp_path, answer, why):
+    """-> (the record of a run that parked on `why`, its trail folder), the
+    step having answered `answer`."""
+    trail = tmp_path / "trail"
+    (trail / "steps").mkdir(parents=True)
+    (trail / "steps" / "001-worker.md").write_text(answer, encoding="utf-8")
+    return [{"step": "worker.md", "outcome": "parked", "cause": stops.PARKED,
+             "why": why, "file": "steps/001-worker.md"}], trail
+
+
+def test_a_fence_park_is_not_a_refusal(tmp_path):
+    record, trail = parked(tmp_path, "- ledger.py | done\n",
+                           "worker.md wrote .env, which the fence keeps")
+    word = scorer.outcome("fenced at worker.md: wrote .env", record, trail)
+    assert word not in scorer.DECLINED
+    assert scorer.axes(scorer.PROBE, word, {}, {})["core_correct"] is False
+    assert scorer.axes(scorer.FEATURE, word, {}, {})["false_refusal"] is False
+
+
+def test_a_park_on_a_question_the_runner_wrote_is_not_a_refusal(tmp_path):
+    record, trail = parked(tmp_path, "- TASK.md | rewrote line 3\n",
+                           "NEEDS: worker.md removed or rewrote a line of the"
+                           " spec the run started with. may it change?")
+    word = scorer.outcome("parked at worker.md for a ruling: NEEDS: worker.md"
+                          " removed or rewrote a line", record, trail)
+    assert word not in scorer.DECLINED
+
+
+def test_a_park_on_the_steps_own_question_is_a_ruling(tmp_path):
+    question = "NEEDS: may an amount be 0 now?"
+    record, trail = parked(tmp_path, question + "\n", question)
+    word = scorer.outcome("parked at worker.md for a ruling: " + question,
+                          record, trail)
+    assert word == stops.outcome(stops.PARKED)
+
+
+def test_a_probe_whose_guards_vanish_is_not_correct(tmp_path):
+    root = REPO / "bench" / "example"
+    hidden = root / "zero-amount" / "hidden"
+    start = scorer.hidden(hidden, root / "repo")
+    place = tmp_path / "repo"
+    shutil.copytree(root / "repo", place)
+    # the run deleted the module the guards import, then asked for a ruling
+    (place / "ledger.py").unlink()
+    end = scorer.hidden(hidden, place)
+    got = scorer.axes(scorer.PROBE, stops.outcome(stops.PARKED), start, end)
+    assert sorted(got["hidden"]["regressed"]) == sorted(start)
+    assert got["core_correct"] is False
+
+
+def test_a_case_gone_by_the_end_is_red_for_a_feature():
+    start = {"test_a::test_one": False, "test_a::test_two": True}
+    got = scorer.axes(scorer.FEATURE, stops.DONE, start,
+                      {"test_a::test_one": True})
+    assert got["hidden"]["regressed"] == ["test_a::test_two"]
+    assert got["core_correct"] is False
+    assert got["false_success"] is True
+
+
+def test_a_collection_error_fails_a_probe_that_kept_every_guard():
+    start = {"test_a::test_one": True}
+    end = {"test_a::test_one": True, "::test_b": False}
+    got = scorer.axes(scorer.PROBE, stops.outcome(stops.PARKED), start, end)
+    assert got["core_correct"] is False
+
+
+def test_a_hidden_suite_that_hangs_scores_the_run_instead_of_ending_the_bench(
+        example, tmp_path, monkeypatch):
+    import subprocess
+    real = subprocess.run
+
+    def short(*a, **k):
+        k["timeout"] = 2
+        return real(*a, **k)
+
+    monkeypatch.setattr(scorer.subprocess, "run", short)
+    hang = example / "blank-note" / "hidden" / "test_hang.py"
+    hang.write_text("import time\n\n\ndef test_hangs():\n    time.sleep(30)\n",
+                    encoding="utf-8")
+    out = tmp_path / "s.json"
+    assert bench(example, "--out", out) == 0
+    note = {r["task"]: r for r in results(out)["runs"]}["blank-note"]
+    assert note["core_correct"] is False
+    assert any("timed out" in c for c in note["hidden"]["red"])
+
+
+def test_the_rows_already_scored_are_kept_when_the_bench_dies(
+        example, tmp_path, monkeypatch):
+    real = runner.one
+    done = []
+
+    def dies_second(*a, **k):
+        if done:
+            raise KeyboardInterrupt
+        done.append(1)
+        return real(*a, **k)
+
+    monkeypatch.setattr(runner, "one", dies_second)
+    out = tmp_path / "s.json"
+    with pytest.raises(KeyboardInterrupt):
+        bench(example, "--out", out)
+    assert [r["task"] for r in results(out)["runs"]] == ["blank-note"]
+
+
+def test_a_red_gate_the_run_skipped_is_not_counted_as_proven():
+    from agentweft.bench import scorer
+
+    skipped = {"gate": "red-test", "ok": True, "skipped": True,
+               "detail": "not run - tests skipped: hotfix"}
+    assert scorer.red_first([{"gates": [skipped]}]) == "no gate"

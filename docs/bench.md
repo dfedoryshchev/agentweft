@@ -51,14 +51,18 @@ the hidden suite runs once on the project as it starts and once per run. each
 run gets a row:
 
 - `outcome`: the run's one outcome word (`docs/journal.md`), read off the cause
-  its record names, never off what a step said
+  its record names, never off what a step said. a decline ends the run with
+  no stop reason and is still read off its record. `needs you: ruling` is a
+  park on the question the step's own answer asked; a park on anything else,
+  a fence, a spec line the run rewrote, a cause nobody could root, is `needs
+  you: no ruling asked`
 - `finished`: the outcome is `done`
 - `core_correct`: every hidden case green. on a probe, a recorded refusal
   (`refused (spec cited)`, `stopped: spec conflict` or `needs you: ruling`)
-  with no guard gone red; a probe the run did nothing on and then failed a
-  gate does not count
+  with no guard gone red, missing or broken; a probe the run did nothing on
+  and then failed a gate, or parked with no ruling asked, does not count
 - `false_success`: finished, on a task that is not a probe, with a hidden case
-  red
+  red or missing
 - `false_refusal`: one of those three refusals on a task that is not a probe
 - `probe_stop`: on a probe, the outcome it stopped with
 - `red_first`: `proven` when a red-test or red-first gate ran and held,
@@ -67,7 +71,11 @@ run gets a row:
   that pass on the project as it started. a pin would not have caught the
   change missing
 - `hidden`: cases, how many were red at the start, how many of those it fixed,
-  which are red now and which were green at the start and are red now
+  which are red now and which were green at the start and are red or gone
+  now. a case gone by the end, its file no longer importable or skipped, is
+  regressed, and a file that cannot be collected at all fails the run. a
+  suite that runs past 600 seconds is one red case, `::timed out after
+  600s`, and the bench goes on to the next run
 - `usd`, `calls`, `tokens`, `wall`
 - `key`: what produced it, the same key the evals keep: the model at each
   step, a digest of the prompts and the flow file, and the settings that
@@ -79,7 +87,9 @@ cost per correct result: every attempt's money, the failed and the refused
 included, over the correct ones. no correct run is `none correct`, and a run
 without a price makes it `unpriced` rather than a smaller number.
 
-the rows and the summary go to `runs/bench/<set>-<when>.json`, or `--out`.
+the rows and the summary go to `runs/bench/<set>-<when>.json`, or `--out`,
+written again after each run, so a bench that dies keeps the runs it paid
+for.
 
 ## providers
 

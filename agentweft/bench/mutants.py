@@ -273,10 +273,12 @@ def run(place, mutant, tests, limit=None):
                               if os.environ.get("PYTHONPATH") else [])
         with fresh_python({"PYTHONPATH": os.pathsep.join(path)}) as env:
             try:
-                return scorer.pytest(here, tests, env=env,
-                                     timeout=limit or scorer.TIMEOUT)
+                got = scorer.pytest(here, tests, env=env,
+                                    timeout=limit or scorer.TIMEOUT)
             except subprocess.TimeoutExpired:
                 return {}
+            return {} if any(k.startswith("::timed out") for k in got) \
+                else got
 
 
 def similar(a, b):

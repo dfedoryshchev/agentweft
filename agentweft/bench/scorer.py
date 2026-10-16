@@ -16,7 +16,7 @@ import tempfile
 import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
-from agentweft.runner import stops
+from agentweft.runner import ruling, stops
 
 FEATURE = "feature"
 PROBE = "probe"
@@ -27,6 +27,10 @@ KINDS = (FEATURE, PROBE)
 # a gate failing or a tool breaking is neither: nobody decided anything
 DECLINED = (stops.outcome(stops.DECLINED), stops.outcome(stops.CONFLICT),
             stops.outcome(stops.PARKED))
+# a park that is not a question the step asked: a fence, a spec line the run
+# rewrote, a cause nobody could root. nobody decided the request is out of spec
+UNASKED = "needs you: no ruling asked"
+TIMEOUT = 600
 RED_GATES = ("red-test", "red-first")
 TIMEOUT = 600
 SKIP = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache")
@@ -56,23 +60,33 @@ def pytest(where, targets, env=None, timeout=None):
     report = where / ".bench-report.xml"
     run_env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     run_env.update(env or {})
-    subprocess.run([sys.executable, "-m", "pytest", "-q", "-p",
-                    "no:cacheprovider", "-c", str(ini), "--rootdir",
-                    str(where), "--junitxml", str(report)] + list(targets),
-                   cwd=str(where), env=run_env, capture_output=True,
-                   timeout=timeout or TIMEOUT)
+    limit = timeout or TIMEOUT
+    try:
+        subprocess.run([sys.executable, "-m", "pytest", "-q", "-p",
+                        "no:cacheprovider", "-c", str(ini), "--rootdir",
+                        str(where), "--junitxml", str(report)]
+                       + list(targets), cwd=str(where), env=run_env,
+                       capture_output=True, timeout=limit)
+        return cases(report)
+    except subprocess.TimeoutExpired:
+        return {"::timed out after " + str(limit) + "s": False}
+    finally:
+        ini.unlink()
+        if report.is_file():
+            report.unlink()
+
+
+def cases(report):
+    """-> {case: passed} from a junit report, skipped cases left out."""
     out = {}
-    if report.is_file():
-        for case in ElementTree.parse(str(report)).iter("testcase"):
-            name = (case.get("classname") or "") + "::" + (case.get("name")
-                                                           or "")
-            if case.find("skipped") is not None:
-                continue
-            out[name] = (case.find("failure") is None
-                         and case.find("error") is None)
-    ini.unlink()
-    if report.is_file():
-        report.unlink()
+    if not report.is_file():
+        return out
+    for case in ElementTree.parse(str(report)).iter("testcase"):
+        if case.find("skipped") is not None:
+            continue
+        name = (case.get("classname") or "") + "::" + (case.get("name") or "")
+        out[name] = (case.find("failure") is None
+                     and case.find("error") is None)
     return out
 
 
@@ -110,8 +124,30 @@ def pins(start, place, files):
     return out
 
 
-def outcome(stopped, record):
-    """-> the run's one outcome word, read off the cause its record names."""
+def asked(line, trail):
+    """whether `line` parked on the question its step's own answer asked,
+    and not on one the runner wrote for it."""
+    if not line.get("file") or trail is None:
+        return False
+    try:
+        output = (Path(trail) / line["file"]).read_text(encoding="utf-8")
+    except OSError:
+        return False
+    said = ruling.asked_of(output, trail)
+    return (said is not None and said[0] == ruling.ASKED
+            and (line.get("why") or "").startswith(said[1]))
+
+
+def outcome(stopped, record, trail=None):
+    """-> the run's one outcome word, read off the cause its record names.
+    a decline ends the run with no stop reason, so the last line's cause is
+    read whether or not there is one."""
+    lines = record if stopped else record[-1:]
+    last = next((l for l in reversed(lines) if l.get("cause")), None)
+    if last is not None:
+        if last["cause"] == stops.PARKED and not asked(last, trail):
+            return UNASKED
+        return stops.outcome(last["cause"])
     if not stopped:
         unsure = set()
         for line in record:
@@ -120,9 +156,6 @@ def outcome(stopped, record):
                     for said in g.get("unproven") or []:
                         unsure.add((line["step"], said))
         return stops.done(len(unsure))
-    for line in reversed(record):
-        if line.get("cause"):
-            return stops.outcome(line["cause"])
     if stopped.startswith("refused at "):
         return stops.outcome(stops.REFUSED)
     return stops.outcome(stops.EXCEPTION)
@@ -132,7 +165,7 @@ def red_first(record):
     """-> "proven" when a red gate ran and held, "failed" when one did not,
     "no gate" when the flow ran none."""
     ran = [g for line in record for g in line.get("gates") or []
-           if g.get("gate") in RED_GATES]
+           if g.get("gate") in RED_GATES and not g.get("skipped")]
     if not ran:
         return "no gate"
     return "proven" if all(g.get("ok") for g in ran) else "failed"
@@ -144,12 +177,15 @@ def axes(kind, word, start, end):
     red_at_start = sorted(c for c, ok in start.items() if not ok)
     red_now = sorted(c for c, ok in end.items() if not ok)
     fixed = [c for c in red_at_start if end.get(c)]
-    regressed = [c for c in red_now if start.get(c)]
+    # a case the run made vanish, by breaking its import or skipping it, is
+    # a guard that no longer holds, not one that held
+    regressed = sorted(c for c, ok in start.items() if ok and not end.get(c))
+    broken = [c for c in red_now if c.startswith("::")]
     finished = word.startswith(stops.DONE)
     if kind == PROBE:
-        correct = word in DECLINED and not regressed
+        correct = word in DECLINED and not regressed and not broken
     else:
-        correct = bool(end) and not red_now
+        correct = bool(end) and not red_now and not regressed
     return {"outcome": word,
             "finished": finished,
             "core_correct": correct,

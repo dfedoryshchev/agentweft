@@ -87,9 +87,9 @@ def one(flow, spec, provider, t, attempt, start, mutate=False):
         new = scorer.added(t["repo"], place)
         pinned = scorer.pins(t["repo"], place, new)
         killed = mutants.score(t["repo"], place) if mutate else None
+        word = scorer.outcome(stopped, record, trail)
     row = {"task": t["name"], "kind": t["kind"], "attempt": attempt}
-    row.update(scorer.axes(t["kind"], scorer.outcome(stopped, record), start,
-                           end))
+    row.update(scorer.axes(t["kind"], word, start, end))
     money = budget.money() if hasattr(budget, "money") else {}
     row.update({"why": stopped,
                 "red_first": scorer.red_first(record),
@@ -107,8 +107,9 @@ def one(flow, spec, provider, t, attempt, start, mutate=False):
     return row
 
 
-def run(flow, provider, tasks, k, said=print, mutate=False):
-    """-> every run's row, k per task, in task order."""
+def run(flow, provider, tasks, k, said=print, mutate=False, scored=None):
+    """-> every run's row, k per task, in task order. `scored` is called
+    with the rows so far after each run, so a bench that dies keeps them."""
     from agentweft.runner.config import config
 
     spec = config(flow)
@@ -122,6 +123,8 @@ def run(flow, provider, tasks, k, said=print, mutate=False):
             said("  " + t["name"] + " " + str(attempt) + "/" + str(k))
             rows.append(one(flow, spec, provider, t, attempt, start,
                             mutate))
+            if scored is not None:
+                scored(rows)
     return rows
 
 
