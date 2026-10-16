@@ -1,3 +1,4 @@
+import ast
 import os
 import re
 import subprocess
@@ -13,8 +14,11 @@ E_LINE = re.compile(r"^E\s+(.+)$", re.M)
 ERROR_NAME = re.compile(r"^([A-Za-z_][\w.]*(?:Error|Exception))\b")
 # the errors of a test that never got as far as the code it tests. any other
 # exception is the unfixed code failing, which is the bug a crash fix removes
-COULD_NOT_RUN = ("ImportError", "ModuleNotFoundError", "NameError",
-                 "SyntaxError")
+MISSES = ("ImportError", "ModuleNotFoundError", "NameError")
+COULD_NOT_RUN = MISSES + ("SyntaxError",)
+IMPORT_NAME = re.compile(r"cannot import name '([\w.]+)'(?: from '([\w.]+)')?")
+NO_MODULE = re.compile(r"No module named '([\w.]+)'")
+NOT_DEFINED = re.compile(r"name '(\w+)' is not defined")
 PIN_OK = re.compile(r"^PIN OK:(.*)$")
 # the steps that decide what is built, not the ones that write it: a step
 # cannot excuse the pins it wrote itself
@@ -88,11 +92,103 @@ def added_after(record):
     return out
 
 
-def declared(texts):
-    """-> the FAILS: lines in `texts`, joined: a red step that says its test
-    fails with an error has said that error is the bug."""
-    return "\n".join(line for t in texts for line in (t or "").splitlines()
-                     if line.strip().startswith("FAILS:"))
+def missing_of(output):
+    """-> (module, name) the first import or name error in `output` says is
+    missing: name "" for a missing module, module "" when the error names
+    none. None when no error names what it misses."""
+    found = [(m.start(), rx, m) for rx in (IMPORT_NAME, NO_MODULE, NOT_DEFINED)
+             for m in [rx.search(output or "")] if m]
+    if not found:
+        return None
+    _, rx, m = min(found, key=lambda f: f[0])
+    if rx is IMPORT_NAME:
+        return m.group(2) or "", m.group(1)
+    if rx is NO_MODULE:
+        return m.group(1), ""
+    return "", m.group(1)
+
+
+def module_file(root, module):
+    """-> the file (or namespace folder) `module` imports from under `root`
+    or its src/, the way the replay's PYTHONPATH finds it; None when absent."""
+    for base in (Path(root), Path(root) / "src"):
+        p = base.joinpath(*module.split("."))
+        for f in (p.parent / (p.name + ".py"), p / "__init__.py"):
+            if f.is_file():
+                return f
+        if p.is_dir():
+            return p
+    return None
+
+
+def bound(body):
+    """-> the names a module's top-level statements bind, into its if and
+    try blocks."""
+    for st in body:
+        if isinstance(st, (ast.FunctionDef, ast.AsyncFunctionDef,
+                           ast.ClassDef)):
+            yield st.name
+        elif isinstance(st, (ast.Assign, ast.AnnAssign)):
+            for t in getattr(st, "targets", [getattr(st, "target", None)]):
+                for n in ast.walk(t):
+                    if isinstance(n, ast.Name):
+                        yield n.id
+        elif isinstance(st, (ast.Import, ast.ImportFrom)):
+            for a in st.names:
+                yield a.asname or a.name.split(".")[0]
+        elif isinstance(st, (ast.If, ast.Try)):
+            yield from bound(st.body + st.orelse + getattr(st, "finalbody", [])
+                             + [x for h in getattr(st, "handlers", [])
+                                for x in h.body])
+
+
+def defines(path, name):
+    """-> whether the python file at `path` binds `name` at module level,
+    None when it does not parse."""
+    if path is None or not Path(path).is_file():
+        return False
+    try:
+        tree = ast.parse(Path(path).read_text(encoding="utf-8",
+                                              errors="replace"))
+    except (SyntaxError, ValueError):
+        return None
+    return name in bound(tree.body)
+
+
+def py_files(root):
+    """-> the .py files git sees under `root`, tracked or not ignored: what
+    the replay's checkout lays out."""
+    try:
+        out = subprocess.run(["git", "-C", str(root), "ls-files", "-co",
+                              "--exclude-standard", "-z", "--", "*.py"],
+                             capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return [Path(root) / f for f in out.split("\0") if f]
+
+
+def exists(root, module, name):
+    """-> whether `module`, or `name` in it (anywhere when module is ""), is
+    under `root`. None when a file that could say does not parse."""
+    if not name:
+        return module_file(root, module) is not None
+    if module:
+        if module_file(root, module + "." + name) is not None:
+            return True
+        return defines(module_file(root, module), name)
+    said = [defines(f, name) for f in py_files(root)]
+    return True if True in said else (None if None in said else False)
+
+
+def fix_adds(output, start, now):
+    """-> whether the import or name error in `output` misses a name that
+    is not in the start tree `start` and is in the place `now`: a test of
+    what the fix adds, red without it. False when the name cannot be read,
+    and a file that does not parse at the start counts as having it."""
+    missing = missing_of(output)
+    if missing is None:
+        return False
+    return exists(start, *missing) is False and exists(now, *missing) is True
 
 
 @register
@@ -107,15 +203,16 @@ class RedFirstGate(Gate):
     state and only the test files' changes, and each new test runs there
     alone: without the fix it has to fail. an assertion is red, and so is
     any exception the unfixed code raises (a KeyError is the bug a crash fix
-    removes). an ImportError, ModuleNotFoundError, NameError or SyntaxError,
-    or a collection error (exit 2), is a test that could not run, not one
-    that caught the bug, unless the red step's FAILS: line said that error is
-    the bug (a feature's test fails on the name the feature adds); the fix
-    step cannot declare it for itself. then each runs in the
-    place, with the fix, and has to pass. at least one has to be red without
-    the fix, and a test a step named on a TEST: line as `file::name` has to be
-    one of the red ones; a new test green both ways is recorded as passing
-    without the fix, and the record says so test by test.
+    removes). an ImportError, ModuleNotFoundError or NameError is red when
+    the module or name it misses is not in the start tree and is in the
+    place now (a feature's test fails on the name the feature adds). any
+    other of those, a SyntaxError, or a collection error (exit 2) is a test
+    that could not run, not one that caught the bug, whatever a step says.
+    then each runs in the place, with the fix, and has to pass. at least one
+    has to be red without the fix, and a test a step named on a TEST: line as
+    `file::name` has to be one of the red ones; a new test green both ways
+    is recorded as passing without the fix, and the record says so test by
+    test.
 
     a test added after the red was first shown (the run's red proof keeps
     the ids there were then) is new test work too. red without the fix, it
@@ -150,11 +247,10 @@ class RedFirstGate(Gate):
             return self.ok("not replayed - " + start.why)
         changes = start.test_changes()
         ids = start.new_test_ids(changes)
-        said = declared(self.earlier)
         carried, came = self.order.given() if self.order is not None \
             else ({}, "")
         if not ids and carried:
-            return self.carried_green(cmd, carried, came, start, said)
+            return self.carried_green(cmd, carried, came, start)
         if not ids:
             return self.fail("no test was added or changed since the run"
                              " started, so nothing shows the fix is needed")
@@ -162,14 +258,15 @@ class RedFirstGate(Gate):
             with worktree.temporary(start.root, start.start) as tree:
                 start.lay_out(tree, changes)
                 there = start.place_in(tree)
-                before = dict((i, self.one(cmd, i, there, said)) for i in ids)
+                before = dict((i, self.one(cmd, i, there, lambda out: fix_adds(
+                    out, there, start.place))) for i in ids)
         except ValueError as e:
             return self.fail("could not replay without the fix: " + str(e))
-        after = dict((i, self.one(cmd, i, start.place, said)) for i in ids)
+        after = dict((i, self.one(cmd, i, start.place)) for i in ids)
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
         self.label(record)
-        return self.judge(record, text, (cmd, carried, came, start, said))
+        return self.judge(record, text, (cmd, carried, came, start))
 
     def label(self, record):
         """mark each test added after the red was first shown: red without
@@ -187,21 +284,22 @@ class RedFirstGate(Gate):
             if t["before"] == "green" and allowed:
                 t["pin_ok"] = allowed
 
-    def carried_green(self, cmd, carried, came, start, said):
+    def carried_green(self, cmd, carried, came, start):
         """a run that wrote no test: its red was shown on tests carried in
         or supplied at the start, so what is left to show is each of them
         green with the fix."""
         for f in sorted(carried):
-            after = self.one(cmd, f, start.place, said)[0]
+            after = self.one(cmd, f, start.place)[0]
             if after != "green":
                 return self.fail(f + ", " + came + ", does not pass with the"
                                  " fix: " + after)
         return self.ok(came + ", green with the fix: "
                        + ", ".join(sorted(carried)))
 
-    def one(self, cmd, test, where, said):
+    def one(self, cmd, test, where, adds=None):
         """-> (red | green | error | exit N | timed out | not on PATH |
-        could not start: why, kind)."""
+        could not start: why, kind). `adds(output)` says whether an import
+        or name error misses what the fix adds, which makes it red."""
         r, why = self.ran(cmd, test, where)
         if r is None:
             return why, ""
@@ -209,7 +307,8 @@ class RedFirstGate(Gate):
             return "green", ""
         kind = kind_of(r.stdout + "\n" + r.stderr)
         broken = kind in COULD_NOT_RUN or r.returncode == 2
-        if broken and kind and kind in said:
+        if broken and kind in MISSES and adds \
+                and adds(r.stdout + "\n" + r.stderr):
             return "red", kind
         if broken:
             return "error", kind or "a collection error"
@@ -242,7 +341,7 @@ class RedFirstGate(Gate):
         return r, ""
 
     def judge(self, record, text, given=None):
-        """`given` is (cmd, carried, came, start, said) when the red proof is
+        """`given` is (cmd, carried, came, start) when the red proof is
         on tests the run did not write: then new tests that all pass without
         the fix are pins beside it, and what has to hold is the given tests
         green with the fix."""
@@ -254,9 +353,9 @@ class RedFirstGate(Gate):
                 return self.done(False, t["test"] + " errors without the fix ("
                                  + t["kind"] + "): it could not run, so it"
                                  " failed on neither an assertion nor the"
-                                 " code. a FAILS: line from the red step"
-                                 " naming " + t["kind"] + " says that is the"
-                                 " bug", record)
+                                 " code. an import or name error is red only"
+                                 " when what it misses is not in the start"
+                                 " tree and is in the place now", record)
             if t["before"] not in ("red", "green"):
                 return self.done(False, t["test"] + " did not run without the"
                                  " fix: " + t["before"], record)

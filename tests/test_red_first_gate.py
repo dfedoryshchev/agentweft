@@ -101,28 +101,94 @@ def test_a_new_test_that_passes_without_the_fix_fails_the_gate(tmp_path,
     assert [t["before"] for t in r.tests] == ["green"]
 
 
-def test_a_red_only_by_import_error_fails(tmp_path):
+def test_a_test_importing_a_name_the_fix_adds_is_red(tmp_path):
+    """add_all is not in calc.py at the start and is there now: the
+    ImportError without the fix is the missing feature, whatever the red
+    step's FAILS: line says."""
     place = a_repo(tmp_path / "repo")
     run = started(place)
     write(place, "tests/test_calc.py", NEEDS_ADD_ALL, "no commits", "")
     write(place, "calc.py", WITH_ADD_ALL, "no commits", "")
     r = replayed(run)
-    assert not r
-    assert "ImportError" in r.detail
-    assert "assertion" in r.detail
-    assert r.tests[0]["before"] == "error"
-
-
-def test_an_error_the_red_step_named_counts_as_its_red(tmp_path):
-    place = a_repo(tmp_path / "repo")
-    run = started(place)
-    write(place, "tests/test_calc.py", NEEDS_ADD_ALL, "no commits", "")
-    write(place, "calc.py", WITH_ADD_ALL, "no commits", "")
-    r = replayed(run, worker_said="FAILS: ImportError: cannot import name"
-                 " 'add_all'" + NL + "TEST: tests/test_calc.py" + NL)
     assert r, r.detail
     assert r.tests[0]["before"] == "red"
     assert r.tests[0]["kind"] == "ImportError"
+
+
+MISSPELT = ("def test_add():" + NL + "    from calc import ad" + NL + NL
+            + "    assert ad(1, 2) == 3" + NL)
+
+
+@pytest.mark.parametrize("worker_said,answer", [
+    ("FAILS: ImportError: cannot import name 'ad'" + NL
+     + "TEST: tests/test_calc.py" + NL, "patched it"),
+    (WORKER_SAID, "FAILS: ImportError" + NL + "patched it" + NL)])
+def test_a_misspelt_import_of_a_name_there_at_start_stays_error(
+        tmp_path, worker_said, answer):
+    """add was there at the start and ad is in neither tree: a broken test,
+    and no step's FAILS: line makes it red."""
+    place = a_repo(tmp_path / "repo")
+    run = started(place)
+    write(place, "tests/test_calc.py", MISSPELT, "no commits", "")
+    write(place, "calc.py", FIXED, "no commits", "")
+    r = replayed(run, worker_said=worker_said, answer=answer)
+    assert not r
+    assert r.tests[0]["before"] == "error"
+    assert r.tests[0]["kind"] == "ImportError"
+
+
+def test_a_missing_module_the_fix_adds_as_a_new_file_is_red(tmp_path):
+    place = a_repo(tmp_path / "repo")
+    run = started(place)
+    write(place, "tests/test_calc.py", "def test_double():" + NL
+          + "    from mathx import double" + NL + NL
+          + "    assert double(2) == 4" + NL, "no commits", "")
+    write(place, "mathx.py", "def double(x):" + NL + "    return x * 2" + NL,
+          "no commits", "")
+    r = replayed(run)
+    assert r, r.detail
+    assert r.tests[0]["before"] == "red"
+    assert r.tests[0]["kind"] == "ModuleNotFoundError"
+
+
+def test_an_import_error_naming_nothing_stays_error(tmp_path):
+    place = a_repo(tmp_path / "repo")
+    (place / "calc.py").write_text("def add(a, b):" + NL
+                                   + "    raise ImportError('backend gone')"
+                                   + NL, encoding="utf-8")
+    git(place, "commit", "-qam", "backend")
+    run = started(place)
+    write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
+    write(place, "calc.py", FIXED, "no commits", "")
+    r = replayed(run)
+    assert not r
+    assert r.tests[0]["before"] == "error"
+    assert r.tests[0]["kind"] == "ImportError"
+
+
+def two_trees(tmp_path, at_start, now):
+    start, place = tmp_path / "start", tmp_path / "now"
+    for where, text in ((start, at_start), (place, now)):
+        where.mkdir()
+        git(where, "init", "-q")
+        (where / "calc.py").write_text(text, encoding="utf-8")
+    return start, place
+
+
+@pytest.mark.parametrize("said,at_start,now,adds", [
+    ("E   NameError: name 'add_all' is not defined", FIXED, WITH_ADD_ALL,
+     True),
+    ("E   NameError: name 'add' is not defined", FIXED, WITH_ADD_ALL, False),
+    ("E   ImportError: cannot import name 'add' from 'calc' (/x/calc.py)",
+     BUGGY, FIXED, False),
+    ("E   ModuleNotFoundError: No module named 'calc'", "", "", False),
+    ("E   ModuleNotFoundError: No module named 'numpy'", FIXED, FIXED, False),
+    ("E   ImportError: backend gone", FIXED, WITH_ADD_ALL, False)])
+def test_a_missing_name_is_one_the_fix_adds_only_if_new_since_the_start(
+        tmp_path, said, at_start, now, adds):
+    from agentweft.guardrails.gates.redfirst_gate import fix_adds
+    start, place = two_trees(tmp_path, at_start, now)
+    assert fix_adds(said, start, place) is adds
 
 
 def test_a_killed_run_leaves_no_worktree_after_the_next_start(tmp_path):
@@ -341,16 +407,6 @@ def test_a_test_file_whose_tests_are_not_read_is_one_test(tmp_path):
     assert [t["test"] for t in r.tests] == ["tests/test_calc.py"]
 
 
-def test_the_fix_step_cannot_declare_its_own_error(tmp_path):
-    place = a_repo(tmp_path / "repo")
-    run = started(place)
-    write(place, "tests/test_calc.py", NEEDS_ADD_ALL, "no commits", "")
-    write(place, "calc.py", WITH_ADD_ALL, "no commits", "")
-    r = replayed(run, answer="FAILS: ImportError" + NL + "patched it" + NL)
-    assert not r
-    assert r.tests[0]["before"] == "error"
-
-
 def test_a_post_checkout_hook_in_the_repo_never_runs(tmp_path):
     place = a_repo(tmp_path / "repo")
     marker = tmp_path / "hook-ran"
@@ -375,9 +431,9 @@ def test_the_replay_worktree_is_locked_while_it_runs(tmp_path, monkeypatch):
     seen = []
     real = redfirst_gate.RedFirstGate.one
 
-    def one(self, cmd, test, where, said):
+    def one(self, *args):
         seen.append(git(place, "worktree", "list", "--porcelain"))
-        return real(self, cmd, test, where, said)
+        return real(self, *args)
 
     monkeypatch.setattr(redfirst_gate.RedFirstGate, "one", one)
     assert replayed(run)

@@ -56,9 +56,9 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
   whole suite and wants exit 0. a `red-first` gate then runs each new test
   without the code
   (a temporary checkout of the start commit plus the test files) and with it:
-  red then green, test by test, or the run stops. the tester's `FAILS:` line
-  naming an `ImportError` is what lets a test that fails on the missing name
-  count as red (`docs/gates.md`)
+  red then green, test by test, or the run stops. a test that fails without
+  the code on an `ImportError` for a name the code adds counts as red, the
+  worker's own cases included (`docs/gates.md`)
 - one reviewer, `on_redo: worker`, sends the code back, not the tests
 
 the suite is `python -m pytest -q`, written in its `flow.yaml`. a project

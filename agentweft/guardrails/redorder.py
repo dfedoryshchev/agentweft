@@ -317,7 +317,7 @@ def carry_commit(start, rev, cmd):
     carried, kinds = {}, {}
     for rel in rels:
         f = start.from_place(rel)
-        said, kind = gate.one(cmd, f, start.place, "")
+        said, kind = gate.one(cmd, f, start.place)
         new = _git(start.root, "cat-file", "-e", rev + ":" + rel) is None
         # a test file that did not exist at `rev` failing to import is the
         # usual red of a feature not written yet: the name it imports is

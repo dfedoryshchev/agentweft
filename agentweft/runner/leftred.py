@@ -54,7 +54,7 @@ def check(start, fm, choice=KEEP, timeout=120):
     if cmd:
         runner = RedFirstGate(command=cmd, timeout=timeout)
         for i in ids:
-            did, kind = runner.one(cmd, i, start.place, "")
+            did, kind = runner.one(cmd, i, start.place)
             if did != "green":
                 red.append((i, did + (" (" + kind + ")" if kind else "")))
     out = {"ids": ids, "red": red, "command": bool(cmd), "reverted": [],

@@ -231,14 +231,21 @@ own changes only the files under a test path or named like a test are there.
 each new test runs there on its own and has to fail. an assertion is red, and
 so is any other exception the unfixed code raises: a `KeyError` or a
 `ZeroDivisionError` is the bug a crash fix removes. an `ImportError`,
-`ModuleNotFoundError`, `NameError` or `SyntaxError`, or a collection error
-(pytest's exit 2), is a test that could not run, which is not the same as
-catching the bug, unless the red step's `FAILS:` line names that error: a
-feature's test fails on the name the feature adds. the step that made the fix
-cannot declare it for itself. each then runs in the place, with the fix, and
-has to pass. both runs put the folder they run in, and its `src/`, at the
-front of `PYTHONPATH`, so a project installed in editable mode imports the
-tree being run and not the person's fixed one.
+`ModuleNotFoundError` or `NameError` is judged on what it misses, read from
+its message (`cannot import name 'x'`, `No module named 'x'`, `name 'x' is
+not defined`):
+- red when that module, or that name bound at module level (a `def`, a
+  `class`, an assignment or an import), is not in the start tree and is in
+  the place now: a feature's test fails on the name the feature adds
+- an error when the name was there at the start or is not in the place now
+  (a broken test, like a misspelt import), or the message names nothing
+
+a `SyntaxError` or a collection error (pytest's exit 2) that is not one of
+those is a test that could not run, which is not the same as catching the
+bug. no step's `FAILS:` line changes either verdict. each then runs in the
+place, with the fix, and has to pass. both runs put the folder they run in,
+and its `src/`, at the front of `PYTHONPATH`, so a project installed in
+editable mode imports the tree being run and not the person's fixed one.
 
 the checkout is removed in a `finally`. it is locked while it exists, with
 the run's pid as the reason, and the next run's start removes any that a

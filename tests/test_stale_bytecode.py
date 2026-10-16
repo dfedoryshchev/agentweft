@@ -72,8 +72,8 @@ def test_the_red_first_green_run_runs_the_code_as_it_is_now(tmp_path):
     place = edited_within_the_second(tmp_path)
     g = gates.build({"gate": "red-first", "command": PYTEST + ["{test}"]},
                     where=str(place))
-    assert g.one(g.opts["command"], "tests/test_calc.py::test_add", place,
-                 "") == ("green", "")
+    assert g.one(g.opts["command"], "tests/test_calc.py::test_add", place) == \
+        ("green", "")
 
 
 def test_a_gate_leaves_no_bytecode_in_the_place(tmp_path, monkeypatch):

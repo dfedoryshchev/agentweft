@@ -100,6 +100,30 @@ def test_two_red_and_one_green_added_after_green_are_2_coverage_and_1_pin(
     assert replays_left(place) == []
 
 
+def test_a_late_unit_test_importing_what_the_fix_adds_is_coverage(tmp_path):
+    """the tester's FAILS: line names the CLI's error, not the ImportError a
+    unit test of the new helper gives without the fix."""
+    place = a_repo(tmp_path / "repo")
+    run = started(place, "build-feature")
+    write(place, "tests/test_calc.py", RED_TEST)
+    run.produced["tester.md"] = ("FAILS: error: unrecognized arguments: --all"
+                                 + NL + "TEST: tests/test_calc.py" + NL)
+    red_shown(run, "tester.md")
+    write(place, "calc.py", FIXED + NL + NL + "def add_all(xs):" + NL
+          + "    return sum(xs)" + NL)
+    write(place, "tests/test_units.py", "def test_add_all():" + NL
+          + "    from calc import add_all" + NL + NL
+          + "    assert add_all([1, 2]) == 3" + NL)
+    r = replayed(run, "worker.md")
+    assert r, r.detail
+    late = by_id(r.tests)["tests/test_units.py::test_add_all"]
+    assert late["before"] == "red"
+    assert late["kind"] == "ImportError"
+    assert late.get("counts") == "coverage"
+    assert "added after green: 1 coverage, 0 pins" in r.detail
+    assert replays_left(place) == []
+
+
 def test_a_pin_ok_from_the_planner_exempts_the_pin_and_is_recorded(tmp_path):
     place = a_repo(tmp_path / "repo")
     run = started(place, "build-feature")
