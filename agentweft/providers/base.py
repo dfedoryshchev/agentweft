@@ -316,6 +316,12 @@ class Provider(object):
         """-> whether `session` can be carried on from here."""
         return False
 
+    def warm(self, carry, timeout=None, stop=None):
+        """-> the reply to a cheap call that reads `carry`'s session and
+        keeps nothing, so its cache does not lapse; None when there is no
+        such call to make. `stop` set ends a call in flight."""
+        return None
+
     def check(self):
         """-> (ok, detail). is this thing usable right now."""
         return True, "no check implemented"

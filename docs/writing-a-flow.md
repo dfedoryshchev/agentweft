@@ -197,6 +197,21 @@ its replay sends the same carried-on prompts. the api provider keeps a step's
 messages for as long as the run runs and marks each prompt for the cache with the hour lifetime; a run
 carried on in a new process starts its api steps fresh.
 
+a step that waits a long while for its next call can lose its cache before
+it gets there. `--keep-warm` sends a session that has waited its cache's
+lifetime less five minutes one cheap call: a copy of the session that is
+never kept, at low effort, with the step's tools listed and a hook that refuses
+every one of them, so it touches nothing in the place. at most three per
+session, only within the run's caps, and charged like any other call. the
+lifetime is read from where the session's cache writes went; a session whose
+cache lasts five minutes, or whose lifetime is not known, is never warmed,
+and one already past its lifetime is left to the step's own next call. when
+the run ends, a warm call still in flight is ended and charged before the
+run is written down. it is off by default: whether a warm call costs less
+than the cache it keeps, and whether a call at a lower effort reads the
+session's cached prefix at all, has not been shown. a run that stopped to wait for
+you has no process left to warm anything with.
+
 ## 8. say who decides first
 
 a step that cannot go on without a decision asks with a `NEEDS:` line, and the

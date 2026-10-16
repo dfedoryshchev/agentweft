@@ -308,13 +308,33 @@ def read_back(prompt, since):
     return None
 
 
+# a call that only keeps a session's cache from lapsing: the session is
+# read whole, so the answer is all that needs to be short
+WARM = "reply with the one word ok."
+WARM_EFFORT = "low"
+
+# the PreToolUse hook of a warm call: it keeps the step's tools, so the
+# cached prefix is the same, and may use none of them
+NO_TOOLS = ("import sys; sys.stderr.write('a call that keeps a cache warm"
+            " uses no tools'); sys.exit(2)")
+
+
+def no_tools():
+    return {"PreToolUse": [{"matcher": "*", "hooks": [{
+        "type": "command", "command": Path(sys.executable).as_posix(),
+        "args": ["-I", "-c", NO_TOOLS]}]}]}
+
+
 def session_flags(carry, chosen):
     """-> the flags that carry `carry`'s session on into a copy named
-    `chosen`, the saved one left as it was."""
+    `chosen`, the saved one left as it was; with no `chosen`, a copy that is
+    never written down."""
     out = []
     if carry.get("from"):
         out = ["--resume", carry["from"], "--fork-session"]
-    return out + ["--session-id", chosen]
+    if chosen:
+        return out + ["--session-id", chosen]
+    return out + ["--no-session-persistence"]
 
 
 def carried_on(data, carry):
@@ -408,12 +428,14 @@ def text(raw):
         .replace("\r", "\n")
 
 
-def call(argv, stdin=None, cwd=None, timeout=None, done=None, env=None):
+def call(argv, stdin=None, cwd=None, timeout=None, done=None, env=None,
+         stop=None):
     """-> Ran. argv runs in a process group of its own, both pipes are read as
     they come so neither fills up and stalls it, and the call is over when
     `done` says the output so far is the whole answer, when the process exits,
-    or at the timeout, whichever is first. whatever it started that is still
-    running then is ended.
+    at the timeout, or once `stop` is set, whichever is first; the last two
+    count as timed out. whatever it started that is still running then is
+    ended.
 
     waiting for the pipes to close is not enough: a shell the process left in
     the background holds them open, and the call would last as long as it.
@@ -473,7 +495,8 @@ def call(argv, stdin=None, cwd=None, timeout=None, done=None, env=None):
     ended_it = False
     try:
         while not woke.is_set() and proc.poll() is None:
-            if end is not None and left() <= 0:
+            if (end is not None and left() <= 0) or \
+                    (stop is not None and stop.is_set()):
                 timed_out = True
                 break
             woke.wait(left(0.05))
@@ -747,7 +770,7 @@ class CliProvider(Provider):
         except OSError:
             return True
 
-    def argv(self, prompt, session=(), effort=None):
+    def argv(self, prompt, session=(), effort=None, tools_used=True):
         """-> (argv, stdin). claude gets the prompt on stdin and is asked for
         json. it carries a session on only by `session`, the flags of
         `session_flags`, and never `--continue`: a carried-on session reports
@@ -762,7 +785,9 @@ class CliProvider(Provider):
         if not setting("co_author", flow=self.opts):
             settings.update(NO_TRAILER)
         hooked = self.hooked()
-        if hooked:
+        if not tools_used:
+            settings["hooks"] = no_tools()
+        elif hooked:
             kept = self.kept_files() if "Write" in hooked else []
             settings["hooks"] = shell_hook(self.denials, kept, hooked)
         if settings:
@@ -786,22 +811,32 @@ class CliProvider(Provider):
         chosen = str(uuid.uuid4()) if carry is not None else None
         return self.go(prompt, timeout, carry, chosen)
 
-    def go(self, prompt, timeout, carry=None, chosen=None, effort=None):
+    def warm(self, carry, timeout=None, stop=None):
+        if not is_claude(self.command):
+            return None
+        return self.go(WARM, timeout, carry, None, WARM_EFFORT, stop)
+
+    def go(self, prompt, timeout, carry=None, chosen=None, effort=None,
+           stop=None):
         """one call. with `carry`, it writes the session `chosen` (a new id
         every go, so a go that failed is never in the way of the next) or,
-        with none chosen, a session that is not kept."""
+        with none chosen, keeps a cache warm: a session that is not kept,
+        and no tool used."""
         refused = self.refuses()
         if refused:
             return Reply("", detail=refused, retryable=False)
         flags = session_flags(carry, chosen) if carry is not None else ()
-        argv, stdin = self.argv(prompt, flags, effort)
+        warming = carry is not None and not chosen
+        argv, stdin = self.argv(prompt, flags, effort,
+                                tools_used=not warming)
         since = time.time()
         try:
             r = call(argv, stdin=stdin,
                      cwd=str(self.where) if self.where else None,
                      timeout=timeout,
                      done=answered if stdin is not None else None,
-                     env=self.child_env())
+                     env=self.child_env(),
+                     **({"stop": stop} if stop is not None else {}))
         except FileNotFoundError:
             return Reply("", detail=argv[0] + " is not on PATH", retryable=False)
         except OSError as e:

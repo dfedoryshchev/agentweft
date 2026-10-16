@@ -73,7 +73,7 @@ def cmd_help():
                        [--skip <gate>[,<gate>] "<reason>"]
                        [--skip-tests "<reason>"] [--continue <run|commit>]
                        [--max-calls <n>] [--max-tokens <n>]
-                       [--on-stop keep|revert-tests]
+                       [--on-stop keep|revert-tests] [--keep-warm]
   python run.py list              what flows there are
   python run.py show <flow>       what one promises
   python run.py spend            what the last runs cost
@@ -141,7 +141,10 @@ init      asks the provider, a model per tier, the permission mode, the
 --on-stop  what a run that stops short does with the tests it added or
           changed, over the flow's `on_stop`. either way each one left red
           is named in the handoff; `keep` (the default) leaves them, and
-          `revert-tests` puts the test files back to their bytes at the start""")
+          `revert-tests` puts the test files back to their bytes at the start
+--keep-warm  a `continue: resume` step whose session has waited close to
+          its cache's lifetime gets one cheap call that keeps the cache and
+          uses no tool, at most three per session. off unless given""")
     return 0
 
 

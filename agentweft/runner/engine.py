@@ -3,6 +3,7 @@ import datetime
 import os
 import re
 import sys
+import threading
 import time
 import traceback
 from pathlib import Path
@@ -39,7 +40,7 @@ from . import prompts
 from .prompts import flow_path, load_prompt, read
 from . import commits
 from . import (chain, lead, leftred, levels, manifest, models, resume, retro,
-               router, ruling)
+               router, ruling, warm)
 from .settings import get as setting  # noqa: F401
 from . import settings
 from . import state
@@ -350,8 +351,11 @@ class Run(object):
         self.led = {}
         self.kept = rulings.Kept(self.workdir)
         self.forged = {}
-        # the session each `continue: resume` step carries on, by step
+        # the session each `continue: resume` step carries on, by step, and
+        # the steps in a call now; the warmer reads both from its own thread
         self.sessions = {}
+        self.busy = set()
+        self.lock = threading.Lock()
         self.record = None
 
     def decided(self):
@@ -570,6 +574,9 @@ class Run(object):
                 return s["role"]
         raise KeyError("no step called " + step + " in " + str(self.fm.name))
 
+    def provider_for(self, step):
+        return self.by_step.get(step, self.provider)
+
     def continues(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
@@ -587,7 +594,8 @@ class Run(object):
         whole prompt and the handoff in it."""
         if not self.continues(step) or not used.continues():
             return None
-        kept = self.sessions.get(step) or {}
+        with self.lock:
+            kept = dict(self.sessions.get(step) or {})
         if kept and kept.get("model") == used.asks_for() \
                 and kept.get("head") == manifest.of_text(head) \
                 and used.holds(kept.get("id")):
@@ -604,17 +612,21 @@ class Run(object):
         for reply in getattr(answer, "replies", ()):
             if reply and reply.session and reply.kept is not None:
                 kept = reply
-        if kept is not None:
-            self.sessions[step] = {
-                "id": kept.session, "model": used.asks_for(),
-                "head": manifest.of_text(head),
-                "usage": kept.kept.get("usage"),
-                "models": kept.kept.get("models"),
-                "cost": kept.kept.get("cost")}
-        elif carry.get("from"):
-            self.sessions.pop(step, None)
-        else:
-            return
+        with self.lock:
+            was = self.sessions.get(step) or {}
+            if kept is not None:
+                usage = kept.kept.get("usage")
+                self.sessions[step] = {
+                    "id": kept.session, "model": used.asks_for(),
+                    "head": manifest.of_text(head), "usage": usage,
+                    "models": kept.kept.get("models"),
+                    "cost": kept.kept.get("cost"), "at": time.time(),
+                    "lifetime": warm.lifetime(usage, was.get("lifetime")),
+                    "warmed": 0}
+            elif carry.get("from"):
+                self.sessions.pop(step, None)
+            else:
+                return
         if self.record is not None:
             self.record.data["sessions"] = self.sessions
             self.record.save(self.budget)
@@ -869,6 +881,9 @@ class Run(object):
             sent = prompts.CARRIED_ON + prompt[len(head):]
         if step != getattr(self, "fan", None):
             getattr(self, "forged", {}).pop(step, None)
+        if carry:
+            with self.lock:
+                self.busy.add(step)
         try:
             answer = tried.answered(self.ask(sent, step, used))
         except (Outage, Fatal) as e:
@@ -878,6 +893,9 @@ class Run(object):
                 self.keep_session(step, used, held, refused, carry)
             raise
         finally:
+            if carry:
+                with self.lock:
+                    self.busy.discard(step)
             self.held_rulings(step)
         if carry:
             self.keep_session(step, used, held, answer, carry)
@@ -1339,6 +1357,13 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
 
 
 def main():
+    try:
+        return run_flow()
+    finally:
+        warm.stop_all()
+
+
+def run_flow():
     console()
     if len(sys.argv) < 2:
         from .cli import cmd_help
@@ -1731,6 +1756,8 @@ def main():
         record.data["worktree"] = made
     run.record = record
     run.sessions = dict(record.data.get("sessions") or {})
+    if warm.wanted(sys.argv):
+        warm.Warmer(run).start()
     record.save(run.budget)
     for decided, why in notes:
         decisions.record(folder, decided, why)
@@ -1798,6 +1825,9 @@ def main():
     def leave(stopped=None, needs=None):
         """write the run's handoff.md from what the runner knows, and hand
         back (its path, its lines)."""
+        # a warm call still in flight is ended, and charged, before anything
+        # is written down
+        warm.stop_all()
         ran = passes(trail, run, fm)
         record.ended(summary.outcome(stopped, summary.unproven(
             list(earlier) + ran)))

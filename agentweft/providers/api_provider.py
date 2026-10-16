@@ -12,6 +12,9 @@ VERSION = "2023-06-01"
 # a step that carries its session on marks the end of each prompt for the
 # cache, with the long lifetime: its next go may be a whole step away
 HOUR = {"type": "ephemeral", "ttl": "1h"}
+WARM = "reply with the one word ok."
+WARM_EFFORT = "low"
+WARM_TOKENS = 256
 
 
 def said(role, text):
@@ -94,6 +97,13 @@ class ApiProvider(Provider):
             reply.kept = {"usage": reply.usage.raw if reply.usage else None,
                           "models": None, "cost": None}
         return reply
+
+    def warm(self, carry, timeout=None, stop=None):
+        before = self.history(carry)
+        if not before:
+            return None
+        return self.post(marked(before + [said("user", WARM)]), timeout,
+                         WARM_EFFORT, WARM_TOKENS)
 
     def post(self, messages, timeout, effort=None, cap=None):
         key = os.environ.get("API_KEY", "")
