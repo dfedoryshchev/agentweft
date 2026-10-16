@@ -17,6 +17,7 @@ FIXED = "def add(a, b):" + NL + "    return a + b" + NL
 RED_TEST = ("from calc import add" + NL + NL + NL + "def test_add():" + NL
             + "    assert add(1, 2) == 3" + NL)
 TESTER_SAID = "FAILS: assert -1 == 3" + NL + "TEST: tests/test_calc.py" + NL
+PYTEST = ["python", "-m", "pytest", "-q", "{test}"]
 RED_GATE = ("    gates:" + NL + "      - gate: red-test" + NL
             + "        red: true" + NL
             + "        command: [\"python\", \"-m\", \"pytest\", \"-q\","
@@ -312,7 +313,7 @@ def test_a_new_test_file_failing_on_import_is_carried_as_red(tmp_path,
 
 def test_a_red_test_named_with_a_backslash_is_a_proof(tmp_path):
     place = a_repo(tmp_path / "repo")
-    order = redorder.Order(snapshot.take(place))
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
     (place / "tests" / "test_calc.py").write_text(RED_TEST, encoding="utf-8")
     said = "TEST: .\\tests\\test_calc.py" + NL
     assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
@@ -395,3 +396,178 @@ def test_tests_green_at_the_start_commit_are_not_carried(tmp_path,
                            "--continue", before)
     assert called == []
     assert code == 1
+
+
+SUPPLIED = "tests/test_bug_report.py"
+NAMES_SUPPLIED = "FAILS: assert -1 == 3" + NL + "TEST: " + SUPPLIED + NL
+
+
+def supplied(place, commit):
+    (place / SUPPLIED).parent.mkdir(parents=True, exist_ok=True)
+    (place / SUPPLIED).write_text(RED_TEST, encoding="utf-8")
+    if commit:
+        git(place, "add", ".")
+        git(place, "commit", "-qm", "the bug report")
+
+
+def a_plain_place(where):
+    where.mkdir(parents=True)
+    (where / "calc.py").write_text(BUGGY, encoding="utf-8")
+    return where
+
+
+def proof_of_last_run():
+    return json.loads(read(folders()[-1] / "red-proof.json"))["proof"]
+
+
+def test_a_supplied_test_red_at_the_start_commit_is_the_red_proof(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    supplied(place, commit=True)
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, NAMES_SUPPLIED),
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert called == ["tester.md", "worker.md"]
+    assert code == stops.EXIT_OK
+    proof = proof_of_last_run()
+    assert proof["source"] == "supplied"
+    assert list(proof["tests"]) == [SUPPLIED]
+    assert "supplied" in read(folders()[-1] / "handoff.md")
+
+
+def test_a_supplied_test_not_yet_committed_is_the_red_proof(tmp_path,
+                                                           monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    supplied(place, commit=False)
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, NAMES_SUPPLIED),
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert called == ["tester.md", "worker.md"]
+    assert code == stops.EXIT_OK
+    assert proof_of_last_run()["source"] == "supplied"
+
+
+def test_a_supplied_red_test_outside_git_is_not_a_proof(tmp_path):
+    place = a_plain_place(tmp_path / "plain")
+    (place / "tests").mkdir()
+    (place / SUPPLIED).write_text(RED_TEST, encoding="utf-8")
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
+    assert not order.proven("tester.md", [
+        Result("red-test", True, "red, exit 1")], NAMES_SUPPLIED)
+    assert "no red test" in order.before("worker.md", "product")
+
+
+def test_a_supplied_red_test_with_no_red_gate_is_still_refused(tmp_path,
+                                                              monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    supplied(place, commit=True)
+    a_flow(tmp_path, "build", WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build",
+                           {"worker.md": ({"calc.py": FIXED}, "done")})
+    assert called == []
+    assert code == stops.exit_code(stops.REFUSED)
+    assert "no red test" in read(folders()[-1] / "why.md")
+
+
+def test_a_supplied_test_green_at_the_start_is_still_refused(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    (place / "calc.py").write_text(FIXED, encoding="utf-8")
+    supplied(place, commit=True)
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, NAMES_SUPPLIED),
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert "worker.md" not in called
+    assert code != stops.EXIT_OK
+    assert "passed before the patch" in read(folders()[-1] / "why.md")
+
+
+def test_a_supplied_test_the_gate_did_not_run_is_no_proof(tmp_path):
+    place = a_repo(tmp_path / "repo")
+    supplied(place, commit=True)
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
+    assert not order.proven("tester.md", [
+        Result("red-test", True, "red, as claimed - nothing was run")],
+        NAMES_SUPPLIED)
+    assert not order.proven("tester.md", [
+        Result("red-test", False, "the test passed before the patch")],
+        NAMES_SUPPLIED)
+    assert order.proof is None
+
+
+def test_a_test_the_run_wrote_is_recorded_as_written(tmp_path):
+    place = a_repo(tmp_path / "repo")
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
+    (place / "tests" / "test_calc.py").write_text(RED_TEST, encoding="utf-8")
+    assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
+                        TESTER_SAID)
+    assert order.proof["source"] == "written"
+
+
+GREEN_TEST = RED_TEST
+BREAKER = "import calc" + NL + "calc.add = lambda a, b: a - b" + NL
+
+
+def a_green_supplied_test(place):
+    (place / "calc.py").write_text(FIXED, encoding="utf-8")
+    (place / SUPPLIED).write_text(GREEN_TEST, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "green")
+
+
+def test_a_conftest_that_turns_a_green_supplied_test_red_is_no_proof(
+        tmp_path, monkeypatch):
+    for breaker in ("conftest.py", "tests/conftest.py"):
+        place = a_repo(tmp_path / breaker.replace("/", "-") / "repo")
+        a_green_supplied_test(place)
+        a_flow(tmp_path / breaker.replace("/", "-"), "build", TESTER + WORKER)
+        code, called = running(tmp_path / breaker.replace("/", "-"),
+                               monkeypatch, place, "build", {
+                                   "tester.md": ({breaker: BREAKER},
+                                                 NAMES_SUPPLIED),
+                                   "worker.md": ({"calc.py": FIXED}, "done")})
+        assert "worker.md" not in called, breaker
+        assert code == stops.exit_code(stops.REFUSED), breaker
+
+
+def test_a_supplied_test_that_errors_in_setup_is_no_proof(tmp_path,
+                                                         monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    (place / SUPPLIED).write_text(
+        "def test_needs_db(database):" + NL + "    assert database" + NL,
+        encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "an old broken test")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, NAMES_SUPPLIED),
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert "worker.md" not in called
+    assert code == stops.exit_code(stops.REFUSED)
+
+
+def test_fix_with_test_on_a_bug_report_with_its_own_red_test_ends_done(
+        tmp_path, monkeypatch):
+    import shutil
+
+    from agentweft.runner.prompts import flow_path
+
+    place = a_repo(tmp_path / "repo")
+    supplied(place, commit=True)
+    shutil.copytree(flow_path("fix-with-test"),
+                    tmp_path / "flows" / "fix-with-test")
+    code, called = running(tmp_path, monkeypatch, place, "fix-with-test", {
+        "worker.md": ({}, NAMES_SUPPLIED),
+        "patcher.md": ({"calc.py": FIXED}, "patched calc.py" + NL),
+        "verify.md": ({}, "VERDICT: ok" + NL + NL + "fine" + NL)},
+        "--task", "add(1, 2) gives -1; tests/test_bug_report.py shows it")
+    assert called[:2] == ["worker.md", "patcher.md"]
+    assert code == stops.EXIT_OK
+    assert "supplied, red at the start, green with the fix" in read(
+        folders()[-1] / "gates.md")
+    handoff = read(folders()[-1] / "handoff.md")
+    assert "supplied" in handoff
+    assert proof_of_last_run()["source"] == "supplied"

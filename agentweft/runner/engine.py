@@ -323,7 +323,8 @@ class Run(object):
                 or self.suite == baseline.ON or self.reads_spec() \
                 or self.commits != commits.NONE:
             self.start = snapshot.take(self.workdir, own=state.RUNS)
-        self.order = redorder.Order(self.start)
+        self.order = redorder.Order(self.start,
+                                    cmd=redorder.test_command(fm))
         self.committer = commits.Committer(commits.NONE, None)
         # what a gate ran and saw, by step, handed to the steps after it
         self.proven = {}

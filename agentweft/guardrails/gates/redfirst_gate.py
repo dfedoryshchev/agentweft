@@ -128,8 +128,9 @@ class RedFirstGate(Gate):
     show they are good tests, and one run each way says nothing about a
     flaky one. a place outside git, or a repo with no commit, has no start to
     replay from: the gate passes saying it was not replayed. a run that wrote
-    no test but carried its red in (`--continue`) runs each carried test
-    with the fix, and each has to pass.
+    no test but carried its red in (`--continue`), or whose red is a test
+    supplied at the start, runs each of those tests with the fix, and each
+    has to pass.
     """
 
     name = "red-first"
@@ -149,9 +150,10 @@ class RedFirstGate(Gate):
         changes = start.test_changes()
         ids = start.new_test_ids(changes)
         said = declared(self.earlier)
-        carried = self.order.carried() if self.order is not None else {}
+        carried, came = self.order.given() if self.order is not None \
+            else ({}, "")
         if not ids and carried:
-            return self.carried_green(cmd, carried, start, said)
+            return self.carried_green(cmd, carried, came, start, said)
         if not ids:
             return self.fail("no test was added or changed since the run"
                              " started, so nothing shows the fix is needed")
@@ -184,22 +186,39 @@ class RedFirstGate(Gate):
             if t["before"] == "green" and allowed:
                 t["pin_ok"] = allowed
 
-    def carried_green(self, cmd, carried, start, said):
-        """a continued run wrote no test: its red was shown when the tests
-        were carried in, so what is left to show is each of them green with
-        the fix."""
+    def carried_green(self, cmd, carried, came, start, said):
+        """a run that wrote no test: its red was shown on tests carried in
+        or supplied at the start, so what is left to show is each of them
+        green with the fix."""
         for f in sorted(carried):
             after = self.one(cmd, f, start.place, said)[0]
             if after != "green":
-                return self.fail(f + ", carried from "
-                                 + self.order.proof["from"] + ", does not"
-                                 " pass with the fix: " + after)
-        return self.ok("carried from " + self.order.proof["from"]
-                       + ", green with the fix: " + ", ".join(sorted(carried)))
+                return self.fail(f + ", " + came + ", does not pass with the"
+                                 " fix: " + after)
+        return self.ok(came + ", green with the fix: "
+                       + ", ".join(sorted(carried)))
 
     def one(self, cmd, test, where, said):
         """-> (red | green | error | exit N | timed out | not on PATH |
         could not start: why, kind)."""
+        r, why = self.ran(cmd, test, where)
+        if r is None:
+            return why, ""
+        if r.returncode == 0:
+            return "green", ""
+        kind = kind_of(r.stdout + "\n" + r.stderr)
+        broken = kind in COULD_NOT_RUN or r.returncode == 2
+        if broken and kind and kind in said:
+            return "red", kind
+        if broken:
+            return "error", kind or "a collection error"
+        if r.returncode == int(self.opts.get("expect", 1)):
+            return "red", kind
+        return "exit " + str(r.returncode), kind
+
+    def ran(self, cmd, test, where):
+        """-> (the finished process, "") for `cmd` run on one test in
+        `where`, or (None, timed out | not on PATH | could not start: why)."""
         argv = [test if a == "{test}" else a for a in cmd]
         # an editable install puts the person's own tree on sys.path, and the
         # checkout without the fix would import the fixed code from there
@@ -214,22 +233,12 @@ class RedFirstGate(Gate):
                                    cwd=str(where), env=env,
                                    timeout=int(self.opts.get("timeout", 120)))
         except subprocess.TimeoutExpired:
-            return "timed out", ""
+            return None, "timed out"
         except OSError as e:
             if isinstance(e, FileNotFoundError) and Path(where).is_dir():
-                return "not on PATH", ""
-            return "could not start: " + str(e), ""
-        if r.returncode == 0:
-            return "green", ""
-        kind = kind_of(r.stdout + "\n" + r.stderr)
-        broken = kind in COULD_NOT_RUN or r.returncode == 2
-        if broken and kind and kind in said:
-            return "red", kind
-        if broken:
-            return "error", kind or "a collection error"
-        if r.returncode == int(self.opts.get("expect", 1)):
-            return "red", kind
-        return "exit " + str(r.returncode), kind
+                return None, "not on PATH"
+            return None, "could not start: " + str(e)
+        return r, ""
 
     def judge(self, record, text):
         named = [n for n in (named_test(t) for t in [text]

@@ -2,13 +2,17 @@
 
 a step says what it writes: `writes: tests`, `writes: product` or `writes:
 none`. the run holds a red proof once a red-test gate has seen a test fail by
-running it, or a red-first gate has shown a new test red without the fix, on
-a test file whose content is not what it was when the run started (the start
-snapshot). the proof keeps the new test ids there were when it was shown, so
-a test added after that is known as one (the red-first gate replays it). a
-`writes: product` step does not start until there is one, and a
-`writes: tests` step that changes a product file fails. it is fail-closed:
-no start snapshot, no proof record or a gate that ran nothing is no proof.
+running it, or a red-first gate has shown a new test red without the fix, on a
+test file whose content is not what it was when the run started (the start
+snapshot). a red-test gate's test may also be one the run started with and
+left as it was, a bug report that ships its own failing test, once it also
+fails on an assertion in a checkout of the start commit (`red_at_start`): then
+the proof says `supplied` rather than `written`. the proof keeps the new test
+ids there were when it was shown, so a test added after that is known as one
+(the red-first gate replays it). a `writes: product` step does not start until
+there is one, and a `writes: tests` step that changes a product file fails. it
+is fail-closed: no start snapshot, no proof record or a gate that ran nothing
+is no proof.
 
 two ways round it, both said in the record. `--skip tests "<reason>"`
 (`--skip-tests "<reason>"` for short, `guardrails/skips.py`) is a person
@@ -27,8 +31,10 @@ a run picked up later has both.
 import json
 import os
 import posixpath
+import re
 from pathlib import Path
 
+from agentweft.guardrails import worktree
 from agentweft.guardrails.snapshot import _git, _sha, changed, is_test
 
 from .gates.redfirst_gate import RedFirstGate
@@ -36,6 +42,15 @@ from .gates.redtest_gate import named_test
 
 FILE = "red-proof.json"
 TEST_GATES = ("red-test", "red-first")
+TALLY = re.compile(r"\b(\d+) (failed|errors?)\b")
+
+
+def failed_only(output):
+    """whether pytest's tally says tests failed and none errored: a missing
+    fixture or a broken import is an error, not the bug failing."""
+    said = dict((kind.rstrip("s"), int(n)) for n, kind in
+                TALLY.findall(output or ""))
+    return said.get("failed", 0) > 0 and not said.get("error")
 
 
 def ordered(fm):
@@ -65,10 +80,11 @@ def norm(path):
 class Order(object):
     """what the run holds: the start snapshot, a red proof or a skip."""
 
-    def __init__(self, start, skip="", proof=None):
+    def __init__(self, start, skip="", proof=None, cmd=None):
         self.start = start
         self.skip = skip
         self.proof = proof
+        self.cmd = cmd
         self.lost = ""
         self.watching = {}
 
@@ -85,7 +101,8 @@ class Order(object):
         if not self.proof:
             return (step + " writes product code, and the run holds no red"
                     " test yet: no red-test gate with red: true and a command"
-                    " on a tests step has seen a test it wrote fail."
+                    " on a tests step has seen a test it wrote, or one the"
+                    " run started with, fail."
                     " --skip-tests \"<reason>\" runs without tests,"
                     " --continue <run or commit> carries them")
         return ""
@@ -128,22 +145,70 @@ class Order(object):
         for r in results:
             if not r.ok:
                 continue
-            files = []
+            files, named = [], ""
             if r.gate == "red-test" and r.detail.startswith("red, exit"):
-                files = [named_test(output or "").split("::")[0]]
+                named = named_test(output or "")
+                files = [named.split("::")[0]]
             elif r.gate == "red-first" and r.tests:
                 files = [t["test"].split("::")[0] for t in r.tests
                          if t["before"] == "red"]
-            found = [moved[k] for k in sorted(set(norm(f) for f in files))
-                     if k in moved]
+            keys = sorted(set(norm(f) for f in files))
+            found = [moved[k] for k in keys if k in moved]
+            source = "written"
+            if not found and named:
+                there = self.supplied()
+                found = [there[k] for k in keys if k in there]
+                source = "supplied"
+                if found and not self.red_at_start(named):
+                    found = []
             if found:
                 self.proof = {"how": "gate", "step": step, "gate": r.gate,
-                              "tests": dict(found),
+                              "source": source, "tests": dict(found),
                               "ids": self.start.new_test_ids()
                               if self.start.start else None}
                 self.lost = ""
                 return True
         return False
+
+    def supplied(self):
+        """-> {key: (path from the place, sha256 at the start)} for the test
+        files the run started with."""
+        out = {}
+        for rel, sha in self.start.tests.items():
+            f = self.start.from_place(rel)
+            out[norm(f)] = (f, sha)
+        return out
+
+    def red_at_start(self, test):
+        """whether `test` fails on an assertion in a checkout of the start
+        commit holding the place as it started: no conftest, helper or
+        tooling a step wrote since. a setup or collection error, no start
+        commit, or no command to run it with is no."""
+        if not self.cmd or not self.start.start:
+            return False
+        gate = RedFirstGate(command=self.cmd)
+        try:
+            with worktree.temporary(self.start.root, self.start.start) as tree:
+                self.start.lay_out(tree, [])
+                r, _ = gate.ran(self.cmd, test, self.start.place_in(tree))
+        except ValueError:
+            return False
+        return r is not None and r.returncode == 1 and \
+            failed_only(r.stdout + "\n" + r.stderr)
+
+    def given(self):
+        """-> ({path from the place: sha256}, where they came from) for the
+        tests the proof holds that the run did not write, ({}, "") when
+        it wrote them."""
+        if not self.proof:
+            return {}, ""
+        if self.proof.get("how") == "carried":
+            return dict(self.proof.get("tests") or {}), \
+                "carried from " + self.proof["from"]
+        if self.proof.get("source") == "supplied":
+            return dict(self.proof.get("tests") or {}), \
+                "supplied, red at the start"
+        return {}, ""
 
     def recheck(self):
         """drop a proof whose proved test files are not the content it
@@ -173,13 +238,6 @@ class Order(object):
         ids = self.proof.get("ids")
         return list(ids) if isinstance(ids, list) else None
 
-    def carried(self):
-        """-> the carried test files as {path from the place: sha256}, or
-        {} when the proof was not carried."""
-        if not self.proof or self.proof.get("how") != "carried":
-            return {}
-        return dict(self.proof.get("tests") or {})
-
     def said(self):
         """-> the handoff's line on the order, "" when nothing is held."""
         if self.skip:
@@ -191,8 +249,10 @@ class Order(object):
         if self.proof.get("how") == "carried":
             return "tests carried from " + self.proof["from"] + " (" + files \
                 + ")"
+        source = self.proof.get("source")
         return ("red before any product code: " + self.proof["gate"] + " on "
-                + self.proof["step"] + " (" + files + ")")
+                + self.proof["step"] + " (" + files
+                + (", " + source if source else "") + ")")
 
     def save(self, folder):
         Path(folder).mkdir(parents=True, exist_ok=True)
