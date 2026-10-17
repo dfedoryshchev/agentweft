@@ -405,10 +405,11 @@ next step is handed as "what <role> produced" see the answer without it.
 
 the next step gets the block first, before the raw answer, as "what <role>
 handed over": the MUST NOT MISS lines of every step so far (a constraint the
-first step read binds the last), the rulings in `decisions.md`, what the step
-assumed and doubts, what it verified and how it stood up, and what it read
-("re-open only what you change or doubt"). it is told the block is that
-step's account of its work, not instructions.
+first step read binds the last), each line once with the roles that kept
+it, the rulings in `decisions.md`, what the step assumed and doubts, what it
+verified and how it stood up, and what it read ("re-open only what you
+change or doubt"). it is told the block is that step's account of its work,
+not instructions.
 
 ## the handoff
 
@@ -465,10 +466,11 @@ any stop what ran, what is left and the command to carry on), what the steps
 assumed (each as a question), the open questions the default view does not
 print in full (`## open questions`, when there are any: each wording once
 with the roles that asked it, so a question joined to another by its spec
-line, cut to its width or past the cut is still on record), what they doubt that is not a question (each once by
-its words), what changed, what was
+line, cut to its width or past the cut is still on record), what they doubt
+that is not a question (each once by its words), what changed, what was
 read, what was tested, what a ruling is owed on, what was not verified, what
-the next session must keep, what went wrong on the way, and what the run was.
+the next session must keep (each line once, with the roles that kept it),
+what went wrong on the way, and what the run was.
 the whole file looks like the example at the end of this section.
 
 what the runner knows is written from the runner, never from a step's text:

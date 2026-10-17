@@ -278,6 +278,33 @@ def test_constraints_from_every_earlier_step_travel_to_the_next():
     assert "(from worker)" in h.as_prompt()
 
 
+KEPT = "TASK.md:3 - amounts are exact decimals"
+
+
+def kept_by(*roles):
+    """-> a reviewer's Handoff that keeps KEPT, as every role before it did."""
+    return Handoff(roles[-1], "HANDOFF\nMUST NOT MISS:\n- " + KEPT
+                   + "\nEND HANDOFF\n",
+                   carried=[(r, KEPT) for r in roles[:-1]])
+
+
+def test_a_line_three_roles_keep_reaches_the_next_step_once_with_all_three():
+    text = kept_by("worker", "tester", "reviewer").as_prompt()
+    assert text.count(KEPT) == 1, text
+    assert "- " + KEPT + " (from worker, tester, reviewer)" in text
+
+
+def test_a_line_three_roles_keep_is_carried_forward_once_with_all_three():
+    passes = [summary.a_pass(r + ".md", r, 1.0, kept_by(r).block, [], False,
+                             "ok", "") for r in ("worker", "tester", "reviewer")]
+    lines = summary.build("f-1", "f", "t", passes, {"git": False}, [],
+                          "1 call")
+    carry = lines[lines.index("## carry forward"):]
+    carry = carry[:carry.index("")]
+    assert [l for l in carry if KEPT in l] == [
+        "- keep: " + KEPT + " (worker, tester, reviewer)"]
+
+
 def test_a_missing_block_is_said_so_to_the_next_step():
     assert "handed over no HANDOFF block" in Handoff("worker", "x\n").as_prompt()
 

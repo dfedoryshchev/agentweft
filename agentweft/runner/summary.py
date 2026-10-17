@@ -993,13 +993,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if first_line:
         out.append("- task: " + first_line + " (all of it in runs/" + run_id
                    + "/task.md)")
-    kept = []
-    for role, b in blocks:
-        if _present(b):
-            for i in b["must_not_miss"]:
-                if i not in kept:
-                    kept.append(i)
-                    out.append("- keep: " + i + " (" + role + ")")
+    out.extend("- keep: " + line + " (" + ", ".join(roles) + ")"
+               for line, roles in handoff.keeps(
+                   (role, i) for role, b in blocks if _present(b)
+                   for i in b["must_not_miss"]))
     for label in ("CAUSE", "SITES", "FEEDS", "RULED OUT"):
         lines = dug.get(label, [])
         if not lines:
