@@ -77,7 +77,8 @@ run gets a row:
   gone. a case gone by the end, its file no longer importable or skipped, is
   regressed, red at the start or green, and a file that cannot be collected at
   all fails the run. a suite that runs past 600 seconds is one red case,
-  `::timed out after 600s`, and the bench goes on to the next run. a suite
+  `::timed out after 600s`, everything it started is ended with it, and the
+  bench goes on to the next run. a suite
   that runs no case at all (a conftest that raises, a usage error, nothing
   collected) is one red case too, `::no case ran, pytest exited <code>`
 - `usd`, `calls`, `tokens`, `wall`

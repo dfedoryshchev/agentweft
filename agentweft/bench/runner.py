@@ -66,7 +66,8 @@ def one(flow, spec, provider, t, attempt, start, mutate=False):
     from agentweft.runner import engine, task
     from agentweft.runner.prompts import flow_path
 
-    with tempfile.TemporaryDirectory(prefix="bench-run-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="bench-run-",
+                                     ignore_cleanup_errors=True) as tmp:
         place = Path(tmp) / "repo"
         shutil.copytree(str(t["repo"]), str(place), ignore=scorer.SKIP)
         trail = Path(tmp) / "trail"
@@ -115,7 +116,8 @@ def run(flow, provider, tasks, k, said=print, mutate=False, scored=None):
     spec = config(flow)
     rows = []
     for t in tasks:
-        with tempfile.TemporaryDirectory(prefix="bench-start-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="bench-start-",
+                                         ignore_cleanup_errors=True) as tmp:
             seed = Path(tmp) / "repo"
             shutil.copytree(str(t["repo"]), str(seed), ignore=scorer.SKIP)
             start = scorer.hidden(t["hidden"], seed)

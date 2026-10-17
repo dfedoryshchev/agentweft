@@ -256,7 +256,8 @@ def run(place, mutant, tests, limit=None):
     """-> {case: passed} for `tests` on a copy of `place` with `mutant`'s
     files laid over it. a run past `limit` seconds is {}: every case
     killed, the way a mutant that never ends is caught."""
-    with tempfile.TemporaryDirectory(prefix="bench-mutant-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="bench-mutant-",
+                                     ignore_cleanup_errors=True) as tmp:
         here = Path(tmp) / "repo"
         shutil.copytree(str(place), str(here), ignore=scorer.SKIP)
         for rel, text in ((mutant or {}).get("files") or {}).items():

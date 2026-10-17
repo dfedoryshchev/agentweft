@@ -357,14 +357,7 @@ def test_a_collection_error_fails_a_probe_that_kept_every_guard():
 
 def test_a_hidden_suite_that_hangs_scores_the_run_instead_of_ending_the_bench(
         example, tmp_path, monkeypatch):
-    import subprocess
-    real = subprocess.run
-
-    def short(*a, **k):
-        k["timeout"] = 2
-        return real(*a, **k)
-
-    monkeypatch.setattr(scorer.subprocess, "run", short)
+    monkeypatch.setattr(scorer, "TIMEOUT", 2)
     hang = example / "blank-note" / "hidden" / "test_hang.py"
     hang.write_text("import time\n\n\ndef test_hangs():\n    time.sleep(30)\n",
                     encoding="utf-8")
@@ -458,3 +451,20 @@ def test_a_probe_stopped_on_a_spec_change_request_is_a_ruling(
     probe = {r["task"]: r for r in results(out)["runs"]}["zero-amount"]
     assert probe["outcome"] == stops.outcome(stops.PARKED), probe["why"]
     assert probe["core_correct"] is True
+
+
+def test_a_suite_that_times_out_leaves_no_child_running(tmp_path):
+    import time
+    marker = tmp_path / "late"
+    (tmp_path / "suite").mkdir()
+    (tmp_path / "suite" / "late.py").write_text(
+        "import sys, time\n\ntime.sleep(4)\nopen(sys.argv[1], 'w').close()\n",
+        encoding="utf-8")
+    (tmp_path / "suite" / "test_hangs.py").write_text(
+        "import subprocess, sys, time\n\n\ndef test_hangs():\n"
+        "    subprocess.Popen([sys.executable, 'late.py', "
+        + repr(str(marker)) + "])\n    time.sleep(60)\n", encoding="utf-8")
+    got = scorer.pytest(tmp_path / "suite", ["test_hangs.py"], timeout=2)
+    assert list(got) == ["::timed out after 2s"]
+    time.sleep(5)
+    assert not marker.exists(), "the suite's child outlived the timeout"

@@ -16,6 +16,7 @@ import tempfile
 import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
+from agentweft.providers.cli_provider import end_tree, job_for
 from agentweft.runner import ruling, stops
 
 FEATURE = "feature"
@@ -30,7 +31,6 @@ DECLINED = (stops.outcome(stops.DECLINED), stops.outcome(stops.CONFLICT),
 # a park that is not a question the step asked: a fence, a spec line the run
 # rewrote, a cause nobody could root. nobody decided the request is out of spec
 UNASKED = "needs you: no ruling asked"
-TIMEOUT = 600
 RED_GATES = ("red-test", "red-first")
 TIMEOUT = 600
 SKIP = shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache")
@@ -62,24 +62,48 @@ def pytest(where, targets, env=None, timeout=None):
     run_env.update(env or {})
     limit = timeout or TIMEOUT
     try:
-        done = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p",
-                               "no:cacheprovider", "-c", str(ini),
-                               "--rootdir", str(where), "--junitxml",
-                               str(report)] + list(targets), cwd=str(where),
-                              env=run_env, capture_output=True, timeout=limit)
+        code = bounded([sys.executable, "-m", "pytest", "-q", "-p",
+                        "no:cacheprovider", "-c", str(ini), "--rootdir",
+                        str(where), "--junitxml", str(report)]
+                       + list(targets), where, run_env, limit)
+        if code is None:
+            return {"::timed out after " + str(limit) + "s": False}
         got = cases(report)
         if not got:
             # no case read is no check made: a conftest that raised, a
             # usage error, pytest missing, a suite that collects nothing
-            return {"::no case ran, pytest exited "
-                    + str(done.returncode): False}
+            return {"::no case ran, pytest exited " + str(code): False}
         return got
-    except subprocess.TimeoutExpired:
-        return {"::timed out after " + str(limit) + "s": False}
     finally:
         ini.unlink()
         if report.is_file():
             report.unlink()
+
+
+def bounded(argv, where, env, limit):
+    """-> the exit code of `argv`, or None when it ran past `limit` seconds.
+    it runs in a process group (a job on windows) of its own, and whatever
+    it started is ended with it, so a child a test left behind neither keeps
+    writing nor holds a pipe open; its output goes nowhere, the report is
+    the file."""
+    if os.name == "nt":
+        group = {"creationflags": getattr(subprocess,
+                                          "CREATE_NEW_PROCESS_GROUP", 0)}
+    else:
+        group = {"start_new_session": True}
+    proc = subprocess.Popen(argv, cwd=str(where), env=env,
+                            stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, **group)
+    job = job_for(proc.pid) if os.name == "nt" else None
+    try:
+        code = proc.wait(limit)
+    except subprocess.TimeoutExpired:
+        code = None
+    finally:
+        end_tree(proc, job)
+        proc.wait()
+    return code
 
 
 def cases(report):
@@ -100,7 +124,8 @@ def hidden(suite, repo):
     """-> {case: passed} for the hidden suite run against `repo`. the suite
     is copied out first and pointed at the project by TASK_REPO, so it runs
     beside the project and never inside it."""
-    with tempfile.TemporaryDirectory(prefix="bench-hidden-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="bench-hidden-",
+                                     ignore_cleanup_errors=True) as tmp:
         here = Path(tmp) / "hidden"
         shutil.copytree(str(suite), str(here), ignore=SKIP)
         return pytest(here, tests_in(here),
@@ -118,7 +143,8 @@ def pins(start, place, files):
     that would not have caught the change missing, whatever they claim."""
     out = []
     for name in files:
-        with tempfile.TemporaryDirectory(prefix="bench-pin-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="bench-pin-",
+                                         ignore_cleanup_errors=True) as tmp:
             here = Path(tmp) / "repo"
             shutil.copytree(str(start), str(here), ignore=SKIP)
             target = here / name
