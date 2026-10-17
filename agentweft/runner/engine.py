@@ -13,8 +13,8 @@ from agentweft.roles import resolver
 from .config import (VERDICTS, asks_for_verdict, config, declared, due,
                      fanout_step, steps, verdict, where)
 from agentweft import providers
-from agentweft.flow.spec import (RESUME, lead_of, step_id, step_name,
-                                 steps_named)
+from agentweft.flow.spec import (RESUME, check_project_gates, lead_of,
+                                 step_id, step_name, steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
                                   shellwrite, signoff, skips, snapshot,
@@ -325,6 +325,9 @@ class Run(object):
                     provider or fm.get("provider") or {}, where=self.workdir,
                     grant=retro.GRANT)
         self.briefed = briefing.digest(self.workdir)
+        bad = check_project_gates(fm.steps, self.workdir)
+        if bad:
+            raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))
         self.fence = fence.at(self.workdir, own=state.RUNS)
         self.start = None
         self.suite = baseline.mode(fm)
@@ -1808,9 +1811,11 @@ def run_flow():
             return undo(1)
     run.skipped = {}
     run.worktree = made
+    uncut = []
     if pick_up:
         run.order.skip, run.order.proof = redorder.load(state.RUNS / pick_up)
-        run.skipped = skips.load(state.RUNS / pick_up)
+        run.skipped, uncut = sacrifice.uncut(
+            fm, skips.load(state.RUNS / pick_up))
         lost = run.order.recheck()
         if lost:
             print("the red proof " + pick_up + " held is dropped: " + lost)
@@ -1990,9 +1995,7 @@ def run_flow():
     plan = blocks.Plan(run.budget, todo, roles_of(run, todo),
                        blocks.history(state.RUNS, flow, run.workdir,
                                       skip=run_id))
-    run.cut = sacrifice.earlier(fm, run.skipped)
-    for cut in [s for s in todo if s in run.cut]:
-        plan.drop(cut, run.skipped[run.cut[cut]])
+    run.cut = {}
 
     def cut_for(chosen):
         """leave the chosen steps out of the run, each as a named skip."""
@@ -2012,6 +2015,10 @@ def run_flow():
             plan.write(folder)
 
     cut_for(sacrifice.choose(fm, plan.steps, plan.short, run.skipped)[0])
+    for name in [n for n in uncut if n not in run.skipped]:
+        decisions.record(folder, name + " runs: no longer cut for the budget",
+                         pick_up + " cut it; planned again against the cap"
+                         " this run has, the steps ahead fit without the cut.")
     plan.write(folder)
     if plan.warning():
         print(plan.warning())

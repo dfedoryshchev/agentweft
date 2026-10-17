@@ -234,6 +234,12 @@ turns only that gate off: the order checks still want a red proof.
   the weekly digest's reviewer carries it, so a digest line quoting what no
   inbox file says goes back once and then stops the run.
 
+the `project.yml` these gates read is `orchestrate/project.yml` in the run's
+`workdir`, not in the directory agentweft was started from: a run with
+`--workdir` on another repo reads that repo's file, and so does the fence
+(`guardrails.md`). a project gate's name is checked against it once the
+workdir is known, still before any step is called.
+
 ## each new test, without the fix and with it
 
     steps:

@@ -147,14 +147,15 @@ def test_a_plan_that_fits_cuts_nothing(tmp_path, monkeypatch):
     assert not (the_run(tmp_path) / "skips.json").exists()
 
 
-def test_a_list_that_cannot_make_it_fit_cuts_all_of_it_and_still_says_risky(
+def test_a_list_that_cannot_make_it_fit_cuts_nothing_and_still_says_risky(
         tmp_path, monkeypatch, capsys):
     a_flow(tmp_path, monkeypatch, "tight", FOUR, "max_calls: 1" + NL
            + listed("verify"))
-    asked = asking(monkeypatch)
+    asking(monkeypatch)
     run(monkeypatch, "tight", "--force")
-    assert "verify.md" not in asked
-    assert "RISKY" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "RISKY" in out and "cut verify.md" not in out
+    assert not (the_run(tmp_path) / "skips.json").exists()
 
 
 FIVE = [(n, n + ".md") for n in ("a", "b", "c", "d", "e")]
@@ -189,7 +190,7 @@ def test_near_the_cap_a_list_that_cannot_make_it_fit_parks_and_cuts_nothing(
     assert not (the_run(tmp_path) / "skips.json").exists()
 
 
-def test_a_run_picked_up_later_leaves_the_same_steps_out(
+def test_a_run_picked_up_later_cuts_again_what_still_does_not_fit(
         tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch, "again", FOUR, "max_calls: 3" + NL
            + listed("verify"))
@@ -198,12 +199,46 @@ def test_a_run_picked_up_later_leaves_the_same_steps_out(
     run(monkeypatch, "again", "--force")
     assert asked == ["a.md"]
     [first] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
-    run(monkeypatch, "again", "--force", "--resume", first.name)
-    assert asked[1:3] == ["a.md", "reviewer.md"]
+    run(monkeypatch, "again", "--force", "--resume", first.name,
+        "--max-calls", "4")
+    assert asked[1:] == ["a.md", "reviewer.md", "reviewer-wide.md"]
     assert "verify.md" not in asked
     [later] = [p for p in (tmp_path / "runs").iterdir()
                if p.is_dir() and p != first]
     skipped = json.loads((later / "skips.json").read_text(encoding="utf-8"))
     assert skipped["verify"].startswith("budget: ")
+    assert "the call cap leaves 3" in skipped["verify"]
     assert "verify.md" in (later / "budget-plan.md").read_text(
+        encoding="utf-8")
+
+
+def test_a_resume_with_room_runs_what_the_first_leg_cut(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "raised", FOUR, "max_calls: 1" + NL
+           + listed("verify"))
+    asked = asking(monkeypatch)
+    run(monkeypatch, "raised", "--force")
+    assert "verify.md" not in asked
+    [first] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    del asked[:]
+    run(monkeypatch, "raised", "--force", "--resume", first.name,
+        "--max-calls", "20")
+    assert "verify.md" in asked
+
+
+def test_a_resume_plans_the_cuts_again_against_its_cap(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "replan", FOUR, "max_calls: 3" + NL
+           + listed("verify"))
+    asked = asking(monkeypatch, lambda step: "" if not asked[:-1] else
+                   "VERDICT: ok" + NL + NL + "done" + NL)
+    run(monkeypatch, "replan", "--force")
+    [first] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    assert "verify" in json.loads((first / "skips.json").read_text(
+        encoding="utf-8"))
+    run(monkeypatch, "replan", "--force", "--resume", first.name,
+        "--max-calls", "20")
+    assert asked[1:] == [s for _, s in FOUR]
+    [later] = [p for p in (tmp_path / "runs").iterdir()
+               if p.is_dir() and p != first]
+    assert not (later / "skips.json").exists()
+    assert "verify runs: no longer cut" in (later / "decisions.md").read_text(
         encoding="utf-8")

@@ -120,10 +120,11 @@ class Fence(object):
 def at(place, own=None):
     """-> the Fence project.yml declares, taken of `place` now, or None when
     there is no project.yml or it declares no fence."""
-    if not project.path().exists():
+    mine = project.path(place)
+    if not mine.exists():
         return None
     try:
-        skip = project.read().fence()
+        skip = project.read(mine).fence()
     except yaml.YAMLError as e:
         raise ValueError("project.yml: " + str(e))
     if skip is None:

@@ -102,7 +102,8 @@ def check(tmp_path, monkeypatch, gate, gates=None):
         project_yml(tmp_path, monkeypatch, gates)
     else:
         monkeypatch.setattr(workflow, "ROOT", [str(tmp_path / "nowhere")])
-    return spec.check_gates("step 0: ", [gate])
+    return (spec.check_gates("step 0: ", [gate])
+            + spec.check_project_gates([{"gates": [gate]}]))
 
 
 def test_the_checker_wants_a_name(tmp_path, monkeypatch):
@@ -147,3 +148,55 @@ def test_a_project_yml_gone_by_the_time_it_runs_is_a_failure(tmp_path,
     (tmp_path / "orchestrate" / "project.yml").unlink()
     r = g.run("x")
     assert not r and "no project.yml" in r.detail
+
+
+def the_place_says(place, name, argv):
+    home = place / "orchestrate"
+    home.mkdir()
+    (home / "project.yml").write_text(
+        "project:" + NL + "  name: there" + NL + "gates:" + NL + "  " + name
+        + ": " + json.dumps(argv) + NL, encoding="utf-8")
+
+
+def test_the_project_yml_read_is_the_one_in_the_run_s_place(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    the_place_says(place, "touch", TOUCH)
+    (tmp_path / "orchestrate").mkdir()
+    (tmp_path / "orchestrate" / "project.yml").write_text(
+        "project:" + NL + "  name: here" + NL + "gates:" + NL + "  touch: "
+        + json.dumps(FAIL) + NL, encoding="utf-8")
+    a_flow(tmp_path, "build", gated("touch"))
+    code, _ = running(tmp_path, monkeypatch, place, "build",
+                      {"worker.md": ({}, "done")})
+    assert code == stops.EXIT_OK
+    assert (place / "ran").exists()
+
+
+def test_a_place_with_a_project_yml_runs_where_the_start_has_none(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    the_place_says(place, "touch", TOUCH)
+    a_flow(tmp_path, "build", gated("touch"))
+    code, called = running(tmp_path, monkeypatch, place, "build",
+                           {"worker.md": ({}, "done")})
+    assert code == stops.EXIT_OK and called == ["worker.md"]
+
+
+def test_the_reject_and_fence_read_the_place_s_project_yml(tmp_path,
+                                                         monkeypatch):
+    from agentweft.guardrails import fence, gates
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    (place / "orchestrate").mkdir()
+    (place / "orchestrate" / "project.yml").write_text(
+        "project:" + NL + "  name: there" + NL + "standards:" + NL
+        + "  immediate_reject:" + NL + "    - rule: no prints" + NL
+        + "      pattern: print" + NL + "fence:" + NL + "  skip: []" + NL,
+        encoding="utf-8")
+    r = gates.build({"gate": "reject"}, where=place).run("print(1)")
+    assert not r and "no prints" in r.detail
+    assert fence.at(place) is not None

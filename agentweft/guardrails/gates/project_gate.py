@@ -24,11 +24,12 @@ class ProjectGate(Gate):
         said = self.opts.get("name")
         if not said:
             return self.broke("no name. the command comes from project.yml")
-        if not project.path().exists():
-            return self.broke("no project.yml at " + str(project.path())
-                             + ", so there is no gate " + str(said))
+        mine = project.path(self.where)
+        if not mine.exists():
+            return self.broke("no project.yml at " + str(mine)
+                              + ", so there is no gate " + str(said))
         try:
-            argv = project.read().gate(said)
+            argv = project.read(mine).gate(said)
         except ValueError as e:
             return self.broke(str(e))
         except yaml.YAMLError as e:

@@ -153,7 +153,7 @@ when the plan says RISKY, the run cuts from the top of the list, one name at
 a time, and stops cutting as soon as the steps left fit what the cap leaves.
 a role cuts each of its steps, so `reviewer-wide` is the second of two
 reviewer steps and `reviewer` would be both. a list that cannot make the plan
-fit is cut whole, and the run still says RISKY. the same list is read again
+fit cuts nothing, and the run still says RISKY. the same list is read again
 when the token cap warns that 80% of it is spent: the steps still ahead are
 cut in the same order until their blocks fit the rest of the cap, and the run
 goes on; a rest that fits already goes on with nothing cut. if the whole list would not make them fit, nothing is cut and the
@@ -165,10 +165,15 @@ says what did not fit:
 
     cut verify.md: budget: the steps take ~3 calls, the call cap leaves 2
 
-it is kept in `runs/<id>/skips.json`, so a run picked up later leaves the same
-steps out, written to decisions.md, and said in the handoff with
-`(sacrifice)` where a `--skip` says `(--skip)`. the plan file marks the step
-`cut` and gives the reason under its table.
+it is kept in `runs/<id>/skips.json`, written to decisions.md, and said in
+the handoff with `(sacrifice)` where a `--skip` says `(--skip)`. the plan
+file marks the step `cut` and gives the reason under its table.
+
+a run picked up later does not take the cuts over: it plans them again
+against the cap it has now. a resume that raises the cap runs a step the
+first leg cut when the plan fits with it, and decisions.md says the step is
+no longer cut; one that still does not fit is cut again, with the new
+numbers.
 
 never on the list, refused when the flow loads: the red test (`tests`,
 `red-test`, `red-first`, or a step that writes tests or carries those gates),

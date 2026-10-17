@@ -27,11 +27,12 @@ class RejectGate(Gate):
         if self.opts:
             return self.broke("unknown option " + ", ".join(self.opts)
                              + ". the rules come from project.yml")
-        if not project.path().exists():
-            return self.broke("no project.yml at " + str(project.path())
-                             + ", so there are no rules")
+        mine = project.path(self.where)
+        if not mine.exists():
+            return self.broke("no project.yml at " + str(mine)
+                              + ", so there are no rules")
         try:
-            proj = project.read()
+            proj = project.read(mine)
         except ValueError as e:
             return self.broke(str(e))
         except yaml.YAMLError as e:

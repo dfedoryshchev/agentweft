@@ -34,6 +34,7 @@ a tier is `spec.TIERS` and a grant is `spec.GRANTS`, because a second list of
 what `high` means is how one repo ends up with two answers.
 """
 import re
+from pathlib import Path
 
 from agentweft.flow import reader, spec
 
@@ -59,8 +60,9 @@ def in_prose(text):
     return sorted(set(PATH.findall(text)))
 
 
-def path():
-    return workflow.root() / "project.yml"
+def path(place=None):
+    """-> the project.yml of the codebase in `place`, the run's workdir."""
+    return Path(place or ".") / workflow.root() / "project.yml"
 
 
 def example():
