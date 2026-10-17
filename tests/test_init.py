@@ -66,8 +66,7 @@ def test_init_yes_writes_every_setting_with_its_default(place, monkeypatch,
                                                          capsys):
     assert agentweft(monkeypatch, "init", "--yes") == 0
     got = written(place / ".env")
-    assert got == {"AGENTWEFT_PROVIDER": "cli", "MODEL_HIGH": "",
-                   "MODEL_MID": "", "MODEL_LOW": "",
+    assert got == {"AGENTWEFT_PROVIDER": "cli",
                    "AGENTWEFT_PERMISSION_MODE": "dontAsk",
                    "AGENTWEFT_CO_AUTHOR": "false",
                    "AGENTWEFT_MAX_CALLS": "25", "AGENTWEFT_MAX_TOKENS": "0",
@@ -104,8 +103,8 @@ def test_init_writes_what_it_was_told_and_asks_again_on_a_wrong_answer(
     assert agentweft(monkeypatch, "init") == 0
     got = written(place / ".env")
     assert got["AGENTWEFT_PROVIDER"] == "api"
-    assert (got["MODEL_HIGH"], got["MODEL_MID"], got["MODEL_LOW"]) == \
-        ("opus", "sonnet", "")
+    assert (got["MODEL_HIGH"], got["MODEL_MID"]) == ("opus", "sonnet")
+    assert "MODEL_LOW" not in got
     assert got["AGENTWEFT_PERMISSION_MODE"] == "acceptEdits"
     assert got["AGENTWEFT_CO_AUTHOR"] == "true"
     assert (got["AGENTWEFT_MAX_CALLS"], got["AGENTWEFT_MAX_TOKENS"]) == \
@@ -125,6 +124,15 @@ def test_init_force_keeps_a_price_table_already_there(place, monkeypatch,
     assert agentweft(monkeypatch, "init", "--force") == 0
     assert (place / "prices.yaml").read_text(encoding="utf-8") == "mine: 1\n"
     assert "prices.yaml is already here" in capsys.readouterr().out
+
+
+def test_a_blank_model_leaves_a_shell_export_standing(place, monkeypatch):
+    (place / ".env").write_text("MODEL_HIGH=sonnet\n", encoding="utf-8")
+    os.environ["MODEL_HIGH"] = "opus"
+    assert agentweft(monkeypatch, "init", "--yes", "--force") == 0
+    assert "MODEL_HIGH" not in (place / ".env").read_text(encoding="utf-8")
+    engine.load_env()
+    assert os.environ["MODEL_HIGH"] == "opus"
 
 
 def test_the_permission_modes_offered_are_the_ones_claude_takes():

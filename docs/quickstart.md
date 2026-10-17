@@ -14,8 +14,9 @@ run reads them:
 - the provider a flow that names none runs on: `cli` shells out to `claude`,
   `api` is the http one
 - a model per tier, `MODEL_HIGH`, `MODEL_MID` and `MODEL_LOW`: an alias such
-  as `opus` or `sonnet`, or a full id. blank leaves it to `MODEL`, then to the
-  provider's own default
+  as `opus` or `sonnet`, or a full id. blank writes no line, so one set in the
+  shell still counts; with none it falls to `MODEL`, then to the provider's
+  own default
 - the permission mode a step with a tool grant runs `claude` in, `dontAsk`
   unless you say otherwise: anything the grant did not allow is denied
 - whether to keep the attribution trailer `claude` adds to its commits and

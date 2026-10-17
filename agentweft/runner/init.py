@@ -187,7 +187,7 @@ def cmd_init():
     owned = [name for name, _ in answers]
     lines = ["# written by agentweft init. `agentweft init --force` asks again"]
     lines += [l for l in kept(path, owned) if not l.startswith("# written by")]
-    lines += [name + "=" + value for name, value in answers]
+    lines += [name + "=" + value for name, value in answers if value]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("wrote " + FILE)
     if prices == "true":
