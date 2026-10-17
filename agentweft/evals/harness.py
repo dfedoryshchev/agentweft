@@ -8,6 +8,7 @@ a case is a folder: what goes in, and which promises have to hold. there is no
 expected output, because the output is not deterministic and pretending it is
 would make this useless within a week.
 """
+import json
 import os
 import shutil
 import tempfile
@@ -58,6 +59,18 @@ def scripts_writes(provider):
             if isinstance(reply, dict) and reply.get("writes"):
                 return True
     return False
+
+
+def recorded_writes(path):
+    """-> whether a recording has an answer that left files."""
+    if path is None:
+        return False
+    try:
+        blob = json.loads(Path(path).read_bytes().decode("utf-8"))
+    except (OSError, ValueError):
+        return False
+    return any(isinstance(c, dict) and c.get("writes")
+               for c in blob.get("calls") or [])
 
 
 def committed(place):
@@ -134,7 +147,8 @@ def run_flow_for(flow, case, record=False):
     except ValueError as e:
         return Ran("", None, str(e))
     place = case.get("place")
-    if place is None and scripts_writes(case.get("provider")):
+    if place is None and (scripts_writes(case.get("provider")) or (
+            not record and recorded_writes(case.get("recording")))):
         return Ran("", None, case["name"] + " has answers that leave files"
                    " (writes:) and no place to leave them in. give it one"
                    " with place: <folder> in case.yaml")

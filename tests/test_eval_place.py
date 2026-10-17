@@ -168,3 +168,23 @@ def test_a_case_that_scripts_writes_and_has_no_place_does_not_run(
     assert "writes" in out[2] and "place" in out[2]
     assert out.steps == []
     assert list(started.iterdir()) == []
+
+
+def test_a_replayed_case_with_writes_and_no_place_does_not_run(
+        case_dir, tmp_path, monkeypatch):
+    _, live = ran(case_dir, record=True)
+    assert live[2] == ""
+    cfg = yaml.safe_load((case_dir / "case.yaml").read_text(encoding="utf-8"))
+    del cfg["place"]
+    cfg["provider"] = {"provider": "fake"}
+    (case_dir / "case.yaml").write_text(yaml.safe_dump(cfg), encoding="utf-8")
+    started = tmp_path / "started"
+    started.mkdir()
+    monkeypatch.setattr(prompts, "FLOW_ROOT",
+                        [str(Path("flows").resolve())])
+    monkeypatch.chdir(started)
+    case, out = ran(case_dir)
+    assert case["recording"] is not None
+    assert "writes" in out[2] and "place" in out[2], out[2]
+    assert out.steps == []
+    assert list(started.iterdir()) == []
