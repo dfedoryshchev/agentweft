@@ -28,7 +28,8 @@ still reads. the quote is checked against
 that line as the run found it, from the start snapshot, so a step cannot make
 its own cite true by editing the file first. a quote that is there stops the
 run on a conflict, with the question in handoff.md; one that is not fails the
-step. the answer to a conflict says which one holds: `override: <the new
+step, and so does a plan line marked `spec: contradicts` with no CONFLICT
+line. the answer to a conflict says which one holds: `override: <the new
 rule>` lets the request win and authorises that spec line to change, and
 nothing else; `request: <what to do instead>` keeps the spec, adds the words
 to the request, and starts again from the first step that reads it.
@@ -57,6 +58,7 @@ CITE = re.compile(r"""^\s*[`'"]?([^\s:`'"]+):(\d+)\b""")
 # follows, so a quote may hold quotes of its own
 CONFLICT = re.compile(r"""^[`'"]?([^\s:`'"]+):(\d+)(?:-(\d+))?[`'"]?\s+"(.*?)"\s*"""
                       r"""(?:\|\s*(.*?))?\s*$""")
+CONTRADICTS = re.compile(r"^\s*(?:-\s*)?spec:\s*contradicts\b", re.I)
 CITED = re.compile(r"""^-\s*([^\s:`'"]+:\d+(?:-\d+)?)\b""")
 
 
@@ -277,10 +279,11 @@ def as_found(workdir, rel, start=None):
 def conflict_of(output, workdir, start=None):
     """-> None for an answer with no CONFLICT line, else (the question, "")
     when the quote is at the line it cites as the run found it, or ("", what
-    is wrong with it) when it is not."""
+    is wrong with it) when it is not. an answer that marks a behaviour
+    `spec: contradicts` and has no CONFLICT line is wrong the same way."""
     said = verbs.parse(output).conflict
     if said is None:
-        return None
+        return untyped(output)
     m = CONFLICT.match(said.strip())
     if not m:
         return "", ('the CONFLICT line is not <file>:<line> "<the line>",'
@@ -307,6 +310,19 @@ def conflict_of(output, workdir, start=None):
                     " at " + cite + " as the run found it. quote the line"
                     " as it is, or answer without a CONFLICT line")
     return question_of_conflict(cite, quote, words), ""
+
+
+def untyped(output):
+    """-> None, or ("", why) for an answer whose plan marks a behaviour
+    `spec: contradicts` with no CONFLICT line to stop the run on it."""
+    marked = [line.strip().lstrip("-").strip() for _, line in
+              verbs.visible(output) if CONTRADICTS.match(line)]
+    if not marked:
+        return None
+    return "", ("the answer marks " + "; ".join(marked) + " and has no"
+                ' CONFLICT line. type it as CONFLICT: <file>:<line> "<the'
+                ' line>", with request: <the request\'s words> on the next'
+                " line, or mark the behaviour another way")
 
 
 def request_of(output):

@@ -336,3 +336,47 @@ def test_a_request_that_rewrites_the_spec_line_still_stops(tmp_path,
     assert code == stops.EXIT_STOP
     assert end(tmp_path).cause == "conflict"
     assert unchanged(place, before)
+
+
+UNTYPED = NL.join([
+    "- behaviour: fields('a;b') is ['a', 'b']",
+    "  file: roster.py",
+    "  spec: contradicts TASK.md:3", ""])
+SEND_BACK = "marks spec: contradicts TASK.md:3 and has no CONFLICT line"
+
+
+def test_a_contradiction_with_no_conflict_line_goes_back_and_is_typed(
+        tmp_path, monkeypatch):
+    roster_place(tmp_path)
+    asked, sent, code = go(tmp_path, monkeypatch, "build-feature",
+                           plain({"planner.md": [UNTYPED, CONTRADICTS]}),
+                           lambda step, n: None, "--task", REWRITES)
+    assert asked == ["planner.md", "planner.md"]
+    assert SEND_BACK in " ".join(sent[1].split())
+    assert code == stops.EXIT_STOP
+    assert end(tmp_path).cause == "conflict"
+
+
+def test_a_contradiction_with_no_conflict_line_goes_back_and_is_withdrawn(
+        tmp_path, monkeypatch):
+    roster_place(tmp_path)
+    place = tmp_path / "project"
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [UNTYPED, PLAN],
+                               "tester.md": [TESTER], "worker.md": [BUILT],
+                               "reviewer.md": [REVIEWED]}),
+                        roster_edits(place), "--task", ADDS)
+    assert asked == ["planner.md", "planner.md", "tester.md", "worker.md",
+                     "reviewer.md"]
+    assert code == stops.EXIT_OK
+
+
+def test_a_contradiction_left_untyped_twice_stops_before_the_tester(
+        tmp_path, monkeypatch):
+    roster_place(tmp_path)
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [UNTYPED]}),
+                        lambda step, n: None, "--task", REWRITES)
+    assert asked == ["planner.md", "planner.md"]
+    assert code == stops.EXIT_STOP
+    assert end(tmp_path).cause == "gate failed"

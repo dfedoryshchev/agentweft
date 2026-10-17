@@ -885,8 +885,13 @@ the plan with a CONFLICT line. the flow takes additions to its spec files
 as a new line: the steps are told to add under the line an option extends and
 never to rewrite it, since a rewritten line waits for a ruling even when it
 still says what it said.
-the runner does not read the marks: it stops on a CONFLICT line whose quote
-is there, whoever wrote it, so the rule lives in the prompts.
+the runner reads one mark: an answer that marks a behaviour `spec:
+contradicts` and has no CONFLICT line fails the step like a gate (`conflict`
+in `gates.md`), naming the marked lines, and the step goes again once with
+that at the end of its prompt, to type the contradiction as a CONFLICT line
+or mark the behaviour another way. a second such answer stops the run on the
+gate. which mark a behaviour gets is the prompts' rule; the runner stops on a
+CONFLICT line whose quote is there, whoever wrote it.
 
 the `request:` line counts only straight after the CONFLICT line. the older
 one-line form, `| <the request's words>` after the quote, is still read. the cite may be a range (`TASK.md:51-53`), and the quote is read as one line
