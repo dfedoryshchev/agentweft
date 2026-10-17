@@ -126,6 +126,10 @@ unless the flow says so:
     commits: wip      # commit after each step, on a branch of the run's own
     commits: squash   # that, then one commit for the task at the end
 
+`AGENTWEFT_COMMITS` sets the mode for a flow that names none, and anything
+but those three words is refused. a resume refuses a mode other than the one
+the run started with.
+
 `wip` and `squash` start the run on `agentweft/<run id>`, never the branch
 you started it on, and nothing is ever pushed. a commit holds what the run
 changed: a file already loose when the run started stays out while its bytes

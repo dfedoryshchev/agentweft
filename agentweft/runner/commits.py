@@ -39,7 +39,11 @@ BUSY = (("MERGE_HEAD", "a merge"), ("CHERRY_PICK_HEAD", "a cherry-pick"),
 
 def mode(fm):
     """-> the flow's commit mode, `none` when it names none."""
-    return settings.get("commits", flow=fm) or NONE
+    how = settings.get("commits", flow=fm) or NONE
+    if how not in MODES:
+        raise ValueError(settings.env_name("commits") + " should be one of "
+                         + ", ".join(MODES) + ", not " + repr(how))
+    return how
 
 
 def _git(where, *args, given=None):
@@ -74,6 +78,11 @@ class Committer(object):
         self.order = None
         self.folder = None
         self.away = None
+        if prior and prior.get("mode") and prior["mode"] != how:
+            raise ValueError("the run committed as commits: " + prior["mode"]
+                             + ", and this one would as commits: " + how
+                             + ". a run carries on with the commit mode it"
+                             " started with")
         if how == NONE:
             return
         said = "commits: " + how

@@ -404,3 +404,27 @@ def test_starting_the_run_branch_refuses_during_a_merge(tmp_path, marker):
         c.begin("run-1")
     assert (place / ".git" / marker).exists(), "the merge was dropped"
     assert branch(place) == "main"
+
+
+def test_a_commit_mode_from_the_environment_is_checked(monkeypatch):
+    from agentweft.runner import commits
+    monkeypatch.setenv("AGENTWEFT_COMMITS", "yes")
+    with pytest.raises(ValueError, match="AGENTWEFT_COMMITS"):
+        commits.mode({})
+    monkeypatch.setenv("AGENTWEFT_COMMITS", "squash")
+    assert commits.mode({}) == "squash"
+    assert commits.mode({"commits": "none"}) == "none"
+
+
+def test_a_resume_refuses_a_commit_mode_other_than_the_one_it_started_with(
+        tmp_path):
+    from agentweft.guardrails import snapshot
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    first = a_committer(place, commits.SQUASH)
+    kept = {"mode": first.how, "branch": first.branch, "base": first.base}
+    for now in (commits.NONE, commits.WIP):
+        with pytest.raises(ValueError, match="squash"):
+            commits.Committer(now, snapshot.take(place), kept)
+    assert commits.Committer(commits.SQUASH, snapshot.take(place),
+                             kept).branch == first.branch
