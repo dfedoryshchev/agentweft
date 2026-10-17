@@ -19,6 +19,7 @@ from agentweft.guardrails.gates.redfirst_gate import RedFirstGate
 KEEP, REVERT = CHOICES
 KEY = "on_stop"
 FLAG = "--on-stop"
+RAN = "the tests the stop ran"
 
 
 def given(argv):
@@ -155,4 +156,6 @@ def lines(left):
     elif left["red"]:
         out.append("nothing was reverted; " + FLAG + " " + REVERT
                    + " puts the test files back to their bytes at the start.")
+    if left.get("forged"):
+        out.append(left["forged"] + ".")
     return out

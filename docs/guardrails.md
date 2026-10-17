@@ -394,7 +394,10 @@ acted on, so a stop cannot hide the change. a step that changed the file and
 also crossed the fence, or answered nothing, still stops for that, and the
 stop's reason and the step's line carry the `rulings` failure beside it. a
 lead that writes the file instead of deciding has not decided, and the
-question goes to the operator. entries already there when the run started
+question goes to the operator. a stop runs the tests the run changed, and
+that is code a step wrote too, so the file is checked once more after them:
+a change there is put back, and why.md and the handoff say "decisions.md was
+changed by the tests the stop ran". entries already there when the run started
 count: between runs the file is the person's, and a ruling written by hand
 is theirs.
 

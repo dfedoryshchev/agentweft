@@ -1232,6 +1232,16 @@ def forged_by(run, step):
     return bool(getattr(run, "forged", {}).get(step))
 
 
+def held_after_stop(run, left, folder):
+    """-> `left` with what the stop's own test run did to decisions.md, put
+    on why.md too. those runs are code a step wrote, after its last check."""
+    said = run.kept.check(leftred.RAN)
+    if not said:
+        return left
+    with open(folder / "why.md", "a", encoding="utf-8") as f:
+        f.write(said + NEWLINE)
+    return dict(left, forged=said)
+
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
 
@@ -1990,6 +2000,8 @@ def run_flow():
         known = run.baseline if run.baseline and "tests" in run.baseline \
             else None
         left = baseline.label(left, known)
+        if left is not None:
+            left = held_after_stop(run, left, folder)
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), run.decided(),
                               run.budget.summary(), stopped=stopped,
