@@ -2041,6 +2041,7 @@ def run_flow(unrecorded):
             dict((step_id(s), s["role"]) for s in fm.steps), fm)
         for p in earlier:
             run.keep(p["role"], p["block"])
+            run.brief.add(p["step"], None, p["role"], p["block"])
         if before:
             came_from = before[-1]
             # a reviewer with a lens is handed the work, never the verdict

@@ -102,7 +102,9 @@ a step gets what the steps before it in the flow's order found, so a step
 asked again with nothing new above it still gets the same prompt and the
 cached answer. a step sent back replaces what its earlier go said. the brief
 is capped at 8000 characters, about 2k tokens; what does not fit is named at
-its end. the whole of it is kept as `brief.md` in the run's folder.
+its end. the whole of it is kept as `brief.md` in the run's folder. a run
+picked up with `--resume` builds it again from what the earlier legs' steps
+handed over, as their `steps.jsonl` lines kept it.
 
 `brief: false` on the flow, or on one step, sends no brief: the step starts
 from the handoff of the step before it, and opens the files itself. a step's

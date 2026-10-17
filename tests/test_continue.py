@@ -668,6 +668,60 @@ READER = ("read it\n\nHANDOFF\nDID:\n- read the notes\n"
           "READ:\n- notes.md:1 - the first line\nEND HANDOFF\n")
 
 
+def test_a_resumed_leg_is_handed_the_brief_of_the_legs_before_it(
+        tmp_path, monkeypatch):
+    from agentweft.runner import brief
+
+    cli = a_briefed_run(tmp_path, monkeypatch, {
+        "reader.md": [READER], "worker.md": [OUT_OF_CALLS, NOTES],
+        "reviewer.md": ["VERDICT: ok\n\n" + NOTES]})
+    engine.main()
+    first = cli.of("worker.md")[0]["stdin"]
+    assert "old notes" in first
+    monkeypatch.setattr(sys, "argv", [
+        "run.py", "briefed", "--force", "--resume",
+        resume.runs_for("briefed")[-1]])
+    engine.main()
+    again = cli.of("worker.md")[-1]["stdin"]
+    assert brief.NONE_YET not in again
+    assert "notes.md:1 - the first line" in again
+    assert "old notes" in again
+
+
+def a_briefed_run(tmp_path, monkeypatch, answers):
+    """the reader -> worker -> reviewer flow `briefed` over the scripted
+    cli, in a place holding notes.md. -> the cli."""
+    root = tmp_path / "flows" / "briefed"
+    root.mkdir(parents=True)
+    (root / "flow.yaml").write_text(
+        "name: briefed\nsteps:\n  - role: reader\n    prompt: reader.md\n"
+        "  - role: worker\n    prompt: worker.md\n    continue: resume\n"
+        "  - role: reviewer\n    prompt: reviewer.md\n    on_redo: worker\n"
+        "timeout: 300\nretries: 1\n", encoding="utf-8")
+    (root / "reader.md").write_text("read the notes.\n", encoding="utf-8")
+    (root / "worker.md").write_text(WORKER + "\n", encoding="utf-8")
+    (root / "reviewer.md").write_text("review the notes. first line: VERDICT:"
+                                      " ok or VERDICT: redo.\n",
+                                      encoding="utf-8")
+    place = tmp_path / "place"
+    place.mkdir()
+    (place / "notes.md").write_text("old notes\n", encoding="utf-8")
+    monkeypatch.chdir(place)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setenv("MODEL", "model-one")
+    cli = Cli(answers)
+    real_step = engine.Run.step
+
+    def step(self, name, *a, **kw):
+        cli.step = name
+        return real_step(self, name, *a, **kw)
+
+    monkeypatch.setattr(engine.Run, "step", step)
+    monkeypatch.setattr(cli_provider, "call", answering(cli.run))
+    monkeypatch.setattr(sys, "argv", ["run.py", "briefed", "--force"])
+    return cli
+
+
 def test_a_brief_quoting_a_file_the_step_edited_still_carries_on(
         tmp_path, monkeypatch):
     root = tmp_path / "flows" / "briefed"
