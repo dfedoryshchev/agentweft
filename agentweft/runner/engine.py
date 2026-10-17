@@ -1958,7 +1958,8 @@ def run_flow():
                               kept=run.committer.said(),
                               worktree=worktrees.lines(made, run_id),
                               headline=worktrees.headline(made),
-                              signed=signed)
+                              signed=signed,
+                              spec_files=fm.get("spec_files"))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],

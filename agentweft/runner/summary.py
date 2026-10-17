@@ -26,7 +26,7 @@ from pathlib import Path
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
-from agentweft.guardrails import skips
+from agentweft.guardrails import skips, specfiles
 
 from . import (front, handoff, investigate, leftred, manifest, stops, trace,
                verbs)
@@ -256,14 +256,16 @@ def stamp(d):
     return d.at.strftime(stops.STAMP) + " " + d.decided
 
 
-def rulings(changes, decided):
+def rulings(changes, decided, spec_files=None):
     """the lines a person owes a ruling on, or that one already covers.
 
     a pre-existing test whose lines were removed or changed, and a spec file
     (`TASK.md`, `SPEC*.md` or under `docs/spec*`, from the top of the
     place) changed at all, each name
     the decisions.md entry behind them or say UNRULED. an add-only test
-    change needs none and says so.
+    change needs none and says so, and so does a spec file with lines added
+    and none removed when `spec_files` is `additions`, the flow's rule that
+    allows exactly that.
     """
     out = []
     for path, a, d in changes.get("tests_changed", []):
@@ -276,8 +278,13 @@ def rulings(changes, decided):
                            " <- UNRULED: lines removed or changed, and no"
                            " entry in decisions.md names it"))
     for path, a, d in changes.get("spec_changed", []):
+        line = "- spec " + path + " +" + str(a) + " -" + str(d)
+        if d == 0 and spec_files == specfiles.ADDITIONS:
+            out.append(line + ", lines added only, which spec_files: "
+                       + specfiles.ADDITIONS + " allows, no ruling needed")
+            continue
         found = _ruling_for(path, decided)
-        out.append("- spec " + path + " +" + str(a) + " -" + str(d)
+        out.append(line
                    + (" <- ruling " + stamp(found) if found else
                       " <- UNRULED: the spec text changed, and no entry in"
                       " decisions.md names it"))
@@ -746,7 +753,8 @@ def changed_lines(changes):
 def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
-          skipped=(), kept="", worktree=(), headline="", signed=()):
+          skipped=(), kept="", worktree=(), headline="", signed=(),
+          spec_files=None):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -766,6 +774,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `worktree` is the section on the run's own worktree and `headline` its
     line at the top, both empty for a run in the tree it was started from.
     `signed` is what the sign-off said of the change (`signoff.Signed`).
+    `spec_files` is the flow's rule for the spec files.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -820,7 +829,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.append(headline)
 
     still = still_open(every, stopped)
-    owed = rulings(changes, decided)
+    owed = rulings(changes, decided, spec_files)
     extra = [front.point(investigate.STEP, l[2:]) for l in
              investigate.listed(dug, "DECISIONS")]
     extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
@@ -966,7 +975,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## rulings")
-    owed = rulings(changes, decided)
+    owed = rulings(changes, decided, spec_files)
     out.extend(owed or ["- no pre-existing test or spec file changed"])
     out.extend("- on record: " + stamp(d) for d in decided)
     if not decided:

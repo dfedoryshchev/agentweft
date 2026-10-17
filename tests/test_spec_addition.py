@@ -20,7 +20,7 @@ from agentweft import runner
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, stops
 
-from test_spec_conflict import a_place, end, go, plain, unchanged
+from test_spec_conflict import a_place, end, folders, go, plain, unchanged
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
@@ -245,6 +245,22 @@ def test_an_added_option_described_in_a_new_spec_line_ends_done(
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md"]
     assert code == stops.EXIT_OK
     assert (place / "TASK.md").read_text(encoding="utf-8") == SPEC + APPENDED
+
+
+def test_a_spec_line_the_shipped_flow_added_is_owed_no_ruling_in_the_handoff(
+        tmp_path, monkeypatch):
+    roster_place(tmp_path)
+    edits = described(tmp_path / "project", rewrite=False)
+    _, _, code = go(tmp_path, monkeypatch, "build-feature",
+                    plain({"planner.md": [PLAN], "tester.md": [TESTER],
+                           "worker.md": [BUILT], "reviewer.md": [REVIEWED]}),
+                    edits, "--task", ADDS + ". describe it in TASK.md")
+    assert code == stops.EXIT_OK
+    [folder] = folders(tmp_path)
+    handoff = (folder / "handoff.md").read_text(encoding="utf-8").split(NL)
+    assert "- spec TASK.md +1 -0, lines added only, which spec_files:" \
+        " additions allows, no ruling needed" in handoff
+    assert not [l for l in handoff if "UNRULED" in l or "rule on spec" in l]
 
 
 def test_the_same_option_described_by_rewriting_the_line_waits_for_a_ruling(

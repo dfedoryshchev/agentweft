@@ -499,7 +499,9 @@ the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
 `docs/spec*` there; a `*` never crosses a `/`) changed at all, each
 name the `decisions.md` entry behind them or print `UNRULED`; an add-only
-test change says so. a step that claims a person agreed, approved or
+test change says so, and so does a spec file with lines added and none
+removed in a flow with `spec_files: additions`, which allows exactly that:
+it is not owed a ruling and is not in the one decision. a step that claims a person agreed, approved or
 ruled ("the user approved", "as agreed") with none on record is printed under "rulings" as "authority
 claimed, no ruling on record"; an open question ("nobody has ruled", "not
 approved yet") is not a claim. a VERIFIED claim the transcript does not show

@@ -434,3 +434,34 @@ def test_a_conflict_stop_lists_the_quote_check_it_ran(
     checks = lines[lines.index("## tests and checks"):]
     assert "- worker.md: PASS quote check - the quote at TASK.md:1 is there" \
         " as the run found it" in checks, "\n".join(checks)
+
+
+def spec_run(added, removed, spec_files=None):
+    changes = {"git": True, "start": "abc", "commits": [], "status": [],
+               "log": [], "ranges": {}, "tests_changed": [],
+               "files": [("TASK.md", added, removed, "uncommitted")],
+               "spec_changed": [("TASK.md", added, removed)]}
+    return summary.build("f-1", "f", "add a rule", [a_pass("worker", block(
+        did=["TASK.md: adds a rule"]))], changes, [], "1 call",
+        spec_files=spec_files)
+
+
+def test_a_spec_addition_the_flow_allows_is_not_an_unruled_change():
+    lines = spec_run(2, 0, spec_files="additions")
+    note = "\n".join(lines)
+    assert "UNRULED" not in note
+    assert "rule on" not in decision_of(lines)
+    assert "- spec TASK.md +2 -0, lines added only, which spec_files:" \
+        " additions allows, no ruling needed" in lines
+
+
+def test_a_rewritten_spec_line_is_still_unruled_under_additions():
+    lines = spec_run(1, 1, spec_files="additions")
+    assert any("TASK.md +1 -1 <- UNRULED" in l for l in lines)
+    assert "rule on spec TASK.md +1 -1" in decision_of(lines)
+
+
+def test_a_spec_addition_without_the_additions_rule_is_still_unruled():
+    lines = spec_run(2, 0)
+    assert any("TASK.md +2 -0 <- UNRULED" in l for l in lines)
+    assert "rule on spec TASK.md +2 -0" in decision_of(lines)
