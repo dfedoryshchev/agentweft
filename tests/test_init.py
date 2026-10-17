@@ -204,6 +204,13 @@ def test_a_key_the_defaults_do_not_know_comes_back_as_written(place):
     assert settings.get("commits") == "wip"
 
 
+def test_the_falses_init_writes_read_as_false(place, monkeypatch):
+    assert agentweft(monkeypatch, "init", "--yes") == 0
+    engine.load_env()
+    assert settings.get("co_author") is False
+    assert settings.get("tests_e2e") is False
+
+
 def test_init_answers_reach_the_run(place, monkeypatch, fake_cli):
     assert agentweft(monkeypatch, "init", "--yes", "--force") == 0
     (place / ".env").write_text(
