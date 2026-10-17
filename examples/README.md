@@ -26,6 +26,9 @@ these name theirs instead. the underscore keeps them out of the flow list.
   that checks it did. the check is [tare](https://github.com/dfedoryshchev/tare),
   a prose checker that exits 2 when a draft lands in the band named by
   `--fail-on` or a worse one, so the gate needs no adapter, only the exit code.
+- **risk-map** - a worker checked against a risk map before it runs. a cold
+  file goes through; a hot one parks the run, names the file and its score,
+  and prints the `--resume` that carries on.
 
 ## tare-gate needs tare
 
@@ -45,8 +48,44 @@ from and cuts the one the log cannot back. point the reviewer's `file:` at
 `unsourced.md` and the run stops at the gate with tare's reason in
 `runs/<run id>/gates.md`.
 
+## risk-map
+
+    python run.py risk-map --force --flows examples
+
+start it from the top of the clone: the server's path is relative to where
+the run works, and the plan's to where you started it.
+
+the planner's answer is canned, `cold-plan.md`, and names
+`src/util/format.ts`. before the worker runs, the files it was handed are
+checked against the ranking the flow's `context:` block fetched, and that
+one is cold, so the run goes through. point the planner's `file:` at
+`hot-plan.md`, which names `src/store/session.ts`, and the run parks before
+the worker:
+
+    preflight: worker.md was handed 1 hot file(s)
+      src/store/session.ts  1.0
+    parked at worker.md, waiting for user
+
+the handoff ends with the command that carries on, which runs the worker on
+the plan as it stands: that is the go-ahead. this one keeps the journal, which
+`--resume` reads to find where the run stopped.
+
+the ranking comes from `server.py`, a stand-in for
+[warpmap](https://github.com/dfedoryshchev/warpmap)'s mcp server: the same
+json-rpc over stdio, the same `hotspots` tool needing `dir`, the same
+`path  score` lines. it ranks the sample project from warpmap's readme
+whatever `dir` says, so it needs no install and no network. to ask a real
+warpmap instead, change the `context:` command and run it on your repo:
+
+    command: ["warpmap", "mcp"]
+
+    python run.py risk-map --force --flows examples --workdir <your repo>
+
+warpmap ranks the files under `dir`, relative to the run's `workdir`, so a
+plan only parks on a file your repo has and the map ranks hot.
+
 ## what they do not show
 
-fanout, preflight against a risk map, any other gate with an external command.
-those need either a real model or another tool running, so they live in
-`flows/` where you can read them without running them.
+fanout, any other gate with an external command. those need either a real
+model or another tool running, so they live in `flows/` where you can read
+them without running them.

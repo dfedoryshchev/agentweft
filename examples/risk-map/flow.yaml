@@ -1,0 +1,27 @@
+name: risk-map
+steps:
+  - role: planner
+    prompt: planner.md
+    provider:
+      provider: fake
+      file: examples/risk-map/cold-plan.md
+  - role: worker
+    prompt: worker.md
+    preflight:
+      mode: park
+      threshold: 0.7
+  - role: reviewer
+    prompt: reviewer.md
+context:
+  command: ["python", "examples/risk-map/server.py"]
+  tool: hotspots
+  arguments: {dir: "."}
+promises:
+  inputs: a change to make in a codebase
+  outputs: the change, or a stop before it that names the risky file
+  invariants:
+    - every file the plan touches is named
+    - a file the risk map ranks hot is left to a person
+timeout: 120
+provider:
+  provider: fake

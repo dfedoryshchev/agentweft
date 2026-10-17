@@ -135,6 +135,9 @@ not stop it again for the same missing map. the map itself stays advisory - a
 planner without one still runs. a `preflight:` on the planner itself is checked
 only after it, since the planner is the step that fetches the map.
 
+`examples/risk-map` runs both answers, cold and hot, with a stand-in server
+and no install (`examples/README.md`).
+
 a `command` gate reads the same ranking to pick between a short test command
 and a long one (`docs/gates.md`).
 
