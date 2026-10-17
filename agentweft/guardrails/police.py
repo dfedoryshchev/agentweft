@@ -171,26 +171,37 @@ ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PUNCTUATION = set("();<>|&")
 
 
-def lex(command):
+def lex(command, shell=""):
     """-> the command's words, quotes respected, operators as words of
     their own."""
     text = (command or "").replace("\\\n", " ").replace("\n", " ; ")
     lx = shlex.shlex(text, posix=True, punctuation_chars=True)
     lx.whitespace_split = True
+    if shell == "PowerShell":
+        # a backslash is a path separator there, not an escape:
+        # tools\curl.exe has to stay a path to curl
+        lx.escape = ""
     try:
         return list(lx)
     except ValueError:
         return text.split()
 
 
+LAUNCHED = re.compile(r"\.(?:exe|cmd|bat)$")
+
+
 def tool_of(word):
-    return word.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    """-> the tool a word names: its file name, lower case, without the
+    Windows launcher extension, so `tools/CURL.EXE` is `curl`."""
+    name = word.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    return LAUNCHED.sub("", name)
 
 
-def stages(command):
+def stages(command, shell=""):
     """-> [[stage words]] per pipeline of a shell command. prefixes such as
     sudo and VAR=value are taken off a stage, and so is where it writes its
-    output: a redirect's target is a write, not a word it was given."""
+    output: a redirect's target is a write, not a word it was given.
+    `shell` is the tool that ran it."""
     out, pipe, stage = [], [], []
 
     def end_stage():
@@ -202,7 +213,7 @@ def stages(command):
         del stage[:]
 
     skip = False
-    for word in lex(command) + [";"]:
+    for word in lex(command, shell) + [";"]:
         if skip:
             skip = False
             continue
@@ -235,10 +246,14 @@ INSTALLERS = {"pip": ("install",), "pip3": ("install",),
               "cargo": ("install", "add"), "apt": ("install",),
               "apt-get": ("install",), "brew": ("install",),
               "gem": ("install",), "go": ("install", "get")}
-INTERPRETERS = ("python", "python3", "node", "ruby", "perl", "php", "pwsh",
-                "powershell", "bash", "sh", "zsh", "dash")
-FETCHERS = ("curl", "wget")
-FETCHED = re.compile(r"(?:\$\(|<\(|`)\s*(?:curl|wget)\b([^)`]*)")
+INTERPRETERS = ("python", "python3", "py", "node", "ruby", "perl", "php",
+                "pwsh", "powershell", "bash", "sh", "zsh", "dash", "iex",
+                "invoke-expression")
+WEB_CMDLETS = ("invoke-webrequest", "iwr", "invoke-restmethod", "irm")
+FETCHERS = ("curl", "wget") + WEB_CMDLETS
+FETCHED = re.compile(r"(?:\$\(|<\(|`)\s*(?:curl|wget|iwr|irm|invoke-webrequest"
+                     r"|invoke-restmethod)\b([^)`]*)", re.I)
+PY_VERSION = re.compile(r"^-(?:\d[\d.]*(?:-\d+)?|V:\S+)$")
 
 
 def installs(stage):
@@ -246,7 +261,11 @@ def installs(stage):
     None when it installs nothing."""
     tool = tool_of(stage[0])
     rest = stage[1:]
-    if tool.startswith("python") and rest[:2] == ["-m", "pip"]:
+    if tool == "py":
+        while rest and PY_VERSION.match(rest[0]):
+            rest = rest[1:]
+    if (tool == "py" or tool.startswith("python")) \
+            and rest[:2] == ["-m", "pip"]:
         tool, rest = "pip", rest[2:]
     if tool == "uv" and rest[:1] == ["pip"]:
         rest = rest[1:]
@@ -270,7 +289,11 @@ HOSTISH = re.compile(r"^(?:[\w.-]+@)?(\[[0-9a-f:]+\]"
                      r"|[a-z0-9-]+(?:\.[a-z0-9-]+)+"
                      r"|localhost)(?=$|[:/])", re.I)
 NETTOOLS = ("curl", "wget", "ssh", "scp", "sftp", "rsync", "nc", "ncat",
-            "netcat", "telnet", "ftp", "http", "https")
+            "netcat", "telnet", "ftp", "http", "https") + WEB_CMDLETS
+WEB_VALUED = ("-outfile", "-method", "-body", "-infile", "-contenttype",
+              "-headers", "-useragent", "-credential", "-form",
+              "-timeoutsec", "-maximumredirection", "-sessionvariable",
+              "-websession", "-certificatethumbprint", "-transferencoding")
 FETCH_VALUED = ("-o", "-O", "-H", "-d", "-u", "-X", "-A", "-e", "-T", "-F",
                 "-b", "-c", "-w", "-P", "--output", "--header", "--data",
                 "--user", "--request", "--cookie", "--output-document",
@@ -296,7 +319,7 @@ def hosts_in(stage):
             if skip:
                 skip = False
                 continue
-            if w in valued:
+            if w in valued or (tool in WEB_CMDLETS and web_valued(w)):
                 skip = True
                 continue
             if w.startswith("-") or URL.match(w):
@@ -309,6 +332,16 @@ def hosts_in(stage):
         found.append("a git remote")
     return [h.lower().strip("[]") if h != "a git remote" else h
             for h in found]
+
+
+def web_valued(word):
+    """whether a PowerShell web cmdlet's parameter takes a value that is not
+    where it goes. PowerShell takes any unambiguous prefix, in any case; one
+    that could still be -Uri is left to be read as the address."""
+    w = word.lower()
+    if len(w) < 2 or not w.startswith("-") or "-uri".startswith(w):
+        return False
+    return any(name.startswith(w) for name in WEB_VALUED)
 
 
 def git_sub(stage):
@@ -340,7 +373,7 @@ def network_hits(found, allow):
             continue
         reasons = []
         fetched = [m.group(1) for m in FETCHED.finditer(command)]
-        for pipe in stages(command):
+        for pipe in stages(command, c.name):
             tools = [tool_of(s[0]) for s in pipe]
             for n, stage in enumerate(pipe):
                 if installs(stage) is not None and INSTALLS not in allow:
@@ -356,7 +389,7 @@ def network_hits(found, allow):
                         reasons.append("reaches " + host)
         if fetched and INSTALLS not in allow and any(
                 tool_of(s[0]) in INTERPRETERS
-                for pipe in stages(command) for s in pipe):
+                for pipe in stages(command, c.name) for s in pipe):
             reasons.append("runs what it fetched in a shell")
         for inner in fetched:
             for m in URL.finditer(inner):
@@ -417,7 +450,7 @@ def read_paths(c):
     if c.name not in SHELLS or not isinstance(g.get("command"), str):
         return []
     out = []
-    for pipe in stages(g["command"]):
+    for pipe in stages(g["command"], c.name):
         for stage in pipe:
             if tool_of(stage[0]) in NOT_READS:
                 continue
@@ -559,7 +592,7 @@ def shell_matches(t, c, prompt):
     command = c.given.get("command")
     if c.name not in SHELLS or not isinstance(command, str):
         return ""
-    ran = [s for pipe in stages(command) for s in pipe]
+    ran = [s for pipe in stages(command, c.name) for s in pipe]
     for named in t.commands:
         want = [tool_of(named[0])] + args(named)[:2]
         if asked(prompt, *want):

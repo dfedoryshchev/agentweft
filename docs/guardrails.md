@@ -563,9 +563,13 @@ in `steps.jsonl`:
   provider that does not hold the step to it, a cli other than `claude`, is a
   hit before any call is read.
 - `network`: a shell call that installs a package (pip, uv, npm, pnpm, yarn,
-  cargo, apt, brew, gem, go), pipes what curl or wget fetched into a shell, or
+  cargo, apt, brew, gem, go; `python -m pip` and `py -m pip` too), pipes what
+  curl, wget or a PowerShell web cmdlet fetched into a shell or `iex`, or
   reaches a host that is not this machine: a url handed to a network tool, git
-  or an interpreter, or a host handed to curl, wget, ssh, scp, rsync or nc.
+  or an interpreter, or a host handed to curl, wget, ssh, scp, rsync, nc,
+  `Invoke-WebRequest` / `iwr` or `Invoke-RestMethod` / `irm`. a tool is read
+  by its file name in any case and without `.exe`, `.cmd` or `.bat`, so
+  `tools/CURL.EXE` is curl.
   `network:` lets them through: `installs` the installs, a host that host and
   the ones under it, `any` every host. a fetch or push to a git remote named
   without a url reaches a host nobody named, and only `any` lets it.
