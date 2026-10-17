@@ -80,6 +80,17 @@ def test_a_test_that_fails_is_red(tmp_path):
     assert "exit 1" in r.detail
 
 
+def test_a_red_test_gate_quotes_the_output_from_a_line_start(tmp_path):
+    a_test(tmp_path, "for n in range(30):\n    print('line %02d of what the"
+                     " runner printed' % n)\nraise SystemExit(1)")
+    r = red(tmp_path, expect=2).run(CLAIM)
+    assert not r
+    quoted = r.detail.split("wanted 2: ", 1)[1]
+    assert quoted.startswith("line "), quoted
+    assert quoted.endswith("line 29 of what the runner printed")
+    assert len(quoted) <= 160
+
+
 def test_a_test_that_passes_on_the_unpatched_code_is_not_red(tmp_path):
     a_test(tmp_path, "pass")
     r = red(tmp_path).run(CLAIM)

@@ -9,18 +9,18 @@
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  failed at worker.md  <secs>s  build-feature-<run>  gate failed  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  command: exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
+    "<time>  build-feature  failed at worker.md  <secs>s  build-feature-<run>  gate failed  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "GATE  build-feature  command at worker.md"
   ],
   "handoff": [
-    "# build-feature build-feature-<run>: stopped: gate failed at worker.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
+    "# build-feature build-feature-<run>: stopped: gate failed at worker.md - command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> worker.md -> worker.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 3 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
-    "- stopped: gate failed at worker.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
+    "- stopped: gate failed at worker.md - command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "  what it needs from you and the command to carry on are under needs you, below.",
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
@@ -33,8 +33,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     worker.md",
-    "command: exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "command: exit 1: =========================== short test summary info ===========================",
     "FAILED test_add.py::test_add - assert -1 == 3",
     "1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
@@ -61,9 +60,9 @@
     "## tests and checks",
     "- planner.md: no gates",
     "- tester.md: PASS red-test - red, exit 1 (python -m pytest -q test_mul.py)",
-    "- worker.md: FAIL command - exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s (python -m pytest -q)",
+    "- worker.md: FAIL command - exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s (python -m pytest -q)",
     "- worker.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider --junitxml={results} {test})",
-    "- worker.md: FAIL command - exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s (python -m pytest -q)",
+    "- worker.md: FAIL command - exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s (python -m pytest -q)",
     "- worker.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider --junitxml={results} {test})",
     "- red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py)",
     "- test order: red before any product code: red-test on tester.md (test_mul.py, written)",
@@ -80,8 +79,8 @@
     "## retro",
     "- planner.md <secs>s ($0.0100), won none: no events",
     "- tester.md <secs>s ($0.0100), won proved: no events",
-    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s",
-    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s",
+    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s",
+    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 1 pass, <secs>s, $0.0100",
@@ -320,7 +319,7 @@
         {
           "gate": "command",
           "ok": false,
-          "detail": "exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
+          "detail": "exit 1: =========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
         },
         {
           "gate": "red-first",
@@ -332,7 +331,7 @@
       "outcome": "gate failed",
       "won": "caught",
       "cause": null,
-      "why": "command: exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s",
+      "why": "command: exit 1: =========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s",
       "file": "steps/003-worker.md",
       "task_file": "task.md",
       "tasks": null,
@@ -404,7 +403,7 @@
         {
           "gate": "command",
           "ok": false,
-          "detail": "exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
+          "detail": "exit 1: =========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
         },
         {
           "gate": "red-first",
@@ -416,7 +415,7 @@
       "outcome": "gate failed",
       "won": "caught",
       "cause": "gate failed",
-      "why": "command: exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
+      "why": "command: exit 1: =========================== short test summary info ===========================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/004-worker.md",
       "task_file": "task.md",
       "tasks": null,
@@ -447,25 +446,23 @@
     "started tester.md",
     "  PASS red-test - red, exit 1",
     "started worker.md",
-    "  FAIL command - exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "  FAIL command - exit 1: =========================== short test summary info ===========================",
     "FAILED test_add.py::test_add - assert -1 == 3",
     "1 failed, 1 passed in <secs>s",
     "  PASS red-first - not replayed - the place is not in a git work tree",
     "gate command failed at worker.md, sent back to worker.md",
     "started worker.md",
-    "  FAIL command - exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "  FAIL command - exit 1: =========================== short test summary info ===========================",
     "FAILED test_add.py::test_add - assert -1 == 3",
     "1 failed, 1 passed in <secs>s",
     "  PASS red-first - not replayed - the place is not in a git work tree",
     "gate failed at worker.md, stopping",
-    "# build-feature build-feature-<run>: stopped: gate failed at worker.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
+    "# build-feature build-feature-<run>: stopped: gate failed at worker.md - command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> worker.md -> worker.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 3 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
-    "- stopped: gate failed at worker.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
+    "- stopped: gate failed at worker.md - command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "  what it needs from you and the command to carry on are under needs you, below.",
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
@@ -476,8 +473,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     worker.md",
-    "command: exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "command: exit 1: =========================== short test summary info ===========================",
     "FAILED test_add.py::test_add - assert -1 == 3",
     "1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
@@ -499,6 +495,6 @@
     "planner.md go 1 c119b49f3dc981a8b17f980963939f166a1bce4c5c03830c02f75202050c3e2b",
     "tester.md go 1 199511ac7f1029f1873859fdee234cbf07681bd5669dad2f76be41a7e7d79b40",
     "worker.md go 1 c83f789798d8a1b0e335d58227738be9b79780f3e61cb1a9f9eab8026c3d79b8",
-    "worker.md go 2 f733e6ad00c11cc64f011cdc97990057da62eec79c6b3d5646b4e37be5ec1701"
+    "worker.md go 2 9bcc51ace791008ee9c37bab5a0e97bb78aaba8e18507f0862a574f760c9dcdd"
   ]
 }

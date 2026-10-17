@@ -21,6 +21,38 @@ def test_a_nonzero_exit_fails_and_says_why():
     assert "nope" in r.detail
 
 
+def quoted(said):
+    g = gates.build({"gate": "command", "command": [
+        sys.executable, "-c", "import sys; sys.stderr.write(" + said
+        + "); sys.exit(1)"]})
+    r = g.run("anything")
+    assert not r
+    assert r.detail.startswith("exit 1: ")
+    return r.detail[len("exit 1: "):]
+
+
+def test_a_failed_command_is_quoted_from_a_line_start():
+    out = quoted("'alpha ' * 30 + '\\nE   assert -1 == 3\\n"
+                 "1 failed in 0.01s\\n'")
+    assert out == "E   assert -1 == 3\n1 failed in 0.01s"
+
+
+def test_the_quote_keeps_the_most_recent_lines_that_fit():
+    lines = ["line " + str(n) + " " + "x" * 30 for n in range(10)]
+    out = quoted(repr("\n".join(lines) + "\n"))
+    assert len(out) <= 160
+    kept = out.split("\n")
+    assert kept == lines[-len(kept):]
+    assert len("\n".join(lines[-len(kept) - 1:])) > 160
+
+
+def test_a_last_line_longer_than_the_quote_is_cut_at_a_word():
+    out = quoted("'head\\n' + 'word ' * 50 + 'end'")
+    assert len(out) <= 160
+    assert out.startswith("word ")
+    assert out.endswith("word end")
+
+
 def test_expect_lets_you_want_a_failure():
     g = gates.build({"gate": "command", "expect": 1,
                      "command": [sys.executable, "-c", "raise SystemExit(1)"]})

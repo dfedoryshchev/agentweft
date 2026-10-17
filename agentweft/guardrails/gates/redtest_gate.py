@@ -7,6 +7,7 @@ from agentweft.guardrails import worktree
 from agentweft.guardrails.snapshot import changed
 
 from .base import Gate, fresh_python, register
+from .command_gate import tail
 
 TEST = "TEST:"
 
@@ -140,7 +141,7 @@ class RedTestGate(Gate):
         if want_red and code == 0:
             return self.fail("the test passed before the patch")
         return self.fail("exit " + str(code) + ", wanted " + str(want) + ": "
-                         + (r.stderr or r.stdout).strip()[-160:])
+                         + tail(r.stderr or r.stdout))
 
 
 def truth(value):

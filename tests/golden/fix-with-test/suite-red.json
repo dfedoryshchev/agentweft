@@ -8,18 +8,18 @@
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  failed at patcher.md  <secs>s  fix-with-test-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  command: exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)  fix-with-test-<run>/handoff.md"
+    "<time>  fix-with-test  failed at patcher.md  <secs>s  fix-with-test-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  command: exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)  fix-with-test-<run>/handoff.md"
   ],
   "index": [
     "GATE  fix-with-test  command at patcher.md"
   ],
   "handoff": [
-    "# fix-with-test fix-with-test-<run>: stopped: gate failed at patcher.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
+    "# fix-with-test fix-with-test-<run>: stopped: gate failed at patcher.md - command: exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> patcher.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 5 of 7 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
-    "- stopped: gate failed at patcher.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
+    "- stopped: gate failed at patcher.md - command: exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
     "  what it needs from you and the command to carry on are under needs you, below.",
     "## why",
     "worker handed over this before the stop, not taken as done:",
@@ -33,8 +33,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     patcher.md",
-    "command: exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "command: exit 1: =========================== short test summary info ===========================",
     "FAILED test_neg.py::test_neg - assert 2 == -2",
     "1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
@@ -60,10 +59,10 @@
     "- worker.md: PASS red-test - red, exit 1 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-test - green, exit 0 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider --junitxml={results} {test})",
-    "- patcher.md: FAIL command - exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s (python -m pytest -q)",
+    "- patcher.md: FAIL command - exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s (python -m pytest -q)",
     "- patcher.md: PASS red-test - green, exit 0 (python -m pytest -q test_calc.py)",
     "- patcher.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider --junitxml={results} {test})",
-    "- patcher.md: FAIL command - exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s (python -m pytest -q)",
+    "- patcher.md: FAIL command - exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s (python -m pytest -q)",
     "- red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py)",
     "- test order: red before any product code: red-test on worker.md (test_calc.py, written)",
     "- worker verified: the test fails on the code as it stands | cmd: python -m pytest -q test_calc.py | saw: 1 failed -> unchecked: no transcript for this step",
@@ -78,8 +77,8 @@
     "- keep: the task - add(1, 2) is 3 (worker)",
     "## retro",
     "- worker.md <secs>s ($0.0100), won proved: no events",
-    "- patcher.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s",
-    "- patcher.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s",
+    "- patcher.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s",
+    "- patcher.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 0 passes, <secs>s, $0.0000",
@@ -271,14 +270,14 @@
         {
           "gate": "command",
           "ok": false,
-          "detail": "exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s"
+          "detail": "exit 1: =========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s"
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
       "cause": null,
-      "why": "command: exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s",
+      "why": "command: exit 1: =========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s",
       "file": "steps/002-patcher.md",
       "task_file": "task.md",
       "tasks": null,
@@ -360,14 +359,14 @@
         {
           "gate": "command",
           "ok": false,
-          "detail": "exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s"
+          "detail": "exit 1: =========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s"
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
       "cause": "gate failed",
-      "why": "command: exit 1: nError\n=========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
+      "why": "command: exit 1: =========================== short test summary info ===========================\nFAILED test_neg.py::test_neg - assert 2 == -2\n1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/003-patcher.md",
       "task_file": "task.md",
       "tasks": null,
@@ -399,25 +398,23 @@
     "started patcher.md",
     "  PASS red-test - green, exit 0",
     "  PASS red-first - not replayed - the place is not in a git work tree",
-    "  FAIL command - exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "  FAIL command - exit 1: =========================== short test summary info ===========================",
     "FAILED test_neg.py::test_neg - assert 2 == -2",
     "1 failed, 1 passed in <secs>s",
     "gate command failed at patcher.md, sent back to patcher.md",
     "started patcher.md",
     "  PASS red-test - green, exit 0",
     "  PASS red-first - not replayed - the place is not in a git work tree",
-    "  FAIL command - exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "  FAIL command - exit 1: =========================== short test summary info ===========================",
     "FAILED test_neg.py::test_neg - assert 2 == -2",
     "1 failed, 1 passed in <secs>s",
     "gate failed at patcher.md, stopping",
-    "# fix-with-test fix-with-test-<run>: stopped: gate failed at patcher.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
+    "# fix-with-test fix-with-test-<run>: stopped: gate failed at patcher.md - command: exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> patcher.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 5 of 7 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
-    "- stopped: gate failed at patcher.md - command: exit 1: nError =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
+    "- stopped: gate failed at patcher.md - command: exit 1: =========================== short test summary info =========================== FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
     "  what it needs from you and the command to carry on are under needs you, below.",
     "## why",
     "worker handed over this before the stop, not taken as done:",
@@ -429,8 +426,7 @@
     "## needs you",
     "cause          gate failed",
     "stopped at     patcher.md",
-    "command: exit 1: nError",
-    "=========================== short test summary info ===========================",
+    "command: exit 1: =========================== short test summary info ===========================",
     "FAILED test_neg.py::test_neg - assert 2 == -2",
     "1 failed, 1 passed in <secs>s; patcher.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
@@ -447,7 +443,7 @@
   ],
   "prompts": [
     "patcher.md go 1 0e31e1d6b007bfb40c759295af280422f6b8c95cce03e0294596f19f139adeaa",
-    "patcher.md go 2 ddc9f93ed1c20586dcf4eb2e6b30f5c5c8b08c33e8897793f77943bec3fd480b",
+    "patcher.md go 2 95d16ac064f53246f356e8e91c5ee49dd3820b4280286f7d2ecf299ef01705b6",
     "worker.md go 1 7eae149b621e60f08dda7eb480ecf63acdd6424071117a20e8be78d95079bbee"
   ]
 }

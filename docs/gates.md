@@ -84,7 +84,9 @@ once is the default. a flow that wants more, or none, sets `send_backs` in its
 before the run stops, at 0 the first failure stops it.
 
 a command or red-test gate keeps the last 160 characters of what the command
-printed, not the first: a test runner says what failed at the end.
+printed, not the first: a test runner says what failed at the end. the
+quote starts at the start of the oldest line that fits whole in them, or at
+a word when the last line alone is longer.
 
 a command, red-test or red-first gate runs its command with
 `PYTHONDONTWRITEBYTECODE=1` and `PYTHONPYCACHEPREFIX` set to a new empty

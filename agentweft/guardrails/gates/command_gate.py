@@ -6,6 +6,27 @@ from agentweft.mcp import preflight
 
 from .base import Gate, fresh_python, register
 
+QUOTE = 160
+
+
+def tail(output, limit=QUOTE):
+    """-> the end of `output` in at most `limit` characters, from the start of
+    the oldest line that fits whole, or from a word in the first half of the
+    cut when the last line alone is longer, else the cut as it falls."""
+    text = output.strip()
+    if len(text) <= limit:
+        return text
+    cut = text[-limit:]
+    if text[-limit - 1] == "\n":
+        return cut.lstrip("\r\n")
+    at = cut.find("\n")
+    if at != -1 and cut[at + 1:].strip():
+        return cut[at + 1:].lstrip("\r\n")
+    at = cut.find(" ")
+    if at != -1 and at < limit // 2:
+        return cut[at + 1:]
+    return cut
+
 
 @register
 class CommandGate(Gate):
@@ -77,4 +98,4 @@ class CommandGate(Gate):
             return self.ok("exit " + str(r.returncode) + said)
         # a test runner's verdict is at the end of what it prints
         return self.fail("exit " + str(r.returncode) + ": "
-                         + (r.stderr or r.stdout).strip()[-160:] + said)
+                         + tail(r.stderr or r.stdout) + said)
