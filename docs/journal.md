@@ -427,7 +427,11 @@ answers, in order:
 - **what came of it**: the heading, the run's outcome, then on a stop where
   and why; only a run that got through adds the last working step's first
   DID line, so a stop never leads with "fixed". then what ran, the `suite:`
-  line (gates passed and the red-first proof) and the `changed:` line.
+  line (gates passed, the checks the runner made outside the gates and the
+  red-first proof) and the `changed:` line. a conflict stop counts its
+  quote check (`1 check passed (the quote at TASK.md:3 is there as the run
+  found it)`), or the tests the run started with run again; `no gates ran`
+  is only for a run that checked nothing.
 - **the one decision**: the open questions, from a `QUESTION:` line in a
   step's HANDOFF block (which never stops the run), a `NEEDS:` or
   `CONFLICT:` line (which do), a doubt that is a question, what the
@@ -476,7 +480,9 @@ the whole file looks like the example at the end of this section.
 what the runner knows is written from the runner, never from a step's text:
 the files that changed and the commits (git, against the tree at run start,
 each file `+added -removed` and `committed`, `uncommitted` or `untracked`),
-every gate's verdict with the command behind it, the red-first proof (the
+every gate's verdict with the command behind it, each check the runner made
+outside the gates (`- <step>: PASS quote check - <what it found>`), the
+red-first proof (the
 newest `red-first` gate that replayed something: `shown on <step>` with each
 new test's line, `red without the fix (assertion), green with it`, a case
 added after green ending `; added after green, coverage` or `; added after

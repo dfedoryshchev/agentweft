@@ -1969,7 +1969,8 @@ def run_flow():
         return path, lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
-             told=None, at=None, handed=None, question=None, replayed=False):
+             told=None, at=None, handed=None, question=None, replayed=False,
+             checked=()):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -1979,6 +1980,8 @@ def run_flow():
         the step stays not run, so carrying on starts at it. `question` is
         what the step asked instead of doing the work: the run waits for a
         ruling, and carrying on runs the step again with the answer.
+        `checked` is (check, passed, what it found) for each check the
+        runner made on the answer outside its gates.
 
         -> the exit code.
         """
@@ -2050,7 +2053,7 @@ def run_flow():
             needs = park.lines(at, None, done, resume.remaining(steps(flow), at),
                                carry, why=told, cause=cause, handed=handed)
         note = leave({"cause": cause, "why": why, "at": at,
-                      "question": question}, needs)
+                      "question": question, "checked": list(checked)}, needs)
         if index:
             write_index(index)
         journal(fm["name"], stops.status(cause, at), started, run=run_id,
@@ -2238,7 +2241,10 @@ def run_flow():
                             + said[0].split(NEWLINE)[0][len("NEEDS: "):],
                             "conflict", entry,
                             index="CONFLICT  " + flow + "  at " + step,
-                            question=said[0])
+                            question=said[0], checked=[(
+                                "quote check", True, "the quote at "
+                                + ", ".join(ruling.authorised(said[0]))
+                                + " is there as the run found it")])
             wrong = wrongtest.judge(out.output, step, run, route) \
                 if honest else None
             if wrong and wrong[0] == "back":
@@ -2310,7 +2316,9 @@ def run_flow():
                 print(step + " turned a test the run started with red")
                 return stop(stops.CONFLICT, held[0], "conflict", entry,
                             index="CONFLICT  " + flow + "  at " + step,
-                            question=held[1], replayed=True)
+                            question=held[1], replayed=True, checked=[(
+                                "start tests", False, "run again against "
+                                + step + ", not all green as they were")])
             if failed:
                 # nothing goes past a failed gate: the step goes again with
                 # what the gate said, and once the cap is spent the run stops

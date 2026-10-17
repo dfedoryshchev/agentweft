@@ -141,6 +141,9 @@ def test_a_product_step_that_turns_a_start_test_red_stops_naming_it(
     handoff = read(folder / "handoff.md")
     assert "contradicts the spec" not in handoff
     assert '--answer "override: <why the change holds>"' in handoff
+    assert "- worker.md: FAIL start tests - run again against worker.md," \
+        " not all green as they were" in handoff
+    assert "1 check failed (run again against worker.md" in handoff
     assert no_checkout_left(place)
 
 

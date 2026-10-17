@@ -795,7 +795,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     passed = sum(1 for g in gates if g["ok"] and not g.get("skipped"))
     checks = (str(passed) + " of " + str(len(gates)) + " gates passed"
               + (", " + str(unrun) + " skipped" if unrun else "")
-              if gates else "no gates ran")
+              if gates else "")
+    made = (stopped or {}).get("checked") or []
+    checks = "; ".join([c for c in [checks] if c] + [
+        "1 check " + ("passed" if ok else "failed") + " (" + found + ")"
+        for _, ok, found in made]) or "no gates ran"
     out.append("suite: " + checks + "; red first: " + red_first(every)
                + ("; " + order if order.startswith("tests skipped") else "")
                + "".join("; " + s for s in skipped) + ".")
@@ -930,6 +934,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                               else ""))
         elif p.get("ungated"):
             out.append("- " + at(p) + ": no gates")
+    out.extend("- " + stopped["at"] + ": " + ("PASS " if ok else "FAIL ")
+               + name + " - " + found
+               for name, ok, found in (stopped or {}).get("checked") or [])
     out.append("- red first: " + red_first(every))
     if order:
         out.append("- test order: " + order)

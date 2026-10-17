@@ -412,3 +412,25 @@ def test_a_long_task_line_and_stop_reason_still_fit_the_budget():
     assert front.tokens(top) <= front.BUDGET, front.tokens(top)
     assert lines[0].startswith("# f f-1: stopped: gate failed at worker.md")
     assert "x" * 3000 in "\n".join(lines[len(top):])
+
+
+def test_a_conflict_stop_lists_the_quote_check_it_ran(
+        tmp_path, monkeypatch, fake_cli):
+    from agentweft.runner import engine
+    from test_stops import a_flow, answer, the_folder
+
+    (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                      encoding="utf-8")
+    a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"])
+    fake_cli(answer('CONFLICT: TASK.md:1 "amounts are strings"\n'
+                    "REQUEST: make them numbers\n"))
+    assert engine.main() == 2
+    note = (the_folder() / "handoff.md").read_text(encoding="utf-8")
+    assert "no gates ran" not in note
+    lines = note.split("\n")
+    [suite] = [l for l in lines if l.startswith("suite: ")]
+    assert suite.startswith("suite: 1 check passed (the quote at TASK.md:1"
+                            " is there as the run found it)"), suite
+    checks = lines[lines.index("## tests and checks"):]
+    assert "- worker.md: PASS quote check - the quote at TASK.md:1 is there" \
+        " as the run found it" in checks, "\n".join(checks)
