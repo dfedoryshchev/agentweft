@@ -141,6 +141,26 @@ class Order(object):
         return writes in bounds.MAY and \
             not (self.skip and writes == "tests")
 
+    def runner_wrote(self, path, data):
+        """the runner itself wrote `data` to `path` in the place: a step
+        watched since is held to those bytes there, not to what the file
+        held before its first go. any other change to it is still the
+        step's."""
+        if not self.watching or self.start is None or not self.start.hashed:
+            return
+        try:
+            rel = Path(path).resolve().relative_to(
+                Path(self.start.root).resolve()).as_posix()
+        except ValueError:
+            return
+        product = data is not None and rel in self.start.product_now()
+        at = bounds.KINDS.index("product code")
+        for held in self.watching.values():
+            if product:
+                held[at][rel] = _sha(data)
+            else:
+                held[at].pop(rel, None)
+
     def passed(self, step):
         self.watching.pop(step, None)
 

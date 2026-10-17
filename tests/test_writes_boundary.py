@@ -283,3 +283,13 @@ def test_a_reviewer_that_asks_and_is_ruled_by_the_lead_is_not_charged_with_the_r
     assert code == 0, why.read_text(encoding="utf-8") if why.exists() else ""
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
                      "planner.md", "reviewer.md", "reviewer-runs.md"]
+
+
+def test_decisions_md_has_no_name_that_lets_a_step_change_it():
+    from agentweft.guardrails import writes
+
+    before = ({}, {}, {decisions.FILE: "a" * 64})
+    after = ({}, {}, {decisions.FILE: "b" * 64})
+    said = writes.held("tester.md", "tests", before, after, lambda rel: rel)
+    assert said.startswith("tester.md writes tests only and changed product"
+                           " code: " + decisions.FILE)

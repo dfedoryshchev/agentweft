@@ -17,7 +17,6 @@ read the same as one that leaves it in the work tree. a step that changed
 what it may not fails like a gate, with the files named.
 """
 from agentweft.guardrails.snapshot import changed
-from agentweft.orchestrate import decisions
 
 NAME = "writes"
 # in the order `Snapshot.hashes()` hands them back
@@ -51,11 +50,7 @@ def held(step, writes, before, now, place, spec_ok=False):
     allowed = may(writes, spec_ok)
     out = []
     for kind, was, has in zip(KINDS, before, now):
-        # the runner appends a lead's ruling to decisions.md between a
-        # step's goes; a step's own edit to it is the rulings check's
-        moved = [rel for rel in changed(was, has)
-                 if place(rel) != decisions.FILE] \
-            if kind not in allowed else []
+        moved = changed(was, has) if kind not in allowed else []
         if moved:
             out.append(kind + ": " + ", ".join(place(rel) for rel in moved))
     if not out:

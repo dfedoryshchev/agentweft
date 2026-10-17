@@ -396,11 +396,20 @@ class Run(object):
         return kept.read(but=(rulings.LEAD,))
 
     def rule(self, decided, why, by):
-        """write a ruling to decisions.md and to the runner's own record."""
+        """write a ruling to decisions.md and to the runner's own record. a
+        step that asked and acts on it is held to the file as the runner
+        left it, not as it was before the step's first go."""
         kept = getattr(self, "kept", None)
         if kept is None:
-            return decisions.record(Path(self.workdir), decided, why)
-        return kept.record(decided, why, by)
+            path = decisions.record(Path(self.workdir), decided, why)
+            data = snapshot._read(path)
+        else:
+            path = kept.record(decided, why, by)
+            data = kept.data
+        order = getattr(self, "order", None)
+        if order is not None:
+            order.runner_wrote(path, data)
+        return path
 
     def held_rulings(self, step):
         """note why `step` fails when it changed decisions.md."""

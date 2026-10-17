@@ -451,7 +451,11 @@ step start, and it only counts tests the run wrote.) the proof is kept as
   changed. the tests, spec files and product files are hashed before the
   step's first go and again after each go, so a step sent back has to undo
   its edit, a commit changes nothing, and a step that a reviewer sends back
-  after a later step ran is held to its own edits.
+  after a later step ran is held to its own edits. a ruling the runner
+  writes to `decisions.md` in between (the lead's decision on the step's
+  question) is not the step's edit: the step is held to the file as the
+  runner left it, and a change it makes there itself still fails, here and
+  at the rulings check.
 - anything unknown refuses: no start snapshot (a resume whose folder lost it
   stops with `no start snapshot`), no proof record, or a red-test gate that
   ran nothing.
