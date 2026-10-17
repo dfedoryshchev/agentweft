@@ -341,3 +341,36 @@ def test_squash_of_a_rename_commits_the_tree_the_steps_left(tmp_path):
     assert git(place, "rev-parse", "HEAD^{tree}").strip() == tip
     assert git(place, "status", "--porcelain") == ""
     assert len(git(place, "rev-list", "main..HEAD").split()) == 1
+
+
+def test_a_step_commit_refuses_once_the_place_left_the_run_branch(tmp_path):
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    c = a_committer(place, commits.WIP)
+    git(place, "checkout", "-q", "main")
+    mine = head(place)
+    (place / "report.py").write_text(COUNTED, encoding="utf-8")
+    with pytest.raises(ValueError, match="agentweft/run-1"):
+        c.step("worker.md", "build")
+    assert head(place) == mine
+    assert "M report.py" in git(place, "status", "--porcelain")
+
+
+def test_the_squash_leaves_the_persons_branch_alone_after_a_switch(
+        tmp_path):
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    c = a_committer(place, commits.SQUASH)
+    (place / "report.py").write_text(COUNTED, encoding="utf-8")
+    c.step("worker.md", "build")
+    run_tip = head(place)
+    git(place, "checkout", "-q", "main")
+    (place / "mine.txt").write_text("mine" + NL, encoding="utf-8")
+    git(place, "add", "mine.txt")
+    git(place, "commit", "-qm", "my own work")
+    mine = head(place)
+    c.finish("build", "task")
+    assert git(place, "rev-parse", "main").strip() == mine
+    assert git(place, "rev-parse", "agentweft/run-1").strip() == run_tip
+    assert c.squashed is None
+    assert "not squashed" in c.said() and "main" in c.said()

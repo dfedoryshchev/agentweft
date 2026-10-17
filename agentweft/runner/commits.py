@@ -70,6 +70,7 @@ class Committer(object):
         self.squashed = None
         self.order = None
         self.folder = None
+        self.away = None
         if how == NONE:
             return
         said = "commits: " + how
@@ -183,6 +184,12 @@ class Committer(object):
         paths = self.pending()
         if not paths:
             return None
+        on = self.current()
+        if on != self.branch:
+            raise ValueError("commits: the place left the run's branch "
+                             + self.branch + " for " + (on or "no branch")
+                             + ", and the run commits only on its own. switch"
+                             " back to " + self.branch + " to carry it on")
         sha = self._commit(paths, "wip(" + flow + "): " + name)
         if sha:
             self.made.append({"step": name, "sha": sha, "files": paths})
@@ -199,6 +206,10 @@ class Committer(object):
             (self.start.place / f).relative_to(self.start.root).as_posix()
             for f in proved])
         if self.how != SQUASH or not self.base:
+            return
+        on = self.current()
+        if on != self.branch:
+            self.away = on or "no branch"
             return
         tip = self.head()
         code, tree, _ = _git(self.start.root, "rev-parse", "HEAD^{tree}")
@@ -231,8 +242,10 @@ class Committer(object):
         """-> what the commits since the base say about the order: the first
         commit holding a test file (one of `tests` when there are any) and the
         first holding product code, "" when there is nothing to say."""
+        if not self.branch:
+            return ""
         code, out, _ = _git(self.start.root, "rev-list", "--reverse",
-                            self.base + "..HEAD")
+                            self.base + ".." + self.branch)
         if code != 0:
             return ""
         wanted = set(tests)
@@ -281,6 +294,9 @@ class Committer(object):
         else:
             line = (self.how + " on " + self.branch + ": "
                     + (steps or "nothing committed"))
+        if self.away:
+            line = (line + ", not squashed: the place was on " + self.away
+                    + " at the end, not " + self.branch)
         if self.was:
             line = line + ", started from " + self.was
         return line + ("; " + order if order else "")

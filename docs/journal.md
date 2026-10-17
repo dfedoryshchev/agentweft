@@ -1010,7 +1010,10 @@ its tree the last step commit's, renames and deletions included; your files
 and your index are left as they are. a run
 that stops keeps its step commits, and `--resume` carries on on the same
 branch and squashes at its end; a resume with the place on another branch
-refuses and names the run's.
+refuses and names the run's. so does a step commit when the place has
+left the run's branch mid-run, and a squash then is skipped, the handoff
+naming the branch the place was on: your branch is never committed on or
+reset.
 
 the handoff's tests and checks get one more line:
 
