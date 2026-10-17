@@ -2265,7 +2265,7 @@ def run_flow(unrecorded):
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None, handed=None, question=None, replayed=False,
-             checked=(), worked=None):
+             checked=(), worked=None, stopped_for=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -2278,7 +2278,9 @@ def run_flow(unrecorded):
         `checked` is (check, passed, what it found) for each check the
         runner made on the answer outside its gates. `worked` is what the
         gates of a step that changed the place before it asked said of it
-        ("" passed), None when it changed nothing.
+        ("" passed), None when it changed nothing. `stopped_for` is what a
+        step that did the work did that its gates stop the run on, for a
+        question the runner asks rather than the step.
 
         -> the exit code.
         """
@@ -2322,7 +2324,8 @@ def run_flow(unrecorded):
                                resume.remaining(steps(flow), at),
                                resume_command(flow, run_id, run.caps),
                                question=question, conflict=conflict,
-                               replayed=replayed, worked=worked)
+                               replayed=replayed, worked=worked,
+                               stopped_for=stopped_for)
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:
@@ -2629,13 +2632,16 @@ def run_flow(unrecorded):
                 print(step + " removed or rewrote a line of the spec")
                 return stop(stops.PARKED, spec_asks[0], "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", question=spec_asks[1])
+                            waiting="user", question=spec_asks[1],
+                            stopped_for="removed or rewrote spec lines the"
+                            " run started with")
             test_asks = out.meta.pop("test_ruling", None)
             if test_asks:
                 print(step + " changed a test the run started with")
                 return stop(stops.PARKED, test_asks[0], "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", question=test_asks[1])
+                            waiting="user", question=test_asks[1],
+                            stopped_for="changed tests the run started with")
             held = out.meta.pop("conflict", None)
             if held:
                 print(step + " turned a test the run started with red")

@@ -139,3 +139,34 @@ def test_a_redo_past_the_cap_on_the_last_step_is_not_an_ok_run(tmp_path,
     run_dir, line = a_stubborn_reviewer(tmp_path, monkeypatch, "stubborn-last")
     assert line.split("  ")[2] == "parked at reviewer.md"
     assert (run_dir / summary.FILE).exists()
+
+
+def needs_you(flow, path, tmp_path, monkeypatch, capsys):
+    from test_golden import CASES, replay
+    got = replay(flow, CASES[(flow, path)], tmp_path, monkeypatch, capsys)
+    text = "\n".join(got["handoff"])
+    return text.split("## needs you")[1].split("\n## ")[0]
+
+
+def test_a_stop_on_a_rewritten_spec_line_says_the_step_did_the_work(
+        tmp_path, monkeypatch, capsys):
+    text = needs_you("build-feature", "spec-rewrite", tmp_path, monkeypatch,
+                     capsys)
+    assert "instead of doing the work" not in text
+    assert "worker.md did the work, then the run stopped for a ruling: it" \
+        " removed or rewrote spec lines the run started with." in text
+
+
+def test_a_stop_on_a_changed_start_test_says_the_step_did_the_work(
+        tmp_path, monkeypatch, capsys):
+    text = needs_you("fix-with-test", "start-test-edited", tmp_path,
+                     monkeypatch, capsys)
+    assert "instead of doing the work" not in text
+    assert "worker.md did the work, then the run stopped for a ruling: it" \
+        " changed tests the run started with." in text
+
+
+def test_a_question_asked_with_the_tree_unchanged_still_says_so(
+        tmp_path, monkeypatch, capsys):
+    text = needs_you("code-review", "ruling", tmp_path, monkeypatch, capsys)
+    assert "worker.md asked for a ruling instead of doing the work:" in text

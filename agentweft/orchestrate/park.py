@@ -21,7 +21,7 @@ passes to the next, machine to machine. this is what a run passes to a person.
 
 def lines(step, who, done, left, command, why=None, again=False, cause=None,
           handed=None, question=None, conflict=False, replayed=False,
-          worked=None):
+          worked=None, stopped_for=None):
     """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
@@ -39,14 +39,18 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     line, not by editing a file, so the section ends with the command that
     takes it. `worked` is None when the step asked instead of doing the work,
     and otherwise what its gates said of the place it changed before asking,
-    "" when they passed. `conflict` is a question the step raised by finding
+    "" when they passed. `stopped_for` is what the step did that the run
+    stopped on when the question is the runner's, not the step's: it did the
+    work, and something in it needs a ruling. `conflict` is a question the
+    step raised by finding
     the request contradicts the spec, which has two answers; `replayed` says
     the conflict is a test the run started with gone red.
     """
     if question is not None and conflict:
         return contradicted(step, done, left, command, question, replayed)
     if question is not None:
-        return ruling(step, who, done, left, command, question, worked)
+        return ruling(step, who, done, left, command, question, worked,
+                      stopped_for)
     if who is None:
         return stopped(step, cause, done, left, command, why, handed)
     out = ["waiting for    " + who]
@@ -93,9 +97,13 @@ def ran_and_left(out, done, left):
 ANSWER = ' --answer "<your ruling>"'
 
 
-def ruling(step, who, done, left, command, question, worked=None):
+def ruling(step, who, done, left, command, question, worked=None,
+           stopped_for=None):
     out = ["waiting for    " + who, "stopped at     " + step, ""]
-    if worked is None:
+    if stopped_for:
+        out.append(step + " did the work, then the run stopped for a ruling:"
+                   " it " + stopped_for + ".")
+    elif worked is None:
         out.append(step + " asked for a ruling instead of doing the work:")
     else:
         out.append(step + " did the work, then asked for a ruling:")
