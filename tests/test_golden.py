@@ -112,6 +112,14 @@ FIXES = {
                                " was checked"),
                        {"calc.py": FIXED})]}
 
+NEG = "\n\ndef neg(a):\n    return -a\n"
+NEG_TEST = "from calc import neg\n\n\ndef test_neg():\n    assert neg(2) == -2\n"
+FIXED_NEG_BROKEN = FIXED + "\n\ndef neg(a):\n    return a\n"
+PATCH_BREAKS_NEG = say("TEST: test_calc.py\n\n-    return a - b\n"
+                       "+    total = a + b\n+    return total\n"
+                       "-    return -a\n+    return a\n",
+                       {"calc.py": FIXED_NEG_BROKEN})
+
 FEATURE = "calc gets mul(a, b), which multiplies"
 ADD_ONLY = "def add(a, b):\n    return a + b\n"
 WITH_MUL = ADD_ONLY + "\n\ndef mul(a, b):\n    return a * b\n"
@@ -122,6 +130,7 @@ MUL_PLAN = ("- behaviour: mul(2, 3) is 6\n  file: calc.py\n"
 MUL_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
               "TEST: test_mul.py\n\n" + MUL_TEST, {"test_mul.py": MUL_TEST})
 MUL_BUILT = "- calc.py: mul(a, b) added\n"
+ADD_TEST = "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
 MUL_SPEC = "# calc\n\nmul(a, b) returns a times b\n"
 MUL_NEEDS = ("NEEDS: should mul round a float product to an int?\n"
              "CITES:\n- TASK.md:3 - mul(a, b) returns a times b\n"
@@ -341,6 +350,18 @@ CASES = {
             "tester.md": [MUL_RED],
             "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL})],
             "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("fix-with-test", "suite-red"): {
+        "place": {"calc.py": BUGGY + NEG, "test_neg.py": NEG_TEST},
+        "args": ["--task", BUG], "task": BUG,
+        "answers": {"worker.md": FIXES["worker.md"],
+                    "patcher.md": [PATCH_BREAKS_NEG] * 2}},
+    ("build-feature", "suite-red"): {
+        "place": {"calc.py": ADD_ONLY, "test_add.py": ADD_TEST},
+        "args": ["--task", FEATURE], "answers": {
+            "planner.md": [MUL_PLAN],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT, {"calc.py": BUGGY + "\n\ndef mul(a, b)"
+                                          ":\n    return a * b\n"})] * 2}},
 }
 
 
@@ -549,6 +570,9 @@ STAMPS = (
     # the retro's "- won none: 3 passes, 4.2s, $0.0300"
     (re.compile(r"(?<=pass, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
     (re.compile(r"(?<=passes, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
+    # pytest's own run time, in the output tail a failed command gate quotes
+    (re.compile(r"\b((?:passed|failed|errors?|skipped) in )\d+(\.\d+)?s\b"),
+     r"\1<secs>s"),
     # the handoff's chain head hashes lines that carry the time
     (re.compile(r"(?<=lines, head )[0-9a-f]{16}"), "<hash>"),
 )
