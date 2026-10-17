@@ -100,8 +100,9 @@ class Committer(object):
                                  + ". switch back to " + self.branch
                                  + " to carry the run on")
 
-    def _config(self, key):
-        code, out, _ = _git(self.start.root, "config", "--get", key)
+    def _config(self, key, kind=None):
+        typed = ["--type=" + kind] if kind else []
+        code, out, _ = _git(self.start.root, "config", *typed, "--get", key)
         return out.strip() if code == 0 else ""
 
     def current(self):
@@ -199,21 +200,31 @@ class Committer(object):
             for f in proved])
         if self.how != SQUASH or not self.base:
             return
-        code, out, _ = _git(self.start.root, "diff", "--name-only", "-z",
-                            self.base, "HEAD")
-        paths = [p for p in out.split("\0") if p] if code == 0 else []
-        if not paths:
+        tip = self.head()
+        code, tree, _ = _git(self.start.root, "rev-parse", "HEAD^{tree}")
+        code_base, was, _ = _git(self.start.root, "rev-parse",
+                                 self.base + "^{tree}")
+        if code or code_base or tree.strip() == was.strip():
             return
         first = (task or "").strip().split("\n")[0][:60]
         message = flow + (": " + first if first else ": " + self.branch)
         body = "from the step commits:\n" + "\n".join(
             "- " + m["sha"][:12] + " " + m["step"] for m in self.made)
-        code, _, err = _git(self.start.root, "reset", "-q", "--soft",
-                            self.base)
+        # the tip's tree as it is, so a rename keeps no trace of the old
+        # path, and the person's index and files are not touched
+        sign = ["-S"] if self._config("commit.gpgsign", "bool") == "true" \
+            else []
+        code, sha, err = _git(self.start.root, "commit-tree", *sign,
+                              tree.strip(), "-p", self.base,
+                              given=message + "\n\n" + body + "\n")
         if code != 0:
             raise ValueError("commits: could not squash: " + err.strip())
-        sha = self._commit(paths, message + "\n\n" + body)
-        self.squashed = sha
+        code, _, err = _git(self.start.root, "update-ref", "-m",
+                            "agentweft: squash", "refs/heads/" + self.branch,
+                            sha.strip(), tip)
+        if code != 0:
+            raise ValueError("commits: could not squash: " + err.strip())
+        self.squashed = sha.strip()
         self.save()
 
     def evidence(self, tests=()):

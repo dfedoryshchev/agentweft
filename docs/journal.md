@@ -1005,7 +1005,9 @@ commits what that step changed as `wip(<flow>): <step>`.
 `runs/<id>/commits.json` keeps the branch, the commit it started from, the
 branch it was started on and each step's commit with its files. `squash`
 folds the step commits into one once every step has passed, its subject the
-flow and the task's first line, its body the step commits it replaced. a run
+flow and the task's first line, its body the step commits it replaced,
+its tree the last step commit's, renames and deletions included; your files
+and your index are left as they are. a run
 that stops keeps its step commits, and `--resume` carries on on the same
 branch and squashes at its end; a resume with the place on another branch
 refuses and names the run's.

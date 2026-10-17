@@ -319,3 +319,25 @@ def test_the_mode_is_a_flow_key_with_three_values():
     bad = flowspec.check(dict(base, commits="always"))
     assert any("commits should be one of none, wip, squash" in b
                for b in bad), bad
+
+
+def a_committer(place, how, run_id="run-1"):
+    from agentweft.guardrails import snapshot
+    from agentweft.runner import commits
+    c = commits.Committer(how, snapshot.take(place))
+    c.begin(run_id)
+    return c
+
+
+def test_squash_of_a_rename_commits_the_tree_the_steps_left(tmp_path):
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    c = a_committer(place, commits.SQUASH)
+    git(place, "mv", "report.py", "listing.py")
+    git(place, "reset", "-q")
+    c.step("worker.md", "build")
+    tip = git(place, "rev-parse", "HEAD^{tree}").strip()
+    c.finish("build", "rename it")
+    assert git(place, "rev-parse", "HEAD^{tree}").strip() == tip
+    assert git(place, "status", "--porcelain") == ""
+    assert len(git(place, "rev-list", "main..HEAD").split()) == 1
