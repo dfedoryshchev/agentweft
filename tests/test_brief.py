@@ -66,6 +66,37 @@ def test_a_step_gets_the_steps_before_it_and_a_later_go_replaces_the_first(
     assert "the minus" not in again and "the rule" in again
 
 
+def claim(cmd, shown, saw="5 passed"):
+    from agentweft.runner import handoff
+
+    return handoff.back(handoff.parse(
+        "HANDOFF\nVERIFIED:\n- the whole suite is green\n"
+        "  cmd: " + cmd + "\n" + ("  saw: " + saw + "\n" if saw else "")
+        + "END HANDOFF\n"), shown)
+
+
+SUITE = "python -m pytest -q"
+
+
+def test_only_a_claim_its_transcript_backs_is_an_established_fact(tmp_path):
+    from agentweft.runner import brief
+
+    for kept, state in ((claim(SUITE, None), "unchecked"),
+                        (claim(SUITE, [(SUITE, "1 failed")]), "unbacked"),
+                        (claim(SUITE, [(SUITE, "5 passed")], saw=""), "ran"),
+                        (claim("python -m pytest ... -q", []), "shortened")):
+        assert kept["verified"][0]["backed"] == state
+        notes = brief.Brief(tmp_path, ["worker.md", "reviewer.md"])
+        notes.add("worker.md", None, "worker", kept)
+        assert "the whole suite is green" not in notes.text("reviewer.md"), \
+            state
+    notes = brief.Brief(tmp_path, ["worker.md", "reviewer.md"])
+    notes.add("worker.md", None, "worker", claim(
+        "python -m pytest -q", [("python -m pytest -q", "5 passed in 1s")]))
+    assert ("the whole suite is green, checked with: python -m pytest -q"
+            in notes.text("reviewer.md"))
+
+
 def test_a_windows_path_and_a_non_ascii_line_are_quoted(tmp_path):
     from agentweft.runner import brief, handoff
 
@@ -109,7 +140,8 @@ def test_a_second_step_starts_from_the_lines_the_first_one_quoted(
     brief = kept.read_text(encoding="utf-8")
     assert "return a - b  # kept-quote-marker" in brief
     assert "add adds, and never rounds." in brief
-    assert "add(2, 1) gives 1" in brief
+    # this cli keeps no transcript, so the claim was never checked
+    assert "add(2, 1) gives 1" not in brief
     assert len(brief) <= CAP
 
     first, second = sent

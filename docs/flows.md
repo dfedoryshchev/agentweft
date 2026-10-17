@@ -93,8 +93,10 @@ open a file only for what it does not show, for lines about to change, or for
 a quote in doubt:
 
 - rules: each MUST NOT MISS line, with the `path:line` it names quoted
-- facts: each step's first DID line, and each VERIFIED claim the transcript
-  did not contradict, with the command it was checked with
+- facts: each step's first DID line, and each VERIFIED claim the step's
+  transcript backs, with the command it was checked with; a claim with no
+  transcript to check it against, or with no output quoted, is not a fact
+  here
 - lines read: each READ line, `path:lines - what mattered`, with those lines
   quoted from the place as it is when the step starts, 12 at most per line
 

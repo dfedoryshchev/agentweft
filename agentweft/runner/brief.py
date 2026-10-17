@@ -4,7 +4,8 @@ each step starts in a fresh session. the handoff told the next step which
 files were read and not what they said, so it opened them again: the spec,
 the code, the tests, every step, paid for each time. the brief carries the
 lines themselves. every READ and MUST NOT MISS line naming `path:lines` is
-quoted from the place, and every checked claim is kept with its command.
+quoted from the place, and every claim its step's transcript backs is kept
+with its command; a claim nothing checked is not handed on as a fact.
 
 a step gets the brief of the steps before it in the flow's order, not the
 whole run: a step asked again with nothing new above it gets the same prompt,
@@ -64,7 +65,7 @@ class Brief(object):
         if did:
             found["facts"].append((role, role + " did: " + did[0]))
         for v in block.get("verified", []):
-            if v.get("backed") == "unbacked" or not v.get("claim"):
+            if v.get("backed") != "backed" or not v.get("claim"):
                 continue
             line = v["claim"]
             if v.get("cmd"):
