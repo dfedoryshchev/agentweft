@@ -1,5 +1,6 @@
 """`agentweft init`, the settings it writes, and the quick start it prints."""
 import builtins
+import hashlib
 import os
 import shlex
 import sys
@@ -133,6 +134,45 @@ def test_a_blank_model_leaves_a_shell_export_standing(place, monkeypatch):
     assert "MODEL_HIGH" not in (place / ".env").read_text(encoding="utf-8")
     engine.load_env()
     assert os.environ["MODEL_HIGH"] == "opus"
+
+
+def a_host_project(place):
+    files = {"CLAUDE.md": "# house rules\n",
+             ".claude/settings.json": '{"permissions": {"allow": []}}\n',
+             "README.md": "# host\n",
+             "pyproject.toml": "[project]\nname = \"host\"\n",
+             "tests/test_host.py": "def test_host():\n    assert True\n"}
+    for rel, text in files.items():
+        (place / rel).parent.mkdir(parents=True, exist_ok=True)
+        (place / rel).write_bytes(text.encode("utf-8"))
+
+
+def hashes(place):
+    return {p.relative_to(place).as_posix():
+            hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in place.rglob("*") if p.is_file()}
+
+
+def test_init_leaves_a_projects_own_files_byte_identical(place, monkeypatch,
+                                                          capsys):
+    a_host_project(place)
+    before = hashes(place)
+    answers(monkeypatch, *[""] * len(init.QUESTIONS) + ["y"])
+    assert agentweft(monkeypatch, "init") == 0
+    after = hashes(place)
+    assert {k: after[k] for k in before} == before
+    assert set(after) - set(before) == {".env", "prices.yaml"}
+    capsys.readouterr()
+
+    assert agentweft(monkeypatch, "init", "--yes") == 1
+    assert hashes(place) == after
+    assert "init does not write over it" in capsys.readouterr().out
+
+    (place / "prices.yaml").write_bytes(b"mine: 1\n")
+    edited = hashes(place)
+    answers(monkeypatch, *[""] * len(init.QUESTIONS) + ["y"])
+    assert agentweft(monkeypatch, "init", "--force") == 0
+    assert hashes(place) == edited
 
 
 def test_the_permission_modes_offered_are_the_ones_claude_takes():
