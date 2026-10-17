@@ -19,6 +19,7 @@ this is the one writer of handoff.md. `orchestrate/park.py` contributes the
 "needs you" section when the run is waiting for someone.
 """
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -530,6 +531,23 @@ def red_first(passes, held=True):
     return "not proven by a gate"
 
 
+def shown(command, test, nt=os.name == "nt"):
+    """the red-first gate's command with `test` for {test}, as a person runs
+    it in their own shell: the results file the gate reads is the gate's,
+    so its placeholder goes, with the flag before it when it stands alone,
+    and the id is quoted the way cmd.exe (`nt`) or a POSIX shell reads."""
+    words = command.split(" ")
+    out = []
+    for w in words:
+        if "{results}" in w:
+            if w == "{results}" and out and out[-1].startswith("-"):
+                out.pop()
+            continue
+        out.append(w)
+    quoted = subprocess.list2cmdline([test]) if nt else shlex.quote(test)
+    return " ".join(quoted if w == "{test}" else w for w in out)
+
+
 def by_hand(passes, proof, start=""):
     """-> the lines that say how to see the fix by hand, read from the run's
     red proof and the gates that ran its tests: each test the red-first
@@ -545,8 +563,7 @@ def by_hand(passes, proof, start=""):
     if red and "{test}" in g["command"]:
         out.append("- red without the fix and green with it, as the red-first"
                    " gate on " + step + " ran them:")
-        out.extend("    " + g["command"].replace("{test}", shlex.quote(t))
-                   for t in red)
+        out.extend("    " + shown(g["command"], t) for t in red)
     else:
         for p in passes:
             if p["step"] != proof.get("step"):

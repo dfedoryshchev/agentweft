@@ -554,9 +554,11 @@ five sections are written by the runner alone:
 - **tests and checks**: each new test's red-first record, ending `- encodes
   TASK.md:12 (patcher)` when a step's line names the test and a spec line.
 - **see the fix by hand**: on a run that finished holding a red proof shown
-  by a gate in it, the exact command for each test the red-first replay
-  showed red without the fix and green with it (or, with no replay, the
-  command the red-test gate ran red), then the commit the run started at,
+  by a gate in it, the command for each test the red-first replay showed
+  red without the fix and green with it, without the results file the gate
+  reads and with the id quoted for the shell it runs in (or, with no
+  replay, the command the red-test gate ran red), then the commit the run
+  started at,
   where the same command with the proved test files fails. it is read from
   the red proof and the gate record, never from a step; a run with no proof,
   or one that stopped, has no such section.
