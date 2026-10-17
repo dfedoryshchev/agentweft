@@ -8,8 +8,11 @@ key and cost nothing.
     pip install -e .
     agentweft init
 
-`-e` keeps the package in the clone, so a run's record lands in the clone's
-`runs/`, where `python rollup.py` reads it, not in site-packages.
+run these from the top of the clone. `-e` keeps the run records in `runs/`
+beside `run.py`, where `rollup.py` and the mcp server read them; a plain
+`pip install .` writes them inside the installed package instead. the flows
+and the examples are read from the directory a command starts in, and so is
+`.env`.
 
 `init` asks the few things a run needs and writes them to `.env`, where every
 run reads them:
@@ -41,7 +44,9 @@ the same name in the environment and leave it out of `.env`, which wins when
 both have it. a flow file that sets `max_calls`, `max_tokens` or `tests_e2e`
 itself wins over either.
 
-it ends by printing the next two commands.
+it ends by printing the next two commands. installed with `-e` and run
+anywhere else, it adds `--flows` and the clone's folder to each, so both work
+from there.
 
 ## 2. a green run, without a model
 

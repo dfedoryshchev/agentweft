@@ -191,6 +191,40 @@ def test_the_quick_start_init_prints_ends_green(place, monkeypatch, capsys):
     assert ": done" in capsys.readouterr().out
 
 
+def test_the_real_task_line_init_prints_finds_its_flow(place, monkeypatch,
+                                                       capsys):
+    assert agentweft(monkeypatch, "init", "--yes") == 0
+    line = [l.strip() for l in capsys.readouterr().out.splitlines()
+            if l.strip().startswith("agentweft fix-with-test")]
+    assert len(line) == 1
+    argv = shlex.split(line[0], posix=os.name != "nt")
+    assert "--flows" in argv
+    flows = Path(argv[argv.index("--flows") + 1])
+    assert (flows / "fix-with-test" / "flow.yaml").is_file()
+
+
+def test_a_run_where_its_flows_folder_is_not_says_so(place, monkeypatch,
+                                                     capsys):
+    assert agentweft(monkeypatch, "minimal", "--force", "--flows",
+                     "examples") == 1
+    out = capsys.readouterr().out
+    assert "no flow called minimal in examples" in out
+    assert "--flows" in out
+
+
+def test_list_with_no_flows_folder_says_where_it_looked(place, monkeypatch,
+                                                        capsys):
+    assert agentweft(monkeypatch, "list", "--flows", "flows") == 1
+    out = capsys.readouterr().out
+    assert "no flows in flows" in out
+    assert "--flows" in out
+
+
+def test_provider_with_no_flows_folder_says_so(place, monkeypatch, capsys):
+    assert agentweft(monkeypatch, "provider", "--flows", "flows") == 1
+    assert "no flows in flows" in capsys.readouterr().out
+
+
 # no args, --flows, step --workdir
 
 

@@ -129,13 +129,13 @@ PRICES = Question("prices", "keep a price table of your own here "
                   "(prices.yaml)", "false", kind="bool")
 
 
-def examples():
-    """-> the examples folder as a path to type, or "" when there is none:
-    `pip install .` does not carry it, a clone does."""
-    if (Path("examples") / "minimal" / "flow.yaml").is_file():
-        return "examples"
-    beside = Path(__file__).resolve().parents[2] / "examples"
-    if (beside / "minimal" / "flow.yaml").is_file():
+def found(folder, flow):
+    """-> `folder` as a path to type when it holds `flow`, or "" when there
+    is none: `pip install .` does not carry it, a clone does."""
+    if (Path(folder) / flow / "flow.yaml").is_file():
+        return folder
+    beside = Path(__file__).resolve().parents[2] / folder
+    if (beside / flow / "flow.yaml").is_file():
         return str(beside)
     return ""
 
@@ -145,15 +145,22 @@ def quoted(path):
 
 
 def quick_start():
-    where = examples()
+    where = found("examples", "minimal")
     out = ["", "the quick start, from here:", ""]
     if where:
         out.append("    agentweft minimal --force --flows " + quoted(where))
     else:
         out.append("    agentweft minimal --force --flows examples"
                    "    (from a clone of agentweft)")
-    out.append('    agentweft fix-with-test --workdir <your project> '
-               '--task "<the bug, in one line>"')
+    real = ('    agentweft fix-with-test --workdir <your project> '
+            '--task "<the bug, in one line>"')
+    flows = found("flows", "fix-with-test")
+    if flows == "flows":
+        out.append(real)
+    elif flows:
+        out.append(real + " --flows " + quoted(flows))
+    else:
+        out.append(real + "    (from a clone of agentweft)")
     out += ["", "the first runs on the fake provider and costs nothing. the "
             "second is a real run;", "`docs/quickstart.md` walks both."]
     return out

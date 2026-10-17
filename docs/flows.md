@@ -365,6 +365,8 @@ that last part has a guard of its own, in `guardrails.md`.
 `runs/` is not part of the place: it is always the one beside `run.py` in the
 agentweft checkout, whichever directory the run was started from or works in,
 so a run pointed at another repo leaves no run records in that repo's tree.
+a `pip install .` without `-e` has no checkout beside it, and keeps them
+inside the installed package.
 
 `worktree: true`, or `--worktree` on the command line, makes the run work in a
 git worktree of its own instead of the place. before the first step the run

@@ -14,7 +14,25 @@ def flows():
                   if p.is_dir() and not p.name.startswith("_"))
 
 
+def missing(name=None):
+    """-> what to say when there is no flow to run where the run looked.
+    the flows ship in a clone, not in the package, so `flows` is only there
+    when the run starts from the top of one."""
+    root = FLOW_ROOT[0]
+    known = flows()
+    if name and known:
+        return ("no flow called " + name + " in " + root + ". there is: "
+                + ", ".join(known))
+    said = ("no flow called " + name + " in " + root) if name \
+        else "no flows in " + root
+    return (said + ": run from the top of a clone of agentweft, or name the"
+            " folder with --flows <dir>")
+
+
 def cmd_list():
+    if not flows():
+        print(missing())
+        return 1
     for name in flows():
         try:
             spec = config(name)
@@ -42,8 +60,7 @@ def cmd_show():
     try:
         spec = config(name)
     except FileNotFoundError:
-        print("no flow called " + name + " in " + FLOW_ROOT[0]
-              + ". there is: " + ", ".join(flows()))
+        print(missing(name))
         return 1
     print(spec.name)
     if spec.promises.inputs:
@@ -286,6 +303,9 @@ def cmd_provider():
     from .engine import load_env
 
     load_env()
+    if not flows():
+        print(missing())
+        return 1
     seen = {}
     for name in flows():
         try:

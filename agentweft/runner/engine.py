@@ -1712,9 +1712,9 @@ def run_flow(unrecorded):
     try:
         fm = config(flow)
     except FileNotFoundError:
-        known = ", ".join(sorted(p.name for p in Path(prompts.FLOW_ROOT[0]).iterdir()
-                                 if p.is_dir() and not p.name.startswith("_")))
-        print("no flow called " + flow + ". there is: " + known)
+        from .cli import missing
+
+        print(missing(flow))
         return 1
     except ValueError as e:
         print(flow + "/flow.yaml is wrong: " + str(e))
