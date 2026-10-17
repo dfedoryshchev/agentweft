@@ -12,27 +12,23 @@ on lines of its own:
 the decision goes into decisions.md as the lead's, and the step that asked
 runs again with it at the end of its prompt. the lead can also answer
 `ESCALATE: <why>`, and the question parks for the operator, the way a NEEDS
-always has. so does a decision with no `why:`, one that names a spec file or
-a test that was there when the run started (a lead decides inside the spec
-and the tests it was given, never over them), and a question the lead has
-already decided once in the run: one round each. a CONFLICT stop never comes
-here; which of the request and the spec holds is the operator's.
+always has. so does a decision with no `why:`, and a question the lead has
+already decided once in the run: one round each. a decision is not judged by
+the files it names: a lead decides inside the spec and the tests it was
+given, never over them, so its entry is never the ruling that lets a spec
+line or a start test change, and the step acting on it is held by the spec
+files check and the start-tests replay like any other. a CONFLICT stop
+never comes here; which of the request and the spec holds is the
+operator's.
 
 the lines are read by `verbs`, so the decision is never split on a `|`, and
 one inside a code fence or a `>` quote is not a decision.
 """
-import re
-from pathlib import Path
-
-from agentweft.guardrails import snapshot
-
 from . import verbs
 
 DECIDED = "DECIDED"
 ESCALATE = "ESCALATE"
 WHY = "WHY"
-
-PATH = re.compile(r"[A-Za-z0-9_.\\/-]*[A-Za-z0-9_]\.[A-Za-z][A-Za-z0-9]*")
 
 
 def key(question):
@@ -71,33 +67,6 @@ def read(output):
     return decided, " ".join(w for w in why if w), None
 
 
-def changes(decided, workdir, start):
-    """-> the first file `decided` names that is a spec, or a test that was
-    there when the run started, or "" for none. with no start to read, a
-    test file that is in the place now counts as one that was."""
-    root = Path(workdir).resolve()
-    for found in PATH.findall(decided or ""):
-        rel = found.replace("\\", "/")
-        while rel.startswith("./"):
-            rel = rel[2:]
-        if snapshot.is_spec(rel):
-            return rel
-        if not snapshot.is_test(rel):
-            continue
-        if start is not None and getattr(start, "hashed", False) \
-                and start.root is not None:
-            try:
-                at = (root / rel).resolve().relative_to(
-                    Path(start.root).resolve()).as_posix()
-            except ValueError:
-                continue
-            if at in start.tests:
-                return rel
-        elif (root / rel).is_file():
-            return rel
-    return ""
-
-
 def judged(output, lead, workdir, start):
     """-> (the option, its why, "") when the lead decided, or (None, "", why
     the operator decides it instead)."""
@@ -111,11 +80,6 @@ def judged(output, lead, workdir, start):
     if not why:
         return None, "", (lead + " decided " + decided + " with no why: line"
                           " under it")
-    hit = changes(decided, workdir, start)
-    if hit:
-        return None, "", (lead + " decided " + decided + ", which changes "
-                          + hit + ", and a change to the spec or to a test"
-                          " the run started with is not the lead's")
     return decided, why, ""
 
 

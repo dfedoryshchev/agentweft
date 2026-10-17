@@ -812,9 +812,14 @@ that asked runs again with it at the very end of its prompt. in
 `steps.jsonl` the asking step's line is `asked` with `to` naming the lead,
 and the lead's go is a line of its own, `decided`. the run parks for you
 instead, the lead's go then `escalated`, when the lead answers `ESCALATE:
-<why>`, gives no `why:` line, or decides something that names a spec file or
-a test that was there when the run started: a lead decides inside the spec
-and the tests, never over them. a question gets one round with the lead, so
+<why>` or gives no `why:` line. a decision is judged by what the step acting
+on it changes, not by the files it names: one that cites `TASK.md:3` or a
+test and changes nothing stands. a lead decides inside the spec and the
+tests, never over them, so its entry never counts as the ruling that lets a
+spec line or a start test change: when the step acting on it rewrites or
+removes a spec line, or turns a test green at the start red, the run stops
+there for you, the way it would with no decision. a question gets one round
+with the lead, so
 the same `NEEDS:` asked again after the lead decided it parks too. the
 question in `question.md` then says why the lead did not decide it. a flow
 with `lead: none` or no `lead:` (fix-with-test), and a question the lead

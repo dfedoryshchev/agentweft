@@ -360,7 +360,12 @@ own record, `runs/<id>/rulings.json`, outside the place: a sha256 of every
 entry that was there when the run started and of every entry it writes
 itself, from `--answer`, the lead's decision or a raised cap, with who wrote
 it (`answer`, `lead`, `cap`). every check that reads a ruling, and the
-handoff's rulings section, reads only the entries in that record.
+handoff's rulings section, reads only the entries in that record. the
+checks that let a spec line or a start test change skip the `lead` entries:
+a lead decides inside the spec and the tests, never over them. a resume
+carries the record of the run it picks up, so those entries stay the
+lead's; when that record is gone or cannot be read, no entry already in the
+file counts as a ruling on that leg, since none can be told apart.
 
 a check reads what an entry itself says, never the question it answered or
 the stop it carried on from: for `--answer` the heading and the answer, for

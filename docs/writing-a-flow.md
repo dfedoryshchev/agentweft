@@ -224,9 +224,10 @@ it is a step or a role of the flow (a role means its first step), or `none`,
 which is the same as leaving it out. a fanned-out step cannot lead, and a name
 that is no step is refused when the flow loads. the lead decides with
 `DECIDED: <option>` and a `why:` line under it, and the step that asked runs
-again with the decision; anything that would change the spec or a test the
-run started with, an `ESCALATE:`, or a second ask of the same question comes
-to you. pick the step that already reads the spec for the whole flow:
+again with the decision. an `ESCALATE:`, a decision with no `why:`, or a
+second ask of the same question comes to you, and so does what the step
+acting on a decision does to a spec line or a test the run started with: a
+decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:
 build-feature leads with its planner, and fix-with-test, whose first step
 writes the test, has `lead: none`. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).

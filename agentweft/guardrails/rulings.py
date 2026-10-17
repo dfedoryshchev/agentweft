@@ -15,7 +15,13 @@ runner last wrote; a step that added, edited or removed an entry fails like a
 gate, and the file is put back as the runner left it.
 
 entries already there when the run started count: between runs the file is
-the person's to edit, and a ruling written by hand is still theirs.
+the person's to edit, and a ruling written by hand is still theirs. a resume
+carries the record of the run it picks up, so an entry that run wrote keeps
+who wrote it; with that record gone or unreadable, none counts.
+
+the lead's decisions are rulings for the step that asked, not over the spec:
+the checks that let a spec line or a start test change read every entry but
+the lead's (`read(but=(LEAD,))`).
 """
 import hashlib
 import json
@@ -26,6 +32,7 @@ from agentweft.orchestrate import decisions
 
 FILE = "rulings.json"
 GATE = "rulings"
+LEAD = "lead"
 
 
 def digest(d):
@@ -52,8 +59,9 @@ class Kept(object):
         except OSError:
             return None
 
-    def known(self):
-        return set(self.found) | set(w["sha256"] for w in self.written)
+    def known(self, but=()):
+        return set(self.found) | set(w["sha256"] for w in self.written
+                                     if w.get("by") not in but)
 
     def record(self, decided, why, by, at=None):
         """write one entry to decisions.md and to the runner's record."""
@@ -67,10 +75,11 @@ class Kept(object):
             self.save()
             return path
 
-    def read(self):
+    def read(self, but=()):
         """-> the entries of decisions.md the runner has on record, oldest
-        first. anything else in the file is not a ruling."""
-        known = self.known()
+        first, less those written by any of `but`. anything else in the file
+        is not a ruling."""
+        known = self.known(but)
         return [d for d in decisions.read(self.root) if digest(d) in known]
 
     def check(self, step, how=""):
@@ -115,6 +124,25 @@ class Kept(object):
                 pass
             return
         self.path.write_bytes(self.data)
+
+    def carry(self, folder):
+        """take who wrote each entry from the record of the run this one
+        picks up, so an entry a run wrote is not read as one there at the
+        start. with no record to read, no entry can be told apart, so none
+        found at the start counts as a ruling on this leg."""
+        try:
+            data = json.loads((Path(folder) / FILE).read_text(
+                encoding="utf-8"))
+            earlier = [w for w in data.get("written") or []
+                       if w.get("sha256") in self.found]
+        except (OSError, ValueError, AttributeError, TypeError):
+            self.found = []
+            self.save()
+            return
+        taken = set(w["sha256"] for w in earlier)
+        self.found = [f for f in self.found if f not in taken]
+        self.written = earlier + self.written
+        self.save()
 
     def keep_in(self, folder):
         self.folder = Path(folder)

@@ -370,6 +370,14 @@ class Run(object):
             return decisions.read(Path(self.workdir))
         return kept.read()
 
+    def spec_rulings(self):
+        """-> the rulings that can let a spec line or a start test change:
+        every one on record but the lead's, which decides inside them."""
+        kept = getattr(self, "kept", None)
+        if kept is None:
+            return self.decided()
+        return kept.read(but=(rulings.LEAD,))
+
     def rule(self, decided, why, by):
         """write a ruling to decisions.md and to the runner's own record."""
         kept = getattr(self, "kept", None)
@@ -471,7 +479,7 @@ class Run(object):
                                   green=self.start_green, known=known)
         if not found.red:
             return found.result, None
-        decided = self.decided()
+        decided = self.spec_rulings()
         left, ruled = [], []
         for test, said in found.red:
             d = ruling.covering(decided, test, self.workdir, self.start)
@@ -502,7 +510,7 @@ class Run(object):
             return specfiles.read_only(step, found), None
         if not ok:
             return None, None
-        decided = self.decided()
+        decided = self.spec_rulings()
         left, ruled = [], []
         for rel, was, now in found:
             for n, line, there in specfiles.lost(was, now):
@@ -538,7 +546,7 @@ class Run(object):
         if not found:
             return []
         mode = self.fm.get("spec_files")
-        decided = self.decided()
+        decided = self.spec_rulings()
         return [rel + ":" + str(n) for rel, was, now in found
                 for n, line in specfiles.moved(was, now, mode)
                 if ruling.spec_line_ruled(decided, line) is None]
@@ -1174,7 +1182,7 @@ def to_lead(run, step, question, given, where):
         return out, "", lead.passed(question, wrong)
     run.led[asked] = decided
     run.rule(*lead.recorded(head, step, where, question, decided, why),
-             by="lead")
+             by=rulings.LEAD)
     return out, lead.told(head, question, decided, why), ""
 
 
@@ -1244,6 +1252,7 @@ def held_after_stop(run, left, folder):
     with open(folder / "why.md", "a", encoding="utf-8") as f:
         f.write(said + NEWLINE)
     return dict(left, forged=said)
+
 
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
@@ -1882,6 +1891,8 @@ def run_flow():
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
     run.keep_in(folder)
+    if pick_up:
+        run.kept.carry(state.RUNS / pick_up)
     run.kept.keep_in(folder)
     run.committer.keep_in(folder)
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
