@@ -178,9 +178,11 @@ numbers.
 never on the list, refused when the flow loads: the red test (`tests`,
 `red-test`, `red-first`, or a step that writes tests or carries those gates),
 the tests the run started with (`start-tests`, or a `writes: product` step,
-which is where they run again) and the suite gate (`command`, or a step that
-carries one). any other gate is refused too: a gate spends no calls, so
-cutting one saves nothing.
+which is where they run again), the suite gate (`command`, or a step that
+carries one) and a check `project.yml` declares (a step that carries a
+`project`, `coverage` or `reject` gate), which is how a flow often runs its
+suite. any other gate is refused too: a gate spends no calls, so cutting one
+saves nothing.
 
 a block is accounting inside the run's total, not a second cap. every line in
 `steps.jsonl` carries `budget`, the pass held against its block:

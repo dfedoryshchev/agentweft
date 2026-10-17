@@ -242,3 +242,16 @@ def test_a_resume_plans_the_cuts_again_against_its_cap(tmp_path, monkeypatch):
     assert not (later / "skips.json").exists()
     assert "verify runs: no longer cut" in (later / "decisions.md").read_text(
         encoding="utf-8")
+
+
+@pytest.mark.parametrize("gate", [
+    {"gate": "project", "name": "tests"},
+    {"gate": "coverage"},
+    {"gate": "reject"},
+])
+def test_a_step_carrying_a_check_project_yml_declares_is_never_cut(gate):
+    steps = [{"role": "worker", "prompt": "worker.md", "writes": "product"},
+             {"role": "suite", "prompt": "suite.md", "writes": "none",
+              "gates": [gate]}]
+    got = said(["suite"], steps=steps)
+    assert "never" in got and "project.yml" in got and "suite" in got

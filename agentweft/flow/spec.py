@@ -218,6 +218,9 @@ NEVER = {"tests": "the red test", "red-test": "the red test",
          "red-first": "the red test",
          "start-tests": "the tests the run started with",
          "command": "the suite gate"}
+# the gates whose program or numbers come from project.yml: cutting the step
+# that carries one switches off a check the project declared
+DECLARED = ("project", "coverage", "reject")
 
 
 def guards(step):
@@ -229,6 +232,8 @@ def guards(step):
         return "the red test"
     if "command" in gates:
         return "the suite gate"
+    if set(gates) & set(DECLARED):
+        return "a check project.yml declares"
     if step.get("writes") == "product":
         return "the tests the run started with"
     return ""
