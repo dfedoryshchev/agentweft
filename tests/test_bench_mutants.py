@@ -218,3 +218,75 @@ def test_a_shared_signature_over_enough_mutants_is_a_likely_duplicate(
     text = "\n".join(mutants.lines(got))
     assert "minimum to judge " + str(mutants.MINIMUM) in text
     assert "likely duplicate groups 1" in text
+
+
+def a_change(tmp_path, before, after, tests):
+    start, place = tmp_path / "start", tmp_path / "place"
+    for where, texts in ((start, before), (place, dict(after, **tests))):
+        where.mkdir(parents=True)
+        for rel, text in texts.items():
+            (where / rel).write_text(text, encoding="utf-8")
+    return start, place
+
+
+def test_a_mutant_that_breaks_one_test_files_import_kills_only_its_tests(
+        tmp_path):
+    start, place = a_change(
+        tmp_path, {"a.py": "def f():\n    return 1\n", "b.py": "y = 0\n"},
+        {"a.py": "def f():\n    return 2\n", "b.py": "y = 0\nx = 1\n"},
+        {"test_a_new.py": "import a\n\n\ndef test_f():\n"
+                          "    assert a.f() == 2\n",
+         "test_b_new.py": "from b import x\n\n\ndef test_x():\n"
+                          "    assert x == 1\n"})
+    got = mutants.score(start, place)
+    kills = got["tests"]["test_a_new::test_f"]
+    assert kills and not [m for m in kills if "b.py" in m], got["tests"]
+    assert [m for m in got["tests"]["test_b_new::test_x"] if "b.py" in m]
+
+
+def test_a_folder_named_build_above_the_root_does_not_hide_its_files(
+        tmp_path):
+    root = tmp_path / "build" / "start"
+    (root / "dist").mkdir(parents=True)
+    (root / "a.py").write_text("x = 1\n", encoding="utf-8")
+    (root / "dist" / "b.py").write_text("y = 1\n", encoding="utf-8")
+    assert mutants.files(root) == {"a.py": "x = 1\n"}
+
+
+def test_mutants_no_test_kills_do_not_count_toward_the_minimum(tmp_path):
+    start, place = a_change(
+        tmp_path, {"calc.py": "def add(a, b):\n    return a\n"},
+        {"calc.py": "def add(a, b):\n    unused = 7\n    return a + b\n"},
+        {"test_calc.py": "import calc\n\n\ndef test_adds():\n"
+                         "    assert calc.add(1, 2) == 3\n\n\n"
+                         "def test_zero_left():\n"
+                         "    assert calc.add(0, 5) == 5\n"})
+    got = mutants.score(start, place, least=4)
+    assert len(got["mutants"]) >= 4
+    kills = got["tests"]
+    assert len(kills["test_calc::test_adds"]) < 4
+    assert got["duplicates"] == [], got
+    assert got["undecided"] == [["test_calc::test_adds",
+                                 "test_calc::test_zero_left"]]
+    text = "\n".join(mutants.lines(got))
+    assert "not enough mutants to judge, " + str(
+        len(kills["test_calc::test_adds"])) + " of 4" in text
+
+
+def test_no_mutant_runs_when_no_new_test_is_green_with_the_fix(
+        tmp_path, monkeypatch):
+    start, place = project(tmp_path)
+    (place / "test_ledger_new.py").write_text(
+        "import ledger\n\n\ndef test_wrong():\n"
+        "    assert ledger.clean(' a ') == 'b'\n", encoding="utf-8")
+    ran = []
+    real = mutants.run
+
+    def counted(*args, **kwargs):
+        ran.append(args[1])
+        return real(*args, **kwargs)
+    monkeypatch.setattr(mutants, "run", counted)
+    got = mutants.score(start, place)
+    assert ran == [None]
+    assert got["red_with_fix"] == ["test_ledger_new::test_wrong"]
+    assert got["tests"] == {}

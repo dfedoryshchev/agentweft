@@ -128,8 +128,11 @@ whole module, and no model is asked:
 
 a mutant that reads the same as the fix or as an earlier mutant is dropped.
 each test the run added or changed runs against each mutant on a copy of the
-place, and the mutants it fails on are its kill signature. the same place
-gives the same mutants, in the same order.
+place, one pytest per test file, so a mutant that breaks one file's import
+kills only that file's tests. the mutants it fails on are its kill signature.
+the same place gives the same mutants, in the same order. when no new test
+is green with the fix, no mutant runs. a folder named build, dist, venv and
+the like is left out inside the place, never because of where the place is.
 
 the row gets `mutants`, and the report a section per run:
 
@@ -137,8 +140,9 @@ the row gets `mutants`, and the report a section per run:
 - `signatures`: how many distinct signatures there are
 - `duplicates`: the likely duplicates, groups of tests whose signatures are
   alike. sixteen tests that die on the same deleted line are one group
-- `undecided`: the same groups when the run has fewer than `minimum`
-  mutants (8). two different tests can kill the same few mutants by chance,
+- `undecided`: the same groups when fewer than `minimum` mutants (8) are
+  killed by any test. a mutant no test kills cannot tell two tests apart, so
+  it does not count. two different tests can kill the same few mutants by chance,
   so the report says not enough mutants to judge instead. a test that kills
   nothing is never in a group
 - `pins`: tests green without the fix that kill nothing
@@ -146,8 +150,9 @@ the row gets `mutants`, and the report a section per run:
   read
 - `duplicate_at`: the threshold, shared kills over all kills, at which two
   signatures count as one. 1.0, the same set, by default
-- `minimum`: how many mutants a run needs before a shared signature is
-  called a likely duplicate
+- `minimum`: how many mutants some test kills that a run needs before a
+  shared signature is called a likely duplicate
+- `judged`: how many mutants some test green with the fix kills
 
 a shared signature is a lead, not proof. the report only labels: no test is
 deleted or skipped because of it.

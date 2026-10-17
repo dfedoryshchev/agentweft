@@ -9,9 +9,9 @@ and the mutants a test fails on are its kill signature.
 
 tests with the same signature likely guard the same thing: sixteen tests
 that all die on one deleted line are one test written sixteen times. with
-fewer than MINIMUM mutants a shared signature is only a lead, and is
-reported as not enough mutants to judge. nothing is deleted or skipped. a test green
-without the fix that kills nothing is a pin. a test red with the fix kills
+fewer than MINIMUM mutants that some test kills, a shared signature is only
+a lead, and is reported as not enough mutants to judge. nothing is deleted or
+skipped. a test green without the fix that kills nothing is a pin. a test red with the fix kills
 nothing that can be read and is listed apart.
 
 no model is asked; the same place gives the same mutants in the same order.
@@ -21,7 +21,6 @@ import difflib
 import os
 import random
 import shutil
-import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -56,9 +55,10 @@ def files(root):
     root = Path(root)
     out = {}
     for p in sorted(root.rglob("*.py")):
-        rel = p.relative_to(root).as_posix()
-        if any(part in snapshot.SKIP_DIRS for part in p.parts):
+        rel = p.relative_to(root)
+        if any(part in snapshot.SKIP_DIRS for part in rel.parts):
             continue
+        rel = rel.as_posix()
         out[rel] = p.read_text(encoding="utf-8", errors="replace")
     return out
 
@@ -272,13 +272,24 @@ def run(place, mutant, tests, limit=None):
         path = [str(here)] + ([os.environ["PYTHONPATH"]]
                               if os.environ.get("PYTHONPATH") else [])
         with fresh_python({"PYTHONPATH": os.pathsep.join(path)}) as env:
-            try:
-                got = scorer.pytest(here, tests, env=env,
-                                    timeout=limit or scorer.TIMEOUT)
-            except subprocess.TimeoutExpired:
-                return {}
-            return {} if any(k.startswith("::timed out") for k in got) \
-                else got
+            got = {}
+            for ids in by_file(tests):
+                said = scorer.pytest(here, ids, env=env,
+                                     timeout=limit or scorer.TIMEOUT)
+                if any(k.startswith("::timed out") for k in said):
+                    return {}
+                got.update(said)
+            return got
+
+
+def by_file(tests):
+    """-> the test ids grouped by their file, one pytest each: a node id in
+    a file that cannot be imported ends the whole session, so a mutant that
+    breaks one file's import would kill every other file's tests too."""
+    out = {}
+    for t in tests:
+        out.setdefault(t.split("::")[0], []).append(t)
+    return [out[f] for f in sorted(out)]
 
 
 def similar(a, b):
@@ -322,13 +333,18 @@ def score(start, place, seed=SEED, most=MOST, at=DUPLICATE_AT,
     limit = max(TIMEOUT, SLOWER * (time.time() - began))
     green = sorted(c for c, ok in fixed.items() if ok)
     out["red_with_fix"] = sorted(c for c, ok in fixed.items() if not ok)
+    if not green:
+        return out
     seen = dict((m["name"], run(place, m, tests, limit)) for m in made)
     kills = dict((c, [m["name"] for m in made if not seen[m["name"]].get(c)])
                  for c in green)
     found = groups(kills, at)
     shared = [g for g in found if len(g) > 1]
-    enough = len(made) >= least
-    out.update({"tests": kills, "signatures": len(found),
+    # a mutant nothing kills (a dead line deleted) cannot tell two tests
+    # apart, so it does not count toward the minimum
+    judged = len({m for c in green for m in kills[c]})
+    enough = judged >= least
+    out.update({"tests": kills, "signatures": len(found), "judged": judged,
                 "duplicates": shared if enough else [],
                 "undecided": [] if enough else shared,
                 "pins": [c for c in green if not kills[c]
@@ -349,7 +365,7 @@ def lines(got):
            "  distinct signatures " + str(got["signatures"])]
     if got["undecided"]:
         out.append("  not enough mutants to judge, "
-                   + str(len(got["mutants"])) + " of "
+                   + str(got.get("judged", len(got["mutants"]))) + " of "
                    + str(got["minimum"]) + ": shared signatures are leads")
         for g in got["undecided"]:
             out.append("    " + str(len(g)) + " tests share a signature")
