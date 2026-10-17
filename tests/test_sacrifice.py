@@ -305,3 +305,13 @@ def test_near_the_cap_a_split_of_the_cap_is_no_estimate_to_cut_on(
     assert asked == ["a.md"]
     assert "paused before b.md" in capsys.readouterr().out
     assert not (the_run(tmp_path) / "skips.json").exists()
+
+
+def test_near_the_cap_the_step_about_to_run_can_be_the_one_cut(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "next", FIVE, "max_tokens: 100000" + NL
+           + listed("b"))
+    ran_before(tmp_path, "next", 6000)
+    asked = asking(monkeypatch, big_first)
+    run(monkeypatch, "next", "--force")
+    assert asked[:2] == ["a.md", "c.md"] and "b.md" not in asked
