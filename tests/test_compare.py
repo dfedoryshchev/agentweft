@@ -121,8 +121,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # a step's `continue` is one more, one way: an agent is one session from
     # start to end, so there is nothing for it to carry on.
+    #
+    # `brief`, on the flow and on a step, is two more, one way: an agent reads
+    # for itself every time and has no word for what was found before it.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 39
+    assert len(compare.flow_only()) == 41
     assert len(compare.phase_only()) == 7
 
 

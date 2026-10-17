@@ -88,10 +88,11 @@ def prompts_of(cli):
     return [c["stdin"].decode("utf-8", "replace") for c in cli.calls]
 
 
-def run_two(tmp_path, monkeypatch, fake_cli, first, lines=None):
+def run_two(tmp_path, monkeypatch, fake_cli, first, lines=None,
+            steps=("reader", "worker"), head=""):
     place = a_repo(tmp_path / "repo", lines)
-    a_flow(tmp_path, monkeypatch, "two", ["reader", "worker"],
-           tail="workdir: " + place.as_posix() + "\n" + CLAUDE)
+    a_flow(tmp_path, monkeypatch, "two", list(steps),
+           tail=head + "workdir: " + place.as_posix() + "\n" + CLAUDE)
     cli = fake_cli(answer(first, session="i-1"),
                    answer(block(["calc.py:1-2 - add subtracts"],
                                 verified=False), session="w-1"))
@@ -139,3 +140,55 @@ def test_the_brief_stays_under_its_cap_however_much_was_read(
     start = second.index("what the steps before you found.")
     end = second.index("end your answer with a handoff block", start)
     assert 0 < len(second[start:end].strip()) <= CAP
+
+
+def briefed(prompt):
+    from agentweft.runner.brief import NONE_YET
+
+    return any(words in prompt for words in (
+        "the brief below is what the steps before you found",
+        "what the steps before you found.", NONE_YET))
+
+
+def test_a_flow_with_the_brief_off_starts_each_step_from_the_handoff(
+        tmp_path, monkeypatch, fake_cli):
+    sent, folder = run_two(tmp_path, monkeypatch, fake_cli,
+                           block(["calc.py:1-2 - add subtracts"]),
+                           head="brief: false\n")
+    first, second = sent
+    assert not briefed(first) and not briefed(second)
+    assert "kept-quote-marker" not in second
+    assert "calc.py: add subtracts, the cause" in second
+    assert "{BRIEF}" not in second
+
+
+def test_a_step_says_whether_it_gets_the_brief_over_the_flow(
+        tmp_path, monkeypatch, fake_cli):
+    sent, _ = run_two(tmp_path, monkeypatch, fake_cli,
+                      block(["calc.py:1-2 - add subtracts"]),
+                      steps=("reader", "worker\nbrief: false"))
+    assert briefed(sent[0]) and not briefed(sent[1])
+    assert "calc.py: add subtracts, the cause" in sent[1]
+
+
+def test_a_step_may_take_the_brief_in_a_flow_that_has_it_off(
+        tmp_path, monkeypatch, fake_cli):
+    sent, _ = run_two(tmp_path, monkeypatch, fake_cli,
+                      block(["calc.py:1-2 - add subtracts"]),
+                      steps=("reader", "worker\nbrief: true"),
+                      head="brief: false\n")
+    assert not briefed(sent[0])
+    assert "return a - b  # kept-quote-marker" in sent[1]
+
+
+def test_the_brief_key_takes_true_or_false_and_nothing_else():
+    from agentweft.flow import spec
+
+    assert spec.check({"name": "x", "brief": False,
+                       "steps": [{"role": "worker", "brief": True}]}) == []
+    assert spec.check({"name": "x", "brief": "maybe",
+                       "steps": [{"role": "worker"}]}) == \
+        ["brief should be bool"]
+    assert spec.check({"name": "x", "steps": [
+        {"role": "worker", "brief": "off"}]}) == \
+        ["step 0: brief should be true or false"]

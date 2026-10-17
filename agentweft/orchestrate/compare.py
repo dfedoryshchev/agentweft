@@ -179,6 +179,10 @@ FLOW_ONLY = (
          "whether the flow's verify steps run: judge, or off where every check "
          "they would answer is a program on the steps before. a phase's checks "
          "are agents, so there is nothing to switch off."),
+    Pair("flow.brief", "",
+         "whether the steps are sent what the steps before them found, with "
+         "the lines they read quoted, or start from the handoff alone. a "
+         "phase's agents read for themselves every time."),
     Pair("step.writes_tests", "",
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),
@@ -221,6 +225,9 @@ FLOW_ONLY = (
          "whether a step that goes again carries its own session on or reads "
          "everything again. an agent is one session from start to end, and a "
          "phase has no word for going again."),
+    Pair("step.brief", "",
+         "the flow's `brief` for one step, over the flow's own. an agent has "
+         "no word for what was found before it."),
 )
 
 

@@ -104,6 +104,11 @@ cached answer. a step sent back replaces what its earlier go said. the brief
 is capped at 8000 characters, about 2k tokens; what does not fit is named at
 its end. the whole of it is kept as `brief.md` in the run's folder.
 
+`brief: false` on the flow, or on one step, sends no brief: the step starts
+from the handoff of the step before it, and opens the files itself. a step's
+own `brief:` wins over the flow's. on is the default, and the run keeps
+`brief.md` either way.
+
 ## flow.yaml
 
     name: weekly digest

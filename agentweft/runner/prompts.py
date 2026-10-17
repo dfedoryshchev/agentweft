@@ -55,6 +55,12 @@ def put_brief(text, brief):
     return text.replace(BRIEF, brief or NONE_YET)
 
 
+def drop_brief(text, words):
+    """the prompt of a step that is not sent the brief: the words that
+    introduce it and any {BRIEF} the flow's own words carry, taken out."""
+    return text.replace(words, "", 1).replace(BRIEF, "")
+
+
 def put_task(text, task):
     """{TASK}, on its own because the runner reads a prompt between the two."""
     if task is None:

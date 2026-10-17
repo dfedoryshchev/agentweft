@@ -13,8 +13,8 @@ from agentweft.roles import resolver
 from .config import (VERDICTS, asks_for_verdict, config, declared, due,
                      fanout_step, steps, verdict, where)
 from agentweft import providers
-from agentweft.flow.spec import (RESUME, check_project_gates, lead_of,
-                                 step_id, step_name, steps_named)
+from agentweft.flow.spec import (RESUME, brief_on, check_project_gates,
+                                 lead_of, step_id, step_name, steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
                                   shellwrite, signoff, skips, snapshot,
@@ -827,6 +827,13 @@ class Run(object):
                 "base": base, "raised": ups,
                 "applies": used.chooses_effort()}
 
+    def briefs(self, step):
+        """whether this step is sent the brief."""
+        for s in self.fm.steps:
+            if step_id(s) == step:
+                return brief_on(s, self.fm)
+        return True
+
     def verbosity_for(self, step):
         """-> the step's `verbosity`, None when it names none."""
         for s in self.fm.steps:
@@ -904,8 +911,12 @@ class Run(object):
             prompt = prompt + investigate.plan_words(self.fm)
         prompt = prompts.put_spec(prompt, getattr(self, "start", None))
         notes = getattr(self, "brief", None)
-        briefed = notes.text(step) if notes else ""
-        prompt = prompts.put_brief(prompt, briefed)
+        briefed = ""
+        if not self.briefs(step):
+            prompt = prompts.drop_brief(prompt, resolver.fragment("brief"))
+        else:
+            briefed = notes.text(step) if notes else ""
+            prompt = prompts.put_brief(prompt, briefed)
         prompt = prompts.put_task(prompt, self.task_text)
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)

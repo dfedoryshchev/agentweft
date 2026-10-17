@@ -82,7 +82,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
-         "efforts", "commits", "worktree", "sacrifice", "retro")
+         "efforts", "commits", "worktree", "sacrifice", "retro", "brief")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 NO_LEAD = "none"
@@ -99,7 +99,7 @@ SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes", "effort", "verbosity",
-              "continue")
+              "continue", "brief")
 WRITES = ("tests", "product", "none")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
@@ -135,6 +135,17 @@ PREFLIGHT_MODES = ("flag", "refuse", "park")
 # is new (`runner/engine.py`, `Run.carry_for`).
 CONTINUE = ("fresh", "resume")
 RESUME = "resume"
+
+
+def brief_on(step, raw):
+    """-> whether the step is sent the brief (`runner/brief.py`): its own
+    `brief:`, else the flow's, else yes. off, it is not handed what the
+    steps before it found and quoted, and starts from the handoff of the step
+    before it."""
+    for said in (step.get("brief"), raw.get("brief")):
+        if said is not None:
+            return bool(said)
+    return True
 
 # `investigate:` puts one step in front of the flow's own that finds the cause
 # of the task and everything it reaches before anything is written. `cause` is
@@ -293,7 +304,7 @@ def check_sacrifice(raw):
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
          "max_tokens": int, "journal": bool, "name": str, "workdir": str,
-         "tests_e2e": bool, "retro": bool}
+         "tests_e2e": bool, "retro": bool, "brief": bool}
 
 
 def counts(value):
@@ -468,6 +479,8 @@ def check(raw):
                        " true`), so no step is called retro or reads retro.md")
         if not isinstance(step.get("writes_tests", False), bool):
             bad.append(at + "writes_tests should be true or false")
+        if not isinstance(step.get("brief", True), bool):
+            bad.append(at + "brief should be true or false")
         if step.get("writes") is not None and step["writes"] not in WRITES:
             bad.append(at + "writes should be one of " + ", ".join(WRITES))
         if step.get("writes") is None and ordered(raw):
