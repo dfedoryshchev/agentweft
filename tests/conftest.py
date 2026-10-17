@@ -1,3 +1,5 @@
+import ipaddress
+import socket
 import subprocess
 import sys
 import types
@@ -8,6 +10,11 @@ import pytest
 sys.path.insert(0, ".")
 from agentweft.providers import cli_provider
 from agentweft.runner import handoff, state
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "network: the test may open connections beyond loopback")
 
 
 def pytest_addoption(parser):
@@ -43,6 +50,46 @@ def no_real_provider():
         # sessions, and a test is never handed the machine's
         mp.setattr(handoff, "PROJECTS", "no-such-projects-folder")
         yield
+
+
+def is_loopback(address):
+    if not isinstance(address, tuple):
+        return True
+    host = address[0]
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host.split("%")[0]).is_loopback
+    except ValueError:
+        return False
+
+
+NETWORK = {"allowed": False}
+
+
+def guarded(real):
+    def connect(sock, address):
+        if not NETWORK["allowed"] and not is_loopback(address):
+            pytest.fail("a test opened a connection to %s:%s. a test stays on "
+                        "loopback, or is marked network." % address[:2])
+        return real(sock, address)
+    return connect
+
+
+@pytest.fixture(autouse=True, scope="session")
+def no_network():
+    with pytest.MonkeyPatch.context() as mp:
+        for name in ("connect", "connect_ex"):
+            mp.setattr(socket.socket, name,
+                       guarded(getattr(socket.socket, name)))
+        yield
+
+
+@pytest.fixture(autouse=True)
+def network_when_marked(request):
+    NETWORK["allowed"] = request.node.get_closest_marker("network") is not None
+    yield
+    NETWORK["allowed"] = False
 
 
 def answering(run):
