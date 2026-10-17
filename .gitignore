@@ -5,3 +5,4 @@ runs/
 state.json
 state/
 evals/.last.json
+bench/scores.jsonl

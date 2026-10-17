@@ -109,8 +109,61 @@ or none so the flow's own is used, is refused unless the command says
 - `--k <n>` runs per task, over `k:` in bench.yaml, 1 by default
 - `--flow <flow>` the flow, over `flow:` in bench.yaml
 - `--out <file>` where the scores are written
+- `--scores <file>` where the records kept per commit go, `bench/scores.jsonl`
+  by default
 - `--live` let the set's provider call a real model
 - `--mutants` score each added test by the mutants of the fix it kills
+
+## scores per commit
+
+a score on its own says nothing about the commit before it. after every bench,
+and every eval run without `--no-save`, a run scored worse than the last one
+included, one record per task and repeat is
+appended to `bench/scores.jsonl`, or `--scores <file>`. a file inside `runs/`
+is refused: runs are cleared, and the records are what outlives them. git
+ignores `bench/scores.jsonl`, so the records stay with the machine that ran
+them. each record is one JSON line:
+
+- `sha`: the commit checked out when it ran
+- `dirty`: a tracked file differed from that commit. the scores file itself
+  is not counted
+- `source`: `bench` or `eval`, and `set`, the bench set it came from
+- `flow`, `task` (an eval's case) and `repeat`
+- `outcome`: `pass` (core correct, or every promise kept), `finished` (got to
+  the end without passing) or `stopped`
+- `score` and `of`: hidden cases green over cases, or promises kept over
+  promises checked
+- `usd`, `tokens`, `seconds`
+- `replayed`: an eval case answered from its recording. a bench run is never
+  replayed
+
+outside a git tree nothing is kept, and the command says so. an eval whose
+recording does not match the run keeps nothing either.
+
+    python -m agentweft.bench --compare
+    python -m agentweft.bench --compare --base 1a2b3c4 --head 5d6e7f8
+
+holds the head, HEAD by default, against the base: the one named, or the
+nearest earlier commit with records. a sha may be shortened. `--flow` keeps
+one flow and `--scores` reads another file. records made with uncommitted
+changes are not that commit's score, so neither side counts them, and each
+side says how many it left out.
+
+the report gives each side's N (tasks) and k (repeats), then one line per
+task: `worse`, `better` or `same`, the passes over the repeats on each side
+(a single repeat is its outcome word, never a rate), and how to read it:
+
+- `replayed, no noise`: both sides answered from recordings, so any move is
+  the code's
+- `inside the noise of k <n>`: the move is no larger than twice its standard
+  error, the pass rate pooled over both sides' repeats. a pass at k 1 turning
+  into a fail is always inside it
+- `no record on head` or `new, no record on base`: a missing record is never
+  read as a pass
+
+it exits 1 when a task that passed on any repeat of the base fails on every
+repeat of the head, when such a task has no record on the head, when either
+side has no record at all, and when a line of the file is not a whole record.
 
 ## mutants
 

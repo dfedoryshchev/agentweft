@@ -87,6 +87,8 @@ def cmd_help():
   python run.py vocab             flow words against phase words, counted
   python run.py verify <run-id>   does that run's record still hold
   python run.py bench <set> [--k <n>] [--live]   score a flow on tasks
+  python run.py bench --compare [--base <sha>]   this commit's scores
+                                  against an earlier one's
   python run.py worktree [remove <run-id> [--force]]   the runs' own
                                   worktrees, or remove one
   python rollup.py [--flow x] [--failed]

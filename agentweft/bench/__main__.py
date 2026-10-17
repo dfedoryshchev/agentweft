@@ -3,10 +3,12 @@ import json
 import sys
 from pathlib import Path
 
-from . import runner, scorer
+from . import history, runner, scorer
 
 USAGE = ("usage: python -m agentweft.bench <set> [--k <n>] [--flow <flow>]"
-         " [--out <file>] [--live] [--mutants]")
+         " [--out <file>] [--scores <file>] [--live] [--mutants]\n"
+         "       python -m agentweft.bench --compare [--base <sha>]"
+         " [--head <sha>] [--flow <flow>] [--scores <file>]")
 FAKE = "fake"
 
 
@@ -24,6 +26,8 @@ def main(argv=None):
     from agentweft.runner.config import config
 
     argv = list(sys.argv[1:] if argv is None else argv)
+    if "--compare" in argv:
+        return compared(argv)
     if not argv or argv[0].startswith("-"):
         print(USAGE)
         return 1
@@ -35,6 +39,7 @@ def main(argv=None):
         k = valued(argv, "--k")
         flow = valued(argv, "--flow")
         out = valued(argv, "--out")
+        scores = history.place(valued(argv, "--scores"))
     except ValueError as e:
         print(str(e))
         return 1
@@ -88,7 +93,42 @@ def main(argv=None):
     print(runner.table(flow, rows, total))
     print("")
     print("scores: " + str(path))
+    print(history.keep(scores, lambda sha, dirty: history.from_bench(
+        sha, dirty, flow, folder.name, rows)))
     return 0
+
+
+def compared(argv):
+    """-> 1 when a task that passed on the base fails on every repeat of the
+    head, or a record either side needs is missing or unreadable."""
+    try:
+        scores = history.place(valued(argv, "--scores"))
+        base, head, flow = (valued(argv, f) for f in
+                            ("--base", "--head", "--flow"))
+    except ValueError as e:
+        print(str(e))
+        return 1
+    records, problems = history.read(scores)
+    for p in problems:
+        print(p)
+    head = head or history.commit(scores)[0]
+    if not head:
+        print("no commit here: name the head with --head")
+        return 1
+    try:
+        head = history.named(records, head)
+        base = (history.named(records, base) if base
+                else history.previous(records, head))
+    except ValueError as e:
+        print(str(e))
+        return 1
+    if base is None:
+        print("no commit before " + head[:7] + " has records: name one with"
+              " --base")
+        return 1
+    lines, failed = history.compare(records, base, head, flow)
+    print("\n".join(lines))
+    return 1 if failed or problems else 0
 
 
 if __name__ == "__main__":

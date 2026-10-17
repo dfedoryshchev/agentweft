@@ -135,6 +135,18 @@ def network_when_marked(request):
     NETWORK["allowed"] = False
 
 
+@pytest.fixture(autouse=True, scope="session")
+def scores_kept_aside(tmp_path_factory):
+    """a bench or an eval a test runs keeps its records in a file of the
+    session's, never in the repo's own bench/scores.jsonl."""
+    from agentweft.bench import history
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(history, "SCORES",
+                   [tmp_path_factory.mktemp("kept") / "scores.jsonl"])
+        yield
+
+
 def answering(run):
     """-> a `cli_provider.call` that hands each call to a fake shaped like
     `subprocess.run`, for the tests that answer without a process."""

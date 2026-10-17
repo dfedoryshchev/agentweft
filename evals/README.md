@@ -4,6 +4,11 @@ fixed inputs, so a prompt change can be compared to the one before it.
 
     python -m agentweft.evals weekly-digest
 
+a run without `--no-save`, one scored worse included, also keeps one record
+per case for the commit it ran on, in `bench/scores.jsonl` or `--scores <file>`, so `python -m
+agentweft.bench --compare` can hold it against an earlier commit
+(`docs/bench.md`).
+
 a case is a folder under `evals/<flow>/cases/`: an `inbox/` of files and a
 `case.yaml` saying what has to hold. there is no expected output. the output is
 not deterministic and a golden file would be wrong by wednesday.
