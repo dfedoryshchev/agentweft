@@ -16,7 +16,7 @@ sys.path.insert(0, ".")
 from agentweft import providers
 from agentweft.guardrails import shellwrite
 from agentweft.orchestrate import decisions
-from agentweft.runner import stops
+from agentweft.runner import errors, stops
 
 try:
     from agentweft.guardrails import rulings
@@ -291,3 +291,47 @@ def test_a_ruling_written_by_the_stops_own_test_run_is_not_left_standing(
         folder / "why.md")
     assert "decisions.md was changed by the tests the stop ran" in sf.read(
         folder / "handoff.md")
+
+
+def test_a_step_that_forges_a_ruling_and_hits_an_outage_still_says_so(
+        tmp_path, monkeypatch):
+    place = sf.a_place(tmp_path / "repo")
+    sf.flow_with(tmp_path, "additions")
+    does = sf.worker_writes(sf.SPEC)
+    does["worker.md"] = ({"decisions.md": forged(
+        "the order changes", '"' + sf.LINE + '" gives way')},
+        errors.Outage("weekly limit", "monday"))
+    code, _ = sf.running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.OUTAGE)
+    assert not (place / "decisions.md").exists()
+    folder = sf.folders()[-1]
+    assert "decisions.md was changed by worker.md" in sf.read(
+        folder / "why.md")
+    lines = [json.loads(l) for l in sf.read(folder / "steps.jsonl").split(NL)
+             if l.strip()]
+    [worker] = [l for l in lines if l.get("step") == "worker.md"]
+    assert "decisions.md was changed by worker.md" in json.dumps(worker)
+
+
+def test_a_scored_run_that_forges_a_ruling_and_hits_an_outage_says_so(
+        tmp_path, monkeypatch):
+    from agentweft.runner import engine, prompts
+    place = sf.a_place(tmp_path / "repo")
+    sf.flow_with(tmp_path, "additions")
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        if step == "tester.md":
+            (place / "tests" / "test_count.py").write_text(
+                sf.COUNT, encoding="utf-8")
+            return sf.TESTER_SAID, False
+        (place / "decisions.md").write_text(
+            forged("the order changes", "so."), encoding="utf-8")
+        raise errors.Outage("weekly limit", "monday")
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    _, _, why = engine.run_once("build", workdir=str(place))
+    assert why.startswith("provider outage at worker.md: ")
+    assert "decisions.md was changed by worker.md" in why
+    assert not (place / "decisions.md").exists()

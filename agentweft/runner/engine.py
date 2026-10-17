@@ -1379,9 +1379,10 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
                 out = run.step(step, previous=out)
             run.gate_said.pop(step, None)
         except Outage as e:
-            note("parked", outage_why(e), stops.OUTAGE)
+            why = and_forged(outage_why(e), run.forged.pop(step, ""))
+            note("parked", why, stops.OUTAGE)
             return (out.output, run.budget, "provider outage at " + step
-                    + ": " + outage_why(e))
+                    + ": " + why)
         run.wrote_tests(step)
         forged = forged_first(run, step, out)
         fenced = run.fenced(step)
@@ -2545,15 +2546,18 @@ def run_flow():
         if cause == stops.EXCEPTION:
             traceback.print_exc()
         at = step or came_from or todo[-1]
+        forged = run.forged.pop(at, "")
         if cause == stops.OUTAGE:
-            print("provider outage at " + at + ": " + outage_why(e))
-            return stop(cause, outage_why(e), "parked", trail.still_open(),
+            why = and_forged(outage_why(e), forged)
+            print("provider outage at " + at + ": " + why)
+            return stop(cause, why, "parked", trail.still_open(),
                         index="PARKED  " + flow + "  at " + at,
                         waiting="the limit to reset")
         if cause == stops.INTERRUPT:
             why = "interrupted while " + at + " was running"
         else:
             why = type(e).__name__ + ": " + str(e)
+        why = and_forged(why, forged)
         print("stopped at " + at + ": " + why)
         return stop(cause, why, "crashed", trail.still_open(),
                     index=("INTERRUPTED  " if cause == stops.INTERRUPT

@@ -71,7 +71,8 @@ def flow_with(tmp_path, rule):
 
 def running(tmp_path, monkeypatch, place, does, commits, *args):
     """main() over the flow `build` in `place`; `does[step]` is (files it
-    writes, what it answers), or a list of them, one per go. a step that
+    writes, what it answers or raises), or a list of them, one per go. a
+    step that
     commits adds and commits what it wrote. -> (exit code, steps called)."""
     called = []
     goes = {}
@@ -90,6 +91,8 @@ def running(tmp_path, monkeypatch, place, does, commits, *args):
         if commits and writes:
             git(place, "add", "--", *sorted(writes))
             git(place, "commit", "-qm", step, "--allow-empty")
+        if isinstance(said, Exception):
+            raise said
         return said, False
 
     monkeypatch.setattr(engine, "call", fake_call)
