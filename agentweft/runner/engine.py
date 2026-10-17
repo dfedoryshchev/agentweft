@@ -724,6 +724,7 @@ class Run(object):
                     "head": manifest.of_text(head), "usage": usage,
                     "models": kept.kept.get("models"),
                     "cost": kept.kept.get("cost"), "at": time.time(),
+                    "effort": used.asks_effort() or "",
                     "lifetime": warm.lifetime(usage, was.get("lifetime")),
                     "warmed": 0}
             elif carry.get("from"):

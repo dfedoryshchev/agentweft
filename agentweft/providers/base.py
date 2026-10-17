@@ -227,9 +227,13 @@ def less(now, then):
 
 def carry_of(kept):
     """-> the carry for a call that goes on from `kept`, a session the runner
-    noted down."""
+    noted down. `effort` is the level the session was made at, "" for the
+    provider's default and None when the note predates it: a warm call asks
+    at it, since a call at another level is not shown to read the session's
+    cache."""
     return {"from": kept["id"], "usage": kept.get("usage"),
-            "models": kept.get("models"), "cost": kept.get("cost")}
+            "models": kept.get("models"), "cost": kept.get("cost"),
+            "effort": kept.get("effort")}
 
 
 def again(status):

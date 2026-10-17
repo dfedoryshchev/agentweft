@@ -20,7 +20,8 @@ FLAG = "--keep-warm"
 # the long cache lifetime and the short one, in seconds
 LIFETIME = 3600
 SHORT = 300
-# how long before the end of its lifetime a waiting session is warmed
+# how long before the end of its lifetime a waiting session is warmed, at
+# most; a short lifetime gets a fifth of itself (`margin`)
 MARGIN = 300
 # warm calls per session, so a step that is never asked again stops costing
 MOST = 3
@@ -35,6 +36,12 @@ STARTED = []
 
 def wanted(argv):
     return FLAG in argv
+
+
+def margin(span):
+    """-> how long before the end of a `span`-second lifetime a waiting
+    session is warmed."""
+    return min(MARGIN, span // 5)
 
 
 def lifetime(usage, before=None):
@@ -64,14 +71,16 @@ class Warmer(object):
     def due(self, kept, now):
         """a session is due once it has waited its cache's lifetime less the
         margin, and not once that lifetime is over: a lapsed cache is built
-        again by the step's own next call, which costs no more. a session
-        whose lifetime is not known, or is no longer than the margin, is
-        never due."""
+        again by the step's own next call, which costs no more. the margin
+        is a fifth of a short lifetime, so a five-minute cache is warmed
+        after four minutes. a session whose lifetime is not known is never
+        due."""
         span = kept.get("lifetime")
+        if not span:
+            return False
         idle = now - kept.get("at", now)
-        return bool(span) and span > MARGIN \
-            and kept.get("warmed", 0) < self.most \
-            and span - MARGIN <= idle < span
+        return kept.get("warmed", 0) < self.most \
+            and span - margin(span) <= idle < span
 
     def tick(self, now=None):
         from agentweft.providers.base import carry_of

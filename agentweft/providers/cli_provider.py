@@ -311,7 +311,6 @@ def read_back(prompt, since):
 # a call that only keeps a session's cache from lapsing: the session is
 # read whole, so the answer is all that needs to be short
 WARM = "reply with the one word ok."
-WARM_EFFORT = "low"
 
 # the PreToolUse hook of a warm call: it keeps the step's tools, so the
 # cached prefix is the same, and may use none of them
@@ -798,7 +797,8 @@ class CliProvider(Provider):
         model = self.asks_for()
         if model:
             argv = argv + ["--model", model]
-        effort = effort or self.asks_effort()
+        if effort is None:
+            effort = self.asks_effort()
         if effort:
             argv = argv + ["--effort", effort]
         argv = argv + list(session)
@@ -814,7 +814,7 @@ class CliProvider(Provider):
     def warm(self, carry, timeout=None, stop=None):
         if not is_claude(self.command):
             return None
-        return self.go(WARM, timeout, carry, None, WARM_EFFORT, stop)
+        return self.go(WARM, timeout, carry, None, carry.get("effort"), stop)
 
     def go(self, prompt, timeout, carry=None, chosen=None, effort=None,
            stop=None):

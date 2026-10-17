@@ -23,7 +23,7 @@ __all__ = ["replay"]
 # the warm call itself
 
 
-def test_a_warm_call_is_a_low_effort_fork_that_is_not_kept(fake_cli):
+def test_a_warm_call_is_a_fork_that_is_not_kept(fake_cli):
     cli = fake_cli((0, result(USED, WHOLE_COST), b""))
     r = claude().warm(dict(EARLIER))
     argv = cli.calls[0]["argv"]
@@ -31,8 +31,45 @@ def test_a_warm_call_is_a_low_effort_fork_that_is_not_kept(fake_cli):
         ["--resume", "s-1", "--fork-session"]
     assert "--no-session-persistence" in argv
     assert "--session-id" not in argv
-    assert flag(argv, "--effort") == "low"
     assert r.cost == pytest.approx(WHOLE_COST - EARLIER["cost"])
+
+
+# the effort is part of what the cache is keyed on, so a warm call at any
+# other level writes an entry the step's own next call never reads
+@pytest.mark.parametrize("level", ["high", "medium"])
+def test_a_warm_call_asks_at_the_level_its_session_was_made_at(fake_cli,
+                                                               level):
+    cli = fake_cli((0, result(USED, WHOLE_COST), b""))
+    p = claude()
+    p.going = "low"
+    p.warm(dict(EARLIER, effort=level))
+    assert flag(cli.calls[0]["argv"], "--effort") == level
+
+
+def test_a_session_made_at_the_provider_default_is_warmed_at_it(fake_cli):
+    cli = fake_cli((0, result(USED, WHOLE_COST), b""))
+    p = claude()
+    p.going = "high"
+    p.warm(dict(EARLIER, effort=""))
+    assert "--effort" not in cli.calls[0]["argv"]
+
+
+def test_an_api_warm_call_asks_at_the_level_its_session_was_made_at(
+        monkeypatch):
+    from test_continue import Sent
+    from agentweft.providers import api_provider
+
+    sent = Sent()
+    monkeypatch.setattr(api_provider.httpx, "post", sent.post)
+    monkeypatch.setenv("API_KEY", "k")
+    monkeypatch.setenv("API_URL", "https://example.invalid/v1/messages")
+    p = api_provider.ApiProvider(model="m")
+    p.carry = {"from": None}
+    first = p.ask("the whole prompt")
+    p.warm({"from": first.session, "effort": "high"})
+    assert sent.bodies[-1]["output_config"] == {"effort": "high"}
+    p.warm({"from": first.session, "effort": ""})
+    assert "output_config" not in sent.bodies[-1]
 
 
 def test_a_warm_call_keeps_the_steps_tools_and_may_use_none_of_them(
@@ -169,12 +206,19 @@ def test_a_step_in_a_call_is_not_warmed():
     assert p.asked == []
 
 
-@pytest.mark.parametrize("lifetime", [warm.SHORT, None])
-def test_a_short_or_unknown_cache_lifetime_is_never_warmed(lifetime):
-    run, p, w = waiting(lifetime)
+def test_an_unknown_cache_lifetime_is_never_warmed():
+    run, p, w = waiting(None)
     for now in range(0, warm.LIFETIME * 2, 30):
         w.tick(now=now)
     assert p.asked == []
+
+
+def test_a_five_minute_cache_left_waiting_four_minutes_is_warmed():
+    run, p, w = waiting(warm.SHORT)
+    w.tick(now=warm.SHORT - 61)
+    assert p.asked == []
+    w.tick(now=warm.SHORT - 60)
+    assert p.asked == ["s-1"]
 
 
 @pytest.mark.parametrize("usage, before, lifetime", [
@@ -258,6 +302,9 @@ def test_a_step_is_busy_while_its_call_runs_and_its_session_is_timed(
     kept = last_manifest()["sessions"]["worker.md"]
     assert kept["warmed"] == 0 and kept["at"] > 0
     assert "lifetime" in kept
+    # the send-back raised the worker's level from low, so its newest
+    # session was made at the raised one
+    assert kept["effort"] == "medium"
 
 
 def test_a_kept_session_knows_its_cache_lifetime_from_its_usage(

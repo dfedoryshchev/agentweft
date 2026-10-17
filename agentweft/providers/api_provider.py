@@ -13,7 +13,6 @@ VERSION = "2023-06-01"
 # cache, with the long lifetime: its next go may be a whole step away
 HOUR = {"type": "ephemeral", "ttl": "1h"}
 WARM = "reply with the one word ok."
-WARM_EFFORT = "low"
 WARM_TOKENS = 256
 
 
@@ -103,14 +102,15 @@ class ApiProvider(Provider):
         if not before:
             return None
         return self.post(marked(before + [said("user", WARM)]), timeout,
-                         WARM_EFFORT, WARM_TOKENS)
+                         carry.get("effort"), WARM_TOKENS)
 
     def post(self, messages, timeout, effort=None, cap=None):
         key = os.environ.get("API_KEY", "")
         if not key:
             return Reply("", detail="no API_KEY set", retryable=False)
         url = self.opts.get("url") or os.environ.get("API_URL", "")
-        effort = effort or self.asks_effort()
+        if effort is None:
+            effort = self.asks_effort()
         cap = cap or self.output_limit() or self._cap(effort)
         body = {"model": self._model(), "max_tokens": cap,
                 "messages": messages}
