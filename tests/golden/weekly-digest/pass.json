@@ -5,7 +5,7 @@
     "1 planner.md ok -> worker.md",
     "2 worker.md ok -> merge.md",
     "3 merge.md ok -> reviewer.md",
-    "4 reviewer.md ok  PASS length  PASS regex"
+    "4 reviewer.md ok  PASS length  PASS regex  PASS quote"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
@@ -17,7 +17,7 @@
   "handoff": [
     "# weekly digest weekly-digest-<run>: done",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "suite: 2 of 2 gates passed; red first: not proven by a gate.",
+    "suite: 3 of 3 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
     "- none: nothing waits on you.",
@@ -43,6 +43,7 @@
     "- merge.md: no gates",
     "- reviewer.md: PASS length - 7 lines",
     "- reviewer.md: PASS regex",
+    "- reviewer.md: PASS quote - nothing quoted",
     "- red first: not proven by a gate",
     "## rulings",
     "- no pre-existing test or spec file changed",
@@ -436,6 +437,11 @@
           "gate": "regex",
           "ok": true,
           "detail": ""
+        },
+        {
+          "gate": "quote",
+          "ok": true,
+          "detail": "nothing quoted"
         }
       ],
       "ungated": false,
@@ -475,6 +481,7 @@
     "started reviewer.md",
     "  PASS length - 7 lines",
     "  PASS regex",
+    "  PASS quote - nothing quoted",
     "saved <tmp>/runs/weekly-digest-<day>-1.md",
     "## VERDICT: ok",
     "## changed",
@@ -485,7 +492,7 @@
     "  - garden.md: order seeds in march",
     "# weekly digest weekly-digest-<run>: done",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
-    "suite: 2 of 2 gates passed; red first: not proven by a gate.",
+    "suite: 3 of 3 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
     "- none: nothing waits on you.",

@@ -195,6 +195,18 @@ def test_a_cite_of_a_line_that_is_not_there_is_no_cite(tmp_path, monkeypatch):
     assert end(tmp_path).status == "parked at a.md"
 
 
+def test_a_refusal_quoting_what_its_line_does_not_say_fails_the_step(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, gated=False)
+    asked = asking(monkeypatch, 'REFUSED: TASK.md:2 "amounts are floats"' + NL)
+    assert run(monkeypatch, "ask", "--force") != stops.EXIT_OK
+    [folder] = folders(tmp_path)
+    assert [s for s, _ in asked] == ["a.md", "a.md"]
+    assert end(tmp_path).cause != stops.DECLINED
+    gates = (folder / "gates.md").read_text(encoding="utf-8")
+    assert "FAIL quote" in gates and '"amounts are floats"' in gates
+
+
 def test_a_needs_inside_a_code_fence_is_not_a_question(tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch, gated=False)
     asked = asking(monkeypatch, "here is the test" + NL + "```" + NL

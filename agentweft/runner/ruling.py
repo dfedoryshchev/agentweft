@@ -122,13 +122,16 @@ def spec_change_of(output):
             "\n- the spec holds: say what to do instead")
 
 
-def asked_of(output, workdir, word=None, allowed=None):
+def asked_of(output, workdir, word=None, allowed=None, start=None):
     """-> (ASKED, the question), (DECLINED, the cited refusal) or None for an
     answer that did neither. `word` is the step's verdict and `allowed` the
     verdicts its file lists; a spec change request asks only when it is one
     of them, and otherwise is left to fail as an answer the file never
-    offered."""
+    offered. a refusal quoting what its line does not say is left to fail at
+    the gates (`misquoted`)."""
     v = verbs.parse(output)
+    if misquoted(output, workdir, start):
+        return None
     if v.refused and not v.needs:
         cite = cited(v.refused, v.cites, workdir)
         if cite is not None:
@@ -289,23 +292,14 @@ def conflict_of(output, workdir, start=None):
         return "", ('the CONFLICT line is not <file>:<line> "<the line>",'
                     " with request: <the request's words> on the next line: "
                     + said)
-    rel, first = m.group(1), int(m.group(2))
-    last = int(m.group(3) or first)
-    quote = flat(m.group(4))
+    rel, first, last, quote, cite = cite_of(m)
     words = flat(m.group(5)) or request_of(output)
-    cite = rel + ":" + str(first) + ("-" + str(last) if last != first else "")
     if not quote:
         return "", "the CONFLICT line cites " + cite + " and quotes nothing"
-    text = as_found(workdir, rel, start)
-    if text is None:
-        return "", ("the CONFLICT line cites " + cite + ", and " + rel
-                    + " was not there when the run started")
-    lines = text.split("\n")
-    if not 1 <= first <= last <= len(lines):
-        return "", ("the CONFLICT line cites " + cite + ", and " + rel
-                    + " had " + str(len(lines)) + " lines when the run"
-                    " started")
-    if quote not in flat(" ".join(lines[first - 1:last])):
+    found, why = at_line(workdir, rel, first, last, start)
+    if found is None:
+        return "", "the CONFLICT line cites " + cite + ", and " + why
+    if quote not in found:
         return "", ('the CONFLICT line quotes "' + quote + '", which is not'
                     " at " + cite + " as the run found it. quote the line"
                     " as it is, or answer without a CONFLICT line")
@@ -323,6 +317,62 @@ def untyped(output):
                 ' CONFLICT line. type it as CONFLICT: <file>:<line> "<the'
                 ' line>", with request: <the request\'s words> on the next'
                 " line, or mark the behaviour another way")
+
+
+# the first quoted span after a cite, for a line that goes on past its quote:
+# `REFUSED: notes.md:2 "the line" is money, not notes`
+FIRST_QUOTE = re.compile(r"""^[`'"]?([^\s:`'"]+):(\d+)(?:-(\d+))?[`'"]?\s+"""
+                         r'''"([^"\n]*)"''')
+
+
+def cite_of(m):
+    """-> (the file, first line, last line, the quote, the cite as written)
+    from a CONFLICT or FIRST_QUOTE match."""
+    rel, first = m.group(1), int(m.group(2))
+    last = int(m.group(3) or first)
+    cite = rel + ":" + str(first) + ("-" + str(last) if last != first else "")
+    return rel, first, last, flat(m.group(4)), cite
+
+
+def at_line(workdir, rel, first, last, start=None):
+    """-> (lines `first` to `last` of `rel` as the run found them, as one
+    flat string, "") or (None, why they cannot be read)."""
+    text = as_found(workdir, rel, start)
+    if text is None:
+        return None, rel + " was not there when the run started"
+    lines = text.split("\n")
+    if not 1 <= first <= last <= len(lines):
+        return None, (rel + " had " + str(len(lines)) + " lines when the run"
+                      " started")
+    return flat(" ".join(lines[first - 1:last])), ""
+
+
+def misquote(said, workdir, start=None, who="the answer"):
+    """-> "" when `said`, `<file>:<line> "<the line>"`, quotes nothing or
+    quotes what is at that line as the run found it, else what is wrong."""
+    said = (said or "").strip()
+    m = CONFLICT.match(said) or FIRST_QUOTE.match(said)
+    if not m:
+        return ""
+    rel, first, last, quote, cite = cite_of(m)
+    if not quote:
+        return ""
+    found, why = at_line(workdir, rel, first, last, start)
+    if found is None:
+        return who + ' quotes "' + quote + '" from ' + cite + ", and " + why
+    if quote in found:
+        return ""
+    return (who + ' quotes "' + quote + '", which is not at ' + cite
+            + " as the run found it")
+
+
+def misquoted(output, workdir, start=None):
+    """-> what is wrong with the quote of a REFUSED line, or "". a cite of a
+    line that is not there is no cite, and is read as a question instead."""
+    v = verbs.parse(output)
+    if not v.refused or v.needs or cited(v.refused, [], workdir) is None:
+        return ""
+    return misquote(v.refused, workdir, start, "the REFUSED line")
 
 
 def request_of(output):

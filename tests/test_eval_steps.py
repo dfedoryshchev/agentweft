@@ -131,7 +131,7 @@ def test_subset_fails_a_run_that_went_on_past_the_reference(root,
     assert failed(replayed(case, monkeypatch)) == [
         ("the steps it took (subset)",
          "ran outside the reference: merge.md ok -> reviewer.md, "
-         "reviewer.md ok  PASS length  PASS regex")]
+         "reviewer.md ok  PASS length  PASS regex  PASS quote")]
 
 
 def test_a_case_can_assert_the_gate_that_failed(root, monkeypatch):

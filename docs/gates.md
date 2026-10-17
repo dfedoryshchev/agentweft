@@ -54,6 +54,18 @@ green. when it is not, a `conflict` result goes in front of the step's gates
 and fails it, with what was wrong (`docs/journal.md`, when the request
 contradicts the spec).
 
+the same holds for every other quote a step gives as evidence. a `REFUSED:`
+line and the `spec:` line under a `WRONG TEST:` claim that cite a line that
+is there have to quote what that line says as the run found it; when they do
+not, the refusal does not end the run and the claim goes to no one: a `quote`
+result goes in front of the step's gates and fails it, naming the quote and
+the line (`the WRONG TEST spec: line quotes "...", which is not at
+TASK.md:3 as the run found it`), and the step is sent back as for any gate.
+a VERIFIED claim in the HANDOFF block written as `<file>:<line> "<the
+line>"` is evidence only, so it fails nothing: it is marked `unbacked` with
+the same words when the quote is not at that line, and `backed` by the file
+when it is and no command was named.
+
 nothing goes past a failed gate, but the run does not stop on the first one.
 the step that failed goes again, once, with the gate's line at the very end of
 its prompt (`your last answer failed a gate, so this step runs again. the gate
@@ -100,7 +112,7 @@ a gate reads the answer without its HANDOFF block (`journal.md`, "what each
 step hands over"): the block is the step's account of the work, and a length
 cap or a pattern is about the work.
 
-a gate name that is not one of the eight below, or an option the gate does not
+a gate name that is not one of the ten below, or an option the gate does not
 read, is refused when the flow loads, before any step is paid for.
 
 ## skipping a gate, by name and with a reason
@@ -134,7 +146,7 @@ order checks together (below), and `--skip-tests "<reason>"` is short for
 `--skip tests "<reason>"`. skipping `red-test` or `red-first` by its own name
 turns only that gate off: the order checks still want a red proof.
 
-## the eight
+## the ten
 
 - **regex** - `pattern`, and `present: false` to require it is absent.
 - **verdict** - an answer of `PASS` and `FAIL` lines. a line that starts with
@@ -210,6 +222,17 @@ turns only that gate off: the order checks still want a red proof.
   file does not declare, or no `project.yml`, stops the run before any step is
   called. the detail starts with the name: `lint: exit 0`. `--skip project
   "<reason>"` skips every project gate in the run.
+- **quote** - `source`, the step's input: a file or a folder, with `{INBOX}`,
+  `{LOGS}` and `{WATCH}` read as a prompt reads them (`source: "{INBOX}"`).
+  every span of the answer between double quotes, three words or more, has
+  to be in one of its files word for word, spacing aside; the first one that
+  is not fails the step, quoted. shorter spans are left alone, since two
+  words are in almost any file. an answer that quotes nothing passes; one
+  that quotes something from a source that resolves to nothing, or to a path
+  that is not there, fails: nothing to check against is not a pass, and
+  that fail is the gate's own (`broke`), so it caught nothing.
+  the weekly digest's reviewer carries it, so a digest line quoting what no
+  inbox file says goes back once and then stops the run.
 
 ## each new test, without the fix and with it
 

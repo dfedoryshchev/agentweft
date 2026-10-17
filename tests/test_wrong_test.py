@@ -163,6 +163,27 @@ def test_a_spec_line_that_is_not_there_is_no_spec(tmp_path, monkeypatch):
         encoding="utf-8")
 
 
+def test_an_invented_spec_quote_fails_the_step_and_never_reaches_the_writer(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [claim("tests/test_mul.py::test_mul",
+                                   spec='TASK.md:3 "mul(a, b) returns a plus'
+                                   ' b"'), WORKER],
+               "reviewer.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT)],
+              "worker.md": [("", ""), ("calc.py", AFTER)]}
+    asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
+                                          writes)
+    assert asked == ["planner.md", "tester.md", "worker.md", "worker.md",
+                     "reviewer.md"]
+    assert code == stops.EXIT_OK
+    gates = (folder / "gates.md").read_text(encoding="utf-8")
+    first = gates.split("## worker.md")[1].split("##")[0]
+    assert "FAIL quote" in first
+    assert '"mul(a, b) returns a plus b"' in first and "TASK.md:3" in first
+    assert "mul(a, b) returns a plus b" in sent[3]
+
+
 def test_the_claim_is_read_off_its_own_lines_and_never_split_on_a_pipe():
     assert wrongtest is not None, "nothing reads a WRONG TEST answer"
     said =wrongtest.read(

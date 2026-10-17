@@ -5,8 +5,8 @@
     "1 planner.md ok -> worker.md",
     "2 worker.md ok -> merge.md",
     "3 merge.md ok -> reviewer.md",
-    "4 reviewer.md gate failed -> reviewer.md  PASS length  FAIL regex",
-    "5 reviewer.md gate failed  PASS length  FAIL regex"
+    "4 reviewer.md gate failed -> reviewer.md  PASS length  FAIL regex  PASS quote",
+    "5 reviewer.md gate failed  PASS length  FAIL regex  PASS quote"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
@@ -18,7 +18,7 @@
   "handoff": [
     "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md -> reviewer.md in <secs>s.",
-    "suite: 2 of 4 gates passed; red first: not proven by a gate.",
+    "suite: 4 of 6 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
     "- stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
@@ -61,8 +61,10 @@
     "- merge.md: no gates",
     "- reviewer.md: PASS length - 8 lines",
     "- reviewer.md: FAIL regex - matched here is|as an ai|i hope this and should not have",
+    "- reviewer.md: PASS quote - nothing quoted",
     "- reviewer.md: PASS length - 8 lines",
     "- reviewer.md: FAIL regex - matched here is|as an ai|i hope this and should not have",
+    "- reviewer.md: PASS quote - nothing quoted",
     "- red first: not proven by a gate",
     "## rulings",
     "- no pre-existing test or spec file changed",
@@ -462,6 +464,11 @@
           "gate": "regex",
           "ok": false,
           "detail": "matched here is|as an ai|i hope this and should not have"
+        },
+        {
+          "gate": "quote",
+          "ok": true,
+          "detail": "nothing quoted"
         }
       ],
       "ungated": false,
@@ -576,6 +583,11 @@
           "gate": "regex",
           "ok": false,
           "detail": "matched here is|as an ai|i hope this and should not have"
+        },
+        {
+          "gate": "quote",
+          "ok": true,
+          "detail": "nothing quoted"
         }
       ],
       "ungated": false,
@@ -615,14 +627,16 @@
     "started reviewer.md",
     "  PASS length - 8 lines",
     "  FAIL regex - matched here is|as an ai|i hope this and should not have",
+    "  PASS quote - nothing quoted",
     "gate regex failed at reviewer.md, sent back to reviewer.md",
     "started reviewer.md",
     "  PASS length - 8 lines",
     "  FAIL regex - matched here is|as an ai|i hope this and should not have",
+    "  PASS quote - nothing quoted",
     "gate failed at reviewer.md, stopping",
     "# weekly digest weekly-digest-<run>: stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
     "weekly digest ran planner.md -> worker.md -> merge.md -> reviewer.md -> reviewer.md in <secs>s.",
-    "suite: 2 of 4 gates passed; red first: not proven by a gate.",
+    "suite: 4 of 6 gates passed; red first: not proven by a gate.",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
     "- stopped: gate failed at reviewer.md - regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",

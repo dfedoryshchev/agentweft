@@ -178,6 +178,26 @@ def verified(lines):
     return handoff.parse("HANDOFF\nVERIFIED:\n" + lines + "END HANDOFF\n")
 
 
+def test_a_claim_quoting_a_file_line_that_is_not_there_is_unbacked(tmp_path):
+    (tmp_path / "TASK.md").write_text("# task\namounts are exact decimals\n",
+                                      encoding="utf-8")
+    block = handoff.back(verified('- TASK.md:2 "amounts are rounded to'
+                                  ' cents"\n'), None)
+    [item] = handoff.to_files(block, tmp_path)["verified"]
+    assert item["backed"] == "unbacked"
+    assert '"amounts are rounded to cents"' in item["why"]
+    assert "TASK.md:2" in item["why"]
+
+
+def test_a_claim_quoting_its_file_line_is_backed_by_the_file(tmp_path):
+    (tmp_path / "TASK.md").write_text("# task\namounts are exact decimals\n",
+                                      encoding="utf-8")
+    block = handoff.back(verified('- TASK.md:2 "amounts are exact'
+                                  ' decimals"\n'), [("x", "y")])
+    [item] = handoff.to_files(block, tmp_path)["verified"]
+    assert item["backed"] == "backed"
+
+
 def test_a_piped_command_on_its_own_line_is_kept_whole_and_backed():
     block = verified("- the suite is green\n"
                      "  cmd: python -m pytest -q | tail -5\n"

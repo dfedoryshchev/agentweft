@@ -249,7 +249,7 @@ class Declining(Provider):
     name = "declining"
 
     def ask(self, prompt, timeout=None):
-        return Reply('REFUSED: TASK.md:3 "- an entry\'s amount is never 0."\n')
+        return Reply('REFUSED: TASK.md:4 "- an entry\'s amount is never 0."\n')
 
 
 def test_a_probe_declined_with_a_cited_spec_line_scores_correct(

@@ -67,6 +67,21 @@ def test_a_gate_on_the_last_step_is_in_the_score(monkeypatch):
         "gate regex failed at reviewer.md"]
 
 
+def test_a_quote_the_inbox_does_not_hold_fails_the_digest(monkeypatch):
+    r = scored(monkeypatch, DIGEST + '"the box caught fire on monday", says'
+               ' infra.md' + chr(10))
+    assert r["calls"] == 6
+    assert [row["detail"] for row in r["rows"] if row["ok"] is False] == [
+        "gate quote failed at reviewer.md"]
+
+
+def test_a_quote_the_inbox_holds_passes_the_digest(monkeypatch):
+    r = scored(monkeypatch, DIGEST + '"the box fell over on tuesday", says'
+               ' infra.md' + chr(10))
+    assert r["calls"] == 5
+    assert r["passed"] == r["checked"]
+
+
 def test_a_run_that_stops_early_is_not_scored_on_the_empty_text(monkeypatch):
     """the fake's own answer has no tasks in it, so the fanned out step makes
     nothing, and nothing breaks any promise."""

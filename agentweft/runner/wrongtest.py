@@ -16,7 +16,9 @@ run started with is somebody else's decision, so it is a ruling: the run parks
 the way it does on a NEEDS line, quoting the claim.
 
 the spec line has to be a line that is there: a claim nobody can check is a
-question, the way a REFUSED line without a cite is.
+question, the way a REFUSED line without a cite is. its quote has to be what
+that line says as the run found it: a claim on words the spec does not hold
+goes nowhere, and fails the step the way a gate does.
 """
 from pathlib import Path
 
@@ -24,7 +26,7 @@ from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import cited
+from .ruling import cited, misquote
 
 WRONG = "WRONG TEST"
 WHY = "WHY"
@@ -134,6 +136,15 @@ def back_to(writer, test):
             + " handed over above.\n")
 
 
+def misquoted(output, workdir, start=None):
+    """-> what is wrong with the quote on the claim's `spec:` line, or "".
+    a claim citing a line that is not there is a question, not this."""
+    said = read(output)
+    if said is None or not said[2] or cited(said[2], [], workdir) is None:
+        return ""
+    return misquote(said[2], workdir, start, "the WRONG TEST spec: line")
+
+
 def judge(output, step, run, route):
     """-> None when `output` claims no wrong test, ("back", writer, test,
     the end of the writer's prompt) to send it to the step that wrote it, or
@@ -145,6 +156,8 @@ def judge(output, step, run, route):
     if not spec or cited(spec, [], run.workdir) is None:
         return "ask", asked(step, test, why, spec,
                             "no line of the spec that is there was cited")
+    if misquoted(output, run.workdir, getattr(run, "start", None)):
+        return None
     if not born(getattr(run, "start", None), test):
         return "ask", asked(step, test, why, spec,
                             "it was in the place when the run started, so"

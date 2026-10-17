@@ -21,7 +21,8 @@ a transcript, the claim is held to it: `backed` when the command and every
 excerpt are there, `unbacked` when one of them is not (the missing one is
 named), `ran` when the command is there and no excerpt was given,
 `unchecked` when there is no transcript to read. the model's word for what it
-ran is never taken on its own.
+ran is never taken on its own. a claim that quotes a file instead,
+`<file>:<line> "<the line>"`, is held to that line as the run found it.
 """
 import json
 import os
@@ -257,6 +258,26 @@ def back(block, calls):
             item["backed"] = "unbacked"
             item["why"] = ("the command ran, but its output does not show "
                            + "; ".join(missing))
+    return block
+
+
+def to_files(block, workdir, start=None):
+    """mark every VERIFIED claim that quotes a file, `<file>:<line> "<the
+    line>"`, against that line as the run found it: `unbacked` when the
+    words are not there, and `backed` by the file when they are and no
+    command was named."""
+    from .ruling import CONFLICT, FIRST_QUOTE, misquote
+
+    for item in block.get("verified", []):
+        said = item["claim"].strip()
+        m = CONFLICT.match(said) or FIRST_QUOTE.match(said)
+        if not m or not m.group(4).strip():
+            continue
+        wrong = misquote(said, workdir, start, "the claim")
+        if wrong:
+            item["backed"], item["why"] = "unbacked", wrong
+        elif not item["cmd"]:
+            item["backed"], item["why"] = "backed", ""
     return block
 
 

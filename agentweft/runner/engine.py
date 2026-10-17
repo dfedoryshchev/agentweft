@@ -31,7 +31,7 @@ from agentweft.guardrails.budget import REACHING, Budget
 from agentweft.guardrails import blocks, sacrifice
 
 from .handoff import (EMPTY, PARTIAL, PRESENT, Handoff, back, merge, parse,
-                      transcript, without)
+                      to_files, transcript, without)
 from . import brief as kept
 from . import errors
 from . import investigate
@@ -968,8 +968,10 @@ class Run(object):
                     + "\n\n" + (rest[1].strip() if len(rest) > 1 else "")
                     ).rstrip() + "\n"
             self.produced[step] = text
-        block = back(parse(text), transcript(trace.last(tried, "session"),
-                                                  tried.continued))
+        block = to_files(back(parse(text),
+                              transcript(trace.last(tried, "session"),
+                                         tried.continued)),
+                         self.workdir, getattr(self, "start", None))
         self.keep(role, block)
         if notes is not None:
             notes.add(step, task, role, block)
@@ -1298,8 +1300,12 @@ def check_step(run, route, step, out, run_dir=None):
         moved = order.after(step, run.writes_for(step))
         if moved:
             results.insert(0, Result("tests-only", False, moved))
-    said = ruling.conflict_of(out.output, getattr(run, "workdir", "."),
-                              getattr(run, "start", None))
+    workdir, start = getattr(run, "workdir", "."), getattr(run, "start", None)
+    wrong = [w for w in (ruling.misquoted(out.output, workdir, start),
+                         wrongtest.misquoted(out.output, workdir, start)) if w]
+    if wrong:
+        results.insert(0, Result("quote", False, "; ".join(wrong)))
+    said = ruling.conflict_of(out.output, workdir, start)
     if said and said[1]:
         results.insert(0, Result("conflict", False, said[1]))
     forged = getattr(run, "forged", {}).pop(step, "")
@@ -1464,7 +1470,8 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
         if honest:
             rides(step, out)
         said = ruling.asked_of(out.output, run.workdir, out.verdict,
-                               out.meta.get("allowed")) if honest else None
+                               out.meta.get("allowed"), run.start) \
+            if honest else None
         if said and said[0] == ruling.DECLINED:
             note("refused", said[1], stops.DECLINED, output=out.output)
             return out.output, run.budget, ""
@@ -2394,7 +2401,8 @@ def run_flow():
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")
             said = ruling.asked_of(out.output, run.workdir, out.verdict,
-                                   out.meta.get("allowed")) if honest else None
+                                   out.meta.get("allowed"), run.start) \
+                if honest else None
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)
