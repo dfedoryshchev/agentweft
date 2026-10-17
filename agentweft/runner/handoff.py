@@ -94,7 +94,7 @@ def parse(text):
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
     is kept under `other` as the step wrote it. `QUESTION:` opens an open
     question, and the `RECOMMEND:` and `SIZE:` lines after it are its own,
-    under `questions`.
+    under `questions`; `QUESTION: none` asks nothing.
     """
     shown = verbs.visible(text)
     found, why = _bounds(shown)
@@ -149,6 +149,10 @@ def parse(text):
         return empty(UNREADABLE, "a block with no DID, VERIFIED, DOUBTS or"
                      " other section in it")
     out["verified"] = [claim(i) for i in out["verified"]]
+    # dropped only now: until the block ends, a `QUESTION: none` still owns
+    # the RECOMMEND and SIZE lines under it
+    out["questions"] = [q for q in out["questions"]
+                        if q["question"].lower() not in NONE_WORDS]
     return out
 
 

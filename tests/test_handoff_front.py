@@ -99,6 +99,30 @@ def test_a_finished_run_leads_with_what_it_did_and_says_nothing_waits():
     assert decision.startswith("- none: nothing waits on you")
 
 
+def test_a_done_run_whose_block_asks_none_says_nothing_waits_on_a_person():
+    said = ("HANDOFF\nDID:\n- money.py: rounds half up\nQUESTION: none\n"
+            "RECOMMEND: none\nSIZE: none\nEND HANDOFF\n")
+    lines = build([a_pass("worker", said)])
+    assert handoff.parse(said)["questions"] == []
+    assert decision_of(lines).strip() == "- none: nothing waits on you."
+    assert "raised by" not in "\n".join(default_view(lines))
+
+
+def test_a_none_question_does_not_lend_its_answer_to_the_one_before_it():
+    said = ("HANDOFF\nDID:\n- money.py: rounds half up\n"
+            "QUESTION: " + QUESTION + "\nRECOMMEND: treat blank as zero\n"
+            "SIZE: one line\nQUESTION: none\nRECOMMEND: none\nSIZE: none\n"
+            "END HANDOFF\n")
+    assert [(q["question"], q["recommend"], q["size"])
+            for q in handoff.parse(said)["questions"]] == [
+        (QUESTION, "treat blank as zero", "one line")]
+    decision = decision_of(build([a_pass("worker", said)]))
+    assert decision.strip().split("\n") == [
+        "- " + QUESTION,
+        "  raised by worker; cites TASK.md:12",
+        "  recommendation: treat blank as zero (size: one line)"]
+
+
 def test_each_doubt_prints_once_by_its_text_and_by_the_line_it_cites():
     passes = [
         a_pass("worker", block(doubts=["the CSV header may carry a BOM",

@@ -441,11 +441,12 @@ answers, in order:
   first is in full, the rest one line each under
   `also open:`. a question the lead decided or an `--answer` settled is under
   the rulings, not here, so a finished run needs nothing. `- none: nothing
-  waits on you.` when nothing does. a stop that waits for a ruling leads
-  with the question it wrote to `question.md`, with its cites and options,
-  whatever asked it: a `NEEDS:` or `CONFLICT:` line, `VERDICT: park`, a
-  `REFUSED:` with no spec line cited, a spec change request, or the runner.
-  a stop that asked nothing (a gate, the cap, an outage, a crash, a
+  waits on you.` when nothing does; a `QUESTION: none` asks nothing, and the
+  `RECOMMEND:` and `SIZE:` under it go with it. a stop that waits for a
+  ruling leads with the question it wrote to `question.md`, with its cites
+  and options, whatever asked it: a `NEEDS:` or `CONFLICT:` line, `VERDICT:
+  park`, a `REFUSED:` with no spec line cited, a spec change request, or the
+  runner. a stop that asked nothing (a gate, the cap, an outage, a crash, a
   refusal that cites the spec) leads with the stop itself, where and why,
   and the questions the steps left open follow it under `also open:`.
 - **why**: what the last working step did (on a stop, "handed over this
