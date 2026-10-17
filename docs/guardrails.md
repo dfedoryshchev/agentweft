@@ -156,8 +156,11 @@ reviewer steps and `reviewer` would be both. a list that cannot make the plan
 fit cuts nothing, and the run still says RISKY. the same list is read again
 when the token cap warns that 80% of it is spent: the steps still ahead are
 cut in the same order until their blocks fit the rest of the cap, and the run
-goes on; a rest that fits already goes on with nothing cut. if the whole list would not make them fit, nothing is cut and the
-run waits at the cap as it always did. a name with no step left ahead is
+goes on; a rest that fits already goes on with nothing cut. if the whole
+list would not make them fit, nothing is cut and the run waits at the cap as
+it always did. near the cap the blocks have to be an estimate, from earlier
+runs of the flow here or one call per step: a plan that only shares the cap
+out has nothing to cut on, so the run waits at the cap with nothing cut. a name with no step left ahead is
 passed over. a cut lead decides nothing: a question a step asks goes to the
 person, saying the lead was cut for the budget.
 

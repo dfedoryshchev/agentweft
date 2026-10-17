@@ -166,28 +166,47 @@ def big_first(step):
     return ("x" * 324000 if step == "a.md" else "ok") + NL
 
 
+def ran_before(tmp_path, flow, tokens):
+    """the record of an earlier run of `flow` here in which each step took
+    `tokens`, so the plan's blocks are an estimate and not a split of the
+    cap."""
+    d = tmp_path / "runs" / (flow + "-1")
+    d.mkdir(parents=True)
+    (d / "workdir").write_text(str(tmp_path.resolve()), encoding="utf-8")
+    lines = [json.dumps({"step": s, "tokens": {
+        "counted": True, "input": tokens, "output": 0, "cache_read": 0}})
+        for _, s in FIVE]
+    (d / "steps.jsonl").write_text(NL.join(lines) + NL, encoding="utf-8")
+
+
+def the_runs(tmp_path):
+    return sorted(p for p in (tmp_path / "runs").iterdir() if p.is_dir())
+
+
 def test_near_the_cap_the_rest_is_cut_in_order_until_it_fits(
         tmp_path, monkeypatch, capsys):
     a_flow(tmp_path, monkeypatch, "near", FIVE, "max_tokens: 100000" + NL
            + listed("e", "d", "c", "b"))
+    ran_before(tmp_path, "near", 6000)
     asked = asking(monkeypatch, big_first)
     run(monkeypatch, "near", "--force")
-    assert asked == ["a.md", "b.md"]
-    skipped = json.loads((the_run(tmp_path) / "skips.json")
+    assert asked[:2] == ["a.md", "b.md"] and "e.md" not in asked
+    skipped = json.loads((the_runs(tmp_path)[-1] / "skips.json")
                          .read_text(encoding="utf-8"))
-    assert sorted(skipped) == ["c", "d", "e"]
-    assert all(r.startswith("budget: token cap") for r in skipped.values())
+    assert sorted(skipped) == ["e"]
+    assert skipped["e"].startswith("budget: token cap")
 
 
 def test_near_the_cap_a_list_that_cannot_make_it_fit_parks_and_cuts_nothing(
         tmp_path, monkeypatch, capsys):
     a_flow(tmp_path, monkeypatch, "parks", FIVE, "max_tokens: 100000" + NL
            + listed("e"))
+    ran_before(tmp_path, "parks", 8000)
     asked = asking(monkeypatch, big_first)
     assert run(monkeypatch, "parks", "--force") == stops.EXIT_STOP
     assert asked == ["a.md"]
     assert "paused before b.md" in capsys.readouterr().out
-    assert not (the_run(tmp_path) / "skips.json").exists()
+    assert not (the_runs(tmp_path)[-1] / "skips.json").exists()
 
 
 def test_a_run_picked_up_later_cuts_again_what_still_does_not_fit(
@@ -275,3 +294,14 @@ def test_a_cut_lead_is_not_called_to_decide_and_the_person_gets_the_question(
     assert "a.md" not in asked
     assert code == stops.EXIT_STOP
     assert "should the list be sorted?" in out
+
+
+def test_near_the_cap_a_split_of_the_cap_is_no_estimate_to_cut_on(
+        tmp_path, monkeypatch, capsys):
+    a_flow(tmp_path, monkeypatch, "split", FIVE, "max_tokens: 100000" + NL
+           + listed("e", "d", "c", "b"))
+    asked = asking(monkeypatch, big_first)
+    assert run(monkeypatch, "split", "--force") == stops.EXIT_STOP
+    assert asked == ["a.md"]
+    assert "paused before b.md" in capsys.readouterr().out
+    assert not (the_run(tmp_path) / "skips.json").exists()

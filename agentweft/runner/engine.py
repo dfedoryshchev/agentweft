@@ -2212,8 +2212,10 @@ def run_flow():
 
     def near(step, waits):
         """-> whether the run goes on past the token cap's warning: the
-        flow's sacrifice list makes the steps ahead fit what is left."""
-        if not sacrifice.listed(fm) or waits[0] != REACHING:
+        flow's sacrifice list makes the steps ahead fit what is left. a
+        plan that only shares the cap out has no estimate to cut on."""
+        if not sacrifice.listed(fm) or waits[0] != REACHING \
+                or plan.source == blocks.SHARES_SOURCE:
             return False
         ahead = [s for s in order[order.index(step):] if s in plan.steps]
         chosen, short = sacrifice.choose(

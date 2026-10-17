@@ -26,6 +26,7 @@ SHARES = {"worker": 41, "patcher": 22, "tester": 14, "verify": 11,
           "planner": 8, "reviewer": 4}
 BUFFER = 10
 KEEP = 5
+SHARES_SOURCE = "shares"
 
 
 def share(role):
@@ -121,7 +122,7 @@ class Plan(object):
             self.source = "earlier runs"
             self.blocks = self.from_past(known)
         else:
-            self.source = "shares"
+            self.source = SHARES_SOURCE
             self.blocks = self.from_shares()
         total = sum(self.blocks.values())
         if self.cap is None:
@@ -195,7 +196,7 @@ class Plan(object):
                     " or save on the biggest block first (" + biggest + ", ~"
                     + str(self.blocks[biggest]) + " " + self.unit + "); never"
                     " by dropping the red test")
-        if self.source == "shares":
+        if self.source == SHARES_SOURCE:
             return ("a split, not a forecast: no earlier run of this flow here"
                     " says what its steps take, so the cap is shared out by"
                     " the measured shares")
@@ -219,7 +220,7 @@ class Plan(object):
             if self.filled:
                 source = (source + "; " + ", ".join(self.filled)
                           + " scaled from the others by the measured shares")
-        elif self.source == "shares":
+        elif self.source == SHARES_SOURCE:
             source = ("measured shares of a run's spend: "
                       + ", ".join(k + " " + str(v) + "%"
                                   for k, v in sorted(SHARES.items(),
