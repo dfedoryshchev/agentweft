@@ -504,7 +504,10 @@ newest `red-first` gate that replayed something: `shown on <step>` with each
 new test's line, `red without the fix (assertion), green with it`, a case
 added after green ending `; added after green, coverage` or `; added after
 green, pins current behaviour, not counted as coverage`, or the failure; else the `red-test` gate's own record: `gate-proven`, `claimed,
-nothing was run` or `not proven by a gate`), the test order on a flow whose
+nothing was run` or `not proven by a gate`, and on a flow whose steps say
+what they write and whose red-proof record holds no proof, `not held: the
+red-test gate on <step> went red (...), but the run holds no red proof`
+rather than `gate-proven`), the test order on a flow whose
 steps say what they write (`- test order: red before any product code:
 red-test on worker.md (test_calc.py)`, `tests carried from run <run-id>` or
 `tests carried from <sha>`, or `tests skipped: <reason> (--skip tests)`, which

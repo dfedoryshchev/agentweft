@@ -482,6 +482,25 @@ def test_a_supplied_red_test_outside_git_is_not_a_proof(tmp_path):
     assert "no red test" in order.before("worker.md", "product")
 
 
+def test_a_stop_with_no_red_proof_never_calls_its_red_gate_proven(
+        tmp_path, monkeypatch):
+    place = a_plain_place(tmp_path / "plain")
+    (place / "tests").mkdir()
+    (place / SUPPLIED).write_text(RED_TEST, encoding="utf-8")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({}, NAMES_SUPPLIED),
+        "worker.md": ({"calc.py": FIXED}, "done")})
+    assert called == ["tester.md"]
+    assert code == stops.exit_code(stops.REFUSED)
+    assert proof_of_last_run() is None
+    handoff = read(folders()[-1] / "handoff.md")
+    assert "gate-proven" not in handoff
+    assert "red first: not held: the red-test gate on tester.md went red" \
+        in handoff
+    assert "the run holds no red proof" in handoff
+
+
 def test_a_supplied_red_test_with_no_red_gate_is_still_refused(tmp_path,
                                                               monkeypatch):
     place = a_repo(tmp_path / "repo")

@@ -501,7 +501,9 @@ def replay(passes):
     return None, None
 
 
-def red_first(passes):
+def red_first(passes, held=True):
+    """-> the red-first line. `held` False says the run's red-proof record
+    holds no proof, so a red-test gate that went red proved nothing."""
     step, g = replay(passes)
     if g is not None:
         if not g["ok"]:
@@ -517,8 +519,13 @@ def red_first(passes):
                     + g["detail"]
             if "nothing was run" in g["detail"]:
                 return "claimed by " + at(p) + ", nothing was run"
-            return ("gate-proven on " + at(p) + " (" + g["detail"]
-                    + (", " + g["command"] if g["command"] else "") + ")")
+            ran = (" (" + g["detail"]
+                   + (", " + g["command"] if g["command"] else "") + ")")
+            if not held:
+                return ("not held: the red-test gate on " + at(p)
+                        + " went red" + ran
+                        + ", but the run holds no red proof")
+            return "gate-proven on " + at(p) + ran
     return "not proven by a gate"
 
 
@@ -771,7 +778,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
-          spec_files=None, clock=None):
+          spec_files=None, clock=None, held=True):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -794,6 +801,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `spec_files` is the flow's rule for the spec files.
     `clock` is {"wall", "gates"}, the seconds of this run and of its gates,
     None for no wall line.
+    `held` is False when the flow orders tests before product code and the
+    run's red-proof record holds no proof (`redorder.Order`).
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -828,7 +837,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     checks = "; ".join([c for c in [checks] if c] + [
         "1 check " + ("passed" if ok else "failed") + " (" + found + ")"
         for _, ok, found in made]) or "no gates ran"
-    out.append("suite: " + checks + "; red first: " + red_first(every)
+    out.append("suite: " + checks + "; red first: " + red_first(every, held)
                + ("; " + order if order.startswith("tests skipped") else "")
                + "".join("; " + s for s in skipped) + ".")
     if changes.get("git"):
@@ -966,7 +975,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.extend("- " + stopped["at"] + ": " + ("PASS " if ok else "FAIL ")
                + name + " - " + found
                for name, ok, found in (stopped or {}).get("checked") or [])
-    out.append("- red first: " + red_first(every))
+    out.append("- red first: " + red_first(every, held))
     if order:
         out.append("- test order: " + order)
     if kept:

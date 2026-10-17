@@ -2243,7 +2243,9 @@ def run_flow(unrecorded):
                               signed=signed,
                               spec_files=fm.get("spec_files"),
                               clock={"wall": since(clock),
-                                     "gates": trail.gate_seconds})
+                                     "gates": trail.gate_seconds},
+                              held=not redorder.ordered(fm)
+                              or bool(run.order.skip or run.order.proof))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],
