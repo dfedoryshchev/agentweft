@@ -5,8 +5,11 @@ key and cost nothing.
 
 ## 1. install it and answer init
 
-    pip install .
+    pip install -e .
     agentweft init
+
+`-e` keeps the package in the clone, so a run's record lands in the clone's
+`runs/`, where `python rollup.py` reads it, not in site-packages.
 
 `init` asks the few things a run needs and writes them to `.env`, where every
 run reads them:
