@@ -450,30 +450,45 @@ def covering(decided, test, workdir, start=None):
     return None
 
 
-def names_file(text, path):
-    """whether `text` names the file `path`, with or without the folders
-    before it, and not as the start of one test's id in it."""
-    short = path.rsplit("/", 1)[-1]
-    return re.search(r"(?<![\w.-])" + re.escape(short) + r"(?!\w|::)",
-                     text or "", re.I) is not None
+ASKED_IN = re.compile(r"^asked by \S+ in (\S+):\n")
+EDITS_ASKED = " the run started with. may "
 
 
-def edit_ruled(decided, test, workdir, start=None):
+def answers_edits(d, test, runs):
+    """whether `d` is an `override:` answer, given with --answer, to the
+    question a test edit parked one of `runs` on, and that question cites
+    `test`."""
+    said = answered(d)
+    m = ASKED_IN.match(d.why)
+    if kind_of(said) != OVERRIDE or not m or m.group(1) not in runs:
+        return False
+    question = d.why.partition("\nanswered:\n")[0]
+    return EDITS_ASKED in question and any(
+        line.startswith("- " + test + " - ") for line in question.split("\n"))
+
+
+def edit_ruled(decided, test, workdir, start=None, runs=()):
     """-> the decisions.md entry that lets `test`, a test the run started
     with, be changed or removed, or None. `test` is a test id, or a file when
-    the change is the file's. what covers a start test gone red covers it,
-    and so does an entry naming the test by its name alone or naming its
-    file. an answer of `request:` never covers one."""
+    the change is the file's. an `override:` answer to the question a test
+    edit in one of `runs` (this run, the one it picked up) parked on covers
+    what that question cites. a test id is also covered by what covers a
+    start test gone red, and by an entry naming the test by its name alone.
+    naming the file covers nothing: a ruling on where a new case goes names
+    it too. an answer of `request:` never covers one."""
+    for d in decided:
+        if answers_edits(d, test, runs):
+            return d
+    path, sep, name = test.partition("::")
+    if not sep:
+        return None
     found = covering(decided, test, workdir, start)
     if found is not None:
         return found
-    path, _, name = test.partition("::")
     for d in decided:
         if kind_of(answered(d) or d.decided) == REQUEST:
             continue
-        own = own_words(d)
-        if (name and names_test(own, name.rsplit("::", 1)[-1])) or \
-                names_file(own, path):
+        if names_test(own_words(d), name.rsplit("::", 1)[-1]):
             return d
     return None
 
@@ -485,7 +500,7 @@ def question_of_test_edits(step, left):
     one = len(left) == 1
     out = ["NEEDS: " + step + " changed "
            + ("a test" if one else str(len(left)) + " tests")
-           + " the run started with. may " + ("it" if one else "they")
+           + EDITS_ASKED + ("it" if one else "they")
            + " change?", "CITES:"]
     out.extend("- " + test + " - " + how for test, how in left)
     out.extend(["OPTIONS:",

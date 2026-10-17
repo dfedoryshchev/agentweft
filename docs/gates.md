@@ -514,20 +514,27 @@ in `gates.md`:
   again with that at the end of its prompt. on its last go (the flow's
   `send_backs`, once by default) the run parks for a ruling instead, cause
   `parked`, with each test cited in `question.md`.
-- unless a ruling in `decisions.md` covers the test: one that names it (its
-  id, its name alone, or its file), or one that quotes in double quotes,
-  three words or more, a line of a spec file as the run found it, in an entry
-  that names the test, such as an `override:` answer to the park. so a test
-  the run was handed with a wrong assertion can be fixed once a ruling quotes
-  the spec line that decides it. an answer of `request:` covers nothing.
-  covered tests pass as `changed, each covered by a ruling`.
+- unless a ruling in `decisions.md` covers the test: an `override:` answer to
+  the question this run (or the leg it picked up) parked on for these edits
+  covers every test and file that question cites; one that names the test
+  (its id, or its name alone), or one that quotes in double quotes, three
+  words or more, a line of a spec file as the run found it, in an entry that
+  names the test, covers that test. so a test the run was handed with a wrong
+  assertion can be fixed once a ruling quotes the spec line that decides it.
+  an entry that only names the file covers nothing in it (a ruling on where
+  a new case goes names the file too), and a change that is the file's own
+  (the code its tests share, a file that no longer parses or cannot be read
+  back) is covered only by the answer to its question. an answer of
+  `request:` covers nothing. covered tests pass as `changed, each covered by
+  a ruling`.
 
 which files changed is read from content hashes, and what they held from the
 start commit (or the snapshot, for a file already loose), so a step that
 commits its edit, or commits the file's deletion, is read the same as one
 that leaves it in the work tree. a place with no start commit has only the
 hashes, so a test file the run found that changed there is held as changed
-(nothing can show the change was only an addition) until a ruling names it.
+(nothing can show the change was only an addition) until the answer to its
+question rules it.
 
 ## the suite as the run found it
 

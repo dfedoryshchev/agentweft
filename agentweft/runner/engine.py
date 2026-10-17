@@ -553,10 +553,13 @@ class Run(object):
         if not found:
             return None, None
         decided = self.decided()
+        record = getattr(self, "record", None)
+        runs = [r for r in ((record.run, record.resumes) if record is not None
+                            else ()) if r]
         left, ruled = [], []
         for edit in found:
             for test, how in edit.items:
-                d = ruling.edit_ruled(decided, test, self.workdir, start)
+                d = ruling.edit_ruled(decided, test, self.workdir, start, runs)
                 if d is None:
                     left.append((test, how))
                 else:

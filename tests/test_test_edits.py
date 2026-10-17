@@ -294,7 +294,73 @@ def test_a_request_answer_never_covers_an_edit(tmp_path):
                  ruling.why("tester.md", "build-1", "NEEDS: may it?\n- "
                             + ID, "request: keep " + ID, "someone"))
     assert ruling.edit_ruled([kept], ID, tmp_path) is None
-    named = entry("the file goes", "test_report.py is replaced")
-    assert ruling.edit_ruled([named], ID, tmp_path) is named
     other = entry("one test goes", "tests/test_report.py::test_other changes")
     assert ruling.edit_ruled([other], ID, tmp_path) is None
+
+
+FILE = "tests/test_report.py"
+
+
+def test_an_entry_naming_only_the_file_covers_no_test_in_it(tmp_path):
+    """a decision about where a new case goes names the file too."""
+    named = entry("the file goes", "test_report.py is replaced")
+    assert ruling.edit_ruled([named], ID, tmp_path) is None
+    assert ruling.edit_ruled([named], FILE, tmp_path) is None
+    by_name = entry("test_alphabetical is wrong", "the spec sorts")
+    assert ruling.edit_ruled([by_name], ID, tmp_path) is by_name
+
+
+def answer_to_edits(test, answer, run="build-1"):
+    question = ruling.question_of_test_edits("tester.md", [(test, "changed")])
+    return entry(ruling.decided("tester.md", answer),
+                 ruling.why("tester.md", run, question, answer, "someone"))
+
+
+def test_an_override_of_this_runs_test_edit_question_covers_what_it_cites(
+        tmp_path):
+    yes = answer_to_edits(FILE, "override: the helper grows with the spec")
+    assert ruling.edit_ruled([yes], FILE, tmp_path, runs=["build-1"]) is yes
+    assert ruling.edit_ruled([yes], FILE, tmp_path, runs=["build-0"]) is None
+    assert ruling.edit_ruled([yes], FILE, tmp_path) is None
+    assert ruling.edit_ruled([yes], "tests/test_other.py", tmp_path,
+                             runs=["build-1"]) is None
+    no = answer_to_edits(FILE, "put it back")
+    assert ruling.edit_ruled([no], FILE, tmp_path, runs=["build-1"]) is None
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_ruling_that_only_mentions_the_file_does_not_unlock_its_tests(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo")
+    decisions.record(place, "the count case goes in tests/test_report.py",
+                     "beside the other report tests")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place,
+                           writes_of(module(LOOSER, COUNT)), commits)
+    assert code == stops.exit_code(stops.PARKED), called
+    assert called == ["tester.md", "tester.md"]
+
+
+SHARED_AT_START = "EXPECTED = ['a', 'b']" + NL + NL + RIGHT
+SHARED_NOW = "EXPECTED = ['a', 'b', 'c']" + NL + NL + RIGHT
+
+
+def test_a_shared_code_change_needs_the_answer_to_its_own_question(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo", baseline=SHARED_AT_START)
+    decisions.record(place, "the count case goes in tests/test_report.py",
+                     "beside the other report tests")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    does = writes_of(module(SHARED_NOW, COUNT))
+    code, called = running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.PARKED), called
+    first = folders()[-1]
+    assert "- " + FILE + " - the code its tests share changed" in read(
+        first / "question.md")
+    code, called = running(tmp_path, monkeypatch, place, does, False,
+                           "--resume", first.name, "--answer",
+                           "override: the expected list grows with the spec")
+    assert code == 0, called
+    assert called == ["tester.md", "worker.md"]
+    assert "each covered by a ruling: " + FILE in read(
+        folders()[-1] / "gates.md")
