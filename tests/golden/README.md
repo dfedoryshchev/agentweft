@@ -6,4 +6,6 @@ A case with `legs` runs `main()` once per leg, each leg a minute after the one b
 
 `suite-red` (fix-with-test, build-feature) is a change that turns its own test green and leaves another test in the suite red: the command gate fails it, sends the step back once, and the run stops on the second red suite.
 
+`product-before-red` is a tests step that also edits product code: fix-with-test's worker is sent back once and the run stops, build-feature's tester puts the product file back on its second go and the run finishes. `no-red-proof` (fix-with-test) names a test the place already had, outside git, so nothing proves it red at the start and the patcher is refused before it is called.
+
 `python -m pytest tests/test_golden.py --update-golden` rewrites them from what the code does now. A change that moves a golden path rewrites its golden in the same commit and says so; a new path adds its golden there too.

@@ -119,6 +119,8 @@ PATCH_BREAKS_NEG = say("TEST: test_calc.py\n\n-    return a - b\n"
                        "+    total = a + b\n+    return total\n"
                        "-    return -a\n+    return a\n",
                        {"calc.py": FIXED_NEG_BROKEN})
+RED_WITH_PRODUCT = say("FAILS: assert -1 == 3\nTEST: test_calc.py\n\n" + TEST,
+                       {"test_calc.py": TEST, "calc.py": BUGGY + NEG})
 
 FEATURE = "calc gets mul(a, b), which multiplies"
 ADD_ONLY = "def add(a, b):\n    return a + b\n"
@@ -131,6 +133,7 @@ MUL_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
               "TEST: test_mul.py\n\n" + MUL_TEST, {"test_mul.py": MUL_TEST})
 MUL_BUILT = "- calc.py: mul(a, b) added\n"
 ADD_TEST = "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+MUL_STUB = ADD_ONLY + "\n\ndef mul(a, b):\n    return 0\n"
 MUL_SPEC = "# calc\n\nmul(a, b) returns a times b\n"
 MUL_NEEDS = ("NEEDS: should mul round a float product to an int?\n"
              "CITES:\n- TASK.md:3 - mul(a, b) returns a times b\n"
@@ -362,6 +365,25 @@ CASES = {
             "tester.md": [MUL_RED],
             "worker.md": [say(MUL_BUILT, {"calc.py": BUGGY + "\n\ndef mul(a, b)"
                                           ":\n    return a * b\n"})] * 2}},
+    ("fix-with-test", "product-before-red"): {
+        "place": {"calc.py": BUGGY}, "args": ["--task", BUG], "task": BUG,
+        "answers": {"worker.md": [RED_WITH_PRODUCT] * 2}},
+    ("fix-with-test", "no-red-proof"): {
+        "place": {"calc.py": BUGGY, "test_calc.py": TEST},
+        "args": ["--task", BUG], "task": BUG,
+        "answers": {"worker.md": ["FAILS: assert -1 == 3\nTEST: test_calc.py\n"]}},
+    ("build-feature", "product-before-red"): {
+        "place": {"calc.py": ADD_ONLY}, "args": ["--task", FEATURE],
+        "answers": {
+            "planner.md": [MUL_PLAN],
+            "tester.md": [say("FAILS: assert 0 == 6\nTEST: test_mul.py\n\n"
+                              + MUL_TEST, {"test_mul.py": MUL_TEST,
+                                           "calc.py": MUL_STUB}),
+                          say("FAILS: ImportError: cannot import name 'mul'"
+                              " from 'calc'\nTEST: test_mul.py\n\n" + MUL_TEST,
+                              {"test_mul.py": MUL_TEST, "calc.py": ADD_ONLY})],
+            "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
 }
 
 
