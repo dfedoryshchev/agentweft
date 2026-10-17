@@ -200,10 +200,10 @@ FLOW_ONLY = (
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),
     Pair("step.writes", "",
-         "what a step writes: tests, product or none. a product step does not "
-         "start before the run holds a red test, and a tests step that "
-         "changes product code fails. a phase says the order in its agents' "
-         "prose, where nothing holds it."),
+         "what a step writes: tests, product, spec or none. a product step "
+         "does not start before the run holds a red test, and a step that "
+         "changes what it did not say it writes fails. a phase says the order "
+         "in its agents' prose, where nothing holds it."),
     Pair("step.prompt", "",
          "which file the step sends. an agent's prompt is its own name plus "
          ".md, so it cannot be pointed anywhere else."),

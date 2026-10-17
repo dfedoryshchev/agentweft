@@ -2,23 +2,23 @@
   "exit": 2,
   "raised": null,
   "path": [
-    "1 worker.md gate failed -> worker.md  FAIL tests-only  PASS red-test",
-    "2 worker.md gate failed  FAIL tests-only  PASS red-test"
+    "1 worker.md gate failed -> worker.md  FAIL writes  PASS red-test",
+    "2 worker.md gate failed  FAIL writes  PASS red-test"
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)  fix-with-test-<run>/handoff.md"
+    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)  fix-with-test-<run>/handoff.md"
   ],
   "index": [
-    "GATE  fix-with-test  tests-only at worker.md"
+    "GATE  fix-with-test  writes at worker.md"
   ],
   "handoff": [
-    "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+    "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 2 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
-    "- stopped: gate failed at worker.md - tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+    "- stopped: gate failed at worker.md - writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
     "  what it needs from you and the command to carry on are under needs you, below.",
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
@@ -34,7 +34,7 @@
     "nothing was reverted; --on-stop revert-tests puts the test files back to their bytes at the start.",
     "cause          gate failed",
     "stopped at     worker.md",
-    "tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+    "writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
     "ran",
     "  worker.md       <secs>s",
@@ -54,9 +54,9 @@
     "## read",
     "- no pass has a transcript or a READ line",
     "## tests and checks",
-    "- worker.md: FAIL tests-only - worker.md writes tests only and changed product code: calc.py (python -m pytest -q test_calc.py)",
+    "- worker.md: FAIL writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it (python -m pytest -q test_calc.py)",
     "- worker.md: PASS red-test - red, exit 1",
-    "- worker.md: FAIL tests-only - worker.md writes tests only and changed product code: calc.py (python -m pytest -q test_calc.py)",
+    "- worker.md: FAIL writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it (python -m pytest -q test_calc.py)",
     "- worker.md: PASS red-test - red, exit 1",
     "- red first: gate-proven on worker.md (red, exit 1)",
     "## rulings",
@@ -68,8 +68,8 @@
     "## carry forward",
     "- task: add(1, 2) returns -1 (all of it in runs/fix-with-test-<run>/task.md)",
     "## retro",
-    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed tests-only - worker.md writes tests only and changed product code: calc.py",
-    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed tests-only - worker.md writes tests only and changed product code: calc.py",
+    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
+    "- worker.md <secs>s ($0.0100), won caught: gate failed; failed writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won none: 0 passes, <secs>s, $0.0000",
     "- total: 2 passes, <secs>s, $0.0200",
@@ -149,9 +149,9 @@
       "shell_trap_recoveries": null,
       "gates": [
         {
-          "gate": "tests-only",
+          "gate": "writes",
           "ok": false,
-          "detail": "worker.md writes tests only and changed product code: calc.py"
+          "detail": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it"
         },
         {
           "gate": "red-test",
@@ -163,7 +163,7 @@
       "outcome": "gate failed",
       "won": "caught",
       "cause": null,
-      "why": "tests-only: worker.md writes tests only and changed product code: calc.py",
+      "why": "writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
       "file": "steps/001-worker.md",
       "task_file": "task.md",
       "tasks": null,
@@ -233,9 +233,9 @@
       "shell_trap_recoveries": null,
       "gates": [
         {
-          "gate": "tests-only",
+          "gate": "writes",
           "ok": false,
-          "detail": "worker.md writes tests only and changed product code: calc.py"
+          "detail": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it"
         },
         {
           "gate": "red-test",
@@ -247,7 +247,7 @@
       "outcome": "gate failed",
       "won": "caught",
       "cause": "gate failed",
-      "why": "tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+      "why": "writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/002-worker.md",
       "task_file": "task.md",
       "tasks": null,
@@ -275,19 +275,19 @@
   ],
   "printed": [
     "started worker.md",
-    "  FAIL tests-only - worker.md writes tests only and changed product code: calc.py",
+    "  FAIL writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
     "  PASS red-test - red, exit 1",
-    "gate tests-only failed at worker.md, sent back to worker.md",
+    "gate writes failed at worker.md, sent back to worker.md",
     "started worker.md",
-    "  FAIL tests-only - worker.md writes tests only and changed product code: calc.py",
+    "  FAIL writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
     "  PASS red-test - red, exit 1",
     "gate failed at worker.md, stopping",
-    "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+    "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 2 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
-    "- stopped: gate failed at worker.md - tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+    "- stopped: gate failed at worker.md - writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
     "  what it needs from you and the command to carry on are under needs you, below.",
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
@@ -301,7 +301,7 @@
     "nothing was reverted; --on-stop revert-tests puts the test files back to their bytes at the start.",
     "cause          gate failed",
     "stopped at     worker.md",
-    "tests-only: worker.md writes tests only and changed product code: calc.py; worker.md was sent back 1 time already (send_backs: 1)",
+    "writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
     "so the rest of it has not run.",
     "ran",
     "  worker.md       <secs>s",
@@ -316,6 +316,6 @@
   ],
   "prompts": [
     "worker.md go 1 7eae149b621e60f08dda7eb480ecf63acdd6424071117a20e8be78d95079bbee",
-    "worker.md go 2 bd9ef3b77045e3b5c6cafd89b358dc4f181231f74f03b62cfd60165e7e8a2631"
+    "worker.md go 2 d4cead4c13abb6d05d92b4e16c8dc3269db4586af35ee19db0cf6ada08c1816e"
   ]
 }

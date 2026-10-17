@@ -14,12 +14,13 @@ from .config import (VERDICTS, asks_for_verdict, config, declared, due,
                      fanout_step, steps, verdict, where)
 from agentweft import providers
 from agentweft.flow.spec import (RESUME, REVIEWER, brief_on,
-                                 check_project_gates, lead_of, step_id,
-                                 step_name, steps_named)
+                                 check_project_gates, grant_of, lead_of,
+                                 step_id, step_name, steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
                                   shellwrite, signoff, skips, snapshot,
                                   specfiles, starttests, testedits, worktree)
+from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
@@ -296,7 +297,7 @@ class Run(object):
             # can act on it, and the flow's provider is shared - handing it a
             # tier would give it to every step that has not asked for one.
             asked, source = models.choose(s, fm, self.chosen)
-            grant = s.get("tools")
+            grant = grant_of(s)
             if not s.get("provider") and not asked and grant is None:
                 continue
             if pinned:
@@ -340,11 +341,13 @@ class Run(object):
         if replays(fm) or self.suite == baseline.ON:
             worktree.prune(self.workdir)
         self.commits = commits.mode(fm)
-        if replays(fm) or redorder.ordered(fm) or fm.get("spec_files") \
+        if replays(fm) or bounds.declared(fm) or fm.get("spec_files") \
                 or self.suite == baseline.ON or self.reads_spec() \
                 or self.commits != commits.NONE:
             self.start = snapshot.take(self.workdir, own=state.RUNS)
         self.order = redorder.Order(self.start,
+                                    additions=fm.get("spec_files")
+                                    == specfiles.ADDITIONS,
                                     cmd=redorder.test_command(fm))
         self.committer = commits.Committer(commits.NONE, None)
         # what a gate ran and saw, by step, handed to the steps after it
@@ -771,7 +774,7 @@ class Run(object):
         """
         for s in self.fm.steps:
             if step_id(s) == step:
-                return s.get("tools")
+                return grant_of(s)
         return None
 
     def reports_for(self, step):
@@ -952,6 +955,8 @@ class Run(object):
         prompt = prompts.put_task(prompt, self.task_text)
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
+        if self.writes_for(step) == "spec":
+            prompt = prompt + bounds.as_prompt(snapshot.spec_globs())
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its
@@ -1412,9 +1417,11 @@ def check_step(run, route, step, out, run_dir=None):
                for g in run.gates_for(step)]
     order = getattr(run, "order", None)
     if order is not None:
-        moved = order.after(step, run.writes_for(step))
+        unruled = getattr(run, "spec_unruled", None)
+        moved = order.after(step, run.writes_for(step),
+                            ruled=(lambda: not unruled()) if unruled else None)
         if moved:
-            results.insert(0, Result("tests-only", False, moved))
+            results.insert(0, Result(bounds.NAME, False, moved))
     workdir, start = getattr(run, "workdir", "."), getattr(run, "start", None)
     wrong = [w for w in (ruling.misquoted(out.output, workdir, start),
                          wrongtest.misquoted(out.output, workdir, start)) if w]

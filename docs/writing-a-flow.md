@@ -89,13 +89,16 @@ prompt:
     - role: worker
       writes: product
 
-`writes: tests | product | none`, on every step once one says it. a
-`product` step does not start until the red-test gate (`red: true` and a
-command, which every `tests` step needs) has seen a test the run wrote fail;
-a `tests` step that changes any file other than a test, a spec or a test
-runner file is sent back once, then the run stops. `--skip-tests "<reason>"`
-(short for `--skip tests "<reason>"`) runs without tests and says so; `--continue <run or commit>` carries tests
-already written, committed or not. the rules are in `docs/gates.md`, "no
+`writes:` is one of `tests`, `product`, `spec` or `none`, on every step once
+one says it. a `product` step does not start until the red-test gate (`red:
+true` and a command, which every `tests` step needs) has seen a test the run
+wrote fail. each step is held to what it said: a `tests` step that changes
+product code or a spec file, a `product` step that changes a spec file
+(unless `spec_files: additions`, or a ruling quotes every line it moved), a
+`spec` step that changes anything but a spec file, or a `none` step that
+changes anything is sent back once, then the run stops. `--skip-tests "<reason>"` (short for `--skip tests
+"<reason>"`) runs without tests and says so; `--continue <run or commit>`
+carries tests already written, committed or not. the rules are in `docs/gates.md`, "no
 product code before a red test".
 
 a test that was red before the run touched anything is not the run's doing,

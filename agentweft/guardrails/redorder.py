@@ -1,19 +1,19 @@
 """no product code is written before a red test exists.
 
-a step says what it writes: `writes: tests`, `writes: product` or `writes:
-none`. the run holds a red proof once a red-test gate has seen a test fail by
-running it, or a red-first gate has shown a new test red without the fix, on a
-test file whose content is not what it was when the run started (the start
-snapshot). a red-test gate's test may also be one the run started with and
-left as it was, a bug report that ships its own failing test, once it also
-fails on an assertion in a checkout of the start commit (`red_at_start`): then
-the proof says `supplied` rather than `written`. the proof keeps the new test
-ids there were when it was shown (none for a supplied one, which was red at
-the start), so a test added after that is known as one (the red-first gate
-replays it). a `writes: product` step does not start until
-there is one, and a `writes: tests` step that changes a product file fails. it
-is fail-closed: no start snapshot, no proof record or a gate that ran nothing
-is no proof.
+a step says what it writes: `writes: tests`, `writes: product`, `writes:
+spec` or `writes: none`. the run holds a red proof once a red-test gate has
+seen a test fail by running it, or a red-first gate has shown a new test red
+without the fix, on a test file whose content is not what it was when the
+run started (the start snapshot). a red-test gate's test may also be one the
+run started with and left as it was, a bug report that ships its own failing
+test, once it also fails on an assertion in a checkout of the start commit
+(`red_at_start`): then the proof says `supplied` rather than `written`. the
+proof keeps the new test ids there were when it was shown (none for a
+supplied one, which was red at the start), so a test added after that is
+known as one (the red-first gate replays it). a `writes: product` step does
+not start until there is one, and a step that changes what its `writes:`
+does not name fails (`writes.py`). it is fail-closed: no start snapshot, no
+proof record or a gate that ran nothing is no proof.
 
 two ways round it, both said in the record. `--skip tests "<reason>"`
 (`--skip-tests "<reason>"` for short, `guardrails/skips.py`) is a person
@@ -36,7 +36,8 @@ import re
 from pathlib import Path
 
 from agentweft.guardrails import worktree
-from agentweft.guardrails.snapshot import _git, _sha, changed, is_test
+from agentweft.guardrails import writes as bounds
+from agentweft.guardrails.snapshot import _git, _sha, is_test
 
 from .gates.redfirst_gate import RedFirstGate
 from .gates.redtest_gate import named_test
@@ -81,11 +82,13 @@ def norm(path):
 class Order(object):
     """what the run holds: the start snapshot, a red proof or a skip."""
 
-    def __init__(self, start, skip="", proof=None, cmd=None):
+    def __init__(self, start, skip="", proof=None, cmd=None,
+                 additions=False):
         self.start = start
         self.skip = skip
         self.proof = proof
         self.cmd = cmd
+        self.additions = additions
         self.lost = ""
         self.watching = {}
 
@@ -109,27 +112,34 @@ class Order(object):
         return ""
 
     def watch(self, step, writes):
-        """note the product files' hashes before a `writes: tests` step. a
-        step sent back keeps the hashes from before its first go, so it is
-        held to undoing what it changed then."""
-        if self.skip or writes != "tests" or self.start is None \
+        """note what the place holds before a step that says what it writes
+        (`writes.py`). a step sent back keeps the hashes from before its
+        first go, so it is held to undoing what it changed then."""
+        if not self.holds(writes) or self.start is None \
                 or not self.start.hashed:
             return
         if step not in self.watching:
-            self.watching[step] = self.start.product_now()
+            self.watching[step] = self.start.hashes()
 
-    def after(self, step, writes):
-        """why a `writes: tests` step fails for what it changed, or ""."""
-        if self.skip or writes != "tests":
+    def after(self, step, writes, ruled=None):
+        """why a step fails for what it changed against its `writes:`, or
+        "". `ruled` says whether a ruling quotes every spec line that moved
+        since the run started, asked only of a product step."""
+        if not self.holds(writes):
             return ""
         if step not in self.watching:
-            return (step + " writes tests only, and with no start snapshot"
-                    " nothing shows it left product code alone")
-        moved = changed(self.watching[step], self.start.product_now())
-        if moved:
-            return (step + " writes tests only and changed product code: "
-                    + ", ".join(moved))
-        return ""
+            return bounds.unseen(step, writes)
+        spec_ok = writes == "product" and (
+            self.additions or (ruled is not None and ruled()))
+        return bounds.held(step, writes, self.watching[step],
+                           self.start.hashes(), self.start.from_place,
+                           spec_ok)
+
+    def holds(self, writes):
+        """whether a step that says `writes` is checked after it: a tests
+        step is a test check, which `--skip tests` turns off."""
+        return writes in bounds.MAY and \
+            not (self.skip and writes == "tests")
 
     def passed(self, step):
         self.watching.pop(step, None)

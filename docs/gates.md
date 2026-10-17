@@ -441,16 +441,20 @@ step start, and it only counts tests the run wrote.) the proof is kept as
 
 - a `writes: product` step does not start until the run holds a red proof.
   the run stops `refused` before the step is called, and its why says so.
-- a `writes: tests` step that changes a product file fails its `tests-only`
-  check, which is a gate like the others: the step is sent back once with
-  what it changed, and the run stops `gate` if it changes it again. the
-  product files are hashed before the step's first go and again after each
-  go, so a step sent back has to undo its edit, and a tests step that a
-  reviewer sends back after the product step ran is held to its own edits.
+- a step that changes what its `writes:` does not name fails its `writes`
+  check, which is a gate like the others: a `tests` step that changes
+  product code or a spec file, a `product` step that changes a spec file
+  (unless `spec_files: additions`, or a ruling quotes every spec line that
+  moved), a `spec` step that changes a test or
+  product code, a `none` step that changes anything. the step is sent back
+  once with the files named, and the run stops `gate` if they are still
+  changed. the tests, spec files and product files are hashed before the
+  step's first go and again after each go, so a step sent back has to undo
+  its edit, a commit changes nothing, and a step that a reviewer sends back
+  after a later step ran is held to its own edits.
 - anything unknown refuses: no start snapshot (a resume whose folder lost it
   stops with `no start snapshot`), no proof record, or a red-test gate that
   ran nothing.
-- `writes: none` says the step writes nothing. nothing checks it yet.
 
 two ways round it, both written into the run's `decisions.md` and the
 handoff's "tests and checks":
@@ -458,7 +462,7 @@ handoff's "tests and checks":
 - `--skip tests "<reason>"`, or `--skip-tests "<reason>"` for short, is a
   person deciding the run has no tests. a
   reason is required. then no test check applies at all: no order check, no
-  `tests-only` check, a `must_produce: "FAILS:"` is not asked for, and every
+  `writes` check on a `tests` step, a `must_produce: "FAILS:"` is not asked for, and every
   `red-test` and `red-first` gate passes as `not run - tests skipped:
   <reason>`. a `command` gate that runs the whole suite still runs: it checks
   the product, not the order. the handoff's suite line says `tests skipped:

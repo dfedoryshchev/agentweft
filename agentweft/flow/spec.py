@@ -103,7 +103,10 @@ STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes", "effort", "verbosity",
               "continue", "brief", "lens")
-WRITES = ("tests", "product", "none")
+WRITES = ("tests", "product", "spec", "none")
+# a `writes: spec` step with no `tools:` of its own: looking and editing, no
+# shell, since a shell writes where no grant can say
+SPEC_GRANT = ["read", "grep", "write", "edit"]
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
 PREFLIGHT_KNOWN = ("mode", "threshold")
@@ -479,6 +482,14 @@ def ordered(raw):
                for s in raw.get("steps") or [])
 
 
+def grant_of(step):
+    """-> the tools a step may use: its own `tools:`, SPEC_GRANT for a
+    `writes: spec` step that names none, None when it said nothing."""
+    if step.get("tools") is not None:
+        return step["tools"]
+    return list(SPEC_GRANT) if step.get("writes") == "spec" else None
+
+
 def proves_red(step):
     """whether the step has a red-test gate that wants red and runs a
     command to see it."""
@@ -553,7 +564,11 @@ def check(raw):
             bad.append(at + "writes should be one of " + ", ".join(WRITES))
         if step.get("writes") is None and ordered(raw):
             bad.append(at + "another step says what it writes, so this one"
-                       " has to as well: writes: " + " | ".join(WRITES))
+                       " has to as well, one of " + ", ".join(WRITES))
+        if step.get("writes") == "spec" and \
+                raw.get("spec_files") == "read-only":
+            bad.append(at + "writes: spec, and spec_files: read-only lets no"
+                       " step change the spec")
         if step.get("writes") == "tests" and not proves_red(step):
             bad.append(at + "writes: tests needs a red-test gate with red:"
                        " true and a command, the only gate that shows a test"

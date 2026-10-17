@@ -3,7 +3,7 @@
   "raised": null,
   "path": [
     "1 planner.md ok -> tester.md",
-    "2 tester.md gate failed -> tester.md  FAIL tests-only  PASS red-test",
+    "2 tester.md gate failed -> tester.md  FAIL writes  PASS red-test",
     "3 tester.md ok -> worker.md  PASS red-test",
     "4 worker.md ok -> reviewer.md  PASS command  PASS red-first",
     "5 reviewer.md ok -> reviewer-runs.md",
@@ -41,7 +41,7 @@
     "- no pass has a transcript or a READ line",
     "## tests and checks",
     "- planner.md: no gates",
-    "- tester.md: FAIL tests-only - tester.md writes tests only and changed product code: calc.py (python -m pytest -q test_mul.py)",
+    "- tester.md: FAIL writes - tester.md writes tests only and changed product code: calc.py. put each back as the run found it (python -m pytest -q test_mul.py)",
     "- tester.md: PASS red-test - red, exit 1",
     "- tester.md: PASS red-test - red, exit 1 (python -m pytest -q test_mul.py)",
     "- worker.md: PASS command - exit 0 (python -m pytest -q)",
@@ -64,7 +64,7 @@
     "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
     "## retro",
     "- planner.md <secs>s ($0.0100), won none: no events",
-    "- tester.md <secs>s ($0.0100), won caught: gate failed; failed tests-only - tester.md writes tests only and changed product code: calc.py",
+    "- tester.md <secs>s ($0.0100), won caught: gate failed; failed writes - tester.md writes tests only and changed product code: calc.py. put each back as the run found it",
     "- tester.md <secs>s ($0.0100), won proved: no events",
     "- worker.md <secs>s ($0.0100), won delivered: no events",
     "- reviewer.md <secs>s ($0.0100), won none: no events",
@@ -229,9 +229,9 @@
       "shell_trap_recoveries": null,
       "gates": [
         {
-          "gate": "tests-only",
+          "gate": "writes",
           "ok": false,
-          "detail": "tester.md writes tests only and changed product code: calc.py"
+          "detail": "tester.md writes tests only and changed product code: calc.py. put each back as the run found it"
         },
         {
           "gate": "red-test",
@@ -243,7 +243,7 @@
       "outcome": "gate failed",
       "won": "caught",
       "cause": null,
-      "why": "tests-only: tester.md writes tests only and changed product code: calc.py",
+      "why": "writes: tester.md writes tests only and changed product code: calc.py. put each back as the run found it",
       "file": "steps/002-tester.md",
       "task_file": "task.md",
       "tasks": null,
@@ -641,9 +641,9 @@
   "printed": [
     "started planner.md",
     "started tester.md",
-    "  FAIL tests-only - tester.md writes tests only and changed product code: calc.py",
+    "  FAIL writes - tester.md writes tests only and changed product code: calc.py. put each back as the run found it",
     "  PASS red-test - red, exit 1",
-    "gate tests-only failed at tester.md, sent back to tester.md",
+    "gate writes failed at tester.md, sent back to tester.md",
     "started tester.md",
     "  PASS red-test - red, exit 1",
     "started worker.md",
@@ -674,7 +674,7 @@
     "reviewer-runs.md go 1 726877a3dbe30d9f9cbc3da01d21eb305bd18f5c252c24b2f62b4b6866bcce5c",
     "reviewer.md go 1 ef1691eeff6700e19d9568e26e1eddd86753e12f04627541e406e738a3cba2e5",
     "tester.md go 1 199511ac7f1029f1873859fdee234cbf07681bd5669dad2f76be41a7e7d79b40",
-    "tester.md go 2 e21f9be89997856f4b867a5691a13ecfcd1d4b5d3a0cc101ffe20e37da7de7b3",
+    "tester.md go 2 530e24724e4fd2cc101ad18250495b8c7c0642fef4d98da7e0a8eed85a27698d",
     "worker.md go 1 c83f789798d8a1b0e335d58227738be9b79780f3e61cb1a9f9eab8026c3d79b8"
   ]
 }

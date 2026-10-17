@@ -292,10 +292,35 @@ the only form a judge can do anything with. `reports: [reviewer-minimalist]`
 names one of the pair. the same step named twice arrives once. a name that is
 neither a role nor a step earlier in the same flow is refused by the checker.
 
-`writes: tests | product | none` on a step is what it writes, and the runner
-holds the order: a product step does not start before the run holds a red
-test, a tests step that changes product code fails (`docs/gates.md`, "no
-product code before a red test").
+`writes:` on a step is what it writes, one of:
+
+- `tests`: test files only.
+- `product`: product code and tests. the spec files too under
+  `spec_files: additions`, which then holds what it adds, or when a ruling
+  in `decisions.md` quotes every spec line that moved.
+- `spec`: the spec files only, created or changed: `TASK.md`, `SPEC*.md`
+  and `docs/spec*` from the top of the place, or the `spec_globs` setting.
+  an analyst or planner that writes the spec down. not allowed with
+  `spec_files: read-only`.
+- `none`: nothing.
+
+the runner holds the order: a product step does not start before the run
+holds a red test (`docs/gates.md`, "no product code before a red test"). and
+it holds each step to what it said. the tests, the spec files and the
+product code are hashed before the step's first go and after each go, by
+content and never by time, so a commit hides nothing. a step that changed
+what it did not say it writes fails its `writes` check with the files named:
+it goes back once to put them back, and the run stops `gate failed` if they
+are still changed. a test runner's own files (`conftest.py`, `pytest.ini`,
+`.coverage*`, `.hypothesis/`, `.pytest_cache/`) are none of the three and
+never count. a step with no `writes:` is not checked.
+
+a `spec` step with no `tools:` of its own is granted `read, grep, write,
+edit`: no shell and no browser. with the `claude` cli that is a fence, the
+other tools are not there (`docs/providers.md`). the cli cannot hold an edit
+to a path, so which files is said in the step's prompt, the spec globs one a
+line, and checked after the step as above. a `tools:` on the step is used
+instead.
 
 `writes_tests: true` on a step means it writes the tests around the change
 once the change is green, and it is sent

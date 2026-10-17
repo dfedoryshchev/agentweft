@@ -33,8 +33,9 @@ REVIEW = ("# reviewer" + NL + NL + "AT START" + NL + "{SPEC_AT_START}" + NL
 OK = "VERDICT: ok" + NL + NL + "- report.py: count" + NL
 
 
-def a_reviewed_flow(tmp_path, rule="spec_files: additions" + NL):
-    a_flow(tmp_path, "build", TESTER + WORKER + REVIEWER + rule)
+def a_reviewed_flow(tmp_path, rule="spec_files: additions" + NL,
+                    steps=TESTER + WORKER + REVIEWER):
+    a_flow(tmp_path, "build", steps + rule)
     (tmp_path / "flows" / "build" / "reviewer.md").write_text(
         REVIEW, encoding="utf-8")
 
@@ -113,7 +114,11 @@ def test_the_reviewer_reads_the_spec_as_the_run_found_it_after_an_edit(
 def test_an_ok_review_of_a_spec_edit_no_ruling_covers_is_a_redo(
         tmp_path, monkeypatch, commits):
     place = a_place(tmp_path / "repo")
-    a_reviewed_flow(tmp_path, rule="")
+    # with `writes:` on its steps the worker's own `writes` check fails this
+    # edit before any review, so the review is only the last word without
+    a_reviewed_flow(tmp_path, rule="", steps="".join(
+        line for line in (TESTER + WORKER + REVIEWER).splitlines(True)
+        if "writes:" not in line))
     put_back = ({"report.py": COUNTED, "TASK.md": SPEC}, WORKER_SAID)
     code, called = running(tmp_path, monkeypatch, place,
                            edits_the_spec(put_back), commits)
