@@ -428,3 +428,55 @@ def test_a_resume_refuses_a_commit_mode_other_than_the_one_it_started_with(
             commits.Committer(now, snapshot.take(place), kept)
     assert commits.Committer(commits.SQUASH, snapshot.take(place),
                              kept).branch == first.branch
+
+
+def test_a_signer_that_cannot_sign_refuses_before_any_step(tmp_path):
+    from agentweft.guardrails import snapshot
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    git(place, "config", "commit.gpgsign", "true")
+    git(place, "config", "gpg.format", "openpgp")
+    git(place, "config", "gpg.program", "false")
+    with pytest.raises(ValueError, match="sign"):
+        commits.Committer(commits.WIP, snapshot.take(place))
+    assert branch(place) == "main"
+
+
+def test_a_squash_git_refuses_keeps_the_step_commits_and_says_why(
+        tmp_path, monkeypatch):
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    c = a_committer(place, commits.SQUASH)
+    (place / "report.py").write_text(COUNTED, encoding="utf-8")
+    c.step("worker.md", "build")
+    tip = head(place)
+    real = commits._git
+
+    def no_commit_tree(where, *args, given=None):
+        if "commit-tree" in args:
+            return 128, "", "error: gpg failed to sign the data"
+        return real(where, *args, given=given)
+    monkeypatch.setattr(commits, "_git", no_commit_tree)
+    c.finish("build", "task")
+    assert head(place) == tip and c.squashed is None
+    assert git(place, "status", "--porcelain") == ""
+    assert "not squashed" in c.said() and "gpg failed" in c.said()
+
+
+def test_the_repos_hooks_do_not_run_for_the_runs_git(tmp_path):
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    marker = tmp_path / "hooked"
+    hooks = place / ".git" / "hooks"
+    for name in ("pre-commit", "prepare-commit-msg", "commit-msg",
+                 "post-commit", "post-checkout", "reference-transaction"):
+        (hooks / name).write_text("#!/bin/sh" + NL + "echo " + name
+                                  + " >> '" + str(marker) + "'" + NL,
+                                  encoding="utf-8")
+        (hooks / name).chmod(0o755)
+    c = a_committer(place, commits.SQUASH)
+    (place / "report.py").write_text(COUNTED, encoding="utf-8")
+    c.step("worker.md", "build")
+    c.finish("build", "task")
+    assert c.squashed
+    assert not marker.exists(), "a repo hook ran: " + read(marker)

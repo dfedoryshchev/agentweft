@@ -21,6 +21,7 @@ and the committer are whoever git config names in the place, and with no
 user.name or user.email there the run refuses before its first step.
 """
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -47,8 +48,11 @@ def mode(fm):
 
 
 def _git(where, *args, given=None):
+    # a hooks path with nothing in it: --no-verify alone still runs
+    # post-checkout, prepare-commit-msg, post-commit and reference-transaction
     try:
-        r = subprocess.run(["git", "-C", str(where)] + list(args),
+        r = subprocess.run(["git", "-C", str(where), "-c",
+                            "core.hooksPath=" + os.devnull] + list(args),
                            input=given, capture_output=True,
                            encoding="utf-8", errors="replace")
     except (FileNotFoundError, OSError):
@@ -77,7 +81,7 @@ class Committer(object):
         self.squashed = None
         self.order = None
         self.folder = None
-        self.away = None
+        self.unsquashed = None
         if prior and prior.get("mode") and prior["mode"] != how:
             raise ValueError("the run committed as commits: " + prior["mode"]
                              + ", and this one would as commits: " + how
@@ -100,6 +104,11 @@ class Committer(object):
                              " place has no " + " and no ".join(missing)
                              + ". set it with git config, or run with"
                              " commits: none")
+        unsigned = self._signs()
+        if unsigned:
+            raise ValueError(said + " signs its commits, as commit.gpgsign"
+                             " asks, and git could not sign: " + unsigned
+                             + ". fix the signer, or run with commits: none")
         busy = self.busy()
         if busy:
             raise ValueError(said + " would switch or commit in the middle of "
@@ -122,6 +131,19 @@ class Committer(object):
         typed = ["--type=" + kind] if kind else []
         code, out, _ = _git(self.start.root, "config", *typed, "--get", key)
         return out.strip() if code == 0 else ""
+
+    def _sign(self):
+        return ["-S"] if self._config("commit.gpgsign", "bool") == "true" \
+            else []
+
+    def _signs(self):
+        """-> why git cannot sign a commit here, "" when it can or need not.
+        the probe is a commit no branch points at."""
+        if not self._sign():
+            return ""
+        code, _, err = _git(self.start.root, "commit-tree", "-S",
+                            "HEAD^{tree}", given="agentweft: can it sign\n")
+        return err.strip() or "git exited " + str(code) if code else ""
 
     def busy(self):
         """-> what git has in progress in the place, "" when nothing."""
@@ -235,8 +257,15 @@ class Committer(object):
             return
         on = self.current()
         if on != self.branch:
-            self.away = on or "no branch"
+            self.unsquashed = ("the place was on " + (on or "no branch")
+                         + " at the end, not " + self.branch)
             return
+        try:
+            self._squash(flow, task)
+        except ValueError as e:
+            self.unsquashed = str(e)
+
+    def _squash(self, flow, task):
         tip = self.head()
         code, tree, _ = _git(self.start.root, "rev-parse", "HEAD^{tree}")
         code_base, was, _ = _git(self.start.root, "rev-parse",
@@ -249,18 +278,16 @@ class Committer(object):
             "- " + m["sha"][:12] + " " + m["step"] for m in self.made)
         # the tip's tree as it is, so a rename keeps no trace of the old
         # path, and the person's index and files are not touched
-        sign = ["-S"] if self._config("commit.gpgsign", "bool") == "true" \
-            else []
-        code, sha, err = _git(self.start.root, "commit-tree", *sign,
+        code, sha, err = _git(self.start.root, "commit-tree", *self._sign(),
                               tree.strip(), "-p", self.base,
                               given=message + "\n\n" + body + "\n")
         if code != 0:
-            raise ValueError("commits: could not squash: " + err.strip())
+            raise ValueError(err.strip())
         code, _, err = _git(self.start.root, "update-ref", "-m",
                             "agentweft: squash", "refs/heads/" + self.branch,
                             sha.strip(), tip)
         if code != 0:
-            raise ValueError("commits: could not squash: " + err.strip())
+            raise ValueError(err.strip())
         self.squashed = sha.strip()
         self.save()
 
@@ -320,9 +347,8 @@ class Committer(object):
         else:
             line = (self.how + " on " + self.branch + ": "
                     + (steps or "nothing committed"))
-        if self.away:
-            line = (line + ", not squashed: the place was on " + self.away
-                    + " at the end, not " + self.branch)
+        if self.unsquashed:
+            line = line + ", not squashed: " + self.unsquashed
         if self.was:
             line = line + ", started from " + self.was
         return line + ("; " + order if order else "")

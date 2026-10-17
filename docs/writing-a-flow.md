@@ -130,17 +130,20 @@ unless the flow says so:
 but those three words is refused. a resume refuses a mode other than the one
 the run started with.
 
-`wip` and `squash` start the run on `agentweft/<run id>`, never the branch
-you started it on, and nothing is ever pushed. a commit holds what the run
+`wip` and `squash` start the run on `agentweft/<run id>`, never the branch you
+started it on, and nothing is ever pushed. a commit holds what the run
 changed: a file already loose when the run started stays out while its bytes
-are what they were, and so does a change you had staged. the commits skip the
-repo's commit hooks. they are authored as git config's `user.name` and
-`user.email` in the place, and with either missing the run refuses before its
-first step. so it does with a merge, cherry-pick, revert or rebase in progress
-there, which switching to the run's branch would drop. every gate reads the files by content from the start snapshot, so
-a flow gives the same verdict in all three modes; the commits add the order
-they were made in to the handoff (`docs/journal.md`, "the run's own
-commits").
+are what they were, and so does a change you had staged. a file you had
+changed that a step then changes, or one you edit while the run goes on, is
+committed whole, your edits with the run's. no hook of the repo's runs for the
+run's git commands, and with `commit.gpgsign` on, a signer that cannot sign
+refuses the run before its first step. the commits are authored as git
+config's `user.name` and `user.email` in the place, and with either missing
+the run refuses before its first step. so it does with a merge, cherry-pick,
+revert or rebase in progress there, which switching to the run's branch would
+drop. every gate reads the files by content from the start snapshot, so a flow
+gives the same verdict in all three modes; the commits add the order they were
+made in to the handoff (`docs/journal.md`, "the run's own commits").
 
 ## 6. say how many times the work can go back
 
