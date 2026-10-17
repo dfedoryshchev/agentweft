@@ -2,10 +2,12 @@
 
 the record below it is long and in the runner's order; this is in the
 reader's. it opens with the outcome and one sentence and the suite, then the
-one decision the run leaves, then why (the architect's read), what was not
-done (the dev's and the lead's), and the product gaps (the analyst's). it is
-held to BUDGET tokens, about four characters to a token; a list that does not
-fit is cut, and the line that cuts it points at the full record below.
+one decision the run leaves (on a stop, the question it waits on or the stop
+itself), then why (what the last working step did and what the steps
+assumed), what was not done (what nobody verified and the doubts left as
+they are), and the spec lines an open question turns on. it is held to
+BUDGET tokens, about four characters to a token; a list that does not fit
+is cut, and the line that cuts it points at the full record below.
 
 a question asked seven times is one decision. questions are gathered from a
 step's NEEDS and CONFLICT lines, from the QUESTION lines of its block (which
@@ -19,7 +21,7 @@ way.
 """
 import re
 
-from . import handoff
+from . import handoff, stops, verbs
 
 BUDGET = 900
 CHARS_PER_TOKEN = 4
@@ -27,6 +29,10 @@ CHARS_PER_TOKEN = 4
 SPEC_REF = re.compile(r"[\w./-]+\.md:\d+(?:-\d+)?")
 WORD = re.compile(r"[a-z0-9]+")
 MORE = "more in the full record below"
+CARRY = ("what it needs from you and the command to carry on are under"
+         " needs you, below.")
+DECLINED = ("nothing carries it on; the step's reason is under needs you,"
+            " below.")
 # the kinds a stopped run waits on: they lead the decisions, before any
 # question that did not stop it
 WAITS = ("needs", "conflict")
@@ -84,25 +90,30 @@ def is_question(text, rec=""):
     return bool(rec) or SPEC_REF.sub("", text).rstrip(" .()").endswith("?")
 
 
-def clusters(points):
+def clusters(points, by_line=True):
     """-> the points made one: a point joins the first cluster it shares a
-    cited line with or says the same as, else starts its own. the clusters
-    holding what the run stopped on (a NEEDS or CONFLICT nobody answered)
-    come first; the rest keep the order they were raised in."""
+    cited line with or says the same as, else starts its own. the same words
+    about two different spec lines are two. the clusters holding what the run
+    stopped on (a NEEDS or CONFLICT nobody answered) come first; the rest
+    keep the order they were raised in. each keeps every wording it was
+    given under `said`, so a question joined to another by its line is
+    still on record. `by_line` False joins only on the words."""
     out = []
     for p in points:
         key = norm(p["text"])
         home = None
         for c in out:
-            if set(p["refs"]) & set(c["refs"]) or key in c["keys"]:
+            if by_line and set(p["refs"]) & set(c["refs"]) \
+                    or key in c["keys"] and same_lines(p, c):
                 home = c
                 break
         if home is None:
             home = {"text": p["text"], "roles": [], "count": 0, "refs": [],
                     "keys": [], "rec": "", "size": "", "options": [],
-                    "kind": p["kind"]}
+                    "kind": p["kind"], "said": []}
             out.append(home)
-        home["count"] += 1
+        if key == norm(home["text"]):
+            home["count"] += 1
         if p["role"] not in home["roles"]:
             home["roles"].append(p["role"])
         home["refs"].extend(r for r in p["refs"] if r not in home["refs"])
@@ -115,7 +126,51 @@ def clusters(points):
         home["options"].extend(o for o in p["options"]
                                if o not in home["options"])
         home["kind"] = home["kind"] or p["kind"]
+        wording(home["said"], p)
     return sorted(out, key=lambda c: c["kind"] not in WAITS)
+
+
+def same_lines(p, c):
+    """whether a point that says what cluster `c` says is about its line: it
+    cites none, `c` cites none, or they share one."""
+    return not p["refs"] or not c["refs"] or bool(set(p["refs"])
+                                                  & set(c["refs"]))
+
+
+def wording(said, p):
+    """add point `p` to `said`, the wordings of one cluster, as a role more
+    on the wording it repeats or as a wording of its own."""
+    for w in said:
+        if norm(w["text"]) == norm(p["text"]) and same_lines(p, w):
+            if p["role"] not in w["roles"]:
+                w["roles"].append(p["role"])
+            if p["rec"] and not w["rec"]:
+                w["rec"], w["size"] = p["rec"], p["size"]
+            w["options"].extend(o for o in p["options"]
+                                if o not in w["options"])
+            return
+    said.append({"text": p["text"], "roles": [p["role"]], "refs": p["refs"],
+                 "rec": p["rec"], "size": p["size"],
+                 "options": list(p["options"])})
+
+
+def stopped_on(stopped, asking=()):
+    """-> the question a stop waits on, as a point, None when the stop asked
+    none. it is read from the question the stop wrote to question.md, so a
+    park on a verdict, a refusal with no cite and a spec change request are
+    asked as much as a NEEDS line is. `asking` is the passes of the step it
+    stopped at."""
+    said = (stopped or {}).get("question")
+    if not said:
+        return None
+    v = verbs.parse(said)
+    text, rec, size = parts(v.needs or said.strip())
+    role = stopped["at"]
+    for p in asking:
+        role = p["role"]
+        rec, size = rec or p["verbs"].recommend, size or p["verbs"].size
+    kind = "conflict" if stopped["cause"] == stops.CONFLICT else "needs"
+    return point(role, text, v.cites, rec, size, v.options, kind)
 
 
 def questions(passes, extra=(), asking=None):
@@ -149,21 +204,37 @@ def questions(passes, extra=(), asking=None):
     return out, taken
 
 
-def printed(passes, taken, found):
-    """-> the doubts taken in as questions that say what a decision line
-    already prints; the full record keeps the rest, worded their own way."""
-    said = set(norm(c["text"]) for c in found)
-    out = set()
-    for p in passes:
-        b = p["block"]
-        for n, item in enumerate(b.get("doubts") or []):
-            if (id(b), n) in taken and norm(parts(item)[0]) in said:
-                out.add((id(b), n))
+def shown(found, lines):
+    """-> the indices of the clusters in `found` whose words the one decision
+    in `lines`, the default view, prints in full: not cut to its width and
+    not past the line that points at the full record."""
+    if "## the one decision" not in lines:
+        return set()
+    block = lines[lines.index("## the one decision") + 1:]
+    block = block[:next((n for n, l in enumerate(block)
+                         if l.startswith("## ")), len(block))]
+    return set(n for n, c in enumerate(found)
+               if "- " + c["text"] in block
+               or any(l.startswith("  - " + c["text"] + " (") for l in block))
+
+
+def unprinted(found, printed=()):
+    """-> the lines of the full record's open questions: every wording the
+    default view does not print in full, each once with the roles that
+    asked it, so a question joined to another by its spec line, cut to fit
+    or past the cut is still on record. `printed` is `shown`."""
+    out = []
+    for n, c in enumerate(found):
+        for w in c["said"][1 if n in printed else 0:]:
+            out.append("- " + ", ".join(w["roles"]) + ": " + w["text"] + " ("
+                       + recommended(w) + ")")
     return out
 
 
 def doubts(passes, taken=(), by_line=True):
-    """-> the doubts that are not questions, made one: [(text, roles)].
+    """-> the doubts that are not questions, made one: [(text, who)], `who`
+    the roles that raised it and how many times when a role raised it more
+    than once: a doubt still there after a send-back was not fixed.
     `by_line` False keeps two that cite the same line apart, as the full
     record does."""
     found = []
@@ -174,10 +245,14 @@ def doubts(passes, taken=(), by_line=True):
         for n, item in enumerate(b["doubts"]):
             if (id(b), n) not in taken:
                 found.append(point(p["role"], parts(item)[0]))
-    if not by_line:
-        for p in found:
-            p["refs"] = []
-    return [(c["text"], c["roles"]) for c in clusters(found)]
+    return [(c["text"], raised_by(c)) for c in clusters(found, by_line)]
+
+
+def raised_by(c):
+    out = ", ".join(c["roles"])
+    if c["count"] > len(c["roles"]):
+        out = out + ", " + str(c["count"]) + " times"
+    return out
 
 
 def _cut(line, width):
@@ -191,28 +266,31 @@ def _list(items, most, width, indent="- "):
     return out
 
 
-def _decision(found, done, most, width):
+def _decision(found, most, width, stop=None):
     out = ["## the one decision"]
+    if stop:
+        out.append(_cut("- " + stop[0], width))
+        out.append("  " + stop[1])
+        return out + _also(found, most, width)
     if not found:
-        out.append("- none: nothing waits on you." if done else
-                   "- no step asked one; what the stop needs from you is"
-                   " under needs you, below.")
+        out.append("- none: nothing waits on you.")
         return out
     first = found[0]
     out.append(_cut("- " + first["text"], width))
-    raised = "  raised by " + ", ".join(first["roles"])
-    if first["count"] > len(first["roles"]):
-        raised = raised + ", " + str(first["count"]) + " times"
+    raised = "  raised by " + raised_by(first)
     if first["refs"]:
         raised = raised + "; cites " + ", ".join(first["refs"])
     out.append(_cut(raised, width))
     out.append(_cut("  " + recommended(first), width))
-    if len(found) > 1:
-        out.append("  also open:")
-        out.extend(_list([c["text"] + " (" + ", ".join(c["roles"]) + "; "
-                          + recommended(c) + ")" for c in found[1:]],
-                         most, width, "  - "))
-    return out
+    return out + _also(found[1:], most, width)
+
+
+def _also(found, most, width):
+    if not found:
+        return []
+    return ["  also open:"] + _list(
+        [c["text"] + " (" + ", ".join(c["roles"]) + "; " + recommended(c)
+         + ")" for c in found], most, width, "  - ")
 
 
 def recommended(c):
@@ -239,13 +317,15 @@ def _section(title, groups, most, width):
     return out
 
 
-def gaps(found, spec_changed=()):
+def gaps(found, spec_changed=(), lead=True):
     """-> the product gaps: each spec line an open question turns on, and
-    each spec file the run changed."""
+    each spec file the run changed. `lead` False is a decision that is the
+    stop, not the first question."""
     out = []
     for n, c in enumerate(found):
         for ref in c["refs"]:
-            line = ref + (" - the one decision turns on it" if n == 0 else
+            line = ref + (" - the one decision turns on it" if n == 0 and lead
+                          else
                           " - an open question turns on it")
             if c["kind"] == "conflict":
                 line = line + "; the request contradicts it"
@@ -256,15 +336,21 @@ def gaps(found, spec_changed=()):
     return out
 
 
-def view(head, found, done, why, not_done, product_gaps):
+def view(head, found, why, not_done, product_gaps, stop=None):
     """-> the default view: `head` as it is, then the one decision, why,
     not done and product gaps, cut until it fits BUDGET. `why` and
-    `not_done` are [(label or None, [items])]."""
+    `not_done` are [(label or None, [items])]. `stop` is (how the run
+    stopped, what to do about it) for a stop no step asked a question on,
+    and is then the decision itself: a gate or a cap is what the person
+    decides on, not a question a step left open. the head is cut too, last,
+    when cutting the lists is not enough: a long task line or stop reason is
+    in full in the record below."""
     out = []
-    for most, width in STEPS:
-        out = list(head)
+    for most, width, cut in [step + (False,) for step in STEPS] + [
+            step + (True,) for step in STEPS]:
+        out = [_cut(l, width) for l in head] if cut else list(head)
         out.append("")
-        out.extend(_decision(found, done, most, width))
+        out.extend(_decision(found, most, width, stop))
         out.append("")
         out.extend(_section("why", why, most, width))
         out.append("")

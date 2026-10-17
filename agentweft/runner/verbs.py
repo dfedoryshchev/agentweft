@@ -12,7 +12,9 @@ a line counts when it is outside a fence and not quoted; its key is read
 whatever its case, and a bullet or bold around it is ignored. the first
 `NEEDS:`, `REFUSED:` or `CONFLICT:` wins; the list verbs gather every line.
 a question can carry `RECOMMEND:`, the answer the step would pick, and
-`SIZE:`, what that answer costs to do.
+`SIZE:`, what that answer costs to do. they belong to the NEEDS, CONFLICT or
+REFUSED line they follow; under a HANDOFF block's `QUESTION:` they are that
+question's, and not read here.
 """
 import re
 
@@ -21,6 +23,8 @@ QUOTE = re.compile(r"^\s*>")
 BULLET = re.compile(r"^\s*[-*+]\s+(.*?)\s*$")
 KEY = re.compile(r"^[\s#*`_\-+]*([A-Za-z][A-Za-z \-_]*?)[\s*`_]*:\s*(.*?)\s*$")
 
+ASKS = ("NEEDS", "CONFLICT", "REFUSED")
+ANSWERS = ("RECOMMEND", "SIZE")
 SINGLE = ("NEEDS", "REFUSED", "CONFLICT", "INTENT", "INTENT QUOTE",
           "RECOMMEND", "SIZE")
 LISTED = ("CITES", "OPTIONS", "ASSUMED", "INTENT SCOPE", "CHANGED UNDER")
@@ -103,12 +107,19 @@ def parse(text):
     """
     out = Verbs()
     gathering = None
+    asking = False
     for _, line in visible(text):
         head = key_of(line)
+        if head is not None and head[0] == "QUESTION":
+            asking = False
         if head is not None and head[0] in FIELD:
             name, rest, _, _ = head
+            if name in ASKS:
+                asking = True
             if name in SINGLE:
                 gathering = None
+                if name in ANSWERS and not asking:
+                    continue
                 if getattr(out, FIELD[name]) is None:
                     setattr(out, FIELD[name],
                             unquoted(rest) if name == "INTENT QUOTE" else rest)

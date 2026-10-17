@@ -419,7 +419,9 @@ headings, never by `|`.
 
 the top is the default view, held to about 900 tokens (four characters to a
 token); a list that does not fit is cut to a line ending `more in the full
-record below`. it answers, in order:
+record below`, and when that is not enough the heading and the lines under it
+are cut to width too (a long task line or stop reason is in full below). it
+answers, in order:
 
 - **what came of it**: the heading, the run's outcome, then on a stop where
   and why; only a run that got through adds the last working step's first
@@ -430,7 +432,8 @@ record below`. it answers, in order:
   `CONFLICT:` line (which do), a doubt that is a question, what the
   investigator leaves to you, and a spec or test change nobody ruled on. two
   are one when they cite the same spec line (`TASK.md:12`) or say the same
-  thing once case, punctuation and the cited line are taken out. each is
+  thing once case, punctuation and the cited line are taken out; the same
+  words about two different spec lines stay two. each is
   printed once, with every role that raised it, and the recommendation and
   its size the first of them gave (`RECOMMEND:` and `SIZE:`, each on its own
   line under the `QUESTION:` or `NEEDS:`; a doubt from an older block that
@@ -438,12 +441,19 @@ record below`. it answers, in order:
   first is in full, the rest one line each under
   `also open:`. a question the lead decided or an `--answer` settled is under
   the rulings, not here, so a finished run needs nothing. `- none: nothing
-  waits on you.` when nothing does.
+  waits on you.` when nothing does. a stop that waits for a ruling leads
+  with the question it wrote to `question.md`, with its cites and options,
+  whatever asked it: a `NEEDS:` or `CONFLICT:` line, `VERDICT: park`, a
+  `REFUSED:` with no spec line cited, a spec change request, or the runner.
+  a stop that asked nothing (a gate, the cap, an outage, a crash, a
+  refusal that cites the spec) leads with the stop itself, where and why,
+  and the questions the steps left open follow it under `also open:`.
 - **why**: what the last working step did (on a stop, "handed over this
   before the stop, not taken as done"), and what the steps assumed.
 - **not done**: what was not verified, the gates' unproven checks, and the
   doubts left as they are, each once: by its words, or by the spec line it
-  cites, with the roles that raised it.
+  cites, with the roles that raised it, and how many times when one role
+  raised it again after a send-back, so a doubt that was not fixed says so.
 - **product gaps**: each spec line an open question turns on, and each spec
   file the run changed.
 
@@ -451,8 +461,11 @@ then `## full record`, which names `runs/<run-id>/steps/` and
 `steps.jsonl`, and every section in the runner's order: what it needs from
 you (a `NEEDS:` or `REFUSED:` a step wrote, with its cites and options, and on
 any stop what ran, what is left and the command to carry on), what the steps
-assumed (each as a question), what they doubt (each once by its words, a
-question the one decision already prints left out), what changed, what was
+assumed (each as a question), the open questions the default view does not
+print in full (`## open questions`, when there are any: each wording once
+with the roles that asked it, so a question joined to another by its spec
+line, cut to its width or past the cut is still on record), what they doubt that is not a question (each once by
+its words), what changed, what was
 read, what was tested, what a ruling is owed on, what was not verified, what
 the next session must keep, what went wrong on the way, and what the run was.
 the whole file looks like the example at the end of this section.

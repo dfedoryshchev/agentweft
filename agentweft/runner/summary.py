@@ -752,7 +752,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `passes` is this run's passes in order and `before` the ones of the run
     it picked up, if any; `changes` is `Tree.changes()`; `decided` is every
     decisions.md entry in the place; `stopped` is {"cause", "why", "at"} for
-    a run that stopped short; `needs` is the park section's lines when the
+    a run that stopped short, with the "question" it waits on when it asked
+    one; `needs` is the park section's lines when the
     run waits for someone; `command` is the line that carries on; `found` is
     the investigator's answer when the flow ran one; `order` is the line on
     the red test the run holds before product code, "" for none; `left` is
@@ -820,8 +821,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
              investigate.listed(dug, "DECISIONS")]
     extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
                  if "UNRULED" in l)
-    points, taken = front.questions(every, extra, asking=still)
-    found = front.clusters(points)
+    waits = front.stopped_on(stopped, still)
+    points, taken = front.questions(every, extra,
+                                    asking=[] if waits else still)
+    found = front.clusters(([waits] if waits else []) + points)
     if last and stopped:
         why = [(last["role"] + " handed over this before the stop, not taken"
                 " as done:", did_of(every, last["role"]))]
@@ -845,12 +848,18 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     not_done = [("not verified:", left_out + [step + " unproven: " + line
                                               for step, line in unsure]),
                 ("doubts, left as they are:",
-                 [text + " (" + ", ".join(roles) + ")" for text, roles in
+                 [text + " (" + who + ")" for text, who in
                   front.doubts(every, taken)]
                  + [investigate.STEP + " saw and did not fix: " + l[2:]
                     for l in investigate.listed(dug, "RELATED")])]
-    out[:] = front.view(out, found, not stopped, why, not_done,
-                        front.gaps(found, changes.get("spec_changed", [])))
+    stop = None
+    if stopped and not (found and found[0]["kind"] in front.WAITS):
+        stop = (ended(stopped), front.DECLINED
+                if stopped["cause"] == stops.DECLINED else front.CARRY)
+    view = front.view(out, found, why, not_done,
+                      front.gaps(found, changes.get("spec_changed", []),
+                                 lead=not stop), stop=stop)
+    out[:] = view
     out.append("")
     out.extend(front.pointer(run_id))
 
@@ -886,11 +895,16 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
             if _present(b) for i in b["assumed"]]
     out.extend(said or ["- nothing assumed, or no step said"])
 
+    asked_too = front.unprinted(found, front.shown(found, view))
+    if asked_too:
+        out.append("")
+        out.append("## open questions")
+        out.extend(asked_too)
+
     out.append("")
     out.append("## doubts")
-    said = ["- " + ", ".join(roles) + ": " + text for text, roles in
-            front.doubts(every, front.printed(every, taken, found),
-                         by_line=False)]
+    said = ["- " + who + ": " + text for text, who in
+            front.doubts(every, taken, by_line=False)]
     said.extend("- " + investigate.STEP + " saw and did not fix: " + l[2:]
                 for l in investigate.listed(dug, "RELATED"))
     out.extend(said or ["- none raised"])

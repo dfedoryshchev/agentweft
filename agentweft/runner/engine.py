@@ -2049,7 +2049,8 @@ def run_flow():
                         " spent.")
             needs = park.lines(at, None, done, resume.remaining(steps(flow), at),
                                carry, why=told, cause=cause, handed=handed)
-        note = leave({"cause": cause, "why": why, "at": at}, needs)
+        note = leave({"cause": cause, "why": why, "at": at,
+                      "question": question}, needs)
         if index:
             write_index(index)
         journal(fm["name"], stops.status(cause, at), started, run=run_id,

@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, ".")
 from agentweft.runner import front, handoff, stops, summary, verbs
+from agentweft.runner.front import MORE
 
 NO_GIT = {"git": False}
 
@@ -235,3 +236,155 @@ def test_no_shipped_prompt_teaches_a_pipe_separated_question():
         text = path.read_text(encoding="utf-8").lower()
         assert "| recommend:" not in text, path
         assert "| size:" not in text, path
+
+
+def stopped_decision(tmp_path, monkeypatch, fake_cli, said, steps=None,
+                     tail=None):
+    """-> (exit code, the one decision) of a run whose worker answers
+    `said`, and the question.md the stop wrote, "" for none."""
+    from agentweft.runner import engine
+    from test_stops import CLAUDE, a_flow, answer, the_folder
+
+    (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                      encoding="utf-8")
+    a_flow(tmp_path, monkeypatch, "f", steps or ["worker", "reviewer"],
+           tail=tail or CLAUDE)
+    fake_cli(answer(said))
+    code = engine.main()
+    folder = the_folder()
+    asked = folder / "question.md"
+    note = (folder / "handoff.md").read_text(encoding="utf-8").split("\n")
+    return code, decision_of(note), (asked.read_text(encoding="utf-8")
+                                     if asked.exists() else "")
+
+
+def test_a_park_on_a_verdict_shows_the_question_it_waits_on(
+        tmp_path, monkeypatch, fake_cli):
+    code, decision, asked = stopped_decision(
+        tmp_path, monkeypatch, fake_cli,
+        "VERDICT: park\nis a blank amount zero or an error?\n")
+    assert code == 2 and "blank amount" in asked
+    assert decision.startswith("- is a blank amount zero or an error?\n"), \
+        decision
+    assert "raised by worker\n" in decision
+    assert "no step asked one" not in decision
+
+
+def test_an_uncited_refusal_shows_the_question_it_became(
+        tmp_path, monkeypatch, fake_cli):
+    code, decision, asked = stopped_decision(
+        tmp_path, monkeypatch, fake_cli,
+        "REFUSED: rounding money down is unsafe\n")
+    assert code == 2 and "rounding money" in asked
+    assert decision.startswith("- rounding money down is unsafe (refused"
+                               " with no line of the spec cited)"), decision
+    assert "no step asked one" not in decision
+
+
+BANNER = ("one\ntwo\n\nHANDOFF\nDID:\n- banner.py: draws it\n"
+          "QUESTION: should the banner be blue?\nEND HANDOFF\n")
+
+
+def test_a_gate_stop_leads_its_decision_with_the_stop_not_a_question(
+        tmp_path, monkeypatch, fake_cli):
+    code, decision, _ = stopped_decision(
+        tmp_path, monkeypatch, fake_cli, BANNER,
+        steps=["worker\ngates:\n  - gate: length\n    max_lines: 1",
+               "reviewer"])
+    assert code == 2
+    first = decision.split("\n")[0]
+    assert first.startswith("- stopped: gate failed at worker.md - length:"), \
+        decision
+    assert "banner" not in first
+    assert "  also open:\n  - should the banner be blue?" in decision
+
+
+def test_a_budget_stop_leads_its_decision_with_the_cap(
+        tmp_path, monkeypatch, fake_cli):
+    from test_stops import CLAUDE
+    code, decision, _ = stopped_decision(
+        tmp_path, monkeypatch, fake_cli, BANNER, tail=CLAUDE + "max_calls: 1\n")
+    assert code == 2
+    first = decision.split("\n")[0]
+    assert first.startswith("- needs you: budget at reviewer.md"), decision
+    assert "should the banner be blue?" in decision
+    assert "banner" not in first
+
+
+def test_a_needs_does_not_take_the_recommendation_of_a_block_question(
+        tmp_path, monkeypatch, fake_cli):
+    said = ("NEEDS: is a blank amount zero?\n\nHANDOFF\nDID:\n- read it\n"
+            "QUESTION: should the banner be blue?\nRECOMMEND: yes, blue\n"
+            "SIZE: one line\nEND HANDOFF\n")
+    assert (verbs.parse(said).recommend, verbs.parse(said).size) == \
+        (None, None)
+    _, decision, _ = stopped_decision(tmp_path, monkeypatch, fake_cli, said)
+    lines = decision.split("\n")
+    assert lines[:3] == [
+        "- is a blank amount zero?", "  raised by worker",
+        "  recommendation: none given by a step that raised it"], decision
+    assert "should the banner be blue? (worker; recommendation: yes, blue" \
+        " (size: one line))" in decision
+
+
+def test_a_recommendation_under_a_needs_is_its_own():
+    v = verbs.parse("QUESTION: should the banner be blue?\nNEEDS: is a"
+                    " blank amount zero?\nRECOMMEND: zero\nSIZE: one line\n")
+    assert (v.recommend, v.size) == ("zero", "one line")
+
+
+def test_a_second_question_on_one_spec_line_is_kept_in_the_full_record():
+    said = ("HANDOFF\nDID:\n- money.py: rounds\n"
+            "QUESTION: should a blank amount at TASK.md:4 be zero?\n"
+            "QUESTION: may TASK.md:4 drop the currency sign?\nEND HANDOFF\n")
+    lines = build([a_pass("worker", said)])
+    assert "raised by worker; cites TASK.md:4" in decision_of(lines)
+    record = lines[lines.index("## full record"):]
+    assert "- worker: may TASK.md:4 drop the currency sign? (recommendation:" \
+        " none given by a step that raised it)" in record, "\n".join(record)
+
+
+def test_the_same_words_about_two_spec_lines_are_two_doubts():
+    lines = build([a_pass("worker", block(doubts=[
+        "TASK.md:3 does not say what an empty row does",
+        "TASK.md:9 does not say what an empty row does"]))])
+    record = "\n".join(lines[lines.index("## doubts"):])
+    assert "TASK.md:3 does not say" in record
+    assert "TASK.md:9 does not say" in record
+    top = "\n".join(default_view(lines))
+    assert "TASK.md:9" in top
+
+
+def test_a_question_past_the_cut_is_in_the_full_record():
+    asked = ["should option " + str(n) + " be on by default?"
+             for n in range(10)]
+    lines = build([a_pass("worker", block(did=["opts.py: reads them"],
+                                          doubts=asked))])
+    top = default_view(lines)
+    assert any(MORE in l for l in top), "\n".join(top)
+    note = "\n".join(lines)
+    for q in asked:
+        assert note.count(q) == 1, q
+
+
+def test_a_doubt_left_after_a_send_back_says_how_many_times():
+    bom = block(did=["csv.py: reads it"],
+                doubts=["the CSV header may carry a BOM"])
+    lines = build([a_pass("worker", bom, outcome="redo"),
+                   a_pass("worker", bom)])
+    record = lines[lines.index("## doubts"):]
+    assert "- worker, 2 times: the CSV header may carry a BOM" in record, \
+        "\n".join(record)
+    top = "\n".join(default_view(lines))
+    assert "the CSV header may carry a BOM (worker, 2 times)" in top, top
+
+
+def test_a_long_task_line_and_stop_reason_still_fit_the_budget():
+    lines = summary.build("f-1", "f", "round " * 1000, [a_pass("worker", block(
+        did=["money.py: rounds half up"]))], NO_GIT, [], "1 call",
+        stopped={"cause": stops.GATE, "why": "pytest said " + "x" * 3000,
+                 "at": "worker.md"})
+    top = default_view(lines)
+    assert front.tokens(top) <= front.BUDGET, front.tokens(top)
+    assert lines[0].startswith("# f f-1: stopped: gate failed at worker.md")
+    assert "x" * 3000 in "\n".join(lines[len(top):])
