@@ -42,12 +42,12 @@ class CoverageGate(Gate):
             return self.broke("critical needs paths, the report does not know "
                              "which files are critical")
 
-        mine = project.path(self.where)
-        if not mine.exists():
-            return self.broke("no project.yml at " + str(mine)
+        held = self.project or project.hold(self.where)
+        if held.text is None:
+            return self.broke("no project.yml at " + str(held.path)
                               + ", so there is no floor")
         try:
-            want = project.read(mine).coverage(floor)
+            want = held.read().coverage(floor)
         except ValueError as e:
             return self.broke(str(e))
         except yaml.YAMLError as e:

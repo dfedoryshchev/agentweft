@@ -49,6 +49,8 @@ STANDARDS_KNOWN = ("forbidden", "immediate_reject")
 REJECT_KNOWN = ("rule", "pattern")
 COVERAGE_KNOWN = ("critical", "overall")
 ROLE_KNOWN = ("model", "tools")
+# the copy of project.yml a run keeps in runs/<id>/, for a resume
+KEPT = "project.yml"
 
 # a path as it appears in a prompt: something in backticks with a separator in
 # it. crude, and it only has to find the thing the file exists to take away.
@@ -63,6 +65,44 @@ def in_prose(text):
 def path(place=None):
     """-> the project.yml of the codebase in `place`, the run's workdir."""
     return Path(place or ".") / workflow.root() / "project.yml"
+
+
+class Held(object):
+    """project.yml as a run read it when it started. the gates, the fence and
+    the name check read this, so a step that rewrites the file does not
+    rewrite the program that checks it."""
+
+    __slots__ = ("path", "text")
+
+    def __init__(self, where, text):
+        self.path = where
+        self.text = text
+
+    def read(self):
+        return load(reader.read(self.text) or {})
+
+
+def hold(place=None):
+    """-> what project.yml in `place` says now, text None when there is none."""
+    where = path(place)
+    try:
+        return Held(where, where.read_text(encoding="utf-8"))
+    except OSError:
+        return Held(where, None)
+
+
+def keep(folder, held):
+    if held is not None and held.text is not None:
+        (Path(folder) / KEPT).write_text(held.text, encoding="utf-8")
+
+
+def kept(folder, place=None):
+    """-> the copy an earlier leg of the run held, None when it held none."""
+    try:
+        text = (Path(folder) / KEPT).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    return Held(path(place), text)
 
 
 def example():

@@ -240,6 +240,12 @@ the `project.yml` these gates read is `orchestrate/project.yml` in the run's
 (`guardrails.md`). a project gate's name is checked against it once the
 workdir is known, still before any step is called.
 
+the run reads the file once, as it starts, and the gates and the fence hold
+to that copy: a step that rewrites or deletes `project.yml` changes neither
+the command its project gate runs nor the rules and numbers the reject and
+coverage gates check. the copy is kept as `runs/<id>/project.yml`, and a run
+picked up later holds to the copy its first leg read.
+
 ## each new test, without the fix and with it
 
     steps:

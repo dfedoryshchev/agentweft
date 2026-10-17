@@ -341,7 +341,7 @@ def check_gates(at, gates):
     return bad
 
 
-def check_project_gates(steps, place=None):
+def check_project_gates(steps, place=None, held=None):
     """-> complaints about the `project` gates' names, against the
     project.yml of the place the run works in. made once that place is
     known, which is after the flow has loaded."""
@@ -349,12 +349,12 @@ def check_project_gates(steps, place=None):
     for i, step in enumerate(steps):
         for g in step.get("gates") or []:
             if isinstance(g, dict) and g.get("gate") == "project":
-                bad.extend("step " + str(i) + ": " + c
-                           for c in check_project_gate(g.get("name"), place))
+                bad.extend("step " + str(i) + ": " + c for c in
+                           check_project_gate(g.get("name"), place, held))
     return bad
 
 
-def check_project_gate(said, place=None):
+def check_project_gate(said, place=None, held=None):
     """-> complaints about a `project` gate's name, against project.yml now.
 
     the gate reads the file again when it runs; this is so a name the file
@@ -364,12 +364,12 @@ def check_project_gate(said, place=None):
 
     from agentweft.orchestrate import project
 
-    where = project.path(place)
-    if not where.exists():
+    held = held or project.hold(place)
+    if held.text is None:
         return ["gate project " + str(said or "") + " needs a project.yml at "
-                + str(where) + ", where its command comes from"]
+                + str(held.path) + ", where its command comes from"]
     try:
-        have = project.read(where).gates()
+        have = held.read().gates()
     except ValueError as e:
         return [str(e)]
     except yaml.YAMLError as e:

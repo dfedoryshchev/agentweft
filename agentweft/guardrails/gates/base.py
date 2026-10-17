@@ -64,6 +64,7 @@ class Gate(object):
     said_by = ()
     start = None
     order = None
+    project = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -91,7 +92,7 @@ def register(cls):
 
 
 def build(config, where=None, ranking="", earlier=(), start=None, order=None,
-          said_by=()):
+          said_by=(), project=None):
     """{"gate": "regex", ...} -> a Gate. unknown names are an error, not a skip.
 
     the argument was called `spec`, which in this repo means a FlowSpec. it is
@@ -105,7 +106,9 @@ def build(config, where=None, ranking="", earlier=(), start=None, order=None,
     (`guardrails/snapshot.py`), for a gate that compares against it, and
     `order` the red proof the run holds (`guardrails/redorder.py`).
     `said_by` is the same answers as (role, text), for a gate that takes a
-    line only from a step of a given role.
+    line only from a step of a given role. `project` is the project.yml the
+    run held as it started (`orchestrate/project.py`), for a gate that reads
+    one; None reads the file now.
     """
     name = config.get("gate")
     if name not in registry:
@@ -120,4 +123,5 @@ def build(config, where=None, ranking="", earlier=(), start=None, order=None,
     g.said_by = list(said_by or ())
     g.start = start
     g.order = order
+    g.project = project
     return g

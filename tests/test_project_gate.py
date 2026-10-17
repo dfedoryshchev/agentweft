@@ -200,3 +200,57 @@ def test_the_reject_and_fence_read_the_place_s_project_yml(tmp_path,
     r = gates.build({"gate": "reject"}, where=place).run("print(1)")
     assert not r and "no prints" in r.detail
     assert fence.at(place) is not None
+
+
+def rewrites_to(argv):
+    return ("project:" + NL + "  name: here" + NL + "gates:" + NL
+            + "  lint: " + json.dumps(argv) + NL)
+
+
+def test_a_step_that_rewrites_project_yml_is_held_to_the_gate_it_started_with(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    the_place_says(place, "lint", FAIL)
+    a_flow(tmp_path, "build", gated("lint"))
+    code, _ = running(tmp_path, monkeypatch, place, "build",
+                      {"worker.md": ({"orchestrate/project.yml":
+                                      rewrites_to(PASS)}, "done")})
+    assert code == stops.exit_code(stops.GATE)
+    said = gate_lines(folders()[-1])
+    assert said and not said[-1]["ok"] and "lint said no" in said[-1]["detail"]
+
+
+def test_a_resume_holds_the_project_yml_the_run_started_with(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    the_place_says(place, "lint", FAIL)
+    a_flow(tmp_path, "build", gated("lint"))
+    running(tmp_path, monkeypatch, place, "build",
+            {"worker.md": ({"orchestrate/project.yml": rewrites_to(PASS)},
+                           "done")})
+    first = folders()[-1]
+    code, _ = running(tmp_path, monkeypatch, place, "build",
+                      {"worker.md": ({}, "done")}, "--resume", first.name)
+    assert code == stops.exit_code(stops.GATE)
+    said = gate_lines(folders()[-1])
+    assert said and not said[-1]["ok"]
+
+
+def test_a_step_that_writes_a_fence_skip_into_project_yml_does_not_widen_it(
+        tmp_path, monkeypatch):
+    from agentweft.guardrails import fence
+    from agentweft.orchestrate import project
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    (place / "orchestrate").mkdir()
+    (place / "orchestrate" / "project.yml").write_text(
+        "project:" + NL + "  name: there" + NL + "fence:" + NL + "  skip: []"
+        + NL, encoding="utf-8")
+    held = project.hold(place)
+    (place / "orchestrate" / "project.yml").write_text(
+        "project:" + NL + "  name: there" + NL + "fence:" + NL
+        + "  skip: [\"**\"]" + NL, encoding="utf-8")
+    assert fence.at(place, held=held).skip == []

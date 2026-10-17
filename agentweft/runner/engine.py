@@ -23,7 +23,7 @@ from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
 from agentweft.guardrails.gates.redtest_gate import named_test
 from agentweft.mcp import context, preflight
-from agentweft.orchestrate import decisions, park, synthesise
+from agentweft.orchestrate import decisions, park, project, synthesise
 
 NEWLINE = chr(10)
 RED_MARKER = "FAILS:"
@@ -256,7 +256,7 @@ class Run(object):
     through five functions just so two of them could read a timeout."""
 
     def __init__(self, flow, fm, by_role, provider=None, workdir=None,
-                 task=None, chosen=None, efforts=None):
+                 task=None, chosen=None, efforts=None, held=None):
         self.flow = flow
         self.chosen = dict(chosen or {})
         self.efforts = dict(efforts or {})
@@ -325,10 +325,11 @@ class Run(object):
                     provider or fm.get("provider") or {}, where=self.workdir,
                     grant=retro.GRANT)
         self.briefed = briefing.digest(self.workdir)
-        bad = check_project_gates(fm.steps, self.workdir)
+        self.project = held or project.hold(self.workdir)
+        bad = check_project_gates(fm.steps, self.workdir, self.project)
         if bad:
             raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))
-        self.fence = fence.at(self.workdir, own=state.RUNS)
+        self.fence = fence.at(self.workdir, own=state.RUNS, held=self.project)
         self.start = None
         self.suite = baseline.mode(fm)
         self.baseline = None
@@ -781,7 +782,8 @@ class Run(object):
                 return [gates.build(g, where=self.workdir, ranking=self.ranking,
                                     earlier=earlier, said_by=said_by,
                                     start=getattr(self, "start", None),
-                                    order=getattr(self, "order", None))
+                                    order=getattr(self, "order", None),
+                                    project=getattr(self, "project", None))
                         for g in (s.get("gates") or [])]
         return []
 
@@ -1775,7 +1777,9 @@ def run_flow():
             inside, made = worktrees.make(fm, named, run_id, tree_base)
             named = str(inside)
         run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
-                  chosen=chosen, efforts=efforts)
+                  chosen=chosen, efforts=efforts,
+                  held=project.kept(state.RUNS / pick_up, started_in)
+                  if pick_up else None)
         if pick_up and run.start is not None:
             # a snapshot taken now would count the tests the first run wrote
             # as already there
@@ -1946,6 +1950,7 @@ def run_flow():
         run.order.save(folder)
     if run.skipped:
         skips.save(folder, run.skipped)
+    project.keep(folder, run.project)
     if asked is not None:
         task.save(folder, asked)
     models.save(folder, chosen)
