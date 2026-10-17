@@ -27,7 +27,8 @@ run reads them:
 - what a run commits: `none` leaves every change in the work tree, `wip`
   commits after each step, `squash` makes one commit per task
 - the files that are the spec, as globs from the top of the project
-- whether to keep a price table of your own, `prices.yaml`
+- whether to keep a price table of your own, `prices.yaml`. one already
+  there is never written over, `--force` or not
 
 `agentweft init --yes` takes every default and asks nothing. an `.env` that is
 already there is left alone; `--force` rewrites the keys init asks about and

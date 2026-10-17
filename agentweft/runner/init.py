@@ -194,7 +194,7 @@ def cmd_init():
         from agentweft.guardrails import prices as table
 
         own = Path("prices.yaml")
-        if own.exists() and not force:
+        if own.exists():
             print("prices.yaml is already here, left as it is")
         else:
             shutil.copyfile(table.SHIPPED, own)

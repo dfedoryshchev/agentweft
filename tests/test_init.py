@@ -117,6 +117,16 @@ def test_init_writes_what_it_was_told_and_asks_again_on_a_wrong_answer(
     assert sum("commit" in a for a in asked) == 2
 
 
+def test_init_force_keeps_a_price_table_already_there(place, monkeypatch,
+                                                     capsys):
+    (place / ".env").write_text("API_KEY=x\n", encoding="utf-8")
+    (place / "prices.yaml").write_text("mine: 1\n", encoding="utf-8")
+    answers(monkeypatch, *[""] * len(init.QUESTIONS) + ["y"])
+    assert agentweft(monkeypatch, "init", "--force") == 0
+    assert (place / "prices.yaml").read_text(encoding="utf-8") == "mine: 1\n"
+    assert "prices.yaml is already here" in capsys.readouterr().out
+
+
 def test_the_permission_modes_offered_are_the_ones_claude_takes():
     assert init.PERMISSION_MODES == ("dontAsk", "acceptEdits", "auto",
                                      "bypassPermissions", "manual", "plan")
