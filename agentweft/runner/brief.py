@@ -44,6 +44,20 @@ def where_of(item):
     return m.group("path"), first, last, m.group("note").strip()
 
 
+def untracked(where):
+    """-> (the top of the repo, the paths under it git does not track in
+    `where` now, ignored ones included, a folder ending in `/`), or None
+    when `where` is not in a git work tree."""
+    if where is None:
+        return None
+    from agentweft.guardrails import fence
+
+    try:
+        return fence.untracked(where)
+    except (ValueError, OSError):
+        return None
+
+
 class Brief(object):
 
     def __init__(self, where, order=()):
@@ -51,6 +65,24 @@ class Brief(object):
         self.order = list(order)
         self.goes = {}
         self.lock = threading.RLock()
+        self.loose = untracked(self.where)
+
+    def quotable(self, target):
+        """whether the brief may quote `target`: a file git tracks or one
+        the run made outside a folder git did not track. one that was there
+        untracked when the run started, an ignored `.env` above all, or one
+        inside an ignored folder, is named and never quoted: the brief goes
+        into every later prompt and onto disk. outside git nothing says which
+        is which, and every file in the place is quoted."""
+        if self.loose is None:
+            return True
+        top, found = self.loose
+        try:
+            rel = target.relative_to(top).as_posix()
+        except ValueError:
+            return False
+        return not any(rel == p or (p.endswith("/") and rel.startswith(p))
+                       for p in found)
 
     def add(self, step, task, role, block):
         """what one go of `step` handed over. a later go of the same step and
@@ -111,7 +143,7 @@ class Brief(object):
             target.relative_to(root)
         except (ValueError, OSError):
             return []
-        if not target.is_file():
+        if not target.is_file() or not self.quotable(target):
             return []
         try:
             lines = target.read_text(encoding="utf-8",

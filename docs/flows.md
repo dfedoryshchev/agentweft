@@ -98,7 +98,12 @@ a quote in doubt:
   transcript to check it against, or with no output quoted, is not a fact
   here
 - lines read: each READ line, `path:lines - what mattered`, with those lines
-  quoted from the place as it is when the step starts, 12 at most per line
+  quoted from the place as it is when the step starts, 12 at most per line.
+  only a file git tracks, or one the run made, is quoted: one that was there
+  untracked when the run started (an ignored `.env`, a local file nobody
+  committed), or anything in a folder git ignores or does not track, is
+  named without its lines, since the brief goes into every
+  later prompt and onto disk. outside a git work tree every file is quoted
 
 a step gets what the steps before it in the flow's order found, so a step
 asked again with nothing new above it still gets the same prompt and the

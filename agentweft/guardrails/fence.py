@@ -40,6 +40,32 @@ def _git(place, *args):
     return r.stdout
 
 
+def _loose(out):
+    found = []
+    fields = iter(out.split("\0"))
+    for entry in fields:
+        if not entry:
+            continue
+        code, rel = entry[:2], entry[3:]
+        if code in LOOSE:
+            found.append(rel)
+        elif "R" in code or "C" in code:
+            # -z gives a rename's old path a field of its own. read as an
+            # entry, its first two letters would pass for a status code.
+            next(fields, None)
+    return found
+
+
+def untracked(place):
+    """-> (the top of the repo, the paths git does not track under `place`,
+    ignored ones included), read from `git status` alone: a folder git does
+    not look into is one path ending in `/`, and no file is opened. raises
+    ValueError outside a git work tree."""
+    root = Path(_git(place, "rev-parse", "--show-toplevel").strip()).resolve()
+    return root, _loose(_git(place, "status", "--porcelain", "-z",
+                             "--ignored", "--", "."))
+
+
 def _stat(p):
     s = os.lstat(p)
     return s.st_size, s.st_mtime_ns
@@ -85,21 +111,9 @@ class Fence(object):
     def loose(self):
         """-> the paths git does not track under the place, relative to the
         top of the repo, the way `git status` prints them."""
-        out = _git(self.place, "status", "--porcelain", "-z",
-                   "--untracked-files=all", "--ignored", "--", ".", *self.skip)
-        found = []
-        fields = iter(out.split("\0"))
-        for entry in fields:
-            if not entry:
-                continue
-            code, rel = entry[:2], entry[3:]
-            if code in LOOSE:
-                found.append(rel)
-            elif "R" in code or "C" in code:
-                # -z gives a rename's old path a field of its own. read as an
-                # entry, its first two letters would pass for a status code.
-                next(fields, None)
-        return found
+        return _loose(_git(self.place, "status", "--porcelain", "-z",
+                           "--untracked-files=all", "--ignored", "--", ".",
+                           *self.skip))
 
     def crossed(self):
         """-> [(path, what happened to it)] for every file that was here

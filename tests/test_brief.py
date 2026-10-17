@@ -97,6 +97,57 @@ def test_only_a_claim_its_transcript_backs_is_an_established_fact(tmp_path):
             in notes.text("reviewer.md"))
 
 
+def test_an_ignored_file_a_step_read_is_named_and_never_quoted(tmp_path):
+    from agentweft.runner import brief, handoff
+
+    place = a_repo(tmp_path / "repo")
+    (place / ".gitignore").write_text(".env\nlocal/\n", encoding="utf-8")
+    (place / ".env").write_text("API_KEY=sk-live-marker\n", encoding="utf-8")
+    (place / "local").mkdir()
+    (place / "local" / "keys.txt").write_text("dir-secret-marker\n",
+                                              encoding="utf-8")
+    (place / "notes.txt").write_text("loose-before-marker\n", encoding="utf-8")
+    notes = brief.Brief(place, ["planner.md", "worker.md"])
+    (place / "made.py").write_text("made-by-the-run-marker\n",
+                                   encoding="utf-8")
+    notes.add("planner.md", None, "planner", handoff.parse(
+        block([".env:1 - the key", "local/keys.txt:1 - more keys",
+               "notes.txt:1 - loose notes", "made.py:1 - a new file",
+               "calc.py:2 - the minus"], verified=False)))
+    worker = notes.text("worker.md")
+    assert ".env:1 - the key" in worker
+    assert "sk-live-marker" not in worker
+    assert "dir-secret-marker" not in worker
+    assert "loose-before-marker" not in worker
+    assert "made-by-the-run-marker" in worker
+    assert "kept-quote-marker" in worker
+
+
+def test_a_brief_reads_no_ignored_file_to_learn_what_it_may_quote(
+        tmp_path, monkeypatch):
+    from agentweft.guardrails import fence
+    from agentweft.runner import brief, handoff
+
+    place = a_repo(tmp_path / "repo")
+    (place / ".gitignore").write_text("deps/\n", encoding="utf-8")
+    for n in range(30):
+        (place / "deps" / ("p%02d" % n)).mkdir(parents=True)
+        (place / "deps" / ("p%02d" % n) / "index.js").write_text(
+            "module.exports = %d\n" % n, encoding="utf-8")
+    read = []
+    monkeypatch.setattr(fence, "_sha", lambda p: read.append(p) or "x")
+    notes = brief.Brief(place, ["planner.md", "worker.md"])
+    assert read == []
+    (place / "deps" / "new.js").write_text("dep-made-marker\n",
+                                           encoding="utf-8")
+    notes.add("planner.md", None, "planner", handoff.parse(
+        block(["deps/new.js:1 - a file in an ignored folder",
+               "calc.py:2 - the minus"], verified=False)))
+    worker = notes.text("worker.md")
+    assert "dep-made-marker" not in worker
+    assert "kept-quote-marker" in worker
+
+
 def test_a_windows_path_and_a_non_ascii_line_are_quoted(tmp_path):
     from agentweft.runner import brief, handoff
 
