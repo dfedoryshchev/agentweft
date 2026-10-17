@@ -67,7 +67,7 @@ def empty(state=MISSING, why=None):
     return out
 
 
-def _bounds(shown):
+def bounds(shown):
     """-> ((start, end) as indices into `shown`, None) for the last block,
     or (None, why) when there is none or it is broken."""
     opens = [n for n, (_, l) in enumerate(shown) if OPEN.match(l)]
@@ -97,7 +97,7 @@ def parse(text):
     under `questions`; `QUESTION: none` asks nothing.
     """
     shown = verbs.visible(text)
-    found, why = _bounds(shown)
+    found, why = bounds(shown)
     if found is None:
         return empty(UNREADABLE if why else MISSING, why)
     out = empty(PRESENT)
@@ -213,7 +213,7 @@ def without(text):
     account of its work, not the work.
     """
     shown = verbs.visible(text)
-    found, _ = _bounds(shown)
+    found, _ = bounds(shown)
     if found is None:
         return text
     first, last = shown[found[0]][0], shown[found[1]][0]

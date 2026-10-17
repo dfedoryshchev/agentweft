@@ -112,6 +112,18 @@ FIXES = {
                                " was checked"),
                        {"calc.py": FIXED})]}
 
+ORDER_ASKED = say("TEST: test_calc.py\n\n-    return a - b\n"
+                  "+    total = a + b\n+    return total\n\n"
+                  "NEEDS: when both arguments are wrong, which error is"
+                  " reported first?\n"
+                  "RECOMMEND: the first argument's, the order add already"
+                  " checks in\n"
+                  "SIZE: Zero code lines\n"
+                  + block("add returns a + b; it subtracted",
+                          "1 passed | cmd: python -m pytest -q"
+                          " test_calc.py | saw: 1 passed"),
+                  {"calc.py": FIXED})
+
 NEG = "\n\ndef neg(a):\n    return -a\n"
 NEG_TEST = "from calc import neg\n\n\ndef test_neg():\n    assert neg(2) == -2\n"
 FIXED_NEG_BROKEN = FIXED + "\n\ndef neg(a):\n    return a\n"
@@ -204,6 +216,10 @@ CASES = {
                                                "bug.md": BUG_REPORT},
                                      "args": ["--task-file", "bug.md"],
                                      "task": BUG_REPORT, "answers": FIXES},
+    ("fix-with-test", "question-rides"): {
+        "place": {"calc.py": BUGGY}, "args": ["--task", BUG], "task": BUG,
+        "answers": {"worker.md": FIXES["worker.md"],
+                    "patcher.md": [ORDER_ASKED]}},
     ("fix-with-test", "gate-fail"): {"place": {"calc.py": BUGGY},
                                      "args": ["--task", BUG], "task": BUG,
                                      "answers": {

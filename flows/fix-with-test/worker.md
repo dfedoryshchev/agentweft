@@ -32,6 +32,9 @@ the run stops there and the question goes to a person. the quote is checked
 against that line as the run found it, and a quote that is not there fails
 your answer.
 
+the order of two errors the spec does not fix is yours; follow the code's
+convention and say so under ASSUMED.
+
 say how it fails and where the tests are, each on its own line, before them:
 
     FAILS: <the error the unpatched code gives>

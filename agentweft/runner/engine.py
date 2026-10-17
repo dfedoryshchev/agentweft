@@ -30,7 +30,8 @@ RED_MARKER = "FAILS:"
 from agentweft.guardrails.budget import REACHING, Budget
 from agentweft.guardrails import blocks, sacrifice
 
-from .handoff import EMPTY, Handoff, back, merge, parse, transcript, without
+from .handoff import (EMPTY, PARTIAL, PRESENT, Handoff, back, merge, parse,
+                      transcript, without)
 from . import brief as kept
 from . import errors
 from . import investigate
@@ -385,6 +386,19 @@ class Run(object):
             if forged is None:
                 forged = self.forged = {}
             forged[step] = said
+
+    def look(self):
+        """note the place as it is before a step runs, when the run keeps a
+        snapshot of it to compare with."""
+        start = getattr(self, "start", None)
+        self.looked = start.hashes() if start is not None and start.hashed \
+            else None
+
+    def changed_tree(self):
+        """-> whether the place differs from when `look` last saw it. False
+        when the run keeps no snapshot: it cannot tell."""
+        looked = getattr(self, "looked", None)
+        return looked is not None and self.start.hashes() != looked
 
     def wrote_tests(self, step):
         """note `step` as the writer of each test file it made or changed."""
@@ -1168,6 +1182,32 @@ def lead_pass(trail, run, out, asker, decided):
                 to=asker if decided else None)
 
 
+def rides(step, out):
+    """-> the doubt `step`'s question became, "" when it asked nothing that
+    changes no code. the question comes out of `out` and the doubt goes into
+    its block, so every reader after this sees a step that went on."""
+    found = ruling.demoted(out.output)
+    if found is None:
+        return ""
+    out.output, doubt = found
+    if out.block.get("state") in (PRESENT, PARTIAL):
+        out.block["doubts"].append(doubt)
+    print(step + " asked what changes no code, and went on: " + doubt)
+    return doubt
+
+
+def worked_then_asked(run, route, step, out, run_dir=None):
+    """-> None for a step that asked without changing the place, else what
+    its gates said of what it changed: "" when they passed. the run parks
+    either way; this is what the park can say the step left behind."""
+    if not run.changed_tree():
+        return None
+    failed, _ = check_step(run, route, step, out, run_dir=run_dir)
+    out.meta.pop("spec_ruling", None)
+    out.meta.pop("conflict", None)
+    return gate_why(out.meta["gates"]) if failed else ""
+
+
 def forged_first(run, step, out):
     """-> what `step` did to decisions.md, "" for nothing, put on `out` as a
     failed rulings gate. read before a fence or an empty answer can stop the
@@ -1318,6 +1358,7 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
         run.order.watch(step, writes)
+        run.look()
         try:
             if step == run.fan:
                 out = run_fanout(run, out)
@@ -1367,6 +1408,8 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             note("parked", wrong[1], stops.PARKED, output=out.output)
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + wrong[1].split("\n")[0])
+        if honest:
+            rides(step, out)
         said = ruling.asked_of(out.output, run.workdir, out.verdict,
                                out.meta.get("allowed")) if honest else None
         if said and said[0] == ruling.DECLINED:
@@ -1382,6 +1425,7 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
                 note("asked", said[1].split("\n")[0], to=run.lead,
                      output=out.output)
             else:
+                worked_then_asked(run, route, step, out)
                 note("parked", question, stops.PARKED, output=out.output)
             if head is not None and kept is not None:
                 run.attempts = theirs
@@ -1971,7 +2015,7 @@ def run_flow():
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None, handed=None, question=None, replayed=False,
-             checked=()):
+             checked=(), worked=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -1982,7 +2026,9 @@ def run_flow():
         what the step asked instead of doing the work: the run waits for a
         ruling, and carrying on runs the step again with the answer.
         `checked` is (check, passed, what it found) for each check the
-        runner made on the answer outside its gates.
+        runner made on the answer outside its gates. `worked` is what the
+        gates of a step that changed the place before it asked said of it
+        ("" passed), None when it changed nothing.
 
         -> the exit code.
         """
@@ -2023,7 +2069,7 @@ def run_flow():
                                resume.remaining(steps(flow), at),
                                resume_command(flow, run_id, run.caps),
                                question=question, conflict=conflict,
-                               replayed=replayed)
+                               replayed=replayed, worked=worked)
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:
@@ -2168,6 +2214,7 @@ def run_flow():
             print("started " + step)
             handed = out
             given[step] = handed
+            run.look()
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
@@ -2269,6 +2316,12 @@ def run_flow():
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=wrong[1])
 
+            if honest and rides(step, out):
+                entry.handoff = out.block
+                (step_dir / step).write_text(out.output, encoding="utf-8")
+                if entry.file:
+                    (trail.folder / entry.file).write_text(out.output,
+                                                           encoding="utf-8")
             said = ruling.asked_of(out.output, run.workdir, out.verdict,
                                    out.meta.get("allowed")) if honest else None
             if said and said[0] == ruling.DECLINED:
@@ -2289,12 +2342,18 @@ def run_flow():
                     run.ruled[step] = decided
                     out = handed
                     continue
-                print(step + " asks for a ruling")
+                worked = worked_then_asked(run, route, step, out,
+                                           run_dir=step_dir)
+                if worked is not None:
+                    entry.gates = out.meta.get("gates", [])
+                    entry.ungated = out.meta.get("ungated")
+                print(step + (" asks for a ruling" if worked is None
+                              else " did the work, then asked for a ruling"))
                 return stop(stops.PARKED, "needs a ruling: "
                             + said[1].split(NEWLINE)[0][len("NEEDS: "):],
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", question=question)
+                            waiting="user", question=question, worked=worked)
 
             failed, blocked = check_step(run, route, step, out,
                                          run_dir=step_dir)

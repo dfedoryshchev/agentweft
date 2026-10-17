@@ -27,8 +27,12 @@ only hears about a gate that failed, because that one stops the run.
 a step's gates run after its answer is read for a question: an answer with a
 `NEEDS:` line, a first line of `VERDICT: park` or a `REFUSED:` line parks the
 run for a ruling (or ends it, for a refusal that cites the spec) before any
-gate sees it. a step that stopped to ask produced nothing to gate
-(`docs/journal.md`, when a step asks for a ruling). so does a `WRONG TEST:`
+gate sees it. a step that stopped to ask produced nothing to gate; one that
+changed the place before it asked has its gates run on that, and parks after
+them. a `NEEDS:` whose `SIZE:` changes no code, that carries a
+`RECOMMEND:` and cites no spec line (`CITES:`) does not park at all: it
+becomes a doubt and the gates run as on
+any answer (`docs/journal.md`, when a step asks for a ruling). so does a `WRONG TEST:`
 answer, which sends a test the run wrote back to the step that wrote it, to be
 shown red again by that step's gates, or parks on one the run started with.
 

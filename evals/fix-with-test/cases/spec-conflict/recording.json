@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-16T13:10:51",
+  "recorded": "2026-10-17T09:42:32",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 1,
-      "prompt": "5774d9b8a304056917cbb6a1253cc3e4ae87eda8e95bfa8b938fef68c54f7058",
+      "prompt": "cf0367639a9fe674f793d9c0b5472bd2e11eed9e1e0ffc982fba6a6969757971",
       "say": "CONFLICT: SPEC.md:3 \"add(a, b) returns a minus b, the ledger import depends on it\"\nrequest: add(1, 2) returns 3\n",
       "detail": "",
       "retryable": null,
@@ -22,7 +22,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "c927d127ba461e203b288056e54b1c9285493b23c895b7681549c407d7907533",
+      "prompt": "c99e0f1339d641af6704220e2459c79940dfb1395361bc37d4e166a74e7f1249",
       "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
       "detail": "",
       "retryable": null,

@@ -98,17 +98,20 @@ FIELD = {"NEEDS": "needs", "REFUSED": "refused", "CONFLICT": "conflict",
          "SIZE": "size"}
 
 
-def parse(text):
+def parse(text, where=None):
     """-> Verbs read off `text`.
 
     a list verb takes what is on its own line and the `- ` lines under it,
     up to the next key line or a line that is neither; a single verb takes
-    its line, and only the first one found.
+    its line, and only the first one found. `where`, a dict, is filled with
+    the index of every line each field was read from.
     """
     out = Verbs()
     gathering = None
     asking = False
-    for _, line in visible(text):
+    field = None
+    seen = {} if where is None else where
+    for i, line in visible(text):
         head = key_of(line)
         if head is not None and head[0] == "QUESTION":
             asking = False
@@ -116,15 +119,18 @@ def parse(text):
             name, rest, _, _ = head
             if name in ASKS:
                 asking = True
+            field = FIELD[name]
             if name in SINGLE:
                 gathering = None
                 if name in ANSWERS and not asking:
                     continue
-                if getattr(out, FIELD[name]) is None:
-                    setattr(out, FIELD[name],
+                if getattr(out, field) is None:
+                    setattr(out, field,
                             unquoted(rest) if name == "INTENT QUOTE" else rest)
+                    seen.setdefault(field, []).append(i)
                 continue
-            gathering = getattr(out, FIELD[name])
+            gathering = getattr(out, field)
+            seen.setdefault(field, []).append(i)
             if rest:
                 gathering.append(rest)
             continue
@@ -132,6 +138,7 @@ def parse(text):
             continue
         m = BULLET.match(line)
         if m:
+            seen[field].append(i)
             if m.group(1):
                 gathering.append(m.group(1))
         elif line.strip():

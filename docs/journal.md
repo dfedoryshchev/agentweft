@@ -751,11 +751,14 @@ sees under it:
 
 (`VERDICT: park` as the first line does the same, with the next line as the
 question.) the run parks there, before that step's gates run: a step that
-stopped to ask has produced nothing to gate. the journal says `parked at
-<step>`, `why.md` says `kind       ruling`, the step is `parked for a ruling`
-in the manifest, the question is in `runs/<run-id>/question.md`, and the
-handoff's "needs you" section shows it and ends with the command that answers
-it:
+stopped to ask has produced nothing to gate. a step that changed the place
+before it asked did produce something, so its gates run on that first, and
+the "needs you" section says it did the work, then asked, and whether those
+gates passed or which one failed. the run parks either way. the journal
+says `parked at <step>`, `why.md` says `kind       ruling`, the step is
+`parked for a ruling` in the manifest, the question is in
+`runs/<run-id>/question.md`, and the handoff's "needs you" section shows it
+and ends with the command that answers it:
 
     python run.py fix-with-test --resume <run-id> --answer "numbers"
 
@@ -772,6 +775,24 @@ file fails as a `rulings` gate with the file put back ("the rulings only the
 runner writes" in `guardrails.md`). `--resume` on that run without an answer runs nothing:
 it prints the question and the command, and exits 2. an `--answer` to a run
 that asked nothing is refused.
+
+a question can say what the step would pick and what that costs, each on a
+line of its own under it:
+
+    RECOMMEND: the date error first, the way parse() checks it now
+    SIZE: zero code lines
+
+a question whose answer changes no code is the step's call, not a stop. when
+its `SIZE:` says so (zero, none, no code, or one test and nothing else) and
+it has a `RECOMMEND:`, the runner takes the question out of the answer and
+puts it in the block as a doubt, `<question> assumed: <recommend> (size:
+<size>)`. the step is taken as done and goes on through its gates, and the
+handoff lists the doubt. a `SIZE:` that counts lines of code anywhere in it,
+no `RECOMMEND:`, or a `CITES:` line (a gap in the spec, which a person rules
+on) parks as above; so does a stop question whose only `RECOMMEND:` and
+`SIZE:` belong to a `QUESTION:` in the block. the order two errors are reported in,
+when the spec fixes neither, is the usual case: the step follows the code's
+own convention and says so under ASSUMED.
 
 the line is read the way every labelled line is (`agentweft/runner/verbs.py`):
 its key in any case, behind a bullet or in bold; never inside a code fence or

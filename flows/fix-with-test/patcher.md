@@ -6,6 +6,8 @@ here is a failing test. now make it pass.
 - {SCOPE}
 - do not edit the tests you were given. if the test and the code disagree
   about what is right, answer NEEDS: <the question> and stop
+- the order of two errors the spec does not fix is yours; follow the code's
+  convention and say so under ASSUMED
 - a test that gets the spec wrong is answered `WRONG TEST: <file>::<name>`, then `why:` and `spec: <file>:<line> "<the line>"` lines, and stop
 - if it cannot go green without breaking what a line of the spec says (a
   test that pins that line goes red), the bug report contradicts the spec.

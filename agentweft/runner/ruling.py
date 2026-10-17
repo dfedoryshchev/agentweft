@@ -4,10 +4,14 @@ a step that cannot do its work without someone deciding something says so on
 a line of its own: `NEEDS: <the question>`, with `CITES:` and `OPTIONS:` under
 it if it has them, or a first line of `VERDICT: park`. the run parks before
 that step's gates, because a step that stopped to ask has produced nothing to
-gate, and it waits for a ruling. `--resume <run id> --answer "<text>"` (or
-`--answer-file <path>`) runs that same step again with the answer at the end
-of its prompt, and the question, the answer and who gave it go into
-decisions.md in the place the run works in. a flow with a `lead:` step asks
+gate, and it waits for a ruling; a step that changed the place first has its
+gates run on that before the park. a question whose `SIZE:` changes no code
+and that says what it would pick (`RECOMMEND:`) parks nothing: it is the
+step's call, and goes on as a doubt with that answer taken (`demoted`).
+`--resume <run id> --answer "<text>"` (or `--answer-file <path>`) runs that
+same step again with the answer at the end of its prompt, and the question,
+the answer and who gave it go into decisions.md in the place the run works
+in. a flow with a `lead:` step asks
 that step first, and parks only when it does not decide (`lead`). a judge
 whose file lists `VERDICT: spec change request` and answers it asks the same
 way, with the lines after its verdict as the reason.
@@ -39,7 +43,7 @@ from pathlib import Path
 
 from . import verbs
 from .config import SPEC_CHANGE, verdict
-from .handoff import without
+from .handoff import KEYS, KNOWN, NONE_WORDS, bounds, without
 
 PARK = "park"
 ASKED = "ruling"
@@ -138,6 +142,91 @@ def asked_of(output, workdir, word=None, allowed=None):
         return ASKED, "NEEDS: " + (said[0] if said else
                                    "the step parked and did not say on what")
     return None
+
+
+NO_CODE = re.compile(r"^(zero|none|nothing|no code|no change|0\b)")
+ONE_TEST = re.compile(r"^(only )?(one|a|1) (new )?test( function| case)?"
+                      r"( only)?$")
+# "zero code lines" names no code; "one line in parse.py" or "4 lines for B"
+# does, wherever it sits in the SIZE
+CODE_LINES = re.compile(r"\b([1-9]\d*|one|two|three|four|five|a few|several)"
+                        r" (code )?lines?\b")
+ASKING = ("needs", "cites", "options", "recommend", "size")
+
+
+def no_code(size):
+    """-> whether a question's SIZE says no product code changes, whatever
+    the answer: zero, none, no code, or one test and nothing else."""
+    said = flat(size).lower().rstrip(" .")
+    if not said or CODE_LINES.search(said):
+        return False
+    return bool(NO_CODE.match(said) or ONE_TEST.match(said))
+
+
+def demoted(output):
+    """-> (the answer with its question taken out and kept as a DOUBTS line,
+    that line) for a NEEDS whose SIZE changes no code and which says what it
+    would pick and cites no spec line, else None. such a question is the
+    step's call: it goes on with the RECOMMEND as its answer. one that cites
+    a spec line is a gap in the spec, which a person rules on."""
+    where = {}
+    v = verbs.parse(output, where)
+    if not v.needs or v.refused or v.conflict or v.cites \
+            or not v.recommend or not no_code(v.size):
+        return None
+    doubt = (flat(v.needs) + " assumed: " + flat(v.recommend) + " (size: "
+             + flat(v.size) + ")")
+    lines = output.split("\n")
+    asked = set(i for key in ASKING for i in where.get(key, []))
+    first = min(asked)
+    kept = [(i, line) for i, line in enumerate(lines) if i not in asked]
+    return "\n".join(into_doubts(kept, first, doubt)), doubt
+
+
+def into_doubts(kept, first, doubt):
+    """-> the lines of `kept`, (index, line) pairs, with `doubt` under the
+    DOUBTS heading of the HANDOFF block; with no block, where the question
+    was, at index `first`."""
+    found, _ = handoff_bounds(kept)
+    out = [line for _, line in kept]
+    if found is None:
+        at = len([i for i, _ in kept if i < first])
+        return out[:at] + ["DOUBTS: " + doubt] + out[at:]
+    start, end = found
+    for n in range(start + 1, end):
+        head = verbs.key_of(out[n])
+        if head is None or head[0] != "DOUBTS" or (head[2] and
+                                                   not head[3]):
+            continue
+        last = n + 1
+        while last < end and not heading(out[last]):
+            last += 1
+        items = [l for l in out[n + 1:last]
+                 if not (verbs.BULLET.match(l) and verbs.BULLET.match(l)
+                         .group(1).lower() in NONE_WORDS)]
+        if head[1].lower() not in NONE_WORDS:
+            items.insert(0, "- " + head[1])
+        return out[:n] + ["DOUBTS:"] + items + ["- " + doubt] + out[last:]
+    return out[:end] + ["DOUBTS:", "- " + doubt] + out[end:]
+
+
+def heading(line):
+    """-> whether the block reads `line` as a heading of its own: a bullet
+    is one only when it is a known name in capitals."""
+    head = verbs.key_of(line)
+    if head is None:
+        return False
+    return not head[2] or (KEYS.get(head[0]) in KNOWN and head[3])
+
+
+def handoff_bounds(kept):
+    """-> ((start, end) positions in `kept` of its HANDOFF block, None) or
+    (None, why), read the way the block itself is."""
+    shown = verbs.visible("\n".join(line for _, line in kept))
+    found, why = bounds(shown)
+    if found is None:
+        return None, why
+    return (shown[found[0]][0], shown[found[1]][0]), None
 
 
 def flat(text):
