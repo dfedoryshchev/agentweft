@@ -613,6 +613,8 @@ STAMPS = (
     # the handoff's "ran ... in 4.2s" and "- steps: worker.md 1.3s -> ..."
     (re.compile(r"(?<= in )\d+(\.\d+)?s(?= on:|\.)"), "<secs>s"),
     (re.compile(r"(?<=\.md )\d+(\.\d+)?s(?= ->| \(|$)"), "<secs>s"),
+    # and an earlier leg's "- patcher.md in leg 1 0.2s ($0.0000)"
+    (re.compile(r"(\.md in leg \d+ )\d+(\.\d+)?s(?= \()"), r"\1<secs>s"),
     # the retro's "- won none: 3 passes, 4.2s, $0.0300"
     (re.compile(r"(?<=pass, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
     (re.compile(r"(?<=passes, )\d+(\.\d+)?s(?=, \$)"), "<secs>s"),
@@ -834,6 +836,18 @@ def test_the_normaliser_takes_out_what_differs_between_two_runs(tmp_path):
     assert normalise(one, tmp_path)["chain"] == {
         "prev": "<hash>", "files": {"red-proof.json": None}}
     assert normalise(one, tmp_path)["why"] == "<tmp>/place/a.py at <time>"
+
+
+def test_the_retro_line_of_an_earlier_leg_has_its_seconds_taken_out(tmp_path):
+    def retro(secs):
+        return {"handoff": ["- patcher.md in leg 1 " + secs + " ($0.0000), won"
+                            " none: limit events 1",
+                            "- worker.md in leg 12 " + secs + " ($0.0100)"]}
+
+    assert normalise(retro("0.2s"), tmp_path) == normalise(retro("0s"),
+                                                           tmp_path)
+    assert normalise(retro("0.2s"), tmp_path)["handoff"][0].startswith(
+        "- patcher.md in leg 1 <secs>s ($0.0000)")
 
 
 def a_golden(tmp_path, monkeypatch, value):
