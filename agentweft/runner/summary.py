@@ -883,7 +883,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                  [text + " (" + who + ")" for text, who in
                   front.doubts(every, taken)]
                  + [investigate.STEP + " saw and did not fix: " + l[2:]
-                    for l in investigate.listed(dug, "RELATED")])]
+                    for l in investigate.listed(dug, "RELATED")]),
+                ("cut for the budget, not run:", cut_lines(skipped))]
     stop = None
     if stopped and not (found and found[0]["kind"] in front.WAITS):
         stop = (ended(stopped), front.DECLINED
@@ -1123,6 +1124,16 @@ def top(lines):
         out.append(line)
     while out and not out[-1].strip():
         out.pop()
+    return out
+
+
+def cut_lines(skipped):
+    """-> `name: why` for each step the sacrifice list cut."""
+    out = []
+    for line in skipped:
+        if skips.source(line) == "sacrifice":
+            names, why = line.split(" skipped: " + skips.BUDGET, 1)
+            out.append(names + ": " + why)
     return out
 
 

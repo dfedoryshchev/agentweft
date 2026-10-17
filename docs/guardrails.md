@@ -170,8 +170,10 @@ says what did not fit:
     cut verify.md: budget: the steps take ~3 calls, the call cap leaves 2
 
 it is kept in `runs/<id>/skips.json`, written to decisions.md, and said in
-the handoff with `(sacrifice)` where a `--skip` says `(--skip)`. the plan
-file marks the step `cut` and gives the reason under its table.
+the handoff with `(sacrifice)` where a `--skip` says `(--skip)`, and listed
+again under its `not done`, so a run with cut steps does not read as
+complete. the plan file marks the step `cut` and gives the reason under its
+table; the manifest keeps the step `not run`.
 
 a run picked up later does not take the cuts over: it plans them again
 against the cap it has now. a resume that raises the cap runs a step the

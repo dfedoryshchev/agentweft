@@ -315,3 +315,19 @@ def test_near_the_cap_the_step_about_to_run_can_be_the_one_cut(
     asked = asking(monkeypatch, big_first)
     run(monkeypatch, "next", "--force")
     assert asked[:2] == ["a.md", "c.md"] and "b.md" not in asked
+
+
+def test_a_run_with_cut_steps_says_they_were_not_done(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "partial", FOUR, "max_calls: 2" + NL
+           + listed("reviewer-wide", "verify"))
+    asking(monkeypatch)
+    assert run(monkeypatch, "partial", "--force") == stops.EXIT_OK
+    folder = the_run(tmp_path)
+    hand = (folder / "handoff.md").read_text(encoding="utf-8")
+    left = hand.split("## not done", 1)[1].split("## ", 1)[0]
+    assert "cut for the budget" in left
+    assert "verify: " in left and "reviewer-wide: " in left
+    steps = json.loads((folder / "manifest.json").read_text(
+        encoding="utf-8"))["steps"]
+    state = dict((s["step"], s["state"]) for s in steps)
+    assert state["verify.md"] == "not run"
