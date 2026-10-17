@@ -1572,13 +1572,20 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
 
 
 def main():
+    unrecorded = []
     try:
-        return run_flow()
+        return run_flow(unrecorded)
+    except BaseException:
+        # a checkout made before the run's record names it is in no list
+        # and under a name prune skips, so nothing would ever remove it
+        for made in unrecorded:
+            worktrees.discard(made)
+        raise
     finally:
         warm.stop_all()
 
 
-def run_flow():
+def run_flow(unrecorded):
     console()
     if len(sys.argv) < 2:
         from .cli import cmd_help
@@ -1802,6 +1809,7 @@ def run_flow():
             return 1
         if tree_base:
             inside, made = worktrees.make(fm, named, run_id, tree_base)
+            unrecorded.append(made)
             named = str(inside)
         run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
                   chosen=chosen, efforts=efforts,
@@ -2007,6 +2015,7 @@ def run_flow():
         warm.Warmer(run).start()
     record.data["signoff"] = run.signoff
     record.save(run.budget)
+    del unrecorded[:]
     for decided, why in notes:
         decisions.record(folder, decided, why)
     if raised:
@@ -2110,7 +2119,8 @@ def run_flow():
                               chained=record.data[chain.FIELD],
                               skipped=skips.said(run.skipped),
                               kept=run.committer.said(),
-                              worktree=worktrees.lines(made, run_id),
+                              worktree=worktrees.lines(
+                                  made, run.committer.branch),
                               headline=worktrees.headline(made),
                               signed=signed,
                               spec_files=fm.get("spec_files"),

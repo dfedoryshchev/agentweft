@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.providers import fake_provider
 from agentweft.providers.base import Reply
@@ -219,3 +221,59 @@ def test_a_clean_worktree_is_removed_without_force(tmp_path, monkeypatch):
     assert command(monkeypatch, "worktree", "remove", run_id) == 0
     assert not tree.exists()
     assert len(git(project, "worktree", "list").strip().split("\n")) == 1
+
+
+def worktrees_of(project):
+    return [line for line in git(project, "worktree", "list").splitlines()
+            if line.strip()]
+
+
+def test_a_crash_before_the_run_record_removes_the_worktree_it_made(
+        tmp_path, monkeypatch):
+    project = a_repo(tmp_path)
+    a_flow(tmp_path, monkeypatch)
+
+    def boom(argv):
+        raise RuntimeError("boom")
+    monkeypatch.setattr(engine, "caps_given", boom)
+    with pytest.raises(RuntimeError):
+        go(monkeypatch, "--workdir", "project", "--worktree")
+    assert len(worktrees_of(project)) == 1, worktrees_of(project)
+    assert list((tmp_path / "runs" / "worktrees").iterdir()) == []
+
+
+def test_a_refused_start_removes_the_worktree_it_made(tmp_path, monkeypatch):
+    project = a_repo(tmp_path)
+    a_flow(tmp_path, monkeypatch)
+    assert go(monkeypatch, "--workdir", "project", "--worktree",
+              "--max-calls", "lots") == 1
+    assert len(worktrees_of(project)) == 1, worktrees_of(project)
+
+
+def test_with_commits_on_the_handoff_merges_the_runs_branch(
+        tmp_path, monkeypatch):
+    project = a_repo(tmp_path)
+    git(project, "config", "user.name", "t")
+    git(project, "config", "user.email", "t@t")
+    git(project, "config", "commit.gpgsign", "false")
+    a_flow(tmp_path, monkeypatch, extra="commits: wip\n")
+    assert go(monkeypatch, "--workdir", "project", "--worktree") == 0
+    run_id = kept(tmp_path)["run"]
+    handoff = (run_folders(tmp_path)[-1] / "handoff.md").read_text(
+        encoding="utf-8")
+    assert "switch -c" not in handoff
+    assert "git merge agentweft/" + run_id + "\n" in handoff
+
+
+def test_after_a_resume_the_handoff_names_the_first_legs_branch(
+        tmp_path, monkeypatch):
+    a_repo(tmp_path)
+    a_flow(tmp_path, monkeypatch, pause=True)
+    go(monkeypatch, "--workdir", "project", "--worktree")
+    first = kept(tmp_path)["run"]
+    go(monkeypatch, "--resume", first)
+    handoff = (run_folders(tmp_path)[-1] / "handoff.md").read_text(
+        encoding="utf-8")
+    assert kept(tmp_path)["run"] != first
+    assert "switch -c agentweft/" + first + "\n" in handoff
+    assert "git merge agentweft/" + first + "\n" in handoff

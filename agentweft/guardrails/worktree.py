@@ -164,6 +164,7 @@ def for_run(place, path, base="HEAD"):
     if not sha:
         raise ValueError("--worktree: " + base + " is not a commit in "
                          + str(top))
+    inside = place.relative_to(top)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     hooks = tempfile.mkdtemp(prefix=PREFIX + "hooks-")
@@ -173,7 +174,7 @@ def for_run(place, path, base="HEAD"):
              str(path), sha)
     finally:
         shutil.rmtree(hooks, ignore_errors=True)
-    return path.resolve() / place.relative_to(top), sha, top
+    return path.resolve() / inside, sha, top
 
 
 def held(path, base):

@@ -340,7 +340,9 @@ the tree it was started from, byte for byte. the loose changes in that tree
 are not carried over: the run starts from a commit. the worktree's path and
 the commit it was made from go into the manifest, and the handoff names both
 with the commands that bring the change back (a branch there, merged where
-you work, or a patch). a resume carries on in the same worktree; `--worktree`
+you work, or a patch; with `commits: wip` or `squash` the worktree is already
+on the run's branch, and the handoff merges that one). a run that ends before
+its record is written removes the worktree it made. a resume carries on in the same worktree; `--worktree`
 on a resume of a run that did not start in one is refused. the worktree is
 left for you to read: `python run.py worktree` lists them, and
 `python run.py worktree remove <run-id>` removes one, refusing while it holds

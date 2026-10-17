@@ -58,28 +58,38 @@ def discard(made):
         worktree.remove(made["repo"], made["path"])
 
 
-def lines(made, run_id):
-    """-> the handoff's lines on the run's checkout, [] when it had none."""
+def lines(made, branch=None):
+    """-> the handoff's lines on the run's checkout, [] when it had none.
+    `branch` is the run's own when it commits, and the checkout is on it."""
     if not made:
         return []
     path, base = made["path"], made["base"]
-    branch = "agentweft/" + run_id
-    return ["",
-            "## worktree",
-            "- the run worked in " + path + ", made from " + base[:12]
-            + "; the tree it was started from was not touched.",
-            "- to bring the change back, commit it on a branch there and merge"
-            " that branch where you work:",
-            "  git -C " + path + " switch -c " + branch,
-            "  git -C " + path + " add -A",
-            "  git -C " + path + " commit",
-            "  git merge " + branch,
-            "- or take it as a patch: git -C " + path + " diff " + base[:12],
-            "  (files the run added show there once they are added with"
-            " `git -C " + path + " add -A`)",
-            "- to remove it: python run.py worktree remove " + run_id
-            + " (it refuses while the worktree holds work no branch has;"
-            " --force removes it anyway)"]
+    run_id = Path(path).name
+    out = ["",
+           "## worktree",
+           "- the run worked in " + path + ", made from " + base[:12]
+           + "; the tree it was started from was not touched."]
+    if branch:
+        out += ["- its commits are on " + branch + " there. to bring them"
+                " back, merge that branch where you work:",
+                "  git merge " + branch,
+                "- anything after its last commit: git -C " + path
+                + " status"]
+    else:
+        branch = "agentweft/" + run_id
+        out += ["- to bring the change back, commit it on a branch there and"
+                " merge that branch where you work:",
+                "  git -C " + path + " switch -c " + branch,
+                "  git -C " + path + " add -A",
+                "  git -C " + path + " commit",
+                "  git merge " + branch]
+    return out + [
+        "- or take it as a patch: git -C " + path + " diff " + base[:12],
+        "  (files the run added show there once they are added with"
+        " `git -C " + path + " add -A`)",
+        "- to remove it: python run.py worktree remove " + run_id
+        + " (it refuses while the worktree holds work no branch has;"
+        " --force removes it anyway)"]
 
 
 def headline(made):
