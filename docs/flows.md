@@ -101,9 +101,12 @@ a quote in doubt:
   quoted from the place as it is when the step starts, 12 at most per line.
   only a file git tracks, or one the run made, is quoted: one that was there
   untracked when the run started (an ignored `.env`, a local file nobody
-  committed), or anything in a folder git ignores or does not track, is
-  named without its lines, since the brief goes into every
-  later prompt and onto disk. outside a git work tree every file is quoted
+  committed), one git ignores when the brief quotes it (a `.env` the run
+  made), or anything in a folder git ignores or does not track, is named
+  without its lines, since the brief goes into every later prompt and onto
+  disk. outside a git work tree every file is quoted but one named like a
+  credential (`.env`, `.env.*`, `.netrc`, `.pypirc`, `*.pem`, `*.key`, and
+  an `id_` key with no extension, `id_rsa`)
 
 a step gets what the steps before it in the flow's order found, so a step
 asked again with nothing new above it still gets the same prompt and the

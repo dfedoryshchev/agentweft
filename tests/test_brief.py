@@ -123,6 +123,47 @@ def test_an_ignored_file_a_step_read_is_named_and_never_quoted(tmp_path):
     assert "kept-quote-marker" in worker
 
 
+def test_an_ignored_file_the_run_made_after_it_started_is_never_quoted(
+        tmp_path):
+    from agentweft.runner import brief, handoff
+
+    place = a_repo(tmp_path / "repo")
+    (place / ".gitignore").write_text(".env\n", encoding="utf-8")
+    notes = brief.Brief(place, ["planner.md", "worker.md"])
+    (place / ".env").write_text("API_KEY=sk-live-marker\n", encoding="utf-8")
+    (place / "made.py").write_text("made-by-the-run-marker\n",
+                                   encoding="utf-8")
+    notes.add("planner.md", None, "planner", handoff.parse(
+        block([".env:1 - the key", "made.py:1 - a new file"],
+              verified=False)))
+    worker = notes.text("worker.md")
+    assert ".env:1 - the key" in worker
+    assert "sk-live-marker" not in worker
+    assert "made-by-the-run-marker" in worker
+
+
+def test_outside_git_a_file_named_like_a_credential_is_never_quoted(
+        tmp_path):
+    from agentweft.runner import brief, handoff
+
+    place = tmp_path / "plain"
+    (place / "keys").mkdir(parents=True)
+    secrets = {".env": "env-marker", ".env.local": "env-local-marker",
+               "keys/server.pem": "pem-marker", "keys/id_ed25519": "id-marker"}
+    for rel, text in secrets.items():
+        (place / rel).write_text(text + "\n", encoding="utf-8")
+    (place / "calc.py").write_text("plain-file-marker\n", encoding="utf-8")
+    notes = brief.Brief(place, ["planner.md", "worker.md"])
+    notes.add("planner.md", None, "planner", handoff.parse(
+        block([rel + ":1 - a secret" for rel in secrets]
+              + ["calc.py:1 - the code"], verified=False)))
+    worker = notes.text("worker.md")
+    for rel, text in secrets.items():
+        assert rel + ":1 - a secret" in worker
+        assert text not in worker, rel
+    assert "plain-file-marker" in worker
+
+
 def test_a_brief_reads_no_ignored_file_to_learn_what_it_may_quote(
         tmp_path, monkeypatch):
     from agentweft.guardrails import fence

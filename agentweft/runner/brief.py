@@ -15,6 +15,7 @@ the brief is capped. what does not fit is named, so a step knows to open it.
 the run keeps the whole of it as `brief.md` in its folder.
 """
 import re
+import subprocess
 import threading
 from pathlib import Path
 
@@ -26,6 +27,9 @@ QUOTE_LINES = 12
 LINE_WIDTH = 200
 RESERVE = 400
 NONE_YET = "(the brief is empty: no step before you handed one over in this run)"
+
+CREDENTIAL = re.compile(r"^(\.env(\..*)?|\.netrc|\.pypirc|id_[^.]+"
+                        r"|.*\.(pem|key))$", re.IGNORECASE)
 
 WHERE = re.compile(r"^`?(?P<path>[^`\s]+?):(?P<a>\d+)(?:\s*-\s*(?P<b>\d+))?`?"
                    r"(?:\s+-+\s+|\s*:\s+|\s+|$)(?P<note>.*)$")
@@ -58,6 +62,17 @@ def untracked(where):
         return None
 
 
+def ignored(top, rel):
+    """whether git ignores `rel` under `top` now. an answer git could not
+    give counts as ignored."""
+    try:
+        done = subprocess.run(["git", "-C", str(top), "check-ignore", "-q",
+                               "--", rel], capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return done.returncode != 1
+
+
 class Brief(object):
 
     def __init__(self, where, order=()):
@@ -70,19 +85,22 @@ class Brief(object):
     def quotable(self, target):
         """whether the brief may quote `target`: a file git tracks or one
         the run made outside a folder git did not track. one that was there
-        untracked when the run started, an ignored `.env` above all, or one
-        inside an ignored folder, is named and never quoted: the brief goes
-        into every later prompt and onto disk. outside git nothing says which
-        is which, and every file in the place is quoted."""
+        untracked when the run started, one git ignores when it is quoted,
+        an ignored `.env` above all, or one inside an ignored folder, is
+        named and never quoted: the brief goes into every later prompt and
+        onto disk. outside git nothing says which is which: every file is
+        quoted but one named like a credential."""
         if self.loose is None:
-            return True
+            return not CREDENTIAL.match(target.name)
         top, found = self.loose
         try:
             rel = target.relative_to(top).as_posix()
         except ValueError:
             return False
-        return not any(rel == p or (p.endswith("/") and rel.startswith(p))
-                       for p in found)
+        if any(rel == p or (p.endswith("/") and rel.startswith(p))
+               for p in found):
+            return False
+        return not ignored(top, rel)
 
     def add(self, step, task, role, block):
         """what one go of `step` handed over. a later go of the same step and
