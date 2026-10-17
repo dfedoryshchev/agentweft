@@ -170,7 +170,7 @@ def ran_before(tmp_path, flow, tokens):
     """the record of an earlier run of `flow` here in which each step took
     `tokens`, so the plan's blocks are an estimate and not a split of the
     cap."""
-    d = tmp_path / "runs" / (flow + "-1")
+    d = tmp_path / "runs" / (flow + "-2020-01-01-101010")
     d.mkdir(parents=True)
     (d / "workdir").write_text(str(tmp_path.resolve()), encoding="utf-8")
     lines = [json.dumps({"step": s, "tokens": {

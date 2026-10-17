@@ -16,6 +16,7 @@ that goes over draws the difference from it.
 """
 import json
 import math
+import re
 
 FILE = "budget-plan.md"
 RISKY = "RISKY"
@@ -67,6 +68,11 @@ def read(path):
     return out
 
 
+# what follows `<flow>-` in a run's folder name (`runner/engine.py`,
+# new_run_id). a flow named `fix-2` has folders that start with `fix-` too.
+RUN_TAIL = re.compile(r"\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?")
+
+
 def history(runs, flow, workdir, skip=None):
     """-> {step: (tokens or None, calls)}, the mean over the newest earlier
     runs of `flow` on the same project, rounded up."""
@@ -79,7 +85,8 @@ def history(runs, flow, workdir, skip=None):
     for d in sorted(runs.iterdir(), reverse=True):
         rest = d.name[len(flow) + 1:]
         if d.name == skip or not d.name.startswith(flow + "-") \
-                or not rest[:1].isdigit() or not (d / "workdir").is_file():
+                or not RUN_TAIL.fullmatch(rest) \
+                or not (d / "workdir").is_file():
             continue
         if state.root_of((d / "workdir").read_text(
                 encoding="utf-8").strip()) != here:

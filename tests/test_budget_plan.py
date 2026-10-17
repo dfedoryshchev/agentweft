@@ -210,3 +210,25 @@ def test_a_line_closed_after_one_opened_inside_it_keeps_its_own_calls(
                 for x in (tmp_path / "steps.jsonl").read_text(
                     encoding="utf-8").splitlines())
     assert said == {"worker.md": 2, "lead.md": 1}
+
+
+def a_past_run(runs, name, workdir, tokens):
+    d = runs / name
+    d.mkdir(parents=True)
+    (d / "workdir").write_text(str(workdir), encoding="utf-8")
+    line = {"step": "a.md", "tokens": {"counted": True, "input": tokens,
+                                       "output": 0, "cache_read": 0,
+                                       "cache_creation": 0}}
+    (d / "steps.jsonl").write_text(json.dumps(line) + NL, encoding="utf-8")
+
+
+def test_estimates_read_only_the_flows_own_runs(tmp_path):
+    from agentweft.guardrails import blocks
+
+    runs = tmp_path / "runs"
+    a_past_run(runs, "fix-2020-01-01-101010", tmp_path, 100)
+    a_past_run(runs, "fix-2-2020-01-01-101011", tmp_path, 9000)
+    a_past_run(runs, "fix-2020-01-01-101012-2", tmp_path, 300)
+    got = blocks.history(runs, "fix", tmp_path)
+    assert got["a.md"][0] == 200
+    assert blocks.history(runs, "fix-2", tmp_path)["a.md"][0] == 9000
