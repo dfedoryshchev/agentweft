@@ -224,7 +224,9 @@ the step before, a step calling a test wrong sending it to the step that wrote
 the test - that step's next go is asked one level above its previous one,
 counted from its own base, and up to `xhigh` and no further. `max` is only
 ever run when it is named. each step counts its own send-backs, so one step
-going round twice never raises another. a step with no level set anywhere is
+going round twice never raises another, and the count is kept in the run's
+`manifest.json`, so a step sent back and then stopped carries on one level up
+after `--resume`. a step with no level set anywhere is
 not raised: the provider's default is not a level this can count up from.
 every line in `steps.jsonl` says which level that go was asked at, the base
 it was raised from and how many send-backs raised it (`journal.md`).

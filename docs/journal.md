@@ -644,6 +644,8 @@ says:
   `redo` or `not run`, which
   run's folder holds what it produced last, and a digest of that
 - what the run has spent so far
+- how many times each step has been sent back, under `raised`, which a
+  resume carries on counting from
 - a digest of every file in the flow folder
 - the place's HEAD and the files git calls changed, a digest each
 - the task, the models chosen, the place, `origin` (the run the task started

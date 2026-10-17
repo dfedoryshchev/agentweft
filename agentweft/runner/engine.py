@@ -2120,6 +2120,9 @@ def run_flow(unrecorded):
                                        resumes=pick_up)
         for name in order[:order.index(start)]:
             record.mark(name, manifest.PASSED, pick_up)
+    if found:
+        route.ups.update(found.data.get("raised") or {})
+    record.data["raised"] = route.ups
     if held:
         record.data["caps"] = held
     if made:

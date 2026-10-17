@@ -288,3 +288,23 @@ def test_an_api_answer_cut_off_or_declined_fails(monkeypatch, no_levels, stop):
     assert not r and r.retryable is False
     assert stop in r.detail
     assert r.usage is not None
+
+
+def test_a_step_sent_back_before_a_budget_stop_resumes_one_level_higher(
+        tmp_path, monkeypatch, fake_cli, no_levels):
+    a_flow(tmp_path, monkeypatch, "paused",
+           ["worker\neffort: medium\ngates:\n  - gate: length\n"
+            "    max_lines: 1", "reviewer"],
+           tail="provider:\n  provider: cli\n  command: claude\n"
+                "max_calls: 1\n")
+    cli = fake_cli(answer("one\ntwo\n"), answer("one\n"),
+                   answer("VERDICT: ok\n"))
+    engine.main()
+    assert argv_efforts(cli.calls) == ["medium"]
+    [first] = sorted(p for p in (tmp_path / "runs").iterdir() if p.is_dir())
+    monkeypatch.setattr(sys, "argv", ["run.py", "paused", "--resume",
+                                      first.name, "--max-calls", "3"])
+    assert engine.main() == 0
+    assert argv_efforts(cli.calls) == ["medium", "high", None]
+    resumed = [l for l in every_line(tmp_path) if l["step"] == "worker.md"]
+    assert resumed[-1]["effort"]["raised"] == 1
