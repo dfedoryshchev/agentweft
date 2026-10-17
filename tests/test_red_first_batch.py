@@ -54,12 +54,12 @@ def git(where, *args):
                           capture_output=True, text=True, check=True).stdout
 
 
-def a_repo(where):
+def a_repo(where, product=BUGGY + NL + NL + LOOKUP):
     where.mkdir(parents=True)
     git(where, "init", "-q")
     git(where, "config", "user.email", "t@t")
     git(where, "config", "user.name", "t")
-    (where / "calc.py").write_text(BUGGY + NL + NL + LOOKUP, encoding="utf-8")
+    (where / "calc.py").write_text(product, encoding="utf-8")
     (where / "tests").mkdir()
     (where / "tests" / "test_old.py").write_text(
         "def test_old():" + NL + "    assert True" + NL, encoding="utf-8")
@@ -117,13 +117,14 @@ class Launches(object):
         return len(self.argvs)
 
 
-def two_ways(tmp_path, monkeypatch, files, product, after=None):
+def two_ways(tmp_path, monkeypatch, files, product, after=None,
+             at_start=BUGGY + NL + NL + LOOKUP):
     """-> (the one-by-one result, its launches, the batched result, its
     launches), each on a fresh repo with the same change."""
     out = []
     for name, cmd, extra in (("one", ONE_BY_ONE, {}),
                              ("batch", JUNIT, {"results": "junit"})):
-        place = a_repo(tmp_path / name)
+        place = a_repo(tmp_path / name, at_start)
         run = started(place)
         changed(place, files, product)
         launches = Launches(monkeypatch, after if name == "batch" else None)
@@ -177,6 +178,22 @@ def test_a_misspelt_import_at_the_top_is_an_error_both_ways(tmp_path,
     assert batch.tests == one.tests
     assert batch.detail == one.detail
     assert batch_n <= 2
+
+
+@pytest.mark.parametrize("at_start,kind", [
+    ("def add(a, b):" + NL + "    return a + bb" + NL, "NameError"),
+    ("from calcx import add" + NL, "ModuleNotFoundError")],
+    ids=["a name error in a function", "a broken import at the top"])
+def test_an_error_the_product_raises_is_red_on_both_paths(
+        tmp_path, monkeypatch, at_start, kind):
+    one, _, batch, _ = two_ways(
+        tmp_path, monkeypatch, {"tests/test_add.py": "from calc import add"
+                                + NL + NL + NL + "def test_add():" + NL
+                                + "    assert add(1, 2) == 3" + NL},
+        FIXED, at_start=at_start)
+    assert one, one.detail
+    assert batch.tests == one.tests
+    assert [(t["before"], t["kind"]) for t in one.tests] == [("red", kind)]
 
 
 def test_a_flow_without_results_keeps_one_process_per_test(tmp_path,

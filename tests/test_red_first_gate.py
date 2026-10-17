@@ -151,19 +151,61 @@ def test_a_missing_module_the_fix_adds_as_a_new_file_is_red(tmp_path):
     assert r.tests[0]["kind"] == "ModuleNotFoundError"
 
 
-def test_an_import_error_naming_nothing_stays_error(tmp_path):
+def test_an_import_error_naming_nothing_in_the_test_stays_error(tmp_path):
     place = a_repo(tmp_path / "repo")
-    (place / "calc.py").write_text("def add(a, b):" + NL
-                                   + "    raise ImportError('backend gone')"
-                                   + NL, encoding="utf-8")
-    git(place, "commit", "-qam", "backend")
     run = started(place)
-    write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
+    write(place, "tests/test_calc.py", "from calc import add" + NL + NL + NL
+          + "def test_add():" + NL + "    raise ImportError('backend gone')"
+          + NL, "no commits", "")
     write(place, "calc.py", FIXED, "no commits", "")
     r = replayed(run)
     assert not r
     assert r.tests[0]["before"] == "error"
     assert r.tests[0]["kind"] == "ImportError"
+
+
+@pytest.mark.parametrize("at_start,more", [
+    ("def add(a, b):" + NL + "    return a + bb" + NL, {}),
+    ("def add(a, b):" + NL + "    raise ImportError('backend gone')" + NL, {}),
+    ("from mathx import doubel" + NL + NL + NL + FIXED,
+     {"mathx.py": "def double(x):" + NL + "    return x * 2" + NL}),
+    ("def add(a, b):" + NL + "    from mathx import doubel" + NL
+     + "    return a + b" + NL,
+     {"mathx.py": "def double(x):" + NL + "    return x * 2" + NL})],
+    ids=["a name error in a function", "an import error naming nothing",
+         "a broken import at the top", "a broken import in a function"])
+def test_an_import_or_name_error_the_product_raises_is_red(tmp_path,
+                                                           at_start, more):
+    """the name is missing from both trees, but the product raised the
+    error: the unfixed code fails, which is the bug the fix removes."""
+    place = a_repo(tmp_path / "repo")
+    (place / "calc.py").write_text(at_start, encoding="utf-8")
+    for rel, text in more.items():
+        (place / rel).write_text(text, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "broken")
+    run = started(place)
+    write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
+    write(place, "calc.py", FIXED, "no commits", "")
+    r = replayed(run, worker_said="FAILS: NameError: name 'bb' is not defined"
+                 + NL + "TEST: tests/test_calc.py" + NL)
+    assert r, r.detail
+    assert r.tests[0]["before"] == "red"
+    assert r.tests[0]["kind"] in ("NameError", "ImportError")
+
+
+def test_a_product_error_the_fix_leaves_in_place_still_fails(tmp_path):
+    place = a_repo(tmp_path / "repo")
+    typo = "def add(a, b):" + NL + "    return a + bb" + NL
+    (place / "calc.py").write_text(typo, encoding="utf-8")
+    git(place, "commit", "-qam", "typo")
+    run = started(place)
+    write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
+    write(place, "calc.py", typo + NL + "# touched" + NL, "no commits", "")
+    r = replayed(run)
+    assert not r
+    assert r.tests[0]["before"] == "red"
+    assert "does not pass with the fix" in r.detail
 
 
 def two_trees(tmp_path, at_start, now):
@@ -189,6 +231,46 @@ def test_a_missing_name_is_one_the_fix_adds_only_if_new_since_the_start(
     from agentweft.guardrails.gates.redfirst_gate import fix_adds
     start, place = two_trees(tmp_path, at_start, now)
     assert fix_adds(said, start, place) is adds
+
+
+LONG = ("    def test_add():" + NL + ">       assert add(1, 2) == 3" + NL + NL
+        + "tests" + "\\" + "test_calc.py:5: " + NL + "_ _ _ _" + NL + NL
+        + "    def add(a, b):" + NL + ">       return a + bb" + NL
+        + "E       NameError: name 'bb' is not defined" + NL + NL
+        + "pkg" + "\\" + chr(0xe9) + "t" + chr(0xe9) + ".py:2: NameError" + NL)
+SHORT = ("Traceback:" + NL + "{stdlib}:88: in import_module" + NL
+         + "    return _bootstrap._gcd_import(name, package, level)" + NL
+         + "tests/test_calc.py:1: in <module>" + NL
+         + "    from calc import add" + NL + "{last}:1: in <module>" + NL
+         + "    from mathx import doubel" + NL
+         + "E   ImportError: cannot import name 'doubel' from 'mathx'" + NL)
+NATIVE = ("Traceback (most recent call last):" + NL
+          + '  File "{place}/tests/test_calc.py", line 5, in test_add' + NL
+          + "    assert add(1, 2) == 3" + NL
+          + '  File "<string>", line 1, in <module>' + NL
+          + "NameError: name 'bb' is not defined" + NL)
+
+
+@pytest.mark.parametrize("output,last,raised", [
+    (LONG, "", "pkg/" + chr(0xe9) + "t" + chr(0xe9) + ".py"),
+    (SHORT, "calc.py", "calc.py"),
+    (SHORT, "tests/test_calc.py", "tests/test_calc.py"),
+    (SHORT, "{place}/.venv/lib/site-packages/thing.py", "tests/test_calc.py"),
+    (SHORT, "{outside}/elsewhere.py", "tests/test_calc.py"),
+    (NATIVE, "", "tests/test_calc.py"),
+    ("E   NameError: name 'bb' is not defined" + NL, "", None)],
+    ids=["long, windows separators, non-ascii", "short, product",
+         "short, test", "short, installed package skipped",
+         "short, outside the repo skipped", "native, frame outside skipped",
+         "no frame"])
+def test_an_error_is_placed_at_its_innermost_frame_in_the_repo(
+        tmp_path, output, last, raised):
+    from agentweft.guardrails.gates.redfirst_gate import raised_in
+    place = a_repo(tmp_path / "repo")
+    stdlib = str(Path(sys.base_prefix) / "Lib" / "importlib" / "__init__.py")
+    said = output.replace("{last}", last).replace("{stdlib}", stdlib) \
+        .replace("{place}", str(place)).replace("{outside}", str(tmp_path))
+    assert raised_in(said, place) == raised
 
 
 def test_a_killed_run_leaves_no_worktree_after_the_next_start(tmp_path):

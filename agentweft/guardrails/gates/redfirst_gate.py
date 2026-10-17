@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from agentweft.guardrails import worktree
-from agentweft.guardrails.snapshot import _sha
+from agentweft.guardrails.snapshot import _sha, is_test, is_tooling
 
 from .base import Gate, fresh_python, register
 from .redtest_gate import TEST, named_test
@@ -15,10 +15,17 @@ from .redtest_gate import TEST, named_test
 SUMMARY = re.compile(r"^(?:FAILED|ERROR) \S+ - (.+)$", re.M)
 E_LINE = re.compile(r"^E\s+(.+)$", re.M)
 ERROR_NAME = re.compile(r"^([A-Za-z_][\w.]*(?:Error|Exception))\b")
-# the errors of a test that never got as far as the code it tests. any other
-# exception is the unfixed code failing, which is the bug a crash fix removes
+# the errors of a test that never got as far as the code it tests, when the
+# test raised them. any other exception, or one of these raised by a file
+# that is not a test, is the unfixed code failing
 MISSES = ("ImportError", "ModuleNotFoundError", "NameError")
 COULD_NOT_RUN = MISSES + ("SyntaxError",)
+# a traceback frame as pytest prints it (`path:line: ...`, its default and
+# short styles) or as python does (`File "path", line N`)
+FRAME = re.compile(r"^(?!E\s|>)\s*(?:((?:[A-Za-z]:)?[^:\n\"]*?\.py|<[^>\n]+>)"
+                   r":\d+:(?: |$)|File \"([^\"\n]+)\", line \d+)", re.M)
+FAILURE_HEADER = re.compile(r"^_{3,} .+ _{3,}$", re.M)
+INSTALLED = ("site-packages", "dist-packages")
 IMPORT_NAME = re.compile(r"cannot import name '([\w.]+)'(?: from '([\w.]+)')?")
 NO_MODULE = re.compile(r"No module named '([\w.]+)'")
 NOT_DEFINED = re.compile(r"name '(\w+)' is not defined")
@@ -196,6 +203,54 @@ def fix_adds(output, start, now):
     return exists(start, *missing) is False and exists(now, *missing) is True
 
 
+def frames(output):
+    """-> the file of each traceback frame of the first failure in `output`
+    that shows any, outermost first."""
+    for section in FAILURE_HEADER.split(output or ""):
+        found = [m.group(1) or m.group(2) for m in FRAME.finditer(section)]
+        if found:
+            return found
+    return []
+
+
+def top_of(where):
+    """-> the top of the git work tree `where` is in, `where` when none."""
+    where = Path(where).resolve()
+    for p in [where] + list(where.parents):
+        if (p / ".git").exists():
+            return p
+    return where
+
+
+def raised_in(output, where):
+    """-> the file, as a path from the top of the repo `where` is in, of the
+    innermost frame of `output`'s traceback that is in that repo and not in
+    an installed package; None when no frame is. a relative path is read
+    from `where`, the folder the test command ran in."""
+    top = top_of(where)
+    for f in reversed(frames(output)):
+        if f.startswith("<"):
+            continue
+        try:
+            rel = os.path.relpath(os.path.normpath(
+                os.path.join(str(where), f)), str(top))
+        except ValueError:
+            continue
+        parts = rel.replace("\\", "/").split("/")
+        if parts[0] == ".." or any(p in INSTALLED for p in parts):
+            continue
+        return "/".join(parts)
+    return None
+
+
+def product_raised(output, where):
+    """-> whether the innermost frame of `output` in the repo is in a file
+    that is neither a test nor the test runner's own: the code under test
+    raised the error, so it failed."""
+    rel = raised_in(output, where)
+    return rel is not None and not (is_test(rel) or is_tooling(rel))
+
+
 def junit_cases(path):
     """-> [(classname, name, outcome, text)] from a junit xml file, outcome
     one of passed / failure / error / skipped; None when the file is not
@@ -264,10 +319,12 @@ class RedFirstGate(Gate):
     alone: without the fix it has to fail. an assertion is red, and so is
     any exception the unfixed code raises (a KeyError is the bug a crash fix
     removes). an ImportError, ModuleNotFoundError or NameError is red when
-    the module or name it misses is not in the start tree and is in the
-    place now (a feature's test fails on the name the feature adds). any
-    other of those, a SyntaxError, or a collection error (exit 2) is a test
-    that could not run, not one that caught the bug, whatever a step says.
+    the innermost frame of its traceback in the repo is in a file that is
+    not a test (a typo or a broken import in the product), or when the
+    module or name it misses is not in the start tree and is in the place
+    now (a feature's test fails on the name the feature adds). any other of
+    those, a SyntaxError, or a collection error (exit 2) is a test that
+    could not run, not one that caught the bug, whatever a step says.
     then each runs in the place, with the fix, and has to pass. at least one
     has to be red without the fix, and a test a step named on a TEST: line as
     `file::name` has to be one of the red ones; a new test green both ways
@@ -413,7 +470,7 @@ class RedFirstGate(Gate):
         for i in ids:
             ran, broken = junit_matches(i, cases)
             if broken is not None and not ran:
-                said[i] = self.could_not_run(broken[3], adds) or (
+                said[i] = self.could_not_run(broken[3], adds, True, where) or (
                     "error", "a collection error")
                 stopped = True
             elif ran and all(c[2] in ("passed", "failure") for c in ran):
@@ -422,16 +479,20 @@ class RedFirstGate(Gate):
                     said[i] = ("green", "")
                 else:
                     text = failed[0][3]
-                    said[i] = self.could_not_run(text, adds, False) or (
+                    said[i] = self.could_not_run(text, adds, False, where) or (
                         "red", kind_of(text))
         return said, stopped
 
-    def could_not_run(self, output, adds, collection=True):
+    def could_not_run(self, output, adds, collection=True, where=None):
         """-> (red | error, kind) for a test that never reached the code it
-        tests, None for one that did. a collection error never does."""
+        tests, None for one that did. a collection error never does. an
+        import or name error the product raised in `where` did reach it."""
         kind = kind_of(output)
         if not (kind in COULD_NOT_RUN or collection):
             return None
+        if kind in MISSES and where is not None and product_raised(output,
+                                                                   where):
+            return "red", kind
         if kind in MISSES and adds and adds(output):
             return "red", kind
         return "error", kind or "a collection error"
@@ -446,7 +507,7 @@ class RedFirstGate(Gate):
         if r.returncode == 0:
             return "green", ""
         output = r.stdout + "\n" + r.stderr
-        said = self.could_not_run(output, adds, r.returncode == 2)
+        said = self.could_not_run(output, adds, r.returncode == 2, where)
         if said:
             return said
         kind = kind_of(output)
@@ -506,9 +567,10 @@ class RedFirstGate(Gate):
                 return self.done(False, t["test"] + " errors without the fix ("
                                  + t["kind"] + "): it could not run, so it"
                                  " failed on neither an assertion nor the"
-                                 " code. an import or name error is red only"
-                                 " when what it misses is not in the start"
-                                 " tree and is in the place now", record)
+                                 " code. an import or name error the test"
+                                 " raises is red only when what it misses is"
+                                 " not in the start tree and is in the place"
+                                 " now", record)
             if t["before"] not in ("red", "green"):
                 return self.done(False, t["test"] + " did not run without the"
                                  " fix: " + t["before"], record)

@@ -240,9 +240,15 @@ own changes only the files under a test path or named like a test are there.
 each new test runs there on its own and has to fail. an assertion is red, and
 so is any other exception the unfixed code raises: a `KeyError` or a
 `ZeroDivisionError` is the bug a crash fix removes. an `ImportError`,
-`ModuleNotFoundError` or `NameError` is judged on what it misses, read from
-its message (`cannot import name 'x'`, `No module named 'x'`, `name 'x' is
-not defined`):
+`ModuleNotFoundError` or `NameError` is judged first on where it was raised,
+the innermost frame of its traceback that is in the repo and not in an
+installed package (`calc.py:2: NameError`, or `File "calc.py", line 2`). when
+that frame is in a file that is not a test or the test runner's own, the
+product raised it (a typo like `a + bb`, a broken import inside the product)
+and it is red, whether or not the name it misses is in either tree. raised by
+a test file, or with no frame in the repo, it is judged on what it misses,
+read from its message (`cannot import name 'x'`, `No module named 'x'`, `name
+'x' is not defined`):
 - red when that module, or that name bound at module level (a `def`, a
   `class`, an assignment or an import), is not in the start tree and is in
   the place now: a feature's test fails on the name the feature adds
