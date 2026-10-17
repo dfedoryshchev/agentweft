@@ -141,13 +141,32 @@ def told(lead, question, decided, why):
             + why + "\n")
 
 
+LEAD_DECIDED = "\n\ndecided:\n\n"
+LEAD_BY = "\n\ndecided by "
+LEAD_BY_END = ", the flow's lead, before the operator was asked"
+
+
 def recorded(lead, asker, where, question, decided, why):
     """-> (the decisions.md heading, its body)."""
     return (lead + " decided for " + asker + ": " + " ".join(decided.split()),
             "asked by " + asker + " in " + where + ":\n\n" + question
-            + "\n\ndecided:\n\nDECIDED: " + decided + "\nwhy: " + why
-            + "\n\ndecided by " + lead + ", the flow's lead, before the"
-            " operator was asked")
+            + LEAD_DECIDED + "DECIDED: " + decided + "\nwhy: " + why
+            + LEAD_BY + lead + LEAD_BY_END)
+
+
+def decided_of(why):
+    """-> the DECIDED and why lines of a decisions.md body the lead's
+    decision wrote, without the question it was asked; None for a body
+    written any other way."""
+    if not why.startswith("asked by ") or not why.endswith(LEAD_BY_END):
+        return None
+    # the question is a step's words and may hold the markers itself; the
+    # decision and its why are read off one line each, so the runner's own
+    # markers are the last ones
+    _, sep, rest = why.rpartition(LEAD_DECIDED)
+    if not sep:
+        return None
+    return rest.rpartition(LEAD_BY)[0].strip()
 
 
 def passed(question, why):

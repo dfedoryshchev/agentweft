@@ -362,6 +362,16 @@ itself, from `--answer`, the lead's decision or a raised cap, with who wrote
 it (`answer`, `lead`, `cap`). every check that reads a ruling, and the
 handoff's rulings section, reads only the entries in that record.
 
+a check reads what an entry itself says, never the question it answered or
+the stop it carried on from: for `--answer` the heading and the answer, for
+the lead the heading and its `DECIDED:` and `why:` lines, for a raised cap the
+heading alone, and for an entry written by hand all of it. only an
+`--answer` reaches into its question, for what that question cites (the spec
+line of an `override:`, a test its quote of the spec decides, the tests of a
+test-edit park). so a lead decision
+on a question that cites a test, or quotes a spec line, lets neither change
+unless its own lines name the test or quote the line.
+
 after every step the file is compared with what the runner last wrote, and
 again once the step's gates have run, since a gate runs code the step wrote:
 a change made there is the step's, not the next one's. a step that added,

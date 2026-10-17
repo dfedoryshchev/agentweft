@@ -1806,10 +1806,8 @@ def run_flow():
             return 1
         moved = run.budget.moved(found.spend)
         if moved:
-            raised = ("carried " + pick_up + " on with the "
-                      + ", the ".join(moved),
-                      (found.data.get("stopped") or {}).get("why")
-                      or "the caps were changed before carrying on.")
+            raised = ruling.capped(pick_up, moved, (found.data.get(
+                "stopped") or {}).get("why"))
     route = router.Router(fm)
     run.ups = route.ups
     try:

@@ -364,3 +364,55 @@ def test_a_shared_code_change_needs_the_answer_to_its_own_question(
     assert called == ["tester.md", "worker.md"]
     assert "each covered by a ruling: " + FILE in read(
         folders()[-1] / "gates.md")
+
+
+def a_lead_decision(question, decided="the count case goes in a file of its"
+                    " own", why="the spec says nothing on where it goes"):
+    from agentweft.runner import lead
+    return lead.recorded("lead.md", "tester.md", "build-0", question, decided,
+                         why)
+
+
+START_TESTS_ASKED = ruling.question_of_start_tests(
+    "worker.md", [(ID, "assert ['b', 'a'] == ['a', 'b']")])
+SPEC_ASKED = ruling.question_of_conflict("TASK.md:3", LINE, "list by entry")
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_lead_decision_on_a_question_citing_a_test_does_not_unlock_it(
+        tmp_path, monkeypatch, commits):
+    """the lead's entry carries the question it was asked; what it decided
+    changes nothing about the test."""
+    place = a_place(tmp_path / "repo")
+    decisions.record(place, *a_lead_decision(START_TESTS_ASKED))
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    code, called = running(tmp_path, monkeypatch, place,
+                           writes_of(module(LOOSER, COUNT)), commits)
+    assert code == stops.exit_code(stops.PARKED), called
+    assert called == ["tester.md", "tester.md"]
+
+
+def test_an_entry_is_read_on_its_own_words_whoever_wrote_it(tmp_path):
+    asked = entry(*a_lead_decision(START_TESTS_ASKED))
+    assert ruling.covering([asked], ID, tmp_path) is None
+    assert ruling.edit_ruled([asked], ID, tmp_path, runs=["build-0"]) is None
+    named = entry(*a_lead_decision(START_TESTS_ASKED, decided="keep"
+                                   " test_alphabetical as it is"))
+    assert ruling.edit_ruled([named], ID, tmp_path) is named
+    place = a_place(tmp_path / "repo")
+    shot = snapshot.take(place)
+    leaning = entry(*a_lead_decision(START_TESTS_ASKED,
+                                     why='"' + LINE + '" decides it'))
+    assert ruling.covering([leaning], ID, place, shot) is None
+    spec = entry(*a_lead_decision(SPEC_ASKED))
+    assert ruling.spec_line_ruled([spec], LINE) is None
+    quoted = entry(*a_lead_decision(SPEC_ASKED, why='"' + LINE + '" holds'))
+    assert ruling.spec_line_ruled([quoted], LINE) is quoted
+    capped = entry(*ruling.capped("build-0", ["max_calls"],
+                                  "needs a ruling: tester.md changed tests"
+                                  " the run started with: " + ID
+                                  + ' (changed); "' + LINE + '"'))
+    assert ruling.covering([capped], ID, tmp_path) is None
+    assert ruling.spec_line_ruled([capped], LINE) is None
+    by_hand = entry("test_alphabetical asserted the input order", "sorted")
+    assert ruling.edit_ruled([by_hand], ID, tmp_path) is by_hand

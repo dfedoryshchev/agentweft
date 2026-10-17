@@ -41,7 +41,7 @@ import hashlib
 import re
 from pathlib import Path
 
-from . import verbs
+from . import lead, verbs
 from .config import SPEC_CHANGE, verdict
 from .handoff import KEYS, KNOWN, NONE_WORDS, bounds, without
 
@@ -396,11 +396,31 @@ def answered(d):
     return rest.split("\n\nanswered by ")[0].strip() if sep else ""
 
 
+CAPPED = re.compile(r"^carried \S+ on with the ")
+
+
+def capped(run_id, moved, why):
+    """-> (the decisions.md heading, its body) for caps raised to carry
+    `run_id` on: `moved` names them, `why` is why that run stopped."""
+    return ("carried " + run_id + " on with the " + ", the ".join(moved),
+            why or "the caps were changed before carrying on.")
+
+
 def own_words(d):
-    """-> what a decisions.md entry itself says: its heading and its why, or
-    for one written by --answer the answer, without the question it
-    answered."""
-    return d.decided + "\n" + (answered(d) or d.why)
+    """-> what a decisions.md entry itself says, keyed on how the runner
+    wrote it: for --answer its heading and the answer, for the lead its
+    heading and its DECIDED and why lines, never the question either was
+    asked; for raised caps the heading alone, never the stop it carried on
+    from. an entry written any other way (by hand) is all its own words."""
+    said = answered(d)
+    if said:
+        return d.decided + "\n" + said
+    decided = lead.decided_of(d.why)
+    if decided is not None:
+        return d.decided + "\n" + decided
+    if CAPPED.match(d.decided):
+        return d.decided
+    return d.decided + "\n" + d.why
 
 
 def names_test(text, test):
@@ -434,17 +454,20 @@ def spec_quoted(text, workdir, start):
 
 def covering(decided, test, workdir, start=None):
     """-> the decisions.md entry that lets `test`, green when the run started,
-    be red now, or None. it names the test in its own words, or it quotes the
-    spec line that decides it as the run found it and the entry (with the
-    question it answered) names the test. an answer of `request:` keeps
-    what the run started with, so it never covers one."""
+    be red now, or None. it names the test in its own words, or it is an
+    --answer that quotes the spec line that decides it as the run found it
+    and answers a question naming the test. a lead decides inside the tests
+    it was given, so its quote never covers one by the question alone. an
+    answer of `request:` keeps what the run started with, so it never covers
+    one."""
     for d in decided:
-        if kind_of(answered(d) or d.decided) == REQUEST:
+        said = answered(d)
+        if kind_of(said or d.decided) == REQUEST:
             continue
         own = own_words(d)
         if names_test(own, test):
             return d
-        if names_test(d.decided + "\n" + d.why, test) and \
+        if said and names_test(d.why, test) and \
                 spec_quoted(own, workdir, start):
             return d
     return None
