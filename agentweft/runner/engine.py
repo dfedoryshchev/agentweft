@@ -329,6 +329,9 @@ class Run(object):
         bad = check_project_gates(fm.steps, self.workdir, self.project)
         if bad:
             raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))
+        bad = self.cuts_a_check()
+        if bad:
+            raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))
         self.fence = fence.at(self.workdir, own=state.RUNS, held=self.project)
         self.start = None
         self.suite = baseline.mode(fm)
@@ -528,6 +531,27 @@ class Run(object):
         line = specfiles.held(left)
         return line, ("needs a ruling: " + line.detail,
                       ruling.question_of_spec_lines(step, left))
+
+    def cuts_a_check(self):
+        """-> complaints about a `sacrifice:` name whose step checks the spec
+        in its prompt: the redo for a spec line moved with no ruling. made
+        here and not at load, where the prompt files are not read."""
+        bad = []
+        for name in sacrifice.listed(self.fm):
+            for s in steps_named(self.fm.steps, name):
+                try:
+                    text = load_prompt(self.flow, step_id(s),
+                                       self.by_role.get(s["role"], ""),
+                                       s["role"])
+                except (FileNotFoundError, KeyError, AttributeError,
+                        TypeError):
+                    continue
+                if asks_for_verdict(text) and prompts.reads_spec(text):
+                    bad.append("sacrifice: " + name + " is never cut: "
+                               + step_id(s) + " checks the spec for a line"
+                               " that moved with no ruling")
+                    break
+        return bad
 
     def reads_spec(self):
         """whether any step's prompt names the spec as the run found it."""

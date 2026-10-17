@@ -187,7 +187,12 @@ the tests the run started with (`start-tests`, or a `writes: product` step,
 which is where they run again), the suite gate (`command`, or a step that
 carries one) and a check `project.yml` declares (a step that carries a
 `project`, `coverage` or `reject` gate), which is how a flow often runs its
-suite. any other gate is refused too: a gate spends no calls, so cutting one
+suite. nor is a check the flow needs to come out as it said: the verify step
+when the flow says `verify: judge`, a step that carries a `verdict` gate, or
+one whose prompt asks for a verdict on the spec (`{SPEC_DIFF}` or
+`{SPEC_AT_START}`), which is what sends back a spec line moved with no
+ruling; that last one is refused when the run starts, where the prompt is
+read. any other gate is refused too: a gate spends no calls, so cutting one
 saves nothing.
 
 a block is accounting inside the run's total, not a second cap. every line in

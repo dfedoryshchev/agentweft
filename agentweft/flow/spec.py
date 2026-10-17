@@ -234,6 +234,8 @@ def guards(step):
         return "the suite gate"
     if set(gates) & set(DECLARED):
         return "a check project.yml declares"
+    if "verdict" in gates:
+        return "a verdict gate"
     if step.get("writes") == "product":
         return "the tests the run started with"
     return ""
@@ -279,6 +281,10 @@ def check_sacrifice(raw):
                        + ", ".join(names))
         else:
             kept = [guards(s) for s in steps_named(steps, name) if guards(s)]
+            if raw.get("verify") == "judge" and any(
+                    s.get("role") == VERIFIER for s in steps_named(steps, name)):
+                kept.append("the verify step `verify: judge` says the run"
+                            " judges with")
             if kept:
                 bad.append(at + name + " is never cut: it carries "
                            + kept[0])

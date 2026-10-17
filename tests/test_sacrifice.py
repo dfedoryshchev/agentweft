@@ -331,3 +331,30 @@ def test_a_run_with_cut_steps_says_they_were_not_done(tmp_path, monkeypatch):
         encoding="utf-8"))["steps"]
     state = dict((s["step"], s["state"]) for s in steps)
     assert state["verify.md"] == "not run"
+
+
+def test_the_verify_step_a_flow_judges_with_is_never_cut():
+    got = said(["verify"], verify="judge")
+    assert "never" in got and "verify" in got
+
+
+def test_a_step_carrying_a_verdict_gate_is_never_cut():
+    steps = [{"role": "worker", "prompt": "worker.md", "writes": "product"},
+             {"role": "reviewer", "prompt": "reviewer.md", "writes": "none",
+              "gates": [{"gate": "verdict"}]}]
+    got = said(["reviewer"], steps=steps)
+    assert "never" in got and "verdict" in got
+
+
+def test_a_reviewer_that_reads_the_spec_diff_is_never_cut(
+        tmp_path, monkeypatch, capsys):
+    a_flow(tmp_path, monkeypatch, "spec", FOUR, "max_calls: 2" + NL
+           + listed("reviewer-wide"))
+    (tmp_path / "flows" / "spec" / "reviewer-wide.md").write_text(
+        "you are the reviewer." + NL + "{SPEC_DIFF}" + NL
+        + "end with VERDICT: ok or VERDICT: redo." + NL, encoding="utf-8")
+    asked = asking(monkeypatch)
+    assert run(monkeypatch, "spec", "--force") == 1
+    assert asked == []
+    out = capsys.readouterr().out
+    assert "reviewer-wide" in out and "never cut" in out
