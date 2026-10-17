@@ -32,6 +32,9 @@ NONE, WIP, SQUASH = "none", "wip", "squash"
 MODES = (NONE, WIP, SQUASH)
 FILE = "commits.json"
 BRANCH = "agentweft/"
+BUSY = (("MERGE_HEAD", "a merge"), ("CHERRY_PICK_HEAD", "a cherry-pick"),
+        ("REVERT_HEAD", "a revert"), ("rebase-merge", "a rebase"),
+        ("rebase-apply", "a rebase or am"))
 
 
 def mode(fm):
@@ -88,6 +91,11 @@ class Committer(object):
                              " place has no " + " and no ".join(missing)
                              + ". set it with git config, or run with"
                              " commits: none")
+        busy = self.busy()
+        if busy:
+            raise ValueError(said + " would switch or commit in the middle of "
+                             + busy + " in progress in the place. finish or"
+                             " abort it first, or run with commits: none")
         if prior and prior.get("branch"):
             self.branch = prior["branch"]
             self.base = prior.get("base")
@@ -105,6 +113,15 @@ class Committer(object):
         typed = ["--type=" + kind] if kind else []
         code, out, _ = _git(self.start.root, "config", *typed, "--get", key)
         return out.strip() if code == 0 else ""
+
+    def busy(self):
+        """-> what git has in progress in the place, "" when nothing."""
+        for name, what in BUSY:
+            code, out, _ = _git(self.start.root, "rev-parse", "--git-path",
+                                name)
+            if code == 0 and (self.start.root / out.strip()).exists():
+                return what
+        return ""
 
     def current(self):
         code, out, _ = _git(self.start.root, "symbolic-ref", "--quiet",

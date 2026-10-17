@@ -132,7 +132,8 @@ changed: a file already loose when the run started stays out while its bytes
 are what they were, and so does a change you had staged. the commits skip the
 repo's commit hooks. they are authored as git config's `user.name` and
 `user.email` in the place, and with either missing the run refuses before its
-first step. every gate reads the files by content from the start snapshot, so
+first step. so it does with a merge, cherry-pick, revert or rebase in progress
+there, which switching to the run's branch would drop. every gate reads the files by content from the start snapshot, so
 a flow gives the same verdict in all three modes; the commits add the order
 they were made in to the handoff (`docs/journal.md`, "the run's own
 commits").

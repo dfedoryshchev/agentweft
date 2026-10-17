@@ -374,3 +374,33 @@ def test_the_squash_leaves_the_persons_branch_alone_after_a_switch(
     assert git(place, "rev-parse", "agentweft/run-1").strip() == run_tip
     assert c.squashed is None
     assert "not squashed" in c.said() and "main" in c.said()
+
+
+@pytest.mark.parametrize("marker", ["MERGE_HEAD", "CHERRY_PICK_HEAD",
+                                    "REVERT_HEAD", "rebase-merge"])
+def test_starting_the_run_branch_refuses_during_a_merge(tmp_path, marker):
+    from agentweft.guardrails import snapshot
+    from agentweft.runner import commits
+    place = a_place(tmp_path / "repo")
+    if marker == "MERGE_HEAD":
+        git(place, "checkout", "-q", "-b", "side")
+        (place / "report.py").write_text(GIVEN, encoding="utf-8")
+        git(place, "commit", "-qam", "side")
+        git(place, "checkout", "-q", "main")
+        (place / "report.py").write_text(COUNTED, encoding="utf-8")
+        git(place, "commit", "-qam", "main")
+        git(place, "merge", "side", check=False)
+        (place / "report.py").write_text(SORTED, encoding="utf-8")
+        git(place, "add", "report.py")
+    else:
+        made = place / ".git" / marker
+        if marker.startswith("rebase"):
+            made.mkdir()
+        else:
+            made.write_text(head(place) + NL, encoding="utf-8")
+    assert (place / ".git" / marker).exists()
+    with pytest.raises(ValueError, match="in progress"):
+        c = commits.Committer(commits.WIP, snapshot.take(place))
+        c.begin("run-1")
+    assert (place / ".git" / marker).exists(), "the merge was dropped"
+    assert branch(place) == "main"
