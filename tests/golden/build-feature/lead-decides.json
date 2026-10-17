@@ -732,12 +732,12 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 c119b49f3dc981a8b17f980963939f166a1bce4c5c03830c02f75202050c3e2b",
-    "planner.md go 2 8fb6bc667e2c29b03515202b6f5d2e783d5bc9814b4d0ba33ee040ec3edc4103",
-    "reviewer-runs.md go 1 57cf1ea80d8f0a2644d5b571961e012163f6d9389d178214d62bdfe2693365bd",
-    "reviewer.md go 1 bdaa8b2dbabf0e871af13861ed33dc3a58b7ef99bad91c4b11009389d0aa3742",
-    "tester.md go 1 199511ac7f1029f1873859fdee234cbf07681bd5669dad2f76be41a7e7d79b40",
-    "worker.md go 1 c83f789798d8a1b0e335d58227738be9b79780f3e61cb1a9f9eab8026c3d79b8",
-    "worker.md go 2 897caeeecc3bd5706e0473e3b9d8af38401432683d383d3ba4fef34060228e7d"
+    "planner.md go 1 b334a6bdf58871f785a950651b38145ef84e96610c030a8db0d40bbaf3cb7ac3",
+    "planner.md go 2 b76c387de034d2214f1e4d5804388d9b9b6ebd02c3d3b3835424fe4ff021bf1d",
+    "reviewer-runs.md go 1 b8f41f9a61b4609be6de4df12cd80818a4c438ac86443e13609221969fed3185",
+    "reviewer.md go 1 67ce1a9a4a2bca65cdf8a815005940db5c2699af33f9de2f3cfb35513f637baf",
+    "tester.md go 1 db3ddf3dcceacee76175c05c9413cbdcfef973152538ff088218325cbd12813b",
+    "worker.md go 1 f045a0625a45715931c4bd4540b1ba58261a4bf8c1d5255082e00ea90cef7128",
+    "worker.md go 2 870e5deba2c333553fd15191f4e4fdb4e93cdd139ef3995404abc486abb1c9a6"
   ]
 }

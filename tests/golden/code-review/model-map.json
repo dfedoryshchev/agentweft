@@ -287,7 +287,7 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 1979fbd083f726c8679c0217ea40812c2d4de9233f77619d61232cccf76cc6db",
-    "worker.md go 1 1535a33b48e410101762bf2680db96077ebc37c052e3862083a1dcfb2bd99579"
+    "reviewer.md go 1 69a898f0302869cf4d85ec99a36f07667255114ff22e137eac8b9b62df491fa7",
+    "worker.md go 1 551a6515ec1a25fec4c27b08d50ce8c80cfa2765e41eb1be0dbb61e1dd0228ba"
   ]
 }

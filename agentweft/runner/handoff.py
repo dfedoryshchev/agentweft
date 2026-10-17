@@ -51,6 +51,7 @@ OPEN = re.compile("^" + DECOR + r"HANDOFF[\s*`_:]*$", re.I)
 CLOSE = re.compile("^" + DECOR + r"END HANDOFF[\s*`_:.]*$", re.I)
 NONE_WORDS = ("", "none", "nothing", "-", "n/a", "na", "none.")
 PART = re.compile(r"^(cmd|command|ran|saw|output)\s*:\s*(.*)$", re.I)
+BECAUSE = re.compile(r"^(why|if wrong)\s*:\s*(.*)$", re.I)
 OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
 QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 
@@ -93,9 +94,11 @@ def parse(text):
     its line is its first item. items are bullets, a line that is neither
     joins the item above it, and `none` is an empty section rather than an
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
-    is kept under `other` as the step wrote it. `QUESTION:` opens an open
-    question, and the `RECOMMEND:` and `SIZE:` lines after it are its own,
-    under `questions`; `QUESTION: none` asks nothing.
+    is kept under `other` as the step wrote it. an ASSUMED item's `why:` and
+    `if wrong:` lines are its own, kept on lines of their own under the
+    choice; the older one-line form with `|` stays one line. `QUESTION:`
+    opens an open question, and the `RECOMMEND:` and `SIZE:` lines after it
+    are its own, under `questions`; `QUESTION: none` asks nothing.
     """
     shown = verbs.visible(text)
     found, why = bounds(shown)
@@ -107,6 +110,9 @@ def parse(text):
     for _, line in shown[found[0] + 1:found[1]]:
         if items is out["verified"] and items and _labelled(line):
             items[-1] = items[-1] + "\n" + _labelled(line)
+            continue
+        if items is out["assumed"] and items and _labelled(line, BECAUSE):
+            items[-1] = items[-1] + "\n" + _labelled(line, BECAUSE)
             continue
         head = verbs.key_of(line)
         if head is not None and head[0] in ASKING and not head[2]:
@@ -157,12 +163,13 @@ def parse(text):
     return out
 
 
-def _labelled(line):
-    """-> a `cmd:` / `saw:` line under a VERIFIED claim, bullet taken off, or
-    None for any other line."""
+def _labelled(line, labels=PART):
+    """-> a `cmd:` / `saw:` line under a VERIFIED claim, or with `labels`
+    BECAUSE a `why:` / `if wrong:` line under an ASSUMED one, bullet taken
+    off, or None for any other line."""
     m = verbs.BULLET.match(line)
     body = (m.group(1) if m else line).strip()
-    return body if PART.match(body) else None
+    return body if labels.match(body) else None
 
 
 def claim(item):
@@ -555,7 +562,7 @@ def brief(h):
         if b[key]:
             out.append("")
             out.append(title)
-            out.extend("- " + i for i in b[key])
+            out.extend("- " + i.replace("\n", "\n  ") for i in b[key])
     if b["verified"]:
         out.append("")
         out.append(h.role + " verified:")

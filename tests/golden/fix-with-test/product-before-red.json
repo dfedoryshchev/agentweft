@@ -315,7 +315,7 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 7eae149b621e60f08dda7eb480ecf63acdd6424071117a20e8be78d95079bbee",
-    "worker.md go 2 d4cead4c13abb6d05d92b4e16c8dc3269db4586af35ee19db0cf6ada08c1816e"
+    "worker.md go 1 a719154aa214fe5ccdd46511862cd32be513ab8dee972787224e444cf6ac4472",
+    "worker.md go 2 0a6fd6e94ad29823aa7bd18b84e46a465602bf85b3db82d11a1670c2632a2f09"
   ]
 }

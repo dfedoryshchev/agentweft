@@ -422,7 +422,7 @@
     ]
   ],
   "prompts": [
-    "reviewer.md go 1 c7441ad72ccf2d59dc9e0f403faa7349fd4d069a55039baae93c2a19fc9d3242",
-    "worker.md go 1 e8747212138603b7fb854c189a478283340033714c5a946d8a1d91fe0d637121"
+    "reviewer.md go 1 3ee735e4a3cc175519b1ae7b3ec121af74159793542fb6d303e44d383f9aeb26",
+    "worker.md go 1 bb66452b61357b8994c6c3a783de431c232b96c6b1a58a9bc989b547467edb71"
   ]
 }

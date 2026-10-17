@@ -397,7 +397,9 @@ with a block, after the work:
     NOT VERIFIED:
     - <what it did not check> - <why>
     ASSUMED:
-    - <a choice the spec does not make> | why: <reason> | if wrong: <cost>
+    - <a choice the spec does not make>
+      why: <reason>
+      if wrong: <cost>
     DOUBTS:
     - <what it is not sure of, or found and did not fix>
     MUST NOT MISS:
@@ -416,7 +418,11 @@ capitals it does not know (`NEEDS:`, `CITES:`, `OPTIONS:`) is kept under
 the claim above them, so a command keeps any pipe in it; a block written in
 the older one-line form, `<claim> | cmd: <command> | saw: <excerpt>`, is
 still read, split on the `cmd:` and `saw:` labels only, and a `saw:` that
-quotes two or more pieces matches each piece on its own. the block is not
+quotes two or more pieces matches each piece on its own. an ASSUMED item's
+`why:` and `if wrong:` lines are read the same way, as parts of the choice
+above them; the older `<choice> | why: <reason> | if wrong: <cost>` line is
+still read. the handoff prints each assumption on one line with its labels.
+the block is not
 the work: the gates, the saved run and what the
 next step is handed as "what <role> produced" see the answer without it.
 

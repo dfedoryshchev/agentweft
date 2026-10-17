@@ -56,6 +56,37 @@ def test_a_block_at_the_end_of_an_answer_is_parsed_into_its_sections():
     assert got["other"] == {}
 
 
+def test_an_assumed_item_keeps_its_labelled_lines_and_prints_its_labels():
+    text = BLOCK.replace(
+        "- ints only | why: the task says integers | if wrong: floats round\n",
+        "- ints only\n  why: the task says integers\n  if wrong: floats round\n"
+        "- the log stays as it is\n  - why: nothing asks for a change\n")
+    got = handoff.parse(text)
+    assert got["assumed"] == [
+        "ints only\nwhy: the task says integers\nif wrong: floats round",
+        "the log stays as it is\nwhy: nothing asks for a change"]
+    assert got["other"] == {}
+    assert summary.assumed(got["assumed"][0]) == (
+        "ints only? why: the task says integers. if wrong: floats round.")
+    assert summary.assumed(got["assumed"][1]) == (
+        "the log stays as it is? why: nothing asks for a change.")
+
+
+def test_an_assumed_item_in_the_older_piped_form_is_still_read():
+    [item] = handoff.parse(BLOCK)["assumed"]
+    assert summary.assumed(item) == (
+        "ints only? why: the task says integers. if wrong: floats round.")
+
+
+def test_the_next_step_is_handed_an_assumption_on_its_labelled_lines():
+    text = BLOCK.replace(
+        "- ints only | why: the task says integers | if wrong: floats round\n",
+        "- ints only\n  why: the task says integers\n  if wrong: floats round\n")
+    said = "\n".join(handoff.brief(Handoff("worker", "x\n" + text)))
+    assert ("- ints only\n  why: the task says integers\n"
+            "  if wrong: floats round") in said
+
+
 def test_a_verified_item_is_split_into_claim_command_and_excerpt():
     [item] = handoff.parse(BLOCK)["verified"]
     assert item["claim"] == "1 passed"

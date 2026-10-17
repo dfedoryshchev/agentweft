@@ -473,9 +473,9 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 d2d7ef89ff0770d0cd6cf9dc11c31dce468054625ecc6c09b48aa2b43fb3f7ae",
-    "reviewer.md go 2 297f604263b4f1cb342e46ef2867c1b8a847c7ce82fa181d4fcd9ac8572a294c",
-    "worker.md go 1 94cc7ef2d09190e495ebaa9d453d01bcd999b5fb6d70c4c88dc6f05d3dd37b58",
-    "worker.md go 2 678571932ca2f2d291d8c8612891fbb2adbbea5c6b3fb2b41186fcaf3afed21c"
+    "reviewer.md go 1 d135f1dfabce6bf9227c1a15c52567f42b5da58516e8841bf9dc8675c0af43f1",
+    "reviewer.md go 2 54e227e1ab4bd9526db15a976c2955b9aca62f44462dd71c726314082bd1a5d0",
+    "worker.md go 1 139c366c0f2a053d477e4097b8df160cbcf85d7aad0709813ad8b59f9353bae0",
+    "worker.md go 2 d9c33d49667aca00f920f12b878021d3c51f8d119cb73f447b6043c93b2a62a6"
   ]
 }

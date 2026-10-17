@@ -530,8 +530,13 @@ def red_first(passes, held=True):
 
 
 def assumed(item):
+    """an ASSUMED item -> one line with its labels: the choice, `why:` and
+    `if wrong:`, read from the lines under the choice or, in the older
+    one-line form, from between its `|` separators."""
     choice, why, cost = item, "", ""
-    parts = [p.strip() for p in item.split("|")]
+    parts = [p.strip() for p in item.split("\n")]
+    if len(parts) == 1:
+        parts = [p.strip() for p in item.split("|")]
     if len(parts) > 1:
         choice = parts[0]
         for p in parts[1:]:

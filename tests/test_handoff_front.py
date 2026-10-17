@@ -262,6 +262,22 @@ def test_no_shipped_prompt_teaches_a_pipe_separated_question():
         assert "| size:" not in text, path
 
 
+def test_no_shipped_prompt_teaches_a_pipe_separated_assumption():
+    from agentweft.roles import resolver
+
+    composed = resolver.fragment("handoff")
+    assert "ASSUMED:" in composed
+    taught = composed.split("ASSUMED:", 1)[1].split("DOUBTS:", 1)[0]
+    assert "|" not in taught
+    assert "\n      why: " in taught and "\n      if wrong: " in taught
+    shipped = list((Path("agentweft") / "fragments").glob("*.md"))
+    shipped += list(Path("flows").rglob("*.md"))
+    for path in shipped:
+        text = path.read_text(encoding="utf-8").lower()
+        assert "| why:" not in text, path
+        assert "| if wrong:" not in text, path
+
+
 def stopped_decision(tmp_path, monkeypatch, fake_cli, said, steps=None,
                      tail=None):
     """-> (exit code, the one decision) of a run whose worker answers

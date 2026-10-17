@@ -16,7 +16,9 @@ seen your work and cannot ask you:
     NOT VERIFIED:
     - <what you did not check> - <why>
     ASSUMED:
-    - <a choice the task or the spec does not make, that you made> | why: <reason> | if wrong: <what breaks>
+    - <a choice the task or the spec does not make, that you made>
+      why: <reason>
+      if wrong: <what breaks>
     DOUBTS:
     - <something you are not sure is right, or found and did not fix, with the options you see>
     QUESTION: <a question only a person can answer, citing the <file>:<line> it turns on>
@@ -35,4 +37,4 @@ seen your work and cannot ask you:
 - a doubt is a question when it is one; a choice you made is an ASSUMED line, not a doubt
 - a question only a person can answer is a QUESTION line, with its RECOMMEND and SIZE lines under it, each on a line of its own; one set per question, and none when you have none. it does not stop the work: the person reads it with your recommendation and how big that is, after the run. ask it once; the same question in a doubt is printed once anyway
 - never claim a ruling, an approval or an agreement you were not handed. name the file and line that decides a thing, or say nobody has
-- the block is read by a program: keep the key names in capitals, one item per `-` line, a VERIFIED item's `cmd:` and `saw:` each on its own line under its claim, the `|` separators of an ASSUMED line as shown, and no code fence around it
+- the block is read by a program: keep the key names in capitals, one item per `-` line, a VERIFIED item's `cmd:` and `saw:` each on its own line under its claim, an ASSUMED item's `why:` and `if wrong:` each on its own line under its choice, and no code fence around it
