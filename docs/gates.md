@@ -171,7 +171,9 @@ turns only that gate off: the order checks still want a red proof.
   the output. passes when the exit code matches `expect` (default 0). it runs
   in the run's `workdir` (see `docs/flows.md`), so it can check the work
   itself and not only what the step said about it. a `cold:` block gives it
-  a shorter command for a change the risk map says is small (below).
+  a shorter command for a change the risk map says is small (below). a
+  command that is not on PATH, or cannot be started (not executable, not a
+  program), fails the gate and says so; it is not a tool fault.
 - **red-test** - `marker` (default `FAILS:`) has to be in the output, or with
   `red: false` has to be gone from it. with `command: [...]` that is only the
   claim: the step names its test on a `TEST:` line, as a file or as

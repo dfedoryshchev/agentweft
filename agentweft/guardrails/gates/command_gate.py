@@ -66,6 +66,9 @@ class CommandGate(Gate):
                                    timeout=int(self.opts.get("timeout", 60)))
         except FileNotFoundError:
             return self.broke("not on PATH: " + argv[0])
+        except OSError as e:
+            return self.broke("cannot start " + argv[0] + ": "
+                              + (e.strerror or str(e)))
         except subprocess.TimeoutExpired:
             return self.fail("timed out")
 

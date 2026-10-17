@@ -254,3 +254,20 @@ def test_a_step_that_writes_a_fence_skip_into_project_yml_does_not_widen_it(
         "project:" + NL + "  name: there" + NL + "fence:" + NL
         + "  skip: [\"**\"]" + NL, encoding="utf-8")
     assert fence.at(place, held=held).skip == []
+
+
+def test_a_project_gate_whose_command_cannot_start_fails_with_its_line(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    script = place / "lint.sh"
+    script.write_text("#!/bin/sh" + NL + "exit 0" + NL, encoding="utf-8")
+    script.chmod(0o644)
+    project_yml(tmp_path, monkeypatch, {"lint": [str(script)]})
+    a_flow(tmp_path, "build", gated("lint"))
+    code, _ = running(tmp_path, monkeypatch, place, "build",
+                      {"worker.md": ({}, "done")})
+    assert code == stops.exit_code(stops.GATE)
+    said = gate_lines(folders()[-1])
+    assert said and not said[-1]["ok"]
+    assert said[-1]["detail"].startswith("lint: cannot start")
+    assert said[-1].get("broke") is True
