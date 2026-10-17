@@ -255,3 +255,23 @@ def test_a_step_carrying_a_check_project_yml_declares_is_never_cut(gate):
               "gates": [gate]}]
     got = said(["suite"], steps=steps)
     assert "never" in got and "project.yml" in got and "suite" in got
+
+
+NEEDS = ("NEEDS: should the list be sorted?" + NL + "OPTIONS:" + NL
+         + "- yes: sort it" + NL + "- no: keep the order given" + NL)
+
+
+def test_a_cut_lead_is_not_called_to_decide_and_the_person_gets_the_question(
+        tmp_path, monkeypatch, capsys):
+    three = [("a", "a.md"), ("reviewer", "reviewer.md"),
+             ("verify", "verify.md")]
+    a_flow(tmp_path, monkeypatch, "led", three, "lead: a" + NL
+           + "max_calls: 2" + NL + listed("a"))
+    asked = asking(monkeypatch, lambda step: NEEDS if step == "reviewer.md"
+                   else "VERDICT: ok" + NL + NL + "done" + NL)
+    code = run(monkeypatch, "led", "--force")
+    out = capsys.readouterr().out
+    assert "cut a.md" in out
+    assert "a.md" not in asked
+    assert code == stops.EXIT_STOP
+    assert "should the list be sorted?" in out

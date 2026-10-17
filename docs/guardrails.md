@@ -158,7 +158,8 @@ when the token cap warns that 80% of it is spent: the steps still ahead are
 cut in the same order until their blocks fit the rest of the cap, and the run
 goes on; a rest that fits already goes on with nothing cut. if the whole list would not make them fit, nothing is cut and the
 run waits at the cap as it always did. a name with no step left ahead is
-passed over.
+passed over. a cut lead decides nothing: a question a step asks goes to the
+person, saying the lead was cut for the budget.
 
 each cut is a named skip under the name the list gave, with a reason that
 says what did not fit:

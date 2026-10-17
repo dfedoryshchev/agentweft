@@ -1164,6 +1164,9 @@ def to_lead(run, step, question, given, where):
     asked = lead.key(question)
     if asked in run.led:
         return None, "", lead.again(question, head, run.led[asked])
+    if head in (getattr(run, "cut", None) or {}):
+        return None, "", lead.passed(question, head + " was cut for the"
+                                     " budget, so it does not decide")
     waits = run.budget.ahead(1)
     if waits:
         return None, "", lead.passed(question, "the run cannot pay for "
