@@ -122,6 +122,7 @@ cause maps to:
 | `overlap` | `stopped: tasks overlap` |
 | `target moved` | `stopped: target moved` |
 | `merge unchecked` | `stopped: merge unchecked` |
+| `off task` | `stopped: off task` |
 
 the map is `OUTCOME` in `agentweft/runner/stops.py`, with no default: a cause
 with no outcome is refused where the outcome is read. a step that will not do

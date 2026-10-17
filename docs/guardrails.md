@@ -540,6 +540,84 @@ changed file git reads through a filter program (an lfs: a program outside
 git that may write where it likes), or a git without `merge-tree
 --write-tree` (2.38 and later).
 
+## the off task check
+
+    # flow.yaml
+    police: on
+    network:
+      - installs
+      - pypi.org
+
+off unless a flow says `police: on`. after every step on the `claude` cli the
+run reads the step's transcript, the one the handoff takes its read lines
+from, and holds each tool call to four tripwires. no model is asked, so it
+costs no tokens; what it found and the seconds it took go on the step's line
+in `steps.jsonl`:
+
+    "police": {"hits": 0, "seen": true, "seconds": 0.004}
+
+- `grant`: a call to a tool outside the step's `tools:`, an mcp tool
+  included. declared, enforced and called have to agree, so a grant on a
+  provider that does not hold the step to it, a cli other than `claude`, is a
+  hit before any call is read.
+- `network`: a shell call that installs a package (pip, uv, npm, pnpm, yarn,
+  cargo, apt, brew, gem, go), pipes what curl or wget fetched into a shell, or
+  reaches a host that is not this machine: a url handed to a network tool, git
+  or an interpreter, or a host handed to curl, wget, ssh, scp, rsync or nc.
+  `network:` lets them through: `installs` the installs, a host that host and
+  the ones under it, `any` every host. a fetch or push to a git remote named
+  without a url reaches a host nobody named, and only `any` lets it.
+- `credentials`: a read of a file that holds a secret by its name: `.env`
+  (not `.env.example`), anything under `.ssh/` but a public key or
+  `known_hosts`, `.aws/`, `.azure/`, `.config/gcloud/`, `.kube/`, `.netrc`,
+  `.git-credentials`, `.pypirc`, and the claude cli's `.credentials.json`. a
+  Read, a Grep on the file, or a shell command naming it, other than `ls`,
+  `stat`, `test` and `rm`.
+- `instructions`: text the step read, in a file or in a tool's output, that is
+  addressed to an agent (ignore previous instructions, you must now, a note to
+  the ai or the assistant) and names an action - a command, a package, a host,
+  a file to write - that the step then took. the address alone is not a hit
+  and the action alone is not one: it is the read naming the call that came
+  after it. an action the step's own prompt names is its task and does not
+  count.
+
+a hit stops the run: `parked at <step>` with the cause `off task` in the
+journal, the outcome `stopped: off task`, the tripwire and the quoted evidence
+as its why, every hit in `runs/<id>/police.md`, and the handoff ending on the
+command that carries on:
+
+    off task at worker.md: network: Bash "pip install leftpad" installs a package, and the flow's network: does not let it
+
+`--resume` carries on after the step, as it does after the fence: the person
+has looked at what it did and let it through. a hit in a lead's answer stops
+the run at the step that asked it, once that step has gone again. a step whose transcript cannot be found is
+said, `police: <step> left no transcript to read`, and its line reads
+`"seen": false`: unseen, not clean. a step on `api` or `fake` sends text and
+runs no tools, so there is nothing of its to see.
+
+the mcp server hands a client a policed run's files wrapped as data
+(`mcp.md`).
+
+### what it cannot see
+
+it reads what the transcript says was called, after the call. so:
+
+- it is not in the path of a call. the install has happened by the time it is
+  read; the stop buys the record and the halt, not the undo.
+- a shell command is read as words. a script that opens a socket, a url built
+  from variables, a host in a file the command reads, an install inside a
+  Makefile: none of them name the host or the install where it looks.
+- a secret is a file name. a `grep -r` over the place reads `.env` without
+  naming it, and `env` or `printenv` print what the environment holds.
+- the instruction match is literal: what was read has to name the command,
+  package, host or file the step then used. a paraphrase, an action spread
+  over two calls, or text addressed in words it has no pattern for gets
+  through. text one step read and handed on is in the next step's prompt,
+  which counts as that step's task.
+- a cli other than `claude` leaves no transcript it can read, so only the
+  grant half reaches it. a cached answer made no calls, and a go that ended
+  the run on an outage or a fault is not read.
+
 ## the boundary check, which is not a sandbox
 
     steps:

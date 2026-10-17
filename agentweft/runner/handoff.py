@@ -330,6 +330,12 @@ def _pieces(session, earlier=None):
     return [p for p in out if p.get("id") not in old]
 
 
+def pieces(session, earlier=None):
+    """-> every content piece of the session's transcript, None when there is
+    no transcript to read. `earlier` is the session it was carried on from."""
+    return _pieces(session, earlier)
+
+
 def transcript(session, earlier=None):
     """-> [(command, output)] for every Bash call in the session's transcript,
     or None when there is no transcript to read. `earlier` is the session it

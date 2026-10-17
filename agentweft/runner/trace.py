@@ -248,7 +248,7 @@ class Entry(object):
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
-                 "proved", "changed", "decided")
+                 "proved", "changed", "decided", "police")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -269,6 +269,7 @@ class Entry(object):
         self.proved = False
         self.changed = None
         self.decided = False
+        self.police = None
 
 
 class Trail(object):
@@ -325,6 +326,8 @@ class Trail(object):
         if self.plan is not None and planned:
             entry.written["budget"] = self.plan.closed(entry.step, outcome,
                                                        entry.took)
+        if entry.police is not None:
+            entry.written["police"] = entry.police
         self.held.append((entry, outcome))
         first = min(e.seq for e in self.unclosed) if self.unclosed else None
         ready = sorted((h for h in self.held
@@ -429,7 +432,7 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     defect the step found.
     """
     from .investigate import STEP
-    from .stops import CONFLICT, DECLINED, PARKED, REFUSED
+    from .stops import CONFLICT, DECLINED, OFF_TASK, PARKED, REFUSED
 
     failed = [g for g in gates or () if not g.get("ok")]
     if any(not g.get("broke") for g in failed):
@@ -438,6 +441,8 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
         return "caught"
     if outcome == "redo" and to and to != STEP:
         return "caught"
+    if cause == OFF_TASK:
+        return "stopped"
     if proved:
         return "proved"
     if cause in (CONFLICT, REFUSED, DECLINED, PARKED):

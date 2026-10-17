@@ -306,7 +306,8 @@ def test_the_list_is_the_one_the_rollup_counts():
     assert stops.CAUSES == ("gate failed", "refused", "parked",
                             "provider outage", "budget", "exception",
                             "interrupt", "no answer", "declined", "conflict",
-                            "overlap", "target moved", "merge unchecked")
+                            "overlap", "target moved", "merge unchecked",
+                            "off task")
 
 
 def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
@@ -366,6 +367,14 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
         monkeypatch.setattr(engine.signoff, "check", lambda place, start:
                             signoff.Signed(ends_as, "main", "abc123",
                                            ["a.py"], why="main moved"))
+    elif cause == "off task":
+        from agentweft.guardrails import police
+
+        a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"],
+               tail=CLAUDE + "police: on\n")
+        monkeypatch.setattr(police, "check", lambda *a, **kw: [police.Hit(
+            police.NET, 'Bash "pip install leftpad" installs a package')])
+        fake_cli(answer("worked\n"))
     return engine.main()
 
 
@@ -400,7 +409,8 @@ OUTCOME = {"gate failed": "stopped: gate failed",
            "conflict": "stopped: spec conflict",
            "overlap": "stopped: tasks overlap",
            "target moved": "stopped: target moved",
-           "merge unchecked": "stopped: merge unchecked"}
+           "merge unchecked": "stopped: merge unchecked",
+           "off task": "stopped: off task"}
 
 
 def test_every_cause_has_exactly_one_outcome():
@@ -564,7 +574,7 @@ def test_resume_reads_every_stop_cause(tmp_path, monkeypatch):
         j.write_text(text + "\n", encoding="utf-8")
         stop = resume.last_stop("demo")
         assert (stop.step, stop.cause) == ("w.md", cause)
-        assert stop.parked == (cause == "parked")
+        assert stop.parked == (cause in ("parked", "off task"))
 
 
 def test_resume_skips_a_running_line(tmp_path, monkeypatch):

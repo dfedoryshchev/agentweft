@@ -9,7 +9,8 @@ import subprocess
 import sys
 import tempfile
 
-from agentweft.runner import state
+from agentweft.guardrails import police
+from agentweft.runner import state, stops
 
 from . import transport
 
@@ -45,20 +46,42 @@ def child(argv, timeout):
                           errors="replace", env=env, timeout=timeout)
 
 
+def marked(text, uri, folders):
+    """-> text, wrapped as data when any of the runs it came from was made
+    with the off task check on (`guardrails/police.py`)."""
+    if any(police.was_on(d) for d in folders):
+        return police.untrusted(text, uri)
+    return text
+
+
+def journaled(text):
+    """-> the run folders the journal's lines name."""
+    out = []
+    for line in text.split("\n"):
+        said = stops.read(line) if line.strip() else None
+        if said is not None and said.run:
+            out.append(state.RUNS / said.run)
+    return out
+
+
 def read_resource(uri):
     if uri == "flows://journal":
         p = state.RUNS / "journal.md"
-        return p.read_text(encoding="utf-8") if p.exists() else ""
+        text = p.read_text(encoding="utf-8") if p.exists() else ""
+        return marked(text, uri, journaled(text))
     if uri == "flows://gates":
         runs = state.RUNS
         if not runs.exists():
             return "nothing yet"
         parts = []
+        read = []
         for d in sorted((p for p in runs.iterdir() if p.is_dir()), reverse=True)[:10]:
             g = d / "gates.md"
             if g.exists():
                 parts.append("# " + d.name + "\n\n" + g.read_text(encoding="utf-8"))
-        return "\n\n".join(parts) or "no gates have run yet"
+                read.append(d)
+        return marked("\n\n".join(parts), uri, read) if parts \
+            else "no gates have run yet"
     if uri == "flows://rollup":
         r = child([sys.executable, "rollup.py"], timeout=60)
         return r.stdout or "nothing yet"
@@ -70,7 +93,7 @@ def read_resource(uri):
         for f in sorted(p for p in d.rglob("*") if p.is_file()):
             parts.append("## " + f.relative_to(d).as_posix() + "\n\n"
                          + f.read_text(encoding="utf-8"))
-        return "\n\n".join(parts)
+        return marked("\n\n".join(parts), uri, [d])
     raise ValueError("no such resource: " + uri)
 
 
@@ -85,6 +108,18 @@ def tools():
                                           "description": "what the run is "
                                           "for, for a flow that takes one"}},
                              "required": ["flow"]}}]
+
+
+def policed(name):
+    """whether the flow has the off task check on, so what its run printed
+    goes back marked as data."""
+    from agentweft.runner.config import config
+
+    try:
+        return police.mode(config(name)) == police.ON
+    except Exception:
+        # a flow that will not load is run.py's to refuse, and says so
+        return False
 
 
 def run_flow(name, task=None):
@@ -112,6 +147,8 @@ def run_flow(name, task=None):
         if held:
             os.remove(held)
     out = (r.stdout or "") + (r.stderr or "")
+    if policed(name):
+        out = police.untrusted(out, "run_flow " + name)
     if r.returncode in EXITS:
         return EXITS[r.returncode] + " (exit " + str(r.returncode) + "):\n\n" + out
     if r.returncode != 0:

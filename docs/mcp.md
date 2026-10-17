@@ -36,6 +36,15 @@ can start it in a loop is a bill, not a feature.
 
 reading is unrestricted. reading is the half i actually use.
 
+a run made with `police: on` holds text a model wrote and text it read, and
+either can be addressed to the next model that reads it. so its files come
+back wrapped: a line saying the text is data and not instructions, then the
+text inside a tag whose closing carries a hash of the text, which the text
+cannot contain and so cannot close early. the journal and the gate results
+are wrapped whole when a policed run is in them, and `run_flow` on a policed
+flow wraps what the run printed. a run without the check reads as it always
+did (`guardrails.md`, "the off task check").
+
 # the client
 
 a flow can name a tool server it wants context from:

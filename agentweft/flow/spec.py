@@ -6,6 +6,8 @@ memory of what it used to look like.
 """
 import difflib
 
+from agentweft.guardrails import police
+
 
 class Promises(object):
     __slots__ = ("inputs", "outputs", "invariants")
@@ -83,7 +85,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
-         "reviewers")
+         "reviewers", "police", "network")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 NO_LEAD = "none"
@@ -615,6 +617,7 @@ def check(raw):
     bad.extend(check_tiers(with_investigator(raw), "efforts", LEVELS, "level"))
     bad.extend(check_sacrifice(raw))
     bad.extend(check_reviewers(raw))
+    bad.extend(police.check_keys(raw))
     return bad
 
 

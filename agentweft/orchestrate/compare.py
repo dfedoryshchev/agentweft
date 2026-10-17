@@ -137,6 +137,15 @@ FLOW_ONLY = (
     Pair("flow.sacrifice", "",
          "what the run may cut, in order, when its budget plan does not fit. "
          "a phase has no budget plan to cut from."),
+    Pair("flow.police", "",
+         "whether what a step did with its tools is read off its transcript "
+         "after it answers, and the run stopped off task on a call outside "
+         "its grant, an install, a host, a secret file or an instruction it "
+         "read and followed. a phase's agents name their tools in prose and "
+         "nothing reads what they did with them."),
+    Pair("flow.network", "",
+         "what the off task check lets a shell call reach: installs, any "
+         "host, or the hosts named. a phase has no word for the network."),
     Pair("flow.schedule", "", "when it runs unasked. nothing runs a phase at all."),
     Pair("flow.timeout", "", "how long one call gets before it is a failure."),
     Pair("flow.retries", "", "how many tries one call gets before it is given up on."),

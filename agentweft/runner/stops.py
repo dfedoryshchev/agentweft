@@ -56,13 +56,15 @@ MOVED = "target moved"
 # the change could not be checked against the branch with read-only git, so
 # a person has to
 UNCHECKED = "merge unchecked"
+# carrying on goes past the step: the person has looked at what it did
+OFF_TASK = "off task"
 
 CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
-          NO_ANSWER, DECLINED, CONFLICT, OVERLAP, MOVED, UNCHECKED)
+          NO_ANSWER, DECLINED, CONFLICT, OVERLAP, MOVED, UNCHECKED, OFF_TASK)
 
 # the run waits for someone on these: a person for a park or a cap, the
 # provider's limit for an outage
-WAITING = (PARKED, OUTAGE, BUDGET)
+WAITING = (PARKED, OUTAGE, BUDGET, OFF_TASK)
 # a wait on these comes before the step it names has done its work, so
 # carrying on runs that step rather than the one after it
 AGAIN = (OUTAGE, BUDGET)
@@ -82,7 +84,8 @@ OUTCOME = {GATE: "stopped: gate failed",
            CONFLICT: "stopped: spec conflict",
            OVERLAP: "stopped: tasks overlap",
            MOVED: "stopped: target moved",
-           UNCHECKED: "stopped: merge unchecked"}
+           UNCHECKED: "stopped: merge unchecked",
+           OFF_TASK: "stopped: off task"}
 OUTCOMES = (DONE,) + tuple(sorted(set(OUTCOME.values())))
 
 EXIT_OK = 0

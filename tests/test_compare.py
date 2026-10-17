@@ -128,7 +128,7 @@ def test_the_sides_are_not_the_same_size():
     # `reviewers` and a step's `lens` are two more, one way: a phase seats
     # its reviewers as agents and says what each looks for in their prose.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 43
+    assert len(compare.flow_only()) == 45
     assert len(compare.phase_only()) == 7
 
 

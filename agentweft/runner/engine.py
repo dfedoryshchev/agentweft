@@ -29,7 +29,7 @@ from agentweft.orchestrate import decisions, park, project, synthesise
 NEWLINE = chr(10)
 RED_MARKER = "FAILS:"
 from agentweft.guardrails.budget import REACHING, Budget
-from agentweft.guardrails import blocks, sacrifice
+from agentweft.guardrails import blocks, police, sacrifice
 
 from .handoff import (EMPTY, PARTIAL, PRESENT, Handoff, back, merge, parse,
                       to_files, transcript, without)
@@ -370,6 +370,11 @@ class Run(object):
         self.busy = set()
         self.lock = threading.Lock()
         self.record = None
+        self.policing = police.mode(fm)
+        self.network = police.allowed(fm)
+        self.policed = []
+        self.police_lines = {}
+        self.police_lock = threading.Lock()
 
     def decided(self):
         """-> the rulings in decisions.md the runner has on record."""
@@ -905,6 +910,12 @@ class Run(object):
             self.answers[key] = answer[0]
         return answer
 
+    def policed_now(self):
+        """-> what the off task check found since this was last asked."""
+        with self.police_lock:
+            out, self.policed = self.policed, []
+        return out
+
     def taken(self):
         """-> the goes made since this was last asked, for the trace line."""
         out, self.attempts = self.attempts, []
@@ -1016,6 +1027,12 @@ class Run(object):
             self.keep_session(step, used, held, answer, carry)
         text, cached = answer
         self.produced[step] = text
+        if getattr(self, "policing", police.OFF) == police.ON and not cached:
+            seen = police.report(step, used, self.grant_for(step),
+                                 trace.sessions([tried]), self.network,
+                                 prompt)
+            with self.police_lock:
+                self.policed.append(seen)
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
@@ -1308,6 +1325,40 @@ def forged_first(run, step, out):
     return said
 
 
+def off_task(run, step, folder=None):
+    """-> why the run stops off task after `step`, "" when it does not.
+
+    every go the check read since the last step is read here, a lead's that
+    answered in between included, so no hit waits for a step that may never
+    come. what it found for `step` itself goes on that step's line.
+    """
+    found = run.policed_now() if hasattr(run, "policed_now") else []
+    mine = [r for r in found if r.step == step]
+    if mine:
+        line = {"hits": sum(len(r.hits) for r in mine),
+                "seen": all(r.seen for r in mine),
+                "seconds": round(sum(r.seconds for r in mine), 3)}
+        run.police_lines[step] = line
+        if not line["seen"]:
+            print("police: " + step + " left no transcript to read, so what"
+                  " it did with its tools was not checked")
+    hit = [r for r in found if r.hits]
+    if not hit:
+        return ""
+    if folder is not None:
+        folder.mkdir(parents=True, exist_ok=True)
+        with open(folder / police.FILE, "a", encoding="utf-8") as f:
+            f.write("## " + step + NEWLINE + police.as_note(hit))
+    hits = [h for r in hit for h in r.hits]
+    first = hit[0]
+    return ("" if first.step == step else first.step + " ") \
+        + police.why(hits)
+
+
+def police_line(run, step):
+    return getattr(run, "police_lines", {}).pop(step, None)
+
+
 def and_forged(why, forged):
     return why + "; " + forged if forged else why
 
@@ -1461,6 +1512,7 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             return
         entry = kept.open(step, taken, run.by_step.get(step, run.provider),
                           came_from, output=output, fanned=step == run.fan)
+        entry.police = police_line(run, step)
         entry.gates = out.meta.get("gates", []) if output is not None else []
         entry.ungated = out.meta.get("ungated") if output is not None else None
         entry.handoff = out.block if output is not None else None
@@ -1499,6 +1551,11 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             fenced = and_forged(fenced, forged)
             note("parked", fenced, stops.PARKED, output=out.output)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
+        off = off_task(run, step, Path(trail) if trail is not None else None)
+        if off:
+            off = and_forged(off, forged)
+            note("parked", off, stops.OFF_TASK, output=out.output)
+            return out.output, run.budget, "off task at " + step + ": " + off
         overlap = out.meta.get("overlap")
         if overlap:
             note("failed", overlap, stops.OVERLAP, output=out.output)
@@ -2211,7 +2268,7 @@ def run_flow(unrecorded):
         if question:
             (folder / "question.md").write_text(question + NEWLINE,
                                                 encoding="utf-8")
-        parked = cause == stops.PARKED
+        parked = cause in (stops.PARKED, stops.OFF_TASK)
         if handed:
             kept = manifest.NOT_RUN
         elif question:
@@ -2422,12 +2479,19 @@ def run_flow(unrecorded):
                 return stop(stops.PARKED, fenced, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user")
+            off = off_task(run, step, state.RUNS / run_id)
+            entry.police = police_line(run, step)
+            if off:
+                off = and_forged(off, forged)
+                print("off task at " + step + ": " + off)
+                return stop(stops.OFF_TASK, off, "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user")
             overlap = out.meta.get("overlap")
             if overlap:
                 print("tasks overlap at " + step + ": " + overlap)
                 return stop(stops.OVERLAP, overlap, "failed", entry,
                             index="FAILED  " + flow + "  at " + step)
-
 
             if not out:
                 # an empty answer is checked before any gate: a gate handed

@@ -187,6 +187,13 @@ saying it may touch nothing, which is a boundary: `claude` gets no tools at
 all, and the answer is checked. every shipped reviewer is granted
 `[read, grep, shell]`, so it can run the command that reproduces a finding.
 
+`police: on` at the top of the flow reads what each step did with its tools
+off its transcript once it answers, and stops the run off task on a call
+outside its grant, an install, a host that is not this machine, a secret
+file, or an instruction it read and then followed. `network:` says which
+installs and hosts a shell call may reach: `installs`, `any`, or a host per
+line. off unless a flow says on (`guardrails.md`, "the off task check").
+
 `investigate:` puts one step in front of the flow's own, `investigator.md`,
 which finds the cause of the task and everything it reaches before anything is
 written. `off` is the default and the flow exactly as it was. `cause` asks for
