@@ -389,11 +389,30 @@ QUOTED = re.compile(r'"([^"\n]+)"')
 QUOTE_WORDS = 3
 
 
+ANSWERED = "\n\nanswered:\n\n"
+ANSWERED_BY = "\n\nanswered by "
+ANSWERED_END = ", with --answer"
+
+
+def asked_and_answered(d):
+    """-> (the body up to the answer, the answer) of a decisions.md entry
+    written by --answer, None for an entry written any other way."""
+    why = d.why
+    if not why.startswith("asked by ") or not why.endswith(ANSWERED_END):
+        return None
+    # the question before the answer is a step's words and may hold the
+    # markers itself; the runner's own are the last ones in the body
+    asked, sep, rest = why.rpartition(ANSWERED)
+    if not sep:
+        return None
+    return asked, rest.rpartition(ANSWERED_BY)[0].strip()
+
+
 def answered(d):
     """-> the answer in a decisions.md entry written by --answer, "" for an
     entry written any other way."""
-    _, sep, rest = d.why.partition("\nanswered:\n")
-    return rest.split("\n\nanswered by ")[0].strip() if sep else ""
+    found = asked_and_answered(d)
+    return found[1] if found else ""
 
 
 CAPPED = re.compile(r"^carried \S+ on with the ")
@@ -481,11 +500,12 @@ def answers_edits(d, test, runs):
     """whether `d` is an `override:` answer, given with --answer, to the
     question a test edit parked one of `runs` on, and that question cites
     `test`."""
-    said = answered(d)
+    found = asked_and_answered(d)
     m = ASKED_IN.match(d.why)
-    if kind_of(said) != OVERRIDE or not m or m.group(1) not in runs:
+    if not found or kind_of(found[1]) != OVERRIDE or not m \
+            or m.group(1) not in runs:
         return False
-    question = d.why.partition("\nanswered:\n")[0]
+    question = found[0]
     return EDITS_ASKED in question and any(
         line.startswith("- " + test + " - ") for line in question.split("\n"))
 
@@ -634,8 +654,8 @@ def scope(question, kind):
 def why(step, run_id, question, answer, by, kind=None):
     said = scope(question, kind)
     return ("asked by " + step + " in " + run_id + ":\n\n" + question
-            + "\n\nanswered:\n\n" + answer + ("\n\n" + said if said else "")
-            + "\n\nanswered by " + by + ", with --answer")
+            + ANSWERED + answer + ("\n\n" + said if said else "")
+            + ANSWERED_BY + by + ANSWERED_END)
 
 
 def told(question, answer, kind=None):

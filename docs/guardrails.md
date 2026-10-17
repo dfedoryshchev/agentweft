@@ -372,6 +372,12 @@ test-edit park). so a lead decision
 on a question that cites a test, or quotes a spec line, lets neither change
 unless its own lines name the test or quote the line.
 
+the answer of an `--answer` entry is read after the last `answered:` line,
+and only in a body that ends the way the runner ends one (`answered by <who>,
+with --answer`). a step's question comes before the runner's marker, so an
+`answered:` line and an `override:` a step wrote into its own question are
+read as the question, never as the person's answer.
+
 after every step the file is compared with what the runner last wrote, and
 again once the step's gates have run, since a gate runs code the step wrote:
 a change made there is the step's, not the next one's. a step that added,
