@@ -162,8 +162,9 @@ FIVE = [(n, n + ".md") for n in ("a", "b", "c", "d", "e")]
 
 
 def big_first(step):
-    # ~81000 tokens on a cap of 100000: past the 80% the cap warns at
-    return ("x" * 324000 if step == "a.md" else "ok") + NL
+    # ~80500 tokens on a cap of 100000: past the 80% the cap warns at, with
+    # room for b.md once the shared prompt fragments are counted too
+    return ("x" * 322000 if step == "a.md" else "ok") + NL
 
 
 def ran_before(tmp_path, flow, tokens):

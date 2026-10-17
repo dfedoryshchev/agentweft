@@ -1027,6 +1027,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 + i["claim"] + " (" + i["why"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
                 if i["backed"] == "unbacked")
+    said.extend("- shortened, so not held to the record: " + role + ": "
+                + i["claim"] + " (" + i["cmd"] + ")"
+                for role, b in blocks if _present(b) for i in b["verified"]
+                if i["backed"] == handoff.SHORTENED)
     from .retro import STEP as RETRO
 
     for p in every:

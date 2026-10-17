@@ -795,14 +795,14 @@
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 0e63eb946d0ac0e7f2314d53d8798c6954ffc307d498d36a5d74dab6c43f0948",
-    "merge.md go 2 aa3d8d07296ecbcef0bf60d66d30f8c63f1379be399b82a346d0ba339e44d836",
-    "planner.md go 1 db46d722cd8e4e2275fdc9c4ceee202c52713d6334ecdcd063667be95abbbacc",
-    "reviewer.md go 1 f5b53b3f278594dd1ed4380b712417ec59fa70217141eef2881185f285853807",
-    "reviewer.md go 2 c37bde6aa47623b5231c0c735d024e061c8c7c8e1e2f7450beab90ead88f46c9",
-    "worker.md task 1 go 1 d107ef7687910a2d89b224a62dfd574cf685bafabdc797e51d0ebca738df1096",
-    "worker.md task 1 go 2 fe2f8c32d16f63fff64b97363a9663a3ab2b74c12a0559317f1d7e46c1c4a5b5",
-    "worker.md task 2 go 1 3b6451f83762b9e9c0b1724b0689dba9d59bec3511bf249970754f9241188c96",
-    "worker.md task 2 go 2 92a85227194f1afc27a6c24cae9b62b1eb10c67089d344981a59ec93d7267774"
+    "merge.md go 1 8114bbfe7f8b6964b08dafe23b74f66818c91ee22d65ca14c23561d70815e32e",
+    "merge.md go 2 41e60c9f0ce5c1837c4da76febbc022d75fcbf17d0be8e8caff067ee29b345d0",
+    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
+    "reviewer.md go 1 4a68cf716dff361c84f662f159e1de06461e26deb07ec5355e140e370275d29e",
+    "reviewer.md go 2 3768ca9d8a7858104dbc3fdfdb4e7dcaf9da7aa7f86bb876d24f86e777e5d80f",
+    "worker.md task 1 go 1 d36a35fc504cc147a7da80c2a95eaf372248770d2ac1fcdc26f0280b912eb312",
+    "worker.md task 1 go 2 1fe04da5d0bdeba8cce1c4a4bd60bf469fd04b3a9fe6cce5fea8ba32e0c88490",
+    "worker.md task 2 go 1 754bf80b010e57402b0c58352ee2fdd976783e4189ea223f01caa0dc5b55adcb",
+    "worker.md task 2 go 2 c0e6d087f653bc58dc7e2c2fae20994d587c8da9919688561b0d57e349bf2670"
   ]
 }

@@ -598,10 +598,10 @@
   ],
   "prompts": [
     "retro.md go 1 dc92ac703b2adaae8b0546a4990b98f16ee1e1109833d959f9706bbf091a2ca6",
-    "reviewer.md go 1 b5d10bf04e82665add81e22a6c8a19ef34047aef3690bd10b6af8e9600498c92",
-    "reviewer.md go 2 375eea421250ff08c0fac5948bde63871dafdb264466abf65fde5a037e9d6105",
-    "worker.md go 1 f06bc583d1ebad3b96014adbf1e32c80553b4864ccc76887cb092ceb94a7028f",
-    "worker.md go 2 aeb0f918bead4c0dfc765a0b81afbbc8fb97c12b73838ac34579535612cd317f",
-    "worker.md go 3 f1780b803f689ec64409d7c2a85103031d7f4dda1b5cb5be95ee773fda9c655d"
+    "reviewer.md go 1 69e8069ac77481cc523d00767785db784ad54f1d7017cd045f3e80bfa0c315c5",
+    "reviewer.md go 2 1417f62899ddf9cfbde7448f4ae00394f578caadf507d7c2c63d10ce60cea9af",
+    "worker.md go 1 c34a308ad8bab088af1e7411e9dc6cb452af71794da9d0b8188c11eb7e295be2",
+    "worker.md go 2 34dcd3f27854622bb637fe7fdb2f4f27d3eb287082e30f019e005eec847847cd",
+    "worker.md go 3 fcdc5bc064ba11a0c9ec604d5f4dc9009efa51a0c694883348b539140bcf672e"
   ]
 }

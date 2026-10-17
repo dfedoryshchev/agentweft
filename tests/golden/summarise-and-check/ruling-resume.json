@@ -502,8 +502,8 @@
     ]
   ],
   "prompts": [
-    "reviewer.md go 1 e8eff86512e77fc9f99289b0ca19e376aef77d94be8c2fa5ddf1dce1c4ce5780",
-    "worker.md go 1 03ca28c3c76060007cf40d322bc811d3453da17d7181b74f821815cee85b1234",
-    "worker.md go 2 253f4a47f9bae3095b05f64013ba722846ffc37a15136c09e59061096b808ba8"
+    "reviewer.md go 1 2506d2ff02306e05bac3cf110c3ce3af013a667d9d669e4e1fe7198e9c1d7ca2",
+    "worker.md go 1 447636c9755f82b074f8a8c1827f9763a8a903ad0c36946bd0bf045c030603ab",
+    "worker.md go 2 e5332211b892ffb7eae09372ceafbea29a9e5d2126def8a5789ed488eb321411"
   ]
 }

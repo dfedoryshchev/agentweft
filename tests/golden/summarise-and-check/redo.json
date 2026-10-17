@@ -470,9 +470,9 @@
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "reviewer.md go 1 d0962868cdf82e0c97c42e6f343f364120d0a8008c8039d8f9838e9c936654f4",
-    "reviewer.md go 2 fc8ecc9b07a0a05273fdbeefaf7d23271a0e0f65c8044e10aed5a00ac3676021",
-    "worker.md go 1 03ca28c3c76060007cf40d322bc811d3453da17d7181b74f821815cee85b1234",
-    "worker.md go 2 d50700fac0ffc16c43b8596a1d271907b41610f7e1e65278fdc0eb91e4c3b27a"
+    "reviewer.md go 1 cb2b8712a64968a58047efbba823465a7f60a09957be45cd0ba6fe6e6634a3e9",
+    "reviewer.md go 2 9c24b0cd5640981ad8a3aa138f2421ae27d710c875cf8d86ee115c39e3777704",
+    "worker.md go 1 447636c9755f82b074f8a8c1827f9763a8a903ad0c36946bd0bf045c030603ab",
+    "worker.md go 2 8720559895196b2d7c3b80e26e7e8e19feb03c4f7e51da1f49c92cefc7c6554f"
   ]
 }

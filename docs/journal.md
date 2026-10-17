@@ -418,7 +418,12 @@ capitals it does not know (`NEEDS:`, `CITES:`, `OPTIONS:`) is kept under
 the claim above them, so a command keeps any pipe in it; a block written in
 the older one-line form, `<claim> | cmd: <command> | saw: <excerpt>`, is
 still read, split on the `cmd:` and `saw:` labels only, and a `saw:` that
-quotes two or more pieces matches each piece on its own. an ASSUMED item's
+quotes two or more pieces matches each piece on its own. a `cmd:` that
+points at the command above it (`(same command as above)`, `(same
+command)`) is read as the nearest command above it in the section and
+matched as that; one cut short with `...` is marked `shortened` rather than
+`unbacked`, printed under "not verified" as "shortened, so not held to the
+record", and the prompt asks for every command in full. an ASSUMED item's
 `why:` and `if wrong:` lines are read the same way, as parts of the choice
 above them; the older `<choice> | why: <reason> | if wrong: <cost>` line is
 still read. the handoff prints each assumption on one line with its labels.

@@ -20,9 +20,12 @@ and a `saw:` line per piece of what it printed. when the step's provider keeps
 a transcript, the claim is held to it: `backed` when the command and every
 excerpt are there, `unbacked` when one of them is not (the missing one is
 named), `ran` when the command is there and no excerpt was given,
-`unchecked` when there is no transcript to read. the model's word for what it
-ran is never taken on its own. a claim that quotes a file instead,
-`<file>:<line> "<the line>"`, is held to that line as the run found it.
+`shortened` when the command is cut short with `...` and so cannot be held
+to anything, `unchecked` when there is no transcript to read. a `cmd:` that
+points at the command above ("same command as above") is read as the nearest
+one above it. the model's word for what it ran is never taken on its own. a
+claim that quotes a file instead, `<file>:<line> "<the line>"`, is held to
+that line as the run found it.
 """
 import json
 import os
@@ -45,6 +48,7 @@ MISSING = "missing"
 PRESENT = "present"
 UNREADABLE = "unreadable"
 PARTIAL = "partial"
+SHORTENED = "shortened"
 
 DECOR = r"[\s#*`_\-]*"
 OPEN = re.compile("^" + DECOR + r"HANDOFF[\s*`_:]*$", re.I)
@@ -52,6 +56,12 @@ CLOSE = re.compile("^" + DECOR + r"END HANDOFF[\s*`_:.]*$", re.I)
 NONE_WORDS = ("", "none", "nothing", "-", "n/a", "na", "none.")
 PART = re.compile(r"^(cmd|command|ran|saw|output)\s*:\s*(.*)$", re.I)
 BECAUSE = re.compile(r"^(why|if wrong)\s*:\s*(.*)$", re.I)
+ABOVE = re.compile(r"^\(?\s*(?:the\s+)?(?:same(?:\s+(?:command|cmd))?"
+                   r"(?:\s+as\s+(?:above|before|the\s+one\s+above))?"
+                   r"|as\s+above|see\s+above)\s*\.?\s*\)?$", re.I)
+# `./...` and `a...b` are whole commands (go packages, git ranges); dots that
+# stand alone or close a quote are a command cut short
+CUT = re.compile(chr(0x2026) + r"""|(?:^|[\s"'(\[<])\.\.\.(?=$|[\s"')\]>])""")
 OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
 QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 
@@ -155,7 +165,7 @@ def parse(text):
     if not known:
         return empty(UNREADABLE, "a block with no DID, VERIFIED, DOUBTS or"
                      " other section in it")
-    out["verified"] = [claim(i) for i in out["verified"]]
+    out["verified"] = above([claim(i) for i in out["verified"]])
     # dropped only now: until the block ends, a `QUESTION: none` still owns
     # the RECOMMEND and SIZE lines under it
     out["questions"] = [q for q in out["questions"]
@@ -207,6 +217,24 @@ def claim(item):
     return out
 
 
+def above(items):
+    """-> the VERIFIED items with a `cmd:` that points at the command above
+    it ("same command as above") read as that command, the nearest one above
+    that names one. a pointer with nothing above it is left as written."""
+    last = ""
+    for item in items:
+        if ABOVE.match(item["cmd"].strip()) and last:
+            item["cmd"] = last
+        elif item["cmd"] and not ABOVE.match(item["cmd"].strip()):
+            last = item["cmd"]
+    return items
+
+
+def shortened(cmd):
+    """whether a command was cut short with `...` instead of written out."""
+    return bool(CUT.search(cmd or ""))
+
+
 def excerpts(saw):
     """-> the pieces of output one `saw:` quotes. two or more quoted pieces
     are each their own excerpt; anything else is one."""
@@ -246,6 +274,11 @@ def back(block, calls):
             continue
         if not item["cmd"]:
             item["backed"], item["why"] = "unbacked", "no command named"
+            continue
+        if shortened(item["cmd"]):
+            item["backed"] = SHORTENED
+            item["why"] = ("the command is cut short with ..., so the"
+                           " transcript is not held to it; write it in full")
             continue
         want = norm(item["cmd"])
         ran = [out for cmd, out in calls if want and want in norm(cmd)]

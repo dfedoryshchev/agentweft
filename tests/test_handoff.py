@@ -268,6 +268,67 @@ def test_each_excerpt_is_matched_alone_and_the_missing_one_is_named():
     assert item["backed"] == "backed"
 
 
+RAN = [("cd /w && python -m pytest -q tests/test_calc.py",
+        "5 passed in 0.1s\n0 warnings")]
+
+
+@pytest.mark.parametrize("pointer", ["(same command as above)",
+                                     "(same command)", "same as above",
+                                     "Same command as above."])
+def test_a_verified_line_pointing_at_the_command_above_is_matched_as_it(
+        pointer):
+    block = verified("- the suite is green\n"
+                     "  cmd: python -m pytest -q tests/test_calc.py\n"
+                     "  saw: 5 passed\n"
+                     "- nothing warns\n"
+                     "  cmd: " + pointer + "\n"
+                     "  saw: 0 warnings\n")
+    first, second = handoff.back(block, RAN)["verified"]
+    assert second["cmd"] == "python -m pytest -q tests/test_calc.py"
+    assert first["backed"] == "backed" and second["backed"] == "backed"
+
+
+def test_a_pointer_with_no_command_above_it_stays_unbacked():
+    block = verified("- nothing warns\n"
+                     "  cmd: (same command as above)\n"
+                     "  saw: 0 warnings\n")
+    [item] = handoff.back(block, RAN)["verified"]
+    assert item["backed"] == "unbacked"
+
+
+@pytest.mark.parametrize("cut", ["python -m pytest -q ... tests/test_calc.py",
+                                 "python -m pytest -q tests/test_calc.py ...",
+                                 'python -c "..."',
+                                 "python -m pytest " + chr(0x2026)])
+def test_a_shortened_command_is_marked_shortened_not_unbacked(cut):
+    block = verified("- the suite is green\n"
+                     "  cmd: " + cut + "\n"
+                     "  saw: 5 passed\n")
+    [item] = handoff.back(block, RAN)["verified"]
+    assert item["backed"] == "shortened"
+    assert "in full" in item["why"]
+
+
+@pytest.mark.parametrize("whole", ["go test ./...", "git diff main...HEAD"])
+def test_dots_that_are_part_of_a_command_are_not_a_shortening(whole):
+    block = verified("- green\n  cmd: " + whole + "\n  saw: ok\n")
+    [item] = handoff.back(block, [(whole, "ok")])["verified"]
+    assert item["backed"] == "backed"
+
+
+def test_the_handoff_names_a_shortened_command_apart_from_unbacked_claims():
+    block = handoff.back(verified("- the suite is green\n"
+                                  "  cmd: python -m pytest ... -q\n"
+                                  "  saw: 5 passed\n"), RAN)
+    lines = summary.build("r1", "flow", "t", [summary.a_pass(
+        "worker.md", "worker", 1.0, block, [], False, "ok", "")],
+        {"git": False}, [], "")
+    said = "\n".join(lines)
+    assert "claims the record does not show" not in said
+    assert ("- shortened, so not held to the record: worker: the suite is"
+            " green (python -m pytest ... -q)") in said
+
+
 def test_no_transcript_leaves_a_claim_unchecked(tmp_path, monkeypatch):
     monkeypatch.setattr(handoff, "PROJECTS", tmp_path / "nothing")
     assert handoff.transcript("s-9") is None
@@ -307,6 +368,7 @@ def test_every_role_is_asked_for_the_block_and_not_told_to_hide_its_work(
         assert key in prompt, key
     assert "cmd:" in prompt and "saw:" in prompt
     assert "| cmd:" not in prompt and "| saw:" not in prompt
+    assert "write every `cmd:` out in full" in prompt
 
 
 def test_the_next_step_gets_the_block_first_and_told_whose_account_it_is():

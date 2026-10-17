@@ -505,10 +505,10 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 204781c8eec40a79c1ad8480af53a475c6522bff33ad76a581fe63acd52fe968",
-    "planner.md go 1 e2684f2c138cda7126c8e41ce741ed1e506454063bff74b86eec13349a487618",
-    "reviewer.md go 1 8841b318f4f5b4e039a5f70c43aea82e691555857acc08115966b81c72d755be",
-    "worker.md task 1 go 1 f7c85630b3fc97d34742a01f272d71ef2cd3d7626aab0e643d16f27a3f7e4d6a",
-    "worker.md task 2 go 1 b423e4f8d83852ffb7336bf14ae8ed8f0b517556a1c7a4b236b0f210c4f7af3f"
+    "merge.md go 1 f00be6ad7310b85de6e8703f79f27b29374b90b43d3ac55dc639d9156f0c62da",
+    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
+    "reviewer.md go 1 ed97eb807869873b0fdd94c151a64d5dd80a16d9088c52c37367877fffe2d979",
+    "worker.md task 1 go 1 b9e13a619ed92f2e52eb58f0e86a6d6c5d8e94c85e0f9d1cba5d25c3d309e33d",
+    "worker.md task 2 go 1 e2bd89d3b536a64d689ad96d4ab4c90082787b76a09e3287c502477f842352ad"
   ]
 }
