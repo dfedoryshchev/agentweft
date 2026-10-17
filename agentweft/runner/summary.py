@@ -20,6 +20,7 @@ this is the one writer of handoff.md. `orchestrate/park.py` contributes the
 """
 import json
 import re
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -529,6 +530,45 @@ def red_first(passes, held=True):
     return "not proven by a gate"
 
 
+def by_hand(passes, proof, start=""):
+    """-> the lines that say how to see the fix by hand, read from the run's
+    red proof and the gates that ran its tests: each test the red-first
+    replay showed red without the fix, with the exact command, or else the
+    red-test gate's own command. [] when the run holds no red proof shown by
+    a gate in it, or no gate kept a command that names its test."""
+    if not proof or proof.get("how") != "gate":
+        return []
+    out = []
+    step, g = replay(passes)
+    red = [t["test"] for t in (g or {}).get("tests") or []
+           if t.get("before") == "red"] if g and g["ok"] else []
+    if red and "{test}" in g["command"]:
+        out.append("- red without the fix and green with it, as the red-first"
+                   " gate on " + step + " ran them:")
+        out.extend("    " + g["command"].replace("{test}", shlex.quote(t))
+                   for t in red)
+    else:
+        for p in passes:
+            if p["step"] != proof.get("step"):
+                continue
+            for g in p["gates"]:
+                if g["gate"] == "red-test" and g["ok"] and g["command"] \
+                        and g["detail"].startswith("red") \
+                        and "{test}" not in g["command"]:
+                    out = ["- red before the fix, as the red-test gate on "
+                           + at(p) + " ran it:", "    " + g["command"]]
+                    break
+            if out:
+                break
+    if out and start:
+        files = sorted(proof.get("tests") or {})
+        out.append("- without the fix: the run started at " + start[:7]
+                   + "; the same command there, with " + ", ".join(files)
+                   + (" as it is" if len(files) == 1 else " as they are")
+                   + " now, fails")
+    return out
+
+
 def assumed(item):
     """an ASSUMED item -> one line with its labels: the choice, `why:` and
     `if wrong:`, read from the lines under the choice or, in the older
@@ -783,7 +823,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
-          spec_files=None, clock=None, held=True):
+          spec_files=None, clock=None, held=True, proof=None):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -808,6 +848,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     None for no wall line.
     `held` is False when the flow orders tests before product code and the
     run's red-proof record holds no proof (`redorder.Order`).
+    `proof` is the run's red proof (`redorder.Order.proof`), None for none.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -1006,6 +1047,12 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         if _present(b):
             out.extend("- " + role + " verified: " + handoff.said(i)
                        for i in b["verified"])
+
+    hand = [] if stopped else by_hand(every, proof, changes.get("start"))
+    if hand:
+        out.append("")
+        out.append("## see the fix by hand")
+        out.extend(hand)
 
     out.append("")
     out.append("## rulings")

@@ -2245,7 +2245,8 @@ def run_flow(unrecorded):
                               clock={"wall": since(clock),
                                      "gates": trail.gate_seconds},
                               held=not redorder.ordered(fm)
-                              or bool(run.order.skip or run.order.proof))
+                              or bool(run.order.skip or run.order.proof),
+                              proof=run.order.proof)
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],
