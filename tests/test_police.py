@@ -9,7 +9,7 @@ sys.path.insert(0, ".")
 from agentweft.flow import spec
 from agentweft.guardrails import police
 from agentweft.mcp import server
-from agentweft.runner import engine, handoff, prompts, state
+from agentweft.runner import engine, handoff, prompts, state, stops
 
 from test_stops import CLAUDE, a_flow, answer, ends, steps_of, the_folder
 
@@ -649,8 +649,12 @@ def test_police_on_finds_nothing_in_a_shipped_flow(flow, path, tmp_path,
     on = replayed(flow, path, tmp_path, monkeypatch, capsys, True, False)
     off = replayed(flow, path, tmp_path, monkeypatch, capsys, False, False)
     checked = [l["police"] for l in on["steps"] if "police" in l]
-    assert bool(checked) == bool(on["prompts"]), "a step asked and police"\
-        " never ran"
+    # a call that raised, was cut short or was refused by the provider's
+    # limit brought back no answer, so there is nothing for police to read
+    answered = [l for l in on["steps"] if l.get("cause") not in (
+        stops.EXCEPTION, stops.INTERRUPT, stops.OUTAGE)]
+    assert bool(checked) == bool(on["prompts"] and answered), \
+        "a step asked and police never ran"
     assert all(c["hits"] == 0 and c["seen"] is True for c in checked), \
         checked
     assert without_police(on) == off

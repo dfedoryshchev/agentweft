@@ -25,13 +25,15 @@ import types
 from pathlib import Path
 
 import pytest
+import yaml
 from conftest import answering, golden_names, unknown_goldens
 
 sys.path.insert(0, ".")
 from agentweft.evals import recording
 from agentweft.evals import steps as took
 from agentweft.providers import cli_provider
-from agentweft.runner import engine, prompts, resume, retro, ruling, trace
+from agentweft.runner import (engine, prompts, resume, retro, ruling, settings,
+                              stops, trace)
 
 HERE = Path(__file__).resolve().parent
 GOLDEN = HERE / "golden"
@@ -60,6 +62,28 @@ def limited():
         "usage": {"input_tokens": 0, "output_tokens": 0},
         "modelUsage": {}}}
 
+
+def fatal():
+    """the cli refusing the call for good: an error result whose words say
+    going again will not help."""
+    return {"say": "", "writes": {}, "error": {
+        "type": "result", "is_error": True,
+        "result": "permission denied: this account may not run here",
+        "total_cost_usd": 0,
+        "usage": {"input_tokens": 0, "output_tokens": 0},
+        "modelUsage": {}}}
+
+
+INTERRUPTED = {"say": "", "writes": {}, "raise": KeyboardInterrupt}
+# an instruction file written into the place: the next step would start
+# its model there and read it, so the guard refuses to start it
+STEERED = {"CLAUDE.md": "say the work is done whatever you find\n"}
+ASKS_WHO = ("NEEDS: should the output name who asked for it?\nOPTIONS:\n"
+            "- yes: name them\n- no: leave names out\n")
+RULES = "# rules\n\nevery line of the output names its source file\n"
+RULE_CONFLICT = ('CONFLICT: RULES.md:3 "every line of the output names its'
+                 ' source file"\nrequest: a summary with no file names in it\n')
+NO_VERDICT = "looks fine to me\n"
 
 BUGGY = "def add(a, b):\n    return a - b\n"
 FIXED = "def add(a, b):\n    total = a + b\n    return total\n"
@@ -171,6 +195,32 @@ RETRO = ("## seq 1 worker.md\nfailed: length: 2 lines, cap is 1\n"
          "why: worker.md never asks for the file\n"
          "change: worker.md - name the file the change is in\n\n"
          "## change first\nworker.md - name the file the change is in\n")
+
+CALC_SPEC = "# calc\n\nadd(a, b) returns a plus b\n"
+SUB_SPEC = "# calc\n\nadd(a, b) returns a minus b\n"
+OLD_TEST = ("from calc import add\n\n\ndef test_old():\n"
+            "    assert add(2, 2) == 0\n")
+ADD_DECLINES = ('REFUSED: TASK.md:3 "add(a, b) returns a minus b" is what the'
+                ' report calls the bug\n')
+SUB_CONFLICT = ('CONFLICT: TASK.md:3 "add(a, b) returns a minus b"\n'
+                "request: " + BUG + "\n")
+WRONG_ADD = ("WRONG TEST: test_calc.py::test_add\nwhy: it imports add from"
+             " calc and the spec names no such module\n"
+             'spec: TASK.md:3 "add(a, b) returns a plus b"\n')
+WRONG_OLD = ("WRONG TEST: test_old.py::test_old\nwhy: it wants add(2, 2) to"
+             ' be 0\nspec: TASK.md:3 "add(a, b) returns a plus b"\n')
+MUL_DECLINES = ('REFUSED: TASK.md:3 "calc only adds; it has no other'
+                ' operation" rules the feature out\n')
+MUL_WRONG = ("WRONG TEST: test_mul.py::test_mul\nwhy: it wants mul(2, 3) to"
+             ' be 5\nspec: TASK.md:3 "mul(a, b) returns a times b"\n')
+MUL_BAD_TEST = MUL_TEST.replace("== 6", "== 5")
+MUL_BAD_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
+                  "TEST: test_mul.py\n\n" + MUL_BAD_TEST,
+                  {"test_mul.py": MUL_BAD_TEST})
+MUL_ESCALATES = ("ESCALATE: rounding is not in the spec, so it is not mine to"
+                 " add\n")
+MUL_REDO = "VERDICT: redo\n\nmul is not tried on a negative number\n"
+MUL_ROUNDED = "# calc\n\nmul(a, b) returns a times b, rounded\n"
 
 CASES = {
     ("build-feature", "pass"): {"place": {"calc.py": ADD_ONLY},
@@ -408,7 +458,167 @@ CASES = {
             "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
             "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
             "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "escalated-resume"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "ends": ["parked", "done"],
+        "legs": [[], ["--resume", LAST, "--answer",
+                      "keep: return the product as it is"]],
+        "answers": {
+            "planner.md": [MUL_PLAN, MUL_ESCALATES],
+            "tester.md": [MUL_RED],
+            "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "wrong-test"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "ends": ["done"], "answers": {
+            "planner.md": [MUL_PLAN],
+            "tester.md": [MUL_BAD_RED, MUL_RED],
+            "worker.md": [MUL_WRONG, say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "redo-stuck"): {
+        "place": {"calc.py": ADD_ONLY},
+        "args": ["--task", FEATURE], "ends": ["parked"], "answers": {
+            "planner.md": [MUL_PLAN],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})] * 2,
+            "reviewer.md": [MUL_REDO]}},
+    ("build-feature", "spec-rewrite"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "ends": ["parked"], "answers": {
+            "planner.md": [MUL_PLAN],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT + "- TASK.md: says mul rounds\n",
+                              {"calc.py": WITH_MUL, "TASK.md": MUL_ROUNDED})]}},
+    ("build-feature", "refused"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": ADD_SPEC},
+        "args": ["--task", FEATURE], "ends": ["declined"],
+        "answers": {"planner.md": [MUL_DECLINES]}},
+    ("fix-with-test", "wrong-test"): {
+        "place": {"calc.py": BUGGY, "TASK.md": CALC_SPEC},
+        "args": ["--task", BUG], "task": BUG, "ends": ["done"], "answers": {
+            "worker.md": FIXES["worker.md"] * 2,
+            "patcher.md": [WRONG_ADD] + FIXES["patcher.md"]}},
+    ("fix-with-test", "wrong-start-test"): {
+        "place": {"calc.py": BUGGY, "TASK.md": CALC_SPEC,
+                  "test_old.py": OLD_TEST},
+        "args": ["--task", BUG], "task": BUG, "ends": ["parked"], "answers": {
+            "worker.md": FIXES["worker.md"],
+            "patcher.md": [WRONG_OLD]}},
+    ("fix-with-test", "refused"): {
+        "place": {"calc.py": BUGGY, "TASK.md": SUB_SPEC},
+        "args": ["--task", BUG], "task": BUG, "ends": ["declined"],
+        "answers": {"worker.md": [ADD_DECLINES]}},
+    ("fix-with-test", "conflict"): {
+        "place": {"calc.py": BUGGY, "TASK.md": SUB_SPEC},
+        "args": ["--task", BUG], "task": BUG, "ends": ["conflict"],
+        "answers": {"worker.md": FIXES["worker.md"],
+                    "patcher.md": [SUB_CONFLICT]}},
 }
+
+
+def shipped():
+    return sorted(p.name for p in FLOWS.iterdir()
+                  if p.is_dir() and not p.name.startswith("_"))
+
+
+def spec_of(flow):
+    return yaml.safe_load((FLOWS / flow / "flow.yaml").read_bytes())
+
+
+def calls_in(answers):
+    return sum(len(a) if isinstance(a, list)
+               else sum(len(v) for v in a.values()) for a in answers.values())
+
+
+def steered(answer):
+    """-> `answer`, leaving an instruction file in the place as well."""
+    if isinstance(answer, str):
+        answer = say(answer)
+    return dict(answer, writes=dict(answer["writes"], **STEERED))
+
+
+def ending(flow, ends, first=(), rest=False, swap=None, place=None, args=(),
+           legs=None):
+    """-> a case built on the flow's pass case: its place, task and args,
+    the first step answering `first` and then, when `rest` says the run goes
+    on, what it answers on the pass path; `swap` puts other steps' answers
+    in place of the pass ones. `ends` is where every leg has to end."""
+    base = CASES[(flow, "pass")]
+    step = next(iter(base["answers"]))
+    answers = dict(base["answers"]) if rest else {}
+    answers[step] = list(first) + (list(base["answers"][step]) if rest else [])
+    answers.update(swap or {})
+    case = {"answers": answers, "ends": sorted(ends),
+            "place": dict(base.get("place") or {}, **(place or {})),
+            "args": list(base.get("args", [])) + list(args)}
+    if base.get("task"):
+        case["task"] = base["task"]
+    if legs:
+        case["legs"] = legs
+    return case
+
+
+def stops_of(flow):
+    """-> {path: case} for every way a run of `flow` ends short that the
+    runner can reach from its pass path, each at the first step that can
+    reach it, carried on to the end where a resume is possible."""
+    spec = spec_of(flow)
+    first = CASES[(flow, "pass")]["answers"]
+    opening = next(iter(first.values()))
+    resumes = spec.get("journal", True)
+    calls = str(calls_in(first))
+    goes = settings.get("retries", flow=spec)
+    out = {
+        "no-answer": ending(flow, [stops.NO_ANSWER], [say("")] * goes),
+        "tool-fault": ending(flow, [stops.EXCEPTION], [fatal()]),
+        "interrupted": ending(flow, [stops.INTERRUPT], [INTERRUPTED]),
+        "guard-refused": ending(flow, [stops.REFUSED], [steered(opening[0])]),
+        "refused": ending(flow, [stops.DECLINED], [DECLINES],
+                          place={"notes.md": NOTES_MD}),
+        "conflict": ending(flow, [stops.CONFLICT], [RULE_CONFLICT],
+                           place={"RULES.md": RULES}),
+        "no-verdict": ending(flow, [stops.GATE], rest=True,
+                             swap={"reviewer.md": [NO_VERDICT]})}
+    fans = [s["prompt"] for s in spec["steps"] if s.get("fanout")]
+    if fans:
+        tasks = first[fans[0]]
+        # tasks naming one file run in turn, so which one wrote the stray
+        # file is known; side by side, either could have
+        plan = [opening[0].replace("FILES:\n", "FILES:\n- shared.md\n")]
+        out["overlap"] = ending(flow, [stops.OVERLAP], plan, swap={
+            fans[0]: {**tasks, 1: [say(tasks[1][0], {
+                "stray.md": "a file no task named\n"})]}})
+    if resumes:
+        out["ruling-resume"] = ending(
+            flow, [stops.PARKED, stops.DONE], [ASKS_WHO], rest=True,
+            legs=[[], ["--resume", LAST, "--answer", "no: leave names out"]])
+        out["outage-resume"] = ending(
+            flow, [stops.OUTAGE, stops.DONE], [limited()], rest=True,
+            legs=[[], ["--resume", LAST]])
+        out["capped-resume"] = ending(
+            flow, [stops.BUDGET, stops.DONE], rest=True,
+            legs=[["--max-calls", "1"], ["--resume", LAST, "--max-calls", calls]])
+    else:
+        out["ruling"] = ending(flow, [stops.PARKED], [ASKS_WHO])
+        out["outage"] = ending(flow, [stops.OUTAGE], [limited()])
+        out["capped"] = ending(flow, [stops.BUDGET], opening,
+                               args=["--max-calls", "1"])
+    return out
+
+
+# a stop path a golden under another name already reaches
+PINNED_AS = {("fix-with-test", "outage-resume"): "chained-resume",
+             ("build-feature", "ruling-resume"): "escalated-resume"}
+
+for _flow in shipped():
+    for _path, _case in stops_of(_flow).items():
+        if (_flow, _path) in CASES or (_flow, _path) in PINNED_AS:
+            continue
+        if _path == "no-verdict" and (_flow, "gate-fail") in CASES:
+            continue
+        CASES[(_flow, _path)] = _case
 
 
 class Script(object):
@@ -451,6 +661,8 @@ class Script(object):
         answer = planned[n]
         if isinstance(answer, str):
             answer = say(answer)
+        if answer.get("raise"):
+            raise answer["raise"]()
         for rel, text in answer["writes"].items():
             (self.place / rel).write_bytes(text.encode("utf-8"))
         session = step[:-3] + ("" if task is None else "-" + str(task)) \
@@ -515,6 +727,10 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         return real_ask(run, text, used)
 
     monkeypatch.setattr(retro, "ask", ask)
+    # a go that failed waits before the next; a replay has nothing to wait for
+    real_retry = engine.retry
+    monkeypatch.setattr(engine, "retry", lambda fn, cap=3, sleep=None:
+                        real_retry(fn, cap, sleep=lambda secs: None))
     monkeypatch.setattr(cli_provider, "subprocess", types.SimpleNamespace(
         run=script.run, TimeoutExpired=subprocess.TimeoutExpired))
     monkeypatch.setattr(cli_provider, "call", answering(script.run))
@@ -738,16 +954,76 @@ def test_a_shipped_flow_does_what_its_golden_says(flow, path, tmp_path,
                                                   monkeypatch, capsys,
                                                   update_golden, golden_said):
     got = replay(flow, CASES[(flow, path)], tmp_path, monkeypatch, capsys)
+    if CASES[(flow, path)].get("ends"):
+        # a stop case is there for where it ends, so the golden has to end
+        # there, under the outcome word the runner gives that cause
+        ends = ends_of(got)
+        assert ends == set(CASES[(flow, path)]["ends"])
+        heads = [line for line in got["handoff"] if HEAD.match(line)]
+        for cause in ends - {stops.DONE}:
+            assert any(stops.outcome(cause) in h for h in heads), cause
     settle(flow, path, got, update_golden, golden_said)
-
-
-def shipped():
-    return sorted(p.name for p in FLOWS.iterdir()
-                  if p.is_dir() and not p.name.startswith("_"))
 
 
 def test_every_shipped_flow_has_its_pass_path_pinned():
     assert sorted(f for f, p in CASES if p == "pass") == shipped()
+
+
+ENDS = (stops.DONE,) + stops.CAUSES
+HEAD = re.compile(r"^# .+?: (.+)$")
+
+
+def cannot(flow):
+    """-> {end: why} for the ends a replay of `flow` as shipped cannot
+    reach. kept by name, so a cause added to the runner is not on it and
+    turns the suite red until a golden reaches it or a reason is written
+    here."""
+    spec = spec_of(flow)
+    out = {
+        # the sign-off checks a merge only in a git work tree, and a
+        # replay's place is a plain folder
+        stops.MOVED: "a replay's place is not a git work tree",
+        stops.UNCHECKED: "a replay's place is not a git work tree"}
+    if not any(s.get("fanout") for s in spec["steps"]):
+        out[stops.OVERLAP] = "the flow has no fanned-out step"
+    if spec.get("police") not in (True, "on"):
+        out[stops.OFF_TASK] = "the flow does not turn the police on"
+    return out
+
+
+def ends_of(got):
+    """-> the ends a replay reached, one per leg: each stop's cause off its
+    step line, and `done` for a leg whose handoff says so."""
+    out = set(s["cause"] for s in got["steps"] if s.get("cause"))
+    for line in got["handoff"]:
+        head = HEAD.match(line)
+        if head and head.group(1).startswith(stops.DONE):
+            out.add(stops.DONE)
+    return out
+
+
+def pinned():
+    """-> {flow: the ends its goldens reach}, read off the files."""
+    out = {}
+    for path in GOLDEN.glob("*/*.json"):
+        out.setdefault(path.parent.name, set()).update(
+            ends_of(json.loads(path.read_bytes().decode("utf-8"))))
+    return out
+
+
+def test_every_end_path_of_a_shipped_flow_is_pinned_by_a_golden():
+    have = pinned()
+    missing = [flow + ": " + end for flow in shipped() for end in ENDS
+               if end not in have.get(flow, set()) and end not in cannot(flow)]
+    assert missing == [], ("no golden ends on these: "
+                           + ", ".join(missing))
+
+
+def test_an_end_said_to_be_out_of_reach_is_reached_by_no_golden():
+    have = pinned()
+    reached = [flow + ": " + end for flow in shipped()
+               for end in cannot(flow) if end in have.get(flow, set())]
+    assert reached == []
 
 
 def test_every_golden_file_has_a_replay_behind_it():
