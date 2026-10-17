@@ -384,8 +384,9 @@ entry that was there when the run started and of every entry it writes
 itself, from `--answer`, the lead's decision or a raised cap, with who wrote
 it (`answer`, `lead`, `cap`). every check that reads a ruling, and the
 handoff's rulings section, reads only the entries in that record. the
-checks that let a spec line or a start test change skip the `lead` entries:
-a lead decides inside the spec and the tests, never over them. a resume
+checks that let a spec line or a start test change, in its file or its
+result, skip the `lead` entries: a lead decides inside the spec and the
+tests, never over them. a resume
 carries the record of the run it picks up, so those entries stay the
 lead's; when that record is gone or cannot be read, no entry already in the
 file counts as a ruling on that leg, since none can be told apart.
@@ -396,9 +397,10 @@ the lead the heading and its `DECIDED:` and `why:` lines, for a raised cap the
 heading alone, and for an entry written by hand all of it. only an
 `--answer` reaches into its question, for what that question cites (the spec
 line of an `override:`, a test its quote of the spec decides, the tests of a
-test-edit park). so a lead decision
-on a question that cites a test, or quotes a spec line, lets neither change
-unless its own lines name the test or quote the line.
+test-edit park). so a lead decision on a question that cites a test, or
+quotes a spec line, says nothing about either; and since those checks skip
+the lead's entries, not even its own lines naming the test or quoting the
+line let it change.
 
 the answer of an `--answer` entry is read after the last `answered:` line,
 and only in a body that ends the way the runner ends one (`answered by <who>,

@@ -533,8 +533,9 @@ records it as a `start-tests` line in `gates.md`:
   id, with or without the folders before the file), or one that quotes in
   double quotes, three words or more, a line of a spec file as the run found
   it, in an entry that names the test, such as the answer to this stop. an
-  answer of `request:` keeps the tests and covers nothing. covered tests pass
-  as `red now, each covered by a ruling`.
+  answer of `request:` keeps the tests and covers nothing, and so does a
+  decision of the flow's lead. covered tests pass as `red now, each covered
+  by a ruling`.
 
 a place outside git has no start commit and says `not replayed`. a checkout
 that cannot be made, or a pytest that cannot start, fails the line like a
@@ -577,8 +578,10 @@ in `gates.md`:
   a new case goes names the file too), and a change that is the file's own
   (the code its tests share, a file that no longer parses or cannot be read
   back) is covered only by the answer to its question. an answer of
-  `request:` covers nothing. covered tests pass as `changed, each covered by
-  a ruling`.
+  `request:` covers nothing, and neither does the flow's lead: it decides
+  inside the tests it was given, so a decision of its that names the test
+  still leaves the edit to the operator. covered tests pass as `changed, each
+  covered by a ruling`.
 
 which files changed is read from content hashes, and what they held from the
 start commit (or the snapshot, for a file already loose), so a step that

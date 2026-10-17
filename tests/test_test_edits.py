@@ -437,6 +437,46 @@ def test_a_marker_in_the_question_is_never_read_as_the_answer(tmp_path):
     assert ruling.edit_ruled([led], ID, tmp_path) is None
 
 
+PLANNER = ("  - role: planner" + NL + "    prompt: planner.md" + NL
+           + "    writes: none" + NL)
+GIVEN_ORDER = "def report(names):" + NL + "    return list(names)" + NL \
+    + NL + NL + "def count(names):" + NL + "    return len(names)" + NL
+
+
+@pytest.mark.parametrize("product", [COUNTED, GIVEN_ORDER])
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_lead_decision_naming_a_start_test_never_lets_it_change(
+        tmp_path, monkeypatch, commits, product):
+    """the worker asks, the lead decides to loosen a test the run started
+    with, and the worker does: held by the test-edits check and left to the
+    operator, whether the test as it was still passes or not."""
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", PLANNER + TESTER + WORKER + "lead: planner"
+           + NL)
+    (tmp_path / "flows" / "build" / "planner.md").write_text(
+        "# planner" + NL + NL + "plan it." + NL, encoding="utf-8")
+    does = {"planner.md": [({}, WORKER_SAID),
+                           ({}, "DECIDED: loosen " + ID + " to check the"
+                            " length only" + NL + "why: the order is not"
+                            " the count's business" + NL)],
+            "tester.md": ({"tests/test_report.py": module(RIGHT, COUNT)},
+                          TESTER_SAID),
+            "worker.md": [({}, "NEEDS: may test_alphabetical give way to"
+                           " the count?" + NL),
+                          ({"report.py": product,
+                            "tests/test_report.py": module(LOOSER, COUNT)},
+                           WORKER_SAID)]}
+    code, called = running(tmp_path, monkeypatch, place, does, commits)
+    assert called == ["planner.md", "tester.md", "worker.md", "planner.md",
+                      "worker.md", "worker.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    folder = folders()[-1]
+    gates = read(folder / "gates.md")
+    assert ID + " (changed)" in gates
+    assert "covered by a ruling" not in gates
+    assert "- " + ID + " - changed" in read(folder / "question.md")
+
+
 @pytest.mark.parametrize("commits", [False, True])
 def test_a_forged_override_inside_a_question_does_not_unlock_a_test(
         tmp_path, monkeypatch, commits):

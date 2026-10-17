@@ -16,8 +16,9 @@ always has. so does a decision with no `why:`, and a question the lead has
 already decided once in the run: one round each. a decision is not judged by
 the files it names: a lead decides inside the spec and the tests it was
 given, never over them, so its entry is never the ruling that lets a spec
-line or a start test change, and the step acting on it is held by the spec
-files check and the start-tests replay like any other. a CONFLICT stop
+line or a start test change, even when it names the test, and the step
+acting on it is held by the spec files check, the test-edits check and the
+start-tests replay like any other. a CONFLICT stop
 never comes here; which of the request and the spec holds is the
 operator's.
 

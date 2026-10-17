@@ -387,8 +387,9 @@ class Run(object):
         return kept.read()
 
     def spec_rulings(self):
-        """-> the rulings that can let a spec line or a start test change:
-        every one on record but the lead's, which decides inside them."""
+        """-> the rulings that can let a spec line change, or a start test
+        change in its file or its result: every one on record but the
+        lead's, which decides inside them."""
         kept = getattr(self, "kept", None)
         if kept is None:
             return self.decided()
@@ -592,12 +593,13 @@ class Run(object):
         """-> (the line for the record when a test file the run started with
         changed, else None; (why, question) when it changed in a way no
         ruling covers and this is the step's `last` go, else None). a step
-        with a go left fails like a gate and goes back."""
+        with a go left fails like a gate and goes back. the lead's decisions
+        are not read: one that names the test does not let it change."""
         start = getattr(self, "start", None)
         found = testedits.changes(start)
         if not found:
             return None, None
-        decided = self.decided()
+        decided = self.spec_rulings()
         record = getattr(self, "record", None)
         runs = [r for r in ((record.run, record.resumes) if record is not None
                             else ()) if r]

@@ -844,7 +844,8 @@ on it changes, not by the files it names: one that cites `TASK.md:3` or a
 test and changes nothing stands. a lead decides inside the spec and the
 tests, never over them, so its entry never counts as the ruling that lets a
 spec line or a start test change: when the step acting on it rewrites or
-removes a spec line, or turns a test green at the start red, the run stops
+removes a spec line, edits a test the run started with (even one the
+decision names), or turns a test green at the start red, the run stops
 there for you, the way it would with no decision. a question gets one round
 with the lead, so
 the same `NEEDS:` asked again after the lead decided it parks too. the
