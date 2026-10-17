@@ -130,28 +130,32 @@ def pins(start, place, files):
     return out
 
 
-def asked(line, trail):
+def asked(line, trail, place=None):
     """whether `line` parked on the question its step's own answer asked,
-    and not on one the runner wrote for it."""
+    and not on one the runner wrote for it. `place` is where the run worked,
+    which a cited line is read from."""
     if not line.get("file") or trail is None:
         return False
     try:
         output = (Path(trail) / line["file"]).read_text(encoding="utf-8")
     except OSError:
         return False
-    said = ruling.asked_of(output, trail)
+    # a park line is only written for a spec change request the step's
+    # prompt allowed, so the verdict alone says it was asked
+    said = ruling.asked_of(output, place or trail, ruling.verdict(output),
+                           (ruling.SPEC_CHANGE,))
     return (said is not None and said[0] == ruling.ASKED
             and (line.get("why") or "").startswith(said[1]))
 
 
-def outcome(stopped, record, trail=None):
+def outcome(stopped, record, trail=None, place=None):
     """-> the run's one outcome word, read off the cause its record names.
     a decline ends the run with no stop reason, so the last line's cause is
     read whether or not there is one."""
     lines = record if stopped else record[-1:]
     last = next((l for l in reversed(lines) if l.get("cause")), None)
     if last is not None:
-        if last["cause"] == stops.PARKED and not asked(last, trail):
+        if last["cause"] == stops.PARKED and not asked(last, trail, place):
             return UNASKED
         return stops.outcome(last["cause"])
     if not stopped:
@@ -184,8 +188,10 @@ def axes(kind, word, start, end):
     red_now = sorted(c for c, ok in end.items() if not ok)
     fixed = [c for c in red_at_start if end.get(c)]
     # a case the run made vanish, by breaking its import or skipping it, is
-    # a guard that no longer holds, not one that held
-    regressed = sorted(c for c, ok in start.items() if ok and not end.get(c))
+    # a guard that no longer holds, not one that held, and a red case gone
+    # is not one the run fixed
+    regressed = sorted(c for c, ok in start.items()
+                       if c not in end or (ok and not end[c]))
     broken = [c for c in red_now if c.startswith("::")]
     finished = word.startswith(stops.DONE)
     if kind == PROBE:

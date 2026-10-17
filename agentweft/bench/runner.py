@@ -87,7 +87,7 @@ def one(flow, spec, provider, t, attempt, start, mutate=False):
         new = scorer.added(t["repo"], place)
         pinned = scorer.pins(t["repo"], place, new)
         killed = mutants.score(t["repo"], place) if mutate else None
-        word = scorer.outcome(stopped, record, trail)
+        word = scorer.outcome(stopped, record, trail, place)
     row = {"task": t["name"], "kind": t["kind"], "attempt": attempt}
     row.update(scorer.axes(t["kind"], word, start, end))
     money = budget.money() if hasattr(budget, "money") else {}

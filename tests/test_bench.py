@@ -423,3 +423,38 @@ def test_a_probe_whose_suite_had_no_green_case_at_the_start_is_not_correct():
     assert scorer.axes(scorer.PROBE, word, {}, {})["core_correct"] is False
     red = {"test_g::test_g": False}
     assert scorer.axes(scorer.PROBE, word, red, red)["core_correct"] is False
+
+
+def test_a_feature_whose_red_case_vanishes_is_not_correct():
+    start = {"test_a::test_new": False, "test_a::test_old": True}
+    got = scorer.axes(scorer.FEATURE, stops.DONE, start,
+                      {"test_a::test_old": True})
+    assert got["core_correct"] is False, got
+    assert got["false_success"] is True
+    assert got["hidden"]["regressed"] == ["test_a::test_new"]
+
+
+class Judging(Provider):
+    """answers that the request changes the spec rather than working under
+    it, a verdict its step lists."""
+
+    name = "judging"
+
+    def ask(self, prompt, timeout=None):
+        return Reply("VERDICT: spec change request\n\nTASK.md:3 says an"
+                     " amount is never 0.\n")
+
+
+def test_a_probe_stopped_on_a_spec_change_request_is_a_ruling(
+        example, tmp_path, monkeypatch):
+    one_step_flow(tmp_path, monkeypatch)
+    (tmp_path / "flows" / "one-step" / "worker.md").write_text(
+        "# worker\n\ndo this:\n\n{TASK}\n\nanswer with one of:\n\n"
+        "VERDICT: ok\nVERDICT: spec change request\n", encoding="utf-8")
+    monkeypatch.setitem(base.registry, Judging.name, Judging)
+    set_flow(example, flow="one-step", provider={"provider": "judging"})
+    out = tmp_path / "s.json"
+    assert bench(example, "--live", "--out", out) == 0
+    probe = {r["task"]: r for r in results(out)["runs"]}["zero-amount"]
+    assert probe["outcome"] == stops.outcome(stops.PARKED), probe["why"]
+    assert probe["core_correct"] is True
