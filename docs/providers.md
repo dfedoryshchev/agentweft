@@ -178,7 +178,9 @@ flow's `tiers:`, then whatever the provider would have used anyway. a tier from
 from the step or the flow does not, as above. a resumed run keeps the models it
 was started with and refuses a different `--model-for`. every step's line in
 `steps.jsonl` says what was asked for, where, and whether the provider could
-act on it (`docs/journal.md`).
+act on it (`docs/journal.md`). `python run.py step` takes `--model-for` and
+`--effort-for` the same way, so one step can be tried on another model or
+level without a copy of the flow.
 
 ## how hard the model thinks
 

@@ -80,6 +80,8 @@ def cmd_help():
   python run.py spend            what the last runs cost
   python run.py provider         is each configured provider usable
   python run.py step <flow> <role-or-step> [--workdir <dir>]
+                       [--model-for <role>=<model>,...]
+                       [--effort-for <role>=<level>,...]
                                   one step, nothing written down
   python run.py workflow          the phase list, and where it stops
   python run.py vocab             flow words against phase words, counted
@@ -173,7 +175,7 @@ def cmd_step():
     from agentweft.flow.spec import step_id, steps_named
     from agentweft.roles import resolver
 
-    from . import prompts
+    from . import models, prompts
     from .config import config
     from .engine import Run, load_env
     from .handoff import Handoff
@@ -193,9 +195,19 @@ def cmd_step():
             return 1
         workdir = sys.argv[i + 1]
     spec = config(flow)
+    try:
+        chosen = models.parse(models.pairs(sys.argv))
+        efforts = models.efforts(sys.argv)
+        wrong = models.unknown(chosen, spec) or models.unknown(efforts, spec)
+        if wrong:
+            raise ValueError(wrong)
+    except ValueError as e:
+        print(str(e))
+        return 1
     by_role = resolver.resolve(spec.raw, prompts.flow_path(flow),
                                spec.promises.as_prompt())
-    run = Run(flow, spec, by_role, task=asked, workdir=workdir)
+    run = Run(flow, spec, by_role, task=asked, workdir=workdir,
+              chosen=chosen, efforts=efforts)
     named = steps_named(spec.steps, name)
     step = step_id(named[0]) if named else name + ".md"
     previous = ""

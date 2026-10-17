@@ -304,3 +304,42 @@ def test_a_resume_asking_for_other_models_is_refused(
 def test_the_help_names_the_flag(capsys):
     cli.cmd_help()
     assert "--model-for" in capsys.readouterr().out
+
+
+# one step on its own
+
+
+def one_step(tmp_path, monkeypatch, *flags):
+    a_flow(tmp_path, monkeypatch, "two", ["worker", "reviewer"])
+    monkeypatch.setattr(sys, "argv", ["run.py", "step", "two", "reviewer"]
+                        + list(flags))
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True, raising=False)
+    monkeypatch.setattr("os.isatty", lambda fd: True)
+
+
+def test_one_step_runs_on_the_model_and_level_the_run_flags_name(
+        tmp_path, monkeypatch, fake_cli, tiers):
+    one_step(tmp_path, monkeypatch, "--model-for", "reviewer=low",
+             "--effort-for", "reviewer=high")
+    cli_ = fake_cli(answer("VERDICT: ok\n\nfine\n"))
+    assert cli.cmd_step() == 0
+    [call] = cli_.calls
+    argv = call["argv"]
+    assert argv[argv.index("--model") + 1] == "small-id"
+    assert argv[argv.index("--effort") + 1] == "high"
+
+
+@pytest.mark.parametrize("flags,said", [
+    (["--model-for", "revewer=low"],
+     "no role called revewer in two. there is: worker, reviewer"),
+    (["--effort-for", "reviewer=hard"],
+     "reviewer should be one of low, medium, high, xhigh, max"),
+    (["--model-for", "reviewer="], "reviewer has no model"),
+])
+def test_one_step_refuses_a_flag_it_cannot_use_before_anything_is_asked(
+        tmp_path, monkeypatch, fake_cli, capsys, flags, said):
+    one_step(tmp_path, monkeypatch, *flags)
+    cli_ = fake_cli(answer("should not be asked\n"))
+    assert cli.cmd_step() == 1
+    assert cli_.calls == []
+    assert said in capsys.readouterr().out
