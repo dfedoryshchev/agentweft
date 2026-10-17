@@ -56,8 +56,11 @@ class Group(object):
             self.unreported += 1
             return
         parts = step.get("cost_parts")
-        if parts is None and step.get("cost_from") is None:
+        came = step.get("cost_from")
+        if parts is None and came is None:
             parts = {"provider": step["cost"]}
+        elif parts is None and len(came) == 1:
+            parts = {list(came)[0]: step["cost"]}
         if parts is None:
             self.unsplit += Decimal(str(step["cost"]))
             return

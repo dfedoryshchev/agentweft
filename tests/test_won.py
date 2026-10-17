@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 import types
+from decimal import Decimal
 
 sys.path.insert(0, ".")
 from agentweft.runner import engine, handoff, spend, stops, summary, trace
@@ -284,3 +285,18 @@ def test_the_shipped_fix_flows_patcher_delivered_and_its_worker_proved(
     assert [(l["step"], l["outcome"], l["won"])
             for l in lines_of(folder)] == [
         ("worker.md", "ok", "proved"), ("patcher.md", "ok", "delivered")]
+
+
+def test_an_old_line_of_one_kind_is_not_called_mixed():
+    g = spend.Group()
+    g.add("r1", {"step": "a", "tokens": {"counted": False}, "cost": 0.5,
+                 "priced": None, "cost_from": {"transcript": 2}})
+    assert (g.table_priced, g.unsplit) == (Decimal("0.5"), 0)
+
+
+def test_an_old_line_of_two_kinds_is_still_mixed():
+    g = spend.Group()
+    g.add("r1", {"step": "a", "tokens": {"counted": False}, "cost": 0.5,
+                 "priced": None,
+                 "cost_from": {"provider": 1, "estimate": 1}})
+    assert (g.table_priced, g.estimated, g.unsplit) == (0, 0, Decimal("0.5"))
