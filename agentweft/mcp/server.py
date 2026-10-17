@@ -139,9 +139,6 @@ def run_flow(name, task=None):
             f.write(task.encode("utf-8"))
         argv = argv + ["--task-file", held]
     try:
-        # this used to hand back whatever run.py had printed by the time the
-        # pipe buffer filled, which for the digest is the planner and nothing
-        # else. the client saw a plan and called it the answer.
         r = child(argv, timeout=900)
     finally:
         if held:

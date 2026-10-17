@@ -279,9 +279,6 @@ def test_money_is_shown_to_a_hundredth_of_a_cent(usd, shown):
     assert prices.money(usd) == shown
 
 
-# the run's total
-
-
 def test_a_counted_run_is_priced_and_the_provider_figure_kept_beside_it(table):
     b = Budget(prices=table)
     b.charge("p", reply("m-small", cost=0.005, input_tokens=1000,

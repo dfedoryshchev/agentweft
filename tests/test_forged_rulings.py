@@ -202,9 +202,6 @@ def test_a_removed_ruling_fails_the_step_and_comes_back(tmp_path):
         "keep three retries"]
 
 
-# the hook
-
-
 def hook(tmp_path, tool, given):
     data = {"tool_name": tool, "tool_input": given, "cwd": str(tmp_path),
             "session_id": "s"}

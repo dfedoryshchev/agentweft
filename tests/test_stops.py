@@ -87,9 +87,6 @@ def steps_of(folder):
     return [json.loads(l) for l in text.split("\n") if l.strip()]
 
 
-# the stop the row was written for
-
-
 def test_an_interrupt_in_a_fanout_is_written_down_with_spend_and_a_why(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "wide",
