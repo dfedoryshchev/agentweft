@@ -3,6 +3,7 @@ import socket
 import subprocess
 import sys
 import types
+from pathlib import Path
 
 import httpx
 import pytest
@@ -12,20 +13,62 @@ from agentweft.providers import cli_provider
 from agentweft.runner import handoff, state
 
 
-def pytest_configure(config):
-    config.addinivalue_line(
-        "markers", "network: the test may open connections beyond loopback")
+GOLDEN = Path(__file__).resolve().parent / "golden"
+REWRITES = pytest.StashKey[list]()
 
 
 def pytest_addoption(parser):
-    parser.addoption("--update-golden", action="store_true", default=False,
-                     help="write tests/golden/ from what the flows do now "
-                          "instead of comparing against it")
+    parser.addoption("--update-golden", action="append", nargs="?", const="",
+                     default=None, metavar="FLOW/PATH",
+                     help="write the goldens in tests/golden/ that do not "
+                          "exist yet; an existing one is rewritten only when "
+                          "named, as flow/path (repeat it or join with ,)")
+
+
+def golden_names(given):
+    """-> None when --update-golden was not passed, else the goldens it
+    names, empty for a bare --update-golden."""
+    if given is None:
+        return None
+    return frozenset(n.strip() for v in given for n in v.split(",")
+                     if n.strip())
+
+
+def unknown_goldens(names, folder):
+    return sorted(n for n in names if not (folder / (n + ".json")).is_file())
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "network: the test may open connections beyond loopback")
+    config.stash[REWRITES] = []
+    unknown = unknown_goldens(
+        golden_names(config.getoption("--update-golden")) or frozenset(),
+        GOLDEN)
+    # a path given after a bare --update-golden is read as its value
+    if unknown:
+        raise pytest.UsageError(
+            "--update-golden names no golden in tests/golden/: "
+            + ", ".join(unknown) + ". a missing golden is written without "
+            "a name; put a test path before --update-golden")
+
+
+def pytest_terminal_summary(terminalreporter, config):
+    said = config.stash.get(REWRITES, [])
+    if said:
+        terminalreporter.section("goldens")
+        for line in said:
+            terminalreporter.write_line(line)
 
 
 @pytest.fixture
 def update_golden(request):
-    return request.config.getoption("--update-golden")
+    return golden_names(request.config.getoption("--update-golden"))
+
+
+@pytest.fixture
+def golden_said(request):
+    return request.config.stash[REWRITES]
 
 
 def refuse(what):

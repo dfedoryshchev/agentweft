@@ -9,9 +9,11 @@ step and go, so without them an edited prompt replays the old answer and
 passes. times, run ids, seconds and the temp place are taken out
 first, so the same run on another day, machine or OS reads the same.
 
-`python -m pytest tests/test_golden.py --update-golden` rewrites the files.
+`python -m pytest tests/test_golden.py --update-golden` writes the missing
+files; `--update-golden flow/path` rewrites the existing one it names.
 """
 import datetime
+import difflib
 import json
 import os
 import re
@@ -23,7 +25,7 @@ import types
 from pathlib import Path
 
 import pytest
-from conftest import answering
+from conftest import answering, golden_names, unknown_goldens
 
 sys.path.insert(0, ".")
 from agentweft.evals import recording
@@ -696,13 +698,45 @@ def compare(flow, path, got, update):
     assert dump(got).split("\n") == dump(want).split("\n")
 
 
+def changed(was, now):
+    return [l for l in difflib.unified_diff(
+        was.split("\n"), now.split("\n"), lineterm="", n=0)
+        if not l.startswith(("---", "+++", "@@"))]
+
+
+def settle(flow, path, got, names, said):
+    """compares when `names` is None, else writes a missing golden and
+    rewrites an existing one only when `names` holds flow/path."""
+    target = golden_file(flow, path)
+    name = flow + "/" + path
+    if names is None:
+        return compare(flow, path, got, False)
+    if not target.exists():
+        compare(flow, path, got, True)
+        said.append("wrote " + name)
+        return
+    lines = changed(dump(json.loads(target.read_bytes().decode("utf-8"))),
+                    dump(got))
+    if name in names:
+        if not lines:
+            said.append(name + " already matches")
+            return
+        compare(flow, path, got, True)
+        said.extend(["rewrote " + name] + lines)
+        return
+    if lines:
+        pytest.fail("\n".join(lines + [
+            name + " differs from its golden, left as it was. "
+            "--update-golden " + name + " rewrites it"]), pytrace=False)
+
+
 @pytest.mark.parametrize("flow,path", sorted(CASES),
                          ids=[f + "/" + p for f, p in sorted(CASES)])
 def test_a_shipped_flow_does_what_its_golden_says(flow, path, tmp_path,
                                                   monkeypatch, capsys,
-                                                  update_golden):
+                                                  update_golden, golden_said):
     got = replay(flow, CASES[(flow, path)], tmp_path, monkeypatch, capsys)
-    compare(flow, path, got, update_golden)
+    settle(flow, path, got, update_golden, golden_said)
 
 
 def shipped():
@@ -800,3 +834,103 @@ def test_the_normaliser_takes_out_what_differs_between_two_runs(tmp_path):
     assert normalise(one, tmp_path)["chain"] == {
         "prev": "<hash>", "files": {"red-proof.json": None}}
     assert normalise(one, tmp_path)["why"] == "<tmp>/place/a.py at <time>"
+
+
+def a_golden(tmp_path, monkeypatch, value):
+    monkeypatch.setattr(sys.modules[__name__], "GOLDEN", tmp_path / "golden")
+    target = golden_file("some-flow", "pass")
+    if value is not None:
+        target.parent.mkdir(parents=True)
+        target.write_bytes(dump(value).encode("utf-8"))
+    return target
+
+
+def test_an_existing_golden_that_differs_is_left_as_it_was_unless_named(
+        tmp_path, monkeypatch):
+    target = a_golden(tmp_path, monkeypatch, {"exit": 0, "path": ["1 a"]})
+    before = target.read_bytes()
+    said = []
+    with pytest.raises(pytest.fail.Exception) as failed:
+        settle("some-flow", "pass", {"exit": 1, "path": ["1 a"]},
+               frozenset(), said)
+    assert target.read_bytes() == before
+    assert '-  "exit": 0,' in str(failed.value)
+    assert '+  "exit": 1,' in str(failed.value)
+    assert '"path"' not in str(failed.value)
+    assert "--update-golden some-flow/pass" in str(failed.value)
+    assert said == []
+
+
+def test_a_golden_checked_out_with_crlf_line_ends_matches_its_value(
+        tmp_path, monkeypatch):
+    target = a_golden(tmp_path, monkeypatch, None)
+    target.parent.mkdir(parents=True)
+    value = {"exit": 0, "path": ["1 a"]}
+    target.write_bytes(dump(value).replace("\n", "\r\n").encode("utf-8"))
+    before = target.read_bytes()
+    said = []
+    settle("some-flow", "pass", value, frozenset(), said)
+    settle("some-flow", "pass", value, frozenset({"some-flow/pass"}), said)
+    assert target.read_bytes() == before
+    assert said == ["some-flow/pass already matches"]
+
+
+def test_a_golden_that_is_named_is_rewritten_and_its_change_said(
+        tmp_path, monkeypatch):
+    target = a_golden(tmp_path, monkeypatch, {"exit": 0, "path": ["1 a"]})
+    said = []
+    settle("some-flow", "pass", {"exit": 1, "path": ["1 a"]},
+           frozenset({"some-flow/pass", "other/pass"}), said)
+    assert target.read_bytes() == dump({"exit": 1, "path": ["1 a"]}).encode()
+    assert said[0] == "rewrote some-flow/pass"
+    assert '-  "exit": 0,' in said
+    assert '+  "exit": 1,' in said
+
+
+def test_a_named_golden_that_already_matches_is_left_as_it_was(
+        tmp_path, monkeypatch):
+    target = a_golden(tmp_path, monkeypatch, {"exit": 0})
+    before = target.read_bytes()
+    said = []
+    settle("some-flow", "pass", {"exit": 0},
+           frozenset({"some-flow/pass"}), said)
+    assert target.read_bytes() == before
+    assert said == ["some-flow/pass already matches"]
+
+
+def test_a_missing_golden_is_written_without_being_named(
+        tmp_path, monkeypatch):
+    target = a_golden(tmp_path, monkeypatch, None)
+    said = []
+    settle("some-flow", "pass", {"exit": 0}, frozenset(), said)
+    assert target.read_bytes() == dump({"exit": 0}).encode()
+    assert said == ["wrote some-flow/pass"]
+
+
+def test_without_the_option_a_golden_is_only_compared(tmp_path, monkeypatch):
+    target = a_golden(tmp_path, monkeypatch, {"exit": 0})
+    before = target.read_bytes()
+    with pytest.raises(AssertionError):
+        settle("some-flow", "pass", {"exit": 1}, None, [])
+    assert target.read_bytes() == before
+
+
+@pytest.mark.parametrize("given,names", [
+    (None, None),
+    ([""], frozenset()),
+    (["a/pass"], frozenset({"a/pass"})),
+    (["a/pass,b/redo", "", "c/pass"], frozenset({"a/pass", "b/redo",
+                                                  "c/pass"})),
+    ([" a/pass , b/redo,"], frozenset({"a/pass", "b/redo"})),
+], ids=["absent", "bare", "one", "repeated-and-comma", "spaced"])
+def test_the_update_option_reads_as_the_goldens_it_names(given, names):
+    assert golden_names(given) == names
+
+
+def test_a_name_with_no_golden_behind_it_is_refused(tmp_path):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "a" / "pass.json").write_text("{}\n")
+    assert unknown_goldens(frozenset({"a/pass"}), tmp_path) == []
+    assert unknown_goldens(frozenset({"a/pass", "a/redo",
+                                      "tests/test_golden.py"}),
+                           tmp_path) == ["a/redo", "tests/test_golden.py"]
