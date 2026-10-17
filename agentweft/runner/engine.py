@@ -1175,10 +1175,12 @@ def to_lead(run, step, question, given, where):
             run.produced[head] = was
     forged = getattr(run, "forged", {}).pop(head, "")
     if forged:
+        out.meta["passed"] = forged
         return out, "", lead.passed(question, forged)
     decided, why, wrong = lead.judged(out.output, head, run.workdir,
                                       run.start)
     if wrong:
+        out.meta["passed"] = wrong
         return out, "", lead.passed(question, wrong)
     run.led[asked] = decided
     run.rule(*lead.recorded(head, step, where, question, decided, why),
@@ -1187,13 +1189,20 @@ def to_lead(run, step, question, given, where):
 
 
 def lead_pass(trail, run, out, asker, decided):
-    """write the lead's go at a question into the trail, as its own line."""
+    """write the lead's go at a question into the trail, as its own line:
+    decided when its decision is on record, overruled when it answered
+    DECIDED and the runner did not hold it, else escalated."""
     entry = trail.open(run.lead, run.taken(),
                        run.by_step.get(run.lead, run.provider), asker,
                        output=out.output)
     entry.handoff = out.block
-    trail.close(entry, "decided" if decided else "escalated",
-                to=asker if decided else None)
+    entry.decided = bool(decided)
+    if decided:
+        trail.close(entry, "decided", to=asker)
+        return
+    said = lead.read(out.output)[0] is not None
+    trail.close(entry, "overruled" if said else "escalated",
+                why=out.meta.get("passed") or None)
 
 
 def rides(step, out):
@@ -1254,6 +1263,18 @@ def held_after_stop(run, left, folder):
     return dict(left, forged=said)
 
 
+def since(began):
+    return round(time.time() - began, 3)
+
+
+def clocked(gate, text):
+    """-> what `gate` said of text, with the seconds it took."""
+    began = time.time()
+    r = gate(text)
+    r.seconds = since(began)
+    return r
+
+
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
 
@@ -1270,7 +1291,8 @@ def check_step(run, route, step, out, run_dir=None):
     work.
     """
     held = getattr(run, "held", lambda g, s: g.run)
-    results = [held(g, step)(without(out.output)) for g in run.gates_for(step)]
+    results = [clocked(held(g, step), without(out.output))
+               for g in run.gates_for(step)]
     order = getattr(run, "order", None)
     if order is not None:
         moved = order.after(step, run.writes_for(step))
@@ -1285,8 +1307,10 @@ def check_step(run, route, step, out, run_dir=None):
         results.insert(0, Result(rulings.GATE, False, forged))
     guarded = getattr(run, "spec_held", None)
     if guarded is not None:
+        began = time.time()
         line, spec_asks = guarded(step, all(r.ok for r in results))
         if line is not None:
+            line.seconds = since(began)
             results.append(line)
         if spec_asks:
             out.meta["spec_ruling"] = spec_asks
@@ -1303,8 +1327,10 @@ def check_step(run, route, step, out, run_dir=None):
             out.meta["test_ruling"] = test_asks
     replayed = getattr(run, "replayed", None)
     if replayed is not None and all(r.ok for r in results):
+        began = time.time()
         line, held = replayed(step)
         if line is not None:
+            line.seconds = since(began)
             results.append(line)
         if held:
             out.meta["conflict"] = held
@@ -1368,6 +1394,7 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
         entry.gates = out.meta.get("gates", []) if output is not None else []
         entry.ungated = out.meta.get("ungated") if output is not None else None
         entry.handoff = out.block if output is not None else None
+        entry.proved = output is not None and bool(out.meta.get("proved"))
         kept.close(entry, outcome, why=why, to=to, cause=cause)
 
     while step:
@@ -1484,7 +1511,8 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             continue
         if not failed:
             run.order.passed(step)
-            run.order.proven(step, out.meta["gates"], out.output)
+            out.meta["proved"] = run.order.proven(step, out.meta["gates"],
+                                                  out.output)
         if failed or blocked:
             why = gate_why(out.meta["gates"]) if failed else blocked
             note("gate failed", why, stops.GATE, output=out.output)
@@ -1719,6 +1747,7 @@ def run_flow():
                           "runs/" + pick_up + "/steps.jsonl: " + broke
                           + ", and --force was given."))
     started = datetime.datetime.now()
+    clock = time.time()
     run_id = new_run_id(flow, started)
 
     def undo(code):
@@ -1987,6 +2016,9 @@ def run_flow():
     step = todo[0]
     used = run.provider
     wrote = set()
+    # the place as it was before the step running now, by content, to tell a
+    # stop that left the step's work in the tree from one that left none
+    before = {}
     # what each step was handed, for a step a wrong test sends the work back to
     given = {}
     # a run parked before a step is carried on by the person who read why, so
@@ -2008,10 +2040,14 @@ def run_flow():
             list(earlier) + ran)))
         record.data[chain.FIELD] = trail.head()
         record.save(run.budget)
+        began = time.time()
         left = leftred.check(run.start, fm, leftred.chosen(fm, sys.argv)) \
             if stopped else None
         if left and left["red"]:
             run.suite_baseline()
+        if left is not None:
+            trail.timed("left-red", stopped["at"], since(began),
+                        not left["red"])
         known = run.baseline if run.baseline and "tests" in run.baseline \
             else None
         left = baseline.label(left, known)
@@ -2031,7 +2067,9 @@ def run_flow():
                               worktree=worktrees.lines(made, run_id),
                               headline=worktrees.headline(made),
                               signed=signed,
-                              spec_files=fm.get("spec_files"))
+                              spec_files=fm.get("spec_files"),
+                              clock={"wall": since(clock),
+                                     "gates": trail.gate_seconds})
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],
@@ -2064,6 +2102,9 @@ def run_flow():
         if entry is None and step:
             entry = trail.open(step, run.taken(), used, came_from,
                                fanned=step == run.fan)
+        if entry is not None and entry.step in before:
+            entry.changed = before[entry.step] != snapshot.fingerprint(
+                run.workdir, own=state.RUNS)
         if entry is not None:
             trail.close(entry, outcome, why=why, cause=cause)
         folder.mkdir(parents=True, exist_ok=True)
@@ -2164,6 +2205,7 @@ def run_flow():
     switched = False
     try:
         while step:
+            before.clear()
             if step in run.cut:
                 step = route.next(step, EMPTY)
                 continue
@@ -2243,6 +2285,7 @@ def run_flow():
             handed = out
             given[step] = handed
             run.look()
+            before[step] = snapshot.fingerprint(run.workdir, own=state.RUNS)
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
@@ -2438,6 +2481,7 @@ def run_flow():
                             + step)
             run.order.passed(step)
             if run.order.proven(step, entry.gates, out.output):
+                entry.proved = True
                 run.order.save(folder)
                 chain.wrote(folder)
 
@@ -2536,6 +2580,9 @@ def run_flow():
                             index="PARKED  " + flow + "  at " + step,
                             waiting=waiting, told=why)
             sent_back = out.verdict == "redo" and nxt
+            if step in before:
+                entry.changed = before[step] != snapshot.fingerprint(
+                    run.workdir, own=state.RUNS)
             trail.close(entry, "redo" if sent_back else "ok", to=nxt)
             record.mark(step, manifest.REDO if sent_back else manifest.PASSED,
                         run_id, out.output)

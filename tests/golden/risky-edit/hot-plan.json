@@ -68,11 +68,12 @@
     "- won stopped: 1 pass, <secs>s, $0.0000, cost not stated on 1",
     "- won none: 1 pass, <secs>s, $0.0100",
     "- total: 2 passes, <secs>s, $0.0100, cost not stated on 1",
+    "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
     "- steps: planner.md <secs>s -> worker.md <secs>s",
     "- spend: 1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)",
     "- cause: parked at worker.md",
-    "- record: runs/risky-edit-<run>/steps.jsonl, gates.md, steps/",
+    "- record: runs/risky-edit-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 2 lines, head <hash> (python run.py verify risky-edit-<run>)",
     "to carry on",
     "  python run.py risky-edit --resume risky-edit-<run> --force"

@@ -23,20 +23,22 @@ class ProjectGate(Gate):
     def run(self, text):
         said = self.opts.get("name")
         if not said:
-            return self.fail("no name. the command comes from project.yml")
+            return self.broke("no name. the command comes from project.yml")
         if not project.path().exists():
-            return self.fail("no project.yml at " + str(project.path())
+            return self.broke("no project.yml at " + str(project.path())
                              + ", so there is no gate " + str(said))
         try:
             argv = project.read().gate(said)
         except ValueError as e:
-            return self.fail(str(e))
+            return self.broke(str(e))
         except yaml.YAMLError as e:
-            return self.fail("project.yml: " + str(e))
+            return self.broke("project.yml: " + str(e))
         if not argv:
-            return self.fail("project.yml has no gate " + str(said))
+            return self.broke("project.yml has no gate " + str(said))
         inner = CommandGate(command=argv, **dict(
             (k, v) for k, v in self.opts.items() if k in PASSED_ON))
         inner.where = self.where
         r = inner.run(text)
-        return (self.ok if r.ok else self.fail)(str(said) + ": " + r.detail)
+        out = (self.ok if r.ok else self.fail)(str(said) + ": " + r.detail)
+        out.broke = r.broke
+        return out

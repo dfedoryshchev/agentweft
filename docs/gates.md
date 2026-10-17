@@ -87,6 +87,15 @@ under it, and its line in `steps.jsonl` says `"ungated": true` (see
 had no gates or never got as far as the check, and the file could not say
 which.
 
+a fail that is the gate's own says nothing of the step's work, and its
+entry in `steps.jsonl` carries `"broke": true`: a command not on PATH, a
+gate set up wrong (no command, a `red:` that is neither true nor false, a
+`project.yml` that is not there or has no such gate), a red-first replay
+that could not build its checkout or start the test runner, a start-tests
+replay that could not run on the start state. it still fails the step, and
+the step's `won` is not `caught` for it. each gate's seconds go to
+`gates.jsonl`, a line per gate run.
+
 a gate reads the answer without its HANDOFF block (`journal.md`, "what each
 step hands over"): the block is the step's account of the work, and a length
 cap or a pattern is about the work.

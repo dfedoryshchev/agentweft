@@ -16,6 +16,10 @@ budget plan (spent, planned, buffer, risk), null when there is no plan and
 on the retro's line, which the plan never held.
 every line ends on `chain`, which ties it to the line before it
 (`runner/chain.py`).
+
+each gate a step ran is a line of its own in `gates.jsonl`: the step's seq,
+the step, the gate, whether it passed and its seconds. a step's seconds are
+its model's time only, so the gates' seconds sit beside them.
 """
 import datetime
 import json
@@ -26,6 +30,7 @@ from . import chain
 from .task import FILE as TASK
 
 FILE = "steps.jsonl"
+GATES = "gates.jsonl"
 FOLDER = "steps"
 
 
@@ -242,7 +247,8 @@ class Entry(object):
     """a line that has a number and a file but not yet an outcome."""
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
-                 "fanned", "gates", "ungated", "handoff", "written", "took")
+                 "fanned", "gates", "ungated", "handoff", "written", "took",
+                 "proved", "changed", "decided")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -257,6 +263,12 @@ class Entry(object):
         self.ungated = None
         self.handoff = None
         self.took = None
+        # what the record says of the pass, for `won`: the run's red proof
+        # was written by it, the place differs from before it ran (None when
+        # not read), a lead decision of it is on record
+        self.proved = False
+        self.changed = None
+        self.decided = False
 
 
 class Trail(object):
@@ -273,6 +285,7 @@ class Trail(object):
         self.unclosed = []
         self.closed = []
         self.held = []
+        self.gate_seconds = 0.0
         self.task_file = TASK if (folder / TASK).is_file() else None
         self.lines = chain.raw(folder)
         chain.kept(folder)
@@ -327,6 +340,20 @@ class Trail(object):
                 text = json.dumps(done.written, ensure_ascii=False)
                 f.write(text + "\n")
                 self.lines.append(text)
+        for done, _ in ready:
+            for g in done.gates:
+                self.timed(g.gate, done.step, g.seconds, g.ok, done.seq)
+
+    def timed(self, gate, step, seconds, ok, seq=None):
+        """write one gate's seconds to gates.jsonl. a gate the runner did not
+        time has no line."""
+        if seconds is None:
+            return
+        self.gate_seconds = self.gate_seconds + seconds
+        self.folder.mkdir(parents=True, exist_ok=True)
+        with open(self.folder / GATES, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"seq": seq, "step": step, "gate": gate,
+                                "ok": bool(ok), "seconds": seconds}) + "\n")
 
     def still_open(self):
         """-> the entry opened and not yet given an outcome, or None."""
@@ -341,6 +368,8 @@ def gate_line(g):
         out["tests"] = g.tests
     if getattr(g, "skipped", False):
         out["skipped"] = True
+    if getattr(g, "broke", False):
+        out["broke"] = True
     return out
 
 
@@ -380,44 +409,45 @@ def shell_trap_recoveries(attempts):
     return sum(found) if found else None
 
 
-WON = ("caught", "stopped", "proved", "decided", "none")
-CHECKS = ("command", "coverage")
+WON = ("caught", "stopped", "delivered", "proved", "decided", "none")
 
 
-def proof(g):
-    """whether a passing gate entry is a program's word, not a model's."""
-    if not g.get("ok") or g.get("skipped"):
-        return False
-    detail = g.get("detail") or ""
-    if g.get("gate") == "red-test":
-        return "nothing was run" not in detail
-    if g.get("gate") == "red-first":
-        return not detail.startswith("not replayed")
-    return g.get("gate") in CHECKS
+def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
+        decided=False):
+    """-> what a pass bought, one of WON, from its line and what the record
+    says of it, never from what a gate or the model wrote.
 
-
-def won(outcome, cause=None, gates=(), to=None):
-    """-> what a pass bought, one of WON, from its line's outcome, cause,
-    gate entries and where the run went next.
-
-    a stop for the budget, an outage, a crash or no answer bought nothing; a
-    redo that only switched the cause step on was the runner's choice, not a
+    caught: a gate failed on the step's work, or the step sent the work
+    back. a gate that broke (it could not run) caught nothing. proved: the
+    run's red proof was written by this pass. a stop the step made is
+    stopped when the place is as the step found it, and delivered when the
+    step's work is in it. a pass that went on is delivered too when its work
+    is in the place and a gate that ran, and did not break, passed it.
+    decided: the lead's decision is on record. a stop
+    for the budget, an outage, a crash or no answer bought nothing; a redo
+    that only switched the cause step on was the runner's choice, not a
     defect the step found.
     """
     from .investigate import STEP
     from .stops import CONFLICT, DECLINED, PARKED, REFUSED
 
-    gates = list(gates or ())
-    if outcome == "gate failed" or any(not g.get("ok") for g in gates):
+    failed = [g for g in gates or () if not g.get("ok")]
+    if any(not g.get("broke") for g in failed):
+        return "caught"
+    if outcome == "gate failed" and not failed:
         return "caught"
     if outcome == "redo" and to and to != STEP:
         return "caught"
-    if cause in (CONFLICT, REFUSED, DECLINED, PARKED):
-        return "stopped"
-    if outcome == "decided":
-        return "decided"
-    if outcome == "ok" and any(proof(g) for g in gates):
+    if proved:
         return "proved"
+    if cause in (CONFLICT, REFUSED, DECLINED, PARKED):
+        return "delivered" if changed else "stopped"
+    if decided:
+        return "decided"
+    if outcome == "ok" and changed and any(
+            g.get("ok") and not g.get("skipped") and not g.get("broke")
+            for g in gates or ()):
+        return "delivered"
     return "none"
 
 
@@ -468,7 +498,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "gates": gates,
            "ungated": entry.ungated,
            "outcome": outcome,
-           "won": won(outcome, cause, gates, to),
+           "won": won(outcome, cause, gates, to, entry.proved, entry.changed,
+                      entry.decided),
            "cause": cause,
            "why": why,
            "file": entry.file,

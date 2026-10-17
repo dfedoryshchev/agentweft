@@ -46,7 +46,7 @@ class RedTestGate(Gate):
         marker = self.opts.get("marker", "FAILS:")
         want_red = truth(self.opts.get("red", True))
         if want_red is None:
-            return self.fail("red: " + repr(self.opts.get("red"))
+            return self.broke("red: " + repr(self.opts.get("red"))
                              + " is not true or false")
         if not (text or "").strip():
             return self.fail("the step answered nothing")
@@ -115,8 +115,8 @@ class RedTestGate(Gate):
                 r = self.judged(argv, there, True, said,
                                 {"PYTHONPATH": os.pathsep.join(path)})
         except ValueError as e:
-            return self.fail("could not set out the start to run it on: "
-                             + str(e))
+            return self.broke("could not set out the start to run it on: "
+                              + str(e))
         r.detail = r.detail + " (on the start commit, without the product" \
             " code written since)"
         return r
@@ -129,7 +129,7 @@ class RedTestGate(Gate):
                                    cwd=str(place), env=env,
                                    timeout=int(self.opts.get("timeout", 120)))
         except FileNotFoundError:
-            return self.fail("not on PATH: " + argv[0])
+            return self.broke("not on PATH: " + argv[0])
         except subprocess.TimeoutExpired:
             return self.fail("timed out")
 

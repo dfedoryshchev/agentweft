@@ -84,11 +84,12 @@
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 0 passes, <secs>s, $0.0000",
     "- total: 3 passes, <secs>s, $0.0300",
+    "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
     "- steps: worker.md <secs>s -> patcher.md <secs>s -> patcher.md <secs>s",
     "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
     "- cause: gate failed at patcher.md",
-    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.md, steps/",
+    "- record: runs/fix-with-test-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 3 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force"
@@ -96,6 +97,7 @@
   "files": [
     "fix-with-test-<run>/brief.md",
     "fix-with-test-<run>/budget-plan.md",
+    "fix-with-test-<run>/gates.jsonl",
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/handoff.md",
     "fix-with-test-<run>/manifest.json",

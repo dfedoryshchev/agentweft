@@ -76,11 +76,12 @@
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won none: 6 passes, <secs>s, $0.0800",
     "- total: 7 passes, <secs>s, $0.0900",
+    "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
     "- steps: planner.md <secs>s -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
     "- spend: 9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)",
     "- done",
-    "- record: runs/weekly-digest-<run>/steps.jsonl, gates.md, steps/",
+    "- record: runs/weekly-digest-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 7 lines, head <hash> (python run.py verify weekly-digest-<run>)"
   ],
   "files": [
@@ -89,6 +90,7 @@
     "last-run-weekly-digest-<key>.json",
     "weekly-digest-<day>-1.md",
     "weekly-digest-<run>/budget-plan.md",
+    "weekly-digest-<run>/gates.jsonl",
     "weekly-digest-<run>/gates.md",
     "weekly-digest-<run>/handoff.md",
     "weekly-digest-<run>/manifest.json",

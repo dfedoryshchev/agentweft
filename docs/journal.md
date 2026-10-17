@@ -271,29 +271,45 @@ comes after them on the line of a step that carried its session on:
   `tests` key. a test added after the red was first shown also carries
   `"added": "after green"` and `"counts": "coverage"` or `"pin"`, and an
   allowed pin `"pin_ok": "<role>: <reason>"`.
+- each gate a step ran also has a line of its own in
+  `runs/<run-id>/gates.jsonl`, with its seconds, which the step's `seconds`
+  never hold:
+
+      {"seq": 3, "step": "worker.md", "gate": "command", "ok": true,
+       "seconds": 4.212}
+
+  `seq` is the step's line. the check of the tests the run left red when it
+  stops is a line too, `left-red`, with no `seq`.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `gate failed`,
   `failed`, `crashed`, or for a question that went to the flow's lead,
-  `asked` on the step that asked and `decided` or `escalated` on the lead's
-  go; a line written before the cap was checked ahead of
+  `asked` on the step that asked and `decided`, `overruled` (it answered
+  `DECIDED:` and the runner did not hold it, `why` says what stopped it) or
+  `escalated` on the lead's go; a line written before the cap was checked ahead of
   each step can say `over budget`. `cause` is the run's stop cause from the
   list above, null when it went on. `why` is the reason the run had in hand
   when it stopped there, null when it went on.
-- `won` is what the pass bought, set by the runner from the outcome, the
-  cause, the gates and `to`, never by the step:
-  - `caught`: a gate of its failed, or its verdict sent the work back (a
-    redo that only switched the cause step on is not one).
+- `won` is what the pass bought, set by the runner from the line and the
+  run's record, never from what a gate or the step wrote:
+  - `caught`: a gate failed on its work, or its verdict sent the work back
+    (a redo that only switched the cause step on is not one). a gate that
+    could not run (a command not on PATH, a gate set up wrong, a replay that
+    could not build its checkout) carries `"broke": true` on its entry and
+    caught nothing.
+  - `proved`: the run's red proof (`red-proof.json`) was written by this
+    pass. a gate that passed is not enough, and a proof carried in with
+    `--continue` names no pass.
   - `stopped`: it ended the run on a conflict, a refusal or a park for a
     ruling or a person (`cause` `conflict`, `refused`, `declined` or
-    `parked`); a park for the budget or an outage, a crash and no answer
-    bought nothing.
-  - `proved`: it went on, and a gate it carries passed on a program's word: a
-    `command` or `coverage` gate, a `red-test` gate that ran its command, a
-    `red-first` gate that replayed something. a gate line marked
-    `"skipped": true` (`--skip`, `--skip-tests`) ran nothing and is never
-    one.
-  - `decided`: the lead's go that decided a question (`outcome` `decided`),
-    the one that records the ruling; the pass that asked is `none`, it runs
-    again.
+    `parked`), with the place as it found it; a park for the budget or an
+    outage, a crash and no answer bought nothing.
+  - `delivered`: the same stop, with its work in the place: the place's
+    content (in git, the commit and every file that differs from it) is not
+    what it was before the step ran. a pass that went on (`ok`) is
+    `delivered` too when its work is in the place and a gate that ran
+    passed it: one not `skipped` and not `broke`, so a program checked the
+    work.
+  - `decided`: the lead's go whose decision is on record in `decisions.md`;
+    the pass that asked is `none`, it runs again.
   - `none`: anything else, an all-pass judge among them.
   the retro in `handoff.md` sums seconds and money by it.
 - a flow with `retro: true` can end on one more line, step `retro.md`,
@@ -529,7 +545,14 @@ four sections are written by the runner alone:
   on the step line); then one line per send-back with the reviewer's reason;
   then the money and seconds summed by what each pass won, `won none` always
   among them, and the total, which is the sum of the steps. a pass whose cost
-  was not stated is counted and named, never added in as nothing.
+  was not stated is counted and named, never added in as nothing. last, the
+  run's wall beside its steps, its gates and the runner: `- wall 41.0s:
+  steps 29.3s, gates 9.2s, runner 2.5s`. a step's seconds are its model's
+  time; a gate's are in `gates.jsonl`; the runner's are the rest (snapshots,
+  commits, the end-of-run checks that are not gates), so the three add up to
+  the wall of this run, not of the runs it picked up. fanned tasks that ran
+  at once can sum past the wall; the line then says the steps are summed and
+  leaves the runner out.
 
     ## changed
     - calc.py +1 -1 (committed), lines 2
@@ -553,6 +576,7 @@ four sections are written by the runner alone:
     - won caught: 1 pass, 4.1s, $0.2500
     - won none: 3 passes, 25.2s, $0.7500
     - total: 4 passes, 29.3s, $1.0000
+    - wall 41.0s: steps 29.3s, gates 9.2s, runner 2.5s
 
     # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 
@@ -586,7 +610,7 @@ four sections are written by the runner alone:
     - steps: worker.md 12.0s -> patcher.md 15.1s
     - spend: 2 calls, ...
     - done
-    - record: runs/fix-with-test-2026-10-13-091402/steps.jsonl, gates.md, steps/
+    - record: runs/fix-with-test-2026-10-13-091402/steps.jsonl, gates.jsonl, gates.md, steps/
     - chain: 2 lines, head 3f1c9a07be52d4e8 (python run.py verify fix-with-test-2026-10-13-091402)
 
 a run that picks another up (`--resume`) folds the earlier run's passes in:
@@ -811,8 +835,10 @@ worker.md: numbers`, with the question and the why under it), and the step
 that asked runs again with it at the very end of its prompt. in
 `steps.jsonl` the asking step's line is `asked` with `to` naming the lead,
 and the lead's go is a line of its own, `decided`. the run parks for you
-instead, the lead's go then `escalated`, when the lead answers `ESCALATE:
-<why>` or gives no `why:` line. a decision is judged by what the step acting
+instead when the lead answers `ESCALATE: <why>` or neither line (its go
+`escalated`), or answers `DECIDED:` with no `why:` line or after changing
+`decisions.md` itself (its go `overruled`, with why on the line). a
+decision is judged by what the step acting
 on it changes, not by the files it names: one that cites `TASK.md:3` or a
 test and changes nothing stands. a lead decides inside the spec and the
 tests, never over them, so its entry never counts as the ruling that lets a

@@ -611,6 +611,15 @@ STAMPS = (
     # pytest's own run time, in the output tail a failed command gate quotes
     (re.compile(r"\b((?:passed|failed|errors?|skipped) in )\d+(\.\d+)?s\b"),
      r"\1<secs>s"),
+    # the retro's "- wall 4.2s: steps 3.1s, gates 0.6s, runner 0.5s"; fanned
+    # tasks that ran at once can sum past the wall, a matter of timing only
+    (re.compile(r"(?<=^- wall )\d+(\.\d+)?s: steps \d+(\.\d+)?s, gates"
+                r" \d+(\.\d+)?s, runner \d+(\.\d+)?s$", re.M),
+     "<secs>s: steps <secs>s, gates <secs>s, runner <secs>s"),
+    (re.compile(r"(?<=^- wall )\d+(\.\d+)?s: steps \d+(\.\d+)?s summed, past"
+                r" the wall because fanned tasks ran side by side, gates"
+                r" \d+(\.\d+)?s$", re.M),
+     "<secs>s: steps <secs>s, gates <secs>s, runner <secs>s"),
     # the handoff's chain head hashes lines that carry the time
     (re.compile(r"(?<=lines, head )[0-9a-f]{16}"), "<hash>"),
 )

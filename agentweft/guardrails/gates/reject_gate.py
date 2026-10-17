@@ -25,20 +25,20 @@ class RejectGate(Gate):
 
     def run(self, text):
         if self.opts:
-            return self.fail("unknown option " + ", ".join(self.opts)
+            return self.broke("unknown option " + ", ".join(self.opts)
                              + ". the rules come from project.yml")
         if not project.path().exists():
-            return self.fail("no project.yml at " + str(project.path())
+            return self.broke("no project.yml at " + str(project.path())
                              + ", so there are no rules")
         try:
             proj = project.read()
         except ValueError as e:
-            return self.fail(str(e))
+            return self.broke(str(e))
         except yaml.YAMLError as e:
-            return self.fail("project.yml: " + str(e))
+            return self.broke("project.yml: " + str(e))
         rules = proj.rejects()
         if not rules:
-            return self.fail("no immediate_reject rule in project.yml has a "
+            return self.broke("no immediate_reject rule in project.yml has a "
                              "pattern, so nothing can be checked")
 
         hit = [rule for rule, pattern in rules

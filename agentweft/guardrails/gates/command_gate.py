@@ -47,10 +47,10 @@ class CommandGate(Gate):
 
     def run(self, text):
         if not self.opts.get("command"):
-            return self.fail("no command")
+            return self.broke("no command")
         cmd, why = self.pick(text)
         if cmd is None:
-            return self.fail(why)
+            return self.broke(why)
         want = int(self.opts.get("expect", 0))
 
         tmp = Path(tempfile.mkdtemp()) / "output.md"
@@ -65,7 +65,7 @@ class CommandGate(Gate):
                                    env=env,
                                    timeout=int(self.opts.get("timeout", 60)))
         except FileNotFoundError:
-            return self.fail("not on PATH: " + argv[0])
+            return self.broke("not on PATH: " + argv[0])
         except subprocess.TimeoutExpired:
             return self.fail("timed out")
 

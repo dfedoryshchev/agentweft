@@ -247,10 +247,15 @@ the provider never answered for, priced from its transcript or estimated;
 `table-priced` and `estimated` apart, so a table's figure is never read as
 the provider's.
 
-each step's line also says what it won (`caught`, `stopped`, `proved`,
-`decided` or `none`, `journal.md`), and the retro in `handoff.md` puts every
-step's money and seconds against it, with the total spent on `won none`: the
-first place to look for a step to cut.
+each step's line also says what it won (`caught`, `stopped`, `delivered`,
+`proved`, `decided` or `none`, `journal.md`), read off the run's record (the
+red proof, the place before and after the step, `decisions.md`, the gates'
+entries), never off what a gate or the model wrote. the retro in
+`handoff.md` puts every step's money and seconds against it, with the total
+spent on `won none`: the first place to look for a step to cut. its last
+line puts the run's wall beside the seconds of the steps, of the gates
+(`gates.jsonl`, one line per gate run) and of the runner, which is the rest,
+so the three add up to the wall.
 
 ## the promises
 

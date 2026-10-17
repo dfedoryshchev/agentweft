@@ -193,7 +193,7 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
             tests_in(start, files, base, timeout, now=False)
         if before is None:
             return Replay(Result(NAME, False, "could not run the start tests"
-                                 " on the start state: " + why))
+                                 " on the start state: " + why, broke=True))
         green["found"] = before
         green["passed"] = [t for t, (s, _) in before.items()
                            if s == "PASSED"]

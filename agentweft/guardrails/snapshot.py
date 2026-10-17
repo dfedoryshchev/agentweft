@@ -373,6 +373,39 @@ def changed(before, now):
                   if before.get(rel) != now.get(rel))
 
 
+def fingerprint(place, own=None):
+    """-> one sha256 of what the place holds now, by content: in git, the
+    commit it is on and every file that differs from it or is untracked;
+    outside git, every file a snapshot would read. `own` is the runner's
+    folder, left out. the same before and after a step that left the place
+    as it found it."""
+    place = Path(place).resolve()
+    skip = Path(own).resolve() if own is not None else None
+    top = _git(place, "rev-parse", "--show-toplevel")
+    if top is None:
+        root, head = place, ""
+        names = Snapshot(place, why="read only for its files").files()
+    else:
+        root = Path(top.strip()).resolve()
+        head = (_git(place, "rev-parse", "--verify", "--quiet", "HEAD")
+                or "").strip()
+        listed = _git(place, "diff", "--name-only", "-z", "HEAD", "--", ".") \
+            if head else _git(place, "ls-files", "-z", "--full-name",
+                              "--cached", "--", ".")
+        untracked = _git(place, "ls-files", "-z", "--full-name", "--others",
+                         "--exclude-standard", "--", ".")
+        names = sorted(set(n for n in ((listed or "") + "\0"
+                                       + (untracked or "")).split("\0") if n))
+    parts = ["at " + head]
+    for rel in names:
+        path = root / rel
+        if skip is not None and (path == skip or skip in path.parents):
+            continue
+        data = _read(path)
+        parts.append(rel + " " + (_sha(data) if data is not None else "gone"))
+    return _sha("\n".join(parts).encode("utf-8"))
+
+
 def take(place, own=None):
     """-> a Snapshot of `place` now. it never raises: a place it cannot read
     gives one whose `why` says so."""

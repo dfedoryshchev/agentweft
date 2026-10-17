@@ -62,11 +62,12 @@
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won none: 3 passes, <secs>s, $0.0300",
     "- total: 4 passes, <secs>s, $0.0400",
+    "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
     "- steps: worker.md <secs>s -> reviewer.md <secs>s (sent back) -> worker.md <secs>s -> reviewer.md <secs>s",
     "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)",
     "- done",
-    "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.md, steps/",
+    "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 4 lines, head <hash> (python run.py verify summarise-and-check-<run>)"
   ],
   "files": [

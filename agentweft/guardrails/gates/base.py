@@ -27,19 +27,25 @@ class Result(object):
     not decide: neither a pass nor a fail, and carried to the record so a
     passing gate never hides them. `tests` is what a gate that ran tests one
     by one saw of each, None for the rest. `skipped` is a pass the run gave a
-    gate it did not run, which proves nothing.
+    gate it did not run, which proves nothing. `broke` is a fail that is the
+    gate's own: it could not run, or could not build what it runs on, so it
+    says nothing of the step's work. `seconds` is how long it took, None
+    until the runner times it.
     """
 
-    __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped")
+    __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
+                 "broke", "seconds")
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
-                 skipped=False):
+                 skipped=False, broke=False):
         self.gate = gate
         self.ok = ok
         self.detail = detail
         self.unproven = list(unproven)
         self.tests = tests
         self.skipped = skipped
+        self.broke = broke
+        self.seconds = None
 
     def __bool__(self):
         return self.ok
@@ -70,6 +76,10 @@ class Gate(object):
 
     def fail(self, detail="", unproven=()):
         return Result(self.name, False, detail, unproven)
+
+    def broke(self, detail):
+        """a fail the gate caused, not the step: see Result."""
+        return Result(self.name, False, detail, broke=True)
 
 
 registry = {}

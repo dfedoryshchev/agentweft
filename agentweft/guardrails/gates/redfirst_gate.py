@@ -362,14 +362,14 @@ class RedFirstGate(Gate):
             return self.fail("the step answered nothing")
         cmd = self.opts.get("command")
         if not isinstance(cmd, (list, tuple)) or "{test}" not in cmd:
-            return self.fail("command has to be a list with {test} in it")
+            return self.broke("command has to be a list with {test} in it")
         results = self.opts.get("results")
         if results is not None and results not in FORMATS:
-            return self.fail("results has to be one of: " + ", ".join(FORMATS)
-                             + ", not " + str(results))
+            return self.broke("results has to be one of: "
+                              + ", ".join(FORMATS) + ", not " + str(results))
         if results and not any(RESULTS in str(a) for a in cmd):
-            return self.fail("results: " + str(results) + " needs " + RESULTS
-                             + " in the command, where the runner writes it")
+            return self.broke("results: " + str(results) + " needs " + RESULTS
+                              + " in the command, where the runner writes it")
         start = self.start
         if start is None:
             return self.ok("not replayed - the run took no start snapshot")
@@ -391,7 +391,7 @@ class RedFirstGate(Gate):
                 before = self.side(cmd, ids, there, lambda out: fix_adds(
                     out, there, start.place))
         except ValueError as e:
-            return self.fail("could not replay without the fix: " + str(e))
+            return self.broke("could not replay without the fix: " + str(e))
         after = self.side(cmd, ids, start.place)
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
@@ -429,8 +429,10 @@ class RedFirstGate(Gate):
                                  " nothing about the fix")
             after = self.one(cmd, f, start.place)[0]
             if after != "green":
-                return self.fail(f + ", " + came + ", does not pass with the"
-                                 " fix: " + after)
+                r = self.fail(f + ", " + came + ", does not pass with the"
+                              " fix: " + after)
+                r.broke = unstarted(after)
+                return r
         return self.ok(came + ", green with the fix: "
                        + ", ".join(sorted(carried)))
 
@@ -573,10 +575,12 @@ class RedFirstGate(Gate):
                                  " now", record)
             if t["before"] not in ("red", "green"):
                 return self.done(False, t["test"] + " did not run without the"
-                                 " fix: " + t["before"], record)
+                                 " fix: " + t["before"], record,
+                                 unstarted(t["before"]))
             if t["after"] != "green":
                 return self.done(False, t["test"] + " does not pass with the"
-                                 " fix: " + t["after"], record)
+                                 " fix: " + t["after"], record,
+                                 unstarted(t["after"]))
         red = [t["test"] for t in record if t["before"] == "red"]
         green = [t["test"] for t in record if t["before"] == "green"]
         for n in named:
@@ -606,7 +610,13 @@ class RedFirstGate(Gate):
             detail = detail + "; " + r.detail
         return self.done(True, detail + added_after(record), record)
 
-    def done(self, ok, detail, record):
+    def done(self, ok, detail, record, broke=False):
         r = self.ok(detail) if ok else self.fail(detail)
         r.tests = record
+        r.broke = broke
         return r
+
+
+def unstarted(said):
+    """whether `one` said the test runner never started."""
+    return said == "not on PATH" or said.startswith("could not start")

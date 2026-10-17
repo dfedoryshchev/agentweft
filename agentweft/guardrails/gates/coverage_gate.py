@@ -30,29 +30,29 @@ class CoverageGate(Gate):
     def run(self, text):
         odd = [k for k in self.opts if k not in KNOWN]
         if odd:
-            return self.fail("unknown option " + ", ".join(odd)
+            return self.broke("unknown option " + ", ".join(odd)
                              + ". the number comes from project.yml")
         floor = self.opts.get("floor", "overall")
         if floor not in project.COVERAGE_KNOWN:
-            return self.fail("no such coverage number " + str(floor)
+            return self.broke("no such coverage number " + str(floor)
                              + ". there is: " + ", ".join(project.COVERAGE_KNOWN))
         paths = self.opts.get("paths") or []
         paths = [paths] if isinstance(paths, str) else list(paths)
         if floor == "critical" and not paths:
-            return self.fail("critical needs paths, the report does not know "
+            return self.broke("critical needs paths, the report does not know "
                              "which files are critical")
 
         if not project.path().exists():
-            return self.fail("no project.yml at " + str(project.path())
+            return self.broke("no project.yml at " + str(project.path())
                              + ", so there is no floor")
         try:
             want = project.read().coverage(floor)
         except ValueError as e:
-            return self.fail(str(e))
+            return self.broke(str(e))
         except yaml.YAMLError as e:
-            return self.fail("project.yml: " + str(e))
+            return self.broke("project.yml: " + str(e))
         if want is None:
-            return self.fail("project.yml has no coverage: " + floor)
+            return self.broke("project.yml has no coverage: " + floor)
 
         name = self.opts.get("report", "coverage.xml")
         where = Path(self.where) if self.where else Path(".")

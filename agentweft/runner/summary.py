@@ -723,6 +723,23 @@ def bought(passes):
     return out + ["- total: " + _tally(passes)]
 
 
+def wall(passes, clock):
+    """-> the line that puts this run's wall beside the seconds of its
+    steps and its gates, and the runner's own, which is the rest: the three
+    add up to the wall, unless fanned tasks ran at once."""
+    steps = round(sum(p["seconds"] or 0 for p in passes), 1)
+    gates = round(clock["gates"], 1)
+    whole = round(clock["wall"], 1)
+    # 0.3 - 0.1 - 0.2 rounds to -0.0, which prints as "-0.0"
+    rest = round(whole - steps - gates, 1) + 0.0
+    if rest < 0:
+        return ("- wall " + str(whole) + "s: steps " + str(steps)
+                + "s summed, past the wall because fanned tasks ran side by"
+                " side, gates " + str(gates) + "s")
+    return ("- wall " + str(whole) + "s: steps " + str(steps) + "s, gates "
+            + str(gates) + "s, runner " + str(rest) + "s")
+
+
 def changed_lines(changes):
     """the changed section: each file with its line counts, how it stands
     and the lines it covers, then what git status and git log print."""
@@ -754,7 +771,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
-          spec_files=None):
+          spec_files=None, clock=None):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -775,6 +792,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     line at the top, both empty for a run in the tree it was started from.
     `signed` is what the sign-off said of the change (`signoff.Signed`).
     `spec_files` is the flow's rule for the spec files.
+    `clock` is {"wall", "gates"}, the seconds of this run and of its gates,
+    None for no wall line.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -1030,6 +1049,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("")
     out.append("## retro")
     out.extend(retro(every))
+    if clock:
+        out.append(wall(passes, clock))
 
     out.append("")
     out.append("## run")
@@ -1042,7 +1063,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("- spend: " + (spend or "0 calls, 0 tokens"))
     out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))
-    out.append("- record: runs/" + run_id + "/steps.jsonl, gates.md, steps/")
+    out.append("- record: runs/" + run_id + "/steps.jsonl, gates.jsonl,"
+               " gates.md, steps/")
     if chained and chained.get("head"):
         out.append("- chain: " + str(chained["lines"]) + " lines, head "
                    + chained["head"][:16] + " (python run.py verify " + run_id

@@ -38,9 +38,12 @@ def a_gate(gate, ok, detail):
                                  unproven=None)
 
 
-def won(outcome, gates=(), cause=None, to=None, step="reviewer.md"):
+def won(outcome, gates=(), cause=None, to=None, step="reviewer.md",
+        **record):
     entry = trace.Entry(1, step, [], Said(), None, None, False)
     entry.gates = list(gates)
+    for k, v in record.items():
+        setattr(entry, k, v)
     return trace.line(entry, outcome, cause=cause, to=to).get("won")
 
 
@@ -71,20 +74,24 @@ def test_a_failed_gate_caught_and_a_conflict_stopped():
     assert won("crashed", cause="exception") == "none"
 
 
-def test_a_program_check_that_passed_proved_and_a_claim_did_not():
+def test_the_pass_that_wrote_the_red_proof_proved():
     assert won("ok", [a_gate("red-test", True, "red, exit 1")],
-               step="worker.md") == "proved"
-    assert won("ok", [a_gate("command", True, "exit 0")]) == "proved"
+               step="tester.md", proved=True) == "proved"
     assert won("ok", [a_gate("red-test", True,
                              "red, as claimed - nothing was run")],
                step="worker.md") == "none"
-    assert won("ok", [a_gate("red-first", True,
-                             "not replayed: no new test")]) == "none"
 
 
-def test_a_lead_that_decided_won_a_decision():
-    assert won("decided", to="worker.md", step="lead.md") == "decided"
+def test_a_lead_whose_decision_is_on_record_decided():
+    assert won("decided", to="worker.md", step="lead.md",
+               decided=True) == "decided"
     assert won("escalated", step="lead.md") == "none"
+
+
+def test_a_stop_that_left_the_steps_work_in_the_tree_delivered():
+    assert won("parked", cause="parked", changed=True) == "delivered"
+    assert won("conflict", cause="conflict", changed=False) == "stopped"
+    assert won("parked", cause="budget", changed=True) == "none"
 
 
 def test_the_retro_puts_money_and_seconds_against_what_each_step_won():
@@ -163,3 +170,116 @@ def test_the_handoff_never_says_a_skipped_red_first_was_shown():
         {"gate": "red-first", "ok": True, "skipped": True,
          "detail": "not run - skipped: no replay here", "command": None}]}
     assert summary.red_first([p]) == "not proven by a gate"
+
+
+def lines_of(folder):
+    return [json.loads(l) for l in (folder / trace.FILE).read_text(
+        encoding="utf-8").split("\n") if l.strip()]
+
+
+def test_a_gate_that_could_not_run_caught_nothing():
+    from agentweft.guardrails.gates.command_gate import CommandGate
+
+    gate = CommandGate(command=["agentweft-no-such-program"], expect=0)
+    could_not = gate.run("did it\n")
+    assert not could_not.ok
+    assert won("gate failed", [could_not], to="worker.md") == "none"
+    assert won("gate failed", [could_not, a_gate("length", False, "9 lines")],
+               to="worker.md") == "caught"
+
+
+def test_a_step_that_changed_the_tree_and_then_parked_did_not_stop(
+        tmp_path, monkeypatch):
+    import test_lead
+
+    escalate = "ESCALATE: not mine to say" + test_lead.NL
+    _, _, code, folder, _ = test_lead.run_it(
+        tmp_path, monkeypatch, "build-feature",
+        {"planner.md": [test_lead.PLAN, escalate],
+         "tester.md": [test_lead.TESTER], "worker.md": [test_lead.NEEDS]},
+        {"tester.md": [("tests/test_mul.py", test_lead.TEST)],
+         "worker.md": [("calc.py", test_lead.AFTER)]})
+    assert code == stops.EXIT_STOP
+    [asked] = [l for l in lines_of(folder) if l["outcome"] == "parked"]
+    assert asked["step"] == "worker.md"
+    assert asked["won"] == "delivered"
+
+
+def test_a_step_that_parked_with_the_tree_as_it_found_it_stopped(
+        tmp_path, monkeypatch):
+    import test_lead
+
+    escalate = "ESCALATE: not mine to say" + test_lead.NL
+    _, _, code, folder, _ = test_lead.run_it(
+        tmp_path, monkeypatch, "build-feature",
+        {"planner.md": [test_lead.PLAN, escalate],
+         "tester.md": [test_lead.TESTER], "worker.md": [test_lead.NEEDS]},
+        {"tester.md": [("tests/test_mul.py", test_lead.TEST)]})
+    assert code == stops.EXIT_STOP
+    [asked] = [l for l in lines_of(folder) if l["outcome"] == "parked"]
+    assert (asked["step"], asked["won"]) == ("worker.md", "stopped")
+
+
+def test_a_lead_decision_that_held_is_decided_and_the_red_proof_names_who_proved(
+        tmp_path, monkeypatch):
+    import test_lead
+
+    _, _, code, folder, _ = test_lead.build(tmp_path, monkeypatch,
+                                            [test_lead.DECIDED])
+    assert code == stops.EXIT_OK
+    proof = json.loads((folder / "red-proof.json").read_text(
+        encoding="utf-8"))["proof"]
+    assert proof["step"] == "tester.md"
+    assert [(l["step"], l["outcome"], l["won"]) for l in lines_of(folder)] == [
+        ("planner.md", "ok", "none"), ("tester.md", "ok", "proved"),
+        ("worker.md", "asked", "none"), ("planner.md", "decided", "decided"),
+        ("worker.md", "ok", "delivered"), ("reviewer.md", "ok", "none")]
+
+
+def test_a_decided_the_runner_did_not_hold_is_neither_decided_nor_escalated(
+        tmp_path, monkeypatch):
+    import test_lead
+
+    _, _, code, folder, _ = test_lead.build(tmp_path, monkeypatch, [
+        "DECIDED: keep: return the product as it is" + test_lead.NL])
+    assert code == stops.EXIT_STOP
+    lead_line = [l for l in lines_of(folder) if l["step"] == "planner.md"][-1]
+    assert lead_line["outcome"] == "overruled"
+    assert "no why: line" in lead_line["why"]
+    assert lead_line["won"] == "none"
+
+
+def test_a_won_from_the_words_alone_is_none():
+    assert won("decided", to="worker.md", step="lead.md") == "none"
+    assert won("ok", [a_gate("command", True, "exit 0")]) == "none"
+    assert won("ok", [a_gate("red-test", True, "red, exit 1")],
+               step="worker.md") == "none"
+
+
+def test_a_pass_whose_work_is_in_the_place_and_a_gate_passed_delivered():
+    command = {"gate": "command", "ok": True, "detail": "exit 0"}
+    assert trace.won("ok", None, [command], "next.md",
+                     changed=True) == "delivered"
+    assert trace.won("ok", None, [command], "next.md",
+                     changed=False) == "none"
+    assert trace.won("ok", None, [command], "next.md") == "none"
+    assert trace.won("ok", None, [], "next.md", changed=True) == "none"
+    assert trace.won("ok", None, [dict(command, skipped=True)], "next.md",
+                     changed=True) == "none"
+    assert trace.won("ok", None, [dict(command, broke=True)], "next.md",
+                     changed=True) == "none"
+    assert trace.won("ok", None, [command], "next.md", proved=True,
+                     changed=True) == "proved"
+
+
+def test_the_shipped_fix_flows_patcher_delivered_and_its_worker_proved(
+        tmp_path, monkeypatch, capsys):
+    import test_golden
+
+    test_golden.replay("fix-with-test",
+                       test_golden.CASES[("fix-with-test", "pass")],
+                       tmp_path, monkeypatch, capsys)
+    [folder] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
+    assert [(l["step"], l["outcome"], l["won"])
+            for l in lines_of(folder)] == [
+        ("worker.md", "ok", "proved"), ("patcher.md", "ok", "delivered")]
