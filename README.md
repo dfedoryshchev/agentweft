@@ -34,7 +34,8 @@ pointed at a task instead of a copy of the flow per task:
 the text goes where the flow wrote `{TASK}` (`docs/flows.md`). `fix-with-test`
 writes a failing test for a bug, then the patch. `build-feature` writes the
 failing tests for a spec, then the code, with the whole suite run before its
-one reviewer sees it.
+two reviewers see it: one reads it against the spec, one runs what the tests
+do not.
 
 which model each role runs on is a switch on the run, not an edit to the flow:
 

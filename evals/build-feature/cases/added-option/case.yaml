@@ -39,6 +39,11 @@ provider:
         VERDICT: ok
 
         - roster.py: fields takes a delimiter, the comma by default
+    reviewer-runs.md:
+      - |
+        VERDICT: ok
+
+        - roster.py: fields takes a delimiter, the comma by default
 expect:
   invariants: all
   outcome: done
@@ -48,5 +53,6 @@ expect:
       - planner.md ok -> tester.md
       - tester.md ok -> worker.md  PASS red-test
       - worker.md ok -> reviewer.md  PASS command  PASS red-first
-      - reviewer.md ok
-  calls: 4
+      - reviewer.md ok -> reviewer-runs.md
+      - reviewer-runs.md ok
+  calls: 5

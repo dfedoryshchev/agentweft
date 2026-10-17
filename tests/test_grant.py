@@ -227,7 +227,8 @@ def shipped_reviewers():
 
 def test_every_shipped_reviewer_may_run_a_command():
     seen = list(shipped_reviewers())
-    assert len(seen) == 7
+    # build-feature runs two
+    assert len(seen) == 8
     for name, _, s in seen:
         assert "shell" in (s.get("tools") or []), name
 

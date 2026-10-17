@@ -124,8 +124,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `brief`, on the flow and on a step, is two more, one way: an agent reads
     # for itself every time and has no word for what was found before it.
+    #
+    # `reviewers` and a step's `lens` are two more, one way: a phase seats
+    # its reviewers as agents and says what each looks for in their prose.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 41
+    assert len(compare.flow_only()) == 43
     assert len(compare.phase_only()) == 7
 
 
@@ -179,7 +182,7 @@ def test_the_census_counts_the_grant_on_both_sides():
     a reviewer that reproduces a finding has to be granted the shell it runs
     the command in."""
     rows = by_label(compare.census())
-    assert rows["declares a tool grant"].flow == "7 of 23 steps"
+    assert rows["declares a tool grant"].flow == "8 of 24 steps"
     assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 
@@ -191,7 +194,7 @@ def test_the_census_counts_the_paths_a_prompt_names_itself():
     what `project.yml` exists to take to zero, and nothing takes it there yet.
     """
     rows = by_label(compare.census())
-    assert rows["names a path in its prose"].flow == "0 of 23 steps"
+    assert rows["names a path in its prose"].flow == "0 of 24 steps"
     assert rows["names a path in its prose"].phase == "17 of 20 seats"
 
 
@@ -208,7 +211,7 @@ def test_the_census_says_whether_a_seat_reads_its_pre_work_from_the_project():
 
 def test_the_census_says_which_side_runs():
     rows = by_label(compare.census())
-    assert rows["something executes it"].flow == "23 of 23 steps"
+    assert rows["something executes it"].flow == "24 of 24 steps"
     assert rows["something executes it"].phase == "0 of 8 phases"
     assert rows["checks that are programs"].phase == "none"
 

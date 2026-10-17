@@ -7,18 +7,19 @@
     "3 worker.md asked -> planner.md",
     "4 planner.md decided -> worker.md",
     "5 worker.md ok -> reviewer.md  PASS command  PASS red-first",
-    "6 reviewer.md ok"
+    "6 reviewer.md ok -> reviewer-runs.md",
+    "7 reviewer-runs.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  ok, 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  build-feature-<run>/handoff.md"
+    "<time>  build-feature  ok, 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  7 calls, 840 tokens counted (input 700, output 140), unpriced: model-in-replay x7, reported $0.0700 (cli x7)  build-feature-<run>/handoff.md"
   ],
   "index": [
-    "build-feature-<day>-1.md  build-feature  4 steps"
+    "build-feature-<day>-1.md  build-feature  5 steps"
   ],
   "handoff": [
     "# build-feature build-feature-<run>: done",
-    "build-feature ran planner.md -> tester.md -> worker.md -> planner.md -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
+    "build-feature ran planner.md -> tester.md -> worker.md -> planner.md -> worker.md -> reviewer.md -> reviewer-runs.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
@@ -45,6 +46,7 @@
     "- worker.md: PASS command - exit 0 (python -m pytest -q)",
     "- worker.md: PASS red-first - not replayed - the place is not in a git work tree (python -m pytest -q -p no:cacheprovider --junitxml={results} {test})",
     "- reviewer.md: no gates",
+    "- reviewer-runs.md: no gates",
     "- red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py)",
     "- test order: red before any product code: red-test on tester.md (test_mul.py, written)",
     "## rulings",
@@ -57,6 +59,7 @@
     "- handoff missing: planner.md",
     "- handoff missing: worker.md",
     "- handoff missing: reviewer.md",
+    "- handoff missing: reviewer-runs.md",
     "## carry forward",
     "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
     "## retro",
@@ -66,18 +69,19 @@
     "- planner.md <secs>s ($0.0100), won decided: decided",
     "- worker.md <secs>s ($0.0100), won delivered: no events",
     "- reviewer.md <secs>s ($0.0100), won none: no events",
+    "- reviewer-runs.md <secs>s ($0.0100), won none: no events",
     "- won delivered: 1 pass, <secs>s, $0.0100",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won decided: 1 pass, <secs>s, $0.0100",
-    "- won none: 3 passes, <secs>s, $0.0300",
-    "- total: 6 passes, <secs>s, $0.0600",
+    "- won none: 4 passes, <secs>s, $0.0400",
+    "- total: 7 passes, <secs>s, $0.0700",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
-    "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> planner.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s",
-    "- spend: 6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)",
+    "- steps: planner.md <secs>s -> tester.md <secs>s -> worker.md <secs>s -> planner.md <secs>s -> worker.md <secs>s -> reviewer.md <secs>s -> reviewer-runs.md <secs>s",
+    "- spend: 7 calls, 840 tokens counted (input 700, output 140), unpriced: model-in-replay x7, reported $0.0700 (cli x7)",
     "- done",
     "- record: runs/build-feature-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
-    "- chain: 6 lines, head <hash> (python run.py verify build-feature-<run>)"
+    "- chain: 7 lines, head <hash> (python run.py verify build-feature-<run>)"
   ],
   "files": [
     "build-feature-<day>-1.md",
@@ -88,6 +92,7 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/reviewer-runs.md",
     "build-feature-<run>/reviewer.md",
     "build-feature-<run>/rulings.json",
     "build-feature-<run>/start-snapshot.json",
@@ -98,6 +103,7 @@
     "build-feature-<run>/steps/004-planner.md",
     "build-feature-<run>/steps/005-worker.md",
     "build-feature-<run>/steps/006-reviewer.md",
+    "build-feature-<run>/steps/007-reviewer-runs.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/tester.md",
     "build-feature-<run>/workdir",
@@ -140,7 +146,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 6,
+        "buffer": 7,
         "risk": "ok"
       },
       "session": "planner-1",
@@ -213,7 +219,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 6,
+        "buffer": 7,
         "risk": "ok"
       },
       "session": "tester-1",
@@ -292,7 +298,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 5,
+        "buffer": 6,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -365,7 +371,7 @@
       "budget": {
         "spent": 2,
         "planned": 1,
-        "buffer": 5,
+        "buffer": 6,
         "risk": "over by 1, drawn from the buffer"
       },
       "session": "planner-2",
@@ -438,7 +444,7 @@
       "budget": {
         "spent": 2,
         "planned": 1,
-        "buffer": 4,
+        "buffer": 5,
         "risk": "over by 1, drawn from the buffer"
       },
       "session": "worker-2",
@@ -494,6 +500,109 @@
       "time": "<time>",
       "step": "reviewer.md",
       "from": "worker.md",
+      "to": "reviewer-runs.md",
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\"]}]}]}}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": {
+        "spent": 1,
+        "planned": 1,
+        "buffer": 5,
+        "risk": "ok"
+      },
+      "session": "reviewer-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": 0,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": true,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/006-reviewer.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": {
+        "state": "missing",
+        "did": [],
+        "verified": [],
+        "not_verified": [],
+        "assumed": [],
+        "doubts": [],
+        "must_not_miss": [],
+        "tried": [],
+        "read": [],
+        "questions": [],
+        "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "time": "<time>",
+      "step": "reviewer-runs.md",
+      "from": "reviewer.md",
       "to": null,
       "provider": "cli",
       "command": "claude",
@@ -552,10 +661,10 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 4,
+        "buffer": 5,
         "risk": "ok"
       },
-      "session": "reviewer-1",
+      "session": "reviewer-runs-1",
       "seconds": "<seconds>",
       "cached": false,
       "retries": {},
@@ -568,7 +677,7 @@
       "won": "none",
       "cause": null,
       "why": null,
-      "file": "steps/006-reviewer.md",
+      "file": "steps/007-reviewer-runs.md",
       "task_file": "task.md",
       "tasks": null,
       "handoff": {
@@ -603,12 +712,13 @@
     "  PASS command - exit 0",
     "  PASS red-first - not replayed - the place is not in a git work tree",
     "started reviewer.md",
+    "started reviewer-runs.md",
     "promise not checked: the tests are written before the code, and fail without it",
     "saved <tmp>/runs/build-feature-<day>-1.md",
     "VERDICT: ok",
     "- calc.py: mul(a, b) added",
     "# build-feature build-feature-<run>: done",
-    "build-feature ran planner.md -> tester.md -> worker.md -> planner.md -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
+    "build-feature ran planner.md -> tester.md -> worker.md -> planner.md -> worker.md -> reviewer.md -> reviewer-runs.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
     "changed: not a git checkout, so what changed is not recorded here.",
     "## the one decision",
@@ -624,7 +734,8 @@
   "prompts": [
     "planner.md go 1 c119b49f3dc981a8b17f980963939f166a1bce4c5c03830c02f75202050c3e2b",
     "planner.md go 2 8fb6bc667e2c29b03515202b6f5d2e783d5bc9814b4d0ba33ee040ec3edc4103",
-    "reviewer.md go 1 808364c742f902d15403868d38c85e4b1a59fe0f7419a70c35fec8e85d033dab",
+    "reviewer-runs.md go 1 57cf1ea80d8f0a2644d5b571961e012163f6d9389d178214d62bdfe2693365bd",
+    "reviewer.md go 1 bdaa8b2dbabf0e871af13861ed33dc3a58b7ef99bad91c4b11009389d0aa3742",
     "tester.md go 1 199511ac7f1029f1873859fdee234cbf07681bd5669dad2f76be41a7e7d79b40",
     "worker.md go 1 c83f789798d8a1b0e335d58227738be9b79780f3e61cb1a9f9eab8026c3d79b8",
     "worker.md go 2 897caeeecc3bd5706e0473e3b9d8af38401432683d383d3ba4fef34060228e7d"

@@ -139,6 +139,7 @@ def test_every_reviewer_still_gets_the_verdict_contract():
         for step in spec.steps:
             if step["role"] != "reviewer":
                 continue
-            text = prompts.read(name, step.get("prompt", step["role"] + ".md"))
+            text = prompts.read(name, step.get("prompt", step["role"] + ".md"),
+                                step["role"])
             assert "VERDICT: ok" in text, name
             assert "VERDICT: redo" in text, name

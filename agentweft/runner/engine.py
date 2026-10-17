@@ -13,8 +13,9 @@ from agentweft.roles import resolver
 from .config import (VERDICTS, asks_for_verdict, config, declared, due,
                      fanout_step, steps, verdict, where)
 from agentweft import providers
-from agentweft.flow.spec import (RESUME, brief_on, check_project_gates,
-                                 lead_of, step_id, step_name, steps_named)
+from agentweft.flow.spec import (RESUME, REVIEWER, brief_on,
+                                 check_project_gates, lead_of, step_id,
+                                 step_name, steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, promises, redorder, rulings,
                                   shellwrite, signoff, skips, snapshot,
@@ -834,6 +835,25 @@ class Run(object):
                 return brief_on(s, self.fm)
         return True
 
+    def lens_for(self, step):
+        """-> what this reviewer reads for and what the others in the run
+        read for, or "" when it is not one of two or more with a lens."""
+        mine, others = None, []
+        for s in self.fm.steps:
+            if s.get("role") != REVIEWER or not s.get("lens"):
+                continue
+            if step_id(s) == step:
+                mine = s["lens"].strip()
+            else:
+                others.append(s["lens"].strip())
+        if mine is None or not others:
+            return ""
+        return ("\n\nyou are one of " + str(len(others) + 1) + " reviewers of"
+                " this change, and each reads for something the others do"
+                " not.\nyou read for: " + mine + "\nthe others read for: "
+                + "; ".join(others) + "\nleave their part to them. something"
+                " plainly wrong outside your part still goes in.\n")
+
     def verbosity_for(self, step):
         """-> the step's `verbosity`, None when it names none."""
         for s in self.fm.steps:
@@ -899,6 +919,7 @@ class Run(object):
         terse = self.verbosity_for(step) == "terse"
         if terse:
             prompt = prompt + resolver.fragment("terse")
+        prompt = prompt + self.lens_for(step)
         # read before anything is appended or the task is put in: what an
         # earlier step produced, or a task quoting a review, can carry its own
         # verdict line, and that does not ask this one for one
@@ -1946,20 +1967,28 @@ def run_flow(unrecorded):
             run.keep(p["role"], p["block"])
         if before:
             came_from = before[-1]
-            held = found.step(came_from) if found else None
+            # a reviewer with a lens is handed the work, never the verdict
+            # of the reviewer before it, a resume between them included
+            given_by = came_from
+            if run.lens_for(start):
+                for s in reversed(before):
+                    given_by = s
+                    if run.role_for(s) != REVIEWER:
+                        break
+            held = found.step(given_by) if found else None
             source = (held or {}).get("in") or pick_up
-            out = Handoff(run.role_for(came_from),
-                          resume.step_output(source, came_from),
+            out = Handoff(run.role_for(given_by),
+                          resume.step_output(source, given_by),
                           meta={"rulings": run.rulings()},
                           carried=list(run.constraints))
             if held and held.get("digest") and \
                     manifest.of_text(out.output) != held["digest"]:
-                print(came_from + " was edited after " + source
+                print(given_by + " was edited after " + source
                       + " wrote it; the rest of the run works from the edit")
-                notes.append((came_from + " was edited by hand before " + run_id
+                notes.append((given_by + " was edited by hand before " + run_id
                               + " carried on",
-                              "runs/" + source + "/" + came_from + " is not "
-                              "what " + came_from + " produced, and what "
+                              "runs/" + source + "/" + given_by + " is not "
+                              "what " + given_by + " produced, and what "
                               "comes after it works from the edited file."))
         if found and found.data.get("tree"):
             moved = manifest.moved(found.data["tree"],
@@ -2658,6 +2687,12 @@ def run_flow(unrecorded):
                         run_id, out.output)
             record.save(run.budget)
             run.committer.step(step, flow)
+            if nxt and not sent_back and run.lens_for(nxt) \
+                    and run.role_for(step) == REVIEWER:
+                # handed the reviewer before it, the next one would read a
+                # verdict on the work instead of the work, and with the
+                # same verdict twice it would be sent the same prompt
+                out = handed
             came_from = step
             step = nxt
         signed = signoff.check(run.workdir, run.signoff)

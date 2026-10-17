@@ -82,7 +82,8 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "journal", "max_calls", "max_tokens", "provider", "context", "workdir",
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
-         "efforts", "commits", "worktree", "sacrifice", "retro", "brief")
+         "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
+         "reviewers")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 NO_LEAD = "none"
@@ -99,7 +100,7 @@ SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes", "effort", "verbosity",
-              "continue", "brief")
+              "continue", "brief", "lens")
 WRITES = ("tests", "product", "none")
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
@@ -220,6 +221,71 @@ def with_verify(raw):
         out["steps"] = [s for s in raw.get("steps") or []
                         if s.get("role") != VERIFIER]
     return out
+
+
+# `reviewers:` is how many of the flow's reviewer steps run, the first ones in
+# flow order. a second reviewer is a second lens, not a second opinion: when
+# a flow runs more than one, each says in `lens:` the one line it reads for,
+# and no two say the same. each verdict is its own: a redo from any of them
+# sends the work back, and the work comes past all of them again.
+REVIEWER = "reviewer"
+
+
+def reviewer_steps(raw):
+    return [s for s in raw.get("steps") or []
+            if isinstance(s, dict) and s.get("role") == REVIEWER]
+
+
+def with_reviewers(raw):
+    """-> raw, with the reviewer steps past its `reviewers:` count taken out."""
+    keep = raw.get("reviewers")
+    if not counts(keep):
+        return raw
+    out = dict(raw)
+    kept = reviewer_steps(raw)[:keep]
+    out["steps"] = [s for s in raw.get("steps") or []
+                    if not (isinstance(s, dict) and s.get("role") == REVIEWER)
+                    or any(s is k for k in kept)]
+    return out
+
+
+def check_reviewers(raw):
+    """-> complaints about `reviewers:` and the steps' `lens:`."""
+    bad = []
+    steps = raw.get("steps") or []
+    mine = reviewer_steps(raw)
+    said = raw.get("reviewers")
+    if said is not None and not (counts(said) and 1 <= said <= len(mine)):
+        bad.append("reviewers should be a whole number from 1 to "
+                   + str(len(mine)) + ", the reviewer steps this flow has")
+    lensed = said is not None or any(s.get("lens") is not None for s in mine)
+    seen = {}
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict):
+            continue
+        if "lens" not in step and step.get("role") != REVIEWER:
+            continue
+        at = "step " + str(i) + ": "
+        lens = step.get("lens")
+        if step.get("role") != REVIEWER:
+            bad.append(at + "lens is for a reviewer step, and this one is a "
+                       + str(step.get("role")))
+        elif lens is None:
+            if lensed and len(mine) > 1:
+                bad.append(at + "a flow with more than one reviewer gives each"
+                           " a lens: the one line of what it reads for that"
+                           " the others do not")
+        elif not isinstance(lens, str) or not lens.strip() or "\n" in \
+                lens.strip():
+            bad.append(at + "lens should be one line saying what this"
+                       " reviewer reads for")
+        elif lens.strip().lower() in seen:
+            bad.append(at + "lens is the same as step "
+                       + str(seen[lens.strip().lower()]) + "'s; a second"
+                       " reviewer reads for what the first does not")
+        else:
+            seen[lens.strip().lower()] = i
+    return bad
 
 
 # `sacrifice:` is what a flow gives up, in order, when its budget is short
@@ -548,6 +614,7 @@ def check(raw):
     bad.extend(check_tiers(with_investigator(raw)))
     bad.extend(check_tiers(with_investigator(raw), "efforts", LEVELS, "level"))
     bad.extend(check_sacrifice(raw))
+    bad.extend(check_reviewers(raw))
     return bad
 
 
@@ -623,4 +690,4 @@ def load(raw):
     bad = check(raw)
     if bad:
         raise ValueError("flow.yaml: " + "; ".join(bad))
-    return FlowSpec(with_verify(with_investigator(raw)))
+    return FlowSpec(with_verify(with_investigator(with_reviewers(raw))))

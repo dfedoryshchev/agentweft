@@ -71,13 +71,14 @@ def run_it(tmp_path, monkeypatch, answers, builds=True, before=BEFORE,
 
 
 ALL = {"planner.md": [PLAN], "tester.md": [TESTER], "worker.md": [WORKER],
-       "reviewer.md": [OK]}
+       "reviewer.md": [OK], "reviewer-runs.md": [OK]}
 
 
 def test_a_task_walks_planner_tester_worker_suite_reviewer(tmp_path,
                                                           monkeypatch):
     asked, written, sent, code = run_it(tmp_path, monkeypatch, ALL)
-    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md"]
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md"]
     assert "PASS red-test - red, exit 1" in written.split("## tester.md")[1]
     assert "PASS command - exit 0" in written.split("## worker.md")[1]
     assert "FAIL " not in written
@@ -90,7 +91,19 @@ def test_a_reviewer_redo_sends_the_worker_back(tmp_path, monkeypatch):
                            "reviewer.md": [REDO, OK]})
     asked, written, _, _ = run_it(tmp_path, monkeypatch, answers)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "worker.md", "reviewer.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md"]
+    assert "FAIL " not in written
+
+
+def test_a_redo_from_the_second_reviewer_sends_the_worker_back_too(
+        tmp_path, monkeypatch):
+    again = WORKER + "- tests/test_mul.py: mul(-2, 3) is -6" + NL
+    answers = dict(ALL, **{"worker.md": [WORKER, again],
+                           "reviewer-runs.md": [REDO, OK]})
+    asked, written, _, _ = run_it(tmp_path, monkeypatch, answers)
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md"]
     assert "FAIL " not in written
 
 

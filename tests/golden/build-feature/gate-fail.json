@@ -45,6 +45,7 @@
     "  tester.md",
     "  worker.md",
     "  reviewer.md",
+    "  reviewer-runs.md",
     "tester.md runs again when you carry on; the steps before it do not.",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force",
@@ -143,7 +144,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 6,
+        "buffer": 7,
         "risk": "ok"
       },
       "session": "planner-1",
@@ -216,7 +217,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 6,
+        "buffer": 7,
         "risk": "ok"
       },
       "session": "tester-1",
@@ -295,7 +296,7 @@
       "budget": {
         "spent": 2,
         "planned": 1,
-        "buffer": 5,
+        "buffer": 6,
         "risk": "over by 1, drawn from the buffer"
       },
       "session": "tester-2",
@@ -379,6 +380,7 @@
     "  tester.md",
     "  worker.md",
     "  reviewer.md",
+    "  reviewer-runs.md",
     "tester.md runs again when you carry on; the steps before it do not.",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force",

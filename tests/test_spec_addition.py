@@ -146,7 +146,8 @@ def literal(quote, request, option, behaviour, others=None):
     def answer(step, n, prompt):
         if step == "planner.md":
             return plan(" ".join(prompt.split()))
-        return dict({"reviewer.md": REVIEWED}, **(others or {}))[step]
+        return dict({"reviewer.md": REVIEWED, "reviewer-runs.md": REVIEWED},
+                    **(others or {}))[step]
     return answer
 
 
@@ -177,9 +178,12 @@ def test_a_plan_that_adds_to_a_spec_line_is_built(tmp_path, monkeypatch):
                                   "tester.md": [TESTER],
                                   "worker.md": [BUILT],
                                   "reviewer.md": ["VERDICT: ok" + NL + NL
-                                                  + BUILT]}),
+                                                  + BUILT],
+                                  "reviewer-runs.md": ["VERDICT: ok" + NL + NL
+                                                       + BUILT]}),
                            roster_edits(place), "--task", ADDS)
-    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md"]
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     assert "spec: adds to TASK.md:3" in sent[1]
     assert "a behaviour marked `adds to` gets its test" in " ".join(
@@ -195,7 +199,8 @@ def test_a_literal_planner_builds_an_added_delimiter(tmp_path, monkeypatch):
                                 "fields('a;b', delimiter=';') is ['a', 'b']",
                                 {"tester.md": TESTER, "worker.md": BUILT}),
                         roster_edits(place), "--task", ADDS)
-    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md"]
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md"]
     assert code == stops.EXIT_OK
 
 
@@ -240,9 +245,11 @@ def test_an_added_option_described_in_a_new_spec_line_ends_done(
     asked, _, code = go(tmp_path, monkeypatch, "build-feature",
                         plain({"planner.md": [PLAN], "tester.md": [TESTER],
                                "worker.md": [BUILT],
-                               "reviewer.md": [REVIEWED]}),
+                               "reviewer.md": [REVIEWED],
+                               "reviewer-runs.md": [REVIEWED]}),
                         edits, "--task", ADDS + ". describe it in TASK.md")
-    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md"]
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     assert (place / "TASK.md").read_text(encoding="utf-8") == SPEC + APPENDED
 
@@ -253,7 +260,8 @@ def test_a_spec_line_the_shipped_flow_added_is_owed_no_ruling_in_the_handoff(
     edits = described(tmp_path / "project", rewrite=False)
     _, _, code = go(tmp_path, monkeypatch, "build-feature",
                     plain({"planner.md": [PLAN], "tester.md": [TESTER],
-                           "worker.md": [BUILT], "reviewer.md": [REVIEWED]}),
+                           "worker.md": [BUILT], "reviewer.md": [REVIEWED],
+                           "reviewer-runs.md": [REVIEWED]}),
                     edits, "--task", ADDS + ". describe it in TASK.md")
     assert code == stops.EXIT_OK
     [folder] = folders(tmp_path)
@@ -364,10 +372,11 @@ def test_a_contradiction_with_no_conflict_line_goes_back_and_is_withdrawn(
     asked, _, code = go(tmp_path, monkeypatch, "build-feature",
                         plain({"planner.md": [UNTYPED, PLAN],
                                "tester.md": [TESTER], "worker.md": [BUILT],
-                               "reviewer.md": [REVIEWED]}),
+                               "reviewer.md": [REVIEWED],
+                               "reviewer-runs.md": [REVIEWED]}),
                         roster_edits(place), "--task", ADDS)
     assert asked == ["planner.md", "planner.md", "tester.md", "worker.md",
-                     "reviewer.md"]
+                     "reviewer.md", "reviewer-runs.md"]
     assert code == stops.EXIT_OK
 
 

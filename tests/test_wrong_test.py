@@ -100,14 +100,14 @@ def test_a_wrong_test_the_tester_wrote_goes_back_to_it_and_is_red_again(
         tmp_path, monkeypatch):
     answers = {"planner.md": [PLAN], "tester.md": [TESTER],
                "worker.md": [claim("tests/test_mul.py::test_mul"), WORKER],
-               "reviewer.md": [OK]}
+               "reviewer.md": [OK], "reviewer-runs.md": [OK]}
     writes = {"tester.md": [("tests/test_mul.py", WRONG),
                             ("tests/test_mul.py", RIGHT)],
               "worker.md": [("", ""), ("calc.py", AFTER)]}
     asked, sent, code, folder, project = run_it(tmp_path, monkeypatch,
                                                 answers, writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "tester.md",
-                     "worker.md", "reviewer.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     again = sent[3]
     assert "# tester" in again
@@ -169,13 +169,13 @@ def test_an_invented_spec_quote_fails_the_step_and_never_reaches_the_writer(
                "worker.md": [claim("tests/test_mul.py::test_mul",
                                    spec='TASK.md:3 "mul(a, b) returns a plus'
                                    ' b"'), WORKER],
-               "reviewer.md": [OK]}
+               "reviewer.md": [OK], "reviewer-runs.md": [OK]}
     writes = {"tester.md": [("tests/test_mul.py", RIGHT)],
               "worker.md": [("", ""), ("calc.py", AFTER)]}
     asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
                                           writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "worker.md",
-                     "reviewer.md"]
+                     "reviewer.md", "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     gates = (folder / "gates.md").read_text(encoding="utf-8")
     first = gates.split("## worker.md")[1].split("##")[0]

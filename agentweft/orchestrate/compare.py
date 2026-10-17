@@ -183,6 +183,10 @@ FLOW_ONLY = (
          "whether the steps are sent what the steps before them found, with "
          "the lines they read quoted, or start from the handoff alone. a "
          "phase's agents read for themselves every time."),
+    Pair("flow.reviewers", "",
+         "how many of the flow's reviewer steps run, the first ones in its "
+         "order. a phase that wants two reviews seats two agents, and has no "
+         "word for running fewer of them."),
     Pair("step.writes_tests", "",
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),
@@ -228,6 +232,10 @@ FLOW_ONLY = (
     Pair("step.brief", "",
          "the flow's `brief` for one step, over the flow's own. an agent has "
          "no word for what was found before it."),
+    Pair("step.lens", "",
+         "the one line a reviewer reads for that the other reviewers do not, "
+         "checked to differ and sent to each of them. an agent's stance is in "
+         "its own prose, where nothing compares it with the next one's."),
 )
 
 

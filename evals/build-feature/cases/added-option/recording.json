@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-16T13:10:12",
+  "recorded": "2026-10-17T11:59:29",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -19,10 +19,25 @@
       "models": null
     },
     {
+      "step": "reviewer-runs.md",
+      "task": null,
+      "go": 1,
+      "prompt": "a4daf3a3e661cb4c6895bb8f4eb781ddd4d9d51391f29bf3cfd94e6d8bacdb8c",
+      "say": "VERDICT: ok\n\n- roster.py: fields takes a delimiter, the comma by default\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
       "step": "reviewer.md",
       "task": null,
       "go": 1,
-      "prompt": "7330b0db2949d53fcc15b7b1a6d1f858400cd3040fb2d1316eca15ed55f01fdd",
+      "prompt": "3276facc118e429cdc89f01d6f8f3151f7e1c39245b2aa6a098a97c313ab13a1",
       "say": "VERDICT: ok\n\n- roster.py: fields takes a delimiter, the comma by default\n",
       "detail": "",
       "retryable": null,

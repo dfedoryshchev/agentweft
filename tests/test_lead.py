@@ -99,7 +99,7 @@ def run_it(tmp_path, monkeypatch, flow, answers, writes, task=TASK):
 def build(tmp_path, monkeypatch, lead_says, worker_says=(NEEDS, WORKER)):
     answers = {"planner.md": [PLAN] + list(lead_says),
                "tester.md": [TESTER], "worker.md": list(worker_says),
-               "reviewer.md": [OK]}
+               "reviewer.md": [OK], "reviewer-runs.md": [OK]}
     writes = {"tester.md": [("tests/test_mul.py", TEST)],
               "worker.md": [("", ""), ("calc.py", AFTER)]}
     return run_it(tmp_path, monkeypatch, "build-feature", answers, writes)
@@ -110,7 +110,7 @@ def test_the_planner_answers_a_workers_question_and_the_run_finishes(
     asked, sent, code, folder, project = build(tmp_path, monkeypatch,
                                                [DECIDED])
     assert asked == ["planner.md", "tester.md", "worker.md", "planner.md",
-                     "worker.md", "reviewer.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     to_lead = sent[3]
     assert "# planner" in to_lead
@@ -139,7 +139,7 @@ def test_a_decision_that_cites_task_md_and_changes_nothing_stands(
     asked, _, code, folder, project = build(tmp_path, monkeypatch,
                                             [CITES_ONLY])
     assert asked == ["planner.md", "tester.md", "worker.md", "planner.md",
-                     "worker.md", "reviewer.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     [said] = decisions.read(project)
     assert "as TASK.md:3 says" in said.decided
@@ -156,13 +156,14 @@ def test_a_decision_that_names_a_start_test_and_changes_nothing_stands(
                  " is" + NL + "why: it pins add, which mul does not touch"
                  + NL]
     answers = {"planner.md": [PLAN] + lead_says, "tester.md": [TESTER],
-               "worker.md": [NEEDS, WORKER], "reviewer.md": [OK]}
+               "worker.md": [NEEDS, WORKER], "reviewer.md": [OK],
+               "reviewer-runs.md": [OK]}
     writes = {"tester.md": [("tests/test_mul.py", TEST)],
               "worker.md": [("", ""), ("calc.py", AFTER)]}
     asked, _, code, folder, _ = run_it(tmp_path, monkeypatch,
                                        "build-feature", answers, writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "planner.md",
-                     "worker.md", "reviewer.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md"]
     assert code == stops.EXIT_OK
     assert not (folder / "question.md").exists()
 

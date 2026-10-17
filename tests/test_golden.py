@@ -176,7 +176,8 @@ CASES = {
         "planner.md": [MUL_PLAN],
         "tester.md": [MUL_RED],
         "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
-        "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+        "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+        "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
     ("build-feature", "redo"): {"place": {"calc.py": ADD_ONLY},
                                 "args": ["--task", FEATURE], "answers": {
         "planner.md": [MUL_PLAN],
@@ -189,7 +190,9 @@ CASES = {
         "reviewer.md": ["VERDICT: redo\n\nmul is not tried on a negative "
                         "number\n",
                         "VERDICT: ok\n\n" + MUL_BUILT
-                        + "- test_mul.py: mul(-2, 3) is -6\n"]}},
+                        + "- test_mul.py: mul(-2, 3) is -6\n"],
+        "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT
+                             + "- test_mul.py: mul(-2, 3) is -6\n"]}},
     ("build-feature", "gate-fail"): {"place": {"calc.py": ADD_ONLY},
                                      "args": ["--task", FEATURE], "answers": {
         "planner.md": [MUL_PLAN],
@@ -349,7 +352,8 @@ CASES = {
             "planner.md": [ADD_CONFLICT, MUL_PLAN],
             "tester.md": [MUL_RED],
             "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
-            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
     ("retro", "two-fails"): {
         "flows": TEST_FLOWS,
         "answers": {
@@ -368,7 +372,8 @@ CASES = {
             "planner.md": [MUL_PLAN, MUL_DECIDED],
             "tester.md": [MUL_RED],
             "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL})],
-            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
     ("fix-with-test", "suite-red"): {
         "place": {"calc.py": BUGGY + NEG, "test_neg.py": NEG_TEST},
         "args": ["--task", BUG], "task": BUG,
@@ -399,7 +404,8 @@ CASES = {
                               " from 'calc'\nTEST: test_mul.py\n\n" + MUL_TEST,
                               {"test_mul.py": MUL_TEST, "calc.py": ADD_ONLY})],
             "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
-            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
 }
 
 

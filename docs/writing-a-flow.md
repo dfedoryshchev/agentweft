@@ -60,7 +60,23 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
   the code on an `ImportError` for a name the code adds, or on an import or
   name error the code itself raises, counts as red, the worker's own cases
   included (`docs/gates.md`)
-- one reviewer, `on_redo: worker`, sends the code back, not the tests
+- two reviewers, each `on_redo: worker`, send the code back, not the tests.
+  the first reads the change against the spec and the tests, the second runs
+  the new code on what the tests leave out. a redo from either sends the work
+  back, and it comes past both again
+
+a second reviewer is a second lens, not a second opinion. when a flow runs
+more than one reviewer, each says in `lens:` the one line it reads for, no
+two say the same, and each is told its own line and the others'. the next
+reviewer is handed the work the first one was, not its verdict.
+`reviewers: <n>` runs the first n of them, so `reviewers: 1` in a copy of the
+flow runs build-feature with the spec reviewer alone:
+
+    - role: reviewer
+      prompt: reviewer-runs.md
+      on_redo: worker
+      lens: "what the tests do not run: the new code run by hand ..."
+    reviewers: 2
 
 the suite is `python -m pytest -q`, written in its `flow.yaml`. a project
 that runs its tests some other way changes that line in a copy of the flow.

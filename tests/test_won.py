@@ -233,7 +233,8 @@ def test_a_lead_decision_that_held_is_decided_and_the_red_proof_names_who_proved
     assert [(l["step"], l["outcome"], l["won"]) for l in lines_of(folder)] == [
         ("planner.md", "ok", "none"), ("tester.md", "ok", "proved"),
         ("worker.md", "asked", "none"), ("planner.md", "decided", "decided"),
-        ("worker.md", "ok", "delivered"), ("reviewer.md", "ok", "none")]
+        ("worker.md", "ok", "delivered"), ("reviewer.md", "ok", "none"),
+        ("reviewer-runs.md", "ok", "none")]
 
 
 def test_a_decided_the_runner_did_not_hold_is_neither_decided_nor_escalated(

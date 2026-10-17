@@ -166,7 +166,7 @@ def test_a_lead_decision_still_carries_the_run_on(tmp_path, monkeypatch):
     asked, _, code, folder, project = ld.build(tmp_path, monkeypatch,
                                                [ld.DECIDED])
     assert code == stops.EXIT_OK
-    assert asked[-2:] == ["worker.md", "reviewer.md"]
+    assert asked[-3:] == ["worker.md", "reviewer.md", "reviewer-runs.md"]
     assert (folder / rulings.FILE).is_file(), \
         "the runner keeps no record of the rulings it wrote"
     kept = json.loads((folder / rulings.FILE).read_text(encoding="utf-8"))

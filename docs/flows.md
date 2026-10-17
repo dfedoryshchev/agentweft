@@ -71,8 +71,8 @@ called:
   `(no change: ...)`
 
 a flow whose prompts name either takes the start snapshot even without
-`spec_files:`. both reviewers that ship with it, `build-feature` and
-`code-review`, read them.
+`spec_files:`. the reviewers that ship with `build-feature` and
+`code-review` read them.
 
 a step whose own words name one of them and ask for a verdict is held to it:
 an `ok` while the spec has moved is a redo, unless each line that moved,

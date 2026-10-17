@@ -47,6 +47,11 @@ provider:
         VERDICT: ok
 
         - calc.py: mul(a, b) added
+    reviewer-runs.md:
+      - |
+        VERDICT: ok
+
+        - calc.py: mul(a, b) added
 expect:
   invariants: all
   outcome: done
@@ -58,5 +63,6 @@ expect:
       - worker.md redo -> tester.md
       - tester.md ok -> worker.md  PASS red-test
       - worker.md ok -> reviewer.md  PASS command  PASS red-first
-      - reviewer.md ok
-  calls: 6
+      - reviewer.md ok -> reviewer-runs.md
+      - reviewer-runs.md ok
+  calls: 7
