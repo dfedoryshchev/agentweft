@@ -7,8 +7,9 @@ import pytest
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.evals import harness
+from agentweft.guardrails import testedits
 from agentweft.guardrails.gates import base as gates_base
-from agentweft.guardrails.gates import redfirst_gate
+from agentweft.guardrails.gates import command_gate, redfirst_gate
 from agentweft.guardrails.gates import redtest_gate
 from agentweft.providers import fake_provider
 from agentweft.runner import ruling, wrongtest
@@ -16,6 +17,9 @@ from agentweft.runner import ruling, wrongtest
 CASES = [("fix-with-test", "clean-fix", "done"),
          ("fix-with-test", "green-without-fix", "stopped: gate failed"),
          ("fix-with-test", "spec-conflict", "stopped: spec conflict"),
+         ("fix-with-test", "spec-declined", "refused (spec cited)"),
+         ("fix-with-test", "breaks-a-start-test", "stopped: gate failed"),
+         ("fix-with-test", "rewrites-a-start-test", "needs you: ruling"),
          ("build-feature", "wrong-test", "done"),
          ("build-feature", "wrong-test-after-code", "done"),
          ("repo-audit", "two-files", "done")]
@@ -76,6 +80,37 @@ def test_without_the_conflict_check_the_conflict_case_drops(monkeypatch):
     assert r["passed"] < r["checked"]
     assert any(f.startswith("it ended stopped: spec conflict")
                for f in failed(r))
+
+
+def test_without_reading_a_cited_refusal_the_declined_case_drops(monkeypatch):
+    real = ruling.asked_of
+
+    def unread(*a, **k):
+        said = real(*a, **k)
+        return None if said and said[0] == ruling.DECLINED else said
+    monkeypatch.setattr(ruling, "asked_of", unread)
+    r = scored("fix-with-test", live("fix-with-test", "spec-declined"))
+    assert r["passed"] < r["checked"]
+    assert any(f.startswith("it ended refused (spec cited)")
+               for f in failed(r))
+
+
+def test_without_the_suite_gate_the_broken_start_test_case_drops(
+        monkeypatch):
+    def passes(self, text):
+        return gates_base.Result("command", True, "exit 0")
+    monkeypatch.setattr(command_gate.CommandGate, "run", passes)
+    r = scored("fix-with-test", live("fix-with-test", "breaks-a-start-test"))
+    assert r["passed"] < r["checked"]
+    assert any(f.startswith("the steps it took") for f in failed(r))
+
+
+def test_without_the_test_edit_check_the_rewritten_start_test_case_drops(
+        monkeypatch):
+    monkeypatch.setattr(testedits, "changes", lambda start: [])
+    r = scored("fix-with-test", live("fix-with-test", "rewrites-a-start-test"))
+    assert r["passed"] < r["checked"]
+    assert any(f.startswith("it ended needs you: ruling") for f in failed(r))
 
 
 def test_without_the_wrong_test_send_back_the_wrong_test_case_drops(

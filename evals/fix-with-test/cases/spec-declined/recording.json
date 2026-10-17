@@ -1,0 +1,22 @@
+{
+  "recorded": "2026-10-17T19:09:15",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "437b286803cc441e22f88f05e474023cbf1a93a5006e2da1152d8495960f5120",
+      "say": "REFUSED: SPEC.md:3 \"add(a, b) returns a minus b, the ledger import depends on it\" is what the report calls the bug\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    }
+  ]
+}

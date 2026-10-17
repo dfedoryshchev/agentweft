@@ -1550,6 +1550,11 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
         if refused:
             note("refused", refused, stops.REFUSED)
             return out.output, run.budget, "refused at " + step + ": " + refused
+        waits = run.budget.ahead(run.calls_for(step, out))
+        if waits:
+            note("parked", waits[1], stops.BUDGET)
+            return (out.output, run.budget, "over budget at " + step + ": "
+                    + waits[1])
         run.order.watch(step, writes)
         run.look()
         try:

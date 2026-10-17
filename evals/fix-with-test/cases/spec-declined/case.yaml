@@ -1,0 +1,16 @@
+task: add(1, 2) returns -1, it should return 3
+place: place
+provider:
+  provider: fake
+  replies:
+    worker.md:
+      - say: |
+          REFUSED: SPEC.md:3 "add(a, b) returns a minus b, the ledger import depends on it" is what the report calls the bug
+expect:
+  invariants: all
+  outcome: "refused (spec cited)"
+  steps:
+    match: strict
+    path:
+      - worker.md refused
+  calls: 1

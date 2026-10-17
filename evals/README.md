@@ -110,6 +110,13 @@ the run's handoff and manifest carry, and is held to that:
 conflict`, `needs you: ruling` and the rest. a run that ended any other way
 fails the row and says how it did end.
 
+each stop case has a test in `tests/test_eval_cases.py` that takes its gate
+away and shows the case then scores worse, so a case that would pass with
+the gate gone is not counted as cover. a scored run is held to the flow's
+caps too: a step that would take it past `max_calls` or the token cap does
+not start, and it ends `needs you: budget`; it cuts no step by the flow's
+sacrifice list, which only a run of the cli does.
+
 ## the cases shipped
 
 - `fix-with-test/clean-fix`: the test is red, the patch turns it green,
@@ -119,6 +126,14 @@ fails the row and says how it did end.
   again, `stopped: gate failed`
 - `fix-with-test/spec-conflict`: the bug report asks for what a spec line
   rules out, the patcher quotes the line, `stopped: spec conflict`
+- `fix-with-test/spec-declined`: the worker refuses the task, citing the spec
+  line the bug report calls the bug, `refused (spec cited)`
+- `fix-with-test/breaks-a-start-test`: the patch fixes add and breaks sub,
+  which a test the run started with checks; the suite gate fails it, it is
+  sent back once and fails again, `stopped: gate failed`
+- `fix-with-test/rewrites-a-start-test`: the same patch also rewrites that
+  test so the suite stays green; the test-edit check holds it and the run
+  parks for a ruling, `needs you: ruling`
 - `build-feature/wrong-test`: the worker says the tester's test contradicts
   the spec, it goes back to the tester, the new test is proven red again,
   `done`

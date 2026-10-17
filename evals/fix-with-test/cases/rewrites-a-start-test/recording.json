@@ -1,0 +1,63 @@
+{
+  "recorded": "2026-10-17T19:09:29",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "patcher.md",
+      "task": null,
+      "go": 1,
+      "prompt": "cfd6ffe88cc7ed2b950ecda4a286e7c20f116569f396536955744f14d4633135",
+      "say": "TEST: tests/test_add.py\n\ncalc.py: add and sub share one body now\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a + b\n",
+        "tests/test_sub.py": "from calc import sub\n\n\ndef test_sub():\n    assert sub(3, 1) == 4\n"
+      }
+    },
+    {
+      "step": "patcher.md",
+      "task": null,
+      "go": 2,
+      "prompt": "6ce10b2a8b13dc2510c21ee6b2d13a685b212067f3bb5c26d49ba8d5e8febffd",
+      "say": "TEST: tests/test_add.py\n\ncalc.py: add and sub share one body now\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a + b\n",
+        "tests/test_sub.py": "from calc import sub\n\n\ndef test_sub():\n    assert sub(3, 1) == 4\n"
+      }
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "437b286803cc441e22f88f05e474023cbf1a93a5006e2da1152d8495960f5120",
+      "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_add.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      }
+    }
+  ]
+}
