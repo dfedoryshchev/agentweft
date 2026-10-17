@@ -1108,6 +1108,9 @@ def carried(name, run, fm):
             if (folder / "workdir").is_file() else ""
         if not was or Path(was).resolve() != Path(run.workdir).resolve():
             return None, name + " did not work in " + str(run.workdir)
+        broke = chain.verify(folder).broken
+        if broke:
+            return None, name + "'s record does not hold: " + broke
         return redorder.carry_run(folder, name, run.start)
     return redorder.carry_commit(run.start, name, redorder.test_command(fm))
 

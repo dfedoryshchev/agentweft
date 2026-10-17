@@ -181,6 +181,29 @@ def test_a_carried_continuation_passes(tmp_path, monkeypatch):
                                                       / "handoff.md")
 
 
+def test_a_proof_rewritten_after_its_run_is_not_carried(tmp_path,
+                                                       monkeypatch, capsys):
+    place = a_repo(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    running(tmp_path, monkeypatch, place, "build", {
+        "tester.md": ({"tests/test_calc.py": RED_TEST}, TESTER_SAID),
+        "worker.md": ({}, "")})
+    first = folders()[-1]
+    rewritten = "def test_add():" + NL + "    pass" + NL
+    (place / "tests" / "test_calc.py").write_text(rewritten,
+                                                  encoding="utf-8")
+    proof = json.loads(read(first / redorder.FILE))
+    proof["proof"]["tests"] = {"tests/test_calc.py": snapshot._sha(
+        rewritten.encode("utf-8"))}
+    (first / redorder.FILE).write_text(json.dumps(proof), encoding="utf-8")
+    a_flow(tmp_path, "patch", WORKER)
+    code, called = running(tmp_path, monkeypatch, place, "patch",
+                           {"worker.md": ({"calc.py": FIXED}, "done")},
+                           "--continue", first.name)
+    assert called == []
+    assert code == 1
+    assert "red-proof.json was changed" in capsys.readouterr().out
+
 def test_a_missing_snapshot_refuses(tmp_path, monkeypatch):
     place = a_repo(tmp_path / "repo")
     a_flow(tmp_path, "build", TESTER + WORKER)

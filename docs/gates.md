@@ -419,7 +419,9 @@ handoff's "tests and checks":
   <reason>`. a resumed run keeps it.
 - `--continue <run>` carries the red proof an earlier run of the same place
   holds, as `tests carried from run <run>`, once each test file it proved is
-  still the content it proved. `--continue <commit>` carries the tests the
+  still the content it proved and that run's record holds (`verify <run>`):
+  a proof changed after its run wrote it is not carried, `--force` or not.
+  `--continue <commit>` carries the tests the
   start commit added or changed since that commit, plus the test files that
   were changed but not committed when the run started (`--continue HEAD`
   carries those alone), as `tests carried from <sha>`, once each is seen
