@@ -6,7 +6,7 @@ import zipfile
 
 import pytest
 
-pytest.importorskip("setuptools")
+pytest.importorskip("setuptools", minversion="77")
 
 ROOT = pathlib.Path(".").resolve()
 
