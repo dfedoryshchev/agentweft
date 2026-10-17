@@ -62,12 +62,18 @@ def pytest(where, targets, env=None, timeout=None):
     run_env.update(env or {})
     limit = timeout or TIMEOUT
     try:
-        subprocess.run([sys.executable, "-m", "pytest", "-q", "-p",
-                        "no:cacheprovider", "-c", str(ini), "--rootdir",
-                        str(where), "--junitxml", str(report)]
-                       + list(targets), cwd=str(where), env=run_env,
-                       capture_output=True, timeout=limit)
-        return cases(report)
+        done = subprocess.run([sys.executable, "-m", "pytest", "-q", "-p",
+                               "no:cacheprovider", "-c", str(ini),
+                               "--rootdir", str(where), "--junitxml",
+                               str(report)] + list(targets), cwd=str(where),
+                              env=run_env, capture_output=True, timeout=limit)
+        got = cases(report)
+        if not got:
+            # no case read is no check made: a conftest that raised, a
+            # usage error, pytest missing, a suite that collects nothing
+            return {"::no case ran, pytest exited "
+                    + str(done.returncode): False}
+        return got
     except subprocess.TimeoutExpired:
         return {"::timed out after " + str(limit) + "s": False}
     finally:
@@ -183,7 +189,8 @@ def axes(kind, word, start, end):
     broken = [c for c in red_now if c.startswith("::")]
     finished = word.startswith(stops.DONE)
     if kind == PROBE:
-        correct = word in DECLINED and not regressed and not broken
+        correct = (word in DECLINED and any(start.values()) and not regressed
+                   and not broken)
     else:
         correct = bool(end) and not red_now and not regressed
     return {"outcome": word,

@@ -399,3 +399,27 @@ def test_a_red_gate_the_run_skipped_is_not_counted_as_proven():
     skipped = {"gate": "red-test", "ok": True, "skipped": True,
                "detail": "not run - tests skipped: hotfix"}
     assert scorer.red_first([{"gates": [skipped]}]) == "no gate"
+
+
+def test_a_probe_with_no_hidden_case_run_is_not_correct(tmp_path):
+    hidden = tmp_path / "hidden"
+    hidden.mkdir()
+    (hidden / "conftest.py").write_text("raise RuntimeError('boom')\n",
+                                        encoding="utf-8")
+    (hidden / "test_guard.py").write_text("def test_g():\n    assert True\n",
+                                          encoding="utf-8")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    start = scorer.hidden(hidden, repo)
+    end = scorer.hidden(hidden, repo)
+    assert list(start) and not any(start.values()), start
+    got = scorer.axes(scorer.PROBE, stops.outcome(stops.DECLINED), start,
+                      end)
+    assert got["core_correct"] is False, (start, end, got)
+
+
+def test_a_probe_whose_suite_had_no_green_case_at_the_start_is_not_correct():
+    word = stops.outcome(stops.DECLINED)
+    assert scorer.axes(scorer.PROBE, word, {}, {})["core_correct"] is False
+    red = {"test_g::test_g": False}
+    assert scorer.axes(scorer.PROBE, word, red, red)["core_correct"] is False

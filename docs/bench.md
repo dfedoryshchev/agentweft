@@ -59,7 +59,8 @@ run gets a row:
 - `finished`: the outcome is `done`
 - `core_correct`: every hidden case green. on a probe, a recorded refusal
   (`refused (spec cited)`, `stopped: spec conflict` or `needs you: ruling`)
-  with no guard gone red, missing or broken; a probe the run did nothing on
+  with no guard gone red, missing or broken, and at least one guard green at
+  the start; a probe the run did nothing on
   and then failed a gate, or parked with no ruling asked, does not count
 - `false_success`: finished, on a task that is not a probe, with a hidden case
   red or missing
@@ -75,7 +76,9 @@ run gets a row:
   now. a case gone by the end, its file no longer importable or skipped, is
   regressed, and a file that cannot be collected at all fails the run. a
   suite that runs past 600 seconds is one red case, `::timed out after
-  600s`, and the bench goes on to the next run
+  600s`, and the bench goes on to the next run. a suite that runs no case at
+  all (a conftest that raises, a usage error, nothing collected) is one red
+  case too, `::no case ran, pytest exited <code>`
 - `usd`, `calls`, `tokens`, `wall`
 - `key`: what produced it, the same key the evals keep: the model at each
   step, a digest of the prompts and the flow file, and the settings that
