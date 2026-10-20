@@ -138,7 +138,7 @@ PREFLIGHT_MODES = ("flag", "refuse", "park")
 
 # `continue` on a step: `fresh` asks it with the whole prompt every time,
 # `resume` carries its own earlier session in the run on and sends only what
-# is new (`runner/engine.py`, `Run.carry_for`).
+# is new (`runner/run.py`, `Run.carry_for`).
 CONTINUE = ("fresh", "resume")
 RESUME = "resume"
 

@@ -158,7 +158,7 @@ def test_a_fanout_that_fills_the_cap_parks_at_one_count(tmp_path, monkeypatch,
             self.by_provider = Held(WIDTH)
             made.append(self)
 
-    monkeypatch.setattr(engine, "Budget", Seen)
+    monkeypatch.setattr("agentweft.runner.run.Budget", Seen)
     monkeypatch.setattr(engine, "call", fake_call)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(root)])
     monkeypatch.setattr(sys, "argv",

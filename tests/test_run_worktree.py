@@ -235,7 +235,7 @@ def test_a_crash_before_the_run_record_removes_the_worktree_it_made(
 
     def boom(argv):
         raise RuntimeError("boom")
-    monkeypatch.setattr(engine, "caps_given", boom)
+    monkeypatch.setattr("agentweft.runner.begin.caps_given", boom)
     with pytest.raises(RuntimeError):
         go(monkeypatch, "--workdir", "project", "--worktree")
     assert len(worktrees_of(project)) == 1, worktrees_of(project)

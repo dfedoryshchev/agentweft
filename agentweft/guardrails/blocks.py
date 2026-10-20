@@ -68,7 +68,7 @@ def read(path):
     return out
 
 
-# what follows `<flow>-` in a run's folder name (`runner/engine.py`,
+# what follows `<flow>-` in a run's folder name (`runner/begin.py`,
 # new_run_id). a flow named `fix-2` has folders that start with `fix-` too.
 RUN_TAIL = re.compile(r"\d{4}-\d{2}-\d{2}-\d{6}(-\d+)?")
 

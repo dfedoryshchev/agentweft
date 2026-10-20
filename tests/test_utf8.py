@@ -139,7 +139,7 @@ def test_a_run_that_breaks_after_its_last_step_writes_one_end_line(
             raise OSError("the console went away")
         print(*args, **kw)
 
-    monkeypatch.setattr(engine, "print", shows, raising=False)
+    monkeypatch.setattr("agentweft.runner.ending.print", shows, raising=False)
     assert engine.main() == 2
     [end] = end_lines(tmp_path)
     assert "  exception  " in end

@@ -18,14 +18,21 @@ get told they are allowed to say the work is wrong.
 
 ## runner
 
-`runner/engine.py`. `Run` holds everything a step needs so nothing has to be
+`runner/engine.py` is where a run starts. `begin.py` reads the command line and
+sets the run up, fresh or carried on; `loop.py` runs the steps and holds every
+way a run stops; `ending.py` writes the journal, the index and the saved
+answer. what a step's answer has to get past is in `gating.py`, a step that
+asks instead of going on is in `asking.py`, and `once.py` is the run the evals
+make, which hands back the answer instead of printing it.
+
+`runner/run.py`. `Run` holds everything a step needs so nothing has to be
 threaded through five functions. `Run.step()` is the only place a step becomes
 a call. a step returns a `Handoff` - role, output, verdict, meta - not a string,
 because the reviewer's verdict was being smuggled through the text.
 
 fanout is the one branch in how a step is run: if a step is marked `fanout`,
 the previous step's output is split into `TASK:` blocks (`runner/fan.py`) and
-each one gets its own worker, up to `workers` at a time. tasks that name the
+each one gets its own worker (`runner/fanout.py`), up to `workers` at a time. tasks that name the
 same file under `FILES:` go one after another, and a task that wrote a file it
 did not name, or a file two tasks wrote, stops the run.
 

@@ -247,7 +247,7 @@ def cp1252(monkeypatch):
     import pathlib
 
     from agentweft.guardrails.gates import command_gate, redtest_gate
-    from agentweft.runner import engine
+    from agentweft.runner import engine, ending, gating, loop
 
     real_open = builtins.open
 
@@ -256,7 +256,8 @@ def cp1252(monkeypatch):
             kw["encoding"] = LOCALE
         return real_open(file, mode, *a, **kw)
 
-    monkeypatch.setattr(engine, "open", local_open, raising=False)
+    for module in (engine, ending, gating, loop):
+        monkeypatch.setattr(module, "open", local_open, raising=False)
 
     real_read, real_write = pathlib.Path.read_text, pathlib.Path.write_text
 

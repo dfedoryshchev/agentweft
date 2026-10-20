@@ -280,7 +280,7 @@ def test_a_crash_after_the_last_step_is_still_a_stop(tmp_path, monkeypatch):
     def broken(flow):
         raise OSError("disk full")
 
-    monkeypatch.setattr(engine, "next_run_path", broken)
+    monkeypatch.setattr("agentweft.runner.ending.next_run_path", broken)
     assert engine.main() == 2
     [end] = ends()
     assert (end.status, end.cause, end.why) == \
@@ -528,7 +528,7 @@ def test_the_finished_line_goes_through_the_one_writer(tmp_path,
         written.append(a[1])
         return real(*a, **k)
 
-    monkeypatch.setattr(engine, "journal", journal_)
+    monkeypatch.setattr("agentweft.runner.ending.journal", journal_)
     assert engine.main() == 0
     assert written == ["running", "ok"]
     assert len(journal()) == 2

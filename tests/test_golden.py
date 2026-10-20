@@ -745,7 +745,8 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
             # each leg a minute on, so a resume never shares the second, and
             # with it the -2 on the id, with the run it picks up
             clock = later(datetime.timedelta(minutes=n))
-            monkeypatch.setattr(engine, "datetime", clock)
+            monkeypatch.setattr("agentweft.runner.begin.datetime", clock)
+            monkeypatch.setattr("agentweft.runner.ending.datetime", clock)
             monkeypatch.setattr(trace, "datetime", clock)
         if LAST in leg:
             leg = [resume.runs_for(flow)[-1] if a == LAST else a for a in leg]
@@ -1087,7 +1088,8 @@ def test_a_run_on_another_day_reads_the_same_once_normalised(
         tmp_path, monkeypatch, capsys):
     clock = types.SimpleNamespace(datetime=Later, date=LaterDay,
                                   timedelta=datetime.timedelta)
-    monkeypatch.setattr(engine, "datetime", clock)
+    monkeypatch.setattr("agentweft.runner.begin.datetime", clock)
+    monkeypatch.setattr("agentweft.runner.ending.datetime", clock)
     monkeypatch.setattr(trace, "datetime", clock)
     got = replay("release-notes", CASES[("release-notes", "redo")], tmp_path,
                  monkeypatch, capsys)
