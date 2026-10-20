@@ -1,5 +1,7 @@
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.guardrails import gates
 from agentweft.runner import trace
@@ -83,6 +85,8 @@ def test_a_relative_source_is_read_from_the_place(tmp_path):
     assert not g.run('"le ' + cafe + ' ouvre ' + at + ' midi"\n').ok
 
 
+@pytest.mark.skipif(sys.platform != "win32",
+                    reason="a backslash only separates paths on windows")
 def test_a_windows_path_source_is_read(tmp_path, monkeypatch):
     box = inbox(tmp_path, monkeypatch, {"infra.md": NOTE})
     monkeypatch.setenv("INBOX", str(box).replace("/", "\\"))

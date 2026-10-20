@@ -128,6 +128,16 @@ def no_network():
         yield
 
 
+@pytest.fixture(autouse=True, scope="session")
+def not_on_ci():
+    # pytest prints a longer failure summary when CI or BUILD_NUMBER is set,
+    # so the tail a failed gate quotes would differ on a ci runner
+    with pytest.MonkeyPatch.context() as mp:
+        mp.delenv("CI", raising=False)
+        mp.delenv("BUILD_NUMBER", raising=False)
+        yield
+
+
 @pytest.fixture(autouse=True)
 def network_when_marked(request):
     NETWORK["allowed"] = request.node.get_closest_marker("network") is not None
