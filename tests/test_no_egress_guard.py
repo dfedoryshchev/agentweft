@@ -51,12 +51,28 @@ def test_a_raw_socket_to_a_far_host_is_refused_under_the_guard():
 
 
 def test_loopback_stays_open_under_the_guard():
+    import errno
     import socket
     with socket.socket() as server:
         server.bind(("127.0.0.1", 0))
         server.listen(1)
-        with socket.create_connection(server.getsockname(), timeout=1):
-            pass
+        with socket.socket() as s:
+            # not waited on: this host's first connect in a process, past its
+            # network filter, has taken over a second under load (and 2.8 s
+            # once idle), while the guard decides before the real call starts
+            s.setblocking(False)
+            said = s.connect_ex(server.getsockname())
+    assert said in (0, errno.EINPROGRESS, errno.EWOULDBLOCK,
+                    getattr(errno, "WSAEWOULDBLOCK", errno.EWOULDBLOCK)), said
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1", "127.8.8.8", "::1",
+                                  "localhost"])
+def test_the_guard_hands_a_loopback_connect_to_the_real_one(host):
+    from conftest import guarded
+    reached = []
+    guarded(lambda sock, address: reached.append(address))(None, (host, 80))
+    assert reached == [(host, 80)]
 
 
 @pytest.mark.network
