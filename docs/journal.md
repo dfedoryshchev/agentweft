@@ -832,15 +832,23 @@ line of its own under it:
     RECOMMEND: the date error first, the way parse() checks it now
     SIZE: zero code lines
 
-a question whose answer changes no code is the step's call, not a stop. when
-its `SIZE:` says so (zero, none, no code, or one test and nothing else) and
-it has a `RECOMMEND:`, the runner takes the question out of the answer and
-puts it in the block as a doubt, `<question> assumed: <recommend> (size:
-<size>)`. the step is taken as done and goes on through its gates, and the
-handoff lists the doubt. a `SIZE:` that counts lines of code anywhere in it,
-no `RECOMMEND:`, or a `CITES:` line (a gap in the spec, which a person rules
-on) parks as above; so does a stop question whose only `RECOMMEND:` and
-`SIZE:` belong to a `QUESTION:` in the block. the order two errors are reported in,
+a question whose recommended answer changes no code is the step's call, not
+a stop. the runner prices the answer the `RECOMMEND:` picks, not the other
+one: a `SIZE:` that prices each answer on its own (`none if left; one line
+in importer.py if a lone CR counts`) is read on the answer whose words are
+nearest the recommendation, the first one when none is nearer; a
+recommendation to leave things as they are (`leave it`, `keep it as it is`)
+costs nothing whatever the other answer would. when the recommended answer
+changes no code (zero, none, no code, or one test and nothing else, each
+part of the SIZE read on its own) the runner takes the question out of the
+answer and puts it in the block as a doubt, `<question> assumed:
+<recommend> (size: <size>)`. the step is taken as done and goes on through
+its gates, and the handoff lists the doubt; the answer as the step gave it,
+question and all, is kept beside its step file as `<step>.asked.md`. a
+recommended answer that counts lines of code, no `RECOMMEND:`, or a `CITES:`
+line (a gap in the spec, which a person rules on) parks as above; so does a
+stop question whose only `RECOMMEND:` and `SIZE:` belong to a `QUESTION:` in
+the block. the order two errors are reported in,
 when the spec fixes neither, is the usual case: the step follows the code's
 own convention and says so under ASSUMED.
 

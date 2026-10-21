@@ -101,6 +101,8 @@ def test_a_question_that_changes_no_code_becomes_a_doubt(tmp_path,
     [doubt] = handoff.parse(said)["doubts"]
     assert ORDER[:-1] in doubt and "the date error first" in doubt
     assert "zero code lines" in doubt
+    raw = (found / "a.asked.md").read_text(encoding="utf-8")
+    assert raw == "fixed it" + NL + NO_CODE + BLOCK
     text = (found / "handoff.md").read_text(encoding="utf-8")
     assert "the date error first" in text
 
@@ -190,6 +192,46 @@ def test_a_block_questions_pick_does_not_demote_the_stop_question():
             + "RECOMMEND: yes, blue" + NL + "SIZE: zero code lines" + NL
             + "END HANDOFF" + NL)
     assert ruling.demoted(said) is None
+
+
+def asking(recommend, size):
+    return ("did the fix" + NL + "NEEDS: " + ORDER + NL + "RECOMMEND: "
+            + recommend + NL + "SIZE: " + size + NL)
+
+
+PRICED_ON_THE_OTHER = (
+    ("leave it as it is", "one line in export.py, plus a unit test."),
+    ("leave it as it is.", "none if left; one line in importer.py plus a test"
+     " if a lone CR should count as a line ending."),
+    ("keep it as part of the field", "none if kept; one line in importer.py if"
+     " it is ruled a line break."),
+    ("month first, the way parse() reads it now", "one test; no code change"),
+    ("month first, the way parse() reads it now", "one test, no code change"),
+    ("month first, the way parse() reads it now", "one test. No code change,"
+     " if month-first is confirmed"))
+
+
+def test_a_question_whose_recommended_answer_changes_no_code_is_demoted():
+    for recommend, size in PRICED_ON_THE_OTHER:
+        found = ruling.demoted(asking(recommend, size))
+        assert found is not None, size
+        said, doubt = found
+        assert "NEEDS:" not in said and recommend in doubt, size
+
+
+def test_a_question_whose_recommended_branch_names_code_still_parks():
+    for recommend, size in (
+            ("count a lone CR as a line ending", "none if left; one line in"
+             " importer.py plus a test if a lone CR should count as a line"
+             " ending."),
+            ("rule it a line break", "none if kept; one line in importer.py"
+             " if it is ruled a line break."),
+            ("raise when it is called directly", "one line in export.py,"
+             " plus a unit test."),
+            ("day first", "2 lines in parse.py if day-first is ruled; one test"
+             " if month-first is confirmed"),
+            ("the amount error first", "3 lines in calc.py")):
+        assert ruling.demoted(asking(recommend, size)) is None, size
 
 
 def test_a_question_that_cites_a_spec_line_is_not_demoted():

@@ -22,7 +22,8 @@ from . import summary
 from . import trace
 from . import worktrees
 from . import wrongtest
-from .asking import lead_pass, rides, to_lead, worked_then_asked
+from .asking import (asked_file, lead_pass, rides, to_lead,
+                     worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
@@ -486,9 +487,12 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=wrong[1])
 
+            raw = out.output
             if honest and rides(step, out):
                 entry.handoff = out.block
                 (step_dir / step).write_text(out.output, encoding="utf-8")
+                (step_dir / asked_file(step)).write_text(raw,
+                                                         encoding="utf-8")
                 if entry.file:
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")

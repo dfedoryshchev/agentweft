@@ -29,8 +29,9 @@ a step's gates run after its answer is read for a question: an answer with a
 run for a ruling (or ends it, for a refusal that cites the spec) before any
 gate sees it. a step that stopped to ask produced nothing to gate; one that
 changed the place before it asked has its gates run on that, and parks after
-them. a `NEEDS:` whose `SIZE:` changes no code, that carries a
-`RECOMMEND:` and cites no spec line (`CITES:`) does not park at all: it
+them. a `NEEDS:` whose recommended answer changes no code (the `SIZE:` is
+read for the answer its `RECOMMEND:` picks), and that cites no spec line
+(`CITES:`), does not park at all: it
 becomes a doubt and the gates run as on
 any answer (`docs/journal.md`, when a step asks for a ruling). so does a `WRONG TEST:`
 answer, which sends a test the run wrote back to the step that wrote it, to be

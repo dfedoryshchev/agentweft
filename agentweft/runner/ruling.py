@@ -5,9 +5,10 @@ a line of its own: `NEEDS: <the question>`, with `CITES:` and `OPTIONS:` under
 it if it has them, or a first line of `VERDICT: park`. the run parks before
 that step's gates, because a step that stopped to ask has produced nothing to
 gate, and it waits for a ruling; a step that changed the place first has its
-gates run on that before the park. a question whose `SIZE:` changes no code
-and that says what it would pick (`RECOMMEND:`) parks nothing: it is the
-step's call, and goes on as a doubt with that answer taken (`demoted`).
+gates run on that before the park. a question that says what it would pick
+(`RECOMMEND:`) and whose `SIZE:` for that pick changes no code parks nothing:
+it is the step's call, and goes on as a doubt with that answer taken
+(`demoted`).
 `--resume <run id> --answer "<text>"` (or `--answer-file <path>`) runs that
 same step again with the answer at the end of its prompt, and the question,
 the answer and who gave it go into decisions.md in the place the run works
@@ -150,34 +151,97 @@ def asked_of(output, workdir, word=None, allowed=None, start=None):
 
 
 NO_CODE = re.compile(r"^(zero|none|nothing|no code|no change|0\b)")
-ONE_TEST = re.compile(r"^(only )?(one|a|1) (new )?test( function| case)?"
-                      r"( only)?$")
+ONE_TEST = re.compile(r"^(only )?(one|a|1) (new |unit |optional |regression )*"
+                      r"test( function| case)?( only)?$")
 # "zero code lines" names no code; "one line in parse.py" or "4 lines for B"
 # does, wherever it sits in the SIZE
 CODE_LINES = re.compile(r"\b([1-9]\d*|one|two|three|four|five|a few|several)"
                         r" (code )?lines?\b")
 ASKING = ("needs", "cites", "options", "recommend", "size")
+# "none if left; one line in x.py if it is ruled": a price, then the answer
+# it is the price of
+BRANCH = re.compile(r"^(.*?)[,\s]+if\s+(.+)$")
+PARTS = re.compile(r"\s*(?:,|\bplus\b|\band\b)\s*")
+# a recommendation to leave things as they are is the tree the step already
+# left, so it costs nothing whatever the SIZE says the other answer costs
+KEEPS = re.compile(r"^(leave|keep)( (it|them|this|that|things))?"
+                   r"( (as (it|they) (is|are)|as is|alone|unchanged))?$")
+SAME = {"left": "leave", "kept": "keep", "ruled": "rule", "counted": "count"}
+SMALL = ("the", "and", "but", "for", "its", "it's", "that", "this", "with",
+         "should", "would", "will", "is", "are", "be", "as", "if")
 
 
 def no_code(size):
     """-> whether a question's SIZE says no product code changes, whatever
-    the answer: zero, none, no code, or one test and nothing else."""
+    the answer: zero, none, no code, or one test and nothing else, each part
+    of it read on its own ("one test; no code change")."""
     said = flat(size).lower().rstrip(" .")
     if not said or CODE_LINES.search(said):
         return False
-    return bool(NO_CODE.match(said) or ONE_TEST.match(said))
+    if NO_CODE.match(said) or ONE_TEST.match(said):
+        return True
+    parts = [p.strip(" .") for p in PARTS.split(re.sub(r";|\.\s+", ",",
+                                                         said))]
+    parts = [p for p in parts if p and not p.startswith("if ")]
+    return bool(parts) and all(NO_CODE.match(p) or ONE_TEST.match(p)
+                               for p in parts)
+
+
+def words_of(text):
+    out = set()
+    for w in re.findall(r"[a-z0-9]+", (text or "").lower()):
+        w = SAME.get(w, w)
+        if len(w) > 2 and w not in SMALL:
+            out.add(w)
+    return out
+
+
+def priced(size, recommend):
+    """-> the parts of SIZE that price the recommended answer. a SIZE that
+    prices each answer on its own ("none if left; one line in x.py if a lone
+    CR counts") is read on the answer whose words are nearest the RECOMMEND,
+    the first one when none is nearer than the rest; what holds whichever
+    answer is taken is kept beside it."""
+    said = flat(size).lower().rstrip(" .")
+    plain, branches = [], []
+    for clause in re.split(r";|\.\s+", said):
+        clause = clause.strip(" ,.")
+        if not clause:
+            continue
+        m = BRANCH.match(clause)
+        if m and m.group(1).strip(" ,"):
+            branches.append((m.group(1).strip(" ,"), m.group(2)))
+        else:
+            plain.append(clause)
+    if not branches:
+        return "; ".join(plain)
+    asked = words_of(recommend)
+    near = [len(asked & words_of(cond)) for _, cond in branches]
+    best = max(near)
+    pick = branches[0] if best == 0 or near.count(best) > 1 \
+        else branches[near.index(best)]
+    return "; ".join(plain + [pick[0]])
+
+
+def costs_nothing(size, recommend):
+    """-> whether the answer the step recommends changes no product code:
+    it leaves things as they are, or its part of the SIZE says no code."""
+    if KEEPS.match(flat(recommend).lower().rstrip(" .")):
+        return True
+    return no_code(priced(size, recommend))
 
 
 def demoted(output):
     """-> (the answer with its question taken out and kept as a DOUBTS line,
-    that line) for a NEEDS whose SIZE changes no code and which says what it
-    would pick and cites no spec line, else None. such a question is the
-    step's call: it goes on with the RECOMMEND as its answer. one that cites
-    a spec line is a gap in the spec, which a person rules on."""
+    that line) for a NEEDS whose recommended answer changes no code and
+    which says what it would pick and cites no spec line, else None. such a
+    question is the step's call: it goes on with the RECOMMEND as its
+    answer. one that cites a spec line is a gap in the spec, which a person
+    rules on."""
     where = {}
     v = verbs.parse(output, where)
     if not v.needs or v.refused or v.conflict or v.cites \
-            or not v.recommend or not no_code(v.size):
+            or not v.recommend or not costs_nothing(v.size, v.recommend):
         return None
     doubt = (flat(v.needs) + " assumed: " + flat(v.recommend) + " (size: "
              + flat(v.size) + ")")

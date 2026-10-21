@@ -1,0 +1,43 @@
+{
+  "recorded": "2026-10-20T19:27:51",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "patcher.md",
+      "task": null,
+      "go": 1,
+      "prompt": "cfd6ffe88cc7ed2b950ecda4a286e7c20f116569f396536955744f14d4633135",
+      "say": "TEST: tests/test_add.py\n\ncalc.py: add returned a - b, it returns a + b now\n\nNEEDS: should add() turn down a string, the way sub() does not?\nRECOMMEND: leave it\nSIZE: none if left; one line in calc.py plus a test if a string should be turned down\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n"
+      }
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "437b286803cc441e22f88f05e474023cbf1a93a5006e2da1152d8495960f5120",
+      "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_add.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      }
+    }
+  ]
+}

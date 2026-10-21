@@ -81,6 +81,7 @@
     "fix-with-test-<run>/gates.md",
     "fix-with-test-<run>/handoff.md",
     "fix-with-test-<run>/manifest.json",
+    "fix-with-test-<run>/patcher.asked.md",
     "fix-with-test-<run>/patcher.md",
     "fix-with-test-<run>/red-proof.json",
     "fix-with-test-<run>/rulings.json",

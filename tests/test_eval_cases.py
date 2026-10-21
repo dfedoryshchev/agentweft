@@ -20,6 +20,7 @@ CASES = [("fix-with-test", "clean-fix", "done"),
          ("fix-with-test", "spec-declined", "refused (spec cited)"),
          ("fix-with-test", "breaks-a-start-test", "stopped: gate failed"),
          ("fix-with-test", "rewrites-a-start-test", "needs you: ruling"),
+         ("fix-with-test", "question-priced-on-the-other", "done"),
          ("build-feature", "wrong-test", "done"),
          ("build-feature", "wrong-test-after-code", "done"),
          ("repo-audit", "two-files", "done")]
@@ -111,6 +112,16 @@ def test_without_the_test_edit_check_the_rewritten_start_test_case_drops(
     r = scored("fix-with-test", live("fix-with-test", "rewrites-a-start-test"))
     assert r["passed"] < r["checked"]
     assert any(f.startswith("it ended needs you: ruling") for f in failed(r))
+
+
+def test_priced_on_the_whole_size_the_recommended_no_code_case_drops(
+        monkeypatch):
+    monkeypatch.setattr(ruling, "costs_nothing",
+                        lambda size, recommend: ruling.no_code(size))
+    r = scored("fix-with-test", live("fix-with-test",
+                                     "question-priced-on-the-other"))
+    assert r["passed"] < r["checked"]
+    assert any(f.startswith("it ended done") for f in failed(r))
 
 
 def test_without_the_wrong_test_send_back_the_wrong_test_case_drops(

@@ -82,6 +82,13 @@ def rides(step, out):
     return doubt
 
 
+def asked_file(step):
+    """-> the name, in the run folder, of the answer a step gave before its
+    question was taken out as a doubt: `<step>.asked.md`."""
+    stem = step[:-len(".md")] if step.endswith(".md") else step
+    return stem + ".asked.md"
+
+
 def worked_then_asked(run, route, step, out, run_dir=None):
     """-> None for a step that asked without changing the place, else what
     its gates said of what it changed: "" when they passed. the run parks
