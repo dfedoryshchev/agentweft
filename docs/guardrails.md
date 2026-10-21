@@ -35,8 +35,9 @@ with `<n>` where the new cap goes:
 
     python run.py weekly-digest --resume <run-id> --max-calls 30
 
-a cap given on the command line is the run's, kept in its manifest: a resume
-that does not name it carries on under it, every carry-on command the run
+a cap given on the command line is the run's, kept in its manifest and in the
+manifest of every leg after it: a resume that does not name it carries on under
+it, a resume of that resume too, every carry-on command the run
 prints repeats it, and only a higher one on the command line gets past it.
 
 the resume starts at the step the run paused before, and writes the change

@@ -688,6 +688,24 @@ def test_a_resumed_leg_is_handed_the_brief_of_the_legs_before_it(
     assert "old notes" in again
 
 
+def test_a_resume_of_a_resume_keeps_the_cap_the_first_leg_was_given(
+        tmp_path, monkeypatch):
+    a_briefed_run(tmp_path, monkeypatch, {
+        "reader.md": [READER], "worker.md": [OUT_OF_CALLS, NOTES],
+        "reviewer.md": [OUT_OF_CALLS, "VERDICT: ok\n\n" + NOTES]})
+    monkeypatch.setattr(sys, "argv", ["run.py", "briefed", "--force",
+                                      "--max-calls", "9"])
+    engine.main()
+    for leg in (2, 3):
+        monkeypatch.setattr(sys, "argv", [
+            "run.py", "briefed", "--force", "--resume",
+            resume.runs_for("briefed")[-1]])
+        engine.main()
+        assert len(resume.runs_for("briefed")) == leg
+        assert manifest.load(state.RUNS / resume.runs_for("briefed")[-1]) \
+            .data["caps"] == {"max_calls": 9}, "leg " + str(leg)
+
+
 def a_briefed_run(tmp_path, monkeypatch, answers):
     """the reader -> worker -> reviewer flow `briefed` over the scripted
     cli, in a place holding notes.md. -> the cli."""

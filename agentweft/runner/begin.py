@@ -453,14 +453,14 @@ def begin(unrecorded):
                     given_by = s
                     if run.role_for(s) != REVIEWER:
                         break
-            held = found.step(given_by) if found else None
-            source = (held or {}).get("in") or pick_up
+            entry = found.step(given_by) if found else None
+            source = (entry or {}).get("in") or pick_up
             out = Handoff(run.role_for(given_by),
                           resume.step_output(source, given_by),
                           meta={"rulings": run.rulings()},
                           carried=list(run.constraints))
-            if held and held.get("digest") and \
-                    manifest.of_text(out.output) != held["digest"]:
+            if entry and entry.get("digest") and \
+                    manifest.of_text(out.output) != entry["digest"]:
                 print(given_by + " was edited after " + source
                       + " wrote it; the rest of the run works from the edit")
                 notes.append((given_by + " was edited by hand before " + run_id
@@ -480,9 +480,9 @@ def begin(unrecorded):
         if start == run.fan:
             run.fan_start = fan.load(state.RUNS / pick_up)
         if investigate.on(fm) and investigate.STEP not in todo:
-            held = found.step(investigate.STEP) if found else None
+            entry = found.step(investigate.STEP) if found else None
             run.produced[investigate.STEP] = resume.step_output(
-                (held or {}).get("in") or pick_up, investigate.STEP)
+                (entry or {}).get("in") or pick_up, investigate.STEP)
         print("picking " + pick_up + " up at " + start)
     seen = state.last_output(flow, run.workdir, asked)
     folder = state.RUNS / run_id
