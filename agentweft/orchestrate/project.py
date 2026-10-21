@@ -97,11 +97,14 @@ def keep(folder, held):
 
 
 def kept(folder, place=None):
-    """-> the copy an earlier leg of the run held, None when it held none."""
+    """-> the copy an earlier leg of the run held, its text None when it held
+    none: every leg keeps the file it held, so a leg with none in its folder
+    started with none, and a project.yml a step made since is not read as the
+    one the run started with."""
     try:
         text = (Path(folder) / KEPT).read_text(encoding="utf-8")
     except OSError:
-        return None
+        text = None
     return Held(path(place), text)
 
 

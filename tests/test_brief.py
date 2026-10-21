@@ -305,6 +305,33 @@ def test_a_step_may_take_the_brief_in_a_flow_that_has_it_off(
     assert "return a - b  # kept-quote-marker" in sent[1]
 
 
+PLACEHOLDERS = "MARKED = 1  # {TASK} and {BRIEF} stay as written\n"
+ASKED = "keep {BRIEF} and {SPEC_DIFF} in the task as words"
+
+
+def test_a_quoted_line_or_a_task_holding_a_placeholder_reaches_the_step_as_written(
+        tmp_path, monkeypatch, fake_cli):
+    place = a_repo(tmp_path / "repo")
+    (place / "marked.py").write_text(PLACEHOLDERS, encoding="utf-8")
+    subprocess.run(["git", "-C", str(place), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(place), "commit", "-qm", "more"],
+                   check=True)
+    a_flow(tmp_path, monkeypatch, "two", ["reader", "worker"],
+           tail="workdir: " + place.as_posix() + "\n" + CLAUDE,
+           args=["--task", ASKED])
+    (tmp_path / "flows" / "two" / "worker.md").write_text(
+        "# worker\n\nthe task: {TASK}\n", encoding="utf-8")
+    cli = fake_cli(answer(block(["marked.py:1 - the marked line"]),
+                          session="i-1"),
+                   answer(block(["calc.py:1-2 - add subtracts"],
+                                verified=False), session="w-1"))
+    assert engine.main() == 0
+    second = prompts_of(cli)[1]
+    assert "1: " + PLACEHOLDERS.rstrip("\n") in second
+    assert second.count(ASKED) == 1
+    assert "the task: " + ASKED in second
+
+
 def test_the_brief_key_takes_true_or_false_and_nothing_else():
     from agentweft.flow import spec
 

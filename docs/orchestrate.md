@@ -282,7 +282,10 @@ the codebase i wrote it for.
 project, beside the workflow: the stack, which docs a role has to have read,
 the coverage numbers, the forbidden patterns, the commands that are gates, and
 the tier and grant each role gets. copy it to `project.yml` and answer it for
-your own repo: a run reads `orchestrate/project.yml` in its `workdir`.
+your own repo: a run reads `orchestrate/project.yml` in its `workdir`. it
+reads it once, when it starts, and keeps a copy in its folder; a `--resume`
+reads that copy, so a project.yml a step wrote is never what the checks hold
+the run to, and a run that started with none carries on with none.
 
 the split is the point. agentweft ships the shapes - role, phase, gate, grant,
 tier - and a shape that names a folder is not a shape. everything specific is

@@ -238,6 +238,31 @@ def test_a_resume_holds_the_project_yml_the_run_started_with(tmp_path,
     assert said and not said[-1]["ok"]
 
 
+MADE_RULES = ("project:" + NL + "  name: made" + NL + "standards:" + NL
+              + "  immediate_reject:" + NL + "    - rule: never hit" + NL
+              + "      pattern: nothing-says-this" + NL)
+
+
+def test_a_resume_of_a_run_that_started_with_no_project_yml_reads_none(
+        tmp_path, monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    monkeypatch.setattr(workflow, "ROOT", ["orchestrate"])
+    a_flow(tmp_path, "build", "  - role: worker" + NL + "    prompt: worker.md"
+           + NL + "    gates:" + NL + "      - gate: reject" + NL)
+    running(tmp_path, monkeypatch, place, "build",
+            {"worker.md": ({"orchestrate/project.yml": MADE_RULES}, "done")})
+    first = folders()[-1]
+    assert not (first / "project.yml").exists()
+    code, _ = running(tmp_path, monkeypatch, place, "build",
+                      {"worker.md": ({}, "done")}, "--resume", first.name)
+    said = [g for line in read(folders()[-1] / "steps.jsonl").splitlines()
+            for g in json.loads(line).get("gates") or []
+            if g["gate"] == "reject"]
+    assert said and not said[-1]["ok"], said
+    assert "no project.yml" in said[-1]["detail"]
+    assert code != stops.EXIT_OK
+
+
 def test_a_step_that_writes_a_fence_skip_into_project_yml_does_not_widen_it(
         tmp_path, monkeypatch):
     from agentweft.guardrails import fence

@@ -793,15 +793,17 @@ class Run(object):
         prompt = investigate.scope(prompt, found)
         if step == investigate.STEP:
             prompt = prompt + investigate.plan_words(self.fm)
-        prompt = prompts.put_spec(prompt, getattr(self, "start", None))
+        values = prompts.spec_of(prompt, getattr(self, "start", None))
         notes = getattr(self, "brief", None)
         briefed = ""
         if not self.briefs(step):
             prompt = prompts.drop_brief(prompt, resolver.fragment("brief"))
         else:
             briefed = notes.text(step) if notes else ""
-            prompt = prompts.put_brief(prompt, briefed)
-        prompt = prompts.put_task(prompt, self.task_text)
+            values.update(prompts.brief_of(briefed))
+        if self.task_text is not None:
+            values[prompts.MARK] = self.task_text
+        prompt = prompts.fill(prompt, values)
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
         if self.writes_for(step) == "spec":

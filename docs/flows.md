@@ -36,7 +36,10 @@ exactly where `{TASK}` is and nowhere else: in a step's own file it reaches
 that step, in `instructions.md` it reaches every step. a fanned-out flow that
 names it in `planner.md` hands it to the planner, and the workers get the
 plan. `{INBOX}` and friends are put in first, so a task that quotes one keeps
-it as written.
+it as written. `{TASK}`, `{BRIEF}`, `{SPEC_AT_START}` and `{SPEC_DIFF}` are
+then put in together, in one pass over the step's own words, so a task, a
+quoted line or a spec line that holds one of those spellings reaches the step
+as it was written.
 
 the run is refused, before anything is called or written, when:
 

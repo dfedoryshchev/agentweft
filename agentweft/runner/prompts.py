@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 from .task import MARK
@@ -30,29 +31,38 @@ def reads_spec(text):
     return SPEC_AT_START in text or SPEC_DIFF in text
 
 
-def put_spec(text, start):
-    """{SPEC_AT_START} and {SPEC_DIFF}, from the run's start snapshot and
-    read as the step is called: a step after an edit to the spec gets the
-    spec the edit moved away from, and what moved."""
+def spec_of(text, start):
+    """-> {SPEC_AT_START: .., SPEC_DIFF: ..} from the run's start snapshot,
+    read as the step is called, {} for a prompt that names neither: a step
+    after an edit to the spec gets the spec the edit moved away from, and
+    what moved."""
     if not reads_spec(text):
-        return text
+        return {}
     from agentweft.guardrails import specfiles
 
-    text = text.replace(SPEC_AT_START, specfiles.at_start(start))
-    return text.replace(SPEC_DIFF, specfiles.diff(start))
+    return {SPEC_AT_START: specfiles.at_start(start),
+            SPEC_DIFF: specfiles.diff(start)}
 
 
 BRIEF = "{BRIEF}"
 
 
-def put_brief(text, brief):
-    """{BRIEF}, what the steps before this one found, with the lines they
-    read quoted."""
-    if BRIEF not in text:
-        return text
+def brief_of(brief):
+    """-> {BRIEF: ..}, what the steps before this one found, with the lines
+    they read quoted."""
     from .brief import NONE_YET
 
-    return text.replace(BRIEF, brief or NONE_YET)
+    return {BRIEF: brief or NONE_YET}
+
+
+def fill(text, values):
+    """every placeholder in `values` put into `text` in one pass, so a spec
+    line, a quoted line or a task that holds a placeholder's own spelling
+    reaches the model as it was written."""
+    if not values:
+        return text
+    pattern = re.compile("|".join(re.escape(k) for k in values))
+    return pattern.sub(lambda m: values[m.group(0)], text)
 
 
 def drop_brief(text, words):

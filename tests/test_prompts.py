@@ -18,6 +18,19 @@ def test_an_unknown_brace_is_left_alone():
     assert prompts.substitute("keep {THIS}") == "keep {THIS}"
 
 
+def test_what_goes_into_one_placeholder_is_never_read_for_another():
+    from agentweft.runner import prompts
+    values = {prompts.MARK: "fix {BRIEF}", prompts.BRIEF: "quoted {TASK}",
+              prompts.SPEC_AT_START: "spec says {SPEC_DIFF} and {TASK}",
+              prompts.SPEC_DIFF: "moved {SPEC_AT_START}"}
+    text = "{TASK} / {BRIEF} / {SPEC_AT_START} / {SPEC_DIFF} / {TASK}"
+    assert prompts.fill(text, values) == (
+        "fix {BRIEF} / quoted {TASK} / spec says {SPEC_DIFF} and {TASK}"
+        " / moved {SPEC_AT_START} / fix {BRIEF}")
+    assert prompts.fill("keep {THIS}", values) == "keep {THIS}"
+    assert prompts.fill("{TASK}", {}) == "{TASK}"
+
+
 def test_every_role_gets_the_shared_fragments():
     cfg = runner.config("weekly-digest")
     by_role = resolver.resolve(cfg.raw, runner.flow_path("weekly-digest"))
