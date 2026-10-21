@@ -41,17 +41,19 @@ def spellings(path):
     return sorted(out, key=len, reverse=True)
 
 
-def neutral(prompt, place=None):
+def neutral(prompt, place=None, trail=None):
     """-> the prompt as any machine would have sent it.
 
     the place a case runs in is a new temp folder every run, named the way
     its OS names it, and a gate that failed says it, says the python it ran
     and hands on the tail of what that printed, separators, timings and all.
     those become `<place>` and `<python>` wherever they are, and in what a
-    gate said a backslash is a slash and a duration is `<secs>s`. the words
-    the step was given are left as they are."""
+    gate said a backslash is a slash and a duration is `<secs>s`. the folder
+    the case's lines go to, which the retro is pointed at, is `<trail>`. the
+    words the step was given are left as they are."""
     text = (prompt or "").replace("\r\n", "\n")
-    for where, name in ((sys.executable, "<python>"), (place, "<place>")):
+    for where, name in ((sys.executable, "<python>"), (trail, "<trail>"),
+                        (place, "<place>")):
         if where:
             for spelt in spellings(where):
                 text = text.replace(spelt, name)
@@ -61,10 +63,11 @@ def neutral(prompt, place=None):
     return head + said + tail
 
 
-def digest(prompt, place=None):
+def digest(prompt, place=None, trail=None):
     """-> the sha256 of a prompt made `neutral`, so a recording made on one
     machine is not stale on another."""
-    return hashlib.sha256(neutral(prompt, place).encode("utf-8")).hexdigest()
+    return hashlib.sha256(neutral(prompt, place, trail).encode(
+        "utf-8")).hexdigest()
 
 
 class Mismatch(Exception):
@@ -143,6 +146,7 @@ class Recorder(Provider):
         self.calls = []
         self.lock = threading.Lock()
         self.began = datetime.datetime.now().replace(microsecond=0)
+        self.trail = None
 
     @property
     def where(self):
@@ -208,7 +212,7 @@ class Recorder(Provider):
         step, task, go = self.goes.next()
         reply = self.inner.ask(prompt, timeout=timeout)
         call = {"step": step, "task": task, "go": go,
-                "prompt": digest(prompt, self.where)}
+                "prompt": digest(prompt, self.where, self.trail)}
         call.update(kept(reply))
         with self.lock:
             self.calls.append(call)
@@ -243,6 +247,7 @@ class Replay(Provider):
         self.used = set()
         self.goes = Goes()
         self.lock = threading.Lock()
+        self.trail = None
 
     @classmethod
     def load(cls, path):
@@ -265,7 +270,7 @@ class Replay(Provider):
         call = self.calls.get(key)
         if call is None:
             raise Mismatch(PREFIX + "has no answer for " + named(*key))
-        if call["prompt"] != digest(prompt, self.where):
+        if call["prompt"] != digest(prompt, self.where, self.trail):
             raise Mismatch(PREFIX + "is stale: " + named(key[0], key[1])
                            + " prompt changed")
         with self.lock:

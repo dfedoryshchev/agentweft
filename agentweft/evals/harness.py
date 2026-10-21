@@ -168,6 +168,9 @@ def run_flow_for(flow, case, record=False):
     folder = Path(tempfile.mkdtemp())
     trail = folder / "trail"
     trail.mkdir()
+    for kept in (recorder, replay):
+        if kept is not None:
+            kept.trail = trail
     workdir = None
     old = {k: os.environ.get(k) for k in ("INBOX", "LOGS", "WATCH")}
     try:

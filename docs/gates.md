@@ -737,9 +737,8 @@ ranking the `context:` block brought back (see `docs/mcp.md`), the same way
 preflight checks them: when it names at least one and none is at `threshold`
 (default 0.7), `cold`'s command runs instead. one hot file and the long one
 runs. so does a run with no ranking - the server was down, the flow has no
-`context:`, the step ran before the planner fetched it, the run was picked up
-past the planner with `--resume`, or it is an eval run, which fetches none -
-and a step that names no file at all, because none of those says the change
+`context:`, the step ran before the planner fetched it, or the run was picked
+up past the planner with `--resume` - and a step that names no file at all, because none of those says the change
 is small. `expect` and `{file}` mean the same for both commands, and the
 result says which one ran and why.
 

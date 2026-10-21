@@ -23,7 +23,8 @@ sets the run up, fresh or carried on; `loop.py` runs the steps and holds every
 way a run stops; `ending.py` writes the journal, the index and the saved
 answer. what a step's answer has to get past is in `gating.py`, a step that
 asks instead of going on is in `asking.py`, and `once.py` is the run the evals
-make, which hands back the answer instead of printing it.
+make, which hands back the answer instead of printing it; the preflight and
+the boundary note both use are in `gating.py`, so the two take the same steps.
 
 `runner/run.py`. `Run` holds everything a step needs so nothing has to be
 threaded through five functions. `Run.step()` is the only place a step becomes

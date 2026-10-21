@@ -1,4 +1,6 @@
 """a flow run for the evals: its answer, its spend and why it stopped."""
+import shutil
+import tempfile
 from pathlib import Path
 
 from agentweft.roles import resolver
@@ -7,12 +9,17 @@ from .config import config, steps
 from .handoff import EMPTY
 from .errors import Outage
 from .prompts import flow_path
-from . import investigate, router, ruling, stops, trace, wrongtest
+from . import (investigate, retro, router, ruling, stops, summary, trace,
+               wrongtest)
 from .asking import lead_pass, rides, to_lead, worked_then_asked
 from .fanout import run_fanout
-from .gating import (and_forged, check_step, forged_by, forged_first,
-                     gate_told, gate_why, off_task, outage_why, police_line)
+from .gating import (and_forged, boundary_note, check_step, forged_by,
+                     forged_first, gate_told, gate_why, off_task, outage_why,
+                     police_line, preflight_after, preflight_before, risk_map)
 from .run import Run
+
+# the run id a scored case's retro is told, in place of a live run's
+RUN_ID = "eval"
 
 
 def run_once(flow, provider=None, task=None, trail=None, workdir=None):
@@ -20,10 +27,27 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
     stopped short ("" when it did not). the eval harness wants the output, not
     the printing, and it wants to say which provider the whole thing runs on.
 
+    it takes the steps a run started by hand takes: the preflight before and
+    after a step that has one, the boundary note, and the retro at the end of
+    a flow with `retro: true`.
+
     `trail` is a folder to write the run's steps.jsonl into, the same lines a
     run of `main` writes, for a case that asserts the steps it took.
     `workdir` is the place it works in, over the flow's own."""
     fm = config(flow)
+    made = None
+    if trail is None and retro.on(fm):
+        # the retro reads the run's lines, so a run asked for none keeps them
+        # where nothing else sees them
+        made = trail = tempfile.mkdtemp()
+    try:
+        return scored(flow, fm, provider, task, trail, workdir)
+    finally:
+        if made is not None:
+            shutil.rmtree(made, ignore_errors=True)
+
+
+def scored(flow, fm, provider, task, trail, workdir):
     by_role = resolver.resolve(fm.raw, flow_path(flow), fm.promises.as_prompt())
     run = Run(flow, fm, by_role, provider=provider, task=task, workdir=workdir)
     route = router.Router(fm)
@@ -31,17 +55,19 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
     kept = trace.Trail(trail) if trail is not None else None
     if trail is not None:
         run.keep_in(Path(trail))
-    out = EMPTY
-    step = steps(flow)[0]
-    came_from = None
-    given = {}
+    ended = {}
+    state = {"out": EMPTY, "step": steps(flow)[0], "came_from": None}
 
     def note(outcome, why=None, cause=None, to=None, output=None):
         taken = run.taken()
+        if cause:
+            ended["cause"] = cause
         if kept is None:
             return
+        step, out = state["step"], state["out"]
         entry = kept.open(step, taken, run.by_step.get(step, run.provider),
-                          came_from, output=output, fanned=step == run.fan)
+                          state["came_from"], output=output,
+                          fanned=step == run.fan)
         entry.police = police_line(run, step)
         entry.gates = out.meta.get("gates", []) if output is not None else []
         entry.ungated = out.meta.get("ungated") if output is not None else None
@@ -49,7 +75,21 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
         entry.proved = output is not None and bool(out.meta.get("proved"))
         kept.close(entry, outcome, why=why, to=to, cause=cause)
 
-    while step:
+    said = steps_of(flow, fm, run, route, trail, kept, state, note)
+    if kept is not None and retro.on(fm):
+        stopped = {"cause": ended["cause"]} if ended.get("cause") else None
+        retro.after(run, kept, RUN_ID, fm["name"], summary.outcome(stopped),
+                    Path(trail), stopped)
+    return said
+
+
+def steps_of(flow, fm, run, route, trail, kept, state, note):
+    """the step loop. `state` holds the step running, what it was handed
+    and where from, for `note`; `kept` is the trail, None for no lines."""
+    given = {}
+    risk_text = ""
+    while state["step"]:
+        step, out = state["step"], state["out"]
         refused = run.refused(step)
         if refused:
             note("refused", refused, stops.REFUSED)
@@ -66,19 +106,27 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             note("parked", waits[1], stops.BUDGET)
             return (out.output, run.budget, "over budget at " + step + ": "
                     + waits[1])
+        held, unchecked, allowed = preflight_before(run, fm, step, out.output,
+                                                    risk_text)
+        if held:
+            return held_by(note, run, out, step, held)
         run.order.watch(step, writes)
         run.look()
         try:
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
-                out = run.step(step, previous=out)
+                extra, ranked = risk_map(run, fm, step)
+                if ranked is not None:
+                    risk_text = ranked
+                out = run.step(step, previous=out, extra=extra)
             run.gate_said.pop(step, None)
         except Outage as e:
             why = and_forged(outage_why(e), run.forged.pop(step, ""))
             note("parked", why, stops.OUTAGE)
             return (out.output, run.budget, "provider outage at " + step
                     + ": " + why)
+        state["out"] = out
         run.wrote_tests(step)
         forged = forged_first(run, step, out)
         fenced = run.fenced(step)
@@ -116,9 +164,9 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
                                              else " are")
                  + " wrong, back to " + writer, to=writer, output=out.output)
             run.wrong_back(step, writer, tests, told)
-            out = given.get(writer, EMPTY)
-            came_from = step
-            step = writer
+            state["out"] = given.get(writer, EMPTY)
+            state["came_from"] = step
+            state["step"] = writer
             continue
         if wrong:
             note("parked", wrong[1], stops.PARKED, output=out.output)
@@ -149,7 +197,7 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
                 lead_pass(kept, run, head, step, decided)
             if decided:
                 run.ruled[step] = decided
-                out = handed
+                state["out"] = handed
                 continue
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + question.split("\n")[0])
@@ -170,19 +218,25 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
             note("gate failed", gate_why(out.meta["gates"]), to=again,
                  output=out.output)
             run.gate_said[again] = gate_told(out.meta["gates"])
-            out = handed
-            step = again
+            state["out"] = handed
+            state["step"] = again
             continue
-        if not failed:
-            run.order.passed(step)
-            out.meta["proved"] = run.order.proven(step, out.meta["gates"],
-                                                  out.output)
-        if failed or blocked:
-            why = gate_why(out.meta["gates"]) if failed else blocked
-            note("gate failed", why, stops.GATE, output=out.output)
-            if failed:
-                return (out.output, run.budget,
-                        "gate " + failed + " failed at " + step)
+        if failed:
+            note("gate failed", gate_why(out.meta["gates"]), stops.GATE,
+                 output=out.output)
+            return (out.output, run.budget,
+                    "gate " + failed + " failed at " + step)
+        run.order.passed(step)
+        out.meta["proved"] = run.order.proven(step, out.meta["gates"],
+                                              out.output)
+        hot = preflight_after(run, step, out.output, risk_text, unchecked,
+                              allowed)
+        if hot:
+            return held_by(note, run, out, step, hot, output=out.output)
+        boundary_note(run, step, out.output,
+                      Path(trail) if trail is not None else None)
+        if blocked:
+            note("gate failed", blocked, stops.GATE, output=out.output)
             return out.output, run.budget, blocked
         unproven = investigate.unrooted(step, out.output)
         if unproven:
@@ -191,6 +245,16 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
         nxt = route.next(step, out)
         note("redo" if out.verdict == "redo" and nxt else "ok", to=nxt,
              output=out.output)
-        came_from = step
-        step = nxt
-    return out.output, run.budget, ""
+        state["came_from"] = step
+        state["step"] = nxt
+    return state["out"].output, run.budget, ""
+
+
+def held_by(note, run, out, step, held, output=None):
+    """-> what `run_once` hands back for a step the preflight held."""
+    cause, why, _ = held
+    if cause == stops.REFUSED:
+        note("refused", why, cause, output=output)
+        return out.output, run.budget, "refused at " + step + ": " + why
+    note("parked", why, cause, output=output)
+    return out.output, run.budget, "parked at " + step + ": " + why

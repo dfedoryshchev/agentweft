@@ -4,11 +4,10 @@ import time
 import traceback
 
 from agentweft.flow.spec import REVIEWER
-from agentweft.guardrails import (baseline, boundary, police, redorder,
-                                  signoff, skips, snapshot)
+from agentweft.guardrails import (baseline, police, redorder, signoff, skips,
+                                  snapshot)
 from agentweft.guardrails.budget import REACHING
 from agentweft.guardrails import blocks, sacrifice
-from agentweft.mcp import context, preflight
 from agentweft.orchestrate import decisions, park
 
 from .config import steps
@@ -27,9 +26,10 @@ from .asking import (asked_file, lead_pass, rides, to_lead,
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
-from .gating import (NEWLINE, and_forged, check_step, forged_by,
-                     forged_first, gate_told, gate_why, held_after_stop,
-                     nothing_why, off_task, outage_why, police_line,
+from .gating import (NEWLINE, and_forged, boundary_note, check_step,
+                     forged_by, forged_first, gate_told, gate_why,
+                     held_after_stop, nothing_why, off_task, outage_why,
+                     police_line, preflight_after, preflight_before, risk_map,
                      sent_back_times, since, times)
 
 
@@ -362,50 +362,15 @@ def go(leg):
                 print("sign-off before " + step + ": " + signed.target
                       + " moved to " + signed.head + ", and the change still"
                       " merges onto it")
-            allowed = set()
-            unchecked = False
-            pre = run.preflight_for(step)
-            # the planner is the step that fetches the map, so before it runs
-            # there is no ranking yet to read its handed text against
-            if pre and not (step == "planner.md" and fm.get("context")):
-                threshold = float(pre.get("threshold",
-                                          preflight.DEFAULT_THRESHOLD))
-                ahead = preflight.check(out.output, risk_text,
-                                        threshold=threshold)
-                if ahead is None:
-                    unchecked = True
-                    if step != cleared:
-                        print("preflight: " + preflight.NO_RANKING + ", "
-                              + step + " not checked")
-                        if pre.get("mode", "flag") in ("park", "refuse"):
-                            return stop(stops.PARKED, step + " was not checked: "
-                                        + preflight.NO_RANKING, "parked",
-                                        index="PARKED  " + flow + "  at " + step,
-                                        waiting="user",
-                                        handed=came_from or "the task")
-                elif ahead and step == cleared:
-                    allowed = set(p for p, _ in ahead)
-                elif ahead:
-                    print("preflight: " + step + " was handed " + str(len(ahead))
-                          + " hot file(s)")
-                    for path, score in ahead:
-                        print("  " + path + "  " + str(score))
-                    mode = pre.get("mode", "flag")
-                    if mode == "refuse":
-                        return stop(stops.REFUSED, "hot blast radius: "
-                                    + ", ".join(p for p, _ in ahead),
-                                    "refused", index="REFUSED  " + flow + "  "
-                                    + ahead[0][0])
-                    if mode == "park":
-                        return stop(stops.PARKED, step + " was handed "
-                                    + ", ".join(p + " (" + str(s) + ")"
-                                                for p, s in ahead)
-                                    + ", at or above the " + str(threshold)
-                                    + " the risk map counts as hot, and was"
-                                    " parked before it ran", "parked",
-                                    index="PARKED  " + flow + "  at " + step,
-                                    waiting="user",
-                                    handed=came_from or "the task")
+            held, unchecked, allowed = preflight_before(
+                run, fm, step, out.output, risk_text, cleared)
+            if held and held[0] == stops.REFUSED:
+                return stop(held[0], held[1], "refused",
+                            index="REFUSED  " + flow + "  " + held[2])
+            if held:
+                return stop(held[0], held[1], "parked",
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user", handed=came_from or "the task")
             cleared = None
             run.order.watch(step, writes)
             print("started " + step)
@@ -416,14 +381,9 @@ def go(leg):
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
-                extra = ""
-                if step == "planner.md" and fm.get("context"):
-                    risk_text, why = context.risk_map(fm.get("context"),
-                                                      where=run.workdir)
-                    if why:
-                        print("no risk map: " + why)
-                    run.ranking = risk_text
-                    extra = extra + context.as_prompt(risk_text)
+                extra, ranked = risk_map(run, fm, step)
+                if ranked is not None:
+                    risk_text = ranked
                 if seen and step == "planner.md":
                     extra = "\n\nthe last run was " + str(seen) + \
                         ". only tell me what is different since then."
@@ -629,56 +589,16 @@ def go(leg):
                 run.order.save(folder)
                 chain.wrote(folder)
 
-            hot = []
-            if run.preflight_for(step):
-                hot = preflight.check(out.output, risk_text,
-                                      threshold=float(run.preflight_for(step).get(
-                                          "threshold", preflight.DEFAULT_THRESHOLD)))
-                if hot is None and not unchecked:
-                    mode = run.preflight_for(step).get("mode", "flag")
-                    print("preflight: " + preflight.NO_RANKING + ", " + step
-                          + " not checked")
-                    if mode in ("park", "refuse"):
-                        return stop(stops.PARKED, step + " was not checked: "
-                                    + preflight.NO_RANKING, "parked", entry,
-                                    index="PARKED  " + flow + "  at " + step,
-                                    waiting="user")
-                elif hot:
-                    mode = run.preflight_for(step).get("mode", "flag")
-                    print("preflight: " + str(len(hot)) + " hot file(s) in that step")
-                    for path, score in hot:
-                        print("  " + path + "  " + str(score))
-                    fresh = [h for h in hot if h[0] not in allowed]
-                    if fresh and mode == "refuse":
-                        return stop(stops.REFUSED, "hot blast radius: "
-                                    + ", ".join(p for p, _ in fresh), "refused",
-                                    entry, index="REFUSED  " + flow + "  "
-                                    + fresh[0][0])
-                    if fresh and mode == "park":
-                        why = (step + " touches " + ", ".join(
-                            p + " (" + str(s) + ")" for p, s in fresh)
-                            + ", at or above the " + str(run.preflight_for(step).get(
-                                "threshold", preflight.DEFAULT_THRESHOLD))
-                            + " the risk map counts as hot")
-                        return stop(stops.PARKED, why, "parked", entry,
-                                    index="PARKED  " + flow + "  at " + step,
-                                    waiting="user")
-
-            # the boundary check reads what came back against what the step was
-            # granted. it does not stop the run and it is not meant to: nothing
-            # here was in the path of the thing it is reporting, so a stop would
-            # be theatre. it is written down beside the gate results instead.
-            crossed = boundary.check(out.output, run.grant_for(step))
-            if crossed:
-                print("boundary: " + step + " came back with " + str(len(crossed))
-                      + " thing(s) it was not granted")
-                for mark, line in crossed:
-                    print("  " + mark.what + "  " + line[:60])
-                step_dir = state.RUNS / run_id
-                step_dir.mkdir(parents=True, exist_ok=True)
-                with open(step_dir / "boundary.md", "a", encoding="utf-8") as bf:
-                    bf.write("## " + step + "\n")
-                    bf.write(boundary.as_note(crossed))
+            hot = preflight_after(run, step, out.output, risk_text, unchecked,
+                                  allowed)
+            if hot and hot[0] == stops.REFUSED:
+                return stop(hot[0], hot[1], "refused", entry,
+                            index="REFUSED  " + flow + "  " + hot[2])
+            if hot:
+                return stop(hot[0], hot[1], "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user")
+            boundary_note(run, step, out.output, state.RUNS / run_id)
 
             if blocked:
                 print(blocked + " - not going on")

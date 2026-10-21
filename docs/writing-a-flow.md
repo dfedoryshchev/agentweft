@@ -333,6 +333,7 @@ retro was handed is not handed to the next, and a stop that waited is not a
 failed attempt. a clean run spends nothing on it. `retro: false` or no
 `retro:` adds no step. it is true or false, anything else is refused when the
 flow loads, and so is a step whose role is `retro` or that reads `retro.md`.
+a scored eval case of the flow runs it the same way (`evals/README.md`).
 
 ## 11. run it three times before you trust it
 

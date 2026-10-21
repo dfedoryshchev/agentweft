@@ -97,6 +97,18 @@ case that fails one says the mode and the passes:
 these hold the runner's own path - the steps, the redos, the gates - and
 not anything a model did inside a step.
 
+a scored case takes the steps a run of the cli takes on the same answers:
+the planner of a flow with `context` is handed the risk map, a step with
+`preflight` is checked before and after it runs and held the same way,
+what a step came back with that it was not granted goes to `boundary.md`
+beside the lines, and a flow with `retro: true` ends on its `retro.md`
+line when an attempt failed, charged like any step. what a scored run
+leaves out: the "last run was" line a planner is given from an earlier run
+of the flow, the handoff and why.md the retro of a cli run also reads, the
+sacrifice cuts (above), and `investigate: auto`, whose cause step a scored
+run takes from the start instead of switching it on when the first step
+shows it is guessing.
+
 ## how it ended
 
 a case there to show a gate stopping the run would lose "the run got to the
@@ -157,7 +169,8 @@ sha256 of the prompt it was sent and never the prompt itself. the files an
 answer left in the place are kept with it and written again on replay.
 
 a recording made on windows replays on linux. before the prompt is hashed,
-the place the case ran in and the python that ran it become `<place>` and
+the place the case ran in, the folder its lines went to (which the retro is
+pointed at) and the python that ran it become `<place>`, `<trail>` and
 `<python>`, and in what a failed gate said a backslash becomes a slash and a
 duration `<secs>s`. nothing else in the prompt is touched, so an edit to it
 still makes the recording stale.
