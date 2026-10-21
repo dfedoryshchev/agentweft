@@ -35,7 +35,9 @@ read for the answer its `RECOMMEND:` picks), and that cites no spec line
 becomes a doubt and the gates run as on
 any answer (`docs/journal.md`, when a step asks for a ruling). so does a `WRONG TEST:`
 answer, which sends a test the run wrote back to the step that wrote it, to be
-shown red again by that step's gates, or parks on one the run started with.
+shown red again by that step's gates, or parks on one the run started with;
+an answer naming several tests sends every one that step wrote back in one
+round.
 
 a step asked for a verdict is held to the verdicts its own file lists, each a
 line of its own: `VERDICT: ok`, `VERDICT: redo` and `VERDICT: spec change
@@ -56,7 +58,7 @@ and fails it, with what was wrong (`docs/journal.md`, when the request
 contradicts the spec).
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
-line and the `spec:` line under a `WRONG TEST:` claim that cite a line that
+line and the `spec:` line under each `WRONG TEST:` claim that cite a line that
 is there have to quote what that line says as the run found it; when they do
 not, the refusal does not end the run and the claim goes to no one: a `quote`
 result goes in front of the step's gates and fails it, naming the quote and

@@ -235,17 +235,17 @@ class Run(object):
             self.test_seen[rel] = sha
             self.authors.setdefault(start.from_place(rel), step)
 
-    def wrong_back(self, step, writer, test, told):
-        """send a test `step` called wrong back to `writer`: the claim at the
-        end of its prompt, and the red proof that test gave dropped, so the
-        corrected test has to be shown red again before product code."""
+    def wrong_back(self, step, writer, tests, told):
+        """send the tests `step` called wrong back to `writer`: the claims at
+        the end of its prompt, and the red proof they gave dropped, so the
+        corrected tests have to be shown red again before product code."""
         self.gate_said[writer] = told
         self.ups[writer] = self.ups.get(writer, 0) + 1
         if writer != step:
-            self.gate_said[step] = wrongtest.back_to(writer, test)
+            self.gate_said[step] = wrongtest.back_to(writer, tests)
         proof = self.order.proof
-        path = redorder.norm(test.partition("::")[0])
-        if proof and proof.get("how") == "gate" and path in set(
+        paths = set(redorder.norm(t.partition("::")[0]) for t in tests)
+        if proof and proof.get("how") == "gate" and paths & set(
                 redorder.norm(f) for f in proof.get("tests") or {}):
             self.order.proof = None
 

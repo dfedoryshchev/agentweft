@@ -184,6 +184,76 @@ def test_an_invented_spec_quote_fails_the_step_and_never_reaches_the_writer(
     assert "mul(a, b) returns a plus b" in sent[3]
 
 
+def two_tests(first, second):
+    return (a_test(first) + NL + NL + "def test_mul_zero():" + NL
+            + "    from calc import mul" + NL + NL
+            + "    assert mul(4, 0) == " + str(second) + NL)
+
+
+def two_claims():
+    return (claim("tests/test_mul.py::test_mul") + NL
+            + "WRONG TEST: tests/test_mul.py::test_mul_zero" + NL
+            + "why: anything times 0 is 0, and the test wants 1" + NL
+            + 'spec: TASK.md:3 "mul(a, b) returns a times b"' + NL)
+
+
+def test_several_wrong_tests_go_back_to_their_writer_in_one_round(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [two_claims(), WORKER],
+               "reviewer.md": [OK], "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", two_tests(5, 1)),
+                            ("tests/test_mul.py", two_tests(6, 0))],
+              "worker.md": [("", ""), ("calc.py", AFTER)]}
+    asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
+                                          writes)
+    assert asked == ["planner.md", "tester.md", "worker.md", "tester.md",
+                     "worker.md", "reviewer.md", "reviewer-runs.md"]
+    assert code == stops.EXIT_OK
+    again = sent[3]
+    assert "tests/test_mul.py::test_mul" + NL in again
+    assert "tests/test_mul.py::test_mul_zero" in again
+    assert "anything times 0 is 0" in again
+    assert "tests/test_mul.py::test_mul_zero" in sent[4]
+    steps = (folder / "steps.jsonl").read_text(encoding="utf-8")
+    assert "test_mul_zero" in steps
+
+
+def test_one_claim_that_cannot_go_back_parks_the_whole_answer(tmp_path,
+                                                            monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [claim("tests/test_mul.py::test_mul") + NL
+                             + claim("tests/test_old.py::test_old")]}
+    writes = {"tester.md": [("tests/test_mul.py", WRONG)]}
+    asked, _, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
+                                       writes, old=True)
+    assert asked == ["planner.md", "tester.md", "worker.md"]
+    assert code == stops.EXIT_STOP
+    question = (folder / "question.md").read_text(encoding="utf-8")
+    assert "tests/test_old.py::test_old" in question
+
+
+def test_every_claim_is_read_each_with_its_own_why_and_spec():
+    said = wrongtest.claims(
+        "WRONG TEST: tests/test_a.py::test_one" + NL + "why: one" + NL
+        + 'spec: TASK.md:1 "a"' + NL + NL
+        + "WRONG TEST: `tests/test_b.py::test_two`" + NL
+        + 'spec: TASK.md:2 "b"' + NL
+        + "WRONG TEST: tests/test_a.py::test_one" + NL + "why: again" + NL)
+    assert said == [("tests/test_a.py::test_one", "one", 'TASK.md:1 "a"'),
+                    ("tests/test_b.py::test_two", "", 'TASK.md:2 "b"')]
+    assert wrongtest.claims("nothing wrong" + NL) == []
+
+
+def test_a_misquote_on_any_claim_fails_the_step(tmp_path):
+    (tmp_path / "TASK.md").write_text(SPEC, encoding="utf-8")
+    said = wrongtest.misquoted(
+        claim("tests/test_mul.py::test_mul") + NL
+        + claim("tests/test_mul.py::test_two",
+                spec='TASK.md:3 "mul(a, b) returns a plus b"'), tmp_path)
+    assert "returns a plus b" in said
+
+
 def test_the_claim_is_read_off_its_own_lines_and_never_split_on_a_pipe():
     assert wrongtest is not None, "nothing reads a WRONG TEST answer"
     said =wrongtest.read(

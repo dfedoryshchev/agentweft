@@ -914,6 +914,13 @@ and a second claim on the same test parks for a ruling. a test the run started
 with never goes back: the claim parks for a ruling, quoted in `question.md`. a
 `spec:` line that is not there is read as a question too.
 
+one answer may name several tests, each on its own `WRONG TEST:` line with its
+`why:` and `spec:` lines under it. the tests one step wrote go back to it
+together, in one round, every claim at the end of its prompt. the claims are
+judged together: one that has to be a ruling (a test the run started with, a
+`spec:` line that is not there, a test that has gone back as often as
+`send_backs` allows) parks the answer, and nothing goes back.
+
 the runner asks one of its own when a step in a flow with `spec_files:
 additions` removes or rewrites a line of the spec the run started with
 (`docs/guardrails.md`, "the spec files"). the run parks after that step's

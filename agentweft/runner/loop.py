@@ -467,14 +467,16 @@ def go(leg):
             wrong = wrongtest.judge(out.output, step, run, route) \
                 if honest else None
             if wrong and wrong[0] == "back":
-                _, writer, test, told = wrong
-                print(step + " says " + test + " is wrong, sent back to "
+                _, writer, tests, told = wrong
+                said = ", ".join(tests) + (" is" if len(tests) == 1
+                                           else " are")
+                print(step + " says " + said + " wrong, sent back to "
                       + writer)
-                trail.close(entry, "redo", why=test + " is wrong, back to "
+                trail.close(entry, "redo", why=said + " wrong, back to "
                             + writer, to=writer)
                 record.mark(step, manifest.REDO, run_id, out.output)
                 record.save(run.budget)
-                run.wrong_back(step, writer, test, told)
+                run.wrong_back(step, writer, tests, told)
                 out = given.get(writer, EMPTY)
                 came_from = step
                 step = writer

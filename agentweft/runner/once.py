@@ -111,10 +111,11 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
         wrong = wrongtest.judge(out.output, step, run, route) \
             if honest else None
         if wrong and wrong[0] == "back":
-            _, writer, test, told = wrong
-            note("redo", test + " is wrong, back to " + writer, to=writer,
-                 output=out.output)
-            run.wrong_back(step, writer, test, told)
+            _, writer, tests, told = wrong
+            note("redo", ", ".join(tests) + (" is" if len(tests) == 1
+                                             else " are")
+                 + " wrong, back to " + writer, to=writer, output=out.output)
+            run.wrong_back(step, writer, tests, told)
             out = given.get(writer, EMPTY)
             came_from = step
             step = writer
