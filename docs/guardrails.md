@@ -615,7 +615,10 @@ command that carries on:
 written to `runs/<id>/police.md` as it is found, printed as `police (shadow):
 <step> <tripwire>: <evidence>`, listed under "not done" at the top of the
 handoff, and again in its `## police` section, which says `no tripwire hit on
-<n> steps read` when there was none. the step's line in `steps.jsonl` carries
+<n> steps read` when there was none, counting only the steps whose transcript
+it read, and `<n> steps not read (no transcript), so not checked` for the
+rest: a step it could not read is never counted clean. the step's line in
+`steps.jsonl` carries
 `"mode": "shadow"` beside its hits. it is the mode to learn what the check
 would stop on ordinary work before a flow turns it on. any value of `police:`
 other than `on`, `off` or `shadow` is refused when the flow loads, and one
@@ -643,10 +646,10 @@ runs no tools, so there is nothing of its to see.
 
 a resumed run's handoff keeps what the legs before it saw. each leg that has
 something to say writes its hits, the addressed passages its steps read and
-how many steps were read to `runs/<id>/police.json`, and the handoff of a leg
-that picks it up, however many legs on, lists them beside its own, each marked
-`(leg <run-id>)`, and counts their steps in `no tripwire hit on <n> steps
-read`. with `police: off` nothing is written.
+how many steps were read and not read to `runs/<id>/police.json`, and the
+handoff of a leg that picks it up, however many legs on, lists them beside its
+own, each marked `(leg <run-id>)`, and counts their steps in both lines. with
+`police: off` nothing is written.
 
 the mcp server hands a client a policed run's files wrapped as data
 (`mcp.md`).

@@ -663,6 +663,36 @@ def test_shadow_with_no_hit_says_so_in_the_handoff(tmp_path, monkeypatch,
     assert "no tripwire hit on 1 step" in record
 
 
+def test_a_step_with_no_transcript_is_not_counted_as_read_clean():
+    import types
+
+    from agentweft.runner import gating
+
+    run = types.SimpleNamespace(
+        policing=police.SHADOW, police_lines={}, shadowed=[], shadow_read=0,
+        shadow_unread=0, told_read=[],
+        policed_now=lambda: [police.Report("worker.md", [], False, 0.0)])
+    assert gating.off_task(run, "worker.md") == ""
+    said = police.handoff_lines(run.policing, run.shadowed, run.shadow_read,
+                                unread=run.shadow_unread)
+    assert not any("no tripwire hit" in line for line in said), said
+    assert "- 1 step not read (no transcript), so not checked" in said
+
+
+def test_shadow_counts_read_and_unread_steps_apart_in_the_handoff(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=SHADOW)
+    transcript(tmp_path, monkeypatch, "s-1",
+               [bash("python -m pytest -q", "1 passed")])
+    fake_cli(answer("done\n", session="s-1"),
+             answer("VERDICT: ok\n\nfine\n", session="s-gone"))
+    assert engine.main() == 0
+    page = (the_folder() / "handoff.md").read_text(encoding="utf-8")
+    record = page.split("## police")[1].split("\n## ")[0]
+    assert "no tripwire hit on 1 step read" in record
+    assert "1 step not read (no transcript), so not checked" in record
+
+
 def test_police_on_still_stops_on_the_same_credential_read(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=ON)

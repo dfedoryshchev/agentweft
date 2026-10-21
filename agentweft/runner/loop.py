@@ -139,10 +139,12 @@ def go(leg):
         left = baseline.label(left, known)
         if left is not None:
             left = held_after_stop(run, left, folder)
-        police.keep(folder, run.shadowed, run.told_read, run.shadow_read)
-        hits, read, seen = police.kept_before(
+        police.keep(folder, run.shadowed, run.told_read, run.shadow_read,
+                    run.shadow_unread)
+        hits, read, seen, unseen = police.kept_before(
             manifest.legs(state.RUNS / pick_up)[0] if pick_up else [])
         hits, seen = hits + run.shadowed, seen + run.shadow_read
+        unseen += run.shadow_unread
         told = police.read_lines(read + run.told_read, str(run.workdir))
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), run.decided(),
@@ -168,7 +170,7 @@ def go(leg):
                               shadowed=hits,
                               told=told,
                               police=police.handoff_lines(
-                                  run.policing, hits, seen, told))
+                                  run.policing, hits, seen, told, unseen))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],

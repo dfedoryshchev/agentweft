@@ -73,7 +73,8 @@ def off_task(run, step, folder=None):
             print("police: " + step + " left no transcript to read, so what"
                   " it did with its tools was not checked")
     if shadow:
-        run.shadow_read += len(found)
+        run.shadow_read += sum(1 for r in found if r.seen)
+        run.shadow_unread += sum(1 for r in found if not r.seen)
     if hasattr(run, "told_read"):
         run.told_read.extend((r.step, t) for r in found
                              for t in getattr(r, "told", ()))

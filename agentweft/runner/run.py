@@ -176,6 +176,7 @@ class Run(object):
         self.police_lock = threading.Lock()
         self.shadowed = []
         self.shadow_read = 0
+        self.shadow_unread = 0
         self.told_read = []
 
     def decided(self):
