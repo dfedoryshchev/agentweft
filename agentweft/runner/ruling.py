@@ -739,11 +739,62 @@ def quotes_line(text, line):
     return False
 
 
-def spec_line_ruled(decided, line):
+SPEC_LINES = "spec-lines"
+
+
+def lines_asked(lines):
+    """-> what the runner writes in a leg's record of its stop when it parks
+    the leg on spec lines itself, a removed or rewritten line or a conflict
+    it checked the quote of: its id and each line as the run found it."""
+    return {"id": SPEC_LINES, "lines": [flat(l) for l in lines]}
+
+
+def asked_lines(stopped):
+    """-> the spec lines the runner's own question named, read from a leg's
+    record of its stop (`manifest.json` `stopped`); () for a stop on
+    anything else, a step's question quoting a spec line included."""
+    said = (stopped or {}).get("runner") or {}
+    if said.get("id") != SPEC_LINES or not isinstance(said.get("lines"),
+                                                      list):
+        return ()
+    return tuple(l for l in said["lines"] if isinstance(l, str))
+
+
+def conflict_asked(output, workdir, start=None):
+    """-> `lines_asked` of the lines a CONFLICT line in `output` cites, as
+    the run found them, or None when they cannot be read."""
+    said = verbs.parse(output).conflict
+    m = CONFLICT.match((said or "").strip())
+    if not m:
+        return None
+    rel, first, last, _, _ = cite_of(m)
+    text = as_found(workdir, rel, start)
+    if text is None:
+        return None
+    lines = text.split("\n")
+    if not 1 <= first <= last <= len(lines):
+        return None
+    return lines_asked(lines[first - 1:last])
+
+
+def answers_lines(d, line, asked):
+    """whether `d` is an `override:` answer, given with --answer, to a
+    question the runner parked a leg on that named `line`. `asked` is {run
+    id: the lines its record says the runner asked about}."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if not found or kind_of(found[1]) != OVERRIDE or not m:
+        return False
+    return flat(line) in (asked or {}).get(m.group(1), ())
+
+
+def spec_line_ruled(decided, line, asked=None):
     """-> the decisions.md entry that lets a spec line the run started with
     be removed or rewritten, or None. it quotes the line in its own words,
-    or it is an `override:` answer to the question that quoted it. an
-    answer of `request:` keeps the spec, so it never rules one."""
+    or it is an `override:` answer to a question the runner asked that named
+    the line (`asked`, as `answers_lines` reads it): a step's own question
+    quoting the line, answered the same way, rules nothing. an answer of
+    `request:` keeps the spec, so it never rules one."""
     for d in decided:
         said = answered(d)
         kind = kind_of(said or d.decided)
@@ -751,7 +802,7 @@ def spec_line_ruled(decided, line):
             continue
         if quotes_line(own_words(d), line):
             return d
-        if said and kind == OVERRIDE and quotes_line(d.why, line):
+        if answers_lines(d, line, asked):
             return d
     return None
 

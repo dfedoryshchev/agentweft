@@ -227,6 +227,26 @@ def test_an_override_answer_to_the_park_carries_the_run_on(
     assert code == 0
 
 
+def test_an_override_to_a_steps_own_question_quoting_the_line_rules_nothing(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo")
+    flow_with(tmp_path, "additions")
+    rewrites = worker_writes(SPEC.replace(LINE, REWRITTEN))
+    asks = dict(rewrites, **{"worker.md": (
+        {}, 'NEEDS: may "' + LINE + '" be read loosely?' + NL + "OPTIONS:"
+        + NL + "- override: yes" + NL + "- no" + NL)})
+    code, _ = running(tmp_path, monkeypatch, place, asks, False)
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    code, called = running(tmp_path, monkeypatch, place, rewrites, False,
+                           "--resume", first.name, "--answer",
+                           "override: yes, read it loosely")
+    assert called == ["worker.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    question = read(folders()[-1] / "question.md")
+    assert 'TASK.md:3 - was "' + LINE + '"' in question
+
+
 def test_any_other_answer_leaves_the_line_unruled(tmp_path, monkeypatch):
     place = a_place(tmp_path / "repo")
     flow_with(tmp_path, "additions")
@@ -244,10 +264,10 @@ def entry(decided, why):
     return decisions.Decision(decided, why, datetime.datetime(2026, 1, 1))
 
 
-def ruled(decided, line):
+def ruled(decided, line, asked=None):
     assert hasattr(ruling, "spec_line_ruled"), \
         "nothing reads a ruling for a spec line"
-    return ruling.spec_line_ruled(decided, line)
+    return ruling.spec_line_ruled(decided, line, asked)
 
 
 def test_a_quote_of_the_whole_line_or_three_words_of_it_rules_it():
@@ -264,6 +284,33 @@ def test_a_request_answer_never_rules_a_line():
                  ruling.why("worker.md", "build-1", "NEEDS: may it?",
                             'request: keep "' + LINE + '"', "someone"))
     assert ruled([kept], LINE) is None
+
+
+def overridden(question):
+    return entry(ruling.decided("worker.md", "override: sort them"),
+                 ruling.why("worker.md", "build-1", question,
+                            "override: sort them", "someone",
+                            kind=ruling.OVERRIDE))
+
+
+def test_an_override_to_a_conflict_rules_the_line_the_runner_read(tmp_path):
+    (tmp_path / "TASK.md").write_text(SPEC, encoding="utf-8")
+    said = 'CONFLICT: TASK.md:3 "' + LINE + '"' + NL + "request: sort them" + NL
+    question, why = ruling.conflict_of(said, tmp_path)
+    assert question and not why
+    d = overridden(question)
+    asked = {"build-1": ruling.asked_lines(
+        {"runner": ruling.conflict_asked(said, tmp_path)})}
+    assert ruled([d], LINE, asked) is d
+    assert ruled([d], LINE, {"build-1": ()}) is None
+    assert ruled([d], LINE, {"build-2": asked["build-1"]}) is None
+
+
+def test_the_runners_record_and_not_the_questions_words_rules_a_line():
+    d = overridden('NEEDS: may "' + LINE + '" change?')
+    assert ruled([d], LINE) is None
+    assert ruled([d], LINE, {"build-1": ruling.asked_lines(
+        {"runner": ruling.lines_asked([LINE])})}) is d
 
 
 def test_the_rule_is_a_flow_key_with_two_values():

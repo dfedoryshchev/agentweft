@@ -958,9 +958,11 @@ additions` removes or rewrites a line of the spec the run started with
 (`docs/guardrails.md`, "the spec files"). the run parks after that step's
 gates, cause `parked`, outcome `needs you: ruling`, `gates.md` has a failed
 `spec-files` line, and `question.md` quotes each line as it was and as it is
-now (`TASK.md:3 - was "...", now "..."` or `now removed`). `--answer
-"override: <why the change holds>"` lets those lines change, and the step runs
-again to read the ruling; any other answer is told to the step, which has to
+now (`TASK.md:3 - was "...", now "..."` or `now removed`); the leg's
+`manifest.json` keeps those lines in `stopped.runner`. `--answer
+"override: <why the change holds>"` lets the lines that record names change,
+never a line a step's own question quoted, and the step runs again to read
+the ruling; any other answer is told to the step, which has to
 put the lines back or park again. in a `read-only` flow the same edit is a
 failed gate instead: the step goes again once, then the run stops `gate
 failed`.

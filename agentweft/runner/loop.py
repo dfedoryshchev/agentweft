@@ -457,7 +457,9 @@ def go(leg):
                             question=said[0], checked=[(
                                 "quote check", True, "the quote at "
                                 + ", ".join(ruling.authorised(said[0]))
-                                + " is there as the run found it")])
+                                + " is there as the run found it")],
+                            asked=ruling.conflict_asked(
+                                out.output, run.workdir, run.start))
             wrong = wrongtest.judge(out.output, step, run, route) \
                 if honest else None
             if wrong and wrong[0] == "back":
@@ -537,7 +539,7 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=spec_asks[1],
                             stopped_for="removed or rewrote spec lines the"
-                            " run started with")
+                            " run started with", asked=spec_asks[2])
             test_asks = out.meta.pop("test_ruling", None)
             if test_asks:
                 print(step + " changed a test the run started with")

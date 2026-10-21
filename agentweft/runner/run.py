@@ -320,9 +320,10 @@ class Run(object):
                       ruling.question_of_start_tests(step, left))
 
     def spec_held(self, step, ok=True):
-        """-> (the spec files' line for the record or None, (why, question)
-        when a line the run started with is removed or rewritten and no
-        ruling quotes it, else None). a `read-only` flow fails the step on
+        """-> (the spec files' line for the record or None, (why, question,
+        what the run's record keeps of the question) when a line the run
+        started with is removed or rewritten and no ruling covers it, else
+        None). a `read-only` flow fails the step on
         any change; an `additions` flow is only read once the step's other
         gates passed, since one that failed sends the step back anyway."""
         mode = self.fm.get("spec_files")
@@ -336,10 +337,11 @@ class Run(object):
         if not ok:
             return None, None
         decided = self.spec_rulings()
+        asked = self.runner_asked(ruling.asked_lines)
         left, ruled = [], []
         for rel, was, now in found:
             for n, line, there in specfiles.lost(was, now):
-                d = ruling.spec_line_ruled(decided, line)
+                d = ruling.spec_line_ruled(decided, line, asked)
                 if d is None:
                     left.append((rel, n, line, there))
                 else:
@@ -348,7 +350,22 @@ class Run(object):
             return specfiles.passed(found, ruled), None
         line = specfiles.held(left)
         return line, ("needs a ruling: " + line.detail,
-                      ruling.question_of_spec_lines(step, left))
+                      ruling.question_of_spec_lines(step, left),
+                      ruling.lines_asked(was for _, _, was, _ in left))
+
+    def runner_asked(self, read):
+        """-> {run id: what `read` finds in that leg's record of the question
+        the runner itself stopped it on}, for this run and every leg before
+        it, so an answer is matched to the runner's question by its record
+        and never by the question's words."""
+        record = getattr(self, "record", None)
+        asked = {}
+        if getattr(record, "folder", None) is not None:
+            for leg in manifest.legs(record.folder)[0]:
+                m = manifest.load(leg)
+                if m is not None:
+                    asked[leg.name] = read(m.data.get("stopped"))
+        return asked
 
     def cuts_a_check(self):
         """-> complaints about a `sacrifice:` name whose step checks the spec
@@ -393,9 +410,10 @@ class Run(object):
             return []
         mode = self.fm.get("spec_files")
         decided = self.spec_rulings()
+        asked = self.runner_asked(ruling.asked_lines)
         return [rel + ":" + str(n) for rel, was, now in found
                 for n, line in specfiles.moved(was, now, mode)
-                if ruling.spec_line_ruled(decided, line) is None]
+                if ruling.spec_line_ruled(decided, line, asked) is None]
 
     def tests_held(self, step, last=False):
         """-> (the line for the record when a test file the run started with
@@ -409,13 +427,7 @@ class Run(object):
         if not found:
             return None, None
         decided = self.spec_rulings()
-        record = getattr(self, "record", None)
-        asked = {}
-        if getattr(record, "folder", None) is not None:
-            for leg in manifest.legs(record.folder)[0]:
-                m = manifest.load(leg)
-                if m is not None:
-                    asked[leg.name] = ruling.asked_edits(m.data.get("stopped"))
+        asked = self.runner_asked(ruling.asked_edits)
         left, ruled = [], []
         for edit in found:
             for test, how in edit.items:

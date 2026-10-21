@@ -359,8 +359,13 @@ after every step the runner reads them against how the run found them:
 
   an entry in `decisions.md` that quotes the line (all of it, or three words
   of it or more, between double quotes) lets the change stand, and so does an
-  `override:` answer to the question that quoted it. any other answer goes to
-  the step, which runs again; an answer starting `request:` never rules one.
+  `override:` answer to a question the runner asked that named the line: this
+  park, or a spec conflict whose quote it checked, which authorises the lines
+  it cites. the runner knows its own question by what it wrote in the leg's
+  `manifest.json` when it parked, never by the question's words, so a step's
+  own question that quotes a spec line, answered `override:`, rules nothing.
+  any other answer goes to the step, which runs again; an answer starting
+  `request:` never rules one.
   the check waits for the step's other gates to pass, since a failed one
   sends the step back anyway.
 
