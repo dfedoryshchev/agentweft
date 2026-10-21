@@ -169,6 +169,7 @@ class Run(object):
         self.police_lock = threading.Lock()
         self.shadowed = []
         self.shadow_read = 0
+        self.told_read = []
 
     def decided(self):
         """-> the rulings in decisions.md the runner has on record."""

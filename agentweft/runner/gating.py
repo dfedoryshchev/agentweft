@@ -73,6 +73,9 @@ def off_task(run, step, folder=None):
                   " it did with its tools was not checked")
     if shadow:
         run.shadow_read += len(found)
+    if hasattr(run, "told_read"):
+        run.told_read.extend((r.step, t) for r in found
+                             for t in getattr(r, "told", ()))
     hit = [r for r in found if r.hits]
     if not hit:
         return ""

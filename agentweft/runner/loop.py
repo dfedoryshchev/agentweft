@@ -136,6 +136,7 @@ def go(leg):
         left = baseline.label(left, known)
         if left is not None:
             left = held_after_stop(run, left, folder)
+        told = police.read_lines(run.told_read, str(run.workdir))
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), run.decided(),
                               run.budget.summary(), stopped=stopped,
@@ -158,9 +159,10 @@ def go(leg):
                               or bool(run.order.skip or run.order.proof),
                               proof=run.order.proof,
                               shadowed=run.shadowed,
+                              told=told,
                               police=police.handoff_lines(
                                   run.policing, run.shadowed,
-                                  run.shadow_read))
+                                  run.shadow_read, told))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],

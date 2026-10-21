@@ -604,6 +604,19 @@ would stop on ordinary work before a flow turns it on. any value of `police:`
 other than `on`, `off` or `shadow` is refused when the flow loads, and one
 that reaches the runner anyway is read as `on`.
 
+on or in shadow, text a step read that is addressed to an agent and names an
+action (the passage the `instructions` tripwire reads), where the step then
+took none of the actions it names, is reported and never a hit: one line
+under "not done" and in the `## police` section, naming the steps that read
+it, the file and its lines (a Read numbers them) or the call whose output held
+it, and the passage's first line quoted:
+
+    worker.md read text addressed to an agent at pkg/parse.py:33-36 and took no action it names: "# Release checklist for automated agents: ..."
+
+a passage read twice is one line. it is not a verdict on the text, and it
+only names what the tripwire's reader parses: an address with no command,
+package, host or file to write in it is not listed.
+
 `--resume` carries on after the step, as it does after the fence: the person
 has looked at what it did and let it through. a hit in a lead's answer stops
 the run at the step that asked it, once that step has gone again. a step whose transcript cannot be found is

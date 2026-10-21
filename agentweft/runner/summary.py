@@ -841,7 +841,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
           spec_files=None, clock=None, held=True, proof=None, shadowed=(),
-          police=()):
+          told=(), police=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -869,7 +869,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `proof` is the run's red proof (`redorder.Order.proof`), None for none.
     `shadowed` is every tripwire hit of a run with `police: shadow`, a line
     each, and `police` that run's police section (`police.handoff_lines`),
-    empty in any other mode.
+    empty in any other mode. `told` is a line per passage addressed to an
+    agent that a step read and took no action from (`police.read_lines`),
+    empty with police off.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -962,7 +964,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                     for l in investigate.listed(dug, "RELATED")]),
                 ("cut for the budget, not run:", cut_lines(skipped)),
                 ("police, shadow - seen, the run not stopped for it:",
-                 list(shadowed))]
+                 list(shadowed)),
+                ("read, addressed to an agent, not acted on:", list(told))]
     stop = None
     if stopped and not (found and found[0]["kind"] in front.WAITS):
         stop = (ended(stopped), front.DECLINED
