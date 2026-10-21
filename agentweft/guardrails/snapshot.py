@@ -256,6 +256,17 @@ class Snapshot(object):
     def product_now(self):
         return self.hashes()[2]
 
+    def product_changed(self):
+        """-> the product files, as paths from the place, that are new, gone
+        or not as they were when the run started; [] when nothing was
+        hashed."""
+        if not self.hashed:
+            return []
+        now = self.product_now()
+        return sorted(self.from_place(rel)
+                      for rel in set(now) | set(self.product)
+                      if now.get(rel) != self.product.get(rel))
+
     def to_json(self):
         return {"place": str(self.place),
                 "root": str(self.root) if self.root else None,

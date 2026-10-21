@@ -136,6 +136,21 @@ def test_a_wrong_test_the_run_started_with_parks_for_a_ruling(tmp_path,
     assert 'TASK.md:3 "mul(a, b) returns a times b"' in question
 
 
+def test_a_park_after_the_fix_is_in_says_the_run_did_the_work(tmp_path,
+                                                              monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [claim("tests/test_old.py::test_old")]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT)],
+              "worker.md": [("calc.py", AFTER)]}
+    _, _, code, folder, _ = run_it(tmp_path, monkeypatch, answers, writes,
+                                   old=True)
+    assert code == stops.EXIT_STOP
+    page = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert "instead of doing the work" not in page
+    assert ("the run did the work, then worker.md asked for a ruling: the"
+            " place holds its change to calc.py.") in page
+
+
 def test_a_second_wrong_test_on_the_same_test_parks(tmp_path, monkeypatch):
     answers = {"planner.md": [PLAN], "tester.md": [TESTER],
                "worker.md": [claim("tests/test_mul.py::test_mul")],

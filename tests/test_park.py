@@ -38,6 +38,24 @@ def test_it_points_at_the_file_the_next_step_would_have_been_handed():
     assert "as worker.md." in "\n".join(a_handoff())
 
 
+def test_a_question_after_the_run_changed_the_product_says_the_work_is_done():
+    lines = park.lines("patcher.md", "user", DONE, ["reviewer.md"],
+                       "python run.py demo --resume demo-1",
+                       question="NEEDS: is test_old wrong?",
+                       run_did=["calc.py"])
+    text = "\n".join(lines)
+    assert "instead of doing the work" not in text
+    assert ("the run did the work, then patcher.md asked for a ruling: the"
+            " place holds its change to calc.py.") in text
+
+
+def test_a_question_with_no_product_change_still_says_it_asked_instead():
+    lines = park.lines("patcher.md", "user", DONE, ["reviewer.md"],
+                       "python run.py demo --resume demo-1",
+                       question="NEEDS: is test_old wrong?", run_did=[])
+    assert "patcher.md asked for a ruling instead of doing the work:" in lines
+
+
 def test_the_last_thing_it_says_is_the_command_to_type():
     lines = a_handoff(command="python run.py demo --resume demo-1 --force")
     assert lines[-2] == "to carry on"

@@ -811,7 +811,13 @@ question.) the run parks there, before that step's gates run: a step that
 stopped to ask has produced nothing to gate. a step that changed the place
 before it asked did produce something, so its gates run on that first, and
 the "needs you" section says it did the work, then asked, and whether those
-gates passed or which one failed. the run parks either way. the journal
+gates passed or which one failed. a step that asked without changing
+anything itself, after the run's earlier steps (or its own earlier go) left a
+product file changed since the run started, is not said to have asked
+instead of doing the work: the section says `the run did the work, then
+<step> asked for a ruling: the place holds its change to <files>.`, read off
+the start snapshot, whichever step asked (a `WRONG TEST:` claim on a test the
+run started with included). the run parks either way. the journal
 says `parked at <step>`, `why.md` says `kind       ruling`, the step is
 `parked for a ruling` in the manifest, the question is in
 `runs/<run-id>/question.md`, and the handoff's "needs you" section shows it

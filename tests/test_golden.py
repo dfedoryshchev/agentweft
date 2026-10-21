@@ -512,6 +512,12 @@ CASES = {
         "args": ["--task", BUG], "task": BUG, "ends": ["parked"], "answers": {
             "worker.md": FIXES["worker.md"],
             "patcher.md": [WRONG_OLD]}},
+    ("fix-with-test", "fixed-then-wrong-start-test"): {
+        "place": {"calc.py": BUGGY, "TASK.md": CALC_SPEC,
+                  "test_old.py": OLD_TEST},
+        "args": ["--task", BUG], "task": BUG, "ends": ["parked"], "answers": {
+            "worker.md": FIXES["worker.md"],
+            "patcher.md": [say(WRONG_OLD, {"calc.py": FIXED})]}},
     ("fix-with-test", "refused"): {
         "place": {"calc.py": BUGGY, "TASK.md": SUB_SPEC},
         "args": ["--task", BUG], "task": BUG, "ends": ["declined"],

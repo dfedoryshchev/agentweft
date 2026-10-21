@@ -229,12 +229,15 @@ def go(leg):
         done = [(name, secs) for name, secs, _ in timings]
         if question:
             conflict = cause == stops.CONFLICT
+            did = run.start.product_changed() \
+                if run.start is not None and worked is None \
+                and not conflict and not stopped_for else []
             needs = park.lines(at, waiting, done,
                                resume.remaining(steps(flow), at),
                                resume_command(flow, run_id, run.caps),
                                question=question, conflict=conflict,
                                replayed=replayed, worked=worked,
-                               stopped_for=stopped_for)
+                               stopped_for=stopped_for, run_did=did)
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:
