@@ -158,3 +158,26 @@ def test_a_read_call_and_shell_reads_are_files_and_ranges(tmp_path,
     assert got == [("a.py", ""), ("b.py", "10-14"), ("c.py", ""),
                    ("d.py", "1-20")]
     assert handoff.reads("s-none") is None
+
+
+def test_each_gate_s_command_sits_beside_its_own_result_after_a_runner_check(
+        tmp_path):
+    class FM(object):
+        steps = [{"role": "worker", "prompt": "worker.md", "gates": [
+            {"gate": "length", "max": 40},
+            {"gate": "command", "command": ["python", "-m", "pytest", "-q"]},
+            {"gate": "command", "command": ["ruff", "check"]}]}]
+
+    folder = tmp_path / "run"
+    folder.mkdir()
+    line = {"seq": 1, "step": "worker.md", "outcome": "gate failed",
+            "gates": [{"gate": "quote", "ok": False, "detail": "not there"},
+                      {"gate": "length", "ok": True, "detail": "3 lines"},
+                      {"gate": "command", "ok": True, "detail": "exit 0"},
+                      {"gate": "command", "ok": False, "detail": "exit 1"}]}
+    (folder / "steps.jsonl").write_text(json.dumps(line) + "\n",
+                                        encoding="utf-8")
+    [p] = summary.passes_of(folder, {"worker.md": "worker"}, FM)
+    assert [(g["gate"], g["command"]) for g in p["gates"]] == [
+        ("quote", ""), ("length", ""), ("command", "python -m pytest -q"),
+        ("command", "ruff check")]

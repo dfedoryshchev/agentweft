@@ -157,7 +157,8 @@ def handed(*answers):
     from agentweft.runner import summary
 
     passes = [summary.a_pass("verify.md", "verify", 1, None,
-                             summary._gates([verdict(passes=3).run(a)], []),
+                             summary._gates([verdict(passes=3).run(a)], [],
+                                            []),
                              False, "ok", a) for a in answers]
     return summary.build("demo-1", "demo", None, passes, {"git": False},
                          [], "")
@@ -190,7 +191,7 @@ def test_the_unproven_lines_survive_the_record_a_resume_reads():
     from agentweft.runner import summary
 
     kept = summary._gates([{"gate": "verdict", "ok": True, "detail": "x",
-                            "unproven": ["UNSURE: c"]}], [])
+                            "unproven": ["UNSURE: c"]}], [], [])
     assert kept[0].get("unproven") == ["UNSURE: c"]
 
 

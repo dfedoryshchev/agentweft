@@ -334,9 +334,22 @@ def gate_commands(fm, step, output):
     return []
 
 
-def _gates(results, commands):
+def gate_names(fm, step):
+    """-> the name of each gate the flow declares on `step`, in declaration
+    order, the order gate_commands keeps."""
+    for s in fm.steps:
+        if step_id(s) == step:
+            return [g.get("gate") for g in (s.get("gates") or [])]
+    return []
+
+
+def _gates(results, commands, names):
+    """-> each result kept with the command of the gate it came from: the
+    nth result of a gate name gets the nth declared gate of that name's
+    command, and a check the runner made itself gets none."""
     out = []
-    for i, g in enumerate(results or []):
+    taken = {}
+    for g in results or []:
         if isinstance(g, dict):
             gate, ok, detail = g.get("gate"), g.get("ok"), g.get("detail")
             unsure = g.get("unproven") or []
@@ -349,8 +362,12 @@ def _gates(results, commands):
             tests = getattr(g, "tests", None)
             skipped = getattr(g, "skipped", False)
             issue = trace.issue_of(g)
+        nth = taken.get(gate, 0)
+        taken[gate] = nth + 1
+        at = [i for i, name in enumerate(names) if name == gate]
         kept = {"gate": gate, "ok": bool(ok), "detail": detail or "",
-                "command": commands[i] if i < len(commands) else "",
+                "command": commands[at[nth]] if nth < len(at)
+                and at[nth] < len(commands) else "",
                 "tests": tests, "skipped": bool(skipped)}
         if unsure:
             kept["unproven"] = list(unsure)
@@ -477,7 +494,8 @@ def _passes_in(folder, roles, fm):
         out.append(a_pass(step, roles.get(step, step),
                           line.get("seconds") or 0, line.get("handoff"),
                           _gates(line.get("gates"),
-                                 gate_commands(fm, step, said)),
+                                 gate_commands(fm, step, said),
+                                 gate_names(fm, step)),
                           line.get("ungated"), line.get("outcome") or "",
                           said, facts=facts_of(line, root)))
     return out

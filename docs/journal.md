@@ -548,8 +548,10 @@ the whole file looks like the example at the end of this section.
 what the runner knows is written from the runner, never from a step's text:
 the files that changed and the commits (git, against the tree at run start,
 each file `+added -removed` and `committed`, `uncommitted` or `untracked`),
-every gate's verdict with the command behind it, each check the runner made
-outside the gates (`- <step>: PASS quote check - <what it found>`), the
+every gate's verdict with the command behind it (that gate's own, matched by
+the gate's name and place among the step's gates, never by position in the
+list), each check the runner made outside the gates (no command; `- <step>:
+PASS quote check - <what it found>`), the
 red-first proof (the
 newest `red-first` gate that replayed something: `shown on <step>` with each
 new test's line, `red without the fix (assertion), green with it`, a case

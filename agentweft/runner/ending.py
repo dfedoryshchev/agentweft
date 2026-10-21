@@ -134,7 +134,9 @@ def passes(trail, run, fm):
         commands = summary.gate_commands(fm, entry.step, said)
         out.append(summary.a_pass(entry.step, role,
                                   trace.seconds(entry.attempts), entry.handoff,
-                                  summary._gates(entry.gates, commands),
+                                  summary._gates(entry.gates, commands,
+                                                 summary.gate_names(
+                                                     fm, entry.step)),
                                   entry.ungated, outcome, said,
                                   facts=summary.facts_of(entry.written or {},
                                                          run.workdir)))
