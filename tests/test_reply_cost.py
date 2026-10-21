@@ -98,7 +98,7 @@ def test_the_prompt_goes_on_stdin_and_the_answer_is_asked_for_as_json(fake_cli):
     claude().ask("say ok")
     call = cli.calls[0]
     assert call["argv"] == ["claude", "-p", "--output-format", "json"] \
-        + NO_TRAILER
+        + NO_TRAILER + ["--max-turns", "50"]
     assert call["stdin"] == b"say ok"
 
 
@@ -148,7 +148,7 @@ def test_claude_by_a_path_or_an_extension_is_still_claude(fake_cli, command):
     cli = fake_cli((0, result(), b""))
     providers.build({"provider": "cli", "command": command}).ask("x")
     assert cli.calls[0]["argv"][1:] == ["-p", "--output-format", "json"] \
-        + NO_TRAILER
+        + NO_TRAILER + ["--max-turns", "50"]
 
 
 def test_another_command_keeps_plain_text_and_says_nothing_was_counted(fake_cli):

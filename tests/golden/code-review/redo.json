@@ -203,6 +203,8 @@
           "--disable-slash-commands",
           "--setting-sources",
           "user",
+          "--max-turns",
+          "50",
           "--model",
           "model-in-replay"
         ],
@@ -379,6 +381,8 @@
           "--disable-slash-commands",
           "--setting-sources",
           "user",
+          "--max-turns",
+          "50",
           "--model",
           "model-in-replay"
         ],

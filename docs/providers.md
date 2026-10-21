@@ -392,6 +392,26 @@ or every run takes it from `AGENTWEFT_CO_AUTHOR=true` in `.env`, which
 is then not passed at all, so the cli's own default answers. a provider block
 that says `co_author: false` wins over the `.env` line.
 
+### the runaway guard
+
+every `claude` call that may use a tool is started with `--max-turns 50`,
+which the cli's reference describes as a limit on agentic turns, print mode
+only, ending the call with an error at the limit. it is there to stop a step
+caught in a loop, not to ration one: a budget is `max_calls` and, on the
+api, money. a call stopped there comes back with the subtype
+`error_max_turns`, is not gone again, and the step fails with "still calling
+tools at --max-turns 50, the runaway guard (max_turns)", so the run stops on
+it with its tokens counted. the number is set in the provider block or from
+`AGENTWEFT_MAX_TURNS` in `.env`; `0` takes the limit off, and anything but a
+whole number is refused when the run starts:
+
+    provider:
+      provider: cli
+      max_turns: 80
+
+a keep-warm call uses no tool and is started without it, and a command other
+than `claude` is never handed it.
+
 ### what the command's process holds
 
 a model step can be pointed at a repo you did not write, so the command does

@@ -520,6 +520,8 @@
           "mcp__*",
           "--disable-slash-commands",
           "--restricted",
+          "--max-turns",
+          "50",
           "--model",
           "model-in-replay"
         ],

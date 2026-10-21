@@ -640,6 +640,14 @@ class CliProvider(Provider):
     seen_version = None
     version_said = ""
 
+    def __init__(self, **opts):
+        Provider.__init__(self, **opts)
+        turns = setting("max_turns", flow=self.opts)
+        if isinstance(turns, bool) or not isinstance(turns, int) or turns < 0:
+            raise ValueError("max_turns should be a whole number, 0 for no"
+                             " limit, not " + repr(turns))
+        self.turns = turns
+
     @property
     def command(self):
         return self.opts.get("command", "claude")
@@ -794,6 +802,8 @@ class CliProvider(Provider):
                            json.dumps(settings, separators=(",", ":"))]
         if self.grant is not None:
             argv = argv + fence(self.grant)
+        if tools_used and self.turns:
+            argv = argv + ["--max-turns", str(self.turns)]
         model = self.asks_for()
         if model:
             argv = argv + ["--model", model]
@@ -902,6 +912,11 @@ class CliProvider(Provider):
                     models=per_model(models, data.get("usage")),
                     killed=r.killed)
         text = data.get("result")
+        if data.get("subtype") == "error_max_turns":
+            return Reply("", detail="error_max_turns: still calling tools at"
+                         " --max-turns " + str(self.turns) + ", the runaway"
+                         " guard (max_turns)",
+                         retryable=False, **said)
         if data.get("is_error") or r.returncode != 0:
             why = text if isinstance(text, str) and text.strip() else \
                 (data.get("subtype") or "error")

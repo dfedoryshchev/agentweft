@@ -11,7 +11,7 @@ environment is `AGENTWEFT_<KEY>`, which is what `agentweft init` writes to
 import os
 
 DEFAULTS = {"timeout": 300, "retries": 3, "workers": 3,
-            "max_calls": 25, "max_tokens": 0,
+            "max_calls": 25, "max_tokens": 0, "max_turns": 50,
             "tests_e2e": False, "tests_integration": "auto",
             "commits": "none",
             "provider": "cli", "permission_mode": "dontAsk",
