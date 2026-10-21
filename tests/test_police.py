@@ -526,6 +526,33 @@ NUMBERED = ("31\t\n32\t\n33\t# Release checklist for automated agents: the"
             "(text):\n")
 
 
+def test_a_resumed_runs_handoff_keeps_what_the_leg_before_it_saw(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=SHADOW)
+    transcript(tmp_path, monkeypatch, "s-1",
+               SECRET + an_addressed_read(tmp_path))
+    fake_cli(answer("NEEDS: is a blank amount zero?\nCITES:\n- TASK.md:1\n",
+                    session="s-1"),
+             answer("done\n", session="s-2"),
+             answer("VERDICT: ok\n\nfine\n", session="s-3"))
+    (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                      encoding="utf-8")
+    assert engine.main() == 2
+    first = the_folder().name
+    monkeypatch.setattr(sys, "argv", ["run.py", "f", "--force", "--resume",
+                                      first, "--answer", "zero"])
+    assert engine.main() == 0
+    [later] = [p for p in state.RUNS.iterdir()
+               if p.is_dir() and p.name != first]
+    page = (later / "handoff.md").read_text(encoding="utf-8")
+    record = page.split("## police")[1].split("\n## ")[0]
+    assert ('worker.md credentials: Read "/w/.env" reads an .env file (leg '
+            + first + ")") in record
+    assert "worker.md (leg " + first + ") read text addressed to an agent" \
+        " at pkg/parse.py:33-36" in record
+    assert "no tripwire hit" not in record
+
+
 def an_addressed_read(tmp_path):
     return [read(str(tmp_path / "pkg" / "parse.py"), NUMBERED),
             bash("python -m pytest -q", "1 passed")]

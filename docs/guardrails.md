@@ -624,6 +624,13 @@ said, `police: <step> left no transcript to read`, and its line reads
 `"seen": false`: unseen, not clean. a step on `api` or `fake` sends text and
 runs no tools, so there is nothing of its to see.
 
+a resumed run's handoff keeps what the legs before it saw. each leg that has
+something to say writes its hits, the addressed passages its steps read and
+how many steps were read to `runs/<id>/police.json`, and the handoff of a leg
+that picks it up, however many legs on, lists them beside its own, each marked
+`(leg <run-id>)`, and counts their steps in `no tripwire hit on <n> steps
+read`. with `police: off` nothing is written.
+
 the mcp server hands a client a policed run's files wrapped as data
 (`mcp.md`).
 
