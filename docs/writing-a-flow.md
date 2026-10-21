@@ -81,6 +81,15 @@ flow runs build-feature with the spec reviewer alone:
 the suite is `python -m pytest -q`, written in its `flow.yaml`. a project
 that runs its tests some other way changes that line in a copy of the flow.
 
+the `command` gate that runs the whole suite and wants exit 0 may run it in
+parallel, `python -m pytest -q -n auto`, where the project has pytest-xdist
+installed: it reads only the exit code, and xdist keeps 0 for a green suite.
+the commands with `{test}` in them, the `red-test` and
+`red-first` gates, stay without it. they run one test, or a few, and read the
+exit code to tell a red test from one that could not run: pytest says 2 for a
+test file it cannot import, and under `-n` the same file says 1, the exit of a
+red test.
+
 each step says what it writes, and the runner holds the order rather than the
 prompt:
 
