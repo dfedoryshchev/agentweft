@@ -1,0 +1,9 @@
+run: build-feature-2026-10-19-151005
+flow: build-feature
+outcome: done
+failed: seq 2 reviewer.md
+cause: [stats, cli.py]
+change: logcount/cli.py
+fact:
+  scope: [logcount/output.py, logcount/cli.py]
+  kind: decision

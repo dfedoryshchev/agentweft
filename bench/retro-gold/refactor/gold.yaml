@@ -1,0 +1,9 @@
+run: build-feature-2026-10-19-160412
+flow: build-feature
+outcome: done
+failed: seq 2 worker.md
+cause: [round, ceil]
+change: logcount/stats.py
+fact:
+  scope: [logcount/stats.py]
+  kind: convention

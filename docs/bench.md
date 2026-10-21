@@ -214,3 +214,49 @@ deleted or skipped because of it.
 the summary adds the threshold, the minimum, the signatures, the likely
 duplicate tests and the undecided ones (each group past its first) and the
 pins.
+
+## the retro's gold
+
+the retro reads a run's record and names what failed, why, what to change and
+the fact the project should keep. `--retro` holds it to a gold, asking the
+retro role alone on a recorded run (step mode), so a model and an effort can
+be tried on it without running a flow:
+
+    python -m agentweft.bench --retro bench/retro-gold --k 3 --live
+
+each case is a folder:
+
+    bench/retro-gold/cross-file/
+      record/             steps.jsonl, handoff.md and diff.patch as a run
+                          wrote them, with one failed attempt whose cause is
+                          in the record
+      place/              the project as the run left it; the retro reads it
+                          with the read grant a run gives it
+      gold.md             the answer a careful reader writes for the record
+      gold.yaml           what the program checks the answer on
+
+the four cases cover the changes a retro has to see through: one convention
+unified across several files with one module missed (`cross-file`), a
+responsibility moved to a new module with one caller left behind (`shift`),
+an option carried through layers that stopped one short (`layered`), and an
+extraction with no change in behaviour that changed one (`refactor`).
+
+the prompt is the one a run hands the retro, built by the same code from the
+record. an answer scores one for each of:
+
+- `failed`: a `## seq <n> <step>` section for the attempt `gold.yaml` names
+- `cause`: that section's `why:` line holds every word `cause` lists
+- `change`: that section's `change:` line names the `change` file
+- `fact`: the FACTS block parses and has a fact or supersession of the gold's
+  kind with one of the gold's scopes
+
+a change sent to the wrong file scores 0 whatever else it got right. a case
+passes when every one of the k repeats scores 4; the gold itself scores 4 on
+every case, and a test holds it there. each row keeps `reader`, None until a
+blind reader gives the change text and the fact's why 0 to 2.
+
+the provider is `provider:` in the folder's `bench.yaml`; one that calls a
+real model runs only with `--live`. the scores go to `--out`, or to
+`runs/bench/retro-<set>-<time>.json`, with a row per case and repeat (the
+four items, the score, the answer, its cost when the provider said) and the
+summary: cases, cases passed, k.

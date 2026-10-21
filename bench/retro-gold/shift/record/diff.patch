@@ -1,0 +1,23 @@
+--- /dev/null
++++ b/logcount/output.py
+@@ -0,0 +1,11 @@
++"""every command's output, to stdout or a file."""
++import sys
++
++
++def emit(lines, path=None):
++    text = "".join(line + "\n" for line in lines)
++    if path is None:
++        sys.stdout.write(text)
++    else:
++        with open(path, "w", encoding="utf-8") as f:
++            f.write(text)
+--- a/logcount/cli.py
++++ b/logcount/cli.py
+@@ -13,4 +13,4 @@
+         if command == "stats":
+-            sys.stdout.write("\n".join(stats.summary(lines)) + "\n")
++            output.emit(stats.summary(lines))
+         else:
+-            sys.stdout.write("\n".join(count.counts(lines)) + "\n")
++            output.emit(count.counts(lines))

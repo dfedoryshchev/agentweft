@@ -1,0 +1,21 @@
+--- a/cashbook/cli.py
++++ b/cashbook/cli.py
+@@ -8,0 +9 @@
++    parser.add_argument("--decimal-mark", default=".")
+--- a/cashbook/importer.py
++++ b/cashbook/importer.py
+@@ -6 +6 @@
+-def load(path):
++def load(path, decimal_mark="."):
+--- a/cashbook/money.py
++++ b/cashbook/money.py
+@@ -19,2 +19,2 @@
+-def fmt(value):
+-    return str(value.quantize(PLACES))
++def fmt(value, decimal_mark="."):
++    return str(value.quantize(PLACES)).replace(".", decimal_mark)
+--- a/cashbook/export.py
++++ b/cashbook/export.py
+@@ -9 +9 @@
+-        out.append(entry.day + " " + money.fmt(entry.amount))
++        out.append(entry.day + " " + money.fmt(entry.amount, decimal_mark))

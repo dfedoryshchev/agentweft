@@ -1,0 +1,5 @@
+provider:
+  provider: cli
+  command: claude
+  model: opus
+  effort: medium

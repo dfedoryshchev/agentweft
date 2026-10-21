@@ -1,0 +1,9 @@
+run: build-feature-2026-10-19-171830
+flow: build-feature
+outcome: done
+failed: seq 4 worker.md
+cause: [fmt, decimal]
+change: cashbook/money.py
+fact:
+  scope: [cashbook/money.py]
+  kind: why

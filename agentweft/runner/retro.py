@@ -261,6 +261,21 @@ def record_of(run, trail, earlier):
                              stamps=stamps)
 
 
+def parts(looked, rulings, changed, stale, live, cap):
+    """-> (heading, lines) for each part of the record after the failed
+    attempts, gate issues and refused writes. `changed` is None outside
+    git."""
+    return [("what each step handed over, from steps.jsonl:", handed(looked)),
+            ("rulings written in this run, from decisions.md:", rulings),
+            ("files this run changed, from git:",
+             ["- " + p for p in changed] if changed else
+             ["- nothing changed in the tree" if changed is not None
+              else "- not a git checkout, so what changed is not recorded"]),
+            ("facts marked stale, to re-anchor, retire or supersede:", stale),
+            ("facts on record for the files this run changed:", live),
+            ("new facts this run may write:", ["- " + str(cap)])]
+
+
 def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
            more=()):
     """-> the role, the skill, then this run's record. `more` is
@@ -328,17 +343,9 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     store = store_of(run)
     changed = changed_files(run)
     stale, live = kept_facts(store, changed)
-    more = [("what each step handed over, from steps.jsonl:", handed(looked)),
-            ("rulings written in this run, from decisions.md:", ruled(run)),
-            ("files this run changed, from git:",
-             ["- " + p for p in changed] if changed else
-             ["- nothing changed in the tree" if changed is not None
-              else "- not a git checkout, so what changed is not recorded"]),
-            ("facts marked stale, to re-anchor, retire or supersede:", stale),
-            ("facts on record for the files this run changed:", live),
-            ("new facts this run may write:", ["- " + str(store.cap)])]
     text = prompt(run_id, flow, outcome, folder, lines, issues(looked),
-                  workarounds(looked), more)
+                  workarounds(looked), parts(looked, ruled(run), changed,
+                                             stale, live, store.cap))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)

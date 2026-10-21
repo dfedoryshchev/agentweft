@@ -1,0 +1,4 @@
+{"seq": 1, "step": "worker.md", "outcome": "ok", "gates": [{"gate": "command", "ok": true, "detail": "exit 0"}], "handoff": {"did": ["added logcount/output.py emit(lines, path=None); count and filters write through it"], "assumed": ["stats prints through count's path"]}}
+{"seq": 2, "step": "reviewer.md", "outcome": "redo", "to": "worker.md", "why": "stats still writes stdout in cli.py:14, not through output.emit", "gates": [{"gate": "verdict", "ok": false, "detail": "VERDICT: redo"}], "handoff": {"did": ["read logcount/cli.py and logcount/output.py against TASK.md 2"]}}
+{"seq": 3, "step": "worker.md", "outcome": "ok", "gates": [{"gate": "command", "ok": true, "detail": "exit 0"}], "handoff": {"did": ["logcount/cli.py stats branch calls output.emit"]}}
+{"seq": 4, "step": "reviewer.md", "outcome": "ok", "gates": [{"gate": "verdict", "ok": true, "detail": "VERDICT: ok"}], "handoff": {"did": ["every command writes through output.emit"]}}

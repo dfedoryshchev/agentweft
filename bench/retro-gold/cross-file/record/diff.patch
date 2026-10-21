@@ -1,0 +1,22 @@
+--- a/logcount/count.py
++++ b/logcount/count.py
+@@ -9 +9 @@
+-        print("error: no lines")
++        raise LogcountError("no lines")
+--- a/logcount/stats.py
++++ b/logcount/stats.py
+@@ -14 +14 @@
+-        print("error: no numbers")
++        raise LogcountError("no numbers")
+--- a/logcount/filters.py
++++ b/logcount/filters.py
+@@ -7 +7 @@
+-        print("error: unknown level " + level)
++        raise LogcountError("unknown level " + level)
+--- a/logcount/reader.py
++++ b/logcount/reader.py
+@@ -10,2 +10,2 @@
+-        except OSError:
+-            print("error: cannot read " + path)
++        except OSError:
++            raise LogcountError("cannot read " + path)

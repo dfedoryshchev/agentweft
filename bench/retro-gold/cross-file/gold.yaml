@@ -1,0 +1,9 @@
+run: build-feature-2026-10-19-142233
+flow: build-feature
+outcome: done
+failed: seq 3 worker.md
+cause: [reader.py, print]
+change: logcount/reader.py
+fact:
+  scope: [logcount/]
+  kind: convention
