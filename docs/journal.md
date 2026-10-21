@@ -469,7 +469,8 @@ answers, in order:
   step's HANDOFF block (which never stops the run), a `NEEDS:` or
   `CONFLICT:` line (which do), a doubt that is a question, what the
   investigator leaves to you, and a spec or test change nobody ruled on. two
-  are one when they cite the same spec line (`TASK.md:12`) or say the same
+  are one when they cite the same spec line (`TASK.md:12`, or `TASK.md:3`
+  and a range that holds it, `TASK.md:3-4`) or say the same
   thing once case, punctuation and the cited line are taken out; the same
   words about two different spec lines stay two. each is
   printed once, with every role that raised it, and the recommendation and
@@ -478,7 +479,10 @@ answers, in order:
   carries them after a pipe is still read); the
   first is in full, the rest one line each under
   `also open:`. a question the lead decided or an `--answer` settled is under
-  the rulings, not here, so a finished run needs nothing. `- none: nothing
+  the rulings, not here, so a finished run needs nothing: the same question
+  in any step's block or doubts, on the leg it was asked in or a later one,
+  is settled with it. a ruling given to another run settles nothing here, and
+  a question the run stops on again is still shown. `- none: nothing
   waits on you.` when nothing does; a `QUESTION: none` asks nothing, and the
   `RECOMMEND:` and `SIZE:` under it go with it. a stop that waits for a
   ruling leads with the question it wrote to `question.md`, with its cites

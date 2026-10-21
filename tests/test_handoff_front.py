@@ -2,11 +2,14 @@
 one sentence, the suite, the one decision with a recommendation and its size,
 then why, what was not done and the product gaps, each doubt once. the full
 record follows below it."""
+import datetime
 import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
-from agentweft.runner import front, handoff, stops, summary, verbs
+from agentweft.orchestrate import decisions
+from agentweft.runner import (front, handoff, lead, ruling, stops, summary,
+                              verbs)
 from agentweft.runner.front import MORE
 
 NO_GIT = {"git": False}
@@ -438,6 +441,82 @@ def test_a_conflict_stop_ignores_a_block_question_on_another_line():
                   stopped={"cause": stops.CONFLICT, "at": "worker.md",
                            "why": "spec conflict", "question": question})
     assert "  recommendation: none given; options:" in decision_of(lines)
+
+
+def test_a_conflict_stops_own_block_question_on_a_range_it_shares_is_one():
+    question = ("NEEDS: the request contradicts TASK.md:3. which one holds?\n"
+                "CITES:\n- TASK.md:3 - \"ids are case-sensitive\"\n"
+                "OPTIONS:\n- override: <the new rule>\n")
+    lines = build([a_pass("worker", CONFLICTED, "conflict")],
+                  stopped={"cause": stops.CONFLICT, "at": "worker.md",
+                           "why": "spec conflict", "question": question})
+    decision = decision_of(lines)
+    assert "also open" not in decision, decision
+    assert "raised by worker; cites TASK.md:3, TASK.md:3-4" in decision
+
+
+ROUND = "should mul round a float product to an int?"
+ASKED_ROUND = ("NEEDS: " + ROUND + "\nCITES:\n- TASK.md:3 - mul(a, b) returns"
+               " a times b\nOPTIONS:\n- keep: as it is\n- round: to an int\n")
+
+
+def answered(step, run, question, answer):
+    return decisions.Decision(ruling.decided(step, answer),
+                              ruling.why(step, run, question, answer, "me"),
+                              datetime.datetime(2026, 1, 1))
+
+
+def a_leg_after(earlier, passes, decided):
+    for p in earlier:
+        p["run"] = "f-0"
+    return summary.build("f-1", "f", "mul", passes, NO_GIT, decided,
+                         "1 call", before=earlier)
+
+
+def test_a_question_an_answer_settled_is_not_open_on_the_leg_after_it():
+    earlier = [a_pass("worker", ASKED_ROUND, "asked"),
+               a_pass("planner", "ESCALATE: not mine\n\nHANDOFF\nDID:\n-"
+                      " escalated it\nQUESTION: " + ROUND + "\nRECOMMEND:"
+                      " keep\nEND HANDOFF\n", "escalated")]
+    ruled = [answered("worker.md", "f-0", ASKED_ROUND, "keep: as it is")]
+    lines = a_leg_after(earlier, [a_pass("worker", "done\n")], ruled)
+    assert decision_of(lines).strip() == "- none: nothing waits on you.", \
+        decision_of(lines)
+    assert "## open questions" not in lines
+
+
+def test_a_ruling_of_another_run_settles_nothing_here():
+    earlier = [a_pass("planner", block(did=["planned"]).replace(
+        "END HANDOFF", "QUESTION: " + ROUND + "\nEND HANDOFF"))]
+    ruled = [answered("worker.md", "g-9", ASKED_ROUND, "keep: as it is")]
+    lines = a_leg_after(earlier, [a_pass("worker", "done\n")], ruled)
+    assert decision_of(lines).startswith("- " + ROUND), decision_of(lines)
+
+
+def test_a_question_the_lead_decided_is_not_open_on_a_done_run():
+    asked = [a_pass("planner", block(did=["planned"]).replace(
+        "END HANDOFF", "QUESTION: " + ROUND + " TASK.md:3\nEND HANDOFF")),
+             a_pass("worker", ASKED_ROUND, "asked"),
+             a_pass("planner", "DECIDED: keep\nwhy: TASK.md:3 says so\n",
+                    "decided"),
+             a_pass("worker", "done\n")]
+    ruled = [decisions.Decision(*lead.recorded(
+        "planner.md", "worker.md", "f-1", ASKED_ROUND, "keep",
+        "TASK.md:3 says so"), at=datetime.datetime(2026, 1, 1))]
+    lines = summary.build("f-1", "f", "mul", asked, NO_GIT, ruled, "1 call")
+    assert decision_of(lines).strip() == "- none: nothing waits on you.", \
+        decision_of(lines)
+
+
+def test_a_new_question_on_another_line_stays_open_after_an_answer():
+    earlier = [a_pass("worker", ASKED_ROUND, "asked")]
+    ruled = [answered("worker.md", "f-0", ASKED_ROUND, "keep: as it is")]
+    later = a_pass("reviewer", block(did=["reviewed"]).replace(
+        "END HANDOFF", "QUESTION: may mul take three numbers? TASK.md:7\n"
+        "END HANDOFF"))
+    lines = a_leg_after(earlier, [later], ruled)
+    assert decision_of(lines).startswith(
+        "- may mul take three numbers? TASK.md:7"), decision_of(lines)
 
 
 def test_a_recommendation_under_a_needs_is_its_own():

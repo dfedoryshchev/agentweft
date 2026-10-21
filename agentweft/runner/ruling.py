@@ -554,6 +554,24 @@ def answered(d):
     return found[1] if found else ""
 
 
+ASKER = re.compile(r"^asked by \S+ in (\S+):\n\n")
+
+
+def settled(d):
+    """-> (the run the question was asked in, the question) of a
+    decisions.md entry that answers one: written by --answer or by the
+    lead's decision. None for an entry written any other way."""
+    found = asked_and_answered(d)
+    if found:
+        body = found[0]
+    elif lead.decided_of(d.why) is not None:
+        body = d.why.rpartition(lead.LEAD_DECIDED)[0]
+    else:
+        return None
+    m = ASKER.match(body)
+    return (m.group(1), body[m.end():]) if m else None
+
+
 CAPPED = re.compile(r"^carried \S+ on with the ")
 
 

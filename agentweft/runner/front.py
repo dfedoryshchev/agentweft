@@ -13,11 +13,11 @@ a question asked seven times is one decision. questions are gathered from a
 step's NEEDS and CONFLICT lines, from the QUESTION lines of its block (which
 never stop the run), from doubts that are questions, from what
 the investigator leaves to a person and from a spec or test change nobody
-ruled on; two are the same when they cite the same spec line (`TASK.md:12`)
-or say the same thing once case, punctuation and the cited line are taken
-out. each is printed once, with every role that raised it and the
-recommendation and size the first of them gave. doubts are made one the same
-way.
+ruled on; two are the same when they cite the same spec line (`TASK.md:12`,
+or a range holding it) or say the same thing once case, punctuation and the
+cited line are taken out. each is printed once, with every role that raised
+it and the recommendation and size the first of them gave. doubts are made
+one the same way. a question a ruling on record answered is not open.
 """
 import re
 
@@ -107,7 +107,7 @@ def clusters(points, by_line=True):
         key = norm(p["text"])
         home = None
         for c in out:
-            if by_line and set(p["refs"]) & set(c["refs"]) \
+            if by_line and shares(p["refs"], c["refs"]) \
                     or key in c["keys"] and same_lines(p, c):
                 home = c
                 break
@@ -138,8 +138,27 @@ def clusters(points, by_line=True):
 def same_lines(p, c):
     """whether a point that says what cluster `c` says is about its line: it
     cites none, `c` cites none, or they share one."""
-    return not p["refs"] or not c["refs"] or bool(set(p["refs"])
-                                                  & set(c["refs"]))
+    return not p["refs"] or not c["refs"] or shares(p["refs"], c["refs"])
+
+
+def shares(a, b):
+    """whether two lists of cited spec lines share a line: `TASK.md:3` and
+    `TASK.md:3-4` do."""
+    return any(x == y or overlaps(x, y) for x in a for y in b)
+
+
+def same(p, q):
+    """whether points `p` and `q` are one question, as `clusters` joins
+    them."""
+    return shares(p["refs"], q["refs"]) or \
+        norm(p["text"]) == norm(q["text"]) and same_lines(p, q)
+
+
+def asked_point(question):
+    """-> the question a stop wrote to question.md, as a point."""
+    v = verbs.parse(question)
+    return point("", parts(v.needs or v.conflict or question.strip())[0],
+                 v.cites)
 
 
 def wording(said, p):
@@ -242,12 +261,19 @@ def stopped_on(stopped, asking=(), passes=()):
     return point(role, text, v.cites, rec, size, v.options, kind)
 
 
-def questions(passes, extra=(), asking=None):
+def questions(passes, extra=(), asking=None, settled=()):
     """-> (the open questions as points, the ids of the doubts taken in
     as questions) from every pass, then `extra` points the runner adds.
     `asking` is the passes whose NEEDS / CONFLICT nobody has answered yet;
-    None takes them from every pass."""
+    None takes them from every pass. `settled` is the questions a ruling on
+    record answered, as points: one of them asked again is not open, and a
+    doubt that asks it is not a doubt either."""
     out, taken = [], set()
+
+    def add(p):
+        if not any(same(p, q) for q in settled):
+            out.append(p)
+
     for p in passes:
         v = p["verbs"]
         for said, kind in ((v.needs, "needs"), (v.conflict, "conflict")):
@@ -255,19 +281,19 @@ def questions(passes, extra=(), asking=None):
                             and not any(p is a for a in asking)):
                 continue
             text, rec, size = parts(said)
-            out.append(point(p["role"], text, v.cites, rec or v.recommend,
-                             size or v.size, v.options, kind))
+            add(point(p["role"], text, v.cites, rec or v.recommend,
+                      size or v.size, v.options, kind))
         b = p["block"]
         if b.get("state") not in (handoff.PRESENT, handoff.PARTIAL):
             continue
         for q in b.get("questions") or []:
             if q.get("question"):
-                out.append(point(p["role"], q["question"], (),
-                                 q.get("recommend"), q.get("size")))
+                add(point(p["role"], q["question"], (), q.get("recommend"),
+                          q.get("size")))
         for n, item in enumerate(b["doubts"]):
             text, rec, size = parts(item)
             if is_question(text, rec):
-                out.append(point(p["role"], text, (), rec, size))
+                add(point(p["role"], text, (), rec, size))
                 taken.add((id(b), n))
     out.extend(extra)
     return out, taken

@@ -30,8 +30,8 @@ from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
 from agentweft.guardrails import skips, specfiles
 
-from . import (front, handoff, investigate, leftred, manifest, stops, trace,
-               verbs)
+from . import (front, handoff, investigate, leftred, manifest, ruling, stops,
+               trace, verbs)
 
 FILE = "handoff.md"
 
@@ -440,6 +440,7 @@ def passes_of(folder, roles, fm):
         for p in _passes_in(leg, roles, fm):
             if gone or len(folders) > 1:
                 p["leg"] = n
+            p["run"] = leg.name
             out.append(p)
     return out
 
@@ -935,7 +936,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                  if "UNRULED" in l)
     waits = front.stopped_on(stopped, still, every)
     points, taken = front.questions(every, extra,
-                                    asking=[] if waits else still)
+                                    asking=[] if waits else still,
+                                    settled=settled(decided, every, run_id))
     found = front.clusters(([waits] if waits else []) + points)
     if last and stopped:
         why = [(last["role"] + " handed over this before the stop, not taken"
@@ -1188,6 +1190,19 @@ def carry_on(needs, command):
     if needs or not command:
         return ["the run ended here; there is nothing to carry on."]
     return [CARRY_ON, "  " + command]
+
+
+def settled(decided, passes, run_id):
+    """-> the questions a ruling on record answered in this run or a leg
+    before it, as points. a ruling another run was given settles nothing
+    here."""
+    runs = set([run_id] + [p["run"] for p in passes if p.get("run")])
+    out = []
+    for d in decided or []:
+        found = ruling.settled(d)
+        if found and found[0] in runs:
+            out.append(front.asked_point(found[1]))
+    return out
 
 
 def still_open(passes, stopped):
