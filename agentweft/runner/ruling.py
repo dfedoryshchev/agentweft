@@ -644,7 +644,7 @@ def edit_ruled(decided, test, workdir, start=None, runs=()):
     """-> the decisions.md entry that lets `test`, a test the run started
     with, be changed or removed, or None. `test` is a test id, or a file when
     the change is the file's. an `override:` answer to the question a test
-    edit in one of `runs` (this run, the one it picked up) parked on covers
+    edit in one of `runs` (this run and every leg before it) parked on covers
     what that question cites. a test id is also covered by what covers a
     start test gone red, and by an entry naming the test by its name alone.
     naming the file covers nothing: a ruling on where a new case goes names

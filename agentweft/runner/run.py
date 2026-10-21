@@ -401,6 +401,9 @@ class Run(object):
         record = getattr(self, "record", None)
         runs = [r for r in ((record.run, record.resumes) if record is not None
                             else ()) if r]
+        if getattr(record, "folder", None) is not None:
+            legs, _ = manifest.legs(record.folder)
+            runs = runs + [p.name for p in legs if p.name not in runs]
         left, ruled = [], []
         for edit in found:
             for test, how in edit.items:

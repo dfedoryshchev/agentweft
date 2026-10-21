@@ -366,6 +366,31 @@ def test_a_shared_code_change_needs_the_answer_to_its_own_question(
         folders()[-1] / "gates.md")
 
 
+def test_an_override_given_two_legs_back_still_covers_the_edit(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo", baseline=SHARED_AT_START)
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    does = writes_of(module(SHARED_NOW, COUNT))
+    code, _ = running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    asks = dict(does, **{"worker.md": ({}, "NEEDS: does count() take a"
+                                       " generator too?" + NL)})
+    code, called = running(tmp_path, monkeypatch, place, asks, False,
+                           "--resume", first.name, "--answer",
+                           "override: the expected list grows with the spec")
+    assert code == stops.exit_code(stops.PARKED), called
+    assert called == ["tester.md", "worker.md"]
+    second = folders()[-1]
+    code, called = running(tmp_path, monkeypatch, place, does, False,
+                           "--resume", second.name, "--answer",
+                           "a list is enough")
+    assert code == 0, called
+    assert called == ["worker.md"]
+    assert "each covered by a ruling: " + FILE in read(
+        folders()[-1] / "gates.md")
+
+
 def a_lead_decision(question, decided="the count case goes in a file of its"
                     " own", why="the spec says nothing on where it goes"):
     from agentweft.runner import lead

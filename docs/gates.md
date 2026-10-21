@@ -575,7 +575,7 @@ in `gates.md`:
   `send_backs`, once by default) the run parks for a ruling instead, cause
   `parked`, with each test cited in `question.md`.
 - unless a ruling in `decisions.md` covers the test: an `override:` answer to
-  the question this run (or the leg it picked up) parked on for these edits
+  the question this run (or any leg before it) parked on for these edits
   covers every test and file that question cites; one that names the test
   (its id, or its name alone), or one that quotes in double quotes, three
   words or more, a line of a spec file as the run found it, in an entry that
