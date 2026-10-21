@@ -54,18 +54,25 @@ def off_task(run, step, folder=None):
 
     every go the check read since the last step is read here, a lead's that
     answered in between included, so no hit waits for a step that may never
-    come. what it found for `step` itself goes on that step's line.
+    come. what it found for `step` itself goes on that step's line. in
+    shadow every hit is written down the same way, kept for the handoff, and
+    the run is never stopped for it.
     """
     found = run.policed_now() if hasattr(run, "policed_now") else []
+    shadow = getattr(run, "policing", police.OFF) == police.SHADOW
     mine = [r for r in found if r.step == step]
     if mine:
         line = {"hits": sum(len(r.hits) for r in mine),
                 "seen": all(r.seen for r in mine),
                 "seconds": round(sum(r.seconds for r in mine), 3)}
+        if shadow:
+            line["mode"] = police.SHADOW
         run.police_lines[step] = line
         if not line["seen"]:
             print("police: " + step + " left no transcript to read, so what"
                   " it did with its tools was not checked")
+    if shadow:
+        run.shadow_read += len(found)
     hit = [r for r in found if r.hits]
     if not hit:
         return ""
@@ -73,6 +80,12 @@ def off_task(run, step, folder=None):
         folder.mkdir(parents=True, exist_ok=True)
         with open(folder / police.FILE, "a", encoding="utf-8") as f:
             f.write("## " + step + NEWLINE + police.as_note(hit))
+    if shadow:
+        said = police.hit_lines(hit)
+        run.shadowed.extend(said)
+        for line in said:
+            print("police (shadow): " + line)
+        return ""
     hits = [h for r in hit for h in r.hits]
     first = hit[0]
     return ("" if first.step == step else first.step + " ") \

@@ -840,7 +840,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           stopped=None, needs=None, command=None, before=(), started=None,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
-          spec_files=None, clock=None, held=True, proof=None):
+          spec_files=None, clock=None, held=True, proof=None, shadowed=(),
+          police=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -866,6 +867,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `held` is False when the flow orders tests before product code and the
     run's red-proof record holds no proof (`redorder.Order`).
     `proof` is the run's red proof (`redorder.Order.proof`), None for none.
+    `shadowed` is every tripwire hit of a run with `police: shadow`, a line
+    each, and `police` that run's police section (`police.handoff_lines`),
+    empty in any other mode.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -956,7 +960,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                   front.doubts(every, taken)]
                  + [investigate.STEP + " saw and did not fix: " + l[2:]
                     for l in investigate.listed(dug, "RELATED")]),
-                ("cut for the budget, not run:", cut_lines(skipped))]
+                ("cut for the budget, not run:", cut_lines(skipped)),
+                ("police, shadow - seen, the run not stopped for it:",
+                 list(shadowed))]
     stop = None
     if stopped and not (found and found[0]["kind"] in front.WAITS):
         stop = (ended(stopped), front.DECLINED
@@ -1105,6 +1111,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
             said.append("- handoff " + state + ": " + at(p) + " ("
                         + p["block"].get("why", "") + ")")
     out.extend(said or ["- nothing left unverified, or no step said"])
+
+    if police:
+        out.append("")
+        out.append("## police")
+        out.extend(police)
 
     out.append("")
     out.append("## carry forward")

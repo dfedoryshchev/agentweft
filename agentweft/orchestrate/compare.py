@@ -141,7 +141,8 @@ FLOW_ONLY = (
          "whether what a step did with its tools is read off its transcript "
          "after it answers, and the run stopped off task on a call outside "
          "its grant, an install, a host, a secret file or an instruction it "
-         "read and followed. a phase's agents name their tools in prose and "
+         "read and followed, or in shadow every hit recorded and the run let "
+         "go on. a phase's agents name their tools in prose and "
          "nothing reads what they did with them."),
     Pair("flow.network", "",
          "what the off task check lets a shell call reach: installs, any "

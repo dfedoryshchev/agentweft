@@ -4,8 +4,8 @@ import time
 import traceback
 
 from agentweft.flow.spec import REVIEWER
-from agentweft.guardrails import (baseline, boundary, redorder, signoff,
-                                  skips, snapshot)
+from agentweft.guardrails import (baseline, boundary, police, redorder,
+                                  signoff, skips, snapshot)
 from agentweft.guardrails.budget import REACHING
 from agentweft.guardrails import blocks, sacrifice
 from agentweft.mcp import context, preflight
@@ -156,7 +156,11 @@ def go(leg):
                                      "gates": trail.gate_seconds},
                               held=not redorder.ordered(fm)
                               or bool(run.order.skip or run.order.proof),
-                              proof=run.order.proof)
+                              proof=run.order.proof,
+                              shadowed=run.shadowed,
+                              police=police.handoff_lines(
+                                  run.policing, run.shadowed,
+                                  run.shadow_read))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             retro.after(run, trail, run_id, fm["name"],

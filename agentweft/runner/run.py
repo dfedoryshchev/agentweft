@@ -167,6 +167,8 @@ class Run(object):
         self.policed = []
         self.police_lines = {}
         self.police_lock = threading.Lock()
+        self.shadowed = []
+        self.shadow_read = 0
 
     def decided(self):
         """-> the rulings in decisions.md the runner has on record."""
@@ -842,7 +844,7 @@ class Run(object):
             self.keep_session(step, used, held, answer, carry)
         text, cached = answer
         self.produced[step] = text
-        if getattr(self, "policing", police.OFF) == police.ON and not cached:
+        if getattr(self, "policing", police.OFF) != police.OFF and not cached:
             seen = police.report(step, used, self.grant_for(step),
                                  trace.sessions([tried]), self.network,
                                  prompt)

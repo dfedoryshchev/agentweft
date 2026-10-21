@@ -204,7 +204,9 @@ off its transcript once it answers, and stops the run off task on a call
 outside its grant, an install, a host that is not this machine, a secret
 file, or an instruction it read and then followed. `network:` says which
 installs and hosts a shell call may reach: `installs`, `any`, or a host per
-line. off unless a flow says on (`guardrails.md`, "the off task check").
+line. off unless a flow says on. `police: shadow` reads the same and stops
+nothing: every hit is written to `police.md` and the handoff, and the run
+goes on (`guardrails.md`, "the off task check").
 
 `investigate:` puts one step in front of the flow's own, `investigator.md`,
 which finds the cause of the task and everything it reaches before anything is

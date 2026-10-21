@@ -550,7 +550,7 @@ git that may write where it likes), or a git without `merge-tree
       - installs
       - pypi.org
 
-off unless a flow says `police: on`. after every step on the `claude` cli the
+off unless a flow says `police: on` (or `shadow`, below). after every step on the `claude` cli the
 run reads the step's transcript, the one the handoff takes its read lines
 from, and holds each tool call to four tripwires. no model is asked, so it
 costs no tokens; what it found and the seconds it took go on the step's line
@@ -593,6 +593,16 @@ as its why, every hit in `runs/<id>/police.md`, and the handoff ending on the
 command that carries on:
 
     off task at worker.md: network: Bash "pip install leftpad" installs a package, and the flow's network: does not let it
+
+`police: shadow` reads every step the same way and stops nothing. each hit is
+written to `runs/<id>/police.md` as it is found, printed as `police (shadow):
+<step> <tripwire>: <evidence>`, listed under "not done" at the top of the
+handoff, and again in its `## police` section, which says `no tripwire hit on
+<n> steps read` when there was none. the step's line in `steps.jsonl` carries
+`"mode": "shadow"` beside its hits. it is the mode to learn what the check
+would stop on ordinary work before a flow turns it on. any value of `police:`
+other than `on`, `off` or `shadow` is refused when the flow loads, and one
+that reaches the runner anyway is read as `on`.
 
 `--resume` carries on after the step, as it does after the fence: the person
 has looked at what it did and let it through. a hit in a lead's answer stops

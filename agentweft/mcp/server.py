@@ -111,12 +111,12 @@ def tools():
 
 
 def policed(name):
-    """whether the flow has the off task check on, so what its run printed
-    goes back marked as data."""
+    """whether the flow has the off task check on or in shadow, so what its
+    run printed goes back marked as data."""
     from agentweft.runner.config import config
 
     try:
-        return police.mode(config(name)) == police.ON
+        return police.mode(config(name)) != police.OFF
     except Exception:
         # a flow that will not load is run.py's to refuse, and says so
         return False
