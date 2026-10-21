@@ -196,12 +196,28 @@ def words_of(text):
     return out
 
 
+NOT = re.compile(r"\b(not|no|never|without|nor|cannot|\w+n't)\b")
+
+
+def negated(text):
+    return bool(NOT.search((text or "").lower()))
+
+
+def says(recommend, cond):
+    """whether `recommend` says the answer `cond` names: every word of the
+    condition is in it, and both or neither are negated."""
+    words = words_of(cond)
+    return bool(words) and words <= words_of(recommend) \
+        and negated(cond) == negated(recommend)
+
+
 def priced(size, recommend):
     """-> the parts of SIZE that price the recommended answer. a SIZE that
     prices each answer on its own ("none if left; one line in x.py if a lone
-    CR counts") is read on the answer whose words are nearest the RECOMMEND,
-    the first one when none is nearer than the rest; what holds whichever
-    answer is taken is kept beside it."""
+    CR counts") is read on the one answer the RECOMMEND says in its own
+    words; when it says none of them, or more than one, every answer is
+    priced, so it costs nothing only when no answer needs code. what holds
+    whichever answer is taken is kept beside it."""
     said = flat(size).lower().rstrip(" .")
     plain, branches = [], []
     for clause in re.split(r";|\.\s+", said):
@@ -213,14 +229,10 @@ def priced(size, recommend):
             branches.append((m.group(1).strip(" ,"), m.group(2)))
         else:
             plain.append(clause)
-    if not branches:
-        return "; ".join(plain)
-    asked = words_of(recommend)
-    near = [len(asked & words_of(cond)) for _, cond in branches]
-    best = max(near)
-    pick = branches[0] if best == 0 or near.count(best) > 1 \
-        else branches[near.index(best)]
-    return "; ".join(plain + [pick[0]])
+    named = [price for price, cond in branches if says(recommend, cond)]
+    if len(named) == 1:
+        return "; ".join(plain + named)
+    return "; ".join(plain + [price for price, _ in branches])
 
 
 def costs_nothing(size, recommend):

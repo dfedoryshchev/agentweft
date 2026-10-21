@@ -867,9 +867,12 @@ line of its own under it:
 a question whose recommended answer changes no code is the step's call, not
 a stop. the runner prices the answer the `RECOMMEND:` picks, not the other
 one: a `SIZE:` that prices each answer on its own (`none if left; one line
-in importer.py if a lone CR counts`) is read on the answer whose words are
-nearest the recommendation, the first one when none is nearer; a
-recommendation to leave things as they are (`leave it`, `keep it as it is`)
+in importer.py if a lone CR counts`) is read on the one answer the
+recommendation says in its own words: every word of that answer's condition
+is in the `RECOMMEND:`, and both or neither are negated. when it says none of
+the answers, or more than one, every answer is priced, and the question parks
+unless none of them needs code: a tie or a guess is never read as the cheap
+one. a recommendation to leave things as they are (`leave it`, `keep it as it is`)
 costs nothing whatever the other answer would. when the recommended answer
 changes no code (zero, none, no code, or one test and nothing else, each
 part of the SIZE read on its own) the runner takes the question out of the

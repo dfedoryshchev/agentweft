@@ -234,6 +234,40 @@ def test_a_question_whose_recommended_branch_names_code_still_parks():
         assert ruling.demoted(asking(recommend, size)) is None, size
 
 
+def test_a_recommended_branch_that_needs_code_is_not_demoted_on_a_tie():
+    said = asking("a lone CR is a line ending",
+                  "none if a lone CR is not a line ending; one line in"
+                  " importer.py plus a test if a lone CR is a line ending")
+    assert ruling.demoted(said) is None
+
+
+def test_a_recommend_that_says_another_answer_is_not_priced_on_a_shared_word():
+    said = asking("read it day first",
+                  "none if month-first is kept; 2 lines in parse.py if the"
+                  " european order is ruled")
+    assert ruling.demoted(said) is None
+
+
+def test_a_negated_recommend_is_not_priced_on_the_branch_it_negates():
+    for recommend, size in (
+            ("a lone CR is not a line ending", "none if a lone CR is a line"
+             " ending; one line in importer.py if it is left"),
+            ("count a lone CR", "none if no lone CR is counted; one line in"
+             " importer.py if it is left"),
+            ("it isn't a line break", "none if it is a line break; one line"
+             " in importer.py if kept")):
+        assert ruling.demoted(asking(recommend, size)) is None, size
+
+
+def test_a_question_no_answer_of_which_needs_code_is_demoted_however_it_reads():
+    for recommend, size in (
+            ("a lone CR is a line ending", "none if a lone CR is not a line"
+             " ending; one test if a lone CR is a line ending"),
+            ("read it day first", "none if month-first is kept; one test if"
+             " the european order is ruled")):
+        assert ruling.demoted(asking(recommend, size)) is not None, size
+
+
 def test_a_question_that_cites_a_spec_line_is_not_demoted():
     said = ("NEEDS: TASK.md:3 says totals are rounded; is 2.5 rounded up or"
             " down?" + NL + "CITES: TASK.md:3" + NL + "RECOMMEND: down" + NL
