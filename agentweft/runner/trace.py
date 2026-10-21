@@ -43,7 +43,7 @@ class Attempt(object):
     """
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
-                 "retries", "effort", "verbosity", "continued")
+                 "retries", "effort", "verbosity", "continued", "lapsed")
 
     def __init__(self, task=None):
         self.task = task
@@ -51,6 +51,9 @@ class Attempt(object):
         self.verbosity = None
         # the session this go carried on, None for one started fresh
         self.continued = None
+        # seconds that session had waited, when that was past its cache's
+        # lifetime
+        self.lapsed = None
         self.began = datetime.datetime.now()
         self.started = time.time()
         self.seconds = None
@@ -514,4 +517,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
     went_on = [a.continued for a in attempts if a.continued]
     if went_on:
         out["continued"] = went_on[-1]
+    lapsed = [a.lapsed for a in attempts if getattr(a, "lapsed", None)]
+    if lapsed:
+        out["lapsed"] = lapsed[-1]
     return out

@@ -216,7 +216,11 @@ copied from. the step's line names the session it carried on as
 the step starts fresh, with the whole prompt and the handoff, when its model
 is not the one the session ran on, or when the words before what is new have
 changed (an amended task, an edited role file, a brief that grew because a
-step before it ran again). a different effort, such as
+step before it ran again), and when the session was kept more than a day
+before (a stopped run carried on days later), which the console says. a
+session kept past its cache's lifetime but within the day still carries on;
+its line says `lapsed` (`journal.md`), since that call pays for the whole
+session again. a different effort, such as
 the level a send-back raises it to, carries on. a fanned-out step runs its
 tasks side by side and cannot say `resume`; it is refused when the flow
 loads. a provider that cannot carry a session on, such as `fake`, asks the

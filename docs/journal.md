@@ -149,7 +149,8 @@ the journal line is the run. `runs/<run-id>/steps.jsonl` is the steps: one
 json line every time a step runs, a redo's second pass included, written
 whatever happened next - the run went on, sent the work back, parked, stopped
 or crashed. the keys are always all there, in this order, and `continued`
-comes after them on the line of a step that carried its session on:
+(and `lapsed`) comes after them on the line of a step that carried its
+session on:
 
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
      "from": null, "to": "reviewer.md",
@@ -231,7 +232,10 @@ comes after them on the line of a step that carried its session on:
 - `continued` is only on the line of a step that carried its own session on
   (`continue: resume`, `writing-a-flow.md`): the id of the session it carried
   on. its `tokens` and `cost` are what the call added, not the whole
-  session's, and `session` is the copy the call wrote.
+  session's, and `session` is the copy the call wrote. `lapsed` follows it
+  when that session had waited past its cache's lifetime: the seconds it
+  waited. such a call writes the whole session to the cache again, so its
+  cost is a cold re-entry, not a warm one.
 - a go that never answered, one that timed out say, stated no cost and was
   paid for all the same. it is in `cost` at the price table's figure: from
   its session's transcript when the cli wrote one, else estimated from the

@@ -35,6 +35,11 @@ from . import trace
 from . import wrongtest
 
 
+# seconds after which a kept session is not carried on: the place and the
+# files its earlier reads saw have had time to move on
+STALE = 24 * 3600
+
+
 def replays(fm):
     """whether any step of the flow has a red-first gate, which needs the
     place as the run found it."""
@@ -493,7 +498,11 @@ class Run(object):
         the session is carried on only while the step would be started the
         same way: the same model, and the same words before what is new to
         it. a model change or an amended task starts it fresh, with the
-        whole prompt and the handoff in it."""
+        whole prompt and the handoff in it, and so does a session kept
+        longer ago than `STALE`, saying so. one kept past its cache's
+        lifetime still carries on, with "lapsed" set to how long it waited:
+        its call writes the whole session to the cache again, which is not
+        what a warm carry-on costs."""
         if not self.continues(step) or not used.continues():
             return None
         with self.lock:
@@ -501,7 +510,18 @@ class Run(object):
         if kept and kept.get("model") == used.asks_for() \
                 and kept.get("head") == manifest.of_text(head) \
                 and used.holds(kept.get("id")):
-            return providers.base.carry_of(kept)
+            idle = time.time() - kept.get("at", time.time())
+            if idle >= STALE:
+                print(step + " starts fresh from the handoff: the session it"
+                      " would carry on was kept " + str(int(idle // 3600))
+                      + " h ago, and one is carried on for "
+                      + str(STALE // 3600) + " h at most")
+                return {"from": None}
+            carry = providers.base.carry_of(kept)
+            span = kept.get("lifetime")
+            if span and idle >= span:
+                carry["lapsed"] = int(idle)
+            return carry
         return {"from": None}
 
     def keep_session(self, step, used, head, answer, carry):
@@ -820,6 +840,8 @@ class Run(object):
                                "applies": limit is not None}
         carry = getattr(self, "sessions", None) is not None \
             and self.carry_for(step, used, held)
+        if carry:
+            tried.lapsed = carry.pop("lapsed", None)
         used.carry = carry or None
         sent = prompt
         if carry and carry.get("from"):

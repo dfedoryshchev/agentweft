@@ -304,6 +304,56 @@ def test_a_model_change_starts_the_step_fresh_with_the_handoff(
     assert WORKER in last["stdin"]
 
 
+def aged(seconds, lifetime=None):
+    """the stopped run's worker session, kept `seconds` earlier than it
+    was."""
+    record = manifest.load(state.RUNS / resume.runs_for("resumer")[-1])
+    kept = record.data["sessions"]["worker.md"]
+    kept["at"] = kept["at"] - seconds
+    if lifetime is not None:
+        kept["lifetime"] = lifetime
+    record.save()
+
+
+def test_a_session_kept_days_ago_starts_the_step_fresh_and_says_why(
+        replay, capsys):
+    answers = {"worker.md": [NOTES, OUT_OF_CALLS, NOTES],
+               "reviewer.md": [REDO, "VERDICT: ok\n\n" + NOTES]}
+    cli = replay(answers)
+    aged(3 * 24 * 3600)
+    capsys.readouterr()
+    replay(args=["--resume", resume.runs_for("resumer")[-1]])
+    last = cli.of("worker.md")[2]
+    assert "--resume" not in last["argv"]
+    assert WORKER in last["stdin"]
+    assert "worker.md starts fresh from the handoff: the session it would " \
+        "carry on was kept 72 h ago" in capsys.readouterr().out
+
+
+def test_a_session_past_its_cache_lifetime_carries_on_marked_as_lapsed(
+        replay):
+    answers = {"worker.md": [NOTES, OUT_OF_CALLS, NOTES],
+               "reviewer.md": [REDO, "VERDICT: ok\n\n" + NOTES]}
+    cli = replay(answers)
+    aged(2 * 3600, lifetime=3600)
+    replay(args=["--resume", resume.runs_for("resumer")[-1]])
+    assert "--resume" in cli.of("worker.md")[2]["argv"]
+    worker = [l for l in lines() if l["step"] == "worker.md"]
+    assert worker[-1]["lapsed"] >= 2 * 3600
+    assert worker[-1]["continued"]
+
+
+def test_a_session_inside_its_cache_lifetime_is_not_marked(replay):
+    answers = {"worker.md": [NOTES, OUT_OF_CALLS, NOTES],
+               "reviewer.md": [REDO, "VERDICT: ok\n\n" + NOTES]}
+    replay(answers)
+    aged(60, lifetime=3600)
+    replay(args=["--resume", resume.runs_for("resumer")[-1]])
+    worker = [l for l in lines() if l["step"] == "worker.md"]
+    assert worker[-1]["continued"]
+    assert "lapsed" not in worker[-1]
+
+
 # what the transcript of a carried-on go is held to
 
 
