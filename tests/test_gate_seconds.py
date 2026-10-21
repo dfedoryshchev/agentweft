@@ -36,6 +36,55 @@ def test_each_gate_a_step_ran_has_a_line_with_its_seconds(tmp_path,
     assert sum(g["seconds"] for g in gates if g["gate"] == "command") > 0
 
 
+def test_every_gate_on_a_steps_line_has_its_seconds_in_the_gate_log(
+        tmp_path, monkeypatch):
+    import test_test_edits as te
+
+    place = te.a_place(tmp_path / "repo")
+    te.a_flow(tmp_path, "build", te.TESTER + te.WORKER)
+    code, _ = te.running(tmp_path, monkeypatch, place,
+                         te.writes_of(te.module(te.RIGHT, te.COUNT)), False)
+    assert code == 0
+    folder = te.folders()[-1]
+    steps = [json.loads(t) for t in (folder / trace.FILE).read_text(
+        encoding="utf-8").split("\n") if t.strip()]
+    timed = [(g["seq"], g["gate"]) for g in (
+        json.loads(t) for t in (folder / trace.GATES).read_text(
+            encoding="utf-8").split("\n") if t.strip())]
+    listed = [(l["seq"], g["gate"]) for l in steps for g in l["gates"]]
+    assert (steps[0]["seq"], "test-edits") in listed
+    assert [x for x in listed if x not in timed] == []
+
+
+def test_a_quote_check_is_timed_like_any_gate(tmp_path):
+    from agentweft.runner import gating
+
+    (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                      encoding="utf-8")
+
+    class Run(object):
+        workdir = str(tmp_path)
+        start = None
+
+        def gates_for(self, step):
+            return []
+
+    class Out(object):
+        output = 'REFUSED: TASK.md:1 "amounts are numbers"\n'
+        meta = {}
+
+    class Route(object):
+        must = {}
+
+        def gate(self, step, out):
+            return ""
+
+    gating.check_step(Run(), Route(), "worker.md", Out())
+    gates = Out.meta["gates"]
+    assert [r.gate for r in gates] == ["quote"]
+    assert gates[0].seconds is not None
+
+
 def test_steps_gates_and_runner_add_up_to_the_wall(tmp_path, monkeypatch):
     began = time.time()
     _, _, code, folder, _ = test_lead.build(tmp_path, monkeypatch,

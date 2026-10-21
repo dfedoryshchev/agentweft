@@ -82,6 +82,7 @@
   ],
   "files": [
     "build-feature-<run>/budget-plan.md",
+    "build-feature-<run>/gates.jsonl",
     "build-feature-<run>/gates.md",
     "build-feature-<run>/handoff.md",
     "build-feature-<run>/manifest.json",

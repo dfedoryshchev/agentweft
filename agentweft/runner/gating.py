@@ -142,6 +142,13 @@ def clocked(gate, text):
     return r
 
 
+def timed(result, began):
+    """-> `result`, a check the runner made itself, with the seconds since
+    `began`, so it has its line in gates.jsonl like any gate."""
+    result.seconds = since(began)
+    return result
+
+
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
 
@@ -162,20 +169,24 @@ def check_step(run, route, step, out, run_dir=None):
                for g in run.gates_for(step)]
     order = getattr(run, "order", None)
     if order is not None:
+        began = time.time()
         unruled = getattr(run, "spec_unruled", None)
         moved = order.after(step, run.writes_for(step),
                             ruled=(lambda: not unruled()) if unruled else None)
         if moved:
-            results.insert(0, Result(bounds.NAME, False, moved))
+            results.insert(0, timed(Result(bounds.NAME, False, moved), began))
     workdir, start = getattr(run, "workdir", "."), getattr(run, "start", None)
+    began = time.time()
     wrong = [w for w in (ruling.misquoted(out.output, workdir, start),
                          wrongtest.misquoted(out.output, workdir, start)) if w]
     if wrong:
-        results.insert(0, Result("quote", False, "; ".join(wrong)))
+        results.insert(0, timed(Result("quote", False, "; ".join(wrong)),
+                                began))
+    began = time.time()
     said = ruling.conflict_of(out.output, workdir, start,
                               handed=handed_to(run, step))
     if said and said[1]:
-        results.insert(0, Result("conflict", False, said[1]))
+        results.insert(0, timed(Result("conflict", False, said[1]), began))
     forged = getattr(run, "forged", {}).pop(step, "")
     if forged:
         results.insert(0, Result(rulings.GATE, False, forged))
@@ -194,9 +205,10 @@ def check_step(run, route, step, out, run_dir=None):
         tries = getattr(route, "gate_tries", None)
         last = ok and tries is not None and \
             tries.get(step, 0) >= route.gate_cap(step)
+        began = time.time()
         line, test_asks = kept(step, last)
         if line is not None:
-            results.append(line)
+            results.append(timed(line, began))
         if test_asks and "spec_ruling" not in out.meta:
             out.meta["test_ruling"] = test_asks
     replayed = getattr(run, "replayed", None)
@@ -209,12 +221,13 @@ def check_step(run, route, step, out, run_dir=None):
         if held:
             out.meta["conflict"] = held
     kept = getattr(run, "kept", None)
+    began = time.time()
     # a gate runs code the step wrote, so a write it makes is the step's,
     # not the next one's
     ran = kept.check(step, ", in the code its gates ran") \
         if kept is not None else ""
     if ran:
-        results.insert(0, Result(rulings.GATE, False, ran))
+        results.insert(0, timed(Result(rulings.GATE, False, ran), began))
     out.meta["gates"] = results
     out.meta["ungated"] = not results
     for r in results:

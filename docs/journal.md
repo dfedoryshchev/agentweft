@@ -279,8 +279,13 @@ comes after them on the line of a step that carried its session on:
       {"seq": 3, "step": "worker.md", "gate": "command", "ok": true,
        "seconds": 4.212}
 
-  `seq` is the step's line. the check of the tests the run left red when it
-  stops is a line too, `left-red`, with no `seq`.
+  `seq` is the step's line. the checks the runner makes itself on a step's
+  answer have their lines too: `test-edits`, `spec-files`, the quote and
+  conflict checks, the test order check, and the decisions.md check run after
+  the gates. a decisions.md write found while the step itself ran is read
+  then, not timed, and has no line here. the check of
+  the tests the run left red when it stops is a line too, `left-red`, with no
+  `seq`.
 - `outcome` is one of `ok`, `redo`, `parked`, `refused`, `gate failed`,
   `failed`, `crashed`, or for a question that went to the flow's lead,
   `asked` on the step that asked and `decided`, `overruled` (it answered
