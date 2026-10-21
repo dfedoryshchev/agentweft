@@ -1,6 +1,7 @@
 """what a step's answer has to get past before the run goes on."""
 import time
 
+from agentweft.flow.spec import step_id
 from agentweft.guardrails import police, rulings
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
@@ -103,6 +104,16 @@ def held_after_stop(run, left, folder):
     return dict(left, forged=said)
 
 
+def handed_to(run, step):
+    """-> what the steps before `step` in the flow produced in this run."""
+    fm = getattr(run, "fm", None)
+    produced = getattr(run, "produced", None) or {}
+    order = [step_id(s) for s in fm.steps] if fm is not None else []
+    if step not in order:
+        return []
+    return [produced[k] for k in order[:order.index(step)] if produced.get(k)]
+
+
 def since(began):
     return round(time.time() - began, 3)
 
@@ -145,7 +156,8 @@ def check_step(run, route, step, out, run_dir=None):
                          wrongtest.misquoted(out.output, workdir, start)) if w]
     if wrong:
         results.insert(0, Result("quote", False, "; ".join(wrong)))
-    said = ruling.conflict_of(out.output, workdir, start)
+    said = ruling.conflict_of(out.output, workdir, start,
+                              handed=handed_to(run, step))
     if said and said[1]:
         results.insert(0, Result("conflict", False, said[1]))
     forged = getattr(run, "forged", {}).pop(step, "")

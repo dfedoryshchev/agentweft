@@ -343,14 +343,16 @@ def as_found(workdir, rel, start=None):
     return data.decode("utf-8", "replace")
 
 
-def conflict_of(output, workdir, start=None):
+def conflict_of(output, workdir, start=None, handed=()):
     """-> None for an answer with no CONFLICT line, else (the question, "")
     when the quote is at the line it cites as the run found it, or ("", what
     is wrong with it) when it is not. an answer that marks a behaviour
-    `spec: contradicts` and has no CONFLICT line is wrong the same way."""
+    `spec: contradicts` and has no CONFLICT line is wrong the same way,
+    unless each line it marks is one an earlier step's answer, in `handed`,
+    already holds: that is the step quoting what it was given."""
     said = verbs.parse(output).conflict
     if said is None:
-        return untyped(output)
+        return untyped(output, handed)
     m = CONFLICT.match(said.strip())
     if not m:
         return "", ('the CONFLICT line is not <file>:<line> "<the line>",'
@@ -370,11 +372,18 @@ def conflict_of(output, workdir, start=None):
     return question_of_conflict(cite, quote, words), ""
 
 
-def untyped(output):
+def marks(output):
+    """-> the lines of `output` that mark a behaviour `spec: contradicts`."""
+    return [line.strip().lstrip("-").strip() for _, line in
+            verbs.visible(output) if CONTRADICTS.match(line)]
+
+
+def untyped(output, handed=()):
     """-> None, or ("", why) for an answer whose plan marks a behaviour
-    `spec: contradicts` with no CONFLICT line to stop the run on it."""
-    marked = [line.strip().lstrip("-").strip() for _, line in
-              verbs.visible(output) if CONTRADICTS.match(line)]
+    `spec: contradicts` with no CONFLICT line to stop the run on it, the
+    marks an earlier step's answer in `handed` already holds left out."""
+    given = set(flat(m) for text in handed for m in marks(text))
+    marked = [m for m in marks(output) if flat(m) not in given]
     if not marked:
         return None
     return "", ("the answer marks " + "; ".join(marked) + " and has no"

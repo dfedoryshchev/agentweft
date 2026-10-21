@@ -13,12 +13,13 @@ the format that prompt teaches. no model is asked, so what a run does follows
 from what the prompt says and nothing else.
 """
 import sys
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.roles import resolver
-from agentweft.runner import engine, prompts, stops
+from agentweft.runner import engine, gating, prompts, stops
 
 from test_spec_conflict import a_place, end, folders, go, plain, unchanged
 
@@ -389,3 +390,42 @@ def test_a_contradiction_left_untyped_twice_stops_before_the_tester(
     assert asked == ["planner.md", "planner.md"]
     assert code == stops.EXIT_STOP
     assert end(tmp_path).cause == "gate failed"
+
+
+class Handed(object):
+    """the parts of a run `check_step` reads, after a planner whose plan
+    marked a behaviour `spec: contradicts`."""
+
+    def __init__(self, tmp_path, plan):
+        self.fm = types.SimpleNamespace(steps=[
+            {"role": "planner", "prompt": "planner.md"},
+            {"role": "tester", "prompt": "tester.md"}])
+        self.produced = {"planner.md": plan}
+        self.workdir = tmp_path
+        self.proven = {}
+
+    def gates_for(self, step):
+        return []
+
+    def writes_for(self, step):
+        return ""
+
+
+def conflict_gate(run, step, said):
+    route = types.SimpleNamespace(gate=lambda step, out: "")
+    out = types.SimpleNamespace(output=said, meta={})
+    run.produced[step] = said
+    failed, _ = gating.check_step(run, route, step, out)
+    return failed
+
+
+def test_a_later_step_quoting_the_plans_marked_line_is_not_sent_back(
+        tmp_path):
+    run = Handed(tmp_path, UNTYPED)
+    quoted = "the tests follow the plan:" + NL + UNTYPED
+    assert conflict_gate(run, "tester.md", quoted) == ""
+    own = quoted + "- behaviour: a blank field is kept" + NL \
+        + "  spec: contradicts TASK.md:4" + NL
+    assert conflict_gate(run, "tester.md", own) == "conflict"
+    assert conflict_gate(Handed(tmp_path, ""), "planner.md", UNTYPED) == \
+        "conflict"

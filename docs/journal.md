@@ -956,7 +956,10 @@ contradicts` and has no CONFLICT line fails the step like a gate (`conflict`
 in `gates.md`), naming the marked lines, and the step goes again once with
 that at the end of its prompt, to type the contradiction as a CONFLICT line
 or mark the behaviour another way. a second such answer stops the run on the
-gate. which mark a behaviour gets is the prompts' rule; the runner stops on a
+gate. a marked line an earlier step's answer already holds is that step's,
+so a later step that quotes it, the plan line as it was handed on, is not
+sent back for it; a line it marks itself is. which mark a behaviour gets is
+the prompts' rule; the runner stops on a
 CONFLICT line whose quote is there, whoever wrote it.
 
 the `request:` line counts only straight after the CONFLICT line. the older
