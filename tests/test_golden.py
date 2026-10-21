@@ -582,6 +582,40 @@ CASES = {
             say(ONE_FINDING, {"app.py": LOOP_FIXED}), then=main_gone)]}},
 }
 
+BUILD_RETRO = ("## seq 4 reviewer.md\nfailed: sent back, mul is not tried on"
+               " a negative number\nwhy: tester.md asks for no negative case\n"
+               "change: tester.md - ask for a negative case beside each"
+               " positive one\n\n## change first\ntester.md - ask for a"
+               " negative case beside each positive one\n")
+FIX_RETRO = ("## seq 2 patcher.md\nfailed: wrong test, test_calc.py::test_add"
+             " imports add from the wrong module\nwhy: worker.md does not say"
+             " where add lives\nchange: worker.md - name the module the code"
+             " under test is in\n\n## change first\nworker.md - name the module"
+             " the code under test is in\n")
+
+# the knobs a flow turns on that no shipped flow ships with: each case is a
+# pinned path with the shipped flow's file changed by `knobs` and nothing else
+KNOBBED = {
+    ("build-feature", "resume-carried"): (
+        "redo", {"steps": {"worker.md": {"continue": "resume"},
+                           "reviewer.md": {"continue": "resume"}}}, {}),
+    ("fix-with-test", "resume-carried"): (
+        "wrong-test", {"steps": {"worker.md": {"continue": "resume"},
+                                 "patcher.md": {"continue": "resume"}}}, {}),
+    ("build-feature", "terse-readers"): (
+        "pass", {"steps": {"planner.md": {"verbosity": "terse"},
+                           "reviewer.md": {"verbosity": "terse"},
+                           "reviewer-runs.md": {"verbosity": "terse"}}}, {}),
+    ("build-feature", "retro-redo"): (
+        "redo", {"retro": True}, {"retro.md": [BUILD_RETRO]}),
+    ("fix-with-test", "retro-wrong-test"): (
+        "wrong-test", {"retro": True}, {"retro.md": [FIX_RETRO]}),
+}
+for (_flow, _path), (_base, _knobs, _more) in KNOBBED.items():
+    CASES[(_flow, _path)] = dict(
+        CASES[(_flow, _base)], knobs=_knobs,
+        answers=dict(CASES[(_flow, _base)]["answers"], **_more))
+
 
 def shipped():
     return sorted(p.name for p in FLOWS.iterdir()
@@ -756,6 +790,22 @@ class Script(object):
         return left
 
 
+def knobbed(flow, knobs, flows):
+    """-> a folder of flows holding a copy of the shipped `flow` whose
+    flow.yaml has `knobs` set: top-level keys, and under "steps" the keys of
+    each step named by its prompt."""
+    shutil.copytree(FLOWS / flow, flows / flow)
+    raw = spec_of(flow)
+    for key, value in knobs.items():
+        if key != "steps":
+            raw[key] = value
+    for s in raw["steps"]:
+        s.update(knobs.get("steps", {}).get(s["prompt"], {}))
+    (flows / flow / "flow.yaml").write_bytes(
+        yaml.safe_dump(raw, sort_keys=False).encode("utf-8"))
+    return flows
+
+
 def replay(flow, case, tmp_path, monkeypatch, capsys):
     place = tmp_path / "place"
     place.mkdir()
@@ -764,7 +814,10 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     if case.get("git"):
         a_repo(place)
     monkeypatch.chdir(place)
-    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(case.get("flows", FLOWS))])
+    flows = case.get("flows", FLOWS)
+    if case.get("knobs"):
+        flows = knobbed(flow, case["knobs"], tmp_path / "flows")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(flows)])
     for key in list(os.environ):
         if key.startswith("MODEL_"):
             monkeypatch.delenv(key)
@@ -838,9 +891,14 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         code, raised, printed = codes[0], raises[0], prints[0]
     if case.get("task"):
         # fix-with-test names worker.md for its task; the steps after it work
-        # from what the worker handed on
+        # from what the worker handed on, a carried-on session already holds
+        # it, and the retro looks back at the whole run
         for step, _, _, prompt in script.prompts:
-            assert (case["task"] in prompt) == (step == "worker.md"), step
+            if step == retro.STEP:
+                continue
+            fresh = not prompt.startswith(prompts.CARRIED_ON)
+            assert (case["task"] in prompt) == (
+                step == "worker.md" and fresh), step
     got = normalise(record(tmp_path / "runs", code, raised, printed), tmp_path)
     # sorted again once the stamps are out: "<flow>-<day>-1.md" against the
     # run folder "<flow>-<day>-<time>/" orders by the hour the run started in
@@ -1124,6 +1182,41 @@ def test_an_edited_prompt_does_not_replay_its_golden_silently(
     want = json.loads(golden_file("code-review", "pass").read_bytes())
     assert [p for p in got["prompts"] if p not in want["prompts"]] == [
         p for p in got["prompts"] if p.startswith("worker.md ")]
+
+
+def no_carry(monkeypatch):
+    monkeypatch.setattr(engine.Run, "continues", lambda self, step: False)
+
+
+def no_terse(monkeypatch):
+    monkeypatch.setattr(engine.Run, "verbosity_for", lambda self, step: None)
+
+
+def no_retro(monkeypatch):
+    monkeypatch.setattr(retro, "on", lambda fm: False)
+
+
+@pytest.mark.parametrize("flow, path, off, gone", [
+    ("build-feature", "resume-carried", no_carry, '"continued": "worker-1"'),
+    ("fix-with-test", "resume-carried", no_carry, '"continued": "patcher-1"'),
+    ("build-feature", "terse-readers", no_terse, '"asked": "terse"'),
+    ("build-feature", "retro-redo", no_retro, '"step": "retro.md"'),
+    ("fix-with-test", "retro-wrong-test", no_retro, '"step": "retro.md"')],
+    ids=["build-feature/resume-carried", "fix-with-test/resume-carried",
+         "build-feature/terse-readers", "build-feature/retro-redo",
+         "fix-with-test/retro-wrong-test"])
+def test_a_knob_golden_fails_with_its_mechanism_switched_off(
+        flow, path, off, gone, tmp_path, monkeypatch, capsys):
+    assert gone in golden_file(flow, path).read_bytes().decode("utf-8")
+    off(monkeypatch)
+    case = CASES[(flow, path)]
+    # with the retro off nothing asks for its answer
+    answers = {k: v for k, v in case["answers"].items() if k != retro.STEP}
+    got = replay(flow, dict(case, answers=answers), tmp_path, monkeypatch,
+                 capsys)
+    assert gone not in dump(got)
+    with pytest.raises(AssertionError):
+        compare(flow, path, got, False)
 
 
 SHIFT = datetime.timedelta(days=400, hours=13, minutes=17)
