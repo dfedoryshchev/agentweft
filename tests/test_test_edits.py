@@ -328,6 +328,90 @@ def test_a_new_name_or_a_helper_moved_as_it_was_is_not_a_change(tmp_path):
     assert [e.items for e in found] == [[]]
 
 
+def test_a_new_name_added_to_an_existing_import_line_is_not_a_change():
+    from agentweft.guardrails import testedits
+
+    was = "from report import listed" + NL + NL + NL + RIGHT
+    now = ("from report import listed, count" + NL + NL + NL + RIGHT + NL + NL
+           + "def test_count():" + NL + "    assert count(['a']) == 1" + NL)
+    assert testedits._python(FILE, was, now).items == []
+    edit = testedits._python(FILE, HEAD + NL + NL + RIGHT,
+                             "import report, os" + NL
+                             + "from report import report as listed, count"
+                             + NL + NL + NL + RIGHT)
+    assert edit.items == []
+
+
+def test_a_name_an_import_line_binds_to_something_else_is_a_change():
+    from agentweft.guardrails import testedits
+
+    was = HEAD + NL + NL + RIGHT
+    for now in ("import report" + NL + "from report import count as listed"
+                + NL + NL + NL + RIGHT,
+                "import report" + NL + "from sorting import report as listed"
+                + NL + NL + NL + RIGHT,
+                "import report" + NL + "from report import report as listed,"
+                " count as listed" + NL + NL + NL + RIGHT):
+        assert testedits._python(FILE, was, now).items == SHARED_ITEM, now
+
+
+CLASS = ("class TestReport:" + NL + "    def test_alphabetical(self):" + NL
+         + "        assert listed(['b', 'a']) == ['a', 'b']" + NL)
+ADDED = ("    def test_count(self):" + NL
+         + "        assert len(listed(['a'])) == 1" + NL)
+HELPER = "    def names(self):" + NL + "        return ['b', 'a']" + NL
+
+
+def test_a_test_added_to_a_start_test_class_is_not_a_change():
+    from agentweft.guardrails import testedits
+
+    edit = testedits._python(FILE, HEAD + NL + NL + CLASS,
+                             HEAD + NL + NL + CLASS + NL + ADDED)
+    assert edit.items == [] and edit.added == 1
+    edit = testedits._python(FILE, HEAD + NL + NL + CLASS + NL + HELPER,
+                             HEAD + NL + NL + CLASS + NL + HELPER + NL + ADDED)
+    assert edit.items == [] and edit.added == 1
+
+
+def test_a_start_test_class_whose_own_code_changed_is_still_a_change():
+    from agentweft.guardrails import testedits
+
+    was = HEAD + NL + NL + CLASS + NL + HELPER
+    helper = HELPER.replace("['b', 'a']", "['a', 'b']")
+    assert testedits._python(FILE, was, HEAD + NL + NL + CLASS + NL
+                             + helper).items == SHARED_ITEM
+    rebound = HEAD + NL + NL + CLASS + NL + HELPER + NL \
+        + "    names = None" + NL
+    assert testedits._python(FILE, was, rebound).items == SHARED_ITEM
+    based = was.replace("class TestReport:", "class TestReport(Base):")
+    assert testedits._python(FILE, was, based).items == SHARED_ITEM
+    changed = was.replace("== ['a', 'b']", "== ['b', 'a']")
+    assert testedits._python(FILE, was, changed).items == [
+        (FILE + "::TestReport::test_alphabetical", "changed")]
+
+
+def test_a_tester_that_extends_an_import_line_is_not_sent_back_for_it(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    tests = ("import report" + NL + "from report import report as listed,"
+             " count" + NL + NL + NL + RIGHT + NL + NL + COUNT)
+    running(tmp_path, monkeypatch, place, writes_of(tests), False)
+    assert "FAIL test-edits" not in read(folders()[-1] / "gates.md")
+
+
+def test_a_tester_that_extends_an_import_line_finishes(tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    tests = "import report, os" + NL + HEAD.split(NL, 1)[1] + NL + NL \
+        + RIGHT + NL + NL + COUNT
+    code, called = running(tmp_path, monkeypatch, place, writes_of(tests),
+                           False)
+    assert called == ["tester.md", "worker.md"] and code == 0
+    assert "tests/test_report.py: 1 test added, none the run started with" \
+        " changed" in read(folders()[-1] / "gates.md")
+
+
 def entry(decided, why):
     return decisions.Decision(decided, why, datetime.datetime(2026, 1, 1))
 

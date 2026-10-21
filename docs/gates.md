@@ -567,8 +567,10 @@ in `gates.md`:
   when the run started (a helper, a fixture, an imported name, a test) that
   is bound again further down to something else counts too, since every test
   using it now runs against the new binding though its own code is as it
-  was (`the code its tests share changed`). formatting, comments and imports
-  of new names do not. a file deleted counts for every test it held
+  was (`the code its tests share changed`). formatting and comments do not,
+  and neither do additions: a new name, on an import line of its own or added
+  to one the file had, and a new test method in a test class the file had.
+  a file deleted counts for every test it held
   (`deleted with its file`).
 - test files in other languages named like one (`*.test.ts`, `*Tests.cs`,
   `*_test.go`) are compared by line: one removed or rewritten counts. other

@@ -9,9 +9,10 @@ found it:
   test the run started with that is gone or whose code is not what it was is
   a change, and so is a change to the code its tests share (a constant, a
   fixture, a helper), including a name the file had that is bound again
-  further down to something else. formatting and comments are not; imports
-  of new names are not, so a test added beside the others can import what
-  it needs.
+  further down to something else. formatting and comments are not; new
+  names are not, on an import line of their own or added to one the file
+  had, and neither is a new test in a test class the file had, so a test
+  added beside the others can import what it needs.
 - a test file in another language (`*.test.ts`, `*Tests.cs`, `*_test.go`) is
   compared by line: a line removed or rewritten is a change.
 - a file deleted is a change to every test it held.
@@ -91,36 +92,49 @@ def shared(source):
 COMPOUND = (ast.If, ast.Try, ast.With, ast.For, ast.While)
 
 
-def _bound(node):
-    """-> the names a statement binds, at the level it runs at."""
+def _bound(node, top=True):
+    """-> [(name, what it is bound to)] for the names a statement binds, at
+    the level it runs at: each name of an import on its own, so a name added
+    to an import line leaves the others as they were; a test function as
+    "test", its code being compared test by test; a collected test class at
+    the top as its bases and decorators, its members being read one by one;
+    anything else as the whole statement."""
+    if isinstance(node, ast.Import):
+        return [(a.asname or a.name.split(".")[0],
+                 "import " + (a.name if a.asname else a.name.split(".")[0]))
+                for a in node.names]
+    if isinstance(node, ast.ImportFrom):
+        source = "from " + "." * node.level + (node.module or "") + " import "
+        return [(a.asname or a.name, source + a.name) for a in node.names]
+    if _is_test_func(node):
+        return [(node.name, "test")]
+    if top and isinstance(node, ast.ClassDef) and collected(node):
+        return [(node.name, "class " + " ".join(
+            ast.dump(n) for n in node.bases + node.keywords
+            + node.decorator_list))]
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-        return [node.name]
-    if isinstance(node, (ast.Import, ast.ImportFrom)):
-        return [(a.asname or a.name).split(".")[0] for a in node.names]
+        return [(node.name, ast.dump(node))]
     if isinstance(node, (ast.Assign, ast.Delete)):
         targets = node.targets
     elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
         targets = [node.target]
     else:
         targets = []
-    return [n.id for t in targets for n in ast.walk(t)
+    return [(n.id, ast.dump(node)) for t in targets for n in ast.walk(t)
             if isinstance(n, ast.Name)]
 
 
 def last_bindings(source):
-    """-> {name: a dump of the statement that binds it last, or "test" for
-    a test function} for every name bound at the top of `source` or in a
-    collected test class, the bodies of an if, a try, a with or a loop there
-    included: what a test that uses the name gets when it runs. a test's
-    own code is compared test by test, so here it counts only whether its
-    name still ends on a test."""
+    """-> {name: what it is bound to last, as `_bound` reads it} for every
+    name bound at the top of `source` or in a collected test class, the
+    bodies of an if, a try, a with or a loop there included: what a test
+    that uses the name gets when it runs."""
     out = {}
 
     def walk(body, within=""):
         for node in body:
-            for name in _bound(node):
-                out[within + name] = "test" if _is_test_func(node) \
-                    else ast.dump(node)
+            for name, code in _bound(node, not within):
+                out[within + name] = code
             if isinstance(node, ast.ClassDef) and not within \
                     and collected(node):
                 walk(node.body, node.name + ".")
