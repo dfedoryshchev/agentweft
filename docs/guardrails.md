@@ -530,6 +530,17 @@ and still holds those bytes is the person's, not the run's, and is left out.
   and the handoff name the files and say `rebase onto main (<sha>) and
   settle <files>, then carry on`.
 
+the same check runs before every step, so a step is not paid for on a change
+that no longer merges: the branch's head is read again (one `git rev-parse`),
+and only when it moved since the last read is the change merged onto it, as
+above. a conflict, or a check that cannot be done, stops the run before the
+step, `stopped at <step>` in the journal and `stopped before <step>` in the
+handoff; carrying on starts at that step. a head that moved and still merges
+is printed, `sign-off before <step>: main moved to <sha>, and the change
+still merges onto it`, and the run goes on. a run with nothing to check
+against is not checked before its steps either; its handoff says so at the
+end, as above.
+
 the check is read only. it asks `git merge-tree --write-tree`, with an index
 and an object folder of its own in a temporary folder (the repo's objects
 read through an alternate), removed after. the person's tree, index, HEAD,

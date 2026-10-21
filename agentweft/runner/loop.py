@@ -312,6 +312,7 @@ def go(leg):
         return True
 
     switched = False
+    seen_head = (run.signoff or {}).get("head")
     try:
         while step:
             before.clear()
@@ -344,6 +345,22 @@ def go(leg):
                 return stop(stops.BUDGET, why, "parked",
                             index="PARKED  " + flow + "  at " + step,
                             handed=came_from or "the task")
+            signed, seen_head = signoff.ahead(run.workdir, run.signoff,
+                                              seen_head, step)
+            if signed is not None and signed.state in (signoff.CONFLICT,
+                                                       signoff.UNCHECKED):
+                cause = stops.MOVED if signed.state == signoff.CONFLICT \
+                    else stops.UNCHECKED
+                print("not signed off before " + step + ": " + signed.why)
+                return stop(cause, signed.why, "stopped",
+                            index=("MOVED  " if cause == stops.MOVED
+                                   else "UNCHECKED  ") + flow + "  "
+                            + signed.target,
+                            handed=came_from or "the task")
+            if signed is not None and signed.state == signoff.MERGES:
+                print("sign-off before " + step + ": " + signed.target
+                      + " moved to " + signed.head + ", and the change still"
+                      " merges onto it")
             allowed = set()
             unchecked = False
             pre = run.preflight_for(step)

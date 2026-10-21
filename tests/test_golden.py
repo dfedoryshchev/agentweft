@@ -6,8 +6,11 @@ next run reads: the steps it took and where each one sent the work, every
 gate, the journal and index lines, the handoff, the files left behind and
 what it printed, plus a sha256 of each prompt sent: the script answers by
 step and go, so without them an edited prompt replays the old answer and
-passes. times, run ids, seconds and the temp place are taken out
-first, so the same run on another day, machine or OS reads the same.
+passes. times, run ids, commit ids, seconds and the temp place are taken
+out first, so the same run on another day, machine or OS reads the same. a
+case marked `git` runs in a repo on a branch `work` with main checked out
+beside it, so the sign-off has a branch to read; an answer's `then` moves
+main while the step works.
 
 `python -m pytest tests/test_golden.py --update-golden` writes the missing
 files; `--update-golden flow/path` rewrites the existing one it names.
@@ -48,6 +51,44 @@ def say(text, writes=None):
     """an answer that also leaves files in the place, the way a model run
     there edits them."""
     return {"say": text, "writes": writes or {}}
+
+
+GIT_WHO = ["-c", "user.name=t", "-c", "user.email=t@t", "-c",
+           "commit.gpgsign=false"]
+
+
+def git(where, *args):
+    subprocess.run(["git", "-C", str(where)] + GIT_WHO + list(args),
+                   capture_output=True, check=True)
+
+
+def beside(place):
+    """the person's own checkout of main, next to the place."""
+    return place.parent / "main"
+
+
+def a_repo(place):
+    """the place as a repo on a branch `work`, made from main, with main
+    checked out beside it the way a person keeps working on it."""
+    git(place, "init", "-q", "-b", "main")
+    git(place, "add", "-A")
+    git(place, "commit", "-q", "-m", "start")
+    git(place, "checkout", "-q", "-b", "work")
+    git(place, "worktree", "add", "-q", str(beside(place)), "main")
+
+
+def main_moves(rel, text):
+    """-> what a step's answer does once it is given: main moves on, with
+    `rel` holding `text`."""
+    def then(place):
+        (beside(place) / rel).write_bytes(text.encode("utf-8"))
+        git(beside(place), "commit", "-q", "-am", "main moved")
+    return then
+
+
+def main_gone(place):
+    git(beside(place), "checkout", "-q", "--detach")
+    git(place, "branch", "-q", "-D", "main")
 
 
 def limited():
@@ -91,6 +132,9 @@ TEST = "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
 KEPT_TEST = "from calc import add\n\n\ndef test_zero():\n    assert add(0, 0) == 0\n"
 
 ONE_FINDING = "- [high] app.py:12 the loop reads one past the end of items\n"
+LOOP = "def last(items):\n    return items[len(items)]\n"
+LOOP_FIXED = "def last(items):\n    return items[len(items) - 1]\n"
+LOOP_THEIRS = "def last(items):\n    return items[-1]\n"
 NOTES = ("## added\n- a --dry-run switch on the export\n\n"
          "## fixed\n- the export no longer drops the last row\n")
 SUMMARY = ("notes.md: the plan moved to friday (line 3)\n\n"
@@ -527,6 +571,15 @@ CASES = {
         "args": ["--task", BUG], "task": BUG, "ends": ["conflict"],
         "answers": {"worker.md": FIXES["worker.md"],
                     "patcher.md": [SUB_CONFLICT]}},
+    ("code-review", "target-moved"): {
+        "place": {"app.py": LOOP}, "git": True, "args": ["--target", "main"],
+        "ends": [stops.MOVED], "answers": {"worker.md": [dict(
+            say(ONE_FINDING, {"app.py": LOOP_FIXED}),
+            then=main_moves("app.py", LOOP_THEIRS))]}},
+    ("code-review", "merge-unchecked"): {
+        "place": {"app.py": LOOP}, "git": True, "args": ["--target", "main"],
+        "ends": [stops.UNCHECKED], "answers": {"worker.md": [dict(
+            say(ONE_FINDING, {"app.py": LOOP_FIXED}), then=main_gone)]}},
 }
 
 
@@ -677,6 +730,8 @@ class Script(object):
             raise answer["raise"]()
         for rel, text in answer["writes"].items():
             (self.place / rel).write_bytes(text.encode("utf-8"))
+        if answer.get("then"):
+            answer["then"](self.place)
         session = step[:-3] + ("" if task is None else "-" + str(task)) \
             + "-" + str(n + 1)
         if answer.get("error"):
@@ -706,6 +761,8 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     place.mkdir()
     for rel, text in (case.get("place") or {}).items():
         (place / rel).write_bytes(text.encode("utf-8"))
+    if case.get("git"):
+        a_repo(place)
     monkeypatch.chdir(place)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(case.get("flows", FLOWS))])
     for key in list(os.environ):
@@ -833,6 +890,9 @@ STAMPS = (
     # the last-run file is named by a hash of the place, which is a temp dir
     (re.compile(r"^(last-run-\S+)-[0-9a-f]{16}(?=\.json)"), r"\1-<key>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}-\d{6}"), "<run>"),
+    # a commit id hashes the clock it was made at
+    (re.compile(r"\b[0-9a-f]{40}\b"), "<sha>"),
+    (re.compile(r"(?<=git log --oneline )[0-9a-f]{7,40}(?=\.\.)"), "<sha>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?"), "<time>"),
     (re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}"), "<time>"),
     (re.compile(r"\d{4}-\d{2}-\d{2}"), "<day>"),
@@ -992,11 +1052,12 @@ def cannot(flow):
     turns the suite red until a golden reaches it or a reason is written
     here."""
     spec = spec_of(flow)
-    out = {
-        # the sign-off checks a merge only in a git work tree, and a
-        # replay's place is a plain folder
-        stops.MOVED: "a replay's place is not a git work tree",
-        stops.UNCHECKED: "a replay's place is not a git work tree"}
+    out = {}
+    if not any(f == flow and c.get("git") for (f, _), c in CASES.items()):
+        # the sign-off checks a merge only in a git work tree; one flow's
+        # replays run in one, and the check is the same for every flow
+        out[stops.MOVED] = out[stops.UNCHECKED] = (
+            "a replay's place is not a git work tree")
     if not any(s.get("fanout") for s in spec["steps"]):
         out[stops.OVERLAP] = "the flow has no fanned-out step"
     if spec.get("police") not in (True, "on"):

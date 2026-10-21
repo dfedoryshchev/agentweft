@@ -82,7 +82,8 @@ list:
   the files and the tasks.
 - `target moved` - the branch the run's change is for moved while the run
   worked, and the change conflicts with its new head (`docs/guardrails.md`,
-  the sign-off). the why names the files and the head to rebase onto.
+  the sign-off), found before a step or at the end. the why names the files
+  and the head to rebase onto.
 - `merge unchecked` - the sign-off could not check the change against its
   branch with read-only git. the why says what to check by hand.
 

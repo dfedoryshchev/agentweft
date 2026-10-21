@@ -5,8 +5,8 @@ the branch is the one named with `--target`. without it, a run in a worktree
 of its own is for the branch checked out in the person's tree, which moves
 while the person works; any other run is for the upstream of the branch
 checked out (the branch itself cannot move without HEAD moving with it). its
-head is read when the run starts and again when it ends. not moved, nothing
-more is said. moved, the run's change (HEAD now, with every file the tree
+head is read when the run starts, again before each step (`ahead`) and again
+when it ends. not moved, nothing more is said. moved, the run's change (HEAD now, with every file the tree
 holds that differs from what it held at the start) is merged onto the new
 head with `git merge-tree`, and a conflict stops the run naming the files. a
 file that was already loose at the start and that the run left as it was is
@@ -209,7 +209,22 @@ def unpointed(start):
     return "HEAD was detached when the run started and no --target was named"
 
 
-def check(place, start):
+def ahead(place, start, seen, step):
+    """the check before `step`: -> (a Signed, the target's head it was made
+    on) when the target's head is not `seen`, the head the last check found
+    (the run's start, first), else (None, `seen`). a target that did not
+    move costs one rev-parse; one that moved is merged as at the end. no
+    target, nothing is checked here: the end says so."""
+    target = (start or {}).get("target")
+    if not target:
+        return None, seen
+    now = _commit(place, target)
+    if now is not None and now == seen:
+        return None, seen
+    return check(place, start, "before " + step), now
+
+
+def check(place, start, when="at the end of the run"):
     """-> a Signed for the run that started at `start` (`mark`)."""
     if not start:
         return Signed(NOTHING)
@@ -218,7 +233,7 @@ def check(place, start):
     if root is None:
         if target:
             return by_hand(target, "git could not read " + str(place)
-                           + " at the end of the run")
+                           + " " + when)
         return Signed(NOTHING)
     if not target:
         paths = runs_own(root, start)

@@ -368,6 +368,87 @@ def test_a_resume_checks_against_the_head_the_first_leg_started_from(
     assert record["outcome"] == "stopped: target moved"
 
 
+def two_steps(tmp_path, monkeypatch, theirs=None):
+    """main() on a worker that edits calc.py, moving main to `theirs` while
+    it works, then a reviewer. -> (exit code, steps called, manifest)."""
+    place, other = repo(tmp_path)
+    root = flow(tmp_path)
+    d = root / "edit"
+    (d / "flow.yaml").write_text(
+        "name: edit" + NL + "steps:" + NL + "  - role: worker" + NL
+        + "    prompt: worker.md" + NL + "  - role: reviewer" + NL
+        + "    prompt: reviewer.md" + NL + "provider:" + NL
+        + "  provider: fake" + NL, encoding="utf-8")
+    (d / "reviewer.md").write_text("you are the reviewer." + NL,
+                                   encoding="utf-8")
+    calls = []
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        calls.append(step)
+        if step == "reviewer.md":
+            return "VERDICT: ok" + NL + NL + "fine" + NL, False
+        edit(place)
+        if callable(theirs):
+            theirs(place, other)
+        elif theirs:
+            move(other, *theirs)
+        return "- calc.py: b is 20" + NL, False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(root)])
+    monkeypatch.setattr(sys, "argv", ["run.py", "edit", "--force", "--flows",
+                                      str(root), "--workdir", str(place),
+                                      "--target", "main"])
+    monkeypatch.chdir(tmp_path)
+    code = engine.main()
+    run = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()][0]
+    return code, calls, json.loads((run / "manifest.json").read_text(
+        encoding="utf-8")), (run / "handoff.md").read_text(encoding="utf-8")
+
+
+def test_a_target_moved_into_a_conflict_stops_before_the_next_step(
+        tmp_path, monkeypatch):
+    code, calls, record, handoff = two_steps(tmp_path, monkeypatch, CLASH)
+    assert code == stops.EXIT_STOP
+    assert calls == ["worker.md"]
+    assert record["outcome"] == "stopped: target moved"
+    assert record["stopped"]["step"] == "reviewer.md"
+    assert "rebase onto main" in handoff
+
+
+def test_a_target_that_did_not_move_is_never_merged_before_a_step(
+        tmp_path, monkeypatch):
+    def never(*args, **kw):
+        raise AssertionError("merged with nothing moved")
+
+    monkeypatch.setattr(signoff, "merged", never)
+    code, calls, record, _ = two_steps(tmp_path, monkeypatch)
+    assert code == stops.EXIT_OK
+    assert calls == ["worker.md", "reviewer.md"]
+
+
+def test_a_target_gone_while_a_step_worked_stops_before_the_next(
+        tmp_path, monkeypatch):
+    def gone(place, other):
+        git(other, "checkout", "-q", "--detach")
+        git(place, "branch", "-q", "-D", "main")
+
+    code, calls, record, handoff = two_steps(tmp_path, monkeypatch, gone)
+    assert code == stops.EXIT_STOP
+    assert calls == ["worker.md"]
+    assert record["outcome"] == "stopped: merge unchecked"
+    assert record["stopped"]["step"] == "reviewer.md"
+    assert "main cannot be read now" in handoff and "by hand" in handoff
+
+
+def test_a_target_moved_cleanly_lets_the_next_step_run(tmp_path, monkeypatch):
+    code, calls, record, handoff = two_steps(tmp_path, monkeypatch,
+                                             ("other.py", "x = 2" + NL))
+    assert code == stops.EXIT_OK
+    assert calls == ["worker.md", "reviewer.md"]
+    assert "main moved to " in handoff
+
+
 def test_a_worktree_run_stops_when_the_persons_branch_moves_into_it(
         tmp_path, monkeypatch):
     place, _ = repo(tmp_path)
