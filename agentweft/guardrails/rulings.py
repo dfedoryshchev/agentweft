@@ -52,6 +52,9 @@ class Kept(object):
         self.written = []
         self.folder = None
         self.lock = threading.Lock()
+        # the other runner-only records in the place, each checked with this
+        # one (`guardrails/factsguard.py`)
+        self.also = []
 
     def now(self):
         try:
@@ -83,9 +86,15 @@ class Kept(object):
         return [d for d in decisions.read(self.root) if digest(d) in known]
 
     def check(self, step, how=""):
-        """-> "" when decisions.md is as the runner left it, else why `step`
-        fails, with the file put back. `how` says what of the step changed
-        it, when that was not its answer."""
+        """-> "" when decisions.md, and each record on `also`, is as the
+        runner left it, else why `step` fails, with what it changed put back.
+        `how` says what of the step changed it, when that was not its
+        answer."""
+        said = [s for s in [self.own(step, how)]
+                + [g.check(step, how) for g in self.also] if s]
+        return "; ".join(said)
+
+    def own(self, step, how=""):
         with self.lock:
             now = self.now()
             if now == self.data:

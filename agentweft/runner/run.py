@@ -16,7 +16,8 @@ from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   testedits, worktree)
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
-from agentweft.orchestrate import decisions, facts, project, synthesise
+from agentweft.guardrails import factsguard
+from agentweft.orchestrate import decisions, project, synthesise
 from agentweft.guardrails.budget import Budget
 from agentweft.guardrails import police, sacrifice
 
@@ -122,6 +123,7 @@ class Run(object):
                     grant=retro.GRANT)
         # before anything takes the place's start: what heal rewrites is the
         # runner's, not a change any step made
+        self.facts = factsguard.Store(self.workdir)
         self.healed = self.heal_facts()
         self.briefed = briefing.digest(self.workdir)
         self.project = held or project.hold(self.workdir)
@@ -163,6 +165,7 @@ class Run(object):
         self.lead = lead_of(fm)
         self.led = {}
         self.kept = rulings.Kept(self.workdir)
+        self.kept.also.append(self.facts)
         self.forged = {}
         # the session each `continue: resume` step carries on, by step, and
         # the steps in a call now; the warmer reads both from its own thread,
@@ -186,7 +189,7 @@ class Run(object):
         """-> what `facts.heal` changed in the place's facts, each printed. a
         store that cannot be read or written is said, and the run goes on."""
         try:
-            made = facts.heal(Path(self.workdir))
+            made = self.facts.heal()
         except (OSError, ValueError) as e:
             print("facts: not healed: " + type(e).__name__ + ": " + str(e))
             return []

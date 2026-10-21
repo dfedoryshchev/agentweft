@@ -492,6 +492,7 @@ def begin(unrecorded):
     if pick_up:
         run.kept.carry(state.RUNS / pick_up)
     run.kept.keep_in(folder)
+    run.facts.keep_in(folder)
     run.committer.keep_in(folder)
     (folder / "workdir").write_text(str(run.workdir), encoding="utf-8")
     if run.start is not None and run.start.hashed:

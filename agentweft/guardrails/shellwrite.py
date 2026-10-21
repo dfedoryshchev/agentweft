@@ -23,9 +23,12 @@ lets the call through is no check.
 
 the same hook also stands on Write, Edit, MultiEdit and NotebookEdit for a
 step granted `write` or `edit`, for one thing only: each `--keep <path>`
-argument is a file no tool may write, and the runner passes decisions.md in
-the place. a ruling there lets a change stand, so a step writing one would be
-ruling on its own work (`guardrails/rulings.py` catches whatever gets past).
+argument is a file no tool may write, or a folder, ending in `/`, no tool may
+write inside, and the runner passes decisions.md and facts/ in the place. a
+ruling there lets a change stand and a fact tells the next step its way, so
+a step writing either would be ruling on its own work
+(`guardrails/rulings.py` and `guardrails/factsguard.py` catch whatever gets
+past).
 
 the module runs as a script, by path, in a process of its own, so nothing at
 its top level may import from the package.
@@ -69,6 +72,9 @@ REASON = ("refused: `{0}` writes a file from the shell. create a file with the"
 KEPT = ("refused: `{0}` is the run's record of rulings, and only the runner"
         " writes it. a ruling comes from the operator or the lead: ask on a"
         " NEEDS: line and stop.")
+KEPT_FACTS = ("refused: `{0}` is in the project's facts, and only the runner"
+              " writes them. say what you found in your handoff block, on a"
+              " DECIDED or DOUBTS line.")
 UNREAD = ("refused: the shell-write check could not read this call ({0}), so"
           " it is not let through. create or change files with the Write or"
           " Edit tool.")
@@ -304,23 +310,34 @@ def arguments(argv):
     return denials, kept
 
 
+def full(p, cwd):
+    return os.path.normcase(os.path.realpath(os.path.join(cwd, p)))
+
+
 def same(path, other, cwd):
-    def full(p):
-        return os.path.normcase(os.path.realpath(os.path.join(cwd, p)))
-    return full(path) == full(other)
+    return full(path, cwd) == full(other, cwd)
+
+
+def inside(path, folder, cwd):
+    top = full(folder.rstrip("/\\"), cwd)
+    return full(path, cwd).startswith(top + os.sep)
 
 
 def edited(data, kept):
-    """-> the kept file an edit tool call writes, or ""."""
+    """-> (the path an edit tool call writes, the kept file or folder it
+    falls under), ("", "") for a path none is."""
     given = data["tool_input"]
     path = given.get("file_path") or given.get("notebook_path")
     if not isinstance(path, str) or not path:
         raise TypeError("no file path")
     cwd = data.get("cwd") or os.getcwd()
     for k in kept:
-        if same(path, k, cwd):
-            return path
-    return ""
+        if k.endswith(("/", "\\")):
+            if inside(path, k, cwd):
+                return path, k
+        elif same(path, k, cwd):
+            return path, k
+    return "", ""
 
 
 def decide(argv, raw):
@@ -331,8 +348,8 @@ def decide(argv, raw):
         data = json.loads(raw)
         tool = data.get("tool_name")
         if tool in EDITORS:
-            hit = edited(data, kept) if kept else ""
-            said = KEPT
+            hit, under = edited(data, kept) if kept else ("", "")
+            said = KEPT_FACTS if under.endswith(("/", "\\")) else KEPT
         elif tool in TOOLS:
             command = data["tool_input"]["command"]
             if not isinstance(command, str):

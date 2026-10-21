@@ -445,6 +445,55 @@ and letting every other path through; a step granted `shell` already has
 every shell write refused. the record is what holds when the hook does not
 reach: a step on another provider, or a write the hook cannot see.
 
+## the facts only the runner writes
+
+the facts under `facts/` in the place (`docs/journal.md`, "what is known
+about a file") tell a step what a file's way is, so a step that could write
+one could write the fact that lets its own change through. they get the
+same three walls as the rulings, in `agentweft/guardrails/factsguard.py`:
+
+- the account, `runs/<id>/facts.json`, outside the place: a sha256 of every
+  entry under `facts/` when the run started (after the start's heal, which is
+  the runner's) and of every entry the runner writes, and the reason for
+  every fact it refused. a place with no `facts/` and nothing proposed leaves
+  no file. an entry written by hand between runs counts.
+- after every step, and again after its gates and after a stop's test run,
+  `facts/` is compared with what the runner last wrote, in the same check as
+  `decisions.md`. a step that added, edited or removed anything there fails
+  the way a gate does (`rulings` in `gates.md`):
+
+      facts/pkg/a.py.md was changed by worker.md; facts come only from the runner. added or edited F-0003. it was put back, and the change counts for nothing
+
+  and the store is put back as the runner left it, a file the step added
+  taken away.
+- the hook on a `claude` step's Write, Edit, MultiEdit and NotebookEdit
+  refuses any path under `facts/` in the place, as it refuses decisions.md.
+
+a fact the runner is asked to write is held to the record before anything
+is written; a refused one is not written and its reason is kept:
+
+1. no field may look like a secret: a token of a known shape (`sk-`, `ghp_`,
+   `AKIA...`, a private key block, a JWT), a file that holds one by its name
+   (the brief's credential names and the police check's), or a string of 32
+   or more letters and digits that mixes cases and reads as random. the
+   reason names the field and the kind, never the value.
+2. a one-line claim and a why, no `|` in any field, a kind from `decision`,
+   `convention`, `why`, `defect`, `gate-issue`, a label from `important`,
+   `wip`, `investigation` or none.
+3. every scope is in the place: the file, the folder, a file a glob matches,
+   or `.`.
+4. its evidence is on the record: `<file>:<line> "<quote>"` with the quote at
+   that line, as the run found the file or as it is now; `<command> exit
+   <code>` with a gate of this run that ran that command to that exit code;
+   or `decisions.md <stamp>` with a ruling the runner has on record at that
+   stamp. anything else does not hold.
+5. its anchor names lines the file has; the runner hashes them itself, and a
+   hash written in the proposal is ignored.
+6. the same claim on the same scopes as a live fact is counted on that fact
+   (`seen: proposed 2, ...`) instead of written again.
+7. at most three new facts a run (`per-run cap`); a supersession is a new
+   fact, and marks the one it replaces `superseded`.
+
 ## the files that brief the model
 
 a `cli` step starts its model in the run's place, and a model cli can take

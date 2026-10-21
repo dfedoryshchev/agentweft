@@ -68,7 +68,8 @@ CAP_VAR = "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
 def shell_hook(denials, kept=(), tools=None):
     """-> the `hooks` setting that hands every call to `tools` (Bash and
     PowerShell when not given) to the shell-write check before it runs
-    (`guardrails/shellwrite.py`). each of `kept` is a file no tool may write.
+    (`guardrails/shellwrite.py`). each of `kept` is a file no tool may write,
+    or a folder, written ending in `/`, no tool may write inside.
 
     the exec form, `args`, spawns python with no shell between, so no quoting
     differs by platform. `-I` keeps the script's own folder off the import
@@ -79,7 +80,9 @@ def shell_hook(denials, kept=(), tools=None):
     if denials is not None:
         args.append(Path(denials).as_posix())
     for path in kept:
-        args = args + [shellwrite.KEEP, Path(path).as_posix()]
+        folder = str(path).endswith(("/", "\\"))
+        args = args + [shellwrite.KEEP, Path(path).as_posix()
+                       + ("/" if folder else "")]
     return {"PreToolUse": [{"matcher": "|".join(tools or shellwrite.TOOLS),
                             "hooks": [{"type": "command",
                                        "command": Path(sys.executable)
@@ -721,12 +724,14 @@ class CliProvider(Provider):
 
     def kept_files(self):
         """-> the files no tool of this step may write: decisions.md in the
-        place, when there is a place."""
-        from agentweft.orchestrate import decisions
+        place and everything under its facts/, when there is a place."""
+        from agentweft.orchestrate import decisions, facts
 
         if self.where is None:
             return []
-        return [Path(self.where).resolve() / decisions.FILE]
+        place = Path(self.where).resolve()
+        return [place / decisions.FILE,
+                (place / facts.FOLDER).as_posix() + "/"]
 
     def hooked(self):
         """-> the tools the PreToolUse hook stands on for this step: the
