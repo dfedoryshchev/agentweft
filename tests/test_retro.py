@@ -83,14 +83,16 @@ def test_a_retro_that_errors_leaves_the_outcome_as_it_was(
     assert not (folder / "retro.md").exists()
 
 
-def test_a_run_with_no_failed_attempt_spends_nothing_on_a_retro(
+def test_a_run_with_no_failed_attempt_hands_the_retro_none_to_look_at(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "clean", ["worker", "reviewer"],
            tail="retro: true\n" + CLAUDE)
-    fake = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"))
+    fake = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+                    answer("## change first\n- none\n"))
     assert engine.main() == 0
-    assert len(fake.calls) == 2
-    assert not (the_folder() / "retro.md").exists()
+    assert len(fake.calls) == 3
+    assert "failed, from steps.jsonl:\n- none failed\n" in asked(fake)[-1]
+    assert (the_folder() / "retro.md").exists()
 
 
 def test_a_retro_skill_is_not_fed_to_every_role():
@@ -229,11 +231,15 @@ def test_a_failure_one_retro_looked_at_is_not_handed_to_the_next(
     two_fails(tmp_path, monkeypatch, fake_cli, tail="retro: true\n")
     engine.main()
     first = the_folder()
-    again = fake_cli(answer("one\n"), answer("VERDICT: ok\n\nfine\n"))
+    again = fake_cli(answer("one\n"), answer("VERDICT: ok\n\nfine\n"),
+                     answer("## change first\n- none\n"))
     monkeypatch.setattr(sys, "argv", ["run.py", "fails", "--force",
                                       "--resume", first.name])
     assert engine.main() == 0
-    assert len(again.calls) == 2
+    assert len(again.calls) == 3
+    prompt = asked(again)[-1]
+    assert "failed, from steps.jsonl:\n- none failed\n" in prompt
+    assert "gate failed: " not in prompt.split("why.md:")[0]
 
 
 @pytest.mark.parametrize("step", ["role: retro", "role: worker\n    prompt: retro.md"])

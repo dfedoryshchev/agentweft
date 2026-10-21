@@ -1207,6 +1207,15 @@ a fact whose file is gone is `stale` on the first run that finds it gone and
 fact with no anchor is never stale by content. nothing else in an entry is
 rewritten.
 
+no step writes a fact. the runner writes them, from the FACTS block of a
+flow's retro (`docs/writing-a-flow.md`, section 10), each held to the record
+first (`docs/guardrails.md`, "the facts only the runner writes"), with its
+`source` and `written: <stamp> by runner from retro`. two more files sit
+beside the entries and hold none: `facts/INDEX.md`, which the runner renders
+after every write it makes, a line per live fact by scope and the stale ones
+apart, and `facts/PROPOSED.md`, the guards and doc changes the retro
+proposed, for a person; the runner applies none of them.
+
 ## what it does not do
 
 a resumed run writes its own journal lines, so a task that stopped and was

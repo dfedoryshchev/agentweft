@@ -171,9 +171,13 @@ FLOW_ONLY = (
          "how hard each role's model thinks, under a step's own `effort`. a "
          "phase has no word for it, and neither does an agent's file."),
     Pair("flow.retro", "",
-         "one last step that reads why each failed attempt failed and says "
-         "which gate or prompt to change. it is advice and never a gate; a "
-         "phase has no step after its last, and no record of its own to read."),
+         "one last step that reads the run's record, says which gate or "
+         "prompt to change, and proposes the facts the runner keeps about the "
+         "files it touched. it never changes how the run ended; a phase has no "
+         "step after its last, and no record of its own to read."),
+    Pair("flow.facts_per_run", "",
+         "how many new facts one run's retro may have the runner write. a "
+         "phase keeps no facts of its own, so it has nothing to cap."),
     Pair("flow.investigate", "",
          "a step put in front of the flow's own that finds the cause and the "
          "sites it reaches before anything is written. a phase that wants one "

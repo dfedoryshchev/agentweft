@@ -319,18 +319,45 @@ every failed attempt already has a why on its line in `steps.jsonl`, and
 
     retro: true
 
-once the handoff is written, a run with a failed attempt (a gate that
-failed, a send-back, a stop), a gate that could not do its job (an `issue`,
-`docs/gates.md`) or a shell write a step went on past after the hook refused
-it hands the retro role (`roles/library/retro.md`) the why line of each
-failed attempt, each gate issue and each refused write by seq and step,
-`why.md` when the run stopped short, and `handoff.md`, with the retro skill
-(`skills/retro/SKILL.md`) as the procedure. it writes
-`runs/<run-id>/retro.md`: per failed attempt what failed, why, and which
-gate, prompt or `flow.yaml` key to change, then the one change to make first.
-it is granted `read` and nothing else, whatever the flow's steps are granted.
+once the handoff is written, every run that ends hands the retro role
+(`roles/library/retro.md`) its record, with the retro skill
+(`skills/retro/SKILL.md`) as the procedure: the why line of each failed
+attempt (a gate that failed, a send-back, a stop), each gate that could not
+do its job (an `issue`, `docs/gates.md`) and each shell write a step went on
+past after the hook refused it, by seq and step; each step's DID, ASSUMED,
+TRIED and DOUBTS lines; the rulings written in the run; the files git says
+it changed; the project's facts that are stale or hold for those files
+(`docs/journal.md`, "what is known about a file"); how many new facts it may
+write; `why.md` when the run stopped short; and `handoff.md`. a clean run is
+handed `- none failed` and the rest, so the retro keeps the facts even when
+nothing went wrong. it writes `runs/<run-id>/retro.md`: per failed attempt
+what failed, why, and which gate, prompt or `flow.yaml` key to change, the
+one change to make first, and one FACTS block. it is granted `read` and
+nothing else, whatever the flow's steps are granted.
 
-it is advice, never a gate. nothing reads `retro.md`. a retro that errors or
+the FACTS block is the one part the runner acts on (`runner/upkeep.py`):
+a `fact`, a `supersede`, a `re-anchor` and a `retire` are done once each
+holds against the record (`docs/guardrails.md`, "the facts only the runner
+writes"), a new fact written as `by runner from retro`; a `guard` and a
+`doc` change are appended to `facts/PROPOSED.md` for a person and never
+applied. the runner renders `facts/INDEX.md`, a line per live fact and the
+stale ones apart. what it did with each item, each refusal with its reason,
+goes at the end of `retro.md` under "what the runner did with the FACTS
+block", at the end of `handoff.md` under "the retro's proposals", and on the
+retro's line in `steps.jsonl` as `facts` (`written`, `counted`, `changed`,
+`refused`, `proposed`, `owed`). a block that does not parse writes nothing
+and says so in one line; an answer with no block changes no fact.
+
+    facts_per_run: 3
+
+caps the new facts one run writes (3 when unsaid); the same claim on the
+same scope as a live fact is counted on it (`seen: proposed 2, ...`), once a
+run. a `gate-issue` or `defect` fact counted again climbs: in two runs it is
+`important`, in three a guard is proposed for it marked `recurring`, from
+four on the handoff lists it as hardening owed every run until it is
+retired.
+
+the rest of what it writes is advice, never a gate. a retro that errors or
 comes back empty is a `retro.md` line in `steps.jsonl` with `outcome:
 failed` and the why; one that cannot even write that line only prints why.
 either way the run's outcome, exit code and journal status stay what they
@@ -345,8 +372,7 @@ budget or an interrupt), or one at its call cap, holds its retro and prints
 `retro not run:` and why. its failed attempts are not lost: the leg that
 carries the run on hands them to its own retro, with its own. an attempt one
 retro was handed is not handed to the next, and a stop that waited is not a
-failed attempt. a clean run, with no gate issue and no refused write,
-spends nothing on it. `retro: false` or no
+failed attempt. `retro: false` or no
 `retro:` adds no step. it is true or false, anything else is refused when the
 flow loads, and so is a step whose role is `retro` or that reads `retro.md`.
 a scored eval case of the flow runs it the same way (`evals/README.md`).

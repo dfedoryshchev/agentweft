@@ -216,14 +216,15 @@ def test_the_fourth_new_fact_in_one_run_is_refused_for_the_cap(tmp_path):
 def test_the_same_claim_again_counts_on_the_live_fact(tmp_path):
     store, record = a_store(tmp_path)
     first, _ = store.add(proposal(), record)
-    again, why = store.add(proposal(claim="Parse raises on an empty line,"
+    later = factsguard.Store(tmp_path)
+    again, why = later.add(proposal(claim="Parse raises on an empty line,"
                                           " never returns [] "), record)
     assert why == ""
     assert again.id == first.id
     [fact] = facts.read(tmp_path)
     assert fact.get("seen") == ("proposed 2, attached 0, honoured 0,"
                                 " contradicted 0")
-    assert store.new == 1
+    assert later.new == 0
 
 
 def test_a_written_fact_carries_its_source_and_who_wrote_it(tmp_path):

@@ -254,7 +254,7 @@ class Entry(object):
 
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
-                 "proved", "changed", "decided", "police")
+                 "proved", "changed", "decided", "police", "facts")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -276,6 +276,8 @@ class Entry(object):
         self.changed = None
         self.decided = False
         self.police = None
+        # on the retro's pass only: what the runner did with its FACTS block
+        self.facts = None
 
 
 class Trail(object):
@@ -334,6 +336,8 @@ class Trail(object):
                                                        entry.took)
         if entry.police is not None:
             entry.written["police"] = entry.police
+        if entry.facts is not None:
+            entry.written["facts"] = entry.facts
         self.held.append((entry, outcome))
         first = min(e.seq for e in self.unclosed) if self.unclosed else None
         ready = sorted((h for h in self.held

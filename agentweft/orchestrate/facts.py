@@ -41,8 +41,11 @@ from pathlib import Path
 FOLDER = "facts"
 FOLDER_FILE = "_folder.md"
 PROJECT_FILE = "_project.md"
-# the files under facts/ that hold no entries of their own
-NOT_FACTS = ("INDEX.md", "PROPOSED.md")
+# the files under facts/ that hold no entries of their own: the list the
+# runner renders, and what the retro proposes for a person to do
+INDEX = "INDEX.md"
+PROPOSED = "PROPOSED.md"
+NOT_FACTS = (INDEX, PROPOSED)
 PROJECT = "."
 
 LIVE, STALE, SUPERSEDED, RETIRED = "live", "stale", "superseded", "retired"
@@ -88,6 +91,9 @@ class Fact(object):
                 self.fields[n] = (key, value)
                 return
         self.fields.append((key, value))
+
+    def drop(self, key):
+        self.fields = [(k, v) for k, v in self.fields if k != key]
 
     @property
     def scopes(self):
@@ -382,6 +388,27 @@ def heal(root, today=None):
         if made:
             write(path, head, found)
             out.extend(made)
+    return out
+
+
+def index_lines(found):
+    """-> facts/INDEX.md: one line per live fact, by scope, then the stale
+    ones with why."""
+    def one(f):
+        return ("- " + f.id + " " + ", ".join(f.scopes)
+                + (" " + f.label if f.label and f.label != "none" else "")
+                + ": " + f.claim)
+
+    live = sorted((f for f in found if f.status == LIVE),
+                  key=lambda f: (f.scopes, f.id))
+    stale = sorted((f for f in found if f.status == STALE),
+                   key=lambda f: (f.scopes, f.id))
+    out = ["# facts", "", "the runner writes this list; the entries are in the"
+           " files beside it.", "", "## live", ""]
+    out.extend([one(f) for f in live] or ["- none"])
+    if stale:
+        out.extend(["", "## stale", ""])
+        out.extend(one(f) + " (stale: " + f.get("stale") + ")" for f in stale)
     return out
 
 

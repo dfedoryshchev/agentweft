@@ -85,7 +85,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
-         "reviewers", "police", "network")
+         "reviewers", "police", "network", "facts_per_run")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 NO_LEAD = "none"
@@ -534,6 +534,8 @@ def check(raw):
         bad.append("tests_integration should be true, false or auto")
     if "send_backs" in raw and not counts(raw["send_backs"]):
         bad.append("send_backs should be a whole number, 0 or more")
+    if "facts_per_run" in raw and not counts(raw["facts_per_run"]):
+        bad.append("facts_per_run should be a whole number, 0 or more")
     bad.extend(check_lead(raw))
     if "on_stop" in raw and raw["on_stop"] not in ON_STOP:
         bad.append("on_stop should be one of " + ", ".join(ON_STOP))

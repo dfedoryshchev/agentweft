@@ -199,6 +199,8 @@ class Store(object):
         self.written = []
         self.refused = []
         self.new = 0
+        # the facts this run has counted a proposal on: a run counts once
+        self.counted = set()
         self.taken()
 
     def taken(self):
@@ -232,9 +234,19 @@ class Store(object):
         """`facts.heal` as the runner's own write, before any step."""
         with self.lock:
             made = facts.heal(self.root, today)
+            if made:
+                self.index()
             self.taken()
             self.save()
             return made
+
+    def index(self):
+        """render facts/INDEX.md from the entries as they are now."""
+        path = facts.folder(self.root) / facts.INDEX
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(facts.index_lines(facts.read(self.root)))
+                    + "\n")
 
     def check(self, step, how=""):
         """-> "" when facts/ is as the runner left it, else why `step` fails,
@@ -360,7 +372,9 @@ class Store(object):
         for f in self.read():
             if f.status == facts.LIVE and sorted(f.scopes) == sorted(scopes) \
                     and norm_claim(f.claim) == claim:
-                self.count(f, "proposed")
+                if f.id not in self.counted:
+                    self.counted.add(f.id)
+                    self.count(f, "proposed")
                 return f, ""
         if self.new >= self.cap:
             return None, ("per-run cap: " + str(self.cap) + " new facts are"
@@ -392,6 +406,7 @@ class Store(object):
                         stamp + " by " + fact.id)
         self.put(fact, facts.file_for(scopes[0]))
         self.new = self.new + 1
+        self.counted.add(fact.id)
         return fact, ""
 
     def put(self, fact, rel):
@@ -406,22 +421,101 @@ class Store(object):
     def mine(self, fact):
         self.written.append({"id": fact.id, "status": fact.status,
                              "sha256": digest(fact)})
+        self.index()
         self.data = self.now()
         self.save()
 
     def status(self, id, status, key, value):
         """set fact `id` to `status`, with `key: value` saying why, in its
         own file."""
+        return self.change(id, lambda f: (setattr(f, "status", status),
+                                          f.put(key, value)))
+
+    def change(self, id, how):
+        """apply `how` to fact `id` in its own file, as the runner's write;
+        -> the fact, None when there is none."""
         for path in facts.files(self.root):
             head, found = facts.parse(path.read_text(encoding="utf-8"), path)
             for f in found:
                 if f.id == id:
-                    f.status = status
-                    f.put(key, value)
+                    how(f)
                     facts.write(path, head, found)
                     self.mine(f)
                     return f
         return None
+
+    def held(self, id):
+        """-> fact `id` when the runner has it on record live or stale."""
+        for f in self.read():
+            if f.id == id and f.status in (facts.LIVE, facts.STALE):
+                return f
+        return None
+
+    def reanchor(self, id, said, evidence, record, today=None):
+        """-> "" once fact `id` is anchored on `said` again and live, else
+        why not: the fact is not live or stale, the evidence that it still
+        holds is not on record, or the lines are not there."""
+        with self.lock:
+            for key, text in (("anchor", said), ("evidence", evidence)):
+                what = secret_in(text or "")
+                if what:
+                    return "it looks like a secret: " + what + " in " + key
+            if self.held(id) is None:
+                return id + " is not a live or stale fact"
+            held = record.holds("evidence: " + (evidence or ""))
+            if held:
+                return "the evidence does not hold: " + held
+            at = self.anchor_for(said or "")
+            if at is None:
+                return ("the anchor " + ((said or "").split() or ["(none)"])[0]
+                        + " is not lines of the file")
+            stamp = today or datetime.date.today().isoformat()
+
+            def anchored(f):
+                f.status = facts.LIVE
+                f.put("anchor", str(at))
+                f.drop("stale")
+                f.put("healed", stamp + " anchored again by the retro")
+
+            self.change(id, anchored)
+            return ""
+
+    def retire(self, id, why, today=None):
+        """-> "" once fact `id` is retired, else why not."""
+        with self.lock:
+            why = " ".join((why or "").split())
+            if not why:
+                return "it has no why"
+            what = secret_in(why)
+            if what:
+                return "it looks like a secret: " + what + " in why"
+            if "|" in why:
+                return "why holds a |, which no taught format carries"
+            if self.held(id) is None:
+                return id + " is not a live or stale fact"
+            stamp = today or datetime.date.today().isoformat()
+            self.status(id, facts.RETIRED, "retired",
+                        stamp + " by the retro: " + why)
+            return ""
+
+    def propose(self, lines):
+        """-> "" once `lines` are at the end of facts/PROPOSED.md, else why
+        not. what is there is for a person; the runner applies none of it."""
+        with self.lock:
+            for text in lines:
+                what = secret_in(text)
+                if what:
+                    return "it looks like a secret: " + what
+            path = facts.folder(self.root) / facts.PROPOSED
+            path.parent.mkdir(parents=True, exist_ok=True)
+            head = [] if path.is_file() else [
+                "# proposed", "", "guards and doc changes the retro proposed."
+                " the runner applies none of them.", ""]
+            with open(path, "a", encoding="utf-8", newline="\n") as f:
+                f.write("\n".join(head + list(lines) + [""]) + "\n")
+            self.data = self.now()
+            self.save()
+            return ""
 
     def count(self, fact, counter, n=1):
         """add `n` to one of the fact's `seen` counters, in its file."""
@@ -458,3 +552,16 @@ class Store(object):
 
 def seen_line(said):
     return ", ".join(k + " " + str(said.get(k, 0)) for k in COUNTERS)
+
+
+def seen_of(fact):
+    """-> {counter: n} from the fact's `seen` line, proposed 1 when unsaid."""
+    said = dict((k, int(v)) for k, v in SEEN.findall(fact.get("seen")))
+    said.setdefault("proposed", 1)
+    return said
+
+
+def cap_of(fm):
+    """-> the flow's `facts_per_run`, CAP when it names none."""
+    said = fm.get("facts_per_run") if hasattr(fm, "get") else None
+    return CAP if said is None else int(said)
