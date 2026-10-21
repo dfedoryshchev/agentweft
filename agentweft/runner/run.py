@@ -392,8 +392,9 @@ class Run(object):
 
     def tests_held(self, step, last=False):
         """-> (the line for the record when a test file the run started with
-        changed, else None; (why, question) when it changed in a way no
-        ruling covers and this is the step's `last` go, else None). a step
+        changed, else None; (why, question, what the run's record keeps of
+        the question) when it changed in a way no ruling covers and this is
+        the step's `last` go, else None). a step
         with a go left fails like a gate and goes back. the lead's decisions
         are not read: one that names the test does not let it change."""
         start = getattr(self, "start", None)
@@ -402,15 +403,17 @@ class Run(object):
             return None, None
         decided = self.spec_rulings()
         record = getattr(self, "record", None)
-        runs = [r for r in ((record.run, record.resumes) if record is not None
-                            else ()) if r]
+        asked = {}
         if getattr(record, "folder", None) is not None:
-            legs, _ = manifest.legs(record.folder)
-            runs = runs + [p.name for p in legs if p.name not in runs]
+            for leg in manifest.legs(record.folder)[0]:
+                m = manifest.load(leg)
+                if m is not None:
+                    asked[leg.name] = ruling.asked_edits(m.data.get("stopped"))
         left, ruled = [], []
         for edit in found:
             for test, how in edit.items:
-                d = ruling.edit_ruled(decided, test, self.workdir, start, runs)
+                d = ruling.edit_ruled(decided, test, self.workdir, start,
+                                      asked)
                 if d is None:
                     left.append((test, how))
                 else:
@@ -421,7 +424,8 @@ class Run(object):
         if not last:
             return line, None
         return line, ("needs a ruling: " + line.detail,
-                      ruling.question_of_test_edits(step, left))
+                      ruling.question_of_test_edits(step, left),
+                      ruling.edits_asked(test for test, _ in left))
 
     def keep(self, role, block):
         for line in block.get("must_not_miss", []):

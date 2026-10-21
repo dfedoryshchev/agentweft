@@ -578,8 +578,12 @@ in `gates.md`:
   `parked`, with each test cited in `question.md`.
 - unless a ruling in `decisions.md` covers the test: an `override:` answer to
   the question this run (or any leg before it) parked on for these edits
-  covers every test and file that question cites; one that names the test
-  (its id, or its name alone), or one that quotes in double quotes, three
+  covers every test and file that question cites. the runner knows that
+  question by what it wrote in the leg's `manifest.json` when it parked
+  (`stopped.runner`, its id and the tests it named), never by its words, so
+  a step's own question written to look like it covers nothing. one that
+  names the test (its id, or its name alone), or one that quotes in double
+  quotes, three
   words or more, a line of a spec file as the run found it, in an entry that
   names the test, covers that test. so a test the run was handed with a wrong
   assertion can be fixed once a ruling quotes the spec line that decides it.

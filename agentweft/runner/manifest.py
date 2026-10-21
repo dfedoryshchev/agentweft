@@ -232,11 +232,16 @@ class Manifest(object):
                 return name
         return None
 
-    def stop(self, step, cause, why, place, own=None, question=None):
+    def stop(self, step, cause, why, place, own=None, question=None,
+             asked=None):
+        """`asked` is what the runner keeps of a question it asked itself,
+        under `runner`."""
         self.data["state"] = STOPPED
         self.data["stopped"] = {"step": step, "cause": cause, "why": why}
         if question is not None:
             self.data["stopped"]["question"] = question
+        if asked is not None:
+            self.data["stopped"]["runner"] = asked
         self.data["tree"] = tree(place, own)
 
     @property

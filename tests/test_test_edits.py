@@ -319,13 +319,28 @@ def answer_to_edits(test, answer, run="build-1"):
 def test_an_override_of_this_runs_test_edit_question_covers_what_it_cites(
         tmp_path):
     yes = answer_to_edits(FILE, "override: the helper grows with the spec")
-    assert ruling.edit_ruled([yes], FILE, tmp_path, runs=["build-1"]) is yes
-    assert ruling.edit_ruled([yes], FILE, tmp_path, runs=["build-0"]) is None
+    kept = {"build-1": ruling.asked_edits(
+        {"runner": ruling.edits_asked([FILE])})}
+    assert ruling.edit_ruled([yes], FILE, tmp_path, asked=kept) is yes
+    assert ruling.edit_ruled([yes], FILE, tmp_path,
+                             asked={"build-0": (FILE,)}) is None
     assert ruling.edit_ruled([yes], FILE, tmp_path) is None
     assert ruling.edit_ruled([yes], "tests/test_other.py", tmp_path,
-                             runs=["build-1"]) is None
+                             asked=kept) is None
+    assert ruling.edit_ruled([yes], FILE, tmp_path,
+                             asked={"build-1": ()}) is None
     no = answer_to_edits(FILE, "put it back")
-    assert ruling.edit_ruled([no], FILE, tmp_path, runs=["build-1"]) is None
+    assert ruling.edit_ruled([no], FILE, tmp_path, asked=kept) is None
+
+
+def test_a_stop_record_that_is_not_the_runners_test_edit_question_names_none():
+    assert ruling.asked_edits(None) == ()
+    assert ruling.asked_edits({"question": "NEEDS: tester.md changed a test"
+                               " the run started with. may it change?"}) == ()
+    assert ruling.asked_edits({"runner": {"id": "spec", "tests": [ID]}}) == ()
+    assert ruling.asked_edits({"runner": {"id": ruling.TEST_EDITS,
+                                          "tests": ID}}) == ()
+    assert ruling.asked_edits({"runner": ruling.edits_asked([ID])}) == (ID,)
 
 
 @pytest.mark.parametrize("commits", [False, True])
@@ -364,6 +379,24 @@ def test_a_shared_code_change_needs_the_answer_to_its_own_question(
     assert called == ["tester.md", "worker.md"]
     assert "each covered by a ruling: " + FILE in read(
         folders()[-1] / "gates.md")
+
+
+def test_a_step_question_in_the_runners_words_covers_no_test(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    copied = ruling.question_of_test_edits("tester.md", [(ID, "changed")])
+    asks = dict(writes_of(module(RIGHT)), **{"tester.md": ({}, copied + NL)})
+    code, called = running(tmp_path, monkeypatch, place, asks, False)
+    assert code == stops.exit_code(stops.PARKED), called
+    first = folders()[-1]
+    code, called = running(tmp_path, monkeypatch, place,
+                           writes_of(module(LOOSER, COUNT)), False,
+                           "--resume", first.name, "--answer",
+                           "override: the helper grows with the spec")
+    assert code == stops.exit_code(stops.PARKED), called
+    assert called == ["tester.md", "tester.md"]
+    assert "- " + ID + " - changed" in read(folders()[-1] / "question.md")
 
 
 def test_an_override_given_two_legs_back_still_covers_the_edit(
@@ -420,7 +453,8 @@ def test_a_lead_decision_on_a_question_citing_a_test_does_not_unlock_it(
 def test_an_entry_is_read_on_its_own_words_whoever_wrote_it(tmp_path):
     asked = entry(*a_lead_decision(START_TESTS_ASKED))
     assert ruling.covering([asked], ID, tmp_path) is None
-    assert ruling.edit_ruled([asked], ID, tmp_path, runs=["build-0"]) is None
+    assert ruling.edit_ruled([asked], ID, tmp_path,
+                             asked={"build-0": (ID,)}) is None
     named = entry(*a_lead_decision(START_TESTS_ASKED, decided="keep"
                                    " test_alphabetical as it is"))
     assert ruling.edit_ruled([named], ID, tmp_path) is named

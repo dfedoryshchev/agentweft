@@ -651,33 +651,50 @@ def covering(decided, test, workdir, start=None):
 
 ASKED_IN = re.compile(r"^asked by \S+ in (\S+):\n")
 EDITS_ASKED = " the run started with. may "
+TEST_EDITS = "test-edits"
 
 
-def answers_edits(d, test, runs):
+def edits_asked(tests):
+    """-> what the runner writes in a leg's record of its stop when it parks
+    the leg on its own test-edit question: its id and the tests it named."""
+    return {"id": TEST_EDITS, "tests": list(tests)}
+
+
+def asked_edits(stopped):
+    """-> the tests the runner's own test-edit question named, read from a
+    leg's record of its stop (`manifest.json` `stopped`); () for a stop on
+    anything else, a step's question in the same words included."""
+    said = (stopped or {}).get("runner") or {}
+    if said.get("id") != TEST_EDITS or not isinstance(said.get("tests"),
+                                                      list):
+        return ()
+    return tuple(t for t in said["tests"] if isinstance(t, str))
+
+
+def answers_edits(d, test, asked):
     """whether `d` is an `override:` answer, given with --answer, to the
-    question a test edit parked one of `runs` on, and that question cites
-    `test`."""
+    question a test edit parked a leg on, and that question named `test`.
+    `asked` is {run id: the tests its record says the runner asked about},
+    so a step's own question in the runner's words is never taken for it."""
     found = asked_and_answered(d)
     m = ASKED_IN.match(d.why)
-    if not found or kind_of(found[1]) != OVERRIDE or not m \
-            or m.group(1) not in runs:
+    if not found or kind_of(found[1]) != OVERRIDE or not m:
         return False
-    question = found[0]
-    return EDITS_ASKED in question and any(
-        line.startswith("- " + test + " - ") for line in question.split("\n"))
+    return test in (asked or {}).get(m.group(1), ())
 
 
-def edit_ruled(decided, test, workdir, start=None, runs=()):
+def edit_ruled(decided, test, workdir, start=None, asked=None):
     """-> the decisions.md entry that lets `test`, a test the run started
     with, be changed or removed, or None. `test` is a test id, or a file when
     the change is the file's. an `override:` answer to the question a test
-    edit in one of `runs` (this run and every leg before it) parked on covers
-    what that question cites. a test id is also covered by what covers a
-    start test gone red, and by an entry naming the test by its name alone.
-    naming the file covers nothing: a ruling on where a new case goes names
-    it too. an answer of `request:` never covers one."""
+    edit parked this run or a leg before it on covers the tests the leg's
+    record says that question named (`asked`, as `answers_edits` reads it).
+    a test id is also covered by what covers a start test gone red, and by
+    an entry naming the test by its name alone. naming the file covers
+    nothing: a ruling on where a new case goes names it too. an answer of
+    `request:` never covers one."""
     for d in decided:
-        if answers_edits(d, test, runs):
+        if answers_edits(d, test, asked):
             return d
     path, sep, name = test.partition("::")
     if not sep:

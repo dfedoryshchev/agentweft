@@ -179,7 +179,7 @@ def go(leg):
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None, handed=None, question=None, replayed=False,
-             checked=(), worked=None, stopped_for=None):
+             checked=(), worked=None, stopped_for=None, asked=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -194,7 +194,9 @@ def go(leg):
         gates of a step that changed the place before it asked said of it
         ("" passed), None when it changed nothing. `stopped_for` is what a
         step that did the work did that its gates stop the run on, for a
-        question the runner asks rather than the step.
+        question the runner asks rather than the step. `asked` is what the
+        record keeps of a question the runner asks, so an answer to it is
+        known by the record and not by the question's words.
 
         -> the exit code.
         """
@@ -228,7 +230,7 @@ def go(leg):
                     run_id if at in wrote else None,
                     resume.step_output(run_id, at) if at in wrote else None)
         record.stop(at, cause, why, run.workdir, state.RUNS,
-                    question=question)
+                    question=question, asked=asked)
         record.save(run.budget)
         remember(flow, run, run_id, stops.status(cause, at))
         done = [(name, secs) for name, secs, _ in timings]
@@ -564,7 +566,8 @@ def go(leg):
                 return stop(stops.PARKED, test_asks[0], "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=test_asks[1],
-                            stopped_for="changed tests the run started with")
+                            stopped_for="changed tests the run started with",
+                            asked=test_asks[2])
             held = out.meta.pop("conflict", None)
             if held:
                 print(step + " turned a test the run started with red")
