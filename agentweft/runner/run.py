@@ -16,7 +16,7 @@ from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   testedits, worktree)
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
-from agentweft.orchestrate import decisions, project, synthesise
+from agentweft.orchestrate import decisions, facts, project, synthesise
 from agentweft.guardrails.budget import Budget
 from agentweft.guardrails import police, sacrifice
 
@@ -120,6 +120,9 @@ class Run(object):
                 provider, providers.Provider) else providers.build(
                     provider or fm.get("provider") or {}, where=self.workdir,
                     grant=retro.GRANT)
+        # before anything takes the place's start: what heal rewrites is the
+        # runner's, not a change any step made
+        self.healed = self.heal_facts()
         self.briefed = briefing.digest(self.workdir)
         self.project = held or project.hold(self.workdir)
         bad = check_project_gates(fm.steps, self.workdir, self.project)
@@ -178,6 +181,18 @@ class Run(object):
         self.shadow_read = 0
         self.shadow_unread = 0
         self.told_read = []
+
+    def heal_facts(self):
+        """-> what `facts.heal` changed in the place's facts, each printed. a
+        store that cannot be read or written is said, and the run goes on."""
+        try:
+            made = facts.heal(Path(self.workdir))
+        except (OSError, ValueError) as e:
+            print("facts: not healed: " + type(e).__name__ + ": " + str(e))
+            return []
+        for change in made:
+            print("facts: " + str(change))
+        return made
 
     def decided(self):
         """-> the rulings in decisions.md the runner has on record."""

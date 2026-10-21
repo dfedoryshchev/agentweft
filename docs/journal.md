@@ -1166,6 +1166,47 @@ an edited flow or an edited step output, and one in the place for every
 step is handed the entries on record, and the run's `handoff.md` lists them
 and holds a changed pre-existing test or spec file against them.
 
+## what is known about a file
+
+decisions.md is one flat list. `agentweft/orchestrate/facts.py` keeps the
+other half: what is known about one file, one folder or the whole project,
+and why, keyed to where it holds. it sits beside decisions.md, under
+`<root>/facts/`:
+
+    facts/pkg/parse.py.md     the facts of pkg/parse.py
+    facts/pkg/_folder.md      the facts of everything under pkg/
+    facts/_project.md         the facts of the whole project, and the globs
+
+one entry, newline sections, never a `|`:
+
+    ## F-0007 live
+    scope: pkg/parse.py
+    kind: convention
+    label: important
+    claim: every user-facing error is raised, never printed here
+    why: the spec's one-line stderr rule; a print here broke it in one run
+    anchor: pkg/parse.py:12-19 sha256:<the hash of those lines>
+
+the status is `live`, `stale`, `superseded` or `retired`. a scope is a file
+path, a folder ending in `/`, a glob (`**` crosses folders, `*` does not) or
+`.` for the project, one per `scope:` line, as many as hold; backslashes read
+as `/`. `lookup(root, path)` hands back the live and stale facts that hold
+for a path, nearest first: the file's own, then each folder up from it, then
+the globs, then the project's. where an entry sits under `facts/` is for a
+person to find it; every entry is read.
+
+at the start of every run, before the run takes its start snapshot, the
+runner heals the store: each anchored fact has its lines hashed again (line
+ends read as `\n`, so a CRLF checkout hashes the same). the same text where
+it was is nothing; the same text in exactly one other place moves the anchor
+there (`healed: <day> moved 12-19 to 30-37`); anything else marks it `stale`
+with the day and why (`stale: <day> lines changed since it was anchored`).
+a fact whose file is gone is `stale` on the first run that finds it gone and
+`retired` on the second. a stale fact whose lines read as anchored again is
+`live` once more. each change is printed as `facts: F-0007 moved: ...`. a
+fact with no anchor is never stale by content. nothing else in an entry is
+rewritten.
+
 ## what it does not do
 
 a resumed run writes its own journal lines, so a task that stopped and was
