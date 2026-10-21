@@ -490,6 +490,18 @@ def grant_of(step):
     return list(SPEC_GRANT) if step.get("writes") == "spec" else None
 
 
+def may_write(step):
+    """whether a step may write a file through a tool: it writes tests,
+    product or spec, its grant names write or edit, or it has no grant and
+    no `writes: none` holding it to looking."""
+    if step.get("writes") in ("tests", "product", "spec"):
+        return True
+    grant = grant_of(step)
+    if isinstance(grant, list):
+        return any(word in grant for word in ("write", "edit"))
+    return step.get("writes") != "none"
+
+
 def proves_red(step):
     """whether the step has a red-test gate that wants red and runs a
     command to see it."""
@@ -588,6 +600,11 @@ def check(raw):
                 and step["verbosity"] not in VERBOSITY:
             bad.append("step " + str(i) + ": verbosity should be one of "
                        + ", ".join(VERBOSITY))
+        elif step.get("verbosity") == "terse" and may_write(step):
+            bad.append(at + "verbosity: terse caps every turn of the step,"
+                       " a file it writes through a tool included, so a terse"
+                       " step writes nothing: give it writes: none, or tools"
+                       " with neither write nor edit")
         # `is not None` rather than truthiness: `tools: []` is a step saying it
         # may touch nothing, which is a boundary and not a missing one.
         if step.get("tools") is not None:

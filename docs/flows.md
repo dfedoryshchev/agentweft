@@ -186,7 +186,8 @@ not fit").
 `verbosity` on a step is how much it says back: `normal`, the same as saying
 nothing, or `terse`, which adds `fragments/terse.md` to the step's prompt and
 caps its answer (`writing-a-flow.md`, "say how hard a step thinks and how
-much it says").
+much it says"). a terse step that may write a file is refused when the flow
+loads.
 
 `tools` on a step is what it may touch: any of `read`, `grep`, `write`,
 `edit`, `shell`, `browser`, and the checker refuses a word that is not one of

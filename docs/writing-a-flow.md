@@ -274,6 +274,7 @@ two keys on a step trim what its model spends:
     - role: planner
       effort: low
       verbosity: terse
+      tools: [read, grep]
 
 `effort` is how hard the step's model thinks: `low`, `medium`, `high`,
 `xhigh` or `max`. it is over the tier's level and under `--effort-for`
@@ -291,12 +292,14 @@ of whatever cap the step would have had. a lower cap already set stays: a
 
 the api sends the cap as `max_tokens`, so it holds the answer and the
 thinking before it. `claude` gets it as `CLAUDE_CODE_MAX_OUTPUT_TOKENS`, which
-holds every model turn of the step, a tool call's input included: a terse
-step that writes a large file through a tool can be cut off inside that call.
-a command that is not `claude` gets the words and no cap, which its line says.
-an answer cut off at the cap fails the step when the provider reports
-`stop_reason` `max_tokens`. keep `terse` for steps whose answer is short by
-nature and that write nothing big through a tool: a plan, a verdict, a list.
+holds every model turn of the step, a tool call's input included, so a file
+written through a tool could be cut off inside that call. a terse step is
+therefore refused when the flow loads if it may write a file: `writes:
+tests`, `product` or `spec`, a `tools:` list with `write` or `edit`, or no
+`tools:` and no `writes: none` at all. a command that is not `claude` gets the
+words and no cap, which its line says. an answer cut off at the cap fails the
+step when the provider reports `stop_reason` `max_tokens`. keep `terse` for
+steps whose answer is short by nature: a plan, a verdict, a list.
 
 any other word in either key is refused when the flow loads.
 
