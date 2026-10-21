@@ -482,6 +482,13 @@ answers, in order:
   runner. a stop that asked nothing (a gate, the cap, an outage, a crash, a
   refusal that cites the spec) leads with the stop itself, where and why,
   and the questions the steps left open follow it under `also open:`.
+  the recommendation shown is the deciding role's: when the lead escalated
+  the question and recommended an answer (its own `RECOMMEND:`, or the one
+  its block gives a question), that one comes first, as `recommendation
+  (<lead>, the flow's lead): ...`, and the asker's own follows on a line of
+  its own, `<role>'s recommendation: ...`. a conflict stop whose step
+  recommends in its block, on a question citing a line the conflict cites,
+  shows that recommendation, and the conflict's options after it.
 - **why**: what the last working step did (on a stop, "handed over this
   before the stop, not taken as done"), and what the steps assumed.
 - **not done**: what was not verified, the gates' unproven checks, and the

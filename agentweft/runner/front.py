@@ -80,10 +80,14 @@ def parts(item):
     return text, rec, size
 
 
-def point(role, text, cited=(), rec="", size="", options=(), kind=""):
+def point(role, text, cited=(), rec="", size="", options=(), kind="",
+          by="", beside=None):
+    """`by` names who the recommendation is from when it is not the role
+    that raised the point; `beside` is (role, rec, size) of the asker's own
+    recommendation, shown under it."""
     return {"role": role, "text": text, "refs": refs(text, *cited),
             "rec": rec or "", "size": size or "", "options": list(options),
-            "kind": kind}
+            "kind": kind, "by": by, "beside": beside}
 
 
 def is_question(text, rec=""):
@@ -110,7 +114,7 @@ def clusters(points, by_line=True):
         if home is None:
             home = {"text": p["text"], "roles": [], "count": 0, "refs": [],
                     "keys": [], "rec": "", "size": "", "options": [],
-                    "kind": p["kind"], "said": []}
+                    "kind": p["kind"], "said": [], "by": "", "beside": None}
             out.append(home)
         if key == norm(home["text"]):
             home["count"] += 1
@@ -121,6 +125,7 @@ def clusters(points, by_line=True):
             home["keys"].append(key)
         if p["rec"] and not home["rec"]:
             home["rec"], home["size"] = p["rec"], p["size"]
+            home["by"], home["beside"] = p.get("by", ""), p.get("beside")
         elif p["size"] and not home["size"] and not home["rec"]:
             home["size"] = p["size"]
         home["options"].extend(o for o in p["options"]
@@ -154,22 +159,86 @@ def wording(said, p):
                  "options": list(p["options"])})
 
 
-def stopped_on(stopped, asking=()):
+ESCALATED = re.compile(r"the flow's lead did not decide it: (\S+) escalated"
+                       r" it: ")
+SPAN = re.compile(r"^(.+):(\d+)(?:-(\d+))?$")
+
+
+def overlaps(a, b):
+    """whether two cited spec lines, `path.md:n` or `path.md:n-m`, share a
+    line."""
+    ma, mb = SPAN.match(a), SPAN.match(b)
+    if not ma or not mb or ma.group(1) != mb.group(1):
+        return False
+    a1, b1 = int(ma.group(2)), int(mb.group(2))
+    a2, b2 = int(ma.group(3) or a1), int(mb.group(3) or b1)
+    return a1 <= b2 and b1 <= a2
+
+
+def block_rec(p, cited):
+    """-> (rec, size) of the first question in pass `p`'s block that cites
+    a line `cited` cites too and recommends something, else ("", "")."""
+    b = p["block"]
+    if b.get("state") not in (handoff.PRESENT, handoff.PARTIAL):
+        return "", ""
+    for q in b.get("questions") or []:
+        if q.get("recommend") and any(overlaps(r, c) for r in refs(
+                q.get("question")) for c in cited):
+            return q["recommend"], q.get("size") or ""
+    return "", ""
+
+
+def lead_rec(said, passes):
+    """-> (the lead's role, rec, size) when the lead escalated the question
+    `said` and recommended an answer, else None: its own RECOMMEND, or the
+    one its block gives the question it escalated."""
+    m = ESCALATED.search(said or "")
+    if not m:
+        return None
+    mine = [p for p in passes if p["step"] == m.group(1)]
+    if not mine:
+        return None
+    p = mine[-1]
+    rec, size = p["verbs"].recommend, p["verbs"].size
+    if not rec:
+        b = p["block"]
+        if b.get("state") in (handoff.PRESENT, handoff.PARTIAL):
+            for q in b.get("questions") or []:
+                if q.get("recommend"):
+                    rec, size = q["recommend"], q.get("size")
+                    break
+    return (p["role"], rec, size or "") if rec else None
+
+
+def stopped_on(stopped, asking=(), passes=()):
     """-> the question a stop waits on, as a point, None when the stop asked
     none. it is read from the question the stop wrote to question.md, so a
     park on a verdict, a refusal with no cite and a spec change request are
     asked as much as a NEEDS line is. `asking` is the passes of the step it
-    stopped at."""
+    stopped at and `passes` every pass of the run.
+
+    the recommendation shown is the deciding role's: the lead's when the
+    lead escalated the question with one, the asker's then shown beside it.
+    a conflict's step that recommends in its block, on a question citing a
+    line the conflict cites, has that recommendation shown."""
     said = (stopped or {}).get("question")
     if not said:
         return None
     v = verbs.parse(said)
     text, rec, size = parts(v.needs or said.strip())
     role = stopped["at"]
+    kind = "conflict" if stopped["cause"] == stops.CONFLICT else "needs"
+    cited = refs(text, *v.cites)
     for p in asking:
         role = p["role"]
         rec, size = rec or p["verbs"].recommend, size or p["verbs"].size
-    kind = "conflict" if stopped["cause"] == stops.CONFLICT else "needs"
+        if kind == "conflict" and not rec:
+            rec, size = block_rec(p, cited)
+    led = lead_rec(said, passes)
+    if led:
+        beside = (role, rec, size) if rec else None
+        return point(role, text, v.cites, led[1], led[2], v.options, kind,
+                     by=led[0] + ", the flow's lead", beside=beside)
     return point(role, text, v.cites, rec, size, v.options, kind)
 
 
@@ -282,6 +351,10 @@ def _decision(found, most, width, stop=None):
         raised = raised + "; cites " + ", ".join(first["refs"])
     out.append(_cut(raised, width))
     out.append(_cut("  " + recommended(first), width))
+    if first.get("beside"):
+        who, rec, size = first["beside"]
+        out.append(_cut("  " + who + "'s recommendation: " + rec
+                        + (" (size: " + size + ")" if size else ""), width))
     return out + _also(found[1:], most, width)
 
 
@@ -295,9 +368,12 @@ def _also(found, most, width):
 
 def recommended(c):
     if c["rec"]:
-        return ("recommendation: " + c["rec"]
+        return ("recommendation" + (" (" + c["by"] + ")" if c.get("by")
+                                    else "") + ": " + c["rec"]
                 + (" (size: " + c["size"] + ")" if c["size"] else
-                   " (size not given)"))
+                   " (size not given)")
+                + ("; options: " + " / ".join(c["options"])
+                   if c.get("kind") == "conflict" and c["options"] else ""))
     if c["options"]:
         return "recommendation: none given; options: " + " / ".join(
             c["options"])

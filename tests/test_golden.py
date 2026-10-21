@@ -203,7 +203,10 @@ OLD_TEST = ("from calc import add\n\n\ndef test_old():\n"
 ADD_DECLINES = ('REFUSED: TASK.md:3 "add(a, b) returns a minus b" is what the'
                 ' report calls the bug\n')
 SUB_CONFLICT = ('CONFLICT: TASK.md:3 "add(a, b) returns a minus b"\n'
-                "request: " + BUG + "\n")
+                "request: " + BUG + "\n\nHANDOFF\nDID:\n- wrote no patch\n"
+                "QUESTION: TASK.md:3 says add returns a minus b. should the"
+                " spec change?\nRECOMMEND: keep the spec as written\n"
+                "SIZE: keeping the spec costs nothing\nEND HANDOFF\n")
 WRONG_ADD = ("WRONG TEST: test_calc.py::test_add\nwhy: it imports add from"
              " calc and the spec names no such module\n"
              'spec: TASK.md:3 "add(a, b) returns a plus b"\n')
@@ -218,7 +221,10 @@ MUL_BAD_RED = say("FAILS: ImportError: cannot import name 'mul' from 'calc'\n"
                   "TEST: test_mul.py\n\n" + MUL_BAD_TEST,
                   {"test_mul.py": MUL_BAD_TEST})
 MUL_ESCALATES = ("ESCALATE: rounding is not in the spec, so it is not mine to"
-                 " add\n")
+                 " add\n\nHANDOFF\nDID:\n- escalated the rounding question\n"
+                 "QUESTION: should mul round a float product to an int?\n"
+                 "RECOMMEND: keep: return the product as it is\n"
+                 "SIZE: none\nEND HANDOFF\n")
 MUL_REDO = "VERDICT: redo\n\nmul is not tried on a negative number\n"
 MUL_ROUNDED = "# calc\n\nmul(a, b) returns a times b, rounded\n"
 

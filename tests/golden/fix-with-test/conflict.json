@@ -20,10 +20,10 @@
     "## the one decision",
     "- the request contradicts TASK.md:3. which one holds?",
     "  raised by patcher; cites TASK.md:3",
-    "  recommendation: none given; options: override: <the new rule>. the request wins, and TASK.md:3 may change to match it, nothing else / request: <what to do instead>. the spec holds; the words are added to the request and the run starts again from its first step that reads the request",
+    "  recommendation: keep the spec as written (size: keeping the spec costs nothing); options: override: <the new rule>. the request wins, and TASK.md:3 may change to match it, nothing else / request: <what to do instead>. the spec holds; the words are added to the request and the run starts again f...",
     "## why",
-    "worker handed over this before the stop, not taken as done:",
-    "- add(1, 2) is -1: calc.py:2 returns a - b",
+    "patcher handed over this before the stop, not taken as done:",
+    "- wrote no patch",
     "## not done",
     "- none",
     "## product gaps",
@@ -61,6 +61,8 @@
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"request: <what to do instead>\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
+    "## open questions",
+    "- patcher: TASK.md:3 says add returns a minus b. should the spec change? (recommendation: keep the spec as written (size: keeping the spec costs nothing))",
     "## doubts",
     "- none raised",
     "## changed",
@@ -78,7 +80,7 @@
     "- no pre-existing test or spec file changed",
     "- none on record in decisions.md",
     "## not verified",
-    "- handoff missing: patcher.md",
+    "- nothing left unverified, or no step said",
     "## carry forward",
     "- task: add(1, 2) returns -1 (all of it in runs/fix-with-test-<run>/task.md)",
     "- keep: the task - add(1, 2) is 3 (worker)",
@@ -273,8 +275,10 @@
       "task_file": "task.md",
       "tasks": null,
       "handoff": {
-        "state": "missing",
-        "did": [],
+        "state": "present",
+        "did": [
+          "wrote no patch"
+        ],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -282,7 +286,13 @@
         "must_not_miss": [],
         "tried": [],
         "read": [],
-        "questions": [],
+        "questions": [
+          {
+            "question": "TASK.md:3 says add returns a minus b. should the spec change?",
+            "recommend": "keep the spec as written",
+            "size": "keeping the spec costs nothing"
+          }
+        ],
         "other": {}
       },
       "chain": {
@@ -307,10 +317,10 @@
     "## the one decision",
     "- the request contradicts TASK.md:3. which one holds?",
     "  raised by patcher; cites TASK.md:3",
-    "  recommendation: none given; options: override: <the new rule>. the request wins, and TASK.md:3 may change to match it, nothing else / request: <what to do instead>. the spec holds; the words are added to the request and the run starts again from its first step that reads the request",
+    "  recommendation: keep the spec as written (size: keeping the spec costs nothing); options: override: <the new rule>. the request wins, and TASK.md:3 may change to match it, nothing else / request: <what to do instead>. the spec holds; the words are added to the request and the run starts again f...",
     "## why",
-    "worker handed over this before the stop, not taken as done:",
-    "- add(1, 2) is -1: calc.py:2 returns a - b",
+    "patcher handed over this before the stop, not taken as done:",
+    "- wrote no patch",
     "## not done",
     "- none",
     "## product gaps",

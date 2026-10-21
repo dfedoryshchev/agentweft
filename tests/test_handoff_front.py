@@ -367,6 +367,79 @@ def test_a_needs_does_not_take_the_recommendation_of_a_block_question(
         " (size: one line))" in decision
 
 
+CRLF = ("what the error line shows for a CR or LF delimiter. TASK.md:11 says"
+        " exactly one stderr line")
+ASKED_CRLF = ("NEEDS: " + CRLF + "\nRECOMMEND: keep it raw\n"
+              "SIZE: one line in cli.py\n")
+ESCALATED = ("ESCALATE: choosing between them is not mine to decide.\n\n"
+             "HANDOFF\nDID:\n- escalated the question\n"
+             "QUESTION: raw or escaped?\n"
+             "RECOMMEND: escape CR and LF as \\r and \\n\n"
+             "SIZE: a few lines in cli.py, one added TASK.md line\n"
+             "END HANDOFF\n")
+
+
+def test_a_question_the_lead_escalated_shows_the_leads_recommendation_first():
+    question = ("NEEDS: " + CRLF + "\n\nthe flow's lead did not decide it:"
+                " planner.md escalated it: choosing between them is not mine"
+                " to decide.. so it is the operator's.")
+    lines = build([a_pass("worker", ASKED_CRLF, "asked"),
+                   a_pass("planner", ESCALATED)],
+                  stopped={"cause": stops.PARKED, "at": "worker.md",
+                           "why": "needs a ruling", "question": question})
+    said = decision_of(lines).split("\n")
+    assert said[2] == ("  recommendation (planner, the flow's lead): escape"
+                       " CR and LF as \\r and \\n (size: a few lines in"
+                       " cli.py, one added TASK.md line)"), said
+    assert said[3] == ("  worker's recommendation: keep it raw (size: one"
+                       " line in cli.py)"), said
+
+
+def test_a_question_the_lead_never_saw_keeps_the_askers_recommendation():
+    lines = build([a_pass("worker", ASKED_CRLF, "asked")],
+                  stopped={"cause": stops.PARKED, "at": "worker.md",
+                           "why": "needs a ruling",
+                           "question": "NEEDS: " + CRLF + "\n"})
+    said = decision_of(lines).split("\n")
+    assert said[2] == ("  recommendation: keep it raw (size: one line in"
+                       " cli.py)"), said
+    assert "the flow's lead" not in "\n".join(said)
+
+
+CONFLICTED = (
+    'CONFLICT: TASK.md:3 "ids are case-sensitive"\n'
+    "request: a1 and A1 are one student\n\nHANDOFF\nDID:\n- wrote no test\n"
+    "QUESTION: TASK.md:3-4 says ids are case-sensitive. should the spec"
+    " change?\nRECOMMEND: keep the spec as written and drop the supplied"
+    " test\nSIZE: keeping the spec costs nothing\nEND HANDOFF\n")
+
+
+def test_a_conflict_stop_carries_the_steps_own_recommendation():
+    question = ("NEEDS: the request contradicts TASK.md:3. which one holds?\n"
+                "CITES:\n- TASK.md:3 - \"ids are case-sensitive\"\n"
+                "OPTIONS:\n- override: <the new rule>\n"
+                "- request: <what to do instead>\n")
+    lines = build([a_pass("worker", CONFLICTED, "conflict")],
+                  stopped={"cause": stops.CONFLICT, "at": "worker.md",
+                           "why": "spec conflict", "question": question})
+    said = decision_of(lines).split("\n")
+    assert said[2].startswith("  recommendation: keep the spec as written and"
+                              " drop the supplied test (size: keeping the"
+                              " spec costs nothing); options: override"), said
+    assert "none given" not in said[2]
+
+
+def test_a_conflict_stop_ignores_a_block_question_on_another_line():
+    other = CONFLICTED.replace("TASK.md:3-4 says", "TASK.md:9 says")
+    question = ("NEEDS: the request contradicts TASK.md:3. which one holds?\n"
+                "CITES:\n- TASK.md:3 - \"ids are case-sensitive\"\n"
+                "OPTIONS:\n- override: <the new rule>\n")
+    lines = build([a_pass("worker", other, "conflict")],
+                  stopped={"cause": stops.CONFLICT, "at": "worker.md",
+                           "why": "spec conflict", "question": question})
+    assert "  recommendation: none given; options:" in decision_of(lines)
+
+
 def test_a_recommendation_under_a_needs_is_its_own():
     v = verbs.parse("QUESTION: should the banner be blue?\nNEEDS: is a"
                     " blank amount zero?\nRECOMMEND: zero\nSIZE: one line\n")

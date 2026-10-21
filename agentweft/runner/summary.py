@@ -931,7 +931,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
              investigate.listed(dug, "DECISIONS")]
     extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
                  if "UNRULED" in l)
-    waits = front.stopped_on(stopped, still)
+    waits = front.stopped_on(stopped, still, every)
     points, taken = front.questions(every, extra,
                                     asking=[] if waits else still)
     found = front.clusters(([waits] if waits else []) + points)
