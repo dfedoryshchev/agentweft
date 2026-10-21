@@ -119,6 +119,7 @@ def go(leg):
         # is written down
         warm.stop_all()
         ran = passes(trail, run, fm)
+        warm.leftover(run, trail)
         record.ended(summary.outcome(stopped, summary.unproven(
             list(earlier) + ran)))
         record.data[chain.FIELD] = trail.head()

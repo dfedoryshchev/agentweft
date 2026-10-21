@@ -327,6 +327,11 @@ session on:
   written after the handoff: `outcome` `ok` or `failed` with its why, never
   a cause, `won` `none`, `budget` null (`writing-a-flow.md`). what it wrote
   is `runs/<run-id>/retro.md`.
+- a run with `--keep-warm` charges each warm call to the step it kept warm:
+  its tokens and cost are on that step's next line. a step not asked again
+  after one gets a line of its own when the run ends, `outcome` `warm`, `won`
+  `none`, `budget` null, holding only those calls. it is not a pass: the
+  handoff and a resumed leg do not list it.
 - `file` is what this pass produced, `steps/<seq>-<step>.md`. a redo's second
   review is a second file, so the finding that sent the work back is still
   there. `<step>` beside it is still the last pass, the one `--resume` reads.

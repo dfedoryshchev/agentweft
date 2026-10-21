@@ -101,6 +101,8 @@ class Warmer(object):
                 run.budget.charge("", reply, provider=used.name, error=error,
                                   model=used.asks_for())
             with run.lock:
+                if reply is not None and hasattr(run, "warm_calls"):
+                    run.warm_calls.setdefault(step, []).append(reply)
                 held = run.sessions.get(step)
                 if held is None or held["id"] != kept["id"]:
                     continue
@@ -132,3 +134,24 @@ class Warmer(object):
 def stop_all():
     while STARTED:
         STARTED.pop().stop()
+
+
+def taken(run, step):
+    """-> the warm calls made for `step` since it last took them, each one
+    once, so the step's next line carries what keeping it warm cost."""
+    with run.lock:
+        return (getattr(run, "warm_calls", None) or {}).pop(step, [])
+
+
+def leftover(run, trail):
+    """a line `warm` for each step whose session was warmed and that was not
+    asked again, so the run's spend is the sum of its lines."""
+    from . import trace
+
+    for step in sorted(getattr(run, "warm_calls", None) or {}):
+        went = trace.Attempt()
+        went.replies = taken(run, step)
+        went.seconds = 0.0
+        entry = trail.open(step, [went], run.provider_for(step), None)
+        trail.close(entry, trace.WARM, why="its session was kept warm and it was"
+                    " not asked again", planned=False)

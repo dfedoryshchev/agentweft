@@ -22,7 +22,7 @@ FILE = "retro.md"
 # grant a step can have, whatever the flow's own steps were granted
 GRANT = ["read"]
 # outcomes of a pass that did what it was asked
-FINE = ("ok", "asked", "decided", "escalated")
+FINE = ("ok", "asked", "decided", "escalated", trace.WARM)
 # the run waits on the provider, the cap, a person who pressed ctrl-c or a
 # ruling, and a retro would spend on the very thing it stopped for. the
 # failed attempts carry to the leg that ends the run.

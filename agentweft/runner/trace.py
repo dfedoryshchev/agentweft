@@ -32,6 +32,9 @@ from .task import FILE as TASK
 FILE = "steps.jsonl"
 GATES = "gates.jsonl"
 FOLDER = "steps"
+# the outcome of a line holding only the warm calls a step was kept warm
+# with (`warm.py`), when no later go of it took them; it is not a pass
+WARM = "warm"
 
 
 class Attempt(object):

@@ -307,6 +307,80 @@ def test_a_step_is_busy_while_its_call_runs_and_its_session_is_timed(
     assert kept["effort"] == "medium"
 
 
+def warming_in_the_reviewers_call(monkeypatch):
+    """the cli answers with the 1h cache, and the reviewer's first call
+    finds the worker's session due and warms it once. -> the warm calls."""
+    import test_continue
+    from conftest import answering
+
+    monkeypatch.setattr(test_continue, "PER_CALL", dict(
+        test_continue.PER_CALL, cache_creation={
+            "ephemeral_1h_input_tokens": 50,
+            "ephemeral_5m_input_tokens": 0}))
+    monkeypatch.setattr(warm.Warmer, "due",
+                        lambda self, kept, now: not kept.get("warmed"))
+    warmed = []
+
+    def wrapped(run):
+        cli = run.__self__
+        real = answering(run)
+
+        def call(argv, stdin=None, cwd=None, timeout=None, done=None,
+                 env=None, stop=None):
+            if "--no-session-persistence" in argv:
+                warmed.append(argv)
+                return cli_provider.Ran(0, result(USED, WHOLE_COST).decode(),
+                                        "", 0)
+            if cli.step == "reviewer.md" and warm.STARTED and not warmed:
+                warm.STARTED[0].tick()
+            return real(argv, stdin, cwd, timeout, done, env)
+        return call
+
+    monkeypatch.setattr(test_continue, "answering", wrapped)
+    return warmed
+
+
+def spent_and_lines():
+    from decimal import Decimal
+    from test_continue import last_manifest, lines
+
+    return (Decimal(last_manifest()["spend"]["reported"]),
+            sum(Decimal(str(l["cost"])) for l in lines()), lines())
+
+
+@pytest.mark.parametrize("answers", [
+    ANSWERS,
+    {"worker.md": [NOTES], "reviewer.md": ["VERDICT: ok\n\n" + NOTES]}],
+    ids=["asked again", "not asked again"])
+def test_a_warm_call_is_charged_to_the_step_it_keeps_warm(
+        replay, monkeypatch, answers):
+    warmed = warming_in_the_reviewers_call(monkeypatch)
+    replay(answers, args=[warm.FLAG])
+    assert len(warmed) == 1
+    spent, summed, said = spent_and_lines()
+    # a line's cost is kept to six places
+    assert round(spent, 6) == summed
+    assert [l["step"] for l in said].count("reviewer.md") == \
+        len(answers["reviewer.md"])
+    worker = [l for l in said if l["step"] == "worker.md"]
+    asked_again = len(answers["worker.md"]) > 1
+    assert [l["outcome"] for l in worker][-1] == (
+        "ok" if asked_again else "warm")
+    assert worker[-1]["won"] == "none"
+
+
+def test_a_warm_line_is_not_a_pass_the_handoff_lists(replay, monkeypatch):
+    from test_continue import last_manifest
+
+    warming_in_the_reviewers_call(monkeypatch)
+    replay({"worker.md": [NOTES], "reviewer.md": ["VERDICT: ok\n\n" + NOTES]},
+           args=[warm.FLAG])
+    folder = state.RUNS / last_manifest()["run"]
+    note = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert "worker.md -> reviewer.md in" in note
+    assert "reviewer.md -> worker.md" not in note
+
+
 def test_a_kept_session_knows_its_cache_lifetime_from_its_usage(
         replay, monkeypatch):
     import test_continue

@@ -162,9 +162,11 @@ class Run(object):
         self.kept = rulings.Kept(self.workdir)
         self.forged = {}
         # the session each `continue: resume` step carries on, by step, and
-        # the steps in a call now; the warmer reads both from its own thread
+        # the steps in a call now; the warmer reads both from its own thread,
+        # and leaves the warm calls it made in `warm_calls`, by step
         self.sessions = {}
         self.busy = set()
+        self.warm_calls = {}
         self.lock = threading.Lock()
         self.record = None
         self.policing = police.mode(fm)
@@ -861,6 +863,7 @@ class Run(object):
             self.charge(sent, refused, used.name, used.asks_for())
             if carry and isinstance(e, Fatal):
                 self.keep_session(step, used, held, refused, carry)
+            tried.replies[:0] = warm.taken(self, step)
             raise
         finally:
             if carry:
@@ -899,6 +902,9 @@ class Run(object):
             notes.add(step, task, role, block)
             if getattr(self, "folder", None) is not None:
                 notes.save(self.folder)
+        # after the police and the transcript have read this go's own
+        # sessions: a warm call's copy is never written to disk
+        tried.replies[:0] = warm.taken(self, step)
         return Handoff(role, text, said,
                        meta={"seconds": round(_t.time() - began, 1),
                              "cached": cached, "provider": used.name,

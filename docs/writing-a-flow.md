@@ -237,7 +237,10 @@ session was made at (a call at another level is not shown to read the
 cache the session wrote, so it is never asked at one), with the step's
 tools listed and a hook that refuses every one of them, so it touches nothing
 in the place. at most three per session, only within the run's caps, and
-charged like any other call. the lifetime is read from where the session's
+charged like any other call, to the step it keeps warm: its tokens and cost
+are on that step's next line, or on a line of its own with `outcome` `warm`
+when the step is not asked again (`journal.md`), so the run's spend is the
+sum of its lines. the lifetime is read from where the session's
 cache writes went; a session whose lifetime is not known is never warmed,
 and one already past its lifetime is left to the step's own next call. when
 the run ends, a warm call still in flight is ended and charged before the

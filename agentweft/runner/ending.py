@@ -122,6 +122,8 @@ def passes(trail, run, fm):
     from: its gates with their commands, its block, its outcome."""
     out = []
     for entry, outcome in trail.closed:
+        if outcome == trace.WARM:
+            continue
         said = ""
         if entry.file and (trail.folder / entry.file).is_file():
             said = (trail.folder / entry.file).read_text(encoding="utf-8")

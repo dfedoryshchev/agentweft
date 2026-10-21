@@ -463,6 +463,8 @@ def _passes_in(folder, roles, fm):
             line = json.loads(raw)
         except ValueError:
             continue
+        if line.get("outcome") == trace.WARM:
+            continue
         step = line.get("step")
         said = ""
         kept = line.get("file")
