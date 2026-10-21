@@ -906,7 +906,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     checks = "; ".join([c for c in [checks] if c] + [
         "1 check " + ("passed" if ok else "failed") + " (" + found + ")"
         for _, ok, found in made]) or "no gates ran"
-    out.append("suite: " + checks + "; red first: " + red_first(every, held)
+    now = leftred.red_now(left) if stopped else ""
+    out.append("suite: " + checks + ("; " + now if now else "")
+               + "; red first: " + red_first(every, held)
                + ("; " + order if order.startswith("tests skipped") else "")
                + "".join("; " + s for s in skipped) + ".")
     if changes.get("git"):

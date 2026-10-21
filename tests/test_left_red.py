@@ -170,6 +170,69 @@ def test_a_stop_with_no_new_tests_says_nothing_extra(tmp_path, monkeypatch):
     assert "reverted" not in text and "revert-tests" not in text
 
 
+CALC_SPEC = "# calc" + NL + NL + "add(a, b) returns a plus b" + NL
+BUGGY = "def add(a, b):" + NL + "    return a - b" + NL
+FIXED = "def add(a, b):" + NL + "    return a + b" + NL
+OLD = ("from calc import add" + NL + NL + NL + "def test_old():" + NL
+       + "    assert add(2, 2) == 0" + NL)
+NEW = ("from calc import add" + NL + NL + NL + "def test_add():" + NL
+       + "    assert add(1, 2) == 3" + NL)
+CLAIM = ("WRONG TEST: tests/test_old.py::test_old" + NL
+         + "why: it wants add(2, 2) to be 0" + NL
+         + 'spec: TASK.md:3 "add(a, b) returns a plus b"' + NL)
+OLD_ID = "tests/test_old.py::test_old"
+
+
+def test_a_start_test_the_stop_names_is_listed_as_red_now(tmp_path,
+                                                          monkeypatch):
+    a_place(tmp_path / "project", {"TASK.md": CALC_SPEC, "calc.py": BUGGY,
+                                   "conftest.py": "",
+                                   "tests/test_old.py": OLD})
+    place = tmp_path / "project"
+
+    def edits(step, n):
+        if step == "worker.md":
+            (place / "tests" / "test_add.py").write_text(NEW,
+                                                         encoding="utf-8")
+        if step == "patcher.md":
+            (place / "calc.py").write_text(FIXED, encoding="utf-8")
+
+    said = {"worker.md": ["FAILS: assert -1 == 3" + NL
+                          + "TEST: tests/test_add.py::test_add" + NL],
+            "patcher.md": [CLAIM]}
+    asked, code = go(tmp_path, monkeypatch, "fix-with-test", said, edits,
+                     "--task", "add(1, 2) returns -1")
+    assert asked == ["worker.md", "patcher.md"] and code == stops.EXIT_STOP
+    text = handoff_of(tmp_path)
+    suite = [l for l in text.split(NL) if l.startswith("suite: ")][0]
+    assert "red now: " + OLD_ID + " (a test the run started with)" in suite
+    section = needs_you(text)
+    assert ("red now, tests the run started with that the stop names (run"
+            " once after the stop):") in section
+    assert "- " + OLD_ID + ": red" in section
+
+
+def test_a_start_test_the_stop_names_that_is_green_is_not_listed(
+        tmp_path, monkeypatch):
+    a_place(tmp_path / "project", {"TASK.md": CALC_SPEC, "calc.py": BUGGY,
+                                   "conftest.py": "",
+                                   "tests/test_old.py": OLD})
+    place = tmp_path / "project"
+
+    def edits(step, n):
+        if step == "worker.md":
+            (place / "tests" / "test_add.py").write_text(NEW,
+                                                         encoding="utf-8")
+
+    said = {"worker.md": ["FAILS: assert -1 == 3" + NL
+                          + "TEST: tests/test_add.py::test_add" + NL],
+            "patcher.md": [CLAIM]}
+    go(tmp_path, monkeypatch, "fix-with-test", said, edits,
+       "--task", "add(1, 2) returns -1")
+    text = handoff_of(tmp_path)
+    assert "red now" not in text
+
+
 def test_on_stop_is_a_flow_key_with_two_values():
     raw = {"name": "x", "steps": [{"role": "a"}]}
     assert spec.check(dict(raw, on_stop="revert-tests")) == []

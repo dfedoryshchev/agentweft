@@ -1054,6 +1054,21 @@ a repo with no commit, there is no start to tell a changed test from its
 neighbours, so every test in a changed file is run. a stop that changed no
 test, or whose new tests all pass, says nothing about it.
 
+a test the run started with is run too when the stop's question names it
+(`tests/test_stats.py::test_mean_text`, as a `WRONG TEST:` claim on a start
+test is quoted): a fix that turns a wrong start test red leaves it red now,
+and the reader of the summary should not have to find that in the question.
+each that is not green is listed under its own heading in "needs you", and
+the `suite:` line says so, before `red first`:
+
+    suite: 1 of 1 gates passed; red now: tests/test_old.py::test_old (a test the run started with); red first: ...
+    ...
+    red now, tests the run started with that the stop names (run once after the stop):
+    - tests/test_old.py::test_old: red (assertion)
+
+one that was red when the run started says so, as the run's own red tests do.
+it is never reverted: the run did not change it.
+
 ## the run's own commits
 
 a run commits nothing unless its flow says `commits: wip` or `commits:

@@ -172,12 +172,13 @@ def red_at_start(record):
 def label(left, record):
     """-> `left` (`leftred.check`) with each test red when the run started
     said to be so."""
-    if not left or not left.get("red") or not record:
+    if not left or not (left.get("red") or left.get("named")) or not record:
         return left
     was = red_at_start(record)
     out = dict(left)
-    out["red"] = [(i, did + " - red when the run started" if i in was
-                   else did) for i, did in left["red"]]
+    for key in ("red", "named"):
+        out[key] = [(i, did + " - red when the run started" if i in was
+                     else did) for i, did in left.get(key) or []]
     return out
 
 

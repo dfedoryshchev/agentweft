@@ -124,13 +124,15 @@ def go(leg):
         record.data[chain.FIELD] = trail.head()
         record.save(run.budget)
         began = time.time()
-        left = leftred.check(run.start, fm, leftred.chosen(fm, sys.argv)) \
+        left = leftred.check(
+            run.start, fm, leftred.chosen(fm, sys.argv),
+            named=leftred.named_in(run.start, stopped.get("question"))) \
             if stopped else None
-        if left and left["red"]:
+        if left and (left["red"] or left["named"]):
             run.suite_baseline()
         if left is not None:
             trail.timed("left-red", stopped["at"], since(began),
-                        not left["red"])
+                        not left["red"] and not left["named"])
         known = run.baseline if run.baseline and "tests" in run.baseline \
             else None
         left = baseline.label(left, known)
