@@ -274,6 +274,18 @@ def test_a_pass_whose_work_is_in_the_place_and_a_gate_passed_delivered():
                      changed=True) == "proved"
 
 
+def test_a_passing_gate_that_could_not_do_its_job_proved_nothing():
+    unreplayed = {"gate": "red-first", "ok": True,
+                  "detail": "not replayed - the run took no start snapshot",
+                  "issue": "red-first could not replay: the run took no start"
+                           " snapshot"}
+    assert trace.won("ok", None, [unreplayed], "next.md",
+                     changed=True) == "none"
+    command = {"gate": "command", "ok": True, "detail": "exit 0"}
+    assert trace.won("ok", None, [unreplayed, command], "next.md",
+                     changed=True) == "delivered"
+
+
 def test_the_shipped_fix_flows_patcher_delivered_and_its_worker_proved(
         tmp_path, monkeypatch, capsys):
     import test_golden

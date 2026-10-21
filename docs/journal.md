@@ -330,8 +330,9 @@ session on:
     content (in git, the commit and every file that differs from it) is not
     what it was before the step ran. a pass that went on (`ok`) is
     `delivered` too when its work is in the place and a gate that ran
-    passed it: one not `skipped` and not `broke`, so a program checked the
-    work.
+    passed it: one not `skipped`, not `broke` and with no `issue` (a
+    red-first pass that could not replay checked nothing), so a program
+    checked the work.
   - `decided`: the lead's go whose decision is on record in `decisions.md`;
     the pass that asked is `none`, it runs again.
   - `none`: anything else, an all-pass judge among them.

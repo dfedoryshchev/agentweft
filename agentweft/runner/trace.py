@@ -450,8 +450,9 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     run's red proof was written by this pass. a stop the step made is
     stopped when the place is as the step found it, and delivered when the
     step's work is in it. a pass that went on is delivered too when its work
-    is in the place and a gate that ran, and did not break, passed it.
-    decided: the lead's decision is on record. a stop
+    is in the place and a gate that ran, and did not break, passed it having
+    done its job: a pass from a gate that could not (a replay with no start,
+    say) checked nothing. decided: the lead's decision is on record. a stop
     for the budget, an outage, a crash or no answer bought nothing; a redo
     that only switched the cause step on was the runner's choice, not a
     defect the step found.
@@ -476,7 +477,7 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
         return "decided"
     if outcome == "ok" and changed and any(
             g.get("ok") and not g.get("skipped") and not g.get("broke")
-            for g in gates or ()):
+            and not g.get("issue") for g in gates or ()):
         return "delivered"
     return "none"
 
