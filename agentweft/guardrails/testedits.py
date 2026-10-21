@@ -8,8 +8,10 @@ found it:
 - a python test file is compared per test function, by its syntax tree: a
   test the run started with that is gone or whose code is not what it was is
   a change, and so is a change to the code its tests share (a constant, a
-  fixture, a helper). formatting and comments are not; imports are not, so a
-  test added beside the others can import what it needs.
+  fixture, a helper), including a name the file had that is bound again
+  further down to something else. formatting and comments are not; imports
+  of new names are not, so a test added beside the others can import what
+  it needs.
 - a test file in another language (`*.test.ts`, `*Tests.cs`, `*_test.go`) is
   compared by line: a line removed or rewritten is a change.
 - a file deleted is a change to every test it held.
@@ -86,6 +88,60 @@ def shared(source):
     return out
 
 
+COMPOUND = (ast.If, ast.Try, ast.With, ast.For, ast.While)
+
+
+def _bound(node):
+    """-> the names a statement binds, at the level it runs at."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return [node.name]
+    if isinstance(node, (ast.Import, ast.ImportFrom)):
+        return [(a.asname or a.name).split(".")[0] for a in node.names]
+    if isinstance(node, (ast.Assign, ast.Delete)):
+        targets = node.targets
+    elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+        targets = [node.target]
+    else:
+        targets = []
+    return [n.id for t in targets for n in ast.walk(t)
+            if isinstance(n, ast.Name)]
+
+
+def last_bindings(source):
+    """-> {name: a dump of the statement that binds it last, or "test" for
+    a test function} for every name bound at the top of `source` or in a
+    collected test class, the bodies of an if, a try, a with or a loop there
+    included: what a test that uses the name gets when it runs. a test's
+    own code is compared test by test, so here it counts only whether its
+    name still ends on a test."""
+    out = {}
+
+    def walk(body, within=""):
+        for node in body:
+            for name in _bound(node):
+                out[within + name] = "test" if _is_test_func(node) \
+                    else ast.dump(node)
+            if isinstance(node, ast.ClassDef) and not within \
+                    and collected(node):
+                walk(node.body, node.name + ".")
+            elif isinstance(node, COMPOUND):
+                for part in ("body", "orelse", "finalbody"):
+                    walk(getattr(node, part, None) or [], within)
+                for handler in getattr(node, "handlers", None) or []:
+                    walk(handler.body, within)
+
+    walk(ast.parse(source).body)
+    return out
+
+
+def rebound(was, now):
+    """whether a name the file bound when the run started is bound last to
+    something else now: a helper, fixture or test bound again below the
+    tests that use it changes them though their own code is as it was."""
+    then, later = last_bindings(was), last_bindings(now)
+    return any(later.get(name) != code for name, code in then.items())
+
+
 def _python(name, was, now):
     old = test_ids(was, name)
     if old is None:
@@ -101,7 +157,7 @@ def _python(name, was, now):
             items.append((t, REMOVED))
         elif new[t] != code:
             items.append((t, CHANGED))
-    if shared(was) - shared(now):
+    if shared(was) - shared(now) or rebound(was, now):
         items.append((name, SHARED))
     return Edit(name, items, len(set(new) - set(old)))
 

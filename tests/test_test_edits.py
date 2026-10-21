@@ -283,6 +283,51 @@ def test_code_added_beside_a_test_is_not_a_change_but_its_body_is(tmp_path):
     assert found[0].items == [(ID, "changed")]
 
 
+SHARED_ITEM = [("tests/test_report.py", "the code its tests share changed")]
+
+
+def test_a_name_a_start_test_uses_rebound_below_it_is_a_change(tmp_path):
+    found = edits_of(tmp_path, module(RIGHT, "def listed(names):" + NL
+                                      + "    return ['a', 'b']" + NL))
+    assert [e.items for e in found] == [SHARED_ITEM]
+    found = edits_of(tmp_path / "lambda", module(RIGHT) + NL
+                     + "listed = lambda names: ['a', 'b']" + NL)
+    assert [e.items for e in found] == [SHARED_ITEM]
+    found = edits_of(tmp_path / "nested", module(RIGHT) + NL + "if True:"
+                     + NL + "    listed = lambda names: ['a', 'b']" + NL)
+    assert [e.items for e in found] == [SHARED_ITEM]
+
+
+def test_a_run_whose_step_rebinds_a_helper_below_the_start_tests_parks(
+        tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    rebinds = module(RIGHT, COUNT) + NL + "listed = lambda names: ['a', 'b']" \
+        + NL
+    code, called = running(tmp_path, monkeypatch, place, writes_of(rebinds),
+                           False)
+    assert code == stops.exit_code(stops.PARKED), called
+    assert called == ["tester.md", "tester.md"]
+    assert "tests/test_report.py (the code its tests share changed)" in read(
+        folders()[-1] / "gates.md")
+
+
+def test_a_start_test_itself_rebound_below_it_is_a_change(tmp_path):
+    found = edits_of(tmp_path, module(RIGHT) + NL
+                     + "test_alphabetical = lambda: None" + NL)
+    assert SHARED_ITEM[0] in found[0].items
+
+
+def test_a_new_name_or_a_helper_moved_as_it_was_is_not_a_change(tmp_path):
+    found = edits_of(tmp_path, module(RIGHT, COUNT) + NL
+                     + "from report import count as counted" + NL)
+    assert [e.items for e in found] == [[]]
+    moved = "import report" + NL + NL + NL + RIGHT + NL + NL \
+        + "from report import report as listed" + NL
+    found = edits_of(tmp_path / "moved", moved)
+    assert [e.items for e in found] == [[]]
+
+
 def entry(decided, why):
     return decisions.Decision(decided, why, datetime.datetime(2026, 1, 1))
 

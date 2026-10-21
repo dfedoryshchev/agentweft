@@ -563,8 +563,12 @@ in `gates.md`:
 - python test files are compared per test function, by syntax tree, not by
   diff lines: a test the run started with that is gone (`removed`) or whose
   code is not what it was (`changed`) counts, and so does a change to the
-  code its tests share, such as a constant or a fixture. formatting,
-  comments and imports do not. a file deleted counts for every test it held
+  code its tests share, such as a constant or a fixture: a name the file had
+  when the run started (a helper, a fixture, an imported name, a test) that
+  is bound again further down to something else counts too, since every test
+  using it now runs against the new binding though its own code is as it
+  was (`the code its tests share changed`). formatting, comments and imports
+  of new names do not. a file deleted counts for every test it held
   (`deleted with its file`).
 - test files in other languages named like one (`*.test.ts`, `*Tests.cs`,
   `*_test.go`) are compared by line: one removed or rewritten counts. other
