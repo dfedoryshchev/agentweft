@@ -372,9 +372,12 @@ class RedFirstGate(Gate):
                               + " in the command, where the runner writes it")
         start = self.start
         if start is None:
-            return self.ok("not replayed - the run took no start snapshot")
+            return self.could_not(True, "not replayed - the run took no start"
+                                  " snapshot", "could not replay: the run"
+                                  " took no start snapshot")
         if start.why:
-            return self.ok("not replayed - " + start.why)
+            return self.could_not(True, "not replayed - " + start.why,
+                                  "could not replay: " + start.why)
         changes = start.test_changes()
         ids = start.new_test_ids(changes)
         carried, came = self.order.given() if self.order is not None \
@@ -574,13 +577,20 @@ class RedFirstGate(Gate):
                                  " not in the start tree and is in the place"
                                  " now", record)
             if t["before"] not in ("red", "green"):
-                return self.done(False, t["test"] + " did not run without the"
-                                 " fix: " + t["before"], record,
-                                 unstarted(t["before"]))
+                r = self.done(False, t["test"] + " did not run without the"
+                              " fix: " + t["before"], record,
+                              unstarted(t["before"]))
+                r.issue = ("could not run " + t["test"] + " without the fix: "
+                           + t["before"])
+                return r
             if t["after"] != "green":
-                return self.done(False, t["test"] + " does not pass with the"
-                                 " fix: " + t["after"], record,
-                                 unstarted(t["after"]))
+                r = self.done(False, t["test"] + " does not pass with the"
+                              " fix: " + t["after"], record,
+                              unstarted(t["after"]))
+                if t["after"] == "timed out" or r.broke:
+                    r.issue = ("could not run " + t["test"] + " with the fix: "
+                               + t["after"])
+                return r
         red = [t["test"] for t in record if t["before"] == "red"]
         green = [t["test"] for t in record if t["before"] == "green"]
         for n in named:

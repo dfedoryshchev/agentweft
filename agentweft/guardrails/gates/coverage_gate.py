@@ -60,9 +60,14 @@ class CoverageGate(Gate):
         try:
             tree = ET.parse(str(where / name))
         except FileNotFoundError:
-            return self.fail("no coverage report at " + str(where / name))
+            return self.could_not(False, "no coverage report at "
+                                  + str(where / name), "could not read the"
+                                  " coverage report: there is none at "
+                                  + str(where / name))
         except ET.ParseError as e:
-            return self.fail("cannot read " + name + ": " + str(e))
+            return self.could_not(False, "cannot read " + name + ": " + str(e),
+                                  "could not read the coverage report "
+                                  + name + ": " + str(e))
 
         # one file can be written once per class in it, so a line is keyed on
         # the file and covered if any of its copies was hit.

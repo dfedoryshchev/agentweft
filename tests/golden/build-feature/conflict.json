@@ -154,7 +154,7 @@
     "- planner.md <secs>s ($0.0100), won stopped: conflict",
     "- planner.md <secs>s ($0.0100), won none: no events",
     "- tester.md <secs>s ($0.0100), won proved: no events",
-    "- worker.md <secs>s ($0.0100), won delivered: no events",
+    "- worker.md <secs>s ($0.0100), won delivered: issue: red-first could not replay: the place is not in a git work tree",
     "- reviewer.md <secs>s ($0.0100), won none: no events",
     "- reviewer-runs.md <secs>s ($0.0100), won none: no events",
     "- won stopped: 1 pass, <secs>s, $0.0100",
@@ -489,7 +489,8 @@
         {
           "gate": "red-first",
           "ok": true,
-          "detail": "not replayed - the place is not in a git work tree"
+          "detail": "not replayed - the place is not in a git work tree",
+          "issue": "red-first could not replay: the place is not in a git work tree"
         }
       ],
       "ungated": false,

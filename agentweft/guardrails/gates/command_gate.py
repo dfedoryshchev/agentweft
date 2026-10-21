@@ -91,7 +91,10 @@ class CommandGate(Gate):
             return self.broke("cannot start " + argv[0] + ": "
                               + (e.strerror or str(e)))
         except subprocess.TimeoutExpired:
-            return self.fail("timed out")
+            return self.could_not(False, "timed out",
+                                  "could not finish: timed out after "
+                                  + str(int(self.opts.get("timeout", 60)))
+                                  + "s")
 
         said = (" (" + why + ")") if why else ""
         if r.returncode == want:

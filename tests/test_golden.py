@@ -959,7 +959,8 @@ STAMPS = (
     (re.compile(r"(?m)^(  \S+ +)\d+(\.\d+)?s$"), r"\1<secs>s"),
     # the handoff's "ran ... in 4.2s" and "- steps: worker.md 1.3s -> ..."
     (re.compile(r"(?<= in )\d+(\.\d+)?s(?= on:|\.)"), "<secs>s"),
-    (re.compile(r"(?<=\.md )\d+(\.\d+)?s(?= ->| \(|$)"), "<secs>s"),
+    # the retro's prompt quotes the handoff, so the line ends inside the text
+    (re.compile(r"(?m)(?<=\.md )\d+(\.\d+)?s(?= ->| \(|$)"), "<secs>s"),
     # and an earlier leg's "- patcher.md in leg 1 0.2s ($0.0000)"
     (re.compile(r"(\.md in leg \d+ )\d+(\.\d+)?s(?= \()"), r"\1<secs>s"),
     # the retro's "- won none: 3 passes, 4.2s, $0.0300"
@@ -1292,6 +1293,16 @@ def test_the_retro_line_of_an_earlier_leg_has_its_seconds_taken_out(tmp_path):
                                                            tmp_path)
     assert normalise(retro("0.2s"), tmp_path)["handoff"][0].startswith(
         "- patcher.md in leg 1 <secs>s ($0.0000)")
+
+
+def test_a_handoff_quoted_inside_a_prompt_has_every_step_s_seconds_taken_out(
+        tmp_path):
+    def prompt(secs):
+        return ("handoff.md:\n\n- steps: worker.md 1.2s -> patcher.md " + secs
+                + "\n- ran 2 steps in 3.0s on: pytest\n\nevery pass in full\n")
+
+    assert scrub(prompt("0.1s"), tmp_path) == scrub(prompt("0.0s"), tmp_path)
+    assert "-> patcher.md <secs>s\n" in scrub(prompt("0.1s"), tmp_path)
 
 
 def a_golden(tmp_path, monkeypatch, value):

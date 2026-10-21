@@ -342,16 +342,20 @@ def _gates(results, commands):
             unsure = g.get("unproven") or []
             tests = g.get("tests")
             skipped = g.get("skipped")
+            issue = g.get("issue")
         else:
             gate, ok, detail = g.gate, g.ok, g.detail
             unsure = g.unproven
             tests = getattr(g, "tests", None)
             skipped = getattr(g, "skipped", False)
+            issue = trace.issue_of(g)
         kept = {"gate": gate, "ok": bool(ok), "detail": detail or "",
                 "command": commands[i] if i < len(commands) else "",
                 "tests": tests, "skipped": bool(skipped)}
         if unsure:
             kept["unproven"] = list(unsure)
+        if issue:
+            kept["issue"] = issue
         out.append(kept)
     return out
 
@@ -731,8 +735,9 @@ def _money(facts):
 
 def retro(passes):
     """one line per pass: its seconds and cost, its outcome when not ok, the
-    gates it failed, its retries, the limit and refusals it met, the shell
-    trouble it recovered from; then one line per send-back with why."""
+    gates it failed, what each gate could not do, its retries, the limit and
+    refusals it met, the shell trouble it recovered from; then one line per
+    send-back with why."""
     out = []
     for p in passes:
         f = p.get("facts") or {}
@@ -744,6 +749,8 @@ def retro(passes):
         said.extend("failed " + g["gate"] + (" - " + stops.flat(g["detail"])
                                              if g["detail"] else "")
                     for g in p["gates"] if not g["ok"])
+        said.extend("issue: " + stops.flat(g["issue"]) for g in p["gates"]
+                    if g.get("issue"))
         for cause, n in sorted((f.get("retries") or {}).items()):
             if not n:
                 continue

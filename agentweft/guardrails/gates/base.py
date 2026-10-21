@@ -29,15 +29,18 @@ class Result(object):
     by one saw of each, None for the rest. `skipped` is a pass the run gave a
     gate it did not run, which proves nothing. `broke` is a fail that is the
     gate's own: it could not run, or could not build what it runs on, so it
-    says nothing of the step's work. `seconds` is how long it took, None
+    says nothing of the step's work. `issue` is what the gate could not do,
+    "could not <what>: <why>", whatever it decided: a test run that timed
+    out still fails and a replay that had no start still passes, and neither
+    checked what it is there to check. `seconds` is how long it took, None
     until the runner times it.
     """
 
     __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
-                 "broke", "seconds")
+                 "broke", "issue", "seconds")
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
-                 skipped=False, broke=False):
+                 skipped=False, broke=False, issue=""):
         self.gate = gate
         self.ok = ok
         self.detail = detail
@@ -45,6 +48,7 @@ class Result(object):
         self.tests = tests
         self.skipped = skipped
         self.broke = broke
+        self.issue = issue
         self.seconds = None
 
     def __bool__(self):
@@ -81,6 +85,23 @@ class Gate(object):
     def broke(self, detail):
         """a fail the gate caused, not the step: see Result."""
         return Result(self.name, False, detail, broke=True)
+
+    def could_not(self, ok, detail, issue):
+        """a pass or a fail given without doing the job: `issue` says what
+        it could not do. see Result."""
+        return Result(self.name, ok, detail, issue=issue)
+
+
+def issue_of(r):
+    """-> "<gate> could not <what>: <why>" for a result whose gate could not
+    do its job, "" for one that did. a broke flag set after the result was
+    made counts, with the detail as the why."""
+    said = getattr(r, "issue", "") or ""
+    if not said and getattr(r, "broke", False):
+        detail = r.detail or "it gave no reason"
+        said = detail if detail.startswith("could not ") \
+            else "could not run: " + detail
+    return r.gate + " " + said if said else ""
 
 
 registry = {}

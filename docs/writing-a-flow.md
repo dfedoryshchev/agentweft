@@ -320,9 +320,12 @@ every failed attempt already has a why on its line in `steps.jsonl`, and
     retro: true
 
 once the handoff is written, a run with a failed attempt (a gate that
-failed, a send-back, a stop) hands the retro role (`roles/library/retro.md`)
-the why line of each, `why.md` when the run stopped short, and `handoff.md`,
-with the retro skill (`skills/retro/SKILL.md`) as the procedure. it writes
+failed, a send-back, a stop), a gate that could not do its job (an `issue`,
+`docs/gates.md`) or a shell write a step went on past after the hook refused
+it hands the retro role (`roles/library/retro.md`) the why line of each
+failed attempt, each gate issue and each refused write by seq and step,
+`why.md` when the run stopped short, and `handoff.md`, with the retro skill
+(`skills/retro/SKILL.md`) as the procedure. it writes
 `runs/<run-id>/retro.md`: per failed attempt what failed, why, and which
 gate, prompt or `flow.yaml` key to change, then the one change to make first.
 it is granted `read` and nothing else, whatever the flow's steps are granted.
@@ -342,7 +345,8 @@ budget or an interrupt), or one at its call cap, holds its retro and prints
 `retro not run:` and why. its failed attempts are not lost: the leg that
 carries the run on hands them to its own retro, with its own. an attempt one
 retro was handed is not handed to the next, and a stop that waited is not a
-failed attempt. a clean run spends nothing on it. `retro: false` or no
+failed attempt. a clean run, with no gate issue and no refused write,
+spends nothing on it. `retro: false` or no
 `retro:` adds no step. it is true or false, anything else is refused when the
 flow loads, and so is a step whose role is `retro` or that reads `retro.md`.
 a scored eval case of the flow runs it the same way (`evals/README.md`).

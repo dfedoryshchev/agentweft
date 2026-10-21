@@ -82,7 +82,7 @@
     "## retro",
     "- planner.md <secs>s ($0.0100), won none: no events",
     "- tester.md <secs>s ($0.0100), won proved: no events",
-    "- worker.md <secs>s ($0.0100), won caught: parked; failed spec-files - 1 line of the spec the run started with removed or rewritten, and no ruling quotes it: TASK.md:3",
+    "- worker.md <secs>s ($0.0100), won caught: parked; failed spec-files - 1 line of the spec the run started with removed or rewritten, and no ruling quotes it: TASK.md:3; issue: red-first could not replay: the place is not in a git work tree",
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 1 pass, <secs>s, $0.0100",
@@ -326,7 +326,8 @@
         {
           "gate": "red-first",
           "ok": true,
-          "detail": "not replayed - the place is not in a git work tree"
+          "detail": "not replayed - the place is not in a git work tree",
+          "issue": "red-first could not replay: the place is not in a git work tree"
         },
         {
           "gate": "spec-files",

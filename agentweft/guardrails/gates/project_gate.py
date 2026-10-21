@@ -42,4 +42,5 @@ class ProjectGate(Gate):
         r = inner.run(text)
         out = (self.ok if r.ok else self.fail)(str(said) + ": " + r.detail)
         out.broke = r.broke
+        out.issue = r.issue
         return out

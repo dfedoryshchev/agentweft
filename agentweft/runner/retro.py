@@ -1,5 +1,6 @@
 """`retro: true` on a flow: one last step, once the handoff is written, that
-reads why each failed attempt of the run failed and writes
+reads why each failed attempt of the run failed, each gate that could not do
+its job and each shell write a step went on after being refused, and writes
 runs/<run id>/retro.md, what failed, why, and which gate or prompt to change.
 
 the role (`roles/library/retro.md`) is handed this run's facts; the skill
@@ -82,14 +83,72 @@ def whys(trail, earlier=None):
     return out
 
 
-def prompt(run_id, flow, outcome, folder, lines):
+def issues(lines):
+    """-> one line per gate that could not do its job, on the passes not yet
+    looked at: its seq, step and what it could not do."""
+    out = []
+    for line, _ in lines:
+        for g in line.get("gates") or []:
+            if isinstance(g, dict) and g.get("issue"):
+                out.append("- seq " + str(line.get("seq")) + " "
+                           + str(line.get("step")) + ": "
+                           + stops.flat(g["issue"]))
+    return out
+
+
+def workarounds(lines):
+    """-> one line per shell write the hook refused a pass not yet looked
+    at, which the step then went on past, from its run folder's denials."""
+    from agentweft.guardrails import shellwrite
+
+    out = []
+    read = {}
+    for line, folder in lines:
+        sessions = set([line.get("session")] + [
+            t.get("session") for t in line.get("tasks") or []
+            if isinstance(t, dict)]) - {None}
+        if not sessions:
+            continue
+        if folder not in read:
+            read[folder] = refusals(folder / shellwrite.FILE)
+        for said in read[folder]:
+            if said.get("session") in sessions:
+                out.append("- seq " + str(line.get("seq")) + " "
+                           + str(line.get("step")) + " went on after the"
+                           " shell write `" + stops.flat(str(
+                               said.get("refused") or said.get("command")))
+                           + "` was refused")
+    return out
+
+
+def refusals(path):
+    if not path.is_file():
+        return []
+    out = []
+    for raw in path.read_text(encoding="utf-8", errors="replace").split("\n"):
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(data, dict):
+            out.append(data)
+    return out
+
+
+def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=()):
     """-> the role, the skill, then this run's record."""
     text = (resolver.role_prompt(STEP).rstrip("\n") + "\n\n"
             + resolver.skill(ROLE).strip("\n") + "\n\n"
             + "this run:\n- run: " + run_id + "\n- flow: " + flow
             + "\n- outcome: " + outcome + "\n\n"
             + "why each failed attempt failed, from steps.jsonl:\n"
-            + "\n".join(lines) + "\n")
+            + "\n".join(lines or ["- none failed"]) + "\n")
+    if issued:
+        text = (text + "\ngates that could not do their job, from steps.jsonl:"
+                "\n" + "\n".join(issued) + "\n")
+    if worked:
+        text = (text + "\nrefused tool calls a step went on past, from "
+                + "tool-denials.jsonl:\n" + "\n".join(worked) + "\n")
     for name in ("why.md", summary.FILE):
         if (folder / name).is_file():
             text = (text + "\n" + name + ":\n\n"
@@ -115,10 +174,10 @@ def ask(run, text, used):
 
 def after(run, trail, run_id, flow, outcome, folder, stopped=None,
           earlier=None):
-    """run the retro over the failed attempts no retro has looked at yet,
-    this leg's and the legs' before it (`earlier`, the run this one picked
-    up), when there are any. nothing it does or raises reaches the run's
-    outcome."""
+    """run the retro over the failed attempts, gate issues and refused tool
+    calls no retro has looked at yet, this leg's and the legs' before it
+    (`earlier`, the run this one picked up), when there are any. nothing it
+    does or raises reaches the run's outcome."""
     try:
         look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier)
     except (Exception, KeyboardInterrupt) as e:
@@ -130,13 +189,15 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     from .engine import Answer
 
     lines = whys(trail, earlier)
-    if not lines:
+    looked = recorded(trail, earlier)
+    issued, worked = issues(looked), workarounds(looked)
+    if not (lines or issued or worked):
         return
     skip = held(run, stopped)
     if skip:
         print("retro not run: " + skip)
         return
-    text = prompt(run_id, flow, outcome, folder, lines)
+    text = prompt(run_id, flow, outcome, folder, lines, issued, worked)
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)

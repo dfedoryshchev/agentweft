@@ -284,6 +284,19 @@ session on:
       {"seq": 3, "step": "worker.md", "gate": "command", "ok": true,
        "seconds": 4.212}
 
+  a gate that could not do its job carries `issue` on this line and on its
+  entry in `steps.jsonl`, whatever it decided:
+
+      {"seq": 2, "step": "patcher.md", "gate": "red-first", "ok": true,
+       "seconds": 0.004, "issue": "red-first could not replay: the place is
+       not in a git work tree"}
+
+  the shape is always `<gate> could not <what>: <why>`: a gate that broke, a
+  test run that timed out, a red-first or start-tests replay with no start to
+  replay from, a red-test gate given no test, a coverage report that is not
+  there or does not parse. its pass or fail stays what it was; the issue says
+  the check behind it did not happen. the retro is handed every issue, and the
+  handoff's retro tally prints it under the step.
   `seq` is the step's line. the checks the runner makes itself on a step's
   answer have their lines too: `test-edits`, `spec-files`, the quote and
   conflict checks, the test order check, and the decisions.md check run after

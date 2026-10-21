@@ -75,7 +75,9 @@ class RedTestGate(Gate):
             if why:
                 return self.fail(why)
             if not named:
-                return self.fail("no " + TEST + " line, so there is no test to run")
+                return self.could_not(False, "no " + TEST + " line, so there"
+                                      " is no test to run", "could not run a"
+                                      " test: no " + TEST + " line names one")
             path = (place / named.split("::")[0]).resolve()
             try:
                 path.relative_to(place.resolve())
@@ -132,7 +134,10 @@ class RedTestGate(Gate):
         except FileNotFoundError:
             return self.broke("not on PATH: " + argv[0])
         except subprocess.TimeoutExpired:
-            return self.fail("timed out")
+            return self.could_not(False, "timed out",
+                                  "could not finish: timed out after "
+                                  + str(int(self.opts.get("timeout", 120)))
+                                  + "s")
 
         code = r.returncode
         want = int(self.opts.get("expect", 1)) if want_red else 0

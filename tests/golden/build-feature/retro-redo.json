@@ -72,9 +72,9 @@
     "## retro",
     "- planner.md <secs>s ($0.0100), won none: no events",
     "- tester.md <secs>s ($0.0100), won proved: no events",
-    "- worker.md <secs>s ($0.0100), won delivered: no events",
+    "- worker.md <secs>s ($0.0100), won delivered: issue: red-first could not replay: the place is not in a git work tree",
     "- reviewer.md <secs>s ($0.0100), won caught: sent back",
-    "- worker.md <secs>s ($0.0100), won delivered: no events",
+    "- worker.md <secs>s ($0.0100), won delivered: issue: red-first could not replay: the place is not in a git work tree",
     "- reviewer.md <secs>s ($0.0100), won none: no events",
     "- reviewer-runs.md <secs>s ($0.0100), won none: no events",
     "- reviewer.md sent the work back: mul is not tried on a negative number",
@@ -327,7 +327,8 @@
         {
           "gate": "red-first",
           "ok": true,
-          "detail": "not replayed - the place is not in a git work tree"
+          "detail": "not replayed - the place is not in a git work tree",
+          "issue": "red-first could not replay: the place is not in a git work tree"
         }
       ],
       "ungated": false,
@@ -516,7 +517,8 @@
         {
           "gate": "red-first",
           "ok": true,
-          "detail": "not replayed - the place is not in a git work tree"
+          "detail": "not replayed - the place is not in a git work tree",
+          "issue": "red-first could not replay: the place is not in a git work tree"
         }
       ],
       "ungated": false,
@@ -881,7 +883,7 @@
   ],
   "prompts": [
     "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
-    "retro.md go 1 0536d5f9ee46ac2b5081ae3116ceaca832d96b362c318ec18d09bb388d0a3e2c",
+    "retro.md go 1 384acc3a4e11c290a974edfde18a1186934e44e88cd30cfb9143ea1a6924f5ef",
     "reviewer-runs.md go 1 283febc3e32faf1de2caac655496b53921cae3e3d866c39428e06bba50ca0401",
     "reviewer.md go 1 511174204e08942bff803ac68f407f2f01de453aa9f2ddfe211de8ea723739e7",
     "reviewer.md go 2 ae7d8c195cd7bf14cead3c887a45f5d32819098197c572505529c8a09c20bafe",

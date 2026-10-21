@@ -60,7 +60,7 @@
     "- keep: the task - add(1, 2) is 3 (worker)",
     "## retro",
     "- worker.md <secs>s ($0.0100), won proved: no events",
-    "- patcher.md <secs>s ($0.0100), won delivered: no events",
+    "- patcher.md <secs>s ($0.0100), won delivered: issue: red-first could not replay: the place is not in a git work tree",
     "- won delivered: 1 pass, <secs>s, $0.0100",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 0 passes, <secs>s, $0.0000",
@@ -244,7 +244,8 @@
         {
           "gate": "red-first",
           "ok": true,
-          "detail": "not replayed - the place is not in a git work tree"
+          "detail": "not replayed - the place is not in a git work tree",
+          "issue": "red-first could not replay: the place is not in a git work tree"
         },
         {
           "gate": "command",

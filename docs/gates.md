@@ -113,6 +113,15 @@ replay that could not run on the start state. it still fails the step, and
 the step's `won` is not `caught` for it. each gate's seconds go to
 `gates.jsonl`, a line per gate run.
 
+a gate that could not do its job says so whether it passed or failed: its
+line in `gates.jsonl` and its entry in `steps.jsonl` carry `"issue":
+"<gate> could not <what>: <why>"`. every broke fail has one, and so do the
+results a gate gives without having checked: a command or test that timed
+out, a red-first or start-tests replay with no start commit, a red-test gate
+with no `TEST:` line, a coverage report missing or unreadable. nothing about
+the result changes: a timeout still fails and a replay with no start still
+passes. the retro reads the issues, and the handoff's retro tally lists them.
+
 a gate reads the answer without its HANDOFF block (`journal.md`, "what each
 step hands over"): the block is the step's account of the work, and a length
 cap or a pattern is about the work.

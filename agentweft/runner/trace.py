@@ -351,22 +351,34 @@ class Trail(object):
                 self.lines.append(text)
         for done, _ in ready:
             for g in done.gates:
-                self.timed(g.gate, done.step, g.seconds, g.ok, done.seq)
+                self.timed(g.gate, done.step, g.seconds, g.ok, done.seq,
+                           issue_of(g))
 
-    def timed(self, gate, step, seconds, ok, seq=None):
-        """write one gate's seconds to gates.jsonl. a gate the runner did not
-        time has no line."""
-        if seconds is None:
+    def timed(self, gate, step, seconds, ok, seq=None, issue=""):
+        """write one gate's seconds to gates.jsonl, and what it could not do
+        when there was something. a gate the runner did not time and that
+        says no issue has no line."""
+        if seconds is None and not issue:
             return
-        self.gate_seconds = self.gate_seconds + seconds
+        if seconds is not None:
+            self.gate_seconds = self.gate_seconds + seconds
+        line = {"seq": seq, "step": step, "gate": gate, "ok": bool(ok),
+                "seconds": seconds}
+        if issue:
+            line["issue"] = issue
         self.folder.mkdir(parents=True, exist_ok=True)
         with open(self.folder / GATES, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"seq": seq, "step": step, "gate": gate,
-                                "ok": bool(ok), "seconds": seconds}) + "\n")
+            f.write(json.dumps(line) + "\n")
 
     def still_open(self):
         """-> the entry opened and not yet given an outcome, or None."""
         return self.unclosed[-1] if self.unclosed else None
+
+
+def issue_of(g):
+    from agentweft.guardrails.gates.base import issue_of as said
+
+    return said(g)
 
 
 def gate_line(g):
@@ -379,6 +391,9 @@ def gate_line(g):
         out["skipped"] = True
     if getattr(g, "broke", False):
         out["broke"] = True
+    said = issue_of(g)
+    if said:
+        out["issue"] = said
     return out
 
 

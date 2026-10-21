@@ -68,7 +68,7 @@
     "- worker.md <secs>s ($0.0100), won proved: no events",
     "- patcher.md <secs>s ($0.0100), won caught: sent back",
     "- worker.md <secs>s ($0.0000), won proved: no events",
-    "- patcher.md <secs>s ($0.0000), won delivered: no events",
+    "- patcher.md <secs>s ($0.0000), won delivered: issue: red-first could not replay: the place is not in a git work tree",
     "- patcher.md sent the work back: WRONG TEST: test_calc.py::test_add",
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won delivered: 1 pass, <secs>s, $0.0000",
@@ -426,7 +426,8 @@
         {
           "gate": "red-first",
           "ok": true,
-          "detail": "not replayed - the place is not in a git work tree"
+          "detail": "not replayed - the place is not in a git work tree",
+          "issue": "red-first could not replay: the place is not in a git work tree"
         },
         {
           "gate": "command",

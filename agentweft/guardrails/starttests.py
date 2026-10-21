@@ -177,12 +177,14 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
     if not files or not changed(start.product, start.product_now()):
         return Replay()
     if not start.start:
-        return Replay(Result(NAME, True, "not replayed - " + (
-            start.why or "the run has no start commit")))
+        why = start.why or "the run has no start commit"
+        return Replay(Result(NAME, True, "not replayed - " + why,
+                             issue="could not replay: " + why))
     base = base_of(cmd)
     after, why = tests_in(start, files, base, timeout, now=True)
     if after is None:
-        return Replay(Result(NAME, False, why))
+        return Replay(Result(NAME, False, why,
+                             issue="could not run the start tests: " + why))
     if not any(s in RED for s, _ in after.values()) and \
             all(t in after for t in (green or {}).get("passed", [])):
         return Replay(Result(NAME, True, ok_line(after)))
