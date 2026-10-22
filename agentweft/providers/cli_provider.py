@@ -124,6 +124,38 @@ def fence(grant):
     return out + ["--restricted"]
 
 
+def looks_only(grant):
+    """whether a step's grant runs it `--restricted` (see `fence`)."""
+    return grant is not None and not any(word in grant for word in ACTS)
+
+
+# the person's own settings file, the one `--setting-sources user` loads; None
+# is the cli's own place for it
+USER_SETTINGS = None
+
+
+def user_model():
+    """-> the model the person's own settings file names, "" for none.
+
+    every other step runs on it, and a `--restricted` call reads no settings
+    file, so a step that only looks would run on the cli's default model
+    unsaid. a model in the environment wins over the file in the cli too, so
+    there is nothing to pass then."""
+    if os.environ.get("ANTHROPIC_MODEL"):
+        return ""
+    path = USER_SETTINGS
+    if path is None:
+        home = os.environ.get("CLAUDE_CONFIG_DIR") or str(Path.home()
+                                                          / ".claude")
+        path = Path(home) / "settings.json"
+    try:
+        said = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    model = said.get("model") if isinstance(said, dict) else None
+    return model.strip() if isinstance(model, str) else ""
+
+
 def is_claude(command):
     """`claude`, `claude.cmd`, `/usr/bin/claude`: the one command whose flags
     and output this knows."""
@@ -810,6 +842,8 @@ class CliProvider(Provider):
         if tools_used and self.turns:
             argv = argv + ["--max-turns", str(self.turns)]
         model = self.asks_for()
+        if not model and looks_only(self.grant):
+            model = user_model()
         if model:
             argv = argv + ["--model", model]
         if effort is None:

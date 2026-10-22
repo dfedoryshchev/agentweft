@@ -90,6 +90,54 @@ def test_the_model_flag_stays_last(fake_cli):
     assert cli_.calls[0]["argv"][-2:] == ["--model", "m"]
 
 
+def a_settings_file(tmp_path, monkeypatch, said):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps(said), encoding="utf-8")
+    monkeypatch.setattr(cli_provider, "USER_SETTINGS", str(path))
+    monkeypatch.delenv("MODEL", raising=False)
+    monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+
+
+def test_a_step_that_only_looks_runs_on_the_model_the_persons_file_names(
+        fake_cli, tmp_path, monkeypatch):
+    a_settings_file(tmp_path, monkeypatch, {"model": "opus"})
+    cli_ = fake_cli(answer("ok\n"), answer("ok\n"))
+    claude(grant=["read"]).ask("x")
+    claude(grant=["read", "shell"]).ask("x")
+    looks, acts = [c["argv"] for c in cli_.calls]
+    assert "--restricted" in looks and flag(looks, "--model") == "opus"
+    # the user settings load there, and with them its model
+    assert "--model" not in acts
+
+
+def test_a_model_the_step_was_given_wins_over_the_persons_file(
+        fake_cli, tmp_path, monkeypatch):
+    a_settings_file(tmp_path, monkeypatch, {"model": "opus"})
+    cli_ = fake_cli(answer("ok\n"))
+    claude(grant=["read"], model="m").ask("x")
+    assert flag(cli_.calls[0]["argv"], "--model") == "m"
+
+
+@pytest.mark.parametrize("said", [{}, {"model": ""}, "not json"])
+def test_a_file_that_names_no_model_leaves_the_cli_default(
+        fake_cli, tmp_path, monkeypatch, said):
+    a_settings_file(tmp_path, monkeypatch, said)
+    if said == "not json":
+        (tmp_path / "settings.json").write_text("{", encoding="utf-8")
+    cli_ = fake_cli(answer("ok\n"))
+    claude(grant=["read"]).ask("x")
+    assert "--model" not in cli_.calls[0]["argv"]
+
+
+def test_a_model_in_the_environment_is_left_to_the_cli(fake_cli, tmp_path,
+                                                       monkeypatch):
+    a_settings_file(tmp_path, monkeypatch, {"model": "opus"})
+    monkeypatch.setenv("ANTHROPIC_MODEL", "sonnet")
+    cli_ = fake_cli(answer("ok\n"))
+    claude(grant=["read"]).ask("x")
+    assert "--model" not in cli_.calls[0]["argv"]
+
+
 def test_another_command_gets_no_fence_and_no_version_call(fake_cli):
     cli_ = fake_cli((0, b"-p hi\n", b""))
     p = providers.build({"provider": "cli", "command": "echo"},

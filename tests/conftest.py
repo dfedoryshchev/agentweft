@@ -92,6 +92,8 @@ def no_real_provider():
         # a go that timed out looks for its transcript among the cli's own
         # sessions, and a test is never handed the machine's
         mp.setattr(handoff, "PROJECTS", "no-such-projects-folder")
+        # nor the model the machine's own settings file names
+        mp.setattr(cli_provider, "USER_SETTINGS", "no-such-settings.json")
         yield
 
 

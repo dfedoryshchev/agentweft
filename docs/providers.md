@@ -289,7 +289,12 @@ and a granted step is started with:
 - for a grant that only looks (no `write`, `edit` or `shell`), `--restricted`:
   the command and code running tools and WebFetch are gone unless `--tools`
   names them, the file tools stay inside the working directories, and no user,
-  project or local settings file is read.
+  project or local settings file is read. so a model the person's own
+  settings file names (`model` in `~/.claude/settings.json`, or under
+  `CLAUDE_CONFIG_DIR`) would not reach it, and it would run on the cli's
+  default while every step that acts runs on that model: such a step is
+  passed it as `--model`, unless the flow or `MODEL` named one already or
+  `ANTHROPIC_MODEL` is set, which the cli reads itself.
 - for a grant that acts, `--setting-sources user`: the user's own settings
   load and the place's `.claude/settings.json` and `settings.local.json`, with
   their hooks, `env` and key helper, do not.
