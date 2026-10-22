@@ -523,7 +523,10 @@ check a model proposed, or one in a project cloned with its `facts/`, can
 run nothing. the flags it takes are `-n`, `-r` / `-R`, `-E`, `-F`, `-i`,
 `-w`, `-q`, `-s`, `-H`, `-h`, `-l`, `-e <pattern>` and `--include=<glob>`;
 without `-E` or `-F` the pattern is a basic grep pattern, so `print(` is the
-text `print(`. `exits 1` means the fact holds when no line matches, `exits 0`
+text `print(`. `\<` and `\>` are the edges of a word, `\w`, `\W`, `\s`, `\S`,
+`\b`, `\B` and `\1` to `\9` read as grep reads them, a backslash before a
+mark is the mark, and a backslash inside `[...]` is itself; any other escape
+(`\d`, which grep reads as a plain `d`) and a `[:class:]` cannot run. `exits 1` means the fact holds when no line matches, `exits 0`
 (or no `exits`) when one does. every path is a file or, with `-r`, a folder
 in the place and in the fact's scope; a recursive read never looks in
 `.git`, caches, installed packages (`node_modules`, `venv`, `.venv`), the store's `.md` files (which quote the very lines its checks look for)

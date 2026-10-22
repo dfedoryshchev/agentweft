@@ -523,20 +523,73 @@ def parse_check(text):
     return out, ""
 
 
-def bre(pattern):
-    """-> a basic grep pattern as python reads it: `(`, `)`, `{`, `}`, `|`,
-    `+` and `?` are plain unless a backslash makes them special."""
+class Unread(ValueError):
+    """a pattern python would read otherwise than grep does."""
+
+
+# the escapes grep and python read alike
+SAME = "wWsSbB123456789"
+WORD_EDGES = {"<": r"\b(?=\w)", ">": r"\b(?<=\w)"}
+GROUPING = "(){}|+?"
+
+
+def grep_re(pattern, extended=False):
+    """-> a grep pattern as python reads it, basic or (`extended`) -E: in a
+    basic one `(`, `)`, `{`, `}`, `|`, `+` and `?` are plain unless a
+    backslash makes them special, in both `\\<` and `\\>` are the edges of a
+    word, and a backslash inside `[...]` is itself. any escape grep reads
+    otherwise than python, `\\d` say, raises Unread."""
     out, i = [], 0
     while i < len(pattern):
         c = pattern[i]
-        if c == "\\" and i + 1 < len(pattern):
+        if c == "[":
+            j, inside = bracket(pattern, i)
+            out.append(inside)
+            i = j
+            continue
+        if c == "\\":
+            if i + 1 == len(pattern):
+                raise Unread("it ends in a lone \\")
             n = pattern[i + 1]
-            out.append(n if n in "(){}|+?" else c + n)
+            if n in WORD_EDGES:
+                out.append(WORD_EDGES[n])
+            elif n in GROUPING:
+                out.append("\\" + n if extended else n)
+            elif n in SAME:
+                out.append("\\" + n)
+            elif n.isalnum() or n in "`'" or n == "_":
+                raise Unread("\\" + n + " is read otherwise by grep")
+            else:
+                out.append(re.escape(n))
             i = i + 2
             continue
-        out.append("\\" + c if c in "(){}|+?" else c)
+        out.append("\\" + c if c in GROUPING and not extended else c)
         i = i + 1
     return "".join(out)
+
+
+def bracket(pattern, i):
+    """-> (the index past the `[...]` that starts at `i`, it as python
+    reads it)."""
+    j = i + 1
+    out = ["["]
+    if j < len(pattern) and pattern[j] == "^":
+        out.append("^")
+        j = j + 1
+    if j < len(pattern) and pattern[j] == "]":
+        out.append("\\]")
+        j = j + 1
+    while j < len(pattern) and pattern[j] != "]":
+        c = pattern[j]
+        if c == "[" and pattern[j + 1:j + 2] in (":", "=", "."):
+            raise Unread("a [" + pattern[j + 1] + " class is read otherwise"
+                         " by python")
+        out.append("\\" + c if c in "\\[&~|" else c)
+        j = j + 1
+    if j >= len(pattern):
+        raise Unread("a [ is never closed")
+    out.append("]")
+    return j + 1, "".join(out)
 
 
 def outside(root, rel):
@@ -614,11 +667,14 @@ def run_check(root, text, own=None):
         for p in check.patterns:
             if "F" in check.flags:
                 p = re.escape(p)
-            elif "E" not in check.flags:
-                p = bre(p)
+            else:
+                p = grep_re(p, extended="E" in check.flags)
             if "w" in check.flags:
                 p = r"(?<!\w)(?:" + p + r")(?!\w)"
             found.append(re.compile(p, flags))
+    except Unread as e:
+        return None, ("could not run: the pattern is not read here as grep"
+                      " reads it: " + str(e))
     except re.error as e:
         return None, "could not run: the pattern does not read: " + str(e)
     files = []

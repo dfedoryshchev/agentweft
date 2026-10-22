@@ -71,6 +71,12 @@ def test_a_grep_check_holds_on_clean_lines_and_breaks_where_it_matches(
     ('grep -rn "print(" pkg exits 1', False),
     ('grep -rn "print(" . --include=*.md exits 1', True),
     ("grep -n 'line\\.split' pkg/parse.py", True),
+    ('grep "\\<parse\\>" pkg/parse.py', True),
+    ('grep -E "\\<line\\>" pkg/parse.py', True),
+    ('grep "\\<pars\\>" pkg/parse.py exits 1', True),
+    ('grep "\\bsplit\\b" pkg/parse.py', True),
+    ('grep "\\w\\+Error" pkg/parse.py', True),
+    ('grep "[\\]" pkg/parse.py exits 1', True),
 ])
 def test_a_check_reads_its_pattern_and_paths_the_way_grep_does(tmp_path,
                                                                check, held):
@@ -91,6 +97,9 @@ def test_a_check_reads_its_pattern_and_paths_the_way_grep_does(tmp_path,
     ('grep -n "x" pkg/parse.py exits maybe', "exits"),
     ('grep -n "x"', "no file"),
     ('grep -n "x" pkg/parse.py; rm -rf pkg', "is not a path"),
+    ('grep -E "raise \\d" pkg/parse.py', "\\d"),
+    ('grep "line\\d" pkg/parse.py exits 1', "\\d"),
+    ('grep "\\Aimport" pkg/parse.py', "\\A"),
 ])
 def test_a_check_that_cannot_run_is_never_a_pass(tmp_path, check, why):
     put(tmp_path, "pkg/parse.py", CODE)
