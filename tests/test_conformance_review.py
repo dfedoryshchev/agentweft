@@ -106,3 +106,47 @@ def test_a_breach_quoted_sends_the_worker_back_with_it(tmp_path, monkeypatch):
     assert "CONVENTION: F-0001" in again
     steps = (folder / "steps.jsonl").read_text(encoding="utf-8")
     assert '"to": "worker.md"' in steps
+
+
+def test_a_breach_the_reviewer_names_counts_against_the_fact(tmp_path,
+                                                             monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [WORKER, RAISES], "reviewer.md": [OK],
+               "reviewer-runs.md": [BREACH, OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT)],
+              "worker.md": [("calc.py", AFTER), ("", "")]}
+    _, _, code, _, project = runs_with_a_fact(tmp_path, monkeypatch, answers,
+                                              writes)
+    assert code == stops.EXIT_OK
+    seen = [f.get("seen") for f in facts.read(project)]
+    assert len(seen) == 1 and "contradicted 1" in seen[0]
+
+
+def test_only_a_pass_sent_back_on_its_own_redo_names_breaches(tmp_path):
+    from agentweft.guardrails import factsguard
+
+    (tmp_path / "a.md").write_text(BREACH + "CONVENTION: F-0001 again" + NL
+                                   + "CONVENTION: F-0002 \"x\": y" + NL,
+                                   encoding="utf-8")
+    (tmp_path / "b.md").write_text(OK + "WOULD PASS: mul(a, b) = a + a" + NL
+                                   + "CONVENTION: F-0001 \"x\": y" + NL,
+                                   encoding="utf-8")
+    redo = {"outcome": "redo", "file": "a.md"}
+    assert factsguard.breaches(redo, tmp_path) == ["F-0001", "F-0002"]
+    assert factsguard.breaches(dict(redo, outcome="ok"), tmp_path) == []
+    assert factsguard.breaches(dict(redo, file="b.md"), tmp_path) == []
+    assert factsguard.breaches(dict(redo, file="gone.md"), tmp_path) == []
+
+
+def test_a_convention_line_on_a_verdict_that_is_no_redo_counts_nothing(
+        tmp_path, monkeypatch):
+    said = OK + "CONVENTION: F-0001 \"" + CLAIM + "\": held" + NL
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [WORKER], "reviewer.md": [OK],
+               "reviewer-runs.md": [said]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT)],
+              "worker.md": [("calc.py", AFTER)]}
+    _, _, code, _, project = runs_with_a_fact(tmp_path, monkeypatch, answers,
+                                              writes)
+    assert code == stops.EXIT_OK
+    assert "contradicted 0" in facts.read(project)[0].get("seen")

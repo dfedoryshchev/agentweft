@@ -1320,7 +1320,11 @@ same end of the leg adds `honoured` for each step whose change kept it and
 in the shipped build-feature flow the second reviewer reads the facts it is
 handed as the project's documented way: a change that departs from one, or
 from the spec's layout or the code beside it, is a redo with a `CONVENTION:`
-line quoting what it goes against (`docs/writing-a-flow.md`).
+line quoting what it goes against (`docs/writing-a-flow.md`). a pass that
+sends the work back on its own `VERDICT: redo` with a `CONVENTION:` line
+that names a fact by its id adds one to that fact's `contradicted` at the end
+of the leg, once per pass whatever the number of lines; a `CONVENTION:` line
+on any other pass counts for nothing.
 
 ## what it does not do
 

@@ -573,7 +573,9 @@ say, cannot run after a step either, as it is refused when the runner
 writes a fact.
 
 once the leg ends, each fact's `seen` line counts the steps whose change
-held its check (`honoured`) and broke it (`contradicted`).
+held its check (`honoured`) and broke it (`contradicted`), and a pass sent
+back with a `CONVENTION:` line naming the fact's id counts as
+`contradicted` too (`docs/journal.md`).
 
 ## the files that brief the model
 

@@ -271,8 +271,8 @@ def tally(run, trail):
     lines = [entry.written or {} for entry, _ in trail.closed]
     try:
         out = store.attached(lines)
-        for id in (store.held_to(lines) if hasattr(store, "held_to")
-                   else []):
+        for id in (store.held_to(lines, getattr(trail, "folder", None))
+                   if hasattr(store, "held_to") else []):
             if id not in out:
                 out.append(id)
         return out

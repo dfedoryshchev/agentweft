@@ -70,6 +70,28 @@ WORD = re.compile(r"[^\s`'\"(),;<>]+")
 # the fields a proposal may carry, in the order an entry is written
 FIELDS = ("scope", "kind", "label", "claim", "why", "source", "anchor",
           "check", "supersedes")
+BREACH = re.compile(r"^\W*CONVENTION:\s*(F-\d+)\b", re.M)
+REDO = re.compile(r"^\W*VERDICT:\s*redo\b", re.M | re.I)
+
+
+def breaches(line, folder):
+    """-> the ids of the facts a pass sent back on its own `VERDICT: redo`
+    names on its `CONVENTION:` lines, each once, read from its answer under
+    `folder`; [] for any other pass or an answer that cannot be read."""
+    if folder is None or (line or {}).get("outcome") != "redo" \
+            or not line.get("file"):
+        return []
+    try:
+        said = (Path(folder) / line["file"]).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    if not REDO.search(said):
+        return []
+    out = []
+    for id in BREACH.findall(said):
+        if id not in out:
+            out.append(id)
+    return out
 
 
 class Proposal(object):
@@ -647,11 +669,13 @@ class Store(object):
                 self.watched[f.id] = facts.scope_digest(self.root, f.scopes,
                                                         self.own)
 
-    def held_to(self, lines):
+    def held_to(self, lines, folder=None):
         """add one to a fact's `honoured` for each check it held after a
         step of `lines`, the run's steps.jsonl lines, and to `contradicted`
-        for each it was broken; -> the ids counted. a check that could not
-        run counts for neither."""
+        for each it was broken, and for each pass sent back with a
+        `CONVENTION:` line naming it, read from the pass's answer under
+        `folder`; -> the ids counted. a check that could not run counts for
+        neither."""
         tally = {}
         for line in lines:
             for c in (line or {}).get("conformance") or []:
@@ -660,6 +684,9 @@ class Store(object):
                 if key:
                     tally.setdefault(c.get("fact"), {}).setdefault(key, 0)
                     tally[c.get("fact")][key] += 1
+            for id in breaches(line, folder):
+                tally.setdefault(id, {}).setdefault("contradicted", 0)
+                tally[id]["contradicted"] += 1
         out = []
         with self.shared():
             for fact in self.read() if tally else []:
