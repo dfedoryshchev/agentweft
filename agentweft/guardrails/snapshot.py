@@ -138,6 +138,15 @@ def is_spec(path):
     return any(g.match(h) for g in spec_re() for h in heads)
 
 
+def is_runners(path):
+    """whether a path from the place is one the runner itself writes there,
+    rulings and facts, between steps and between legs: never a step's
+    change to the product."""
+    from agentweft.orchestrate import decisions, facts
+
+    return path == decisions.FILE or path.startswith(facts.FOLDER + "/")
+
+
 def is_tooling(path):
     """whether a file is the test runner's own: written by a step that only
     writes tests without being product code."""
@@ -239,7 +248,8 @@ class Snapshot(object):
     def hashes(self):
         """-> ({test file: sha256}, {spec file: sha256}, {product file:
         sha256}) as the place is now. a product file is every file that is
-        neither, the test runner's own files left out of all three."""
+        neither, the test runner's own files and the runner's left out of
+        all three."""
         tests, specs, product = {}, {}, {}
         for rel in self.files():
             data = _read(self.root / rel)
@@ -249,7 +259,7 @@ class Snapshot(object):
                 tests[rel] = _sha(data)
             elif is_spec(self.from_place(rel)):
                 specs[rel] = _sha(data)
-            elif not is_tooling(rel):
+            elif not is_tooling(rel) and not self.runners(rel):
                 product[rel] = _sha(data)
         return tests, specs, product
 
@@ -322,6 +332,16 @@ class Snapshot(object):
             if now is not None and self.tests.get(rel) != _sha(now):
                 out.append((rel, now))
         return out
+
+    def runners(self, rel):
+        """whether `rel`, a path from the top of the repo, is the runner's
+        own (`is_runners`)."""
+        if self.root is None:
+            return False
+        try:
+            return is_runners(self.from_place(rel))
+        except ValueError:
+            return False
 
     def from_place(self, rel):
         """a path from the top of the repo, as one from the place."""
@@ -437,7 +457,9 @@ def load(folder):
         shot.ingit = bool(data.get("ingit"))
         shot.tests = dict(data.get("tests") or {})
         shot.specs = dict(data.get("specs") or {})
-        shot.product = dict(data.get("product") or {})
+        shot.product = dict((rel, sha) for rel, sha
+                            in (data.get("product") or {}).items()
+                            if not shot.runners(rel))
         shot.loose = dict((rel, None if text is None
                            else base64.b64decode(text))
                           for rel, text in (data.get("loose") or {}).items())

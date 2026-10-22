@@ -158,6 +158,48 @@ def test_past_the_facts_cap_the_rest_are_named_by_id_and_file(tmp_path):
     assert "F-0012 (facts/pkg/cli.py.md)" in text
 
 
+def test_the_runners_own_writes_are_not_a_change_to_the_product(tmp_path):
+    from agentweft.guardrails import snapshot
+
+    a_place(tmp_path)
+    start = snapshot.take(tmp_path)
+    put(tmp_path, "facts/pkg/parse.py.md", "## F-0001 live" + NL)
+    put(tmp_path, "facts/INDEX.md", "# facts" + NL)
+    put(tmp_path, "decisions.md", "## 2026-10-22 09:00  a ruling" + NL)
+    assert start.product_changed() == []
+    put(tmp_path, "pkg/cli.py", CLI + "# more" + NL)
+    assert start.product_changed() == ["pkg/cli.py"]
+    start.product["facts/pkg/_folder.md"] = "0" * 64
+    start.save(tmp_path / ".kept")
+    assert snapshot.load(tmp_path / ".kept").product_changed() == [
+        "pkg/cli.py"]
+
+
+def test_a_resumed_leg_does_not_take_the_runners_counts_for_the_work(
+        tmp_path, monkeypatch, fake_cli):
+    a_place(tmp_path)
+    asks = answer("NEEDS: which file?" + NL + "OPTIONS:" + NL + "- a.py" + NL
+                  + "- b.py" + NL)
+    a_run(tmp_path, monkeypatch, fake_cli,
+          ["worker\ngates:\n  - gate: red-first\n    command: [python, -m,"
+           " pytest, '{test}']"], asks, task="make pkg/parse.py stricter",
+          head="lead: none\n")
+    engine.main()
+    first = the_folder()
+    assert "attached 1" in (tmp_path / "facts" / "pkg" / "parse.py.md"
+                            ).read_text(encoding="utf-8")
+    fake_cli(asks)
+    monkeypatch.setattr(sys, "argv", ["run.py", "facts", "--force", "--resume",
+                                      first.name, "--answer", "a.py"])
+    engine.main()
+    [*_, last] = sorted((p for p in first.parent.iterdir() if p.is_dir()
+                         and (p / "handoff.md").is_file()),
+                        key=lambda p: p.name)
+    page = (last / "handoff.md").read_text(encoding="utf-8")
+    assert "asked for a ruling instead of doing the work" in page, page
+    assert "the place holds its change to" not in page
+
+
 def test_a_place_with_no_facts_gets_the_brief_it_got_before(tmp_path):
     notes = brief.Brief(tmp_path, ["planner.md", "worker.md"])
     assert notes.text("planner.md") == ""
