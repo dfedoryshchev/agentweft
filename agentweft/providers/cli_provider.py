@@ -377,8 +377,10 @@ def carried_on(data, carry):
     `total_cost_usd` for the whole session, earlier calls included (seen on
     `claude` 2.1.301). a figure below the session's earlier one was never the
     whole session's and is kept as it came; a cost with no earlier figure to
-    take out is not known."""
+    take out is not known. `num_turns` is left out: whether it counts the
+    call or the whole session has not been seen, so it is not known."""
     out = dict(data)
+    out.pop("num_turns", None)
     models = less(data.get("modelUsage"), carry.get("models"))
     if models is not None and carry.get("models") is not None:
         out["modelUsage"] = models
@@ -942,7 +944,10 @@ class CliProvider(Provider):
                 data = carried_on(data, carry)
         models = data.get("modelUsage")
         cost = data.get("total_cost_usd")
+        turns = data.get("num_turns")
         said = dict(usage=Usage.of(data.get("usage")),
+                    turns=turns if isinstance(turns, int)
+                    and not isinstance(turns, bool) else None,
                     cost=cost if isinstance(cost, (int, float)) else None,
                     session=data.get("session_id") or chosen,
                     kept=kept,

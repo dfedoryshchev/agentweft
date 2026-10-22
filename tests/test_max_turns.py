@@ -72,6 +72,30 @@ def test_a_call_stopped_at_the_limit_is_not_gone_again_and_says_why(
     assert r.usage is not None and r.cost == 0.4
 
 
+def turned(text, turns):
+    code, out, err = answer(text)
+    said = json.loads(out.decode("utf-8"))
+    said["num_turns"] = turns
+    return code, json.dumps(said).encode("utf-8"), err
+
+
+def test_a_step_line_says_how_many_turns_its_calls_took(
+        tmp_path, monkeypatch, fake_cli):
+    no_waiting(monkeypatch)
+    a_flow(tmp_path, monkeypatch, "counted", ["worker", "reviewer"])
+    fake_cli(turned("done\n", 7), answer("VERDICT: ok\n"))
+    assert engine.main() == 0
+    worker, reviewer = every_line(tmp_path)
+    assert worker["turns"] == 7
+    assert "turns" not in reviewer
+
+
+def test_a_carried_on_call_s_turns_are_not_taken_for_its_own():
+    said = cli_provider.carried_on({"num_turns": 9, "total_cost_usd": 0.5},
+                                   {"from": "s-0", "cost": 0.2})
+    assert "num_turns" not in said
+
+
 def test_a_step_that_runs_away_stops_the_run_after_one_go(
         tmp_path, monkeypatch, fake_cli):
     monkeypatch.delenv("AGENTWEFT_MAX_TURNS", raising=False)
@@ -85,3 +109,4 @@ def test_a_step_that_runs_away_stops_the_run_after_one_go(
     [line] = every_line(tmp_path)
     assert "--max-turns 50" in (line.get("why") or "")
     assert line["cost"] == 0.4 and line["tokens"]["output"] == 3
+    assert line["turns"] == 51

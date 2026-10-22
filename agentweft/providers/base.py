@@ -86,16 +86,20 @@ class Reply(object):
     `kept` is what the session this call wrote has used as a whole, for a
     call made to be carried on: {"usage": the raw block, "models": the raw
     per-model block, "cost"}. None for a call that keeps no session.
+
+    `turns` is how many turns the provider says the call took, None when it
+    did not say.
     """
 
     __slots__ = ("text", "cached", "detail", "usage", "cost", "session", "model",
                  "retryable", "outage", "models", "killed", "metered", "guess",
-                 "writes", "kept")
+                 "writes", "kept", "turns")
 
     def __init__(self, text, cached=False, detail="", usage=None, cost=None,
                  session=None, model=None, retryable=None, outage=None,
                  models=None, killed=None, metered=None, guess=None,
-                 writes=None, kept=None):
+                 writes=None, kept=None, turns=None):
+        self.turns = turns
         self.kept = kept
         self.writes = writes
         self.text = text

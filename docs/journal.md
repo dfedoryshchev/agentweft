@@ -148,9 +148,9 @@ instead of picking a finished run back up.
 the journal line is the run. `runs/<run-id>/steps.jsonl` is the steps: one
 json line every time a step runs, a redo's second pass included, written
 whatever happened next - the run went on, sent the work back, parked, stopped
-or crashed. the keys are always all there, in this order, and `continued`
-(and `lapsed`) comes after them on the line of a step that carried its
-session on:
+or crashed. the keys are always all there, in this order; `turns` comes
+after them on the line of a step whose provider said them, and `continued`
+(and `lapsed`) on the line of a step that carried its session on:
 
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
      "from": null, "to": "reviewer.md",
@@ -236,6 +236,11 @@ session on:
   when that session had waited past its cache's lifetime: the seconds it
   waited. such a call writes the whole session to the cache again, so its
   cost is a cold re-entry, not a warm one.
+- `turns` is only on the line of a step whose every go the provider said the
+  turns of (`num_turns` in `claude`'s answer): their sum, the model's turns
+  with the tool calls between them. a carried-on call's figure is not taken,
+  since whether it counts the call or the whole session has not been seen,
+  and a fanned task's own entry in `tasks` has its own.
 - `facts_attached` is only on the line of a step whose brief handed it some
   of the project's facts ("what is known about a file", below): their ids,
   the ones shown in full, in the order shown.

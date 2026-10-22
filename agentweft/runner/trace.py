@@ -219,6 +219,15 @@ def last(attempt, what):
     return said[-1] if said else None
 
 
+def turns(attempts):
+    """-> the turns the provider says every reply took, summed; None unless
+    each one said."""
+    said = [getattr(r, "turns", None) for a in attempts for r in a.replies]
+    if not said or any(t is None for t in said):
+        return None
+    return sum(said)
+
+
 def seconds(attempts):
     if not attempts:
         return 0.0
@@ -234,7 +243,8 @@ def facts(attempts, model=None):
             "seconds": seconds(attempts),
             "cached": bool(attempts) and all(a.cached for a in attempts),
             "retries": retries(attempts),
-            "background_killed": killed(attempts)}
+            "background_killed": killed(attempts),
+            "turns": turns(attempts)}
 
 
 def last_seq(folder):
@@ -503,6 +513,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
         for a in attempts:
             task = {"task": a.task}
             task.update(facts([a], p.asks_for()))
+            if task["turns"] is None:
+                del task["turns"]
             task["session"] = last(a, "session")
             task["model_reported"] = last(a, "model")
             tasks.append(task)
@@ -545,6 +557,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "task_file": task_file,
            "tasks": tasks,
            "handoff": entry.handoff}
+    if said["turns"] is not None:
+        out["turns"] = said["turns"]
     went_on = [a.continued for a in attempts if a.continued]
     if went_on:
         out["continued"] = went_on[-1]
