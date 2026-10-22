@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import history, pairs, retrogold, runner, scorer
+from . import history, ladder, pairs, retrogold, runner, scorer
 
 USAGE = ("usage: python -m agentweft.bench <set> [--k <n>] [--flow <flow>]"
          " [--out <file>] [--scores <file>] [--live] [--mutants]\n"
@@ -12,7 +12,8 @@ USAGE = ("usage: python -m agentweft.bench <set> [--k <n>] [--flow <flow>]"
          "       python -m agentweft.bench --retro <cases> [--k <n>]"
          " [--out <file>] [--live]\n"
          "       python -m agentweft.bench --pairs <set> [--k <n>]"
-         " [--flow <flow>] [--twin] [--out <file>] [--live]")
+         " [--flow <flow>] [--twin] [--out <file>] [--live]\n"
+         "       python -m agentweft.bench --ladder <run folder>...")
 FAKE = "fake"
 
 
@@ -32,7 +33,8 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if "--compare" in argv:
         return compared(argv)
-    for flag, mode in (("--retro", retrogold), ("--pairs", pairs)):
+    for flag, mode in (("--retro", retrogold), ("--pairs", pairs),
+                       ("--ladder", ladder)):
         if flag in argv:
             try:
                 return mode.main(argv, valued, fake=FAKE)

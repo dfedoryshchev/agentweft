@@ -226,6 +226,54 @@ the summary adds the threshold, the minimum, the signatures, the likely
 duplicate tests and the undecided ones (each group past its first), the
 pins, the unique kills and the tests with no kill of their own.
 
+## the handoff ladder
+
+the strict 0-3 handoff score is 3 on every run once the runner writes what
+changed, how it was checked and one doubt on every path, so it tells no two
+runs apart. `--ladder` scores a run's `handoff.md` on ten points instead, each
+a line a person picking the run up cold needs, each held by a program, never
+a model:
+
+    python -m agentweft.bench --ladder runs/fix-with-test-2026-01-05-213305
+    python -m agentweft.bench --ladder runs/
+
+a folder is a run's record, or any folder above some; every `handoff.md` at
+or under it is scored. the points, in order:
+
+1. `outcome true`: the first line's outcome word is the one the run section's
+   cause names (`done` with none), and a stop names its cause after it
+2. `the one decision first and right`: it is the first section and holds one
+   item; `none` only on a done run; a done run with a ruling on record never
+   shows a question open; when the flow's lead escalated, the recommendation
+   shown is the lead's; never `none given` while the record holds one; a park
+   carries its `--resume` command
+3. `changed, from git`: each file with its lines and commit state
+4. `read, with the line that mattered`: every pass that read files has a
+   `said:` line under it
+5. `tests red then green`: the red first line is `shown on` or `gate-proven
+   on`, every new test is green with the fix, no start test is red
+6. `checks backed`: no `verified:` line the record does not back
+   (`unbacked` or `shortened`)
+7. `why in one section`: the why section says what was done, and the
+   alternatives tried and dropped sit in it, not only under carry forward
+8. `not done said plainly`: the section is there; on a stop a line of its own
+   starts `- not done:` or `- not fixed:`
+9. `no false line`: none of the known false lines: "instead of doing the
+   work" on a tree holding product code, `UNRULED` on an addition a gate
+   allowed, `gate-proven` with no red gate that went red, a decided question
+   shown open
+10. `once, for everyone`: no two entries under open questions, assumed or
+    doubts cite the same file line; a done run with new tests carries a
+    command to see the fix by hand
+
+a point the run's path has no line for is `n/a`, left out, never 0: tests on
+a stop that wrote none, checks on a run where no gate ran and no step said it
+verified, changed outside a git checkout. the score is the points held over
+the points that apply, out of ten; a first line with no outcome word scores
+0 on every point. each run prints its path (done, stopped, parked, failed),
+its score and the ten named lines, and each path its runs, mean and how
+often each point was missed.
+
 ## the retro's gold
 
 the retro reads a run's record and names what failed, why, what to change and
