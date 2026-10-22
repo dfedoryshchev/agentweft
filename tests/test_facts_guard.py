@@ -268,6 +268,31 @@ def test_the_same_claim_again_counts_on_the_live_fact(tmp_path):
     assert later.new == 0
 
 
+def test_a_line_written_by_hand_in_an_entry_survives_a_runner_rewrite(
+        tmp_path):
+    store, record = a_store(tmp_path)
+    old, _ = store.add(proposal(), record)
+    path = tmp_path / "facts" / "pkg" / "a.py.md"
+    text = path.read_text(encoding="utf-8")
+    by_hand = text.replace("kind: why" + NL, "kind: why" + NL
+                           + "this bit us twice, see the release notes" + NL
+                           + NL + "- ask before changing it" + NL)
+    by_hand = by_hand.rstrip(NL) + NL + NL + "a note at the end" + NL
+    path.write_text(by_hand, encoding="utf-8", newline=NL)
+    later = factsguard.Store(tmp_path)
+    again, why = later.add(proposal(), record)
+    assert why == "" and again.id == old.id
+    _, why = later.add(proposal(claim="a second fact on the file"), record)
+    assert why == ""
+    after = path.read_text(encoding="utf-8")
+    for line in ("this bit us twice, see the release notes",
+                 "- ask before changing it", "a note at the end"):
+        assert line in after, after
+    assert "proposed 2" in after
+    assert after.index("- ask before changing it") < after.index("F-0002")
+    assert later.check("next") == ""
+
+
 def test_a_written_fact_carries_its_source_and_who_wrote_it(tmp_path):
     store, record = a_store(tmp_path)
     store.keep_in(tmp_path / "run")

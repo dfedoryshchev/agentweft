@@ -118,7 +118,7 @@ class Fact(object):
 
     def lines(self):
         return (["## " + self.id + " " + self.status]
-                + [k + ": " + v for k, v in self.fields])
+                + [v if k is None else k + ": " + v for k, v in self.fields])
 
 
 class Anchor(object):
@@ -187,11 +187,14 @@ def file_for(scope):
 
 
 def parse(text, file=None):
-    """-> (the lines before the first entry, [Fact]) of one file's text."""
+    """-> (the lines before the first entry, [Fact]) of one file's text. a
+    line in an entry that is no field, one a person wrote there, is kept in
+    its place as a field with no key, so a rewrite gives it back."""
     head, out = [], []
     for raw in text.replace("\r\n", "\n").split("\n"):
         m = HEADING.match(raw)
         if m:
+            trim(out)
             out.append(Fact(m.group(1), m.group(2), file=file))
             continue
         if not out:
@@ -200,9 +203,21 @@ def parse(text, file=None):
         f = FIELD.match(raw)
         if f:
             out[-1].fields.append((f.group(1), f.group(2).strip()))
+        else:
+            out[-1].fields.append((None, raw.rstrip()))
+    trim(out)
     while head and not head[-1].strip():
         head.pop()
     return head, out
+
+
+def trim(found):
+    """drop the blank lines that end the last entry: the blank line between
+    two entries is the renderer's."""
+    if found:
+        fields = found[-1].fields
+        while fields and fields[-1][0] is None and not fields[-1][1].strip():
+            fields.pop()
 
 
 def render(head, found):

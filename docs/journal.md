@@ -1239,6 +1239,11 @@ a fact whose file is gone is `stale` on the first run that finds it gone and
 fact with no anchor is never stale by content. nothing else in an entry is
 rewritten.
 
+between runs the files are yours to edit. a line you write inside an entry
+that is not a `key: value` field, a note or a list say, stays where you put
+it whenever the runner writes that file again (a heal, a count, a new fact
+beside it); only the blank lines that end an entry are the runner's.
+
 no step writes a fact. the runner writes them, from the FACTS block of a
 flow's retro (`docs/writing-a-flow.md`, section 10), each held to the record
 first (`docs/guardrails.md`, "the facts only the runner writes"), with its
