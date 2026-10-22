@@ -450,7 +450,11 @@ reach: a step on another provider, or a write the hook cannot see.
 the facts under `facts/` in the place (`docs/journal.md`, "what is known
 about a file") tell a step what a file's way is, so a step that could write
 one could write the fact that lets its own change through. they get the
-same three walls as the rulings, in `agentweft/guardrails/factsguard.py`:
+same three walls as the rulings, in `agentweft/guardrails/factsguard.py`.
+the store is every `.md` file under `facts/`: the entry files, `INDEX.md`
+and `PROPOSED.md`. those names are reserved. any other file there, a
+project's own `facts/capitals.json` say, is the project's: no wall stands on
+it, a check reads it, and a change to it is a change to the product.
 
 - the account, `runs/<id>/facts.json`, outside the place: a sha256 of every
   entry under `facts/` when the run started (after the start's heal, which is
@@ -458,8 +462,8 @@ same three walls as the rulings, in `agentweft/guardrails/factsguard.py`:
   every fact it refused. a place with no `facts/` and nothing proposed leaves
   no file. an entry written by hand between runs counts.
 - after every step, and again after its gates and after a stop's test run,
-  `facts/` is compared with what the runner last wrote, in the same check as
-  `decisions.md`. a step that added, edited or removed anything there fails
+  the store is compared with what the runner last wrote, in the same check as
+  `decisions.md`. a step that added, edited or removed a store file fails
   the way a gate does (`rulings` in `gates.md`):
 
       facts/pkg/a.py.md was changed by worker.md; facts come only from the runner. added or edited F-0003. it was put back, and the change counts for nothing
@@ -467,7 +471,8 @@ same three walls as the rulings, in `agentweft/guardrails/factsguard.py`:
   and the store is put back as the runner left it, a file the step added
   taken away.
 - the hook on a `claude` step's Write, Edit, MultiEdit and NotebookEdit
-  refuses any path under `facts/` in the place, as it refuses decisions.md.
+  refuses any `.md` path under `facts/` in the place, as it refuses
+  decisions.md.
 
 a fact the runner is asked to write is held to the record before anything
 is written; a refused one is not written and its reason is kept:
@@ -515,7 +520,7 @@ without `-E` or `-F` the pattern is a basic grep pattern, so `print(` is the
 text `print(`. `exits 1` means the fact holds when no line matches, `exits 0`
 (or no `exits`) when one does. every path is a file or, with `-r`, a folder
 in the place and in the fact's scope; a recursive read never looks in
-`.git`, caches, installed packages (`node_modules`, `venv`, `.venv`), `facts/` (which quotes the very lines its checks look for)
+`.git`, caches, installed packages (`node_modules`, `venv`, `.venv`), the store's `.md` files (which quote the very lines its checks look for)
 or the runner's own folder. anything else, a path outside the place, a file
 that is not there, a flag it does not take, a pattern that does not read,
 another command, `;` or `|` in a path, cannot run.

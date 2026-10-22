@@ -1251,7 +1251,9 @@ first (`docs/guardrails.md`, "the facts only the runner writes"), with its
 beside the entries and hold none: `facts/INDEX.md`, which the runner renders
 after every write it makes, a line per live fact by scope and the stale ones
 apart, and `facts/PROPOSED.md`, the guards and doc changes the retro
-proposed, for a person; the runner applies none of them.
+proposed, for a person; the runner applies none of them. every `.md` file
+under `facts/` is the store's, those two names included; any other file
+there is the project's own and the runner leaves it alone.
 
 a step is handed the facts for the files it is handed, in its brief
 (`docs/flows.md`, "the brief the run keeps"), and its line in `steps.jsonl`

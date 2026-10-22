@@ -176,6 +176,13 @@ def folder(root):
     return Path(root) / FOLDER
 
 
+def is_store(rel):
+    """whether a path from the place is one of the store's files: a `.md`
+    file anywhere under facts/. any other file there is the project's own."""
+    rel = norm(rel)
+    return rel.startswith(FOLDER + "/") and rel.lower().endswith(".md")
+
+
 def file_for(scope):
     """-> where under facts/ an entry for `scope` is written."""
     scope = norm(scope)
@@ -566,16 +573,24 @@ def escapes(root, path):
 def walk(root, base, own=None):
     """-> every file under `base`, in a fixed order, past the folders a check
     never reads: git's, caches, the runner's own and the store, which quotes
-    the very lines its checks look for."""
-    skip = set([Path(os.path.abspath(str(folder(root))))])
+    the very lines its checks look for. a project's own file under facts/
+    is read like any other."""
+    skip = set()
     if own is not None:
         skip.add(Path(os.path.abspath(str(own))))
+    top = Path(os.path.abspath(str(root)))
     out = []
     for dirpath, dirs, names in os.walk(str(base)):
         here = Path(os.path.abspath(dirpath))
         dirs[:] = sorted(d for d in dirs if d not in NOT_READ
                          and here / d not in skip)
-        out.extend(here / n for n in sorted(names))
+        for n in sorted(names):
+            try:
+                mine = is_store((here / n).relative_to(top).as_posix())
+            except ValueError:
+                mine = False
+            if not mine:
+                out.append(here / n)
     return out
 
 

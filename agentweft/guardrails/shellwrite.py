@@ -23,8 +23,9 @@ lets the call through is no check.
 
 the same hook also stands on Write, Edit, MultiEdit and NotebookEdit for a
 step granted `write` or `edit`, for one thing only: each `--keep <path>`
-argument is a file no tool may write, or a folder, ending in `/`, no tool may
-write inside, and the runner passes decisions.md and facts/ in the place. a
+argument is a file no tool may write, or a folder, ending in `/`, inside which
+no tool may write a `.md` file, and the runner passes decisions.md and facts/
+in the place (any other file there is the project's own). a
 ruling there lets a change stand and a fact tells the next step its way, so
 a step writing either would be ruling on its own work
 (`guardrails/rulings.py` and `guardrails/factsguard.py` catch whatever gets
@@ -333,7 +334,7 @@ def edited(data, kept):
     cwd = data.get("cwd") or os.getcwd()
     for k in kept:
         if k.endswith(("/", "\\")):
-            if inside(path, k, cwd):
+            if inside(path, k, cwd) and path.lower().endswith(".md"):
                 return path, k
         elif same(path, k, cwd):
             return path, k

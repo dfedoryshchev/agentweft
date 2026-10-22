@@ -89,6 +89,32 @@ def test_a_step_that_adds_a_facts_file_fails_and_it_is_taken_away(tmp_path):
     assert store.check("worker.md") == ""
 
 
+def test_a_projects_own_files_in_a_facts_folder_stay_the_projects(tmp_path):
+    from agentweft.guardrails import snapshot
+
+    put(tmp_path, "facts/capitals.json", '{"fr": "Paris"}')
+    put(tmp_path, "facts/F-0001.md", entry("F-0001", ".", "by hand"))
+    store = factsguard.Store(tmp_path)
+    start = snapshot.take(tmp_path)
+    put(tmp_path, "facts/capitals.json", '{"fr": "Paris", "de": "Berlin"}')
+    put(tmp_path, "facts/towns/uk.csv", "london" + NL)
+    assert store.check("worker.md") == ""
+    assert (tmp_path / "facts" / "towns" / "uk.csv").is_file()
+    assert "Berlin" in (tmp_path / "facts" / "capitals.json").read_text(
+        encoding="utf-8")
+    assert start.product_changed() == ["facts/capitals.json",
+                                       "facts/towns/uk.csv"]
+    put(tmp_path, "facts/F-0001.md", entry("F-0001", ".", "edited"))
+    assert "facts/F-0001.md was changed by worker.md" in store.check(
+        "worker.md")
+    keep = str(tmp_path / "facts") + "/"
+    data = {"tool_name": "Write", "cwd": str(tmp_path), "session_id": "s",
+            "tool_input": {"file_path": str(tmp_path / "facts" / "a.json"),
+                           "content": "x"}}
+    assert shellwrite.decide([str(tmp_path / "d.jsonl"), "--keep", keep],
+                             json.dumps(data)) == (0, "")
+
+
 def test_a_proposal_with_a_token_shaped_string_is_refused(tmp_path):
     store, record = a_store(tmp_path)
     token = "ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"

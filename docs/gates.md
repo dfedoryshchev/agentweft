@@ -427,7 +427,8 @@ read from the place and not the top of the repo, and a `*` never crosses a
 `/` (the handoff's rulings use the same definition). the test runner's own
 files are in none of the three: `conftest.py` anywhere, `pytest.ini`,
 `.coverage*`, and anything under `.hypothesis/` or `.pytest_cache/`. nor are
-the runner's own files in the place, `decisions.md` and `facts/`, which it
+the runner's own files in the place, `decisions.md` and the `.md` files
+under `facts/`, which it
 writes between steps and between legs: a resumed leg never takes its own
 counts for a change the run made. a place
 outside git is hashed too, every file under it but those in a folder whose

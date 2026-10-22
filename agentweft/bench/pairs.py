@@ -28,7 +28,7 @@ the convention held.
 
 each repeat runs run 1 on a fresh copy of the project, then run 2 on what run
 1 left: the `lane` arm, handed the facts run 1 kept. with `twin`, run 2 also
-runs on a copy of what run 1 left, without its facts/ folder, with the flow's
+runs on a copy of what run 1 left, without the store's files, with the flow's
 `lane: off`: the `twin` arm, the same run with no fact handed or on disk, so
 the two differ in the facts alone.
 """
@@ -60,7 +60,7 @@ UNTOUCHED = "untouched"
 UNCHECKED = "not checked"
 VERDICTS = (HONOURED, CONTRADICTED, UNTOUCHED, UNCHECKED)
 # what a run writes that is not its change to the project
-NOT_THE_CHANGE = (".git", facts.FOLDER, "__pycache__", ".pytest_cache")
+NOT_THE_CHANGE = (".git", "__pycache__", ".pytest_cache")
 
 
 def load(folder):
@@ -101,12 +101,14 @@ def read(path):
 
 
 def files_of(place):
-    """-> {path: sha256} of the project's own files in `place`."""
+    """-> {path: sha256} of the project's own files in `place`, the store's
+    left out."""
     place = Path(place)
     out = {}
     for p in place.rglob("*"):
         rel = p.relative_to(place)
-        if p.is_file() and not set(rel.parts) & set(NOT_THE_CHANGE):
+        if p.is_file() and not set(rel.parts) & set(NOT_THE_CHANGE) \
+                and not facts.is_store(rel.as_posix()):
             out[rel.as_posix()] = hashlib.sha256(p.read_bytes()).hexdigest()
     return out
 
@@ -287,17 +289,29 @@ def first(flow, spec, provider, pair, place, tmp):
 
 
 def without_facts(place):
-    """-> a copytree ignore that leaves out the store run 1 left at the top
-    of `place`, and nothing else: a project's own folder named facts deeper
-    down is the project's."""
+    """-> a copytree ignore that leaves out the store run 1 left in `place`
+    (`facts.is_store`), and nothing else: a project's own file under facts/
+    and a folder named facts deeper down are the project's."""
     top = Path(place).resolve()
 
     def ignore(where, names):
-        if Path(where).resolve() == top and facts.FOLDER in names:
-            return [facts.FOLDER]
-        return []
+        try:
+            here = Path(where).resolve().relative_to(top).as_posix()
+        except ValueError:
+            return []
+        return [n for n in names if facts.is_store(
+            n if here == "." else here + "/" + n)]
 
     return ignore
+
+
+def store_in(place):
+    """-> the store's files in `place`, as paths from it."""
+    return sorted(rel for rel in (p.relative_to(place).as_posix()
+                                  for p in facts.folder(place).rglob("*")
+                                  if p.is_file())
+                  if facts.is_store(rel)) \
+        if facts.folder(place).is_dir() else []
 
 
 def one(flow, spec, provider, pair, attempt, twin=False):
@@ -313,10 +327,10 @@ def one(flow, spec, provider, pair, attempt, twin=False):
         if twin:
             off = Path(tmp) / "repo-twin"
             shutil.copytree(str(place), str(off), ignore=without_facts(place))
-            if facts.folder(off).exists():
+            if store_in(off):
                 raise RuntimeError("the twin's copy still holds "
-                                   + facts.FOLDER + "/, so the arms would not"
-                                   " differ in the facts alone")
+                                   + ", ".join(store_in(off)) + ", so the arms"
+                                   " would not differ in the facts alone")
         arms = {LANE: second(flow, spec, provider, pair, place, start, tmp,
                              LANE)}
         if twin:

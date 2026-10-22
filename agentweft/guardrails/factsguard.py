@@ -186,7 +186,7 @@ def in_place(root, scope):
         pattern = facts.glob_re(scope)
         return any(pattern.match(p.relative_to(base).as_posix())
                    for p in under.rglob("*") if p.is_file()
-                   and facts.FOLDER not in p.relative_to(base).parts[:1])
+                   and not facts.is_store(p.relative_to(base).as_posix()))
     if scope.endswith("/"):
         return (base / scope).is_dir()
     return (base / scope).is_file()
@@ -220,13 +220,15 @@ class Store(object):
         self.found = [digest(f) for f in facts.read(self.root)]
 
     def now(self):
-        """-> {path under the place: bytes} for every file under facts/."""
+        """-> {path under the place: bytes} for every one of the store's
+        files (`facts.is_store`)."""
         base = facts.folder(self.root)
         if not base.is_dir():
             return {}
         out = {}
         for p in sorted(base.rglob("*")):
-            if p.is_file():
+            if p.is_file() and facts.is_store(
+                    p.relative_to(self.root).as_posix()):
                 try:
                     out[p.relative_to(self.root).as_posix()] = p.read_bytes()
                 except OSError:

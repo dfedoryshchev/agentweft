@@ -56,7 +56,8 @@ class Pairing(Provider):
             Pairing.retros = Pairing.retros + 1
             return Reply(KEEP if Pairing.retros == 1 else NOTHING)
         if "count the words" in prompt:
-            Pairing.saw.append(((where / "facts").exists(),
+            Pairing.saw.append((bool(list((where / "facts").rglob("*.md"))),
+                                (where / "facts" / "rates.json").is_file(),
                                 (where / "pkg" / "facts").is_dir()))
             (where / "pkg" / "b.py").write_text(
                 LOUD if Pairing.loud else QUIET, encoding="utf-8")
@@ -144,8 +145,9 @@ def test_the_twin_is_the_same_run_2_with_no_fact_handed(a_set, tmp_path):
 def test_the_twin_runs_without_the_facts_run_1_left_on_disk(a_set,
                                                             tmp_path):
     put(a_set / "errors" / "repo" / "pkg" / "facts" / "rates.json", "{}")
+    put(a_set / "errors" / "repo" / "facts" / "rates.json", "{}")
     scored(a_set, tmp_path, "--twin")
-    assert Pairing.saw == [(True, True), (False, True)]
+    assert Pairing.saw == [(True, True, True), (False, True, True)]
 
 
 def test_a_set_whose_pair_names_no_convention_is_refused(a_set, tmp_path,

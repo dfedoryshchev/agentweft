@@ -300,10 +300,11 @@ is the convention held. a pair with no convention scope or check, no
 
 each repeat runs run 1 on a fresh copy of the project, then run 2 on what run
 1 left: the `lane` arm, handed the facts run 1 kept. `--twin` also runs run 2
-on a copy of what run 1 left without its `facts/` folder, with the flow copied
-and `lane: off` added (the `twin` arm): no fact is handed to a step and none
-is on disk for a step to open, so the two arms differ in the facts alone. a
-copy that still holds `facts/` stops the bench before run 2. the flow has to run
+on a copy of what run 1 left without the store's `.md` files under `facts/`
+(a project's own file there stays), with the flow copied and `lane: off`
+added (the `twin` arm): no fact is handed to a step and none is on disk for
+a step to open, so the two arms differ in the facts alone. a copy that still
+holds a store file stops the bench before run 2. the flow has to run
 the retro (every shipped flow does), or run 1 keeps nothing.
 
 a row per pair and repeat holds:

@@ -144,7 +144,7 @@ def is_runners(path):
     change to the product."""
     from agentweft.orchestrate import decisions, facts
 
-    return path == decisions.FILE or path.startswith(facts.FOLDER + "/")
+    return path == decisions.FILE or facts.is_store(path)
 
 
 def is_tooling(path):
