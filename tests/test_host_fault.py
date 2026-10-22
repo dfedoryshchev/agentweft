@@ -199,6 +199,17 @@ def test_a_new_test_red_with_the_fix_keeps_what_it_printed_in_gates_md(
     assert "add is still wrong" in said
 
 
+def test_a_start_test_stop_is_raised_by_the_check_not_by_the_step(
+        tmp_path, monkeypatch):
+    monkeypatch.setenv("START_BREAKS", "1")
+    code, called, folder = run(tmp_path, monkeypatch, TESTER + worker())
+    assert code == stops.exit_code(stops.CONFLICT)
+    decision = read(folder / "handoff.md").split("## the one decision")[1] \
+        .split("## ")[0]
+    assert "raised by the start-tests check, after worker.md" in decision
+    assert "raised by worker" not in decision
+
+
 def test_one_fault_on_every_red_is_the_hosts_and_two_are_not():
     said = "OSError: [WinError 87] The parameter is incorrect"
     assert hostfault.same([said, said]) == said

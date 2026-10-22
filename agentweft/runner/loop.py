@@ -279,7 +279,9 @@ def go(leg):
             needs = park.lines(at, None, done, resume.remaining(steps(flow), at),
                                carry, why=told, cause=cause, handed=handed)
         note = leave({"cause": cause, "why": why, "at": at,
-                      "question": question, "checked": list(checked)}, needs)
+                      "question": question, "checked": list(checked),
+                      "by": "the start-tests check, after " + at
+                      if replayed else ""}, needs)
         if index:
             write_index(index)
         ending.journal(fm["name"], stops.status(cause, at), started,

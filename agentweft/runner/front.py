@@ -247,6 +247,10 @@ def stopped_on(stopped, asking=(), passes=()):
     text, rec, size = parts(v.needs or said.strip())
     role = stopped["at"]
     kind = "conflict" if stopped["cause"] == stops.CONFLICT else "needs"
+    if stopped.get("by"):
+        # the runner asked it, after the step: the step's own block says
+        # nothing on it
+        return point(stopped["by"], text, v.cites, rec, size, v.options, kind)
     cited = refs(text, *v.cites)
     for p in asking:
         role = p["role"]

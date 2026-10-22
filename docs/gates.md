@@ -576,7 +576,9 @@ records it as a `start-tests` line in `gates.md`:
   tests were green at the start is read from the suite baseline below, and
   only when something came back red: a test red at the start is never blamed
   on the run. every one red now on the same machine fault runs once more
-  (above); held, it is the gate's issue and asks no question.
+  (above); held, it is the gate's issue and asks no question. the stop's one
+  decision in the handoff is raised by `the start-tests check, after <the
+  step>`: the check asks it, not the step.
 - unless a ruling in `decisions.md` covers it: one that names the test (its
   id, with or without the folders before the file), or one that quotes in
   double quotes, three words or more, a line of a spec file as the run found
