@@ -740,6 +740,15 @@ class Run(object):
                         for g in (s.get("gates") or [])]
         return []
 
+    def suite_of(self, step):
+        """-> what `step`'s gates that run the whole suite said of the place
+        as it is now, [] when it has none. a gate the run skips says
+        nothing."""
+        from .gating import clocked
+
+        return [clocked(self.held(g, step), "")
+                for g in self.gates_for(step) if g.name == "command"]
+
     def effort_for(self, step, used):
         """-> what the step's line keeps about how hard its model is asked to
         think: the level asked ("provider default" for none), the step's own

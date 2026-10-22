@@ -79,7 +79,9 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
 - the first reviewer also names, under its verdict, one wrong implementation
   the tests would let pass and the case that fails it. with `on_missed:
   tester` an ok sends that case to the tester, once a run, which adds it, and
-  the worker and both reviewers go again behind it (`docs/journal.md`)
+  the worker and both reviewers go again behind it. when the suite already
+  passes with the case in, the worker does not go again and the second
+  reviewer takes the work (`docs/journal.md`)
 
 a second reviewer is a second lens, not a second opinion. when a flow runs
 more than one reviewer, each says in `lens:` the one line it reads for, no

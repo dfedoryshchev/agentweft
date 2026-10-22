@@ -12,7 +12,10 @@ or `WOULD PASS: none`. a line under a verdict that lets the work through goes
 to the nearest step before the reviewer with that role, the one that wrote
 the tests, at the end of its prompt, and its red-test gate shows the new case
 red before the code it tests, as on its first go. the steps after it go again
-in the flow's order, so the code is held to the new case too. once a run: a
+in the flow's order, so the code is held to the new case too, unless the
+suite gates of the step that wrote the code pass with the case in: then the
+code already holds to it, and the run goes on from the step after the
+reviewer, which has read this code already. once a run: a
 reviewer that names another one the next time is read and not sent. a redo
 is the reviewer's verdict on the code and goes where `on_redo` says.
 """
@@ -55,6 +58,21 @@ def told(step, wrong, catch):
             " it, and it is run to show that. what " + step + " said:\n\n"
             + KEY + ": " + wrong + "\n" + (CATCH + ": " + catch + "\n"
                                            if catch else ""))
+
+
+def green(results):
+    """whether the suite gates of the step that wrote the code, run once the
+    case is in, pass: one at least, none skipped, none that could not run."""
+    return bool(results) and all(
+        r.ok and not getattr(r, "skipped", False)
+        and not getattr(r, "host", "") for r in results)
+
+
+def passes_already(coder, results):
+    """-> the line the record keeps when the case passes on the code as it
+    is, so `coder` does not go again."""
+    return ("the case passes on the code as it is, so " + coder + " does not"
+            " go again: " + "; ".join(repr(r) for r in results))
 
 
 def then(writer, step, wrong):

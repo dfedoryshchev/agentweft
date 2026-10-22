@@ -32,6 +32,8 @@ NAMED_NONE = "VERDICT: ok" + NL + "WOULD PASS: none" + NL + NL + WORKER
 MORE = RIGHT + NL + NL + ("def test_mul_two_five():" + NL
                           + "    from calc import mul" + NL + NL
                           + "    assert mul(2, 5) == 10" + NL)
+# passes the one test there is and fails the case the reviewer names
+SIX = AFTER.replace("return a * b", "return 6")
 
 
 def test_the_line_and_its_case_are_read_off_their_own_lines():
@@ -60,7 +62,7 @@ def test_a_named_wrong_implementation_goes_to_the_tester_with_its_case(
                "reviewer-runs.md": [OK]}
     writes = {"tester.md": [("tests/test_mul.py", RIGHT),
                             ("tests/test_mul.py", MORE)],
-              "worker.md": [("calc.py", AFTER), ("", "")]}
+              "worker.md": [("calc.py", SIX), ("calc.py", AFTER)]}
     asked, sent, code, folder, project = run_it(tmp_path, monkeypatch,
                                                 answers, writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
@@ -79,6 +81,28 @@ def test_a_named_wrong_implementation_goes_to_the_tester_with_its_case(
     assert "PASS red-test - red" in second
     steps = (folder / "steps.jsonl").read_text(encoding="utf-8")
     assert '"to": "tester.md"' in steps
+
+
+def test_a_case_that_already_passes_does_not_send_the_worker_round_again(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],
+               "worker.md": [WORKER], "reviewer.md": [NAMED],
+               "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", MORE)],
+              "worker.md": [("calc.py", AFTER)]}
+    asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
+                                          writes)
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "tester.md", "reviewer-runs.md", RETRO]
+    assert code == stops.EXIT_OK
+    assert WRONG_WAY not in sent[5]
+    gates = (folder / "gates.md").read_text(encoding="utf-8")
+    second = gates.split("## tester.md")[2]
+    assert "PASS red-test - red" in second
+    assert "the case passes on the code as it is" in second
+    steps = (folder / "steps.jsonl").read_text(encoding="utf-8")
+    assert '"to": "reviewer-runs.md"' in steps
 
 
 def test_none_goes_nowhere(tmp_path, monkeypatch):

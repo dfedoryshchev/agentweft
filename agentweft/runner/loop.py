@@ -332,6 +332,7 @@ def go(leg):
         return True
 
     switched = False
+    case_for = None
     seen_head = (run.signoff or {}).get("head")
     try:
         while step:
@@ -672,6 +673,7 @@ def go(leg):
                 if coder:
                     run.gate_said[coder] = wouldpass.then(writer, step,
                                                           missed[0])
+                    case_for = (writer, step, coder)
                 out = given.get(writer, EMPTY)
                 came_from = step
                 step = writer
@@ -700,10 +702,25 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting=waiting, told=why)
             sent_back = out.verdict == "redo" and nxt
+            already = None
+            if case_for and step == case_for[0]:
+                _, named, coder = case_for
+                case_for = None
+                ran = run.suite_of(coder) \
+                    if nxt == coder and not sent_back else []
+                if wouldpass.green(ran):
+                    already = wouldpass.passes_already(coder, ran)
+                    print(already)
+                    with open(step_dir / "gates.md", "a",
+                              encoding="utf-8") as gf:
+                        gf.write(already + NEWLINE)
+                    run.gate_said.pop(coder, None)
+                    nxt = route.next(named, EMPTY)
             if step in before:
                 entry.changed = before[step] != snapshot.fingerprint(
                     run.workdir, own=state.RUNS)
-            trail.close(entry, "redo" if sent_back else "ok", to=nxt)
+            trail.close(entry, "redo" if sent_back else "ok", why=already,
+                        to=nxt)
             record.mark(step, manifest.REDO if sent_back else manifest.PASSED,
                         run_id, out.output)
             record.save(run.budget)
@@ -714,6 +731,8 @@ def go(leg):
                 # verdict on the work instead of the work, and with the
                 # same verdict twice it would be sent the same prompt
                 out = handed
+            if already:
+                out = given.get(named, out)
             came_from = step
             step = nxt
         signed = signoff.check(run.workdir, run.signoff)
