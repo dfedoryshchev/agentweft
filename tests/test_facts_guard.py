@@ -319,6 +319,44 @@ def test_a_line_written_by_hand_in_an_entry_survives_a_runner_rewrite(
     assert later.check("next") == ""
 
 
+def test_two_runs_on_one_place_keep_each_others_facts(tmp_path):
+    put(tmp_path, "pkg/a.py", CODE)
+    own = tmp_path / "runs"
+    first = factsguard.Store(tmp_path, cap=9, own=own)
+    second = factsguard.Store(tmp_path, cap=9, own=own)
+    record = factsguard.Record(tmp_path)
+    one, why = first.add(proposal(), record)
+    assert why == ""
+    assert second.check("worker.md") == ""
+    two, why = second.add(proposal(claim="a second fact"), record)
+    assert why == ""
+    assert (one.id, two.id) == ("F-0001", "F-0002")
+    assert first.check("worker.md") == ""
+    assert sorted(f.id for f in facts.read(tmp_path)) == ["F-0001", "F-0002"]
+    assert [f.id for f in second.read()] == ["F-0001", "F-0002"]
+    first.attached([{"facts_attached": ["F-0001", "F-0002"]}])
+    assert second.check("worker.md") == ""
+    put(tmp_path, "facts/pkg/_folder.md", entry("F-0009", "pkg/", "forged"))
+    said = second.check("worker.md")
+    assert "added or edited F-0009" in said
+    assert first.check("worker.md") == ""
+    assert sorted(f.id for f in facts.read(tmp_path)) == ["F-0001", "F-0002"]
+    assert "attached 1" in (tmp_path / "facts" / "pkg" / "a.py.md").read_text(
+        encoding="utf-8")
+
+
+def test_the_places_turn_is_held_by_one_at_a_time(tmp_path, monkeypatch):
+    monkeypatch.setattr(factsguard, "WAIT", 0.2)
+    gate = tmp_path / "runs" / "facts-ledger-x.lock"
+    held = factsguard.take(gate)
+    assert held is not None
+    assert factsguard.take(gate) is None
+    factsguard.give(held)
+    again = factsguard.take(gate)
+    assert again is not None
+    factsguard.give(again)
+
+
 def test_a_written_fact_carries_its_source_and_who_wrote_it(tmp_path):
     store, record = a_store(tmp_path)
     store.keep_in(tmp_path / "run")

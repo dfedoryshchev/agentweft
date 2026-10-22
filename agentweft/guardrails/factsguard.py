@@ -16,6 +16,8 @@ write a ruling, so facts get the same walls rulings have
   own, so every place that checks decisions.md checks facts/ too.
 - a `claude` step's Write and Edit tools are refused under facts/
   (`guardrails/shellwrite.py`).
+- two runs on one place share a Ledger of what each wrote, so neither
+  takes the other's writes for a step's.
 
 and a fact the runner is asked to write is held to the record before
 anything is written (`Store.add`): no secret in any field, a one-line claim
@@ -30,12 +32,16 @@ a fact's check runs again after every step that changed a file in its scope
 (`Store.conform`), and the end of the leg counts each step whose change held
 it or broke it (`Store.held_to`).
 """
+import base64
+import contextlib
 import datetime
 import hashlib
 import json
 import math
+import os
 import re
 import threading
+import time
 from pathlib import Path
 
 from agentweft.orchestrate import facts
@@ -192,11 +198,119 @@ def in_place(root, scope):
     return (base / scope).is_file()
 
 
+LEDGERS = "facts-ledger"
+# how long a write or a check waits for another run's to end before it goes
+# on alone
+WAIT = 30.0
+_HELD = {}
+_HELD_LOCK = threading.Lock()
+
+
+class Ledger(object):
+    """what every run on one place last wrote to each store file, kept in the
+    runner's own folder: a second run on the place reads it, so its check
+    takes the first run's writes for the runner's and not a step's, and
+    neither puts back the other's facts. writes and checks on the place take
+    turns under one lock, so two runs never pick the same id."""
+
+    def __init__(self, own, root):
+        key = hashlib.sha256(os.path.normcase(os.path.realpath(str(root)))
+                             .encode("utf-8")).hexdigest()[:16]
+        self.path = Path(own) / (LEDGERS + "-" + key + ".json")
+        self.gate = self.path.with_suffix(".lock")
+
+    @contextlib.contextmanager
+    def held(self):
+        """one writer or checker on the place at a time, across runs."""
+        with _HELD_LOCK:
+            entry = _HELD.setdefault(str(self.gate),
+                                     [threading.RLock(), 0, None])
+        with entry[0]:
+            if entry[1] == 0:
+                entry[2] = take(self.gate)
+            entry[1] = entry[1] + 1
+            try:
+                yield
+            finally:
+                entry[1] = entry[1] - 1
+                if entry[1] == 0 and entry[2] is not None:
+                    give(entry[2])
+                    entry[2] = None
+
+    def read(self):
+        try:
+            return json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def record(self, root, rels):
+        """note the bytes of each of `rels` as they are now as the runner's
+        latest write of it."""
+        data = self.read()
+        at = time.time()
+        for rel in rels:
+            try:
+                raw = (Path(root) / rel).read_bytes()
+            except OSError:
+                raw = None
+            data[rel] = {"at": at, "bytes": None if raw is None
+                         else base64.b64encode(raw).decode("ascii")}
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        part = self.path.with_suffix(".part")
+        part.write_text(json.dumps(data), encoding="utf-8")
+        os.replace(str(part), str(self.path))
+
+
+def take(gate):
+    """-> the open file `gate` once this process holds its lock, None when
+    it could not within WAIT."""
+    gate.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fh = open(str(gate), "a+b")
+    except OSError:
+        return None
+    until = time.time() + WAIT
+    while True:
+        try:
+            fh.seek(0)
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fh
+        except OSError:
+            if time.time() > until:
+                fh.close()
+                return None
+            time.sleep(0.05)
+
+
+def give(fh):
+    try:
+        fh.seek(0)
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+    except OSError:
+        pass
+    fh.close()
+
+
 class Store(object):
     """the runner's own record of the facts in one place, and the only way a
     fact is written there. `off` is a flow's `lane: off`: the run reads,
     heals and writes none of them, and a step is still held to leaving the
-    store as it found it."""
+    store as it found it. with `own`, the runner's folder, it keeps a Ledger
+    there that other runs on the same place share."""
 
     def __init__(self, workdir, cap=CAP, off=False, own=None):
         self.root = Path(workdir)
@@ -204,20 +318,64 @@ class Store(object):
         self.off = off
         # the runner's own folder, which no check reads
         self.own = own
+        self.ledger = Ledger(own, self.root) if own is not None else None
         self.lock = threading.Lock()
         self.folder = None
         self.written = []
         self.refused = []
         self.new = 0
+        # the entries another run on the place wrote, taken from the ledger
+        self.adopted = set()
         # the facts this run has counted a proposal on: a run counts once
         self.counted = set()
         self.taken()
         self.watch()
 
+    def shared(self, force=False):
+        """the place's turn, when another run may share it: taken once the
+        place has a store, or with `force` for a write that may start one.
+        a place with no facts leaves nothing in the runner's folder."""
+        if self.ledger is None or not (force or self.data
+                                       or facts.folder(self.root).is_dir()):
+            return contextlib.nullcontext()
+        return self.ledger.held()
+
     def taken(self):
         """note the store as it is now as the runner's own."""
         self.data = self.now()
+        self.at = time.time()
         self.found = [digest(f) for f in facts.read(self.root)]
+
+    def wrote(self, rels):
+        """note `rels`, store files the runner has just written, as its own
+        and in the ledger."""
+        rels = sorted(set(rels))
+        for rel in rels:
+            try:
+                self.data[rel] = (self.root / rel).read_bytes()
+            except OSError:
+                self.data.pop(rel, None)
+        if self.ledger is not None and rels:
+            self.ledger.record(self.root, rels)
+        self.save()
+
+    def expected(self):
+        """-> the store as the runner left it: this run's writes, and every
+        file another run on the place wrote since this one took it."""
+        out = dict(self.data)
+        if self.ledger is None:
+            return out
+        for rel, was in self.ledger.read().items():
+            if not isinstance(was, dict) or was.get("at", 0) <= self.at:
+                continue
+            if was.get("bytes") is None:
+                out.pop(rel, None)
+            else:
+                out[rel] = base64.b64decode(was["bytes"])
+        return out
+
+    def rel(self, path):
+        return Path(path).relative_to(self.root).as_posix()
 
     def now(self):
         """-> {path under the place: bytes} for every one of the store's
@@ -236,7 +394,8 @@ class Store(object):
         return out
 
     def known(self):
-        return set(self.found) | set(w["sha256"] for w in self.written)
+        return set(self.found) | set(w["sha256"] for w in self.written) \
+            | self.adopted
 
     def read(self):
         """-> the entries the runner has on record, every status; none when
@@ -250,11 +409,18 @@ class Store(object):
         """`facts.heal` as the runner's own write, before any step."""
         if self.off:
             return []
-        with self.lock:
+        with self.lock, self.shared():
+            before = self.now()
             made = facts.heal(self.root, today)
             if made:
                 self.index()
             self.taken()
+            after = self.data
+            if self.ledger is not None:
+                rels = [r for r in set(before) | set(after)
+                        if before.get(r) != after.get(r)]
+                if rels:
+                    self.ledger.record(self.root, rels)
             self.save()
             return made
 
@@ -268,11 +434,20 @@ class Store(object):
 
     def check(self, step, how=""):
         """-> "" when facts/ is as the runner left it, else why `step` fails,
-        with the store put back."""
+        with the store put back. what another run on the place wrote since
+        is the runner's too, and is taken as this run's own."""
         with self.lock:
+            if self.now() == self.data and not self.data:
+                return ""
+        with self.lock, self.shared():
             now = self.now()
             if now == self.data:
                 return ""
+            ours = self.expected()
+            if now == ours:
+                self.adopt(ours)
+                return ""
+            self.adopt(ours)
             known = self.known()
             changed = sorted(p for p in set(now) | set(self.data)
                              if now.get(p) != self.data.get(p))
@@ -296,6 +471,14 @@ class Store(object):
                 + " changed by " + step + how + "; facts come only from the"
                 " runner. " + (", ".join(said) + ". " if said else "")
                 + "it was put back, and the change counts for nothing")
+
+    def adopt(self, store):
+        """take `store`, {path: bytes}, as this run's own from now on."""
+        for raw in store.values():
+            _, found = facts.parse(raw.decode("utf-8", "replace"))
+            self.adopted.update(digest(f) for f in found)
+        self.data = dict(store)
+        self.at = time.time()
 
     def put_back(self):
         for rel in self.now():
@@ -404,7 +587,7 @@ class Store(object):
         if self.off:
             return []
         out = []
-        with self.lock:
+        with self.lock, self.shared():
             for f in self.read():
                 said = f.get("check").strip()
                 if f.status != facts.LIVE or not said:
@@ -450,11 +633,12 @@ class Store(object):
                     tally.setdefault(c.get("fact"), {}).setdefault(key, 0)
                     tally[c.get("fact")][key] += 1
         out = []
-        for fact in self.read() if tally else []:
-            for key, n in sorted((tally.get(fact.id) or {}).items()):
-                self.count(fact, key, n)
-                if fact.id not in out:
-                    out.append(fact.id)
+        with self.shared():
+            for fact in self.read() if tally else []:
+                for key, n in sorted((tally.get(fact.id) or {}).items()):
+                    self.count(fact, key, n)
+                    if fact.id not in out:
+                        out.append(fact.id)
         return out
 
     def anchor_out(self, said):
@@ -474,7 +658,7 @@ class Store(object):
     def add(self, p, record, today=None, origin=None):
         """-> (the fact written or counted, "") or (None, why it was
         refused). a refusal is kept on `refused` with its reason."""
-        with self.lock:
+        with self.lock, self.shared(force=True):
             why = self.refusal(p, record)
             if not why:
                 fact, why = self.written_from(p, today, origin)
@@ -535,14 +719,15 @@ class Store(object):
                        if path.is_file() else (["# facts: " + rel[:-3]], []))
         found = [f for f in found if f.id != fact.id] + [fact]
         facts.write(path, head, found)
-        self.mine(fact)
+        self.mine(fact, path)
 
-    def mine(self, fact):
+    def mine(self, fact, path):
+        """note `fact`, just written into `path`, as the runner's."""
         self.written.append({"id": fact.id, "status": fact.status,
                              "sha256": digest(fact)})
         self.index()
-        self.data = self.now()
-        self.save()
+        self.wrote([self.rel(path),
+                    facts.FOLDER + "/" + facts.INDEX])
 
     def status(self, id, status, key, value):
         """set fact `id` to `status`, with `key: value` saying why, in its
@@ -559,7 +744,7 @@ class Store(object):
                 if f.id == id:
                     how(f)
                     facts.write(path, head, found)
-                    self.mine(f)
+                    self.mine(f, path)
                     return f
         return None
 
@@ -574,7 +759,7 @@ class Store(object):
         """-> "" once fact `id` is anchored on `said` again and live, else
         why not: the fact is not live or stale, the evidence that it still
         holds is not on record, or the lines are not there."""
-        with self.lock:
+        with self.lock, self.shared():
             for key, text in (("anchor", said), ("evidence", evidence)):
                 what = secret_in(text or "")
                 if what:
@@ -604,7 +789,7 @@ class Store(object):
 
     def retire(self, id, why, today=None):
         """-> "" once fact `id` is retired, else why not."""
-        with self.lock:
+        with self.lock, self.shared():
             why = " ".join((why or "").split())
             if not why:
                 return "it has no why"
@@ -623,7 +808,7 @@ class Store(object):
     def propose(self, lines):
         """-> "" once `lines` are at the end of facts/PROPOSED.md, else why
         not. what is there is for a person; the runner applies none of it."""
-        with self.lock:
+        with self.lock, self.shared(force=True):
             for text in lines:
                 what = secret_in(text)
                 if what:
@@ -635,8 +820,7 @@ class Store(object):
                 " the runner applies none of them.", ""]
             with open(path, "a", encoding="utf-8", newline="\n") as f:
                 f.write("\n".join(head + list(lines) + [""]) + "\n")
-            self.data = self.now()
-            self.save()
+            self.wrote([self.rel(path)])
             return ""
 
     def count(self, fact, counter, n=1):
@@ -650,7 +834,7 @@ class Store(object):
                                   fact.file)
         found = [fact if f.id == fact.id else f for f in found]
         facts.write(fact.file, head, found)
-        self.mine(fact)
+        self.mine(fact, fact.file)
 
     def attached(self, lines):
         """add one to a fact's `attached` for each line of `lines`, the
@@ -661,10 +845,11 @@ class Store(object):
             for id in (line or {}).get("facts_attached") or []:
                 tally[id] = tally.get(id, 0) + 1
         out = []
-        for fact in self.read() if tally else []:
-            if fact.id in tally and fact.id not in out:
-                self.count(fact, "attached", tally[fact.id])
-                out.append(fact.id)
+        with self.shared():
+            for fact in self.read() if tally else []:
+                if fact.id in tally and fact.id not in out:
+                    self.count(fact, "attached", tally[fact.id])
+                    out.append(fact.id)
         return out
 
     def keep_in(self, folder):

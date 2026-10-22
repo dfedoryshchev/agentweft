@@ -473,6 +473,12 @@ it, a check reads it, and a change to it is a change to the product.
 - the hook on a `claude` step's Write, Edit, MultiEdit and NotebookEdit
   refuses any `.md` path under `facts/` in the place, as it refuses
   decisions.md.
+- two runs on one place started from the same folder share a ledger in
+  `runs/` (`facts-ledger-<key>.json`, with its `.lock`): what each run last
+  wrote to every store file. one run's check takes what the other wrote as
+  the runner's and keeps it, so neither puts back the other's facts, and a
+  step's change is still put back. writes and checks on the place take turns
+  under the lock, so two runs never write the same id.
 
 a fact the runner is asked to write is held to the record before anything
 is written; a refused one is not written and its reason is kept:
