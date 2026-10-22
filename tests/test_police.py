@@ -944,16 +944,85 @@ def test_police_on_finds_nothing_in_a_shipped_flow(flow, path, tmp_path,
     off = replayed(flow, path, tmp_path, monkeypatch, capsys, False, False)
     checked = [l["police"] for l in on["steps"] if "police" in l]
     # a call that raised, was cut short or was refused by the provider's
-    # limit brought back no answer, so there is nothing for police to read;
-    # the retro is the runner's look-back after the flow, not a step of it
+    # limit brought back no answer, so there is nothing for police to read
     answered = [l for l in on["steps"] if l.get("cause") not in (
-        stops.EXCEPTION, stops.INTERRUPT, stops.OUTAGE)
-        and l.get("step") != "retro.md"]
+        stops.EXCEPTION, stops.INTERRUPT, stops.OUTAGE)]
     assert bool(checked) == bool(on["prompts"] and answered), \
         "a step asked and police never ran"
+    assert [l["seq"] for l in answered if l["step"] == "retro.md"
+            and "police" not in l] == [], "the retro read and police never ran"
     assert all(c["hits"] == 0 and c["seen"] is True for c in checked), \
         checked
     assert without_police(on) == off
+
+
+CODE = "\n".join(["def parse(line):", "    if not line:",
+                  "        raise ValueError('empty')", "    return line.split()",
+                  ""])
+PROPOSED = "\n".join(["## change first", "- none", "", "FACTS", "fact:",
+                      "  scope: pkg/a.py", "  kind: why",
+                      "  claim: parse splits on whitespace",
+                      "  why: the caller counts words",
+                      '  source: seq 1 worker.md; evidence: pkg/a.py:4 "return'
+                      ' line.split()"', "END FACTS", ""])
+WROTE = police.Hit(police.GRANT, 'Write "pkg/a.py"')
+
+
+def a_policed_retro(tmp_path, monkeypatch, fake_cli, mode):
+    """-> (the run's lines, the grants police was handed by step, exit
+    code): a worker police finds nothing in, then a retro that proposes a
+    fact and that police finds writing with a read grant."""
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "a.py").write_text(CODE, encoding="utf-8",
+                                           newline="\n")
+    a_flow(tmp_path, monkeypatch, "looked", ["worker"],
+           tail="retro: true\npolice: " + mode + "\n" + CLAUDE)
+    fake_cli(answer("done\n"), answer(PROPOSED))
+    grants = {}
+
+    def report(step, provider, grant, sessions, allow, prompt):
+        grants[step] = grant
+        return police.Report(step, [WROTE] if step == "retro.md" else [],
+                             True, 0.0)
+
+    monkeypatch.setattr(police, "report", report)
+    code = engine.main()
+    return steps_of(the_folder()), grants, code
+
+
+def test_police_on_reads_the_retro_and_a_hit_keeps_its_proposals_out(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    from agentweft.orchestrate import facts
+
+    lines, grants, code = a_policed_retro(tmp_path, monkeypatch, fake_cli,
+                                          police.ON)
+    assert code == 0
+    assert grants == {"worker.md": None, "retro.md": ["read"]}
+    [retro] = [l for l in lines if l["step"] == "retro.md"]
+    assert retro["police"] == {"hits": 1, "seen": True, "seconds": 0.0}
+    assert retro["outcome"] == "failed"
+    assert retro["why"] == 'off task: grant: Write "pkg/a.py"'
+    assert facts.read(tmp_path) == []
+    kept = (the_folder() / police.FILE).read_text(encoding="utf-8")
+    assert '## retro.md\n- retro.md grant: Write "pkg/a.py"' in kept
+    assert not (the_folder() / "retro.md").exists()
+
+
+def test_police_in_shadow_reads_the_retro_and_changes_nothing(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    from agentweft.orchestrate import facts
+
+    lines, _, code = a_policed_retro(tmp_path, monkeypatch, fake_cli,
+                                     police.SHADOW)
+    assert code == 0
+    [retro] = [l for l in lines if l["step"] == "retro.md"]
+    assert retro["police"] == {"hits": 1, "seen": True, "seconds": 0.0,
+                               "mode": police.SHADOW}
+    assert retro["outcome"] == "ok"
+    assert [f.claim for f in facts.read(tmp_path)] == [
+        "parse splits on whitespace"]
+    assert 'police (shadow): retro.md grant: Write "pkg/a.py"' \
+        in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("flow,path", CASES, ids=IDS)

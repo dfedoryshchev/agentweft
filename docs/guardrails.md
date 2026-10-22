@@ -660,6 +660,14 @@ command that carries on:
 
     off task at worker.md: network: Bash "pip install leftpad" installs a package, and the flow's network: does not let it
 
+the retro (`writing-a-flow.md`, "say whether the run looks back") reads the
+place too, so its transcript is read the same way, held to its read grant,
+and its line carries the same `police` field. it comes after the handoff, so
+there is no run left to stop: a hit fails the retro instead, `off task:` and
+the tripwire as its why on its line, the hit in `police.md` under `##
+retro.md`, and nothing in its FACTS block is acted on, so a retro steered by
+what it read writes no fact.
+
 `police: shadow` reads every step the same way and stops nothing. each hit is
 written to `runs/<id>/police.md` as it is found, printed as `police (shadow):
 <step> <tripwire>: <evidence>`, listed under "not done" at the top of the
@@ -668,7 +676,10 @@ handoff, and again in its `## police` section, which says `no tripwire hit on
 it read, and `<n> steps not read (no transcript), so not checked` for the
 rest: a step it could not read is never counted clean. the step's line in
 `steps.jsonl` carries
-`"mode": "shadow"` beside its hits. it is the mode to learn what the check
+`"mode": "shadow"` beside its hits. a retro's hit in shadow is in `police.md`
+and printed, never in the handoff, which was written before the retro ran,
+and its FACTS block is acted on as with police off. it is the mode to learn
+what the check
 would stop on ordinary work before a flow turns it on. any value of `police:`
 other than `on`, `off` or `shadow` is refused when the flow loads, and one
 that reaches the runner anyway is read as `on`.

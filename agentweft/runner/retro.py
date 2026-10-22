@@ -18,7 +18,7 @@ import json
 import re
 
 from agentweft.flow.spec import CONDITIONAL, step_id
-from agentweft.guardrails import factsguard
+from agentweft.guardrails import factsguard, police
 from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
@@ -398,12 +398,13 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     tried.effort = run.effort_for(STEP, used)
     used.going = tried.effort["base"] and tried.effort["asked"]
     print("started " + STEP)
-    said, why = "", None
+    said, why, seen = "", None, None
     try:
         answer = tried.answered(ask(run, text, used))
         said = answer[0]
         if not answer[1]:
             run.charge(text, answer, used.name, used.asks_for())
+            seen, why = policed(run, used, tried, text, folder)
     except (Outage, Fatal) as e:
         run.charge(text, tried.answered(Answer("", False, e.replies,
                                                e.retries)),
@@ -417,6 +418,7 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     if not why:
         done = kept_up(run, trail, earlier, store, said, run_id)
     entry = trail.open(STEP, [tried], used, None, output=said or None)
+    entry.police = seen
     if done.present:
         entry.facts = done.record()
     trail.close(entry, "failed" if why else "ok", why=why, planned=False)
@@ -433,6 +435,34 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         with open(folder / summary.FILE, "a", encoding="utf-8") as f:
             f.write("\n" + upkeep.SECTION + "\n\n" + "\n".join(told) + "\n")
     print("retro: " + str(folder / FILE))
+
+
+def policed(run, used, tried, text, folder):
+    """-> (the police line for the retro's go, why it failed or None): it
+    reads the place like a step, so the check reads its transcript like a
+    step's. with police on a hit fails the retro and nothing it proposed is
+    acted on; in shadow the hit is written down and changes nothing. police
+    off reads nothing."""
+    mode = getattr(run, "policing", police.OFF)
+    if mode == police.OFF:
+        return None, None
+    seen = police.report(STEP, used, GRANT, trace.sessions([tried]),
+                         getattr(run, "network", None), text)
+    line = seen.line()
+    if mode == police.SHADOW:
+        line["mode"] = police.SHADOW
+    if not seen.seen:
+        print("police: " + STEP + " left no transcript to read, so what it"
+              " did with its tools was not checked")
+    if not seen.hits:
+        return line, None
+    with open(folder / police.FILE, "a", encoding="utf-8") as f:
+        f.write("## " + STEP + "\n" + police.as_note([seen]))
+    if mode == police.SHADOW:
+        for hit in police.hit_lines([seen]):
+            print("police (shadow): " + hit)
+        return line, None
+    return line, "off task: " + police.why(seen.hits)
 
 
 def kept_up(run, trail, earlier, store, said, run_id):
