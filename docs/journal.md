@@ -388,7 +388,10 @@ after them on the line of a step whose provider said them, and `continued`
   held by its body: a claim that cites its statements, joined by `; ` or on
   lines of their own, with or without its `<<` line, is held to the command
   whose body holds every one of them; a claim that writes the `<<` line also
-  needs what runs the script to match.
+  needs what runs the script to match. a Read, Grep or Glob call is held
+  the same way as a command: a `cmd:` that names the tool, the pattern a
+  search looked for and the file it read or searched, whole or by its tail
+  (`Grep "def mul" calc.py`, `Read TASK.md`), is held to that call's output.
 - `chain` comes last: `{"prev": "<sha256>", "files": {"start-snapshot.json":
   "<sha256>", "red-proof.json": null}}`. `prev` is the sha256 of the line
   before it as it stands in the file, null on the first line; `files` is the

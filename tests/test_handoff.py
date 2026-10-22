@@ -179,6 +179,63 @@ def test_a_claim_whose_command_and_output_are_in_the_transcript_is_backed(
     assert item["backed"] == "backed"
 
 
+def a_tool_transcript(root, session, calls):
+    """a cli transcript with one call per (tool, input, output)."""
+    folder = root / "D--some-place"
+    folder.mkdir(parents=True, exist_ok=True)
+    lines = []
+    for i, (name, given, out) in enumerate(calls):
+        lines.append(json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "id": "t" + str(i), "name": name,
+             "input": given}]}}))
+        lines.append(json.dumps({"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": "t" + str(i),
+             "content": out}]}}))
+    (folder / (session + ".jsonl")).write_text("\n".join(lines) + "\n",
+                                                encoding="utf-8")
+    return root
+
+
+SEARCHED = [("Grep", {"pattern": "def mul", "path": "/w/place/calc.py",
+                      "output_mode": "content", "-n": True},
+             "/w/place/calc.py:4:def mul(a, b):"),
+            ("Read", {"file_path": "\\w\\place\\TASK.md", "offset": 1,
+                      "limit": 20},
+             "     1\t# calc\n     3\tmul(a, b) returns a times b")]
+
+
+@pytest.mark.parametrize("cited, saw", [
+    ('Grep "def mul" calc.py', "calc.py:4:def mul(a, b):"),
+    ("grep -n 'def mul' calc.py (the Grep tool)", "def mul(a, b)"),
+    ("Read TASK.md", "mul(a, b) returns a times b"),
+    ("Read tool on TASK.md lines 1-20", "returns a times b")])
+def test_a_claim_backed_by_a_read_or_search_tool_call_is_backed(
+        tmp_path, monkeypatch, cited, saw):
+    monkeypatch.setattr(handoff, "PROJECTS", a_tool_transcript(
+        tmp_path / "p", "s-1", SEARCHED))
+    block = handoff.back(verified("- the spec says so\n  cmd: " + cited
+                                  + "\n  saw: " + saw + "\n"),
+                         handoff.transcript("s-1"))
+    [item] = block["verified"]
+    assert item["backed"] == "backed", item
+
+
+@pytest.mark.parametrize("cited, saw", [
+    ('Grep "def div" calc.py', "def div"),
+    ('Grep "def mul" other.py', "def mul"),
+    ("Read README.md", "mul(a, b) returns a times b"),
+    ("Read TASK.md", "mul(a, b) returns a plus b")])
+def test_a_claim_no_read_or_search_call_holds_stays_unbacked(
+        tmp_path, monkeypatch, cited, saw):
+    monkeypatch.setattr(handoff, "PROJECTS", a_tool_transcript(
+        tmp_path / "p", "s-1", SEARCHED))
+    block = handoff.back(verified("- the spec says so\n  cmd: " + cited
+                                  + "\n  saw: " + saw + "\n"),
+                         handoff.transcript("s-1"))
+    [item] = block["verified"]
+    assert item["backed"] == "unbacked", item
+
+
 def test_a_claim_with_no_such_call_is_unbacked(tmp_path, monkeypatch):
     monkeypatch.setattr(handoff, "PROJECTS", a_transcript(
         tmp_path / "p", "s-1", [("git status", "clean")]))

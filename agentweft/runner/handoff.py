@@ -24,7 +24,9 @@ named), `ran` when the command is there and no excerpt was given,
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
 points at the command above ("same command as above") is read as the nearest
 one above it. a script fed on stdin is held to its body: every statement
-the `cmd:` cites must be in one such command's body. the model's word for
+the `cmd:` cites must be in one such command's body. a Read, Grep or Glob
+call backs a `cmd:` that names the tool, the pattern searched for and the
+file read or searched, whole or by its tail. the model's word for
 what it ran is never taken on its own. a
 claim that quotes a file instead, `<file>:<line> "<the line>"`, is held to
 that line as the run found it.
@@ -69,6 +71,9 @@ CUT = re.compile(chr(0x2026) + r"""|(?:^|[\s"'(\[<])\.\.\.(?=$|[\s"')\]>])""")
 OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
 QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+# the tools that read or search, held as a call the way a Bash command is
+TOOLS = ("Read", "Grep", "Glob")
+WORD = re.compile(r"[^\s\"'`()]+")
 
 PROJECTS = None
 
@@ -320,6 +325,32 @@ def by_stdin(cited, cmd):
     return bool(want) and all(s in have for s in want)
 
 
+def _names(cited, path):
+    """whether `cited` names the file at `path`, whole or by its tail."""
+    want = path.replace("\\", "/").lower().rstrip("/")
+    for word in WORD.findall(cited or ""):
+        word = word.replace("\\", "/").lower().split(":")[0].rstrip(".,;")
+        word = word[2:] if word.startswith("./") else word
+        if word and (want == word or want.endswith("/" + word)):
+            return True
+    return False
+
+
+def by_tool(cited, call):
+    """whether `cited` names the read or search tool call `call`: the tool by
+    its name, a search by its pattern, and the file it read or searched."""
+    parts = call.split("\t")
+    if len(parts) < 2 or parts[0] not in TOOLS:
+        return False
+    if not re.search(r"\b" + parts[0].lower() + r"\b", (cited or "").lower()):
+        return False
+    if parts[0] == "Read":
+        return _names(cited, parts[1])
+    if norm(parts[1]) not in norm(cited):
+        return False
+    return not parts[2] or _names(cited, parts[2])
+
+
 def back(block, calls):
     """mark every VERIFIED claim against the (command, output) pairs the
     step's transcript holds. `calls` None means there is no transcript."""
@@ -337,7 +368,8 @@ def back(block, calls):
             continue
         want = norm(item["cmd"])
         ran = [out for cmd, out in calls if want and (
-            want in norm(cmd) or by_stdin(item["cmd"], cmd))]
+            want in norm(cmd) or by_stdin(item["cmd"], cmd)
+            or by_tool(item["cmd"], cmd))]
         if not ran:
             item["backed"] = "unbacked"
             item["why"] = "no such command in the step's transcript"
@@ -434,8 +466,9 @@ def pieces(session, earlier=None):
 
 def transcript(session, earlier=None):
     """-> [(command, output)] for every Bash call in the session's transcript,
-    or None when there is no transcript to read. `earlier` is the session it
-    was carried on from."""
+    and every Read, Grep and Glob call as its tool's name, its pattern or
+    file and its path joined by tabs, or None when there is no transcript to
+    read. `earlier` is the session it was carried on from."""
     pieces = _pieces(session, earlier)
     if pieces is None:
         return None
@@ -446,6 +479,13 @@ def transcript(session, earlier=None):
             cmd = (piece.get("input") or {}).get("command")
             if isinstance(cmd, str):
                 asked[piece.get("id")] = cmd
+        elif piece.get("type") == "tool_use" and piece.get("name") in TOOLS:
+            given = piece.get("input") or {}
+            name = piece["name"]
+            what = [given.get("file_path")] if name == "Read" else [
+                given.get("pattern"), given.get("path") or ""]
+            if all(isinstance(w, str) for w in what) and what[0]:
+                asked[piece.get("id")] = "\t".join([name] + what)
         elif piece.get("type") == "tool_result":
             cmd = asked.pop(piece.get("tool_use_id"), None)
             if cmd is not None:
