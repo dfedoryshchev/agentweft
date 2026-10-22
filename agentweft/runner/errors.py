@@ -51,8 +51,10 @@ class Outage(Exception):
 
 TRANSIENT_MARKERS = ("timeout", "timed out", "rate limit", "429", "connection reset",
                      "temporarily unavailable")
+# a message the provider's safeguards flagged is flagged again the same way,
+# and each go is charged for its whole prompt
 FATAL_MARKERS = ("not found", "no such", "unauthorized", "invalid api key",
-                 "permission denied")
+                 "permission denied", "safeguards flagged")
 # what a plain-text command says when the account's limit refused it. a reply
 # that says so in its own fields is read from those first; these are for
 # whatever cannot.

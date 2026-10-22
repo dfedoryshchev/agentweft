@@ -77,7 +77,10 @@ besides the text:
 - `retryable` - whether going again can help, from the http status behind a
   failure (429, 5xx), a timeout, or a missing binary; None when unknown.
   the runner goes again only on True, asks once on False, and reads the
-  failure's words only when it is None.
+  failure's words only when it is None: words it does not know read as worth
+  going again, and a message the provider's safeguards flagged
+  (`safeguards flagged`) reads as not, since the same prompt is flagged again
+  and each go is charged for all of it.
 - `killed` - how many processes a cli call left running that were ended with
   it; None from a provider that starts none.
 - `metered` - where the usage of a go `claude` never answered for came from;

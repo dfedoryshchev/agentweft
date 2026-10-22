@@ -13,6 +13,28 @@ def test_classify_missing_key_is_fatal():
     assert runner.classify("invalid api key") is errors.Fatal
 
 
+SAFEGUARDS = ("API Error: Claude Sonnet 5.5's safeguards flagged this message."
+              " Please rephrase your request.")
+
+
+def test_a_message_the_providers_safeguards_flagged_is_not_asked_again():
+    assert runner.classify(SAFEGUARDS) is errors.Fatal
+
+
+def test_a_cli_answer_the_safeguards_refused_is_one_charged_go():
+    import types
+
+    from agentweft.providers import cli_provider
+
+    p = cli_provider.CliProvider(command="claude")
+    said = p.read({"type": "result", "is_error": True, "result": SAFEGUARDS,
+                   "total_cost_usd": 0.11,
+                   "usage": {"input_tokens": 9000, "output_tokens": 0}},
+                  types.SimpleNamespace(returncode=1, killed=False))
+    assert errors.kind_of(said) is errors.Fatal
+    assert said.cost == 0.11
+
+
 def test_unknown_stderr_is_transient():
     # going again is cheap, giving up is not
     assert runner.classify("something nobody has seen before") is errors.Transient
