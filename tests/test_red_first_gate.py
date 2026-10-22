@@ -8,6 +8,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft import runner
+from agentweft.guardrails.gates import redfirst_gate
 from agentweft.providers import fake_provider
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
@@ -86,7 +87,7 @@ def test_a_new_test_red_without_the_fix_and_green_with_it_passes(tmp_path,
     r = replayed(run)
     assert r, r.detail
     assert r.tests == [{"test": "tests/test_calc.py::test_add",
-                        "before": "red", "kind": "assertion",
+                        "before": "red", "kind": "assertion", "red_on": "assertion",
                         "after": "green"}]
     assert "red without the fix" in r.detail
 
@@ -116,6 +117,28 @@ def test_a_test_importing_a_name_the_fix_adds_is_red(tmp_path):
     assert r, r.detail
     assert r.tests[0]["before"] == "red"
     assert r.tests[0]["kind"] == "ImportError"
+    assert r.tests[0]["red_on"] == "missing name"
+    assert redfirst_gate.said_of(r.tests[0]).startswith(
+        "tests/test_calc.py::test_add_all: red without the fix on a missing"
+        " name (ImportError), green with it")
+
+
+CALLS_ADD_ALL = ("import calc" + NL + NL + NL + "def test_add_all():" + NL
+                 + "    assert calc.add_all([1, 2]) == 3" + NL)
+
+
+@pytest.mark.parametrize("test, kind, on", [
+    (RED_TEST, "assertion", "assertion"),
+    (CALLS_ADD_ALL, "AttributeError", "missing name")])
+def test_the_red_proof_says_what_each_red_test_failed_on(tmp_path, test, kind,
+                                                         on):
+    place = a_repo(tmp_path / "repo")
+    run = started(place)
+    write(place, "tests/test_calc.py", test, "no commits", "")
+    write(place, "calc.py", WITH_ADD_ALL, "no commits", "")
+    r = replayed(run)
+    assert r, r.detail
+    assert (r.tests[0]["kind"], r.tests[0]["red_on"]) == (kind, on)
 
 
 MISSPELT = ("def test_add():" + NL + "    from calc import ad" + NL + NL
@@ -336,7 +359,8 @@ def test_a_place_outside_git_passes_saying_it_was_not_replayed(tmp_path):
     assert r.detail.startswith("not replayed")
 
 
-def a_flow_run(tmp_path, monkeypatch, place, mode, verify="off"):
+def a_flow_run(tmp_path, monkeypatch, place, mode, verify="off",
+               test=RED_TEST, fixed=FIXED):
     """the shipped fix-with-test on the fake provider, each step writing what
     a model would, and committing it when the steps commit."""
     flows = tmp_path / "flows"
@@ -355,9 +379,9 @@ def a_flow_run(tmp_path, monkeypatch, place, mode, verify="off"):
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         prompts_seen[step] = prompt
         if step == "worker.md":
-            write(place, "tests/test_calc.py", RED_TEST, mode, "a test")
+            write(place, "tests/test_calc.py", test, mode, "a test")
         if step == "patcher.md":
-            write(place, "calc.py", FIXED, mode, "the fix")
+            write(place, "calc.py", fixed, mode, "the fix")
         return answers[step], False
 
     monkeypatch.setattr(engine, "call", fake_call)
@@ -386,7 +410,7 @@ def test_a_correct_fix_gets_its_red_first_proof_from_the_gate_record(
     patcher = [l for l in lines if l["step"] == "patcher.md"][0]
     record = [g for g in patcher["gates"] if g["gate"] == "red-first"][0]
     assert record["tests"] == [{"test": "tests/test_calc.py::test_add",
-                                "before": "red", "kind": "assertion",
+                                "before": "red", "kind": "assertion", "red_on": "assertion",
                                 "after": "green"}]
     told = seen["verify.md"]
     assert "tests/test_calc.py::test_add" in told
@@ -398,7 +422,21 @@ def test_a_correct_fix_gets_its_red_first_proof_from_the_gate_record(
     assert replays_left(place) == []
 
 
-LOOKUP_BUGGY = "def get(d, k):" + NL + "    return d[k]" + NL
+def test_the_handoff_counts_the_tests_red_on_a_missing_name(tmp_path,
+                                                            monkeypatch):
+    place = a_repo(tmp_path / "repo")
+    a_flow_run(tmp_path, monkeypatch, place, "no commits",
+               test=NEEDS_ADD_ALL, fixed=WITH_ADD_ALL)
+    engine.main()
+    folder = [p for p in state.RUNS.iterdir() if p.is_dir()][0]
+    handoff = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert ("- tests/test_calc.py::test_add_all: red without the fix on a"
+            " missing name (ImportError), green with it") in handoff
+    assert ("- red on a missing name, not on an assertion: 1 of 1 red"
+            " without the fix") in handoff
+
+
+LOOKUP_BUGGY ="def get(d, k):" + NL + "    return d[k]" + NL
 LOOKUP_FIXED = "def get(d, k):" + NL + "    return d.get(k)" + NL
 LOOKUP_TEST = ("from calc import get" + NL + NL + NL + "def test_get_missing():"
                + NL + "    assert get({}, 'x') is None" + NL)

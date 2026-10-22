@@ -1255,10 +1255,17 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.extend("- " + s + " (" + skips.source(s) + ")" for s in skipped)
     _, shown = replay(every)
     if shown is not None:
-        from agentweft.guardrails.gates.redfirst_gate import said_of
+        from agentweft.guardrails.gates.redfirst_gate import (MISSING_NAME,
+                                                              said_of)
 
         out.extend("- " + said_of(t) + spec_for(t.get("test"), blocks)
                    for t in shown.get("tests") or [])
+        red = [t for t in shown.get("tests") or [] if t.get("before") == "red"]
+        named = [t for t in red if t.get("red_on") == MISSING_NAME]
+        if named:
+            out.append("- red on a missing name, not on an assertion: "
+                       + str(len(named)) + " of " + str(len(red))
+                       + " red without the fix")
     touched = [(path, a, d) for path, a, d, how in changes.get("files", [])
                if is_test(path)]
     if touched:

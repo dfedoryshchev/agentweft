@@ -401,7 +401,11 @@ passes without the fix, and when a test a step named as `file::name` on a
 `TEST:` line is one of those. a new test green both ways is a guard, kept and
 named in the detail. the record is per test, in `steps.jsonl` (the gate's
 `tests` list: `test`, `before` red / green / error, `kind` assertion or the
-error's name, `after`) and in the handoff under "tests and checks", and the
+error's name, `after`, and on a red test `red_on`: `assertion`, `missing
+name` when what it calls is not there yet (an `ImportError`,
+`ModuleNotFoundError` or `NameError` red as above, or an `AttributeError`
+saying a module or object has no such attribute), or `error` for another
+exception the code raised) and in the handoff under "tests and checks", and the
 steps after it are told what it ran: a verify step reads that the test failed
 without the fix as a run, not as something it has to take on trust. so are the
 red-test gate's own red runs, which happened before any later step started.

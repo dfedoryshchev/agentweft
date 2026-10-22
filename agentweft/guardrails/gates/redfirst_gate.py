@@ -30,6 +30,8 @@ INSTALLED = ("site-packages", "dist-packages")
 IMPORT_NAME = re.compile(r"cannot import name '([\w.]+)'(?: from '([\w.]+)')?")
 NO_MODULE = re.compile(r"No module named '([\w.]+)'")
 NOT_DEFINED = re.compile(r"name '(\w+)' is not defined")
+NO_ATTRIBUTE = re.compile(r"has no attribute '\w+'")
+MISSING_NAME = "missing name"
 PIN_OK = re.compile(r"^PIN OK:(.*)$")
 # the steps that decide what is built, not the ones that write it: a step
 # cannot excuse the pins it wrote itself
@@ -51,10 +53,25 @@ def kind_of(output):
     return ""
 
 
+def red_on(kind, output):
+    """-> what a test red without the fix failed on: "assertion", "missing
+    name" when the code it calls is not there yet (an import, a name, an
+    attribute the fix adds), or "error" for an exception the code raised."""
+    if kind == "assertion":
+        return "assertion"
+    if kind in MISSES or (kind == "AttributeError"
+                          and NO_ATTRIBUTE.search(output or "")):
+        return MISSING_NAME
+    return "error" if kind else ""
+
+
 def said_of(test):
     """one test's record as a line: what it did without the fix and with it."""
     before = test["before"]
-    if before == "red":
+    if before == "red" and test.get("red_on") == MISSING_NAME:
+        before = ("red without the fix on a missing name ("
+                  + test.get("kind") + ")")
+    elif before == "red":
         before = "red without the fix (" + (test.get("kind") or "kind not"
                                            " read") + ")"
     elif before == "green":
@@ -325,8 +342,10 @@ class RedFirstGate(Gate):
     module or name it misses is not in the start tree and is in the place
     now (a feature's test fails on the name the feature adds). any other of
     those, a SyntaxError, or a collection error (exit 2) is a test that
-    could not run, not one that caught the bug, whatever a step says.
-    then each runs in the place, with the fix, and has to pass. at least one
+    could not run, not one that caught the bug, whatever a step says. the
+    record says what each red test failed on: its assertion, a missing name
+    (an import, a name or an attribute the fix adds), or an error the code
+    raised. then each runs in the place, with the fix, and has to pass. at least one
     has to be red without the fix, and a test a step named on a TEST: line as
     `file::name` has to be one of the red ones; a new test green both ways
     is recorded as passing without the fix, and the record says so test by
@@ -410,7 +429,7 @@ class RedFirstGate(Gate):
                     self.held_before = unstarted_fault(before)
         except ValueError as e:
             return self.broke("could not replay without the fix: " + str(e))
-        self.printed = {}
+        unfixed, self.printed = dict(self.printed), {}
         after = self.side(cmd, ids, start.place)
         self.held = ""
         bad = [i for i in ids if after[i][0] != "green"]
@@ -423,6 +442,9 @@ class RedFirstGate(Gate):
                                        for i in bad)
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
+        for t in record:
+            if t["before"] == "red":
+                t["red_on"] = red_on(t["kind"], unfixed.get(t["test"], ""))
         self.label(record)
         return self.judge(record, text, (cmd, carried, came, start))
 

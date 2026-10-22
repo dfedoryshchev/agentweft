@@ -285,7 +285,9 @@ after them on the line of a step whose provider said them, and `continued`
   step gets its heading and a `no gates` line under it. a gate that ran
   tests one by one (`red-first`, `docs/gates.md`) adds `tests` to its entry,
   one per test: `{"test": "tests/test_calc.py::test_add", "before": "red",
-  "kind": "assertion", "after": "green"}`; the other gates' entries have no
+  "kind": "assertion", "after": "green", "red_on": "assertion"}`, `red_on`
+  on a red test only, `missing name` when what it calls is not there yet
+  (`docs/gates.md`); the other gates' entries have no
   `tests` key. a test added after the red was first shown also carries
   `"added": "after green"` and `"counts": "coverage"` or `"pin"`, and an
   allowed pin `"pin_ok": "<role>: <reason>"`.
@@ -595,7 +597,10 @@ list), each check the runner made outside the gates (no command; `- <step>:
 PASS quote check - <what it found>`), the
 red-first proof (the
 newest `red-first` gate that replayed something: `shown on <step>` with each
-new test's line, `red without the fix (assertion), green with it`, a case
+new test's line, `red without the fix (assertion), green with it`, or `red
+without the fix on a missing name (ImportError), green with it` with a line
+after them counting those, `red on a missing name, not on an assertion: 2 of
+5 red without the fix`, a case
 added after green ending `; added after green, coverage` or `; added after
 green, pins current behaviour, not counted as coverage`, or the failure; else the `red-test` gate's own record: `gate-proven`, `claimed,
 nothing was run` or `not proven by a gate`, and on a flow whose steps say
