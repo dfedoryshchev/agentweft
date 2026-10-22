@@ -23,7 +23,9 @@ named), `ran` when the command is there and no excerpt was given,
 `shortened` when the command is cut short with `...` and so cannot be held
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
 points at the command above ("same command as above") is read as the nearest
-one above it. the model's word for what it ran is never taken on its own. a
+one above it. a script fed on stdin is held to its body: every statement
+the `cmd:` cites must be in one such command's body. the model's word for
+what it ran is never taken on its own. a
 claim that quotes a file instead, `<file>:<line> "<the line>"`, is held to
 that line as the run found it.
 """
@@ -66,6 +68,7 @@ ABOVE = re.compile(r"^\(?\s*(?:the\s+)?(?:same(?:\s+(?:command|cmd))?"
 CUT = re.compile(chr(0x2026) + r"""|(?:^|[\s"'(\[<])\.\.\.(?=$|[\s"')\]>])""")
 OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
 QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
 
 PROJECTS = None
 
@@ -271,6 +274,52 @@ def norm(text):
                     .replace("`", "").split()).lower()
 
 
+def _stdin_script(cmd):
+    """-> (what runs it, its terminator word, its body) for a command that
+    feeds a script on stdin with `<<`, or None for any other."""
+    m = HEREDOC.search(cmd or "")
+    if not m:
+        return None
+    word, rest = m.group(2), cmd[m.end():]
+    lines = rest.split("\n")
+    body = []
+    for line in lines[1:] if "\n" in rest else [rest]:
+        if line.strip() == word:
+            break
+        body.append(line)
+    return cmd[:m.start()], word, "\n".join(body)
+
+
+def _statements(text, word=None):
+    out = []
+    for piece in re.split(r"[;\n]", text or ""):
+        piece = norm(piece)
+        if word and piece.endswith(" " + word.lower()):
+            piece = piece[:-len(word) - 1].strip()
+        if piece and piece != (word or "").lower():
+            out.append(piece)
+    return out
+
+
+def by_stdin(cited, cmd):
+    """whether `cited` names the script `cmd` fed on stdin: the transcript's
+    command feeds one, every statement the claim cites is in its body, and a
+    claim that writes the `<<` line runs it with what `cmd` runs it with."""
+    ran = _stdin_script(cmd)
+    if ran is None:
+        return False
+    said = _stdin_script(cited)
+    if said is None:
+        head, word, body = "", None, cited
+    else:
+        head, word, body = said
+        if norm(head) not in norm(ran[0]):
+            return False
+    want = _statements(body, word)
+    have = norm(ran[2])
+    return bool(want) and all(s in have for s in want)
+
+
 def back(block, calls):
     """mark every VERIFIED claim against the (command, output) pairs the
     step's transcript holds. `calls` None means there is no transcript."""
@@ -287,7 +336,8 @@ def back(block, calls):
                            " transcript is not held to it; write it in full")
             continue
         want = norm(item["cmd"])
-        ran = [out for cmd, out in calls if want and want in norm(cmd)]
+        ran = [out for cmd, out in calls if want and (
+            want in norm(cmd) or by_stdin(item["cmd"], cmd))]
         if not ran:
             item["backed"] = "unbacked"
             item["why"] = "no such command in the step's transcript"

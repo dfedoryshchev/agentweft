@@ -384,7 +384,11 @@ after them on the line of a step whose provider said them, and `continued`
   output does not show an excerpt (`why` says which, naming each missing
   excerpt), `unchecked` when there is no transcript
   to read (the fake, the api, a cli command other than claude). null only on
-  a line closed before the step answered.
+  a line closed before the step answered. a script fed on stdin (`<<EOF`) is
+  held by its body: a claim that cites its statements, joined by `; ` or on
+  lines of their own, with or without its `<<` line, is held to the command
+  whose body holds every one of them; a claim that writes the `<<` line also
+  needs what runs the script to match.
 - `chain` comes last: `{"prev": "<sha256>", "files": {"start-snapshot.json":
   "<sha256>", "red-proof.json": null}}`. `prev` is the sha256 of the line
   before it as it stands in the file, null on the first line; `files` is the

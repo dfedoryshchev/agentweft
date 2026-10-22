@@ -8,6 +8,7 @@ import datetime
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -286,6 +287,42 @@ def test_a_verified_line_pointing_at_the_command_above_is_matched_as_it(
     first, second = handoff.back(block, RAN)["verified"]
     assert second["cmd"] == "python -m pytest -q tests/test_calc.py"
     assert first["backed"] == "backed" and second["backed"] == "backed"
+
+
+BY_HAND = [("cd /w && python - <<'EOF'\nfrom calc import mul\n"
+            "print(mul(2, 'x'))\nEOF", "TypeError: can't multiply")]
+
+
+@pytest.mark.parametrize("cited", [
+    "python - <<'EOF'; from calc import mul; print(mul(2, \"x\")); EOF",
+    "python - <<EOF from calc import mul; print(mul(2, 'x')) EOF",
+    "from calc import mul; print(mul(2, 'x'))"])
+def test_a_script_fed_on_stdin_the_transcript_holds_backs_its_claim(cited):
+    block = verified("- mul refuses a string\n"
+                     "  cmd: " + cited + "\n"
+                     "  saw: TypeError\n")
+    [item] = handoff.back(block, BY_HAND)["verified"]
+    assert item["backed"] == "backed", item
+
+
+@pytest.mark.parametrize("cited", [
+    "python - <<'EOF'; from calc import mul; print(mul(3, 'x')); EOF",
+    "(harness that calls mul with a string)",
+    "node - <<'EOF'; from calc import mul; print(mul(2, 'x')); EOF"])
+def test_a_script_on_stdin_the_transcript_does_not_hold_stays_unbacked(cited):
+    block = verified("- mul refuses a string\n"
+                     "  cmd: " + cited + "\n"
+                     "  saw: TypeError\n")
+    [item] = handoff.back(block, BY_HAND)["verified"]
+    assert item["backed"] == "unbacked", item
+
+
+def test_the_hand_runs_reviewer_is_asked_for_each_command_in_full():
+    words = " ".join((Path(__file__).resolve().parents[1] / "flows"
+                      / "build-feature" / "reviewer-runs.md").read_text(
+        encoding="utf-8").split())
+    assert "each command you ran by hand" in words
+    assert "never a name for it" in words
 
 
 def test_a_pointer_with_no_command_above_it_stays_unbacked():

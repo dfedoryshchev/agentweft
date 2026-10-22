@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-22T18:05:13",
+  "recorded": "2026-10-22T21:41:08",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -37,7 +37,7 @@
       "step": "reviewer-runs.md",
       "task": null,
       "go": 1,
-      "prompt": "edd79fb1b7a21b5b47db0b643d0787b64efaa24912ca7f9fe8e0c9f24e287631",
+      "prompt": "fcd2cc29c18fdcda39c831020acf076384d289df1458797f73276a6b7d2148ab",
       "say": "VERDICT: ok\n\n- roster.py: fields takes a delimiter, the comma by default\n",
       "detail": "",
       "retryable": null,
