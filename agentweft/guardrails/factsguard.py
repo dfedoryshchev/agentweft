@@ -565,13 +565,9 @@ class Store(object):
         check, why = facts.parse_check(said)
         if check is None:
             return "the check cannot run: " + why
-        for path in check.paths:
-            inside = [s for s in scopes if s == facts.PROJECT
-                      or facts.rank(s, path) is not None
-                      or s.endswith("/") and path.rstrip("/") + "/" == s]
-            if not inside:
-                return ("the check reads " + path + ", which is not in the"
-                        " fact's scope")
+        why = beyond(check, scopes)
+        if why:
+            return why
         held, why = facts.run_check(self.root, said, self.own)
         if held is None:
             return "the check cannot run: " + why[len("could not run: "):]
@@ -596,7 +592,7 @@ class Store(object):
                 was = self.watched.setdefault(f.id, now)
                 if was == now and f.id not in self.pending:
                     continue
-                held, why = facts.run_check(self.root, said, self.own)
+                held, why = self.run(f)
                 result = facts.HELD if held else facts.UNRUN \
                     if held is None else facts.BROKEN
                 if result == facts.BROKEN and again:
@@ -608,6 +604,28 @@ class Store(object):
                             "claim": f.claim, "check": said,
                             "result": result, "said": why})
         return out
+
+    def run(self, f):
+        """-> what fact `f`'s check says on the place now, as `run_check`
+        does; a check that reads outside the fact's scope cannot run, here
+        as when the fact is written."""
+        check, _ = facts.parse_check(f.get("check"))
+        why = beyond(check, f.scopes) if check is not None else ""
+        if why:
+            return None, "could not run: " + why
+        return facts.run_check(self.root, f.get("check").strip(), self.own)
+
+    def hold_broken(self):
+        """hold every live fact whose check is broken on the place now as
+        broken until a step makes it hold: a leg that picks up a run with
+        `conformance: fail` carries on the break the leg before it left."""
+        if self.off:
+            return
+        with self.lock, self.shared():
+            for f in self.read():
+                if f.status == facts.LIVE and f.get("check").strip() \
+                        and self.run(f)[0] is False:
+                    self.pending.add(f.id)
 
     def watch(self):
         """note the scope of every live fact with a check as it is now."""
@@ -870,6 +888,19 @@ class Store(object):
                         "refused": [{"scope": p.get("scope"), "why": why}
                                     for p, why in self.refused]},
                        indent=2) + "\n", encoding="utf-8")
+
+
+def beyond(check, scopes):
+    """-> why a parsed `check` reads a path outside `scopes`, "" when it
+    reads only inside them."""
+    for path in check.paths:
+        inside = [s for s in scopes if s == facts.PROJECT
+                  or facts.rank(s, path) is not None
+                  or s.endswith("/") and path.rstrip("/") + "/" == s]
+        if not inside:
+            return ("the check reads " + path + ", which is not in the"
+                    " fact's scope")
+    return ""
 
 
 def seen_line(said):

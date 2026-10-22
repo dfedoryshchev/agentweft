@@ -333,6 +333,8 @@ def begin(unrecorded):
                 snapshot.Snapshot(run.workdir, why="resumed, start state not"
                                   " kept")
             run.order.start = run.start
+        if pick_up and fm.get("conformance") == "fail":
+            run.facts.hold_broken()
         run.committer = commits.Committer(
             run.commits, run.start,
             commits.load(state.RUNS / pick_up) if pick_up else None)

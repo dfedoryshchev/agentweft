@@ -262,6 +262,46 @@ def test_with_conformance_fail_a_broken_check_sends_the_step_back(
                                      " it never prints; " + CHECK)
 
 
+def test_with_conformance_fail_a_broken_check_holds_on_a_resumed_leg(
+        tmp_path, monkeypatch):
+    a_place(tmp_path)
+    fake_flow(tmp_path, monkeypatch, PRINTS, head="conformance: fail" + NL)
+    assert engine.main() != 0
+    first = the_folder()
+    monkeypatch.setattr(sys, "argv", ["run.py", "facts", "--force",
+                                      "--resume", first.name])
+    assert engine.main() != 0
+    [later] = [p for p in first.parent.iterdir()
+               if p.is_dir() and p != first]
+    worker = steps_of(later)[0]
+    assert worker["step"] == "worker.md"
+    assert [c["result"] for c in worker["conformance"]] == ["broken"]
+    assert [g["ok"] for g in worker["gates"]
+            if g["gate"] == "conformance"] == [False]
+
+
+def test_a_hand_written_check_outside_its_scope_cannot_run_after_a_step(
+        tmp_path):
+    a_place(tmp_path)
+    put(tmp_path, "facts/pkg/parse.py.md", entry(
+        "F-0001", "pkg/parse.py", 'grep -n "print(" pkg/cli.py exits 1'))
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "pkg/parse.py", PRINTS)
+    [line] = store.conform()
+    assert line["result"] == "could not run"
+    assert line["said"] == ("could not run: the check reads pkg/cli.py, which"
+                            " is not in the fact's scope")
+
+
+def test_a_fresh_run_does_not_hold_a_step_to_a_break_it_found(
+        tmp_path, monkeypatch):
+    a_place(tmp_path)
+    put(tmp_path, "pkg/parse.py", PRINTS)
+    fake_flow(tmp_path, monkeypatch, PRINTS, head="conformance: fail" + NL)
+    assert engine.main() == 0
+    assert all("conformance" not in l for l in steps_of(the_folder()))
+
+
 def test_a_check_that_could_not_run_after_a_step_is_said_never_passed(
         tmp_path, monkeypatch):
     a_place(tmp_path)

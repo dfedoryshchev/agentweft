@@ -541,8 +541,8 @@ entry per fact: its id, scope, claim and check, the `result` (`held`,
 `broken` or `could not run`) and what it `said` (`grep exits 0, the fact
 says 1: pkg/parse.py:5: print(...)`, the first line that matched). a step
 that left the scope alone runs no check. a check that could not run is
-never a pass: it is said on the line and in the handoff, and counts as
-neither honoured nor contradicted.
+never counted as one that held: it is said on the line and in the handoff,
+and counts as neither honoured nor contradicted.
 
     conformance: warn
 
@@ -556,9 +556,17 @@ fact's check broken at the end of the run:`), and every check that ran under
 makes a broken check a gate, `conformance`, that fails the step and sends it
 back like any gate (`send_backs` times, then the run stops on it). the scope
 is held as it was before the break, so the step's next go is checked again
-even when it leaves the file alone; a check that could not run passes with
-an `issue` (`docs/gates.md`), never as one that held. any other value is
-refused when the flow loads.
+even when it leaves the file alone. a leg that picks up such a run runs
+every live fact's check as it starts and holds the ones still broken the
+same way, so the break the last leg stopped on is not let through because
+the next go leaves the scope as it was; a fresh run holds no step to a break
+it found. a check that could not run passes with an `issue`
+(`docs/gates.md`), never as one that held. any other value is refused when
+the flow loads.
+
+a check that reads a path outside its fact's scope, one written by hand
+say, cannot run after a step either, as it is refused when the runner
+writes a fact.
 
 once the leg ends, each fact's `seen` line counts the steps whose change
 held its check (`honoured`) and broke it (`contradicted`).
