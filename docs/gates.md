@@ -345,7 +345,9 @@ read from its message (`cannot import name 'x'`, `No module named 'x'`, `name
 a `SyntaxError` or a collection error (pytest's exit 2) that is not one of
 those is a test that could not run, which is not the same as catching the
 bug. no step's `FAILS:` line changes either verdict. each then runs in the
-place, with the fix, and has to pass. both runs put the folder they run in,
+place, with the fix, and has to pass; one that does not is failed with the
+end of what it printed under it in `gates.md`, so the step sent back and the
+person reading see why. both runs put the folder they run in,
 and its `src/`, at the front of `PYTHONPATH`, so a project installed in
 editable mode imports the tree being run and not the person's fixed one.
 

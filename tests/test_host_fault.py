@@ -190,6 +190,15 @@ def test_a_new_test_red_with_the_fix_on_a_host_fault_once_is_run_again(
     assert "PASS red-first" in read(folder / "gates.md")
 
 
+def test_a_new_test_red_with_the_fix_keeps_what_it_printed_in_gates_md(
+        tmp_path, monkeypatch):
+    code, called, folder = run(tmp_path, monkeypatch,
+                               TESTER + worker(RED_FIRST), fix=WRONG)
+    said = read(folder / "gates.md").split("## worker.md")[1]
+    assert "does not pass with the fix: red" in said
+    assert "add is still wrong" in said
+
+
 def test_one_fault_on_every_red_is_the_hosts_and_two_are_not():
     said = "OSError: [WinError 87] The parameter is incorrect"
     assert hostfault.same([said, said]) == said

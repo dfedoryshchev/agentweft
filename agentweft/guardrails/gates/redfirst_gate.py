@@ -10,6 +10,7 @@ from agentweft.guardrails import hostfault, worktree
 from agentweft.guardrails.snapshot import _sha, is_test, is_tooling
 
 from .base import Gate, fresh_python, register
+from .command_gate import tail
 from .redtest_gate import TEST, named_test
 
 SUMMARY = re.compile(r"^(?:FAILED|ERROR) \S+ - (.+)$", re.M)
@@ -606,9 +607,12 @@ class RedFirstGate(Gate):
                            + t["before"])
                 return r
             if t["after"] != "green":
+                printed = (self.printed or {}).get(t["test"], "")
                 r = self.done(False, t["test"] + " does not pass with the"
-                              " fix: " + t["after"], record,
-                              unstarted(t["after"]))
+                              " fix: " + t["after"]
+                              + ("\n" + tail(printed) if printed
+                                 and printed != t["after"] else ""),
+                              record, unstarted(t["after"]))
                 if self.held:
                     return hostfault.held(r, "run " + t["test"]
                                           + " with the fix", self.held)
