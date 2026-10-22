@@ -180,9 +180,18 @@ def go(leg):
             record.data[chain.FIELD] = trail.head()
             record.save(run.budget)
             if len(trail.closed) > went:
+                looked = run.retro_seen
                 summary.after_retro(path, list(earlier)
                                     + passes(trail, run, fm),
-                                    run.budget.summary())
+                                    run.budget.summary(),
+                                    police.handoff_lines(
+                                        run.policing, hits, seen, told,
+                                        unseen, retro=looked,
+                                        retro_read=police.read_lines(
+                                            [(retro.STEP, t)
+                                             for t in looked.told],
+                                            str(run.workdir)))
+                                    if looked is not None else None)
         upkeep.tally(run, trail)
         return path, lines
 

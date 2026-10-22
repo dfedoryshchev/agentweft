@@ -467,6 +467,7 @@ def policed(run, used, tried, text, folder):
     seen = police.report(STEP, used, GRANT, trace.sessions([tried]),
                          getattr(run, "network", None), text)
     police.add(folder, seen, mode == police.SHADOW)
+    run.retro_seen = seen
     line = seen.line()
     if mode == police.SHADOW:
         line["mode"] = police.SHADOW

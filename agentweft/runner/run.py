@@ -206,6 +206,7 @@ class Run(object):
         self.shadow_read = 0
         self.shadow_unread = 0
         self.told_read = []
+        self.retro_seen = None
 
     def heal_facts(self):
         """-> what `facts.heal` changed in the place's facts, each printed. a

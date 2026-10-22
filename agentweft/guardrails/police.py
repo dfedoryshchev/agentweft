@@ -821,25 +821,41 @@ def as_note(reports):
     return "\n".join("- " + line for line in hit_lines(reports)) + "\n"
 
 
-def handoff_lines(mode_was, hits, steps, read=(), unread=0):
+AFTER = " (after this handoff was written)"
+AMONG = ", the retro after this handoff was written among them"
+
+
+def handoff_lines(mode_was, hits, steps, read=(), unread=0, retro=None,
+                  retro_read=()):
     """-> the handoff's police section: for a run in SHADOW every hit, or
     that there was none on the `steps` whose transcript it read, and how
     many steps left none to read; then, on or in shadow, every `read_lines`
-    line. [] when there is nothing to say: on, a hit is the stop itself."""
+    line. [] when there is nothing to say: on, a hit is the stop itself.
+    `retro` is the retro's Report and `retro_read` its `read_lines`, once it
+    has run after the handoff was written: each is said as such."""
     out = []
+    counted = uncounted = ""
+    if retro is not None and mode_was == SHADOW:
+        hits = list(hits) + [h + AFTER for h in hit_lines([retro])]
+        if retro.seen:
+            steps, counted = steps + 1, AMONG
+        else:
+            unread, uncounted = unread + 1, AMONG
     if mode_was == SHADOW:
         out.append("- shadow: every tripwire hit is recorded here and in "
                    + FILE + ", and none stopped the run")
         if not hits and (steps or not unread):
             out.append("- no tripwire hit on " + str(steps) + " step"
-                       + ("" if steps == 1 else "s") + " read")
+                       + ("" if steps == 1 else "s") + " read" + counted)
         if unread:
             out.append("- " + str(unread) + " step" + ("" if unread == 1
                                                        else "s")
-                       + " not read (no transcript), so not checked")
+                       + " not read (no transcript), so not checked"
+                       + uncounted)
         out.extend("- " + line for line in hits)
     if mode_was != OFF:
         out.extend("- " + line for line in read)
+        out.extend("- " + line + AFTER for line in retro_read)
     return out
 
 

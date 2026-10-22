@@ -1129,6 +1129,32 @@ def test_police_json_counts_the_retro_it_read_after_the_handoff(
     assert kept["hits"] == ['retro.md grant: Write "pkg/a.py"']
 
 
+def test_a_retro_s_shadow_hit_is_in_the_handoff_s_police_section(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    a_policed_retro(tmp_path, monkeypatch, fake_cli, police.SHADOW)
+    note = (the_folder() / "handoff.md").read_text(encoding="utf-8")
+    said = note.split("## police\n", 1)[1].split("\n## ", 1)[0]
+    assert said.strip().split("\n") == [
+        "- shadow: every tripwire hit is recorded here and in police.md, and"
+        " none stopped the run",
+        '- retro.md grant: Write "pkg/a.py" (after this handoff was written)']
+
+
+def test_a_retro_read_clean_in_shadow_is_counted_in_the_police_section(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    (tmp_path / "pkg").mkdir()
+    a_flow(tmp_path, monkeypatch, "looked", ["worker"],
+           tail="retro: true\npolice: shadow\n" + CLAUDE)
+    fake_cli(answer("done\n"), answer("## change first\n- none\n"))
+    monkeypatch.setattr(police, "report", lambda step, *a: police.Report(
+        step, [], True, 0.0))
+    assert engine.main() == 0
+    note = (the_folder() / "handoff.md").read_text(encoding="utf-8")
+    said = note.split("## police\n", 1)[1].split("\n## ", 1)[0]
+    assert "- no tripwire hit on 2 steps read, the retro after this handoff" \
+        " was written among them" in said, said
+
+
 @pytest.mark.parametrize("flow,path", CASES, ids=IDS)
 def test_police_off_reads_nothing_for_itself(flow, path, tmp_path,
                                              monkeypatch, capsys):

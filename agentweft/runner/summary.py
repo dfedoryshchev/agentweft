@@ -927,10 +927,12 @@ def section(lines, heading):
     return first, end
 
 
-def after_retro(path, every, spend):
+def after_retro(path, every, spend, police=None):
     """the handoff the retro read, once the retro has run: the retro's pass
     in the retro section with the sums taken again over every pass, and the
-    run's spend as it stands. `every` is every pass, the retro's last."""
+    run's spend as it stands. `every` is every pass, the retro's last.
+    `police` is the police section with what police saw of the retro, None
+    when police did not read it."""
     lines = Path(path).read_text(encoding="utf-8").split("\n")
     found = section(lines, "retro")
     if found:
@@ -945,6 +947,12 @@ def after_retro(path, every, spend):
         for n in range(*found):
             if lines[n].startswith("- spend: "):
                 lines[n] = "- spend: " + spend + ", the retro's call included"
+    found = section(lines, "police")
+    if found and police:
+        lines[found[0]:found[1]] = police
+    elif police and not found and "## carry forward" in lines:
+        at = lines.index("## carry forward")
+        lines[at:at] = ["## police"] + police + [""]
     Path(path).write_text("\n".join(lines), encoding="utf-8")
 
 

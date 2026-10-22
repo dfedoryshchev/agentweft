@@ -793,7 +793,10 @@ handoff of a leg that picks it up, however many legs on, lists them beside its
 own, each marked `(leg <run-id>)`, and counts their steps in both lines. the
 retro, read after the handoff was written, is added to the file once it has
 been read: in shadow its hits and whether it was read count like a step's.
-with `police: off` nothing is written.
+the same goes into the handoff's police section once the retro has run, each
+hit and passage of its marked `(after this handoff was written)`, and a count
+that takes it in saying `the retro after this handoff was written among
+them`. with `police: off` nothing is written.
 
 the mcp server hands a client a policed run's files wrapped as data
 (`mcp.md`).
