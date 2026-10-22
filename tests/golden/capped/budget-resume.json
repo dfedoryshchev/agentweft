@@ -424,7 +424,7 @@
     ]
   ],
   "prompts": [
-    "reviewer.md go 1 8d70d8eed20c69696ff6f46c91f7f2673a2e5da7137b5aea15021466235774cb",
-    "worker.md go 1 baad02a7c1553e145f90fea844e8d41aea02aea2a81871b1dea5892c5d6a7598"
+    "reviewer.md go 1 2736f8830a2732455757444d9556bf74520dc6c8cb8d4c86f0aaef468cd2e525",
+    "worker.md go 1 7b9000d8802c6dfae9c1a504d0255ae59c9adf6714cf540ab58efa60c2361a2f"
   ]
 }

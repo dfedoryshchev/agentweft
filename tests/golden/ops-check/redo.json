@@ -657,11 +657,11 @@
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 21702704b8fd2c83cfc9ab7de63cadf4fde523b49f0d7591c5d91020aaeee197",
+    "planner.md go 1 b21c59175f3013c6e7fd8ff7c71332b93808a5815b259cd6ef60331db2360791",
     "retro.md go 1 0d80d65eea51b1a10341e385d82eb4045febe4bb39386cfe6b26adf5828cbf2a",
-    "reviewer.md go 1 8507fd890706538693573b6d3a9b43847624bae6d52511849a2b2dbbceaeb272",
-    "reviewer.md go 2 eeb89e6de0f376ea0202f1ffd3baab6afe3c89e32b328ab3d42038437146187f",
-    "worker.md go 1 73ccec622047cf29964a5d061ebe1c012416560aba7b0f3c378c908eaccb4ac4",
-    "worker.md go 2 3b20b35efa746b3ed324f70a87ed31d03f0d5160028acfc823b64f5010776499"
+    "reviewer.md go 1 154fd90056fa93b9f9c69fb6a549d2577b3622a52757fcb1894165c0bd437be1",
+    "reviewer.md go 2 9e051b21b08fc8ff5b223bc7980fa50b19a1718d6b3feb0cfc3e961f361bfb25",
+    "worker.md go 1 f92c9fab58cdfdfcffdd637958aec496467223430f4022f619c591fc79f4db7a",
+    "worker.md go 2 cf4af16dfae1a9756f296a8d187aaf86fcc653e47b96b3a4deed31061eb888c6"
   ]
 }

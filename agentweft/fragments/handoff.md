@@ -10,7 +10,7 @@ seen your work and cannot ask you:
     - <file>: <what changed there, or what you found>
     VERIFIED:
     - <claim>
-      cmd: <the exact command you ran, in full, as you typed it>
+      cmd: <the exact command you ran, in full, as you typed it; for a read or search tool call: Read <file>, Grep "<pattern>" <path>, Glob "<pattern>" <path>>
       saw: <a short exact excerpt of what it printed>
       saw: <another excerpt, on its own line, when one is not enough>
     NOT VERIFIED:
@@ -37,7 +37,7 @@ seen your work and cannot ask you:
     END HANDOFF
 
 - every section is there, every time; one with nothing in it says `none`
-- a VERIFIED line needs a command you ran in this step and a piece of its output; a check you believe but did not run goes under NOT VERIFIED or ASSUMED. write every `cmd:` out in full, the same command again included; one cut short with `...` cannot be held to the transcript
+- a VERIFIED line needs a command you ran in this step, or a Read, Grep or Glob call you made in it, and a piece of its output; a check you believe but did not run goes under NOT VERIFIED or ASSUMED. write every `cmd:` out in full, the same command again included; one cut short with `...` cannot be held to the transcript
 - a doubt is a question when it is one; a choice you made is an ASSUMED line, not a doubt
 - a defect you found next to the change, one the task did not ask about, is an ADJACENT item whether you fixed it or not: `fixed:` says which, and `test:` names the test that fails without the fix, or `none`. the task's own defect is not one
 - a question only a person can answer is a QUESTION line, with its RECOMMEND and SIZE lines under it, each on a line of its own; one set per question, and none when you have none. it does not stop the work: the person reads it with your recommendation and how big that is, after the run. ask it once

@@ -515,7 +515,7 @@
     ]
   ],
   "prompts": [
-    "patcher.md go 1 42f5f0d4da32c4f7444ad51bc5d40dcdd9101d8f830645d1a04aff050dd374b0",
-    "worker.md go 1 e6eb639ce0e861516fee5af7765b18f026943f833165bd4ac81824ef45d39cf2"
+    "patcher.md go 1 b6cd0273a3b348b5335bc99daf3c1cce784b74c0050941ff063105d255564da3",
+    "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7"
   ]
 }

@@ -428,8 +428,8 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 1385c2bbb2ff2b158e8fb826a0b67f12a9f30f55f561883a67e329327d8cab95",
+    "patcher.md go 1 3fe5414ff5b38bf75871eb6eba004969d78e607df54058864ccab4b0dadfd108",
     "retro.md go 1 8984fc3217a652d777f180ac12aa18c30d13a89b65f8ccd31d5c8381325f91f2",
-    "worker.md go 1 cdfd2f908747464660e216068fab70d665f8c43012ff49854b94b22afb5793b6"
+    "worker.md go 1 0797a711ebed06622822932f8517282170718b6a512032bb383a33776a040e8d"
   ]
 }

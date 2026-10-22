@@ -884,3 +884,14 @@ def test_the_journal_line_points_at_the_handoff():
         ("parked", "waiting for user", "demo-1/handoff.md")
     assert stops.read(stops.line(now, "demo", "ok", 4, "demo-1",
                                  saved="d-1.md")).handoff is None
+
+
+def test_the_taught_block_says_a_read_or_search_call_backs_a_verified_line():
+    composed = resolver.fragment("handoff")
+    rules = " ".join(composed.split())
+    assert ("a VERIFIED line needs a command you ran in this step, or a"
+            " Read, Grep or Glob call you made in it,") in rules
+    taught = composed.split("VERIFIED:", 1)[1].split("NOT VERIFIED:", 1)[0]
+    assert "Read <file>" in taught and 'Grep "<pattern>" <path>' in taught
+    assert handoff.by_tool("Read TASK.md", "Read\t/w/place/TASK.md")
+    assert handoff.by_tool('Grep "def mul" calc.py', "Grep\tdef mul\tcalc.py")

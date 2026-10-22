@@ -644,9 +644,9 @@
     ]
   ],
   "prompts": [
-    "patcher.md go 1 4bf37d1584a4f1dc07b129b0f094d9b051d4ca03c482b66858e0d73e96913de3",
+    "patcher.md go 1 fdcad7fe85d36d67206a7e8f207ecb074a7ea95961096814dc2d63d93b8724d4",
     "retro.md go 1 ba1dab85af5de3009363f97e669db85e03b1a42ac1069c812333c8c3e9d131e2",
-    "worker.md go 1 e6eb639ce0e861516fee5af7765b18f026943f833165bd4ac81824ef45d39cf2",
-    "worker.md go 2 d4e7d8df536be40ed352564a1c1fe3499370eade6c2511b73c9b04c49013bca6"
+    "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7",
+    "worker.md go 2 a5c27859de29b2a3766af52712f23ed271d0fce8d49203eebeed01811074e5fb"
   ]
 }
