@@ -633,7 +633,14 @@ five sections are written by the runner alone:
   its lines), then what `git status --short` and `git log --oneline
   <start>..HEAD` print, line for line. "nothing is committed" is a claim about
   a moment; the two commands' output, taken when the handoff is written, is
-  the record.
+  the record. then a line per `def` or `class` the run added to a python
+  file that is not a test and that nothing in the product's python refers
+  to by name: `- not called from the product: calc.py:9 def unused, nothing
+  calls it (worker.md)`, or `only tests call it`, ending with the steps that
+  changed that file. it is a new entry point a library hands its users or a
+  feature never wired in; the suite passes on both, and the line does not
+  say which, only that nothing calls it. a common name used elsewhere hides
+  one, so what is named is a floor.
 - **read**: per pass, the files and ranges its session's transcript shows it
   read (a Read call by offset and limit, a `cat`, `head`, `tail` or `sed -n`
   target in a shell call), with the step's own READ lines under it as `said:`;

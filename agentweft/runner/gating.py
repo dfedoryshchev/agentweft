@@ -1,4 +1,5 @@
 """what a step's answer has to get past before the run goes on."""
+import re
 import time
 
 from agentweft.flow.spec import step_id
@@ -333,15 +334,31 @@ def sized_change(run):
     from git: each file's added lines and how many it took out, a new file
     whole, the run's own records and the files dirty before it left out. the
     risk map the planner was handed is the blast radius."""
-    from .summary import _git, _porcelain
-
-    tree = run.tree
-    if not tree.git or not tree.start:
+    files = added_since_start(run)
+    if files is None:
         got = preflight.size(None)
         got["why"] = ["the place is not a git work tree with a commit to"
                       " read the change from"]
         return got
-    files, path = {}, None
+    return preflight.size([(p, [t for _, t in a], d)
+                           for p, (a, d) in sorted(files.items())],
+                          getattr(run, "ranking", None))
+
+
+HUNK_NEW = re.compile(r"^@@ -\S+ \+(\d+)")
+
+
+def added_since_start(run):
+    """-> {path from the top of the repo: ([(line number, line)] added, how
+    many taken out)} for what the run changed since it started, read from
+    git, a new file whole; the run's own records and the files dirty before
+    it left out. None outside a git work tree with a commit to start from."""
+    from .summary import _git, _porcelain
+
+    tree = run.tree
+    if not tree.git or not tree.start:
+        return None
+    files, path, number = {}, None, 0
     for line in (_git(run.workdir, "-c", "core.quotepath=false", "diff",
                       "--unified=0", "--no-color", "--no-ext-diff",
                       tree.start, "--", ".") or "").split("\n"):
@@ -351,8 +368,12 @@ def sized_change(run):
                 files.setdefault(path, [[], 0])
         elif line.startswith("--- "):
             continue
+        elif line.startswith("@@"):
+            m = HUNK_NEW.match(line)
+            number = int(m.group(1)) if m else 0
         elif path is not None and line.startswith("+"):
-            files[path][0].append(line[1:])
+            files[path][0].append((number, line[1:]))
+            number += 1
         elif path is not None and line.startswith("-"):
             files[path][1] += 1
     for code, rel in _porcelain(run.workdir):
@@ -362,13 +383,44 @@ def sized_change(run):
                                                    errors="replace")
             except OSError:
                 continue
-            files[rel] = [text.splitlines(), 0]
+            files[rel] = [list(enumerate(text.splitlines(), 1)), 0]
     own = _own_records(run)
-    return preflight.size([(p, a, d) for p, (a, d) in sorted(files.items())
-                           if p not in tree.dirty
-                           and not any(p == o or p.startswith(o + "/")
-                                       for o in own)],
-                          getattr(run, "ranking", None))
+    return dict((p, (a, d)) for p, (a, d) in files.items()
+                if p not in tree.dirty
+                and not any(p == o or p.startswith(o + "/") for o in own))
+
+
+def unwired_lines(run):
+    """-> the handoff's lines on each def or class the run added to product
+    python that nothing in the product calls (`unwired.py`), each with the
+    steps that wrote its file; [] outside git."""
+    from agentweft.guardrails.snapshot import is_test
+
+    from . import unwired
+    from .summary import _git
+
+    files = added_since_start(run)
+    added = dict((p, a) for p, (a, _) in (files or {}).items()
+                 if p.endswith(".py") and not is_test(p))
+    if not added:
+        return []
+    own = _own_records(run)
+    product, tests = {}, {}
+    for rel in (_git(run.workdir, "-c", "core.quotepath=false", "ls-files",
+                     "--cached", "--others", "--exclude-standard",
+                     "--full-name", "--", ".") or "").split("\n"):
+        rel = rel.strip()
+        if not rel.endswith(".py") or any(rel == o or rel.startswith(o + "/")
+                                          for o in own):
+            continue
+        try:
+            text = (run.tree.root / rel).read_text(encoding="utf-8",
+                                                   errors="replace")
+        except OSError:
+            continue
+        (tests if is_test(rel) else product)[rel] = text
+    return unwired.lines(unwired.found(added, product, tests),
+                         getattr(run, "code_by", {}))
 
 
 def _own_records(run):

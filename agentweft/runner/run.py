@@ -181,6 +181,9 @@ class Run(object):
         # the step that first wrote each test file, by path from the place
         self.authors = {}
         self.test_seen = {}
+        # the steps that changed each product file, by path from the top of
+        # the repo
+        self.code_by = {}
         self.start_green = {}
         # the step a question goes to before the operator, and what it
         # decided, by question
@@ -307,6 +310,19 @@ class Run(object):
         when the run keeps no snapshot: it cannot tell."""
         looked = getattr(self, "looked", None)
         return looked is not None and self.start.hashes() != looked
+
+    def wrote_code(self, step):
+        """note `step` as a writer of each product file that differs from
+        what `look` saw before it ran."""
+        looked = getattr(self, "looked", None)
+        if looked is None:
+            return
+        was, now = looked[2], self.start.hashes()[2]
+        for rel in sorted(set(was) | set(now)):
+            if was.get(rel) != now.get(rel):
+                steps = self.code_by.setdefault(rel, [])
+                if step not in steps:
+                    steps.append(step)
 
     def wrote_tests(self, step):
         """note `step` as the writer of each test file it made or changed."""

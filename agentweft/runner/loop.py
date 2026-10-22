@@ -31,7 +31,8 @@ from .gating import (NEWLINE, and_forged, boundary_note, check_step,
                      forged_by, forged_first, gate_told, gate_why,
                      held_after_stop, nothing_why, off_task, outage_why,
                      police_line, preflight_after, preflight_before, risk_map,
-                     sent_back_times, since, sized_change, times)
+                     sent_back_times, since, sized_change, times,
+                     unwired_lines)
 
 
 def roles_of(run, todo):
@@ -178,7 +179,8 @@ def go(leg):
                               told=told,
                               police=police.handoff_lines(
                                   run.policing, hits, seen, told, unseen),
-                              sized=sized_said)
+                              sized=sized_said,
+                              unwired=unwired_lines(run))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             went = len(trail.closed)
@@ -439,6 +441,7 @@ def go(leg):
             (step_dir / step).write_text(out.output, encoding="utf-8")
             wrote.add(step)
             run.wrote_tests(step)
+            run.wrote_code(step)
             timings.append((step, out.meta.get("seconds", 0),
                             out.meta.get("cached")))
             entry = trail.open(step, run.taken(), used, came_from,

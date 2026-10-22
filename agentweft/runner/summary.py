@@ -1005,7 +1005,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
           spec_files=None, clock=None, held=True, proof=None, shadowed=(),
-          told=(), police=(), sized=()):
+          told=(), police=(), sized=(), unwired=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -1037,7 +1037,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     agent that a step read and took no action from (`police.read_lines`),
     empty with police off.
     `sized` is a line on the size of the change and one per reviewer it left
-    out, empty for a flow with no `small_reviewers`.
+    out, empty for a flow with no `small_reviewers`. `unwired` is a line per
+    def or class the run added that nothing in the product calls
+    (`gating.unwired_lines`), printed under "changed".
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -1226,6 +1228,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.append("")
     out.append("## changed")
     out.extend(changed_lines(changes))
+    out.extend(unwired)
 
     out.append("")
     out.append("## read")
