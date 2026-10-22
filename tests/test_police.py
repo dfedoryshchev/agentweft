@@ -1119,6 +1119,16 @@ def test_police_in_shadow_reads_the_retro_and_changes_nothing(
         in capsys.readouterr().out
 
 
+def test_police_json_counts_the_retro_it_read_after_the_handoff(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    a_policed_retro(tmp_path, monkeypatch, fake_cli, police.SHADOW)
+    kept = json.loads((the_folder() / police.KEPT).read_text(
+        encoding="utf-8"))
+    assert kept["steps"] == 2
+    assert kept["unread"] == 0
+    assert kept["hits"] == ['retro.md grant: Write "pkg/a.py"']
+
+
 @pytest.mark.parametrize("flow,path", CASES, ids=IDS)
 def test_police_off_reads_nothing_for_itself(flow, path, tmp_path,
                                              monkeypatch, capsys):

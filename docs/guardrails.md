@@ -790,8 +790,10 @@ a resumed run's handoff keeps what the legs before it saw. each leg that has
 something to say writes its hits, the addressed passages its steps read and
 how many steps were read and not read to `runs/<id>/police.json`, and the
 handoff of a leg that picks it up, however many legs on, lists them beside its
-own, each marked `(leg <run-id>)`, and counts their steps in both lines. with
-`police: off` nothing is written.
+own, each marked `(leg <run-id>)`, and counts their steps in both lines. the
+retro, read after the handoff was written, is added to the file once it has
+been read: in shadow its hits and whether it was read count like a step's.
+with `police: off` nothing is written.
 
 the mcp server hands a client a policed run's files wrapped as data
 (`mcp.md`).

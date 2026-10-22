@@ -862,6 +862,32 @@ def keep(folder, hits, read, steps, unread=0):
         encoding="utf-8")
 
 
+def add(folder, report, shadow):
+    """one more go's `report` onto the leg's kept file: the retro's, which
+    reads the place after the handoff and its keep. in shadow its hits and
+    whether it was read are counted like a step's; what it read and took no
+    action from is kept on or in shadow."""
+    import json
+
+    try:
+        said = json.loads((folder / KEPT).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        said = {}
+    hits = list(said.get("hits") or [])
+    read = [(p[0], p[1]) for p in said.get("read") or []
+            if isinstance(p, list) and len(p) == 2]
+    steps = said.get("steps") if isinstance(said.get("steps"), int) else 0
+    unread = said.get("unread") if isinstance(said.get("unread"), int) else 0
+    if shadow:
+        hits = hits + hit_lines([report])
+        if report.seen:
+            steps += 1
+        else:
+            unread += 1
+    read = read + [(report.step, t) for t in report.told]
+    keep(folder, hits, read, steps, unread)
+
+
 def kept_before(folders):
     """-> (hit lines, (step, `read_told` item) pairs, steps read, steps not
     read) of the legs in `folders`, oldest first, each line and step marked
