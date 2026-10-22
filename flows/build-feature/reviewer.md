@@ -11,8 +11,7 @@ write it.
 - a change to a file the feature does not need is a redo
 - code you would have written differently is not
 - review against the spec as the run found it, below, not the spec as it is
-  now. a spec line removed or rewritten that no ruling in decisions.md
-  quotes is a redo; a line added is not
+  now. a spec line added is not a redo
 
 the spec as the run found it:
 

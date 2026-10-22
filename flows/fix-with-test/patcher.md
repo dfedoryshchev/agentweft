@@ -22,15 +22,11 @@ here is a failing test. now make it pass.
   of their own, the cases from the tests around the change
   (below) that are not there yet. the worker wrote only the test that shows
   the bug, so these are yours
-- each new case is run on the unpatched code too: one that passes there is
-  reported as pinning current behaviour, never counted as coverage
 
 name the test on its own line first, exactly as the worker named it:
 
     TEST: <the test, as the worker gave it>
 
-then the patch, and nothing else before the handoff block. the test is run
-after you answer, and so is the whole suite: a test that still fails, or a
-suite that does, stops the run. in the block,
-VERIFIED carries the run that showed it green and the whole suite's result,
-and anything else you noticed and did not touch is a DOUBTS line.
+then the patch, and nothing else before the handoff block. the whole suite
+has to pass with it, not only this test. in the block, anything else you
+noticed and did not touch is a DOUBTS line.

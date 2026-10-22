@@ -11,7 +11,6 @@ docs/spec* beside it. the request is what someone asks for now; the spec is
 what the project has already decided. read the spec before anything else,
 and any file the request names.
 
-- tests before code. this is the flow, not a preference.
 - build what the request asks for and the spec allows. a thing neither asks
   for is not a bonus, it is a change nobody asked to review.
 - a request that adds an option, flag, field or command, and leaves what a
@@ -35,6 +34,4 @@ and any file the request names.
       CONFLICT: <file>:<line> "<the spec line, word for word>"
       request: <the request's words>
 
-  the run stops there and the question goes to a person. the quote is
-  checked against that line as the run found it, and a quote that is not
-  there fails your answer.
+  the run stops there and the question goes to a person.

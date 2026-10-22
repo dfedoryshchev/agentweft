@@ -379,7 +379,7 @@
   ],
   "prompts": [
     "retro.md go 1 6f28491795de5b1b84dd3fd8e27ec572f15de6659a1126bf36db436c79dd0557",
-    "reviewer.md go 1 52fc9a2fd71ae98e02cc03783a1a39a2f5782e1dd00a819d6ece75bd0f9eb083",
-    "worker.md go 1 841b219d95cbccaf0155aee3284bdf801a6784a2dfd0d0785f86ac8cfa4fc6be"
+    "reviewer.md go 1 cb2d69d3358f7e312cfec327d165ce150ed927897a5bb1401919ba86f1685163",
+    "worker.md go 1 e05cf8c0c316ac3cac077e332bc01a0bd1f808fbb70e7645dd77371e3d7954c1"
   ]
 }

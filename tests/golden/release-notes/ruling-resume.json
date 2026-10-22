@@ -599,8 +599,8 @@
   ],
   "prompts": [
     "retro.md go 1 9a1b51aeb31510643451d90e4b733ffdccab6c6e8f0d641257e688c8340a55c2",
-    "reviewer.md go 1 051a74bb5fd4c067c6bfcde25571b99594a2176aba71c9501a9aa344a8912443",
-    "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938",
-    "worker.md go 2 b5173b38accce120be087f4bc1b131fd27e33da7190ac63ada1c663ea97046cd"
+    "reviewer.md go 1 855ae59e981ac78dc0a5982f642d714779754014553b7e5ecb097a3a64b13c13",
+    "worker.md go 1 3e4988c6310c7c63416a6fcf7b53e7a9ed10f37e7bf57890cec8f1df427d68a8",
+    "worker.md go 2 039c7ee6b3e5cc9a22e5fb3cdcfa79e0080a575f2b9f10c5bf0a44393ca15f6b"
   ]
 }

@@ -31,6 +31,14 @@ a test fails if a flow prompt repeats a line the library already says, which
 is there because i pasted that block into five files before writing this
 sentence.
 
+keep out what a gate already holds, too: that the test file is run after the
+step answers, that a misquoted spec line fails the answer, that a case added
+after green is shown red or reported as a pin. the gate does it whatever the
+prompt says, and its refusal tells the step when it matters. a line goes only
+once a test shows the gate firing on the shipped flow, and a line that coaches
+(how to make the test fail, why to write the conflict) stays even when a gate
+checks the outcome. `tests/test_prompts.py` holds the lines taken out so far.
+
 ## 4. give the reviewer something to disagree with
 
 a reviewer that just reads nicely written output agrees with it. the ops-check

@@ -28,9 +28,7 @@ out. write no test. answer these two lines, each on its own:
     CONFLICT: <file>:<line> "<the spec line, word for word>"
     request: <the report's words>
 
-the run stops there and the question goes to a person. the quote is checked
-against that line as the run found it, and a quote that is not there fails
-your answer.
+the run stops there and the question goes to a person.
 
 the order of two errors the spec does not fix is yours; follow the code's
 convention and say so under ASSUMED.
@@ -40,7 +38,5 @@ say how it fails and where the tests are, each on its own line, before them:
     FAILS: <the error the unpatched code gives>
     TEST: <the test file, relative to where you are>
 
-then the tests, and nothing else before the handoff block. the test file is
-run after you answer, and a file that is not there or does not fail stops
-the run. in the block, DID names each cause as you understand it, and
-VERIFIED carries the run that showed the first test failing.
+then the tests, and nothing else before the handoff block. in the block, DID
+names each cause as you understand it.

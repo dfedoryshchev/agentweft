@@ -286,6 +286,6 @@
   ],
   "prompts": [
     "retro.md go 1 00e02b3a0b0916c532236be0e2c00a9064201de8a59585f2ab405e202d0c9376",
-    "worker.md go 1 9237c65f6d8a28c1ec8436651b59a05f1bbde0f9cd35cb296023e48684ad72fa"
+    "worker.md go 1 e6eb639ce0e861516fee5af7765b18f026943f833165bd4ac81824ef45d39cf2"
   ]
 }

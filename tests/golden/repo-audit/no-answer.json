@@ -304,9 +304,9 @@
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
-    "planner.md go 2 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
-    "planner.md go 3 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
+    "planner.md go 1 c3b76f25dca104c11a4ff456e18eb90fa235985ba302512651f9ae731dfac4f4",
+    "planner.md go 2 c3b76f25dca104c11a4ff456e18eb90fa235985ba302512651f9ae731dfac4f4",
+    "planner.md go 3 c3b76f25dca104c11a4ff456e18eb90fa235985ba302512651f9ae731dfac4f4",
     "retro.md go 1 7427b7c570823f387c019c5c6016afd2a229c737952f76278af978452c20b931"
   ]
 }

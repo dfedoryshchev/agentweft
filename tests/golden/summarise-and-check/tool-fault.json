@@ -180,6 +180,6 @@
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33"
+    "worker.md go 1 95df2ddce42e364741f3e3dabcc668b63ff95474619e059edb960f07e689af9b"
   ]
 }

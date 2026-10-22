@@ -29,8 +29,7 @@ when it is given contradicts that line, even though the line still holds
 whenever the option is not used.
 
 only a behaviour marked `contradicts` may end the plan: answer the
-`CONFLICT:` line from the instructions first, and the run stops before any
-test is written.
+`CONFLICT:` line from the instructions first.
 
 anything the spec leaves open, say so on its own line rather than picking an
 answer. the step after you writes the tests from this list, so a behaviour

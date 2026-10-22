@@ -17,15 +17,12 @@ here are the failing tests. now write the code that makes them pass.
   add, in new tests of their own, the cases from the tests around the change
   (below) that they do not cover. the tester wrote one test per planned
   behaviour and nothing more, so these are yours.
-- each new case is run on the code without yours too: one that passes there
-  is reported as pinning current behaviour, never counted as coverage.
 
 then list every file you changed, one line each, and nothing else before the
 handoff block:
 
     - <file>: <what changed>
 
-the whole suite is run after you answer, and a suite that does not pass stops
-the run. a reading of the spec you had to choose is an ASSUMED line in the
+the whole suite has to pass with your code. a reading of the spec you had to choose is an ASSUMED line in the
 block, and a line of the spec the reviewer must hold you to is a MUST NOT
 MISS line.

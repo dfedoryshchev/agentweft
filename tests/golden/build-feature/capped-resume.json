@@ -767,10 +767,10 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 552f7a6d676b0b3047de59c09066cb9354593796e365c9da6a6ffe70f9083690",
-    "reviewer-runs.md go 1 225ebd5736f12b0a803265f33037d71d0e8d0cf6a3f5f5ae61c115046a9b78b5",
-    "reviewer.md go 1 ebcb0f5af14c2c843329d5d8f81dd12283c1b23fd641c21a59230cfa2068ad0d",
-    "tester.md go 1 01e461eb6396adb9c1b7b60545b616163c4392306d22789a12f3e567f2592f27",
-    "worker.md go 1 24a9530df5cb78c41cc2fcc1ddf30818d2440fb531a63415cf3a8d82a7f0a794"
+    "planner.md go 1 3fdbbcad83e0cd94f51bce6b6f75e2fb3a10234af6760f38c19155ba88e4ad13",
+    "reviewer-runs.md go 1 d0f7974b4a1cb01815276968ed55988afab7f4d89896596d99ee33564c48743f",
+    "reviewer.md go 1 4f77b42fe1c1a04c3c0c0aefe58efbd00408146e9a2106e0d5afc0ccabc027eb",
+    "tester.md go 1 2f05501148b2f8a403c7a13c14b29cd1078013ca08ab1b677540af5861636b4b",
+    "worker.md go 1 1c70b9d75b1d065a920fe6a273f698aa30016d0c4f75b0afed6e82b89bccf627"
   ]
 }

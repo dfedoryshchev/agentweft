@@ -946,15 +946,15 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 3789ed4727063d5c68ba502a0dd000fe2a8516c1bab8b09e000bd4256dffba48",
-    "merge.md go 2 01e63675bc1ec204ae800aa7faa90114296ca92d95acebfa14c484bebf5f39f9",
-    "planner.md go 1 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
+    "merge.md go 1 382b8f1b4d4d3fe1ffa3edec3f1d66080b9470191f50fd5c0d964b86c567f0d6",
+    "merge.md go 2 602f41de439b4a7f6409d25c7803ff3d09b12be43ebbb582df3546946c924f97",
+    "planner.md go 1 fad9a759a775e9d80dee519e24f929ce165e759495de873abca4de23d05c1f10",
     "retro.md go 1 38b0c24511d07b65c11286463973da98bdc1a96a8289168e1252271a04e1a657",
-    "reviewer.md go 1 15177f52d5819ac9307ceac7d147ecf9244dea8a7b974882eae72abeed9335ef",
-    "reviewer.md go 2 e376cc8af36fa608bcd52fd06a7c22ea8bd7f6488b09b49599e75cd1f1de5e78",
-    "worker.md task 1 go 1 2d5ddce717bd4f07b33ae041add22a6db02ac1a6fceee35d0ddc5860d3ee228f",
-    "worker.md task 1 go 2 44c5c0012c4351ce31d5dd31e843d165a5195878e88fdc2d71cb46f8456bb120",
-    "worker.md task 2 go 1 fa7a5fa4dfb479f9d05f538ac9b38f191dd1df2769d9e25fdae6ddc39e42bf3b",
-    "worker.md task 2 go 2 5b5b04fbb336f56b3e4406d4f463b11c62e49e01b024da990cb49c9f49f0bf7b"
+    "reviewer.md go 1 28a12955af09766d58e793f435215e1521b7bbf40425857ebf9ebd638754b4e9",
+    "reviewer.md go 2 0695f7bd12cb7b15e9460976154b059a01758ef941e3447b863edca7d916bb0e",
+    "worker.md task 1 go 1 ea31b2c02b938cbdd9f47cbf0870d11923e1bae9438d02c85eb0df7738528f13",
+    "worker.md task 1 go 2 976c4a4ac44f49838ac81f2041aaa265f1cfb6b34e685bf56fc4a1e8a33d0e80",
+    "worker.md task 2 go 1 2dbda37d8a0b0211fe70db10efed1165455eda1c9e8989fd8776f8603011d17d",
+    "worker.md task 2 go 2 a511adb65b45c0e2eedb5635bad3c92aa109d587fbba6375b912dcbc74115cda"
   ]
 }

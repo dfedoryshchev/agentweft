@@ -298,7 +298,7 @@
   ],
   "prompts": [
     "retro.md go 1 961d7034d9b919f25cd9e8a633b3aae0cf1eefbed974c9e7bee7912f22e75405",
-    "worker.md go 1 841b219d95cbccaf0155aee3284bdf801a6784a2dfd0d0785f86ac8cfa4fc6be",
-    "worker.md go 2 841b219d95cbccaf0155aee3284bdf801a6784a2dfd0d0785f86ac8cfa4fc6be"
+    "worker.md go 1 e05cf8c0c316ac3cac077e332bc01a0bd1f808fbb70e7645dd77371e3d7954c1",
+    "worker.md go 2 e05cf8c0c316ac3cac077e332bc01a0bd1f808fbb70e7645dd77371e3d7954c1"
   ]
 }

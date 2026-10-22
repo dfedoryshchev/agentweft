@@ -185,6 +185,6 @@
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6"
+    "planner.md go 1 c3b76f25dca104c11a4ff456e18eb90fa235985ba302512651f9ae731dfac4f4"
   ]
 }
