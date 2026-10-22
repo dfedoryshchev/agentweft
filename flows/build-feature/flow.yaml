@@ -39,6 +39,7 @@ steps:
     on_redo: worker
     lens: "what the tests do not run, and the project's own way: the new code run by hand on the boundaries, the bad input and the error paths the tests leave out, and the change held to the conventions the project's facts, its spec and its code already keep"
 reviewers: 2
+small_reviewers: 2
 promises:
   inputs: a feature to build, and the spec it names
   outputs: failing tests, then the code that turns them green, then the files it changed

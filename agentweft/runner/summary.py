@@ -1005,7 +1005,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
           spec_files=None, clock=None, held=True, proof=None, shadowed=(),
-          told=(), police=()):
+          told=(), police=(), sized=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -1036,6 +1036,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     empty in any other mode. `told` is a line per passage addressed to an
     agent that a step read and took no action from (`police.read_lines`),
     empty with police off.
+    `sized` is a line on the size of the change and one per reviewer it left
+    out, empty for a flow with no `small_reviewers`.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -1246,6 +1248,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                + name + " - " + found
                for name, ok, found in (stopped or {}).get("checked") or [])
     out.append("- red first: " + red_first(every, held))
+    out.extend("- " + s for s in sized)
     if order:
         out.append("- test order: " + order)
     if kept:

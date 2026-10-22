@@ -132,8 +132,11 @@ def test_the_sides_are_not_the_same_size():
     # and `lane` another: it has none to turn off. `conformance` too: it has
     # no fact whose check a change could break. a step's `on_missed` one
     # more: a phase's review sends work back by verdict only.
+    #
+    # `small_reviewers` is one more, one way: a phase seats the agents it
+    # names whatever the change is, and has no size to read.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 49
+    assert len(compare.flow_only()) == 50
     assert len(compare.phase_only()) == 7
 
 

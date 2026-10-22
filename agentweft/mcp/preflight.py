@@ -80,6 +80,123 @@ def check(text, ranking_text, threshold=DEFAULT_THRESHOLD):
     return sorted(set(hot), key=lambda p: -p[1])
 
 
+SMALL = "small"
+NOT_SMALL = "not small"
+# past these a change is not small, whatever it touches: logic lines added
+# or taken out in code, code files, and new public names
+SMALL_LINES = 20
+SMALL_FILES = 2
+SMALL_NAMES = 1
+LOCALE_DIRS = ("locale", "locales", "i18n", "l10n", "translations", "lang",
+               "langs")
+LOCALE_SUFFIXES = (".po", ".pot", ".ftl", ".xliff", ".xlf", ".strings",
+                   ".arb", ".resx")
+DATA_DIRS = ("data", "fixtures", "samples", "assets", "static")
+DATA_SUFFIXES = (".csv", ".tsv", ".jsonl", ".ndjson", ".svg", ".png", ".jpg",
+                 ".gif", ".ico", ".txt")
+DOC_SUFFIXES = (".md", ".rst", ".adoc")
+CONFIG_SUFFIXES = (".toml", ".ini", ".cfg", ".conf", ".yaml", ".yml", ".json",
+                   ".env", ".properties")
+CONFIG_NAMES = ("settings.py", "config.py", "conftest.py", "setup.py",
+                "dockerfile", "makefile", ".env")
+# a line that sets a key in a config file, not a comment or a header
+CONFIG_KEY = re.compile(r"^\s*[\"']?[\w.\-]+[\"']?\s*[:=]")
+NEW_NAME = re.compile(r"^(?:async\s+)?(?:def|class)\s+([A-Za-z]\w*)")
+FLAG = re.compile(r"""add_argument\(\s*["']--?[\w-]+|add_option\(|"""
+                  r"""@click\.option\(|typer\.Option\(""")
+
+
+def file_kind(path):
+    """-> code, test, config, locale, data or docs, by where the file is and
+    what it is called. a big file of a low-logic kind holds little to review;
+    a small change to a config file reaches everything that reads it."""
+    from agentweft.guardrails.snapshot import is_test
+
+    path = _slashes(path)
+    parts = [p.lower() for p in path.split("/")]
+    name = parts[-1]
+    dot = name.rfind(".")
+    suffix = name[dot:] if dot > 0 else ""
+    if is_test(path):
+        return "test"
+    if suffix in LOCALE_SUFFIXES or any(p in LOCALE_DIRS for p in parts[:-1]):
+        return "locale"
+    if suffix in DOC_SUFFIXES or parts[0] == "docs":
+        return "docs"
+    if suffix in DATA_SUFFIXES or (suffix in CONFIG_SUFFIXES and any(
+            p in DATA_DIRS for p in parts[:-1])):
+        return "data"
+    if suffix in CONFIG_SUFFIXES or name in CONFIG_NAMES:
+        return "config"
+    return "code"
+
+
+def size(files, ranking_text=None, threshold=DEFAULT_THRESHOLD):
+    """-> how big and how risky a change is, from the files it changed:
+    [(path, the lines it added, how many it took out)], None when the change
+    could not be read. `blast` is high when it touches a file the risk map
+    ranks at or above `threshold`, sets a key in a config file, or adds a
+    command-line flag; `logic_lines` counts only code, never tests, docs,
+    data or locale files. a change is `small` only with a low blast, few
+    logic lines, few code files and at most one new public name. `why` says
+    what decided it, one reason a line."""
+    out = {"size": NOT_SMALL, "blast": "low", "logic": "logic",
+           "logic_lines": 0, "files": 0, "why": [], "read": files is not None}
+    if files is None:
+        out["why"].append("the change could not be read")
+        return out
+    ranking = parse_ranking(ranking_text)
+    code, names = [], []
+    for path, added, removed in files:
+        kind = file_kind(path)
+        out["files"] += 1
+        for known, score in ranking.items():
+            if _same_file(_slashes(known), _slashes(path)) \
+                    and score >= threshold:
+                out["blast"] = "high"
+                out["why"].append(path + " is ranked " + str(score)
+                                  + " on the risk map")
+        if kind == "config" and any(CONFIG_KEY.match(l) for l in added):
+            out["blast"] = "high"
+            out["why"].append(path + " sets a key in a config file")
+        if kind != "code":
+            continue
+        code.append(path)
+        out["logic_lines"] += len([l for l in added if l.strip()]) + removed
+        if any(FLAG.search(l) for l in added):
+            out["blast"] = "high"
+            out["why"].append(path + " adds a command-line flag")
+        names.extend(m.group(1) for m in (NEW_NAME.match(l) for l in added)
+                     if m and not m.group(1).startswith("_"))
+    if not out["logic_lines"]:
+        out["logic"] = "low-logic"
+    if out["logic_lines"] > SMALL_LINES:
+        out["why"].append(str(out["logic_lines"]) + " logic lines, more than "
+                          + str(SMALL_LINES))
+    if len(code) > SMALL_FILES:
+        out["why"].append(str(len(code)) + " code files, more than "
+                          + str(SMALL_FILES))
+    if len(names) > SMALL_NAMES:
+        out["why"].append(str(len(names)) + " new public names: "
+                          + ", ".join(names))
+    if not out["why"]:
+        out["size"] = SMALL
+        out["why"].append(str(out["logic_lines"]) + " logic line"
+                          + ("" if out["logic_lines"] == 1 else "s") + " in "
+                          + str(len(code)) + " code file"
+                          + ("" if len(code) == 1 else "s") + ", nothing the"
+                          " risk map ranks hot, no config key or flag")
+    return out
+
+
+def size_line(sized):
+    """-> the size as one line for the record."""
+    if not sized.get("read", True):
+        return "not sized, so every reviewer runs: " + "; ".join(sized["why"])
+    return (sized["size"] + ", " + sized["blast"] + " blast, "
+            + sized["logic"] + ": " + "; ".join(sized["why"]))
+
+
 def as_warning(hot):
     if not hot:
         return ""

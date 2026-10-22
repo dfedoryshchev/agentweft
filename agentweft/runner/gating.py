@@ -328,6 +328,65 @@ def risk_map(run, fm, step):
     return context.as_prompt(text), text
 
 
+def sized_change(run):
+    """-> `preflight.size` of what the run changed since it started, read
+    from git: each file's added lines and how many it took out, a new file
+    whole, the run's own records and the files dirty before it left out. the
+    risk map the planner was handed is the blast radius."""
+    from .summary import _git, _porcelain
+
+    tree = run.tree
+    if not tree.git or not tree.start:
+        got = preflight.size(None)
+        got["why"] = ["the place is not a git work tree with a commit to"
+                      " read the change from"]
+        return got
+    files, path = {}, None
+    for line in (_git(run.workdir, "-c", "core.quotepath=false", "diff",
+                      "--unified=0", "--no-color", "--no-ext-diff",
+                      tree.start, "--", ".") or "").split("\n"):
+        if line.startswith("+++ "):
+            path = line[6:] if line.startswith("+++ b/") else None
+            if path is not None:
+                files.setdefault(path, [[], 0])
+        elif line.startswith("--- "):
+            continue
+        elif path is not None and line.startswith("+"):
+            files[path][0].append(line[1:])
+        elif path is not None and line.startswith("-"):
+            files[path][1] += 1
+    for code, rel in _porcelain(run.workdir):
+        if code == "??":
+            try:
+                text = (tree.root / rel).read_text(encoding="utf-8",
+                                                   errors="replace")
+            except OSError:
+                continue
+            files[rel] = [text.splitlines(), 0]
+    own = _own_records(run)
+    return preflight.size([(p, a, d) for p, (a, d) in sorted(files.items())
+                           if p not in tree.dirty
+                           and not any(p == o or p.startswith(o + "/")
+                                       for o in own)],
+                          getattr(run, "ranking", None))
+
+
+def _own_records(run):
+    """-> the run's own record folders as paths from the top of the repo."""
+    from pathlib import Path
+
+    from . import state
+
+    out = []
+    for where in (state.RUNS,):
+        try:
+            out.append(Path(where).resolve().relative_to(
+                run.tree.root.resolve()).as_posix())
+        except (ValueError, OSError):
+            continue
+    return out
+
+
 def preflight_before(run, fm, step, handed, risk_text, cleared=None):
     """the preflight on what `step` is handed, before it runs.
 

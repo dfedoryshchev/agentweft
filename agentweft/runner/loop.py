@@ -8,6 +8,7 @@ from agentweft.guardrails import (baseline, police, redorder, signoff, skips,
                                   snapshot)
 from agentweft.guardrails.budget import REACHING
 from agentweft.guardrails import blocks, sacrifice
+from agentweft.mcp import preflight
 from agentweft.orchestrate import decisions, park
 
 from .config import steps
@@ -30,7 +31,7 @@ from .gating import (NEWLINE, and_forged, boundary_note, check_step,
                      forged_by, forged_first, gate_told, gate_why,
                      held_after_stop, nothing_why, off_task, outage_why,
                      police_line, preflight_after, preflight_before, risk_map,
-                     sent_back_times, since, times)
+                     sent_back_times, since, sized_change, times)
 
 
 def roles_of(run, todo):
@@ -112,6 +113,12 @@ def go(leg):
             and (found.step(start) or {}).get("state") == manifest.NOT_RUN:
         cleared = start
 
+    sized_said = []
+    sizing = {}
+    small_n = fm.get("small_reviewers")
+    reviewing = [s.get("prompt") for s in fm.get("steps") or []
+                 if isinstance(s, dict) and s.get("role") == REVIEWER]
+
     def leave(stopped=None, needs=None, signed=()):
         """write the run's handoff.md from what the runner knows, and hand
         back (its path, its lines)."""
@@ -170,7 +177,8 @@ def go(leg):
                               shadowed=hits,
                               told=told,
                               police=police.handoff_lines(
-                                  run.policing, hits, seen, told, unseen))
+                                  run.policing, hits, seen, told, unseen),
+                              sized=sized_said)
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             went = len(trail.closed)
@@ -340,6 +348,23 @@ def go(leg):
             if step in run.cut:
                 step = route.next(step, EMPTY)
                 continue
+            if small_n is not None and step in reviewing:
+                if reviewing.index(step) == 0:
+                    sizing["now"] = sized_change(run)
+                    del sized_said[:]
+                    sized_said.append("size: " + preflight.size_line(
+                        sizing["now"]))
+                    print("sized the change: " + sized_said[0][6:])
+                elif reviewing.index(step) >= small_n and (
+                        sizing.get("now") or {}).get("size") == \
+                        preflight.SMALL:
+                    sized_said.append(
+                        "left out " + step + ": the change sized small, and"
+                        " the flow runs " + str(small_n) + " reviewer"
+                        + ("" if small_n == 1 else "s") + " on a small one")
+                    print(sized_said[-1])
+                    step = route.next(step, EMPTY)
+                    continue
             used = run.by_step.get(step, run.provider)
             refused = run.refused(step)
             if refused:

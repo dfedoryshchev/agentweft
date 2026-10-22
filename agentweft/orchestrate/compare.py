@@ -210,6 +210,10 @@ FLOW_ONLY = (
          "how many of the flow's reviewer steps run, the first ones in its "
          "order. a phase that wants two reviews seats two agents, and has no "
          "word for running fewer of them."),
+    Pair("flow.small_reviewers", "",
+         "how many reviewers run on a change the runner sizes small from its "
+         "blast radius and how much of it is logic. a phase seats the agents "
+         "it names whatever the change is."),
     Pair("step.writes_tests", "",
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),

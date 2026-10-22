@@ -86,7 +86,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
          "reviewers", "police", "network", "facts_per_run", "lane",
-         "conformance")
+         "conformance", "small_reviewers")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 # `retro: conditional` runs it only after a run that had something to look
@@ -243,6 +243,9 @@ def with_verify(raw):
 # a flow runs more than one, each says in `lens:` the one line it reads for,
 # and no two say the same. each verdict is its own: a redo from any of them
 # sends the work back, and the work comes past all of them again.
+# `small_reviewers:` is how many of them run on a change the runner sizes
+# small (`mcp/preflight.py` `size`); with it the change is sized before the
+# first reviewer and the size goes in the handoff.
 REVIEWER = "reviewer"
 
 
@@ -273,6 +276,11 @@ def check_reviewers(raw):
     if said is not None and not (counts(said) and 1 <= said <= len(mine)):
         bad.append("reviewers should be a whole number from 1 to "
                    + str(len(mine)) + ", the reviewer steps this flow has")
+    small = raw.get("small_reviewers")
+    most = said if counts(said) and 1 <= said <= len(mine) else len(mine)
+    if small is not None and not (counts(small) and 1 <= small <= most):
+        bad.append("small_reviewers should be a whole number from 1 to "
+                   + str(most) + ", the reviewers this flow runs")
     lensed = said is not None or any(s.get("lens") is not None for s in mine)
     seen = {}
     for i, step in enumerate(steps):
