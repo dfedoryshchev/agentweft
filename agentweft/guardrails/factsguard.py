@@ -189,11 +189,14 @@ def in_place(root, scope):
 
 class Store(object):
     """the runner's own record of the facts in one place, and the only way a
-    fact is written there."""
+    fact is written there. `off` is a flow's `lane: off`: the run reads,
+    heals and writes none of them, and a step is still held to leaving the
+    store as it found it."""
 
-    def __init__(self, workdir, cap=CAP):
+    def __init__(self, workdir, cap=CAP, off=False):
         self.root = Path(workdir)
         self.cap = cap
+        self.off = off
         self.lock = threading.Lock()
         self.folder = None
         self.written = []
@@ -226,12 +229,17 @@ class Store(object):
         return set(self.found) | set(w["sha256"] for w in self.written)
 
     def read(self):
-        """-> the entries the runner has on record, every status."""
+        """-> the entries the runner has on record, every status; none when
+        the lane is off."""
+        if self.off:
+            return []
         known = self.known()
         return [f for f in facts.read(self.root) if digest(f) in known]
 
     def heal(self, today=None):
         """`facts.heal` as the runner's own write, before any step."""
+        if self.off:
+            return []
         with self.lock:
             made = facts.heal(self.root, today)
             if made:
@@ -580,3 +588,9 @@ def cap_of(fm):
     """-> the flow's `facts_per_run`, CAP when it names none."""
     said = fm.get("facts_per_run") if hasattr(fm, "get") else None
     return CAP if said is None else int(said)
+
+
+def lane_off(fm):
+    """whether the flow says `lane: off`, which yaml may read as false."""
+    said = fm.get("lane") if hasattr(fm, "get") else None
+    return said is False or said == "off"

@@ -10,13 +10,14 @@
   "path": [
     "1 worker.md parked",
     "2 worker.md ok -> patcher.md  PASS red-test",
-    "3 patcher.md ok  PASS red-test  PASS red-first  PASS command"
+    "3 patcher.md ok  PASS red-test  PASS red-first  PASS command",
+    "4 retro.md ok"
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
     "<time>  fix-with-test  parked at worker.md  <secs>s  fix-with-test-<run>  parked  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  needs a ruling: should the output name who asked for it?  fix-with-test-<run>/handoff.md",
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>  resumes fix-with-test-<run>",
-    "<time>  fix-with-test  ok (resumed)  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  fix-with-test-<run>/handoff.md  resumes fix-with-test-<run>"
+    "<time>  fix-with-test  ok (resumed)  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  fix-with-test-<run>/handoff.md  resumes fix-with-test-<run>"
   ],
   "index": [
     "PARKED  fix-with-test  at worker.md",
@@ -170,6 +171,7 @@
     "fix-with-test-<run>/question.md",
     "fix-with-test-<run>/red-proof.json",
     "fix-with-test-<run>/red-proof.json",
+    "fix-with-test-<run>/retro.md",
     "fix-with-test-<run>/rulings.json",
     "fix-with-test-<run>/rulings.json",
     "fix-with-test-<run>/start-snapshot.json",
@@ -179,6 +181,7 @@
     "fix-with-test-<run>/steps/001-worker.md",
     "fix-with-test-<run>/steps/002-worker.md",
     "fix-with-test-<run>/steps/003-patcher.md",
+    "fix-with-test-<run>/steps/004-retro.md",
     "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/why.md",
@@ -464,6 +467,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 4,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/004-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -471,6 +567,7 @@
       "started worker.md",
       "worker.md asks for a ruling",
       "parked at worker.md, waiting for a ruling",
+      "retro not run: the run stopped on parked",
       "# fix-with-test fix-with-test-<run>: needs you: ruling at worker.md - needs a ruling: should the output name who asked for it?",
       "fix-with-test ran worker.md in <secs>s on: add(1, 2) returns -1.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -523,6 +620,8 @@
       "-    return a - b",
       "+    total = a + b",
       "+    return total",
+      "started retro.md",
+      "retro: <tmp>/runs/fix-with-test-<run>/retro.md",
       "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
       "fix-with-test picked up 1 earlier pass and ran worker.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
       "suite: 4 of 4 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
@@ -542,6 +641,7 @@
   ],
   "prompts": [
     "patcher.md go 1 5fa53062059a9c61627f0df5a195c0a0c3c052f8212ace434e21b364c4dc7561",
+    "retro.md go 1 e93ebbfba98387d0b7af6a73884e0d44c3085478d64b1ec1b74797c67a6c590f",
     "worker.md go 1 4385694ea53b31fca17d5407049e0d5d9265f2cf3b12d68bb6570986843d64c2",
     "worker.md go 2 6c769c248dbe1c5342cb884000136f70b73a029dfd2d5521a8e0f5c4e220cb4a"
   ]

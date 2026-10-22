@@ -35,4 +35,5 @@ expect:
     path:
       - worker.md ok -> patcher.md  PASS red-test
       - patcher.md ok  PASS red-test  PASS red-first  PASS command  PASS start-tests
-  calls: 2
+      - retro.md ok
+  calls: 3

@@ -21,7 +21,8 @@ from agentweft import runner
 from agentweft.roles import resolver
 from agentweft.runner import engine, gating, prompts, stops
 
-from test_spec_conflict import a_place, end, folders, go, plain, unchanged
+from test_spec_conflict import (RETRO, a_place, end, folders, go, plain,
+                                unchanged)
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
@@ -184,7 +185,7 @@ def test_a_plan_that_adds_to_a_spec_line_is_built(tmp_path, monkeypatch):
                                                        + BUILT]}),
                            roster_edits(place), "--task", ADDS)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "reviewer-runs.md"]
+                     "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
     assert "spec: adds to TASK.md:3" in sent[1]
     assert "a behaviour marked `adds to` gets its test" in " ".join(
@@ -201,7 +202,7 @@ def test_a_literal_planner_builds_an_added_delimiter(tmp_path, monkeypatch):
                                 {"tester.md": TESTER, "worker.md": BUILT}),
                         roster_edits(place), "--task", ADDS)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "reviewer-runs.md"]
+                     "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
 
 
@@ -250,7 +251,7 @@ def test_an_added_option_described_in_a_new_spec_line_ends_done(
                                "reviewer-runs.md": [REVIEWED]}),
                         edits, "--task", ADDS + ". describe it in TASK.md")
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "reviewer-runs.md"]
+                     "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
     assert (place / "TASK.md").read_text(encoding="utf-8") == SPEC + APPENDED
 
@@ -377,7 +378,7 @@ def test_a_contradiction_with_no_conflict_line_goes_back_and_is_withdrawn(
                                "reviewer-runs.md": [REVIEWED]}),
                         roster_edits(place), "--task", ADDS)
     assert asked == ["planner.md", "planner.md", "tester.md", "worker.md",
-                     "reviewer.md", "reviewer-runs.md"]
+                     "reviewer.md", "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
 
 
@@ -387,7 +388,7 @@ def test_a_contradiction_left_untyped_twice_stops_before_the_tester(
     asked, _, code = go(tmp_path, monkeypatch, "build-feature",
                         plain({"planner.md": [UNTYPED]}),
                         lambda step, n: None, "--task", REWRITES)
-    assert asked == ["planner.md", "planner.md"]
+    assert asked == ["planner.md", "planner.md", RETRO]
     assert code == stops.EXIT_STOP
     assert end(tmp_path).cause == "gate failed"
 

@@ -2,11 +2,12 @@
   "exit": 2,
   "raised": null,
   "path": [
-    "1 planner.md failed"
+    "1 planner.md failed",
+    "2 retro.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  failed at planner.md  <secs>s  build-feature-<run>  no answer  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  nothing came out of planner.md in 2 goes; the provider said: an empty answer  build-feature-<run>/handoff.md"
+    "<time>  build-feature  failed at planner.md  <secs>s  build-feature-<run>  no answer  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  nothing came out of planner.md in 2 goes; the provider said: an empty answer  build-feature-<run>/handoff.md"
   ],
   "index": [
     "FAILED  build-feature  at planner.md"
@@ -80,10 +81,12 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro.md",
     "build-feature-<run>/rulings.json",
     "build-feature-<run>/start-snapshot.json",
     "build-feature-<run>/steps.jsonl",
     "build-feature-<run>/steps/001-planner.md",
+    "build-feature-<run>/steps/002-retro.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/why.md",
     "build-feature-<run>/workdir",
@@ -166,6 +169,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -175,6 +271,8 @@
     "step planner.md failed (transient): an empty answer",
     "giving up",
     "run stopped at planner.md",
+    "started retro.md",
+    "retro: <tmp>/runs/build-feature-<run>/retro.md",
     "# build-feature build-feature-<run>: stopped: tool fault at planner.md - nothing came out of planner.md in 2 goes; the provider said: an empty answer",
     "build-feature ran planner.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -208,6 +306,7 @@
   ],
   "prompts": [
     "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
-    "planner.md go 2 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37"
+    "planner.md go 2 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
+    "retro.md go 1 b4924a9006891f21305008d4f332199bbb23bde8e444bb884c336da45a379fdf"
   ]
 }

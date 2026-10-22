@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
-from agentweft.providers import cli_provider
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, state
 
 NL = chr(10)
@@ -70,15 +70,18 @@ def run_it(tmp_path, monkeypatch, answers, builds=True, before=BEFORE,
     return asked, written, sent, code
 
 
+# the shipped flow looks back after every run that ends, once, last
+RETRO = "retro.md"
 ALL = {"planner.md": [PLAN], "tester.md": [TESTER], "worker.md": [WORKER],
-       "reviewer.md": [OK], "reviewer-runs.md": [OK]}
+       "reviewer.md": [OK], "reviewer-runs.md": [OK],
+       RETRO: [fake_provider.NOTHING_TO_KEEP]}
 
 
 def test_a_task_walks_planner_tester_worker_suite_reviewer(tmp_path,
                                                           monkeypatch):
     asked, written, sent, code = run_it(tmp_path, monkeypatch, ALL)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "reviewer-runs.md"]
+                     "reviewer-runs.md", RETRO]
     assert "PASS red-test - red, exit 1" in written.split("## tester.md")[1]
     assert "PASS command - exit 0" in written.split("## worker.md")[1]
     assert "FAIL " not in written
@@ -91,7 +94,7 @@ def test_a_reviewer_redo_sends_the_worker_back(tmp_path, monkeypatch):
                            "reviewer.md": [REDO, OK]})
     asked, written, _, _ = run_it(tmp_path, monkeypatch, answers)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "worker.md", "reviewer.md", "reviewer-runs.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md", RETRO]
     assert "FAIL " not in written
 
 
@@ -103,13 +106,14 @@ def test_a_redo_from_the_second_reviewer_sends_the_worker_back_too(
     asked, written, _, _ = run_it(tmp_path, monkeypatch, answers)
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
                      "reviewer-runs.md", "worker.md", "reviewer.md",
-                     "reviewer-runs.md"]
+                     "reviewer-runs.md", RETRO]
     assert "FAIL " not in written
 
 
 def test_a_failing_suite_stops_the_run_at_the_worker(tmp_path, monkeypatch):
     asked, written, _, _ = run_it(tmp_path, monkeypatch, ALL, builds=False)
-    assert asked == ["planner.md", "tester.md", "worker.md", "worker.md"]
+    assert asked == ["planner.md", "tester.md", "worker.md", "worker.md",
+                     RETRO]
     at_worker = written.split("## worker.md")[1]
     assert "FAIL command - exit 1" in at_worker
     journal = (tmp_path / "runs" / "journal.md").read_text(encoding="utf-8")
@@ -120,7 +124,7 @@ def test_a_failing_suite_stops_the_run_at_the_worker(tmp_path, monkeypatch):
 def test_a_test_that_already_passes_stops_the_run_before_any_code(
         tmp_path, monkeypatch):
     asked, written, _, _ = run_it(tmp_path, monkeypatch, ALL, before=AFTER)
-    assert asked == ["planner.md", "tester.md", "tester.md"]
+    assert asked == ["planner.md", "tester.md", "tester.md", RETRO]
     assert "the test passed before the patch" in written
 
 

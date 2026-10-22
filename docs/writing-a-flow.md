@@ -315,9 +315,21 @@ any other word in either key is refused when the flow loads.
 ## 10. say whether the run looks back
 
 every failed attempt already has a why on its line in `steps.jsonl`, and
-`retro:` adds one last step that reads them:
+`retro:` adds one last step that reads them. every shipped flow, and the
+template, says
 
     retro: true
+
+so the retro is on by default in what ships; a flow opts out with
+`retro: false`, and a flow that says nothing runs none. `retro:
+conditional` runs it only after a run that had something to look back at:
+it changed a file (one that was already modified before the run does not
+count; outside git the run cannot tell and it counts), had a failed
+attempt, a gate that could not do its job or a refused write, or asked a
+question (a ruling written, a step that asked or was decided for, a park).
+any other run prints `retro not run: conditional, and the run changed no
+file, had no failed attempt, no gate issue and no question` and spends
+nothing on it.
 
 once the handoff is written, every run that ends hands the retro role
 (`roles/library/retro.md`) its record, with the retro skill
@@ -357,6 +369,16 @@ run. a `gate-issue` or `defect` fact counted again climbs: in two runs it is
 four on the handoff lists it as hardening owed every run until it is
 retired.
 
+    lane: off
+
+keeps the flow's runs out of the project's facts altogether: no heal at the
+start, no fact handed to a step, nothing the retro proposes acted on (its
+`retro.md` ends `the flow's lane is off, so the FACTS block was not acted
+on`), and the retro is told it may write 0. a step is still held to leaving
+`facts/` as it found it. `lane: project`, the default, keeps them in the
+place (`docs/journal.md`, "what is known about a file"). yaml reads a bare
+`off` as false, and false is off too.
+
 the rest of what it writes is advice, never a gate. a retro that errors or
 comes back empty is a `retro.md` line in `steps.jsonl` with `outcome:
 failed` and the why; one that cannot even write that line only prints why.
@@ -372,10 +394,18 @@ budget or an interrupt), or one at its call cap, holds its retro and prints
 `retro not run:` and why. its failed attempts are not lost: the leg that
 carries the run on hands them to its own retro, with its own. an attempt one
 retro was handed is not handed to the next, and a stop that waited is not a
-failed attempt. `retro: false` or no
-`retro:` adds no step. it is true or false, anything else is refused when the
-flow loads, and so is a step whose role is `retro` or that reads `retro.md`.
-a scored eval case of the flow runs it the same way (`evals/README.md`).
+failed attempt. a run a tool fault stopped (`exception`: the provider refused
+the call outright, no credentials say, or the runner itself raised) holds it
+too, with `retro not run: the run stopped on exception`: a provider that
+refused a step refuses the retro the same way. its crashed attempt is still a
+failed one for a leg that carries the run on. the retro is held the way a
+step would be refused: a place
+where a step left an instruction file (`docs/guardrails.md`, "the files that
+brief the model") gets `retro not run: CLAUDE.md changed in ...`, since the
+retro's model would start there and read it. `retro:` is true, false or
+`conditional`; anything else is refused when the flow loads, and so is a step
+whose role is `retro` or that reads `retro.md`. a scored eval case of the
+flow runs it the same way (`evals/README.md`).
 
 ## 11. run it three times before you trust it
 

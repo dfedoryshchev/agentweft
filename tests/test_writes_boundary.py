@@ -282,7 +282,8 @@ def test_a_reviewer_that_asks_and_is_ruled_by_the_lead_is_not_charged_with_the_r
     why = folder / "why.md"
     assert code == 0, why.read_text(encoding="utf-8") if why.exists() else ""
     assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
-                     "planner.md", "reviewer.md", "reviewer-runs.md"]
+                     "planner.md", "reviewer.md", "reviewer-runs.md",
+                     ld.RETRO]
 
 
 def test_decisions_md_has_no_name_that_lets_a_step_change_it():

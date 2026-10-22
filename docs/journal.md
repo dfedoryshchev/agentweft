@@ -340,7 +340,9 @@ session on:
     the pass that asked is `none`, it runs again.
   - `none`: anything else, an all-pass judge among them.
   the retro in `handoff.md` sums seconds and money by it.
-- a flow with `retro: true` can end on one more line, step `retro.md`,
+- a flow that runs the retro (every shipped flow: `retro: true`, or
+  `retro: conditional` after a run with something to look back at) can end
+  on one more line, step `retro.md`,
   written after the handoff: `outcome` `ok` or `failed` with its why, never
   a cause, `won` `none`, `budget` null (`writing-a-flow.md`). what it wrote
   is `runs/<run-id>/retro.md`.

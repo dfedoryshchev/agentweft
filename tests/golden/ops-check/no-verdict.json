@@ -4,11 +4,12 @@
   "path": [
     "1 planner.md ok -> worker.md",
     "2 worker.md ok -> reviewer.md",
-    "3 reviewer.md gate failed"
+    "3 reviewer.md gate failed",
+    "4 retro.md ok"
   ],
   "journal": [
     "<time>  ops-check  running  <secs>s  ops-check-<run>",
-    "<time>  ops-check  failed at reviewer.md  <secs>s  ops-check-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  step reviewer.md was asked for a verdict and its answer has no verdict line  ops-check-<run>/handoff.md"
+    "<time>  ops-check  failed at reviewer.md  <secs>s  ops-check-<run>  gate failed  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  step reviewer.md was asked for a verdict and its answer has no verdict line  ops-check-<run>/handoff.md"
   ],
   "index": [
     "FAILED  ops-check  at reviewer.md"
@@ -91,12 +92,14 @@
     "ops-check-<run>/handoff.md",
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
+    "ops-check-<run>/retro.md",
     "ops-check-<run>/reviewer.md",
     "ops-check-<run>/rulings.json",
     "ops-check-<run>/steps.jsonl",
     "ops-check-<run>/steps/001-planner.md",
     "ops-check-<run>/steps/002-worker.md",
     "ops-check-<run>/steps/003-reviewer.md",
+    "ops-check-<run>/steps/004-retro.md",
     "ops-check-<run>/why.md",
     "ops-check-<run>/workdir",
     "ops-check-<run>/worker.md"
@@ -352,6 +355,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 4,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/004-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -359,6 +455,8 @@
     "started worker.md",
     "started reviewer.md",
     "step reviewer.md was asked for a verdict and its answer has no verdict line - not going on",
+    "started retro.md",
+    "retro: <tmp>/runs/ops-check-<run>/retro.md",
     "# ops-check ops-check-<run>: stopped: gate failed at reviewer.md - step reviewer.md was asked for a verdict and its answer has no verdict line",
     "ops-check ran planner.md -> worker.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -390,6 +488,7 @@
   ],
   "prompts": [
     "planner.md go 1 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
+    "retro.md go 1 c015df7037cb291b985e07a33881e63bff182128aafb5a020ab3c4f8d8daeb3a",
     "reviewer.md go 1 ee61c79a7bf434ef34c643212894e27157d818c70c51beb675b835f884844db5",
     "worker.md go 1 7c4bd5dc982f363213a4f181b2161f583fe5d52374e93e994714a5f042f06997"
   ]

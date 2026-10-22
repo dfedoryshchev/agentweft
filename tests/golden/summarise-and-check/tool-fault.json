@@ -151,6 +151,7 @@
     "started worker.md",
     "step worker.md failed (fatal): permission denied: this account may not run here (exit 1)",
     "stopped at worker.md: Fatal: permission denied: this account may not run here (exit 1)",
+    "retro not run: the run stopped on exception",
     "# summarise-and-check summarise-and-check-<run>: stopped: tool fault at worker.md - Fatal: permission denied: this account may not run here (exit 1)",
     "summarise-and-check ran worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

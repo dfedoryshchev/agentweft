@@ -293,6 +293,7 @@
     "  FAIL test-edits - worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
     "worker.md changed a test the run started with",
     "parked at worker.md, waiting for a ruling",
+    "retro not run: the run stopped on parked",
     "# fix-with-test fix-with-test-<run>: needs you: ruling at worker.md - needs a ruling: worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 2 of 4 gates passed; red first: not held: the red-test gate on worker.md went red (red, exit 1, python -m pytest -q test_calc.py), but the run holds no red proof.",

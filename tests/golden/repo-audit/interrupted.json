@@ -147,6 +147,7 @@
     "started planner.md",
     "no risk map: no server in a replay",
     "stopped at planner.md: interrupted while planner.md was running",
+    "retro not run: the run stopped on interrupt",
     "# repo-audit repo-audit-<run>: stopped: interrupted at planner.md - interrupted while planner.md was running",
     "repo-audit ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

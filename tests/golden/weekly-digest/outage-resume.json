@@ -12,13 +12,14 @@
     "2 planner.md ok -> worker.md",
     "3 worker.md ok -> merge.md",
     "4 merge.md ok -> reviewer.md",
-    "5 reviewer.md ok  PASS length  PASS regex  PASS quote"
+    "5 reviewer.md ok  PASS length  PASS regex  PASS quote",
+    "6 retro.md ok"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
     "<time>  weekly digest  parked at planner.md  <secs>s  weekly-digest-<run>  provider outage  0 calls, 1 refused, 0 tokens  limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)  weekly-digest-<run>/handoff.md",
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>  resumes weekly-digest-<run>",
-    "<time>  weekly digest  ok (resumed)  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  5 calls, 1 refused, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)  weekly-digest-<run>/handoff.md  resumes weekly-digest-<run>"
+    "<time>  weekly digest  ok (resumed)  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  6 calls, 1 refused, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  weekly-digest-<run>/handoff.md  resumes weekly-digest-<run>"
   ],
   "index": [
     "PARKED  weekly-digest  at planner.md",
@@ -157,6 +158,7 @@
     "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
+    "weekly-digest-<run>/retro.md",
     "weekly-digest-<run>/reviewer.md",
     "weekly-digest-<run>/rulings.json",
     "weekly-digest-<run>/rulings.json",
@@ -166,6 +168,7 @@
     "weekly-digest-<run>/steps/003-worker.md",
     "weekly-digest-<run>/steps/004-merge.md",
     "weekly-digest-<run>/steps/005-reviewer.md",
+    "weekly-digest-<run>/steps/006-retro.md",
     "weekly-digest-<run>/tasks.jsonl",
     "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir",
@@ -616,6 +619,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 6,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/006-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -624,6 +720,7 @@
       "step planner.md failed (outage): You've hit your usage limit (exit 1)",
       "provider outage at planner.md: limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "parked at planner.md, waiting for the limit to reset",
+      "retro not run: the run stopped on provider outage",
       "# weekly digest weekly-digest-<run>: waiting: provider limit at planner.md - limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "weekly digest ran planner.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -670,6 +767,8 @@
       "  - rent.md: due on the 1st",
       "## can wait",
       "  - garden.md: order seeds in march",
+      "started retro.md",
+      "retro: <tmp>/runs/weekly-digest-<run>/retro.md",
       "# weekly digest weekly-digest-<run>: done",
       "weekly digest picked up 1 earlier pass and ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
       "suite: 3 of 3 gates passed; red first: not proven by a gate.",
@@ -689,6 +788,7 @@
     "merge.md go 1 f00be6ad7310b85de6e8703f79f27b29374b90b43d3ac55dc639d9156f0c62da",
     "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
     "planner.md go 2 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
+    "retro.md go 1 9eb506aa557659ae08dc5ec56efa2ec6f6a93f63bdc68993fc49a4b61097b0a8",
     "reviewer.md go 1 ed97eb807869873b0fdd94c151a64d5dd80a16d9088c52c37367877fffe2d979",
     "worker.md task 1 go 1 b9e13a619ed92f2e52eb58f0e86a6d6c5d8e94c85e0f9d1cba5d25c3d309e33d",
     "worker.md task 2 go 1 e2bd89d3b536a64d689ad96d4ab4c90082787b76a09e3287c502477f842352ad"

@@ -1,4 +1,5 @@
 name: code-review
+retro: true
 steps:
   - role: worker
     prompt: worker.md

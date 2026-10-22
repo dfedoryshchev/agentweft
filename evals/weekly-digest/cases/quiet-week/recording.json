@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-16T15:09:29",
+  "recorded": "2026-10-22T10:05:12",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -24,6 +24,21 @@
       "go": 1,
       "prompt": "fa9e7410c605066007800a7fba8b399fbfeb0938e8226ddbe6508c8c03e00c08",
       "say": "TASK: budget.md\nLIST: needs-me\nWHY: sign the renewal by friday\nFILES:\n- budget.md\n\nTASK: notes.md\nLIST: can-wait\nWHY: nothing much happened\nFILES:\n- notes.md\n\nTASK: empty.md\nLIST: can-wait\nWHY: the file is empty\nFILES:\n- empty.md\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "554669199af28afa47cd3e76fcdc6161a508b29d1a5bed0465d5c5e7ab63f459",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
       "detail": "",
       "retryable": null,
       "outage": null,

@@ -144,6 +144,7 @@
   "printed": [
     "started worker.md",
     "stopped at worker.md: interrupted while worker.md was running",
+    "retro not run: the run stopped on interrupt",
     "# release-notes release-notes-<run>: stopped: interrupted at worker.md - interrupted while worker.md was running",
     "release-notes ran worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

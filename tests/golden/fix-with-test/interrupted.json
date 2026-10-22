@@ -147,6 +147,7 @@
   "printed": [
     "started worker.md",
     "stopped at worker.md: interrupted while worker.md was running",
+    "retro not run: the run stopped on interrupt",
     "# fix-with-test fix-with-test-<run>: stopped: interrupted at worker.md - interrupted while worker.md was running",
     "fix-with-test ran worker.md in <secs>s on: add(1, 2) returns -1.",
     "suite: no gates ran; red first: not proven by a gate.",

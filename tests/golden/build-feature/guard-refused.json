@@ -237,6 +237,7 @@
     "  FAIL writes - planner.md writes nothing and changed product code: CLAUDE.md. put each back as the run found it",
     "gate writes failed at planner.md, sent back to planner.md",
     "refused at planner.md: CLAUDE.md changed in <tmp>/place since the run started, and planner.md would start its model there and read it",
+    "retro not run: CLAUDE.md changed in <tmp>/place since the run started, and retro.md would start its model there and read it",
     "# build-feature build-feature-<run>: stopped: guard refused at planner.md - CLAUDE.md changed in <tmp>/place since the run started, and planner.md would start its model there and read it",
     "build-feature ran planner.md -> planner.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 0 of 1 gates passed; red first: not proven by a gate.",

@@ -157,6 +157,7 @@
     "started planner.md",
     "step planner.md failed (fatal): permission denied: this account may not run here (exit 1)",
     "stopped at planner.md: Fatal: permission denied: this account may not run here (exit 1)",
+    "retro not run: the run stopped on exception",
     "# build-feature build-feature-<run>: stopped: tool fault at planner.md - Fatal: permission denied: this account may not run here (exit 1)",
     "build-feature ran planner.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: no gates ran; red first: not proven by a gate.",

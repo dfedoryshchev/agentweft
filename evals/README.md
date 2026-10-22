@@ -101,13 +101,19 @@ a scored case takes the steps a run of the cli takes on the same answers:
 the planner of a flow with `context` is handed the risk map, a step with
 `preflight` is checked before and after it runs and held the same way,
 what a step came back with that it was not granted goes to `boundary.md`
-beside the lines, and a flow with `retro: true` ends on its `retro.md`
-line when an attempt failed, charged like any step. what a scored run
-leaves out: the "last run was" line a planner is given from an earlier run
-of the flow, the handoff and why.md the retro of a cli run also reads, the
-sacrifice cuts (above), and `investigate: auto`, whose cause step a scored
-run takes from the start instead of switching it on when the first step
-shows it is guessing.
+beside the lines, and a flow that runs the retro (every shipped flow does)
+ends on its `retro.md` line, charged like any step and counted in the
+case's steps and calls, with `why.md` beside the lines when the run stopped
+short. a case that scripts no `retro.md` answer gets the fake's own one for
+it, a retro with nothing to change and no fact to keep (`## change first`,
+`- none`, an empty FACTS block), whatever the case's `reply` says.
+what a scored run leaves out: the "last run was" line a planner is given
+from an earlier run of the flow, the handoff the retro of a cli run also
+reads (it names the provider that answered, which a replay names as itself,
+and the commit the place started from, made new each run, so a replayed
+retro could never send the prompt it recorded), the sacrifice cuts (above),
+and `investigate: auto`, whose cause step a scored run takes from the start
+instead of switching it on when the first step shows it is guessing.
 
 ## how it ended
 
@@ -172,7 +178,10 @@ a recording made on windows replays on linux. before the prompt is hashed,
 the place the case ran in, the folder its lines went to (which the retro is
 pointed at) and the python that ran it become `<place>`, `<trail>` and
 `<python>`, and in what a failed gate said a backslash becomes a slash and a
-duration `<secs>s`. nothing else in the prompt is touched, so an edit to it
+duration `<secs>s`. in the run's record the retro is handed (its lines and
+why.md) a backslash becomes a slash, a number of seconds `<secs>s`, a date
+or time `<time>` and a commit id `<sha>`: a test run's seconds and a fresh
+commit differ every run. nothing else in the prompt is touched, so an edit to it
 still makes the recording stale.
 
 a replay stops the case, and the command exits 1 without saving the scores,

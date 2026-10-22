@@ -8,11 +8,12 @@
     "4 reviewer.md redo -> worker.md",
     "5 worker.md ok -> merge.md",
     "6 merge.md ok -> reviewer.md",
-    "7 reviewer.md ok"
+    "7 reviewer.md ok",
+    "8 retro.md ok"
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
-    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  9 calls, 1080 tokens counted (input 900, output 180), unpriced: model-in-replay x9, reported $0.0900 (cli x9)  repo-audit-<run>/handoff.md"
+    "<time>  repo-audit  ok, 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  10 calls, 1200 tokens counted (input 1000, output 200), unpriced: model-in-replay x10, reported $0.1000 (cli x10)  repo-audit-<run>/handoff.md"
   ],
   "index": [
     "repo-audit-<day>-1.md  repo-audit  4 steps"
@@ -93,6 +94,7 @@
     "repo-audit-<run>/manifest.json",
     "repo-audit-<run>/merge.md",
     "repo-audit-<run>/planner.md",
+    "repo-audit-<run>/retro.md",
     "repo-audit-<run>/reviewer.md",
     "repo-audit-<run>/rulings.json",
     "repo-audit-<run>/steps.jsonl",
@@ -103,6 +105,7 @@
     "repo-audit-<run>/steps/005-worker.md",
     "repo-audit-<run>/steps/006-merge.md",
     "repo-audit-<run>/steps/007-reviewer.md",
+    "repo-audit-<run>/steps/008-retro.md",
     "repo-audit-<run>/tasks.jsonl",
     "repo-audit-<run>/workdir",
     "repo-audit-<run>/worker.md"
@@ -764,6 +767,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 8,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/008-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -784,6 +880,8 @@
     "VERDICT: ok",
     "app.py parses argv and calls run().",
     "config.py loads settings.yml and has no defaults, which is the risk.",
+    "started retro.md",
+    "retro: <tmp>/runs/repo-audit-<run>/retro.md",
     "# repo-audit repo-audit-<run>: done",
     "repo-audit ran planner.md -> worker.md -> merge.md -> reviewer.md (sent back) -> worker.md -> merge.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -802,6 +900,7 @@
     "merge.md go 1 8114bbfe7f8b6964b08dafe23b74f66818c91ee22d65ca14c23561d70815e32e",
     "merge.md go 2 41e60c9f0ce5c1837c4da76febbc022d75fcbf17d0be8e8caff067ee29b345d0",
     "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
+    "retro.md go 1 6a38f365fda8ef9a3b51cc2d271f3689ab0e1ee65b6c357545b690add20d0ac3",
     "reviewer.md go 1 4a68cf716dff361c84f662f159e1de06461e26deb07ec5355e140e370275d29e",
     "reviewer.md go 2 3768ca9d8a7858104dbc3fdfdb4e7dcaf9da7aa7f86bb876d24f86e777e5d80f",
     "worker.md task 1 go 1 d36a35fc504cc147a7da80c2a95eaf372248770d2ac1fcdc26f0280b912eb312",

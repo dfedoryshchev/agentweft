@@ -153,6 +153,7 @@
     "started planner.md",
     "step planner.md failed (fatal): permission denied: this account may not run here (exit 1)",
     "stopped at planner.md: Fatal: permission denied: this account may not run here (exit 1)",
+    "retro not run: the run stopped on exception",
     "# weekly digest weekly-digest-<run>: stopped: tool fault at planner.md - Fatal: permission denied: this account may not run here (exit 1)",
     "weekly digest ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

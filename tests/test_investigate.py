@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.flow import spec
-from agentweft.providers import cli_provider
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
 
@@ -43,8 +43,11 @@ PATCHER = "TEST: " + NODE + NL + "return a + b"
 VERIFIED = NL.join(["PASS the test is written before the patch",
                     "PASS the test fails on the unpatched code",
                     "PASS the patch is the smallest thing that turns it green"])
+RETRO = "retro.md"
+# the shipped flow looks back after every run that ends, once, last
 ANSWERS = {"investigator.md": FOUND, "worker.md": WORKER,
-           "patcher.md": PATCHER, "verify.md": VERIFIED}
+           "patcher.md": PATCHER, "verify.md": VERIFIED,
+           RETRO: fake_provider.NOTHING_TO_KEEP}
 
 
 def raw(**extra):
@@ -172,7 +175,7 @@ def test_an_investigator_with_no_cause_line_stops_the_run_there(
     answer = FOUND.replace("CAUSE: ", "the cause is ")
     code, asked = run_it(tmp_path, monkeypatch, dict(ANSWERS, **{
         "investigator.md": answer}))
-    assert [s for s, _ in asked] == ["investigator.md"]
+    assert [s for s, _ in asked] == ["investigator.md", RETRO]
     assert code == 2
     assert "  failed at investigator.md  " in journal(tmp_path)
 
@@ -182,7 +185,8 @@ def test_an_investigator_naming_no_site_stops_the_run_there(tmp_path,
     answer = FOUND.replace(SITE_ONE + NL + SITE_TWO, "- somewhere in calc")
     code, asked = run_it(tmp_path, monkeypatch, dict(ANSWERS, **{
         "investigator.md": answer}))
-    assert [s for s, _ in asked] == ["investigator.md", "investigator.md"]
+    assert [s for s, _ in asked] == ["investigator.md", "investigator.md",
+                                     RETRO]
     assert "  failed at investigator.md  " in journal(tmp_path)
 
 
@@ -191,7 +195,8 @@ def test_an_investigator_that_says_nothing_about_rooted_stops_the_run_there(
     answer = FOUND.replace("ROOTED: yes" + NL, "")
     code, asked = run_it(tmp_path, monkeypatch, dict(ANSWERS, **{
         "investigator.md": answer}))
-    assert [s for s, _ in asked] == ["investigator.md", "investigator.md"]
+    assert [s for s, _ in asked] == ["investigator.md", "investigator.md",
+                                     RETRO]
     assert "  failed at investigator.md  " in journal(tmp_path)
 
 
@@ -209,7 +214,7 @@ def test_a_two_site_cause_reaches_the_worker_as_anchors_not_code(
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS)
     assert code == 0
     assert [s for s, _ in asked] == ["investigator.md", "worker.md",
-                                     "patcher.md"]
+                                     "patcher.md", RETRO]
     told = prompt_of(asked, "worker.md")
     assert SITE_ONE in told and SITE_TWO in told
     assert "CAUSE: calc.py:2" in told
@@ -260,7 +265,7 @@ def test_a_resumed_park_hands_the_worker_the_sites(tmp_path, monkeypatch):
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS,
                          more=["--resume", parked])
     assert code == 0
-    assert [s for s, _ in asked] == ["worker.md", "patcher.md"]
+    assert [s for s, _ in asked] == ["worker.md", "patcher.md", RETRO]
     assert SITE_TWO in prompt_of(asked, "worker.md")
     assert SITE_TWO in prompt_of(asked, "patcher.md")
 
@@ -285,7 +290,7 @@ def test_plan_asks_for_the_tests_and_the_decisions_as_well(tmp_path,
 
 def test_off_sends_the_patcher_the_words_it_always_had(tmp_path, monkeypatch):
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="off")
-    assert [s for s, _ in asked] == ["worker.md", "patcher.md"]
+    assert [s for s, _ in asked] == ["worker.md", "patcher.md", RETRO]
     told = prompt_of(asked, "patcher.md")
     assert "- do not touch anything the test does not reach" + NL in told
     assert "{SCOPE}" not in told
@@ -317,7 +322,7 @@ def test_auto_never_calls_the_cause_step_on_a_clean_run(tmp_path,
                                                          monkeypatch):
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="auto")
     assert code == 0
-    assert [s for s, _ in asked] == ["worker.md", "patcher.md"]
+    assert [s for s, _ in asked] == ["worker.md", "patcher.md", RETRO]
     assert "the cause step was switched on" not in decided(tmp_path)
 
 
@@ -328,7 +333,7 @@ def test_auto_switches_the_cause_step_on_when_the_red_test_fails_twice(
     assert code == 0
     assert [s for s, _ in asked] == ["worker.md", "worker.md",
                                      "investigator.md", "worker.md",
-                                     "patcher.md"]
+                                     "patcher.md", RETRO]
     assert SITE_TWO in prompt_of(asked, "worker.md")
     said = decided(tmp_path)
     assert "the cause step was switched on" in said
@@ -341,7 +346,7 @@ def test_auto_switches_the_cause_step_on_when_did_names_two_causes(
         "worker.md": TWO_CAUSES}), mode="auto")
     assert code == 0
     assert [s for s, _ in asked] == ["worker.md", "investigator.md",
-                                     "worker.md", "patcher.md"]
+                                     "worker.md", "patcher.md", RETRO]
     assert "CAUSE: calc.py:2" in prompt_of(asked, "worker.md")
     said = decided(tmp_path)
     assert "the cause step was switched on" in said
@@ -353,7 +358,7 @@ def test_auto_switches_on_once_and_a_third_red_failure_stops_the_run(
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="auto",
                          tests=[GREEN, GREEN, GREEN])
     assert [s for s, _ in asked] == ["worker.md", "worker.md",
-                                     "investigator.md", "worker.md"]
+                                     "investigator.md", "worker.md", RETRO]
     assert code != 0
     assert "  failed at worker.md  " in journal(tmp_path)
 
@@ -363,5 +368,5 @@ def test_cause_still_runs_the_step_first_and_a_red_failure_stops_as_before(
     code, asked = run_it(tmp_path, monkeypatch, ANSWERS, mode="cause",
                          tests=[GREEN, GREEN])
     assert [s for s, _ in asked] == ["investigator.md", "worker.md",
-                                     "worker.md"]
+                                     "worker.md", RETRO]
     assert code != 0

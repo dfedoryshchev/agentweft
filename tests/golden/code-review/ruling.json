@@ -176,6 +176,7 @@
     "started worker.md",
     "worker.md asks for a ruling",
     "parked at worker.md, waiting for a ruling",
+    "retro not run: the run stopped on parked",
     "# code-review code-review-<run>: needs you: ruling at worker.md - needs a ruling: should the output name who asked for it?",
     "code-review ran worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

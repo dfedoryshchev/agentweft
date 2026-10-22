@@ -10,13 +10,14 @@
   "path": [
     "1 worker.md ok -> reviewer.md",
     "2 reviewer.md parked",
-    "3 reviewer.md ok"
+    "3 reviewer.md ok",
+    "4 retro.md ok"
   ],
   "journal": [
     "<time>  release-notes  running  <secs>s  release-notes-<run>",
     "<time>  release-notes  parked at reviewer.md  <secs>s  release-notes-<run>  provider outage  1 call, 1 refused, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)  release-notes-<run>/handoff.md",
     "<time>  release-notes  running  <secs>s  release-notes-<run>  resumes release-notes-<run>",
-    "<time>  release-notes  ok (resumed), 3 promise(s) not checked  <secs>s  release-notes-<run>  release-notes-<day>-1.md  2 calls, 1 refused, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  release-notes-<run>/handoff.md  resumes release-notes-<run>"
+    "<time>  release-notes  ok (resumed), 3 promise(s) not checked  <secs>s  release-notes-<run>  release-notes-<day>-1.md  3 calls, 1 refused, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  release-notes-<run>/handoff.md  resumes release-notes-<run>"
   ],
   "index": [
     "PARKED  release-notes  at reviewer.md",
@@ -146,6 +147,7 @@
     "release-notes-<run>/handoff.md",
     "release-notes-<run>/manifest.json",
     "release-notes-<run>/manifest.json",
+    "release-notes-<run>/retro.md",
     "release-notes-<run>/reviewer.md",
     "release-notes-<run>/rulings.json",
     "release-notes-<run>/rulings.json",
@@ -153,6 +155,7 @@
     "release-notes-<run>/steps.jsonl",
     "release-notes-<run>/steps/001-worker.md",
     "release-notes-<run>/steps/003-reviewer.md",
+    "release-notes-<run>/steps/004-retro.md",
     "release-notes-<run>/why.md",
     "release-notes-<run>/workdir",
     "release-notes-<run>/workdir",
@@ -431,6 +434,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 4,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/004-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -440,6 +536,7 @@
       "step reviewer.md failed (outage): You've hit your usage limit (exit 1)",
       "provider outage at reviewer.md: limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "parked at reviewer.md, waiting for the limit to reset",
+      "retro not run: the run stopped on provider outage",
       "# release-notes release-notes-<run>: waiting: provider limit at reviewer.md - limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "release-notes ran worker.md -> reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -479,6 +576,8 @@
       "- a --dry-run switch on the export",
       "## fixed",
       "- the export no longer drops the last row",
+      "started retro.md",
+      "retro: <tmp>/runs/release-notes-<run>/retro.md",
       "# release-notes release-notes-<run>: done",
       "release-notes picked up 2 earlier passes and ran reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -495,6 +594,7 @@
     ]
   ],
   "prompts": [
+    "retro.md go 1 a9d94a4cb8a56c5e38013ebe8c4405a4f718c7a2fe37aed84883801e015c0f80",
     "reviewer.md go 1 818e17fc73e390fe2ed04bff1b63f92d9cf81cb8fcc97380c7b983b5f2f0d0e0",
     "reviewer.md go 2 818e17fc73e390fe2ed04bff1b63f92d9cf81cb8fcc97380c7b983b5f2f0d0e0",
     "worker.md go 1 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d"

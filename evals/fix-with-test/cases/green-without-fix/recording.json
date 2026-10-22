@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-17T09:42:07",
+  "recorded": "2026-10-22T10:04:31",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -38,6 +38,21 @@
       "writes": {
         "tests/test_add.py": "from calc import add\n\n\ndef test_add():\n    assert isinstance(add(1, 2), int)\n"
       }
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "4571dd52c51141b5a39ebf30bd9c5fa97157e781777cfd2c66081742304a1429",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
     },
     {
       "step": "worker.md",

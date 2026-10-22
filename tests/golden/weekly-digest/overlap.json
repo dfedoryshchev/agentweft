@@ -3,11 +3,12 @@
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
-    "2 worker.md failed"
+    "2 worker.md failed",
+    "3 retro.md ok"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  failed at worker.md  <secs>s  weekly-digest-<run>  overlap  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  task 1 wrote stray.md, which it did not name  weekly-digest-<run>/handoff.md"
+    "<time>  weekly digest  failed at worker.md  <secs>s  weekly-digest-<run>  overlap  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  task 1 wrote stray.md, which it did not name  weekly-digest-<run>/handoff.md"
   ],
   "index": [
     "FAILED  weekly-digest  at worker.md"
@@ -87,10 +88,12 @@
     "weekly-digest-<run>/handoff.md",
     "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/planner.md",
+    "weekly-digest-<run>/retro.md",
     "weekly-digest-<run>/rulings.json",
     "weekly-digest-<run>/steps.jsonl",
     "weekly-digest-<run>/steps/001-planner.md",
     "weekly-digest-<run>/steps/002-worker.md",
+    "weekly-digest-<run>/steps/003-retro.md",
     "weekly-digest-<run>/tasks.jsonl",
     "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir",
@@ -283,12 +286,107 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/003-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
     "started planner.md",
     "started worker.md",
     "tasks overlap at worker.md: task 1 wrote stray.md, which it did not name",
+    "started retro.md",
+    "retro: <tmp>/runs/weekly-digest-<run>/retro.md",
     "# weekly digest weekly-digest-<run>: stopped: tasks overlap at worker.md - task 1 wrote stray.md, which it did not name",
     "weekly digest ran planner.md -> worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -321,6 +419,7 @@
   ],
   "prompts": [
     "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
+    "retro.md go 1 41a8a1f76be2dabded980055d4825f177a4c8514d7e3bc48d77b3a3cd287f5a6",
     "worker.md task 1 go 1 b7309a71ce48319797d8da8cb1208f57f2aaa5b8604d2e66f25f6217030c1a9b",
     "worker.md task 2 go 1 e4cd1cb717b9a48909631a01091ba4ea7e6b071e9bdce9335ee7207c9666e248"
   ]

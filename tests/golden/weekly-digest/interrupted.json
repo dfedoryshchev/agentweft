@@ -146,6 +146,7 @@
   "printed": [
     "started planner.md",
     "stopped at planner.md: interrupted while planner.md was running",
+    "retro not run: the run stopped on interrupt",
     "# weekly digest weekly-digest-<run>: stopped: interrupted at planner.md - interrupted while planner.md was running",
     "weekly digest ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

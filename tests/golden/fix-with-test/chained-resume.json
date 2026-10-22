@@ -13,7 +13,8 @@
     "1 worker.md ok -> patcher.md  PASS red-test",
     "2 patcher.md parked",
     "3 patcher.md parked",
-    "4 patcher.md ok  PASS red-test  PASS red-first  PASS command"
+    "4 patcher.md ok  PASS red-test  PASS red-first  PASS command",
+    "5 retro.md ok"
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
@@ -21,7 +22,7 @@
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>  resumes fix-with-test-<run>",
     "<time>  fix-with-test  parked at patcher.md  <secs>s  fix-with-test-<run>  provider outage  1 call, 2 refused, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)  fix-with-test-<run>/handoff.md  resumes fix-with-test-<run>",
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>  resumes fix-with-test-<run>",
-    "<time>  fix-with-test  ok (resumed)  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  2 calls, 2 refused, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  fix-with-test-<run>/handoff.md  resumes fix-with-test-<run>"
+    "<time>  fix-with-test  ok (resumed)  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  3 calls, 2 refused, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  fix-with-test-<run>/handoff.md  resumes fix-with-test-<run>"
   ],
   "index": [
     "PARKED  fix-with-test  at patcher.md",
@@ -253,6 +254,7 @@
     "fix-with-test-<run>/red-proof.json",
     "fix-with-test-<run>/red-proof.json",
     "fix-with-test-<run>/red-proof.json",
+    "fix-with-test-<run>/retro.md",
     "fix-with-test-<run>/rulings.json",
     "fix-with-test-<run>/rulings.json",
     "fix-with-test-<run>/rulings.json",
@@ -264,6 +266,7 @@
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",
     "fix-with-test-<run>/steps/004-patcher.md",
+    "fix-with-test-<run>/steps/005-retro.md",
     "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/task.md",
@@ -604,6 +607,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 5,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/005-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -614,6 +710,7 @@
       "step patcher.md failed (outage): You've hit your usage limit (exit 1)",
       "provider outage at patcher.md: limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "parked at patcher.md, waiting for the limit to reset",
+      "retro not run: the run stopped on provider outage",
       "# fix-with-test fix-with-test-<run>: waiting: provider limit at patcher.md - limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
       "suite: 1 of 1 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
@@ -651,6 +748,7 @@
       "step patcher.md failed (outage): You've hit your usage limit (exit 1)",
       "provider outage at patcher.md: limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "parked at patcher.md, waiting for the limit to reset",
+      "retro not run: the run stopped on provider outage",
       "# fix-with-test fix-with-test-<run>: waiting: provider limit at patcher.md - limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
       "fix-with-test picked up 2 earlier passes and ran patcher.md in <secs>s on: add(1, 2) returns -1.",
       "suite: 1 of 1 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
@@ -692,6 +790,8 @@
       "-    return a - b",
       "+    total = a + b",
       "+    return total",
+      "started retro.md",
+      "retro: <tmp>/runs/fix-with-test-<run>/retro.md",
       "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
       "fix-with-test picked up 3 earlier passes and ran patcher.md in <secs>s on: add(1, 2) returns -1.",
       "suite: 4 of 4 gates passed; red first: gate-proven on worker.md in leg 1 (red, exit 1, python -m pytest -q test_calc.py).",
@@ -713,6 +813,7 @@
     "patcher.md go 1 618774d7c688f327e6d656ab51663ecaeeffddfd73b05800e2caf925872ca964",
     "patcher.md go 2 4677b586d07fa05762864937dca36f2ce5a435753da548e051c9f664bad1db12",
     "patcher.md go 3 4677b586d07fa05762864937dca36f2ce5a435753da548e051c9f664bad1db12",
+    "retro.md go 1 24cdfa472d20786d7494d03eda63ce65d53c4071353a82d56ac8a7244f2252e9",
     "worker.md go 1 4385694ea53b31fca17d5407049e0d5d9265f2cf3b12d68bb6570986843d64c2"
   ]
 }

@@ -944,9 +944,11 @@ def test_police_on_finds_nothing_in_a_shipped_flow(flow, path, tmp_path,
     off = replayed(flow, path, tmp_path, monkeypatch, capsys, False, False)
     checked = [l["police"] for l in on["steps"] if "police" in l]
     # a call that raised, was cut short or was refused by the provider's
-    # limit brought back no answer, so there is nothing for police to read
+    # limit brought back no answer, so there is nothing for police to read;
+    # the retro is the runner's look-back after the flow, not a step of it
     answered = [l for l in on["steps"] if l.get("cause") not in (
-        stops.EXCEPTION, stops.INTERRUPT, stops.OUTAGE)]
+        stops.EXCEPTION, stops.INTERRUPT, stops.OUTAGE)
+        and l.get("step") != "retro.md"]
     assert bool(checked) == bool(on["prompts"] and answered), \
         "a step asked and police never ran"
     assert all(c["hits"] == 0 and c["seen"] is True for c in checked), \

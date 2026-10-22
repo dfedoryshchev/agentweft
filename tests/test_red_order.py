@@ -9,9 +9,11 @@ sys.path.insert(0, ".")
 from agentweft.flow import spec
 from agentweft.guardrails import redorder, snapshot
 from agentweft.guardrails.gates.base import Result
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, state, stops
 
 NL = chr(10)
+RETRO = "retro.md"
 BUGGY = "def add(a, b):" + NL + "    return a - b" + NL
 FIXED = "def add(a, b):" + NL + "    return a + b" + NL
 RED_TEST = ("from calc import add" + NL + NL + NL + "def test_add():" + NL
@@ -67,6 +69,8 @@ def running(tmp_path, monkeypatch, place, flow, does, *args):
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         called.append(step)
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
         planned = does[step]
         if isinstance(planned, list):
             planned = planned[min(called.count(step), len(planned)) - 1]
@@ -77,6 +81,10 @@ def running(tmp_path, monkeypatch, place, flow, does, *args):
         return said, False
 
     monkeypatch.setattr(engine, "call", fake_call)
+    # a shipped flow's retro is granted only to read, and a step with a grant
+    # is refused unless the cli's version holds it to that grant
+    monkeypatch.setattr(cli_provider.CliProvider, "version",
+                        lambda self: cli_provider.FLOOR)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
     monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")

@@ -265,6 +265,7 @@
     "  PASS red-test - red, exit 1",
     "gate writes failed at worker.md, sent back to worker.md",
     "refused at worker.md: CLAUDE.md changed in <tmp>/place since the run started, and worker.md would start its model there and read it",
+    "retro not run: CLAUDE.md changed in <tmp>/place since the run started, and retro.md would start its model there and read it",
     "# fix-with-test fix-with-test-<run>: stopped: guard refused at worker.md - CLAUDE.md changed in <tmp>/place since the run started, and worker.md would start its model there and read it",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 1 of 2 gates passed; red first: not held: the red-test gate on worker.md went red (red, exit 1, python -m pytest -q test_calc.py), but the run holds no red proof.",

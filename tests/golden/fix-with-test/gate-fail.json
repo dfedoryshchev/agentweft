@@ -3,11 +3,12 @@
   "raised": null,
   "path": [
     "1 worker.md gate failed -> worker.md  FAIL red-test",
-    "2 worker.md gate failed  FAIL red-test"
+    "2 worker.md gate failed  FAIL red-test",
+    "3 retro.md ok"
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already (send_backs: 1)  fix-with-test-<run>/handoff.md"
+    "<time>  fix-with-test  failed at worker.md  <secs>s  fix-with-test-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already (send_backs: 1)  fix-with-test-<run>/handoff.md"
   ],
   "index": [
     "GATE  fix-with-test  red-test at worker.md"
@@ -85,11 +86,13 @@
     "fix-with-test-<run>/handoff.md",
     "fix-with-test-<run>/manifest.json",
     "fix-with-test-<run>/red-proof.json",
+    "fix-with-test-<run>/retro.md",
     "fix-with-test-<run>/rulings.json",
     "fix-with-test-<run>/start-snapshot.json",
     "fix-with-test-<run>/steps.jsonl",
     "fix-with-test-<run>/steps/001-worker.md",
     "fix-with-test-<run>/steps/002-worker.md",
+    "fix-with-test-<run>/steps/003-retro.md",
     "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/why.md",
     "fix-with-test-<run>/workdir",
@@ -256,6 +259,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/003-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -265,6 +361,8 @@
     "started worker.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at worker.md, stopping",
+    "started retro.md",
+    "retro: <tmp>/runs/fix-with-test-<run>/retro.md",
     "# fix-with-test fix-with-test-<run>: stopped: gate failed at worker.md - red-test: no FAILS: line, so the test never failed; worker.md was sent back 1 time already (send_backs: 1)",
     "fix-with-test ran worker.md -> worker.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 0 of 2 gates passed; red first: not proven by a gate.",
@@ -295,6 +393,7 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
+    "retro.md go 1 803b15ddab22203cb7ee1b2eb542b854ef68e2c6cc00a77bebd831baa03ead7c",
     "worker.md go 1 4385694ea53b31fca17d5407049e0d5d9265f2cf3b12d68bb6570986843d64c2",
     "worker.md go 2 a6b48690e2da3e2c4077ed23b4a16f0407ecf1a774f01416850500801a440777"
   ]

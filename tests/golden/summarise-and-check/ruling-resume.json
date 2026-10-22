@@ -12,13 +12,14 @@
   "path": [
     "1 worker.md parked",
     "2 worker.md ok -> reviewer.md",
-    "3 reviewer.md ok"
+    "3 reviewer.md ok",
+    "4 retro.md ok"
   ],
   "journal": [
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
     "<time>  summarise-and-check  parked at worker.md  <secs>s  summarise-and-check-<run>  parked  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  needs a ruling: notes.md has a plan line and a money line; summarise both?  summarise-and-check-<run>/handoff.md",
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>  resumes summarise-and-check-<run>",
-    "<time>  summarise-and-check  ok (resumed), 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  summarise-and-check-<run>/handoff.md  resumes summarise-and-check-<run>"
+    "<time>  summarise-and-check  ok (resumed), 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  summarise-and-check-<run>/handoff.md  resumes summarise-and-check-<run>"
   ],
   "index": [
     "PARKED  summarise-and-check  at worker.md",
@@ -158,6 +159,7 @@
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/question.md",
+    "summarise-and-check-<run>/retro.md",
     "summarise-and-check-<run>/reviewer.md",
     "summarise-and-check-<run>/rulings.json",
     "summarise-and-check-<run>/rulings.json",
@@ -166,6 +168,7 @@
     "summarise-and-check-<run>/steps/001-worker.md",
     "summarise-and-check-<run>/steps/002-worker.md",
     "summarise-and-check-<run>/steps/003-reviewer.md",
+    "summarise-and-check-<run>/steps/004-retro.md",
     "summarise-and-check-<run>/why.md",
     "summarise-and-check-<run>/workdir",
     "summarise-and-check-<run>/workdir",
@@ -423,6 +426,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 4,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/004-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -430,6 +526,7 @@
       "started worker.md",
       "worker.md asks for a ruling",
       "parked at worker.md, waiting for a ruling",
+      "retro not run: the run stopped on parked",
       "# summarise-and-check summarise-and-check-<run>: needs you: ruling at worker.md - needs a ruling: notes.md has a plan line and a money line; summarise both?",
       "summarise-and-check ran worker.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -488,6 +585,8 @@
       "VERDICT: ok",
       "notes.md: the plan moved to friday (line 3)",
       "deleted: nothing, every line was backed",
+      "started retro.md",
+      "retro: <tmp>/runs/summarise-and-check-<run>/retro.md",
       "# summarise-and-check summarise-and-check-<run>: done",
       "summarise-and-check picked up 1 earlier pass and ran worker.md -> reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -504,6 +603,7 @@
     ]
   ],
   "prompts": [
+    "retro.md go 1 90667268d3916e08293eb013361182294ddda960ec3d5a2fc293c85fe8d1ab6f",
     "reviewer.md go 1 2506d2ff02306e05bac3cf110c3ce3af013a667d9d669e4e1fe7198e9c1d7ca2",
     "worker.md go 1 447636c9755f82b074f8a8c1827f9763a8a903ad0c36946bd0bf045c030603ab",
     "worker.md go 2 e5332211b892ffb7eae09372ceafbea29a9e5d2126def8a5789ed488eb321411"

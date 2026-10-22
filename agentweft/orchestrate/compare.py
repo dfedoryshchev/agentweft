@@ -173,11 +173,16 @@ FLOW_ONLY = (
     Pair("flow.retro", "",
          "one last step that reads the run's record, says which gate or "
          "prompt to change, and proposes the facts the runner keeps about the "
-         "files it touched. it never changes how the run ended; a phase has no "
-         "step after its last, and no record of its own to read."),
+         "files it touched; on in the shipped flows, after every run or only "
+         "after one that had something to look back at. it never changes how "
+         "the run ended; a phase has no step after its last, and no record of "
+         "its own to read."),
     Pair("flow.facts_per_run", "",
          "how many new facts one run's retro may have the runner write. a "
          "phase keeps no facts of its own, so it has nothing to cap."),
+    Pair("flow.lane", "",
+         "whether a run reads and keeps the project's facts at all. a phase "
+         "keeps no facts of its own, so it has nothing to turn off."),
     Pair("flow.investigate", "",
          "a step put in front of the flow's own that finds the cause and the "
          "sites it reaches before anything is written. a phase that wants one "

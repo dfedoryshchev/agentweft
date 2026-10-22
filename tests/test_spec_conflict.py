@@ -19,11 +19,14 @@ from pathlib import Path
 
 sys.path.insert(0, ".")
 from agentweft.orchestrate import decisions
-from agentweft.providers import cli_provider
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, ruling, state, stops
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
+# the shipped flows look back after every run that ends, once, last; a stop
+# on a conflict waits for a ruling and holds it
+RETRO = "retro.md"
 
 
 def git(where, *args):
@@ -57,6 +60,8 @@ def go(tmp_path, monkeypatch, flow, answer, edits, *extra):
         n = asked.count(step)
         asked.append(step)
         sent.append(prompt)
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
         edits(step, n)
         return answer(step, n, prompt), False
 
@@ -182,7 +187,7 @@ def test_a_misquoted_conflict_fails_the_step(tmp_path, monkeypatch):
                                   "tester.md": [TESTER]}),
                            feature_edits(place), "--task", REQUEST)
     assert "tester.md" not in asked
-    assert asked == ["planner.md", "planner.md"]
+    assert asked == ["planner.md", "planner.md", RETRO]
     assert code == stops.EXIT_STOP
     line = end(tmp_path)
     assert line.cause == "gate failed"

@@ -2,11 +2,12 @@
   "exit": 0,
   "raised": null,
   "path": [
-    "1 planner.md refused"
+    "1 planner.md refused",
+    "2 retro.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  refused at planner.md  <secs>s  build-feature-<run>  declined  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  REFUSED: TASK.md:3 \"calc only adds; it has no other operation\" rules the feature out  build-feature-<run>/handoff.md"
+    "<time>  build-feature  refused at planner.md  <secs>s  build-feature-<run>  declined  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  REFUSED: TASK.md:3 \"calc only adds; it has no other operation\" rules the feature out  build-feature-<run>/handoff.md"
   ],
   "index": [],
   "handoff": [
@@ -72,10 +73,12 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro.md",
     "build-feature-<run>/rulings.json",
     "build-feature-<run>/start-snapshot.json",
     "build-feature-<run>/steps.jsonl",
     "build-feature-<run>/steps/001-planner.md",
+    "build-feature-<run>/steps/002-retro.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/why.md",
     "build-feature-<run>/workdir",
@@ -155,11 +158,106 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
     "started planner.md",
     "refused at planner.md: REFUSED: TASK.md:3 \"calc only adds; it has no other operation\" rules the feature out",
+    "started retro.md",
+    "retro: <tmp>/runs/build-feature-<run>/retro.md",
     "# build-feature build-feature-<run>: refused (spec cited) at planner.md - REFUSED: TASK.md:3 \"calc only adds; it has no other operation\" rules the feature out",
     "build-feature ran planner.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -186,6 +284,7 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37"
+    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
+    "retro.md go 1 8bd45b44df62216d54d53a169e49ef534f5e9494110cc822d95356d127dbe5bd"
   ]
 }

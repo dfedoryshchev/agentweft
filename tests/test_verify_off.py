@@ -17,10 +17,13 @@ sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.flow import spec
 from agentweft.guardrails import promises
+from agentweft.providers import fake_provider
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
 
 NL = chr(10)
+# the shipped flow looks back after every run that ends, once, last
+RETRO = "retro.md"
 FLOWS = Path(__file__).resolve().parent.parent / "flows"
 
 BUGGY = "def add(a, b):" + NL + "    return a - b" + NL
@@ -75,7 +78,8 @@ def go(tmp_path, monkeypatch, patcher_writes, patcher_says, verify=None,
                    encoding="utf-8")
     asked, seen = [], {}
     answers = {"worker.md": WORKER, "patcher.md": patcher_says,
-               "verify.md": verify_says}
+               "verify.md": verify_says,
+               RETRO: fake_provider.NOTHING_TO_KEEP}
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         asked.append(step)
@@ -108,7 +112,7 @@ def test_the_default_flow_makes_no_verify_call_and_runs_the_suite(
         tmp_path, monkeypatch):
     asked, written, _ = go(tmp_path, monkeypatch, {"calc.py": FIXED},
                            "TEST: tests/test_calc.py::test_add" + NL + "fixed")
-    assert asked == ["worker.md", "patcher.md"], written
+    assert asked == ["worker.md", "patcher.md", RETRO], written
     patcher = written.split("## patcher.md")[1]
     assert "PASS red-first" in patcher
     assert "PASS command" in patcher
@@ -135,7 +139,7 @@ def test_cases_the_patcher_adds_after_the_fix_are_proven_by_the_gate(
     asked, written, _ = go(tmp_path, monkeypatch,
                            {"calc.py": FIXED, "tests/test_calc.py": MORE_CASES},
                            "TEST: tests/test_calc.py::test_add" + NL + "fixed")
-    assert asked == ["worker.md", "patcher.md"], written
+    assert asked == ["worker.md", "patcher.md", RETRO], written
     assert "FAIL " not in written
     assert "2 of 2 new tests red without the fix" in written
 
@@ -146,7 +150,7 @@ def test_with_the_judge_on_it_asks_only_for_the_smallest_patch(tmp_path,
         tmp_path, monkeypatch, {"calc.py": FIXED},
         "TEST: tests/test_calc.py::test_add" + NL + "fixed", verify="judge",
         verify_says="PASS the patch is the smallest thing that turns it green")
-    assert asked == ["worker.md", "patcher.md", "verify.md"], written
+    assert asked == ["worker.md", "patcher.md", "verify.md", RETRO], written
     assert "FAIL " not in written
     words = (FLOWS / "fix-with-test" / "verify.md").read_text(encoding="utf-8")
     assert "smallest" in words

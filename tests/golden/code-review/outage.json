@@ -152,6 +152,7 @@
     "step worker.md failed (outage): You've hit your usage limit (exit 1)",
     "provider outage at worker.md: limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
     "parked at worker.md, waiting for the limit to reset",
+    "retro not run: the run stopped on provider outage",
     "# code-review code-review-<run>: waiting: provider limit at worker.md - limit reached, resets <time>; the provider said: You've hit your usage limit (exit 1)",
     "code-review ran worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

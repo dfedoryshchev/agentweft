@@ -3,6 +3,11 @@ from pathlib import Path
 
 from .base import Provider, Reply, register
 
+# the runner's own last step, which a case seldom scripts: unscripted, it
+# answers that there is nothing to change and no fact to keep
+RETRO = "retro.md"
+NOTHING_TO_KEEP = "## change first\n- none\n\nFACTS\nEND FACTS\n"
+
 
 def write_into(where, writes):
     """leave each file of `writes` ({path: content}) in the place, the way a
@@ -39,7 +44,8 @@ class FakeProvider(Provider):
     `replies` answers each step from a list of its own, in order, the last
     one again once the list runs out. an answer there is the text or
     {say, writes}, and `writes` are files left in the place before the
-    step's gates look at it.
+    step's gates look at it. a retro it has no list for is answered
+    NOTHING_TO_KEEP, whatever else it would say.
     """
 
     name = "fake"
@@ -75,6 +81,8 @@ class FakeProvider(Provider):
             text, writes = scripted
             write_into(self.where, writes)
             return Reply(text, writes=writes)
+        if getattr(self.now, "step", None) == RETRO:
+            return Reply(NOTHING_TO_KEEP)
         canned = self.opts.get("reply")
         if canned:
             return Reply(canned)

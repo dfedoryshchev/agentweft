@@ -253,6 +253,7 @@
     "RISKY: the steps take ~2 calls, the call cap leaves 1 (budget-plan.md)",
     "started worker.md",
     "paused before reviewer.md: reached, completion 1/2 steps, call cap: 1 of 1 calls spent, and the next step takes 1",
+    "retro not run: the run stopped on budget",
     "# code-review code-review-<run>: needs you: budget at reviewer.md - reached, completion 1/2 steps, call cap: 1 of 1 calls spent, and the next step takes 1",
     "code-review ran worker.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

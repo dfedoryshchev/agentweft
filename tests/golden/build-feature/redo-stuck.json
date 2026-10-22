@@ -881,6 +881,7 @@
     "started reviewer.md",
     "step reviewer.md came from the cache",
     "parked at reviewer.md, waiting for user",
+    "retro not run: the run stopped on parked",
     "# build-feature build-feature-<run>: needs you: ruling at reviewer.md - reviewer.md still asks for a redo, and the work has gone back 2 times already (send_backs: 2)",
     "build-feature ran planner.md -> tester.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 7 of 7 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",

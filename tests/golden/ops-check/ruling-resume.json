@@ -11,13 +11,14 @@
     "1 planner.md parked",
     "2 planner.md ok -> worker.md",
     "3 worker.md ok -> reviewer.md",
-    "4 reviewer.md ok"
+    "4 reviewer.md ok",
+    "5 retro.md ok"
   ],
   "journal": [
     "<time>  ops-check  running  <secs>s  ops-check-<run>",
     "<time>  ops-check  parked at planner.md  <secs>s  ops-check-<run>  parked  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  needs a ruling: should the output name who asked for it?  ops-check-<run>/handoff.md",
     "<time>  ops-check  running  <secs>s  ops-check-<run>  resumes ops-check-<run>",
-    "<time>  ops-check  ok (resumed), 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  ops-check-<run>/handoff.md  resumes ops-check-<run>"
+    "<time>  ops-check  ok (resumed), 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)  ops-check-<run>/handoff.md  resumes ops-check-<run>"
   ],
   "index": [
     "PARKED  ops-check  at planner.md",
@@ -163,6 +164,7 @@
     "ops-check-<run>/planner.md",
     "ops-check-<run>/planner.md",
     "ops-check-<run>/question.md",
+    "ops-check-<run>/retro.md",
     "ops-check-<run>/reviewer.md",
     "ops-check-<run>/rulings.json",
     "ops-check-<run>/rulings.json",
@@ -172,6 +174,7 @@
     "ops-check-<run>/steps/002-planner.md",
     "ops-check-<run>/steps/003-worker.md",
     "ops-check-<run>/steps/004-reviewer.md",
+    "ops-check-<run>/steps/005-retro.md",
     "ops-check-<run>/why.md",
     "ops-check-<run>/workdir",
     "ops-check-<run>/workdir",
@@ -501,6 +504,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 5,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/005-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -508,6 +604,7 @@
       "started planner.md",
       "planner.md asks for a ruling",
       "parked at planner.md, waiting for a ruling",
+      "retro not run: the run stopped on parked",
       "# ops-check ops-check-<run>: needs you: ruling at planner.md - needs a ruling: should the output name who asked for it?",
       "ops-check ran planner.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -558,6 +655,8 @@
       "promise not checked: every finding keeps the raw line",
       "saved <tmp>/runs/ops-check-<day>-1.md",
       "- [high] app.log: ERROR nightly-export failed: disk full",
+      "started retro.md",
+      "retro: <tmp>/runs/ops-check-<run>/retro.md",
       "# ops-check ops-check-<run>: done",
       "ops-check picked up 1 earlier pass and ran planner.md -> worker.md -> reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -576,6 +675,7 @@
   "prompts": [
     "planner.md go 1 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
     "planner.md go 2 9bac571ec3c31f8f2c20e4f6b12fa89e9e233723247a5e3663b48bac1f02f5a8",
+    "retro.md go 1 1d55a547cf48b6b3d6b753efbc98875d7dc8a91955fe91aec3763de8735deb5f",
     "reviewer.md go 1 bae25e1d11c9eb78727c0621645fedd9362c6eec58cb06af096531c72682fab2",
     "worker.md go 1 4b65a20d11e250465cf9a8a2d61a3bfaddd5c522e44c4ca304e62da830d43e51"
   ]

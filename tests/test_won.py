@@ -231,11 +231,12 @@ def test_a_lead_decision_that_held_is_decided_and_the_red_proof_names_who_proved
     proof = json.loads((folder / "red-proof.json").read_text(
         encoding="utf-8"))["proof"]
     assert proof["step"] == "tester.md"
-    assert [(l["step"], l["outcome"], l["won"]) for l in lines_of(folder)] == [
+    assert [(l["step"], l["outcome"], l["won"])
+            for l in lines_of(folder)] == [
         ("planner.md", "ok", "none"), ("tester.md", "ok", "proved"),
         ("worker.md", "asked", "none"), ("planner.md", "decided", "decided"),
         ("worker.md", "ok", "delivered"), ("reviewer.md", "ok", "none"),
-        ("reviewer-runs.md", "ok", "none")]
+        ("reviewer-runs.md", "ok", "none"), ("retro.md", "ok", "none")]
 
 
 def test_a_decided_the_runner_did_not_hold_is_neither_decided_nor_escalated(
@@ -296,7 +297,8 @@ def test_the_shipped_fix_flows_patcher_delivered_and_its_worker_proved(
     [folder] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
     assert [(l["step"], l["outcome"], l["won"])
             for l in lines_of(folder)] == [
-        ("worker.md", "ok", "proved"), ("patcher.md", "ok", "delivered")]
+        ("worker.md", "ok", "proved"), ("patcher.md", "ok", "delivered"),
+        ("retro.md", "ok", "none")]
 
 
 def test_an_old_line_of_one_kind_is_not_called_mixed():

@@ -1,4 +1,5 @@
 name: repo-audit
+retro: true
 steps:
   - role: planner
     prompt: planner.md

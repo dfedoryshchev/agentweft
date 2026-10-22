@@ -12,13 +12,14 @@
     "2 planner.md ok -> worker.md",
     "3 worker.md ok -> merge.md",
     "4 merge.md ok -> reviewer.md",
-    "5 reviewer.md ok"
+    "5 reviewer.md ok",
+    "6 retro.md ok"
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
     "<time>  repo-audit  parked at planner.md  <secs>s  repo-audit-<run>  parked  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  needs a ruling: should the output name who asked for it?  repo-audit-<run>/handoff.md",
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>  resumes repo-audit-<run>",
-    "<time>  repo-audit  ok (resumed), 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  repo-audit-<run>/handoff.md  resumes repo-audit-<run>"
+    "<time>  repo-audit  ok (resumed), 2 promise(s) not checked  <secs>s  repo-audit-<run>  repo-audit-<day>-1.md  7 calls, 840 tokens counted (input 700, output 140), unpriced: model-in-replay x7, reported $0.0700 (cli x7)  repo-audit-<run>/handoff.md  resumes repo-audit-<run>"
   ],
   "index": [
     "PARKED  repo-audit  at planner.md",
@@ -169,6 +170,7 @@
     "repo-audit-<run>/planner.md",
     "repo-audit-<run>/planner.md",
     "repo-audit-<run>/question.md",
+    "repo-audit-<run>/retro.md",
     "repo-audit-<run>/reviewer.md",
     "repo-audit-<run>/rulings.json",
     "repo-audit-<run>/rulings.json",
@@ -179,6 +181,7 @@
     "repo-audit-<run>/steps/003-worker.md",
     "repo-audit-<run>/steps/004-merge.md",
     "repo-audit-<run>/steps/005-reviewer.md",
+    "repo-audit-<run>/steps/006-retro.md",
     "repo-audit-<run>/tasks.jsonl",
     "repo-audit-<run>/why.md",
     "repo-audit-<run>/workdir",
@@ -623,6 +626,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 6,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/006-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -631,6 +727,7 @@
       "no risk map: no server in a replay",
       "planner.md asks for a ruling",
       "parked at planner.md, waiting for a ruling",
+      "retro not run: the run stopped on parked",
       "# repo-audit repo-audit-<run>: needs you: ruling at planner.md - needs a ruling: should the output name who asked for it?",
       "repo-audit ran planner.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -686,6 +783,8 @@
       "VERDICT: ok",
       "app.py parses argv and calls run().",
       "config.py loads settings.yml and has no defaults, which is the risk.",
+      "started retro.md",
+      "retro: <tmp>/runs/repo-audit-<run>/retro.md",
       "# repo-audit repo-audit-<run>: done",
       "repo-audit picked up 1 earlier pass and ran planner.md -> worker.md -> merge.md -> reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -705,6 +804,7 @@
     "merge.md go 1 dea0480f85dae946acbf0cc95399a15982272fd00b04825199273ec3716bd6f2",
     "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
     "planner.md go 2 5801fe77d8a1dc494aca26317f459ece8451c95f54072754e3daf7e475fd13c1",
+    "retro.md go 1 7da0f0b6b5edd063cc99530b72485cd32e45a6af4e55960813343b7cee5ec6ff",
     "reviewer.md go 1 04363adffeb38afd25adbab4a338561087740c9f873b1f367cca487aa9ee8848",
     "worker.md task 1 go 1 d36a35fc504cc147a7da80c2a95eaf372248770d2ac1fcdc26f0280b912eb312",
     "worker.md task 2 go 1 754bf80b010e57402b0c58352ee2fdd976783e4189ea223f01caa0dc5b55adcb"

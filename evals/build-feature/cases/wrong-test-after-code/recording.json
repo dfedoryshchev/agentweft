@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-17T12:00:35",
+  "recorded": "2026-10-22T10:03:56",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -9,6 +9,21 @@
       "go": 1,
       "prompt": "e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
       "say": "- behaviour: mul(2, 3) is 6\n  file: calc.py\n  spec: allows TASK.md:3\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "df05f00b3d156bc94a4a2d924bd02954e1436d8440b1085b506d6b078a9bdb98",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
       "detail": "",
       "retryable": null,
       "outage": null,

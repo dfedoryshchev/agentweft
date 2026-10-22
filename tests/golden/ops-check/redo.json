@@ -6,11 +6,12 @@
     "2 worker.md ok -> reviewer.md",
     "3 reviewer.md redo -> worker.md",
     "4 worker.md ok -> reviewer.md",
-    "5 reviewer.md ok"
+    "5 reviewer.md ok",
+    "6 retro.md ok"
   ],
   "journal": [
     "<time>  ops-check  running  <secs>s  ops-check-<run>",
-    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)  ops-check-<run>/handoff.md"
+    "<time>  ops-check  ok, 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  ops-check-<run>/handoff.md"
   ],
   "index": [
     "ops-check-<day>-1.md  ops-check  3 steps"
@@ -84,6 +85,7 @@
     "ops-check-<run>/handoff.md",
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
+    "ops-check-<run>/retro.md",
     "ops-check-<run>/reviewer.md",
     "ops-check-<run>/rulings.json",
     "ops-check-<run>/steps.jsonl",
@@ -92,6 +94,7 @@
     "ops-check-<run>/steps/003-reviewer.md",
     "ops-check-<run>/steps/004-worker.md",
     "ops-check-<run>/steps/005-reviewer.md",
+    "ops-check-<run>/steps/006-retro.md",
     "ops-check-<run>/workdir",
     "ops-check-<run>/worker.md"
   ],
@@ -524,6 +527,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 6,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/006-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -538,6 +634,8 @@
     "promise not checked: every finding keeps the raw line",
     "saved <tmp>/runs/ops-check-<day>-1.md",
     "- [high] app.log: ERROR nightly-export failed: disk full",
+    "started retro.md",
+    "retro: <tmp>/runs/ops-check-<run>/retro.md",
     "# ops-check ops-check-<run>: done",
     "ops-check ran planner.md -> worker.md -> reviewer.md (sent back) -> worker.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -554,6 +652,7 @@
   ],
   "prompts": [
     "planner.md go 1 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
+    "retro.md go 1 9cbd9b2adb966b7cfd085d86ca153bbf53f999fdc05af7b9af9a7389492e521c",
     "reviewer.md go 1 9ecd5c22876dd736357f7c3b474a3810ef4b92b9f71a79f80c6c7da862733c7d",
     "reviewer.md go 2 ee61c79a7bf434ef34c643212894e27157d818c70c51beb675b835f884844db5",
     "worker.md go 1 7c4bd5dc982f363213a4f181b2161f583fe5d52374e93e994714a5f042f06997",

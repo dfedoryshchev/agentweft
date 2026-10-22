@@ -14,13 +14,14 @@
     "4 planner.md escalated",
     "5 worker.md ok -> reviewer.md  PASS command  PASS red-first",
     "6 reviewer.md ok -> reviewer-runs.md",
-    "7 reviewer-runs.md ok"
+    "7 reviewer-runs.md ok",
+    "8 retro.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
     "<time>  build-feature  parked at worker.md  <secs>s  build-feature-<run>  parked  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  needs a ruling: should mul round a float product to an int?  build-feature-<run>/handoff.md",
     "<time>  build-feature  running  <secs>s  build-feature-<run>  resumes build-feature-<run>",
-    "<time>  build-feature  ok (resumed), 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  7 calls, 840 tokens counted (input 700, output 140), unpriced: model-in-replay x7, reported $0.0700 (cli x7)  build-feature-<run>/handoff.md  resumes build-feature-<run>"
+    "<time>  build-feature  ok (resumed), 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  8 calls, 960 tokens counted (input 800, output 160), unpriced: model-in-replay x8, reported $0.0800 (cli x8)  build-feature-<run>/handoff.md  resumes build-feature-<run>"
   ],
   "index": [
     "PARKED  build-feature  at worker.md",
@@ -203,6 +204,7 @@
     "build-feature-<run>/question.md",
     "build-feature-<run>/red-proof.json",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro.md",
     "build-feature-<run>/reviewer-runs.md",
     "build-feature-<run>/reviewer.md",
     "build-feature-<run>/rulings.json",
@@ -218,6 +220,7 @@
     "build-feature-<run>/steps/005-worker.md",
     "build-feature-<run>/steps/006-reviewer.md",
     "build-feature-<run>/steps/007-reviewer-runs.md",
+    "build-feature-<run>/steps/008-retro.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/tester.md",
@@ -831,6 +834,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 8,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/008-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -841,6 +937,7 @@
       "started worker.md",
       "worker.md asks for a ruling",
       "parked at worker.md, waiting for a ruling",
+      "retro not run: the run stopped on parked",
       "# build-feature build-feature-<run>: needs you: ruling at worker.md - needs a ruling: should mul round a float product to an int?",
       "build-feature ran planner.md -> tester.md -> worker.md -> planner.md in <secs>s on: calc gets mul(a, b), which multiplies.",
       "suite: 1 of 1 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
@@ -902,6 +999,8 @@
       "saved <tmp>/runs/build-feature-<day>-1.md",
       "VERDICT: ok",
       "- calc.py: mul(a, b) added",
+      "started retro.md",
+      "retro: <tmp>/runs/build-feature-<run>/retro.md",
       "# build-feature build-feature-<run>: done - escalated the rounding question",
       "build-feature picked up 4 earlier passes and ran worker.md -> reviewer.md -> reviewer-runs.md in <secs>s on: calc gets mul(a, b), which multiplies.",
       "suite: 3 of 3 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
@@ -921,6 +1020,7 @@
   "prompts": [
     "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
     "planner.md go 2 70d112db09b64813f575e42f275f139d9b0a71093be3647df8edd92c09c7e081",
+    "retro.md go 1 ad31499699c23daf119a6d1d5165cbc1978ced076d125a3cbd7034c45fa6423d",
     "reviewer-runs.md go 1 029cbf190389e08548d1ac62fb6adb27a671b7818faf291ea00c46a432b97b70",
     "reviewer.md go 1 e996c2c406574559e56ec90e17c8f20cfe43949e8217615974c649029565c01a",
     "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",

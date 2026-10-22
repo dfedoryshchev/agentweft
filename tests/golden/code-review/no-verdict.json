@@ -3,10 +3,11 @@
   "raised": null,
   "path": [
     "1 worker.md ok -> reviewer.md",
-    "2 reviewer.md gate failed"
+    "2 reviewer.md gate failed",
+    "3 retro.md ok"
   ],
   "journal": [
-    "<time>  code-review  failed at reviewer.md  <secs>s  code-review-<run>  gate failed  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  step reviewer.md was asked for a verdict and its answer has no verdict line  code-review-<run>/handoff.md"
+    "<time>  code-review  failed at reviewer.md  <secs>s  code-review-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  step reviewer.md was asked for a verdict and its answer has no verdict line  code-review-<run>/handoff.md"
   ],
   "index": [
     "FAILED  code-review  at reviewer.md"
@@ -81,12 +82,14 @@
     "code-review-<run>/gates.md",
     "code-review-<run>/handoff.md",
     "code-review-<run>/manifest.json",
+    "code-review-<run>/retro.md",
     "code-review-<run>/reviewer.md",
     "code-review-<run>/rulings.json",
     "code-review-<run>/start-snapshot.json",
     "code-review-<run>/steps.jsonl",
     "code-review-<run>/steps/001-worker.md",
     "code-review-<run>/steps/002-reviewer.md",
+    "code-review-<run>/steps/003-retro.md",
     "code-review-<run>/why.md",
     "code-review-<run>/workdir",
     "code-review-<run>/worker.md",
@@ -272,12 +275,107 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/003-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
     "started worker.md",
     "started reviewer.md",
     "step reviewer.md was asked for a verdict and its answer has no verdict line - not going on",
+    "started retro.md",
+    "retro: <tmp>/runs/code-review-<run>/retro.md",
     "# code-review code-review-<run>: stopped: gate failed at reviewer.md - step reviewer.md was asked for a verdict and its answer has no verdict line",
     "code-review ran worker.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -307,6 +405,7 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
+    "retro.md go 1 70449f3110e00061ecaa63e17deb45d77840e9549a687750650b7d9fa1553cd1",
     "reviewer.md go 1 57e1e290dc35063f198deac485cad4b153a380e2f3d2fa41f3cc00fec8f09c06",
     "worker.md go 1 4ef397e1b7873dbd6f9a537df0d3dafd57fa45856b98bbaa233dcfcde7c206b8"
   ]

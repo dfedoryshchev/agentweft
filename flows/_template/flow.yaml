@@ -1,4 +1,5 @@
 name: CHANGE ME
+retro: true
 steps:
   - role: planner
     prompt: planner.md

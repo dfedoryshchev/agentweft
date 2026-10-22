@@ -144,6 +144,7 @@
   "printed": [
     "started worker.md",
     "stopped at worker.md: interrupted while worker.md was running",
+    "retro not run: the run stopped on interrupt",
     "# summarise-and-check summarise-and-check-<run>: stopped: interrupted at worker.md - interrupted while worker.md was running",
     "summarise-and-check ran worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

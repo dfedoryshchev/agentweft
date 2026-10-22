@@ -185,6 +185,7 @@
     "no risk map: no server in a replay",
     "planner.md found the request contradicts the spec",
     "stopped at planner.md on a spec conflict",
+    "retro not run: the run stopped on conflict",
     "# repo-audit repo-audit-<run>: stopped: spec conflict at planner.md - spec conflict: the request contradicts RULES.md:3. which one holds?",
     "repo-audit ran planner.md in <secs>s.",
     "suite: 1 check passed (the quote at RULES.md:3 is there as the run found it); red first: not proven by a gate.",

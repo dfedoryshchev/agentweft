@@ -5,11 +5,12 @@
     "1 planner.md ok -> tester.md",
     "2 tester.md ok -> worker.md  PASS red-test",
     "3 worker.md gate failed -> worker.md  FAIL command  PASS red-first",
-    "4 worker.md gate failed  FAIL command  PASS red-first"
+    "4 worker.md gate failed  FAIL command  PASS red-first",
+    "5 retro.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  failed at worker.md  <secs>s  build-feature-<run>  gate failed  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
+    "<time>  build-feature  failed at worker.md  <secs>s  build-feature-<run>  gate failed  5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)  command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "GATE  build-feature  command at worker.md"
@@ -103,6 +104,7 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro.md",
     "build-feature-<run>/rulings.json",
     "build-feature-<run>/start-snapshot.json",
     "build-feature-<run>/steps.jsonl",
@@ -110,6 +112,7 @@
     "build-feature-<run>/steps/002-tester.md",
     "build-feature-<run>/steps/003-worker.md",
     "build-feature-<run>/steps/004-worker.md",
+    "build-feature-<run>/steps/005-retro.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/tester.md",
     "build-feature-<run>/why.md",
@@ -441,6 +444,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 5,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/005-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -459,6 +555,8 @@
     "1 failed, 1 passed in <secs>s",
     "  PASS red-first - not replayed - the place is not in a git work tree",
     "gate failed at worker.md, stopping",
+    "started retro.md",
+    "retro: <tmp>/runs/build-feature-<run>/retro.md",
     "# build-feature build-feature-<run>: stopped: gate failed at worker.md - command: exit 1: =========================== short test summary info =========================== FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> worker.md -> worker.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 3 of 5 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
@@ -495,6 +593,7 @@
   ],
   "prompts": [
     "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
+    "retro.md go 1 2482f08831f7089bc67f28127c0b0843d600f906f846e208dbc10014e40ecd9f",
     "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",
     "worker.md go 1 0429c0efce339fd738b7aba5a2564683e5774ce3a66f910b5352a7c29a89fcc8",
     "worker.md go 2 ccc5cc6611e11b3c4ff23ee7e8e65be02fb57421168fa5a0a24870dabea23907"

@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-16T15:09:28",
+  "recorded": "2026-10-22T10:05:10",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -24,6 +24,21 @@
       "go": 1,
       "prompt": "82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
       "say": "TASK: app.py\nWHY: the entry point\nFILES:\n- app.py\n\nTASK: config.py\nWHY: reads the settings\nFILES:\n- config.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "45a838b8f70d8b1d5778cf7706e5880c4265043f82233cade2403ec57708e74d",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
       "detail": "",
       "retryable": null,
       "outage": null,

@@ -375,6 +375,7 @@
     "  FAIL spec-files - 1 line of the spec the run started with removed or rewritten, and no ruling quotes it: TASK.md:3",
     "worker.md removed or rewrote a line of the spec",
     "parked at worker.md, waiting for a ruling",
+    "retro not run: the run stopped on parked",
     "# build-feature build-feature-<run>: needs you: ruling at worker.md - needs a ruling: 1 line of the spec the run started with removed or rewritten, and no ruling quotes it: TASK.md:3",
     "build-feature ran planner.md -> tester.md -> worker.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 3 of 4 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",

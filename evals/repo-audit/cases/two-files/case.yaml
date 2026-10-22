@@ -37,4 +37,5 @@ expect:
       - worker.md ok -> merge.md
       - merge.md ok -> reviewer.md
       - reviewer.md ok
-  calls: 5
+      - retro.md ok
+  calls: 6

@@ -143,7 +143,8 @@ class Run(object):
         # before anything takes the place's start: what heal rewrites is the
         # runner's, not a change any step made
         self.facts = factsguard.Store(self.workdir,
-                                      cap=factsguard.cap_of(fm))
+                                      cap=factsguard.cap_of(fm),
+                                      off=factsguard.lane_off(fm))
         self.healed = self.heal_facts()
         self.briefed = briefing.digest(self.workdir)
         self.project = held or project.hold(self.workdir)

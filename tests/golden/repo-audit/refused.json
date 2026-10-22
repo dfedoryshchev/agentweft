@@ -2,11 +2,12 @@
   "exit": 0,
   "raised": null,
   "path": [
-    "1 planner.md refused"
+    "1 planner.md refused",
+    "2 retro.md ok"
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
-    "<time>  repo-audit  refused at planner.md  <secs>s  repo-audit-<run>  declined  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  repo-audit-<run>/handoff.md"
+    "<time>  repo-audit  refused at planner.md  <secs>s  repo-audit-<run>  declined  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  repo-audit-<run>/handoff.md"
   ],
   "index": [],
   "handoff": [
@@ -73,9 +74,11 @@
     "repo-audit-<run>/handoff.md",
     "repo-audit-<run>/manifest.json",
     "repo-audit-<run>/planner.md",
+    "repo-audit-<run>/retro.md",
     "repo-audit-<run>/rulings.json",
     "repo-audit-<run>/steps.jsonl",
     "repo-audit-<run>/steps/001-planner.md",
+    "repo-audit-<run>/steps/002-retro.md",
     "repo-audit-<run>/why.md",
     "repo-audit-<run>/workdir"
   ],
@@ -152,12 +155,107 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
     "started planner.md",
     "no risk map: no server in a replay",
     "refused at planner.md: REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+    "started retro.md",
+    "retro: <tmp>/runs/repo-audit-<run>/retro.md",
     "# repo-audit repo-audit-<run>: refused (spec cited) at planner.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
     "repo-audit ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -184,6 +282,7 @@
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34"
+    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
+    "retro.md go 1 a6569a5773927e276443aeddd915586939812316c3ea65041ef953fc95e89882"
   ]
 }

@@ -102,12 +102,12 @@ def test_a_retro_skill_is_not_fed_to_every_role():
     assert resolver.skill("no-guessing") in resolver.skill_rules("retro")
 
 
-def test_retro_on_a_flow_is_true_or_false():
+def test_retro_on_a_flow_is_true_false_or_conditional():
     from agentweft.flow import spec
 
     bad = spec.check({"name": "f", "steps": [{"role": "worker"}],
                       "retro": "yes please"})
-    assert bad == ["retro should be bool"]
+    assert bad == ["retro should be true, false or conditional"]
     assert spec.check({"name": "f", "steps": [{"role": "worker"}],
                        "retro": True}) == []
 
@@ -131,7 +131,8 @@ def test_a_resume_counts_the_retro_and_owes_it_no_handoff_block(
     engine.main()
     first = the_folder()
     assert chain.verify(first).broken is None
-    fake_cli(answer("one\n"), answer("VERDICT: ok\n\nfine\n"))
+    fake_cli(answer("one\n"), answer("VERDICT: ok\n\nfine\n"),
+             answer("## change first\n- none\n"))
     monkeypatch.setattr(sys, "argv", ["run.py", "fails", "--force",
                                       "--resume", first.name])
     assert engine.main() == 0

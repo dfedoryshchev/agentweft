@@ -72,14 +72,14 @@ def test_a_recorded_case_replays_without_calling_anything(evals_root,
     out, budget, stopped = harness.run_flow_for(FLOW, case)
     assert stopped == ""
     assert out == live_out
-    assert budget.calls == live_budget.calls == 5
+    assert budget.calls == live_budget.calls == 6
 
 
 def test_a_case_with_no_recording_runs_its_provider(evals_root):
     case = harness.load_case(evals_root)
     assert case["recording"] is None
     out, budget, stopped = harness.run_flow_for(FLOW, case)
-    assert stopped == "" and budget.calls == 5
+    assert stopped == "" and budget.calls == 6
 
 
 def test_a_recording_is_keyed_by_step_task_and_go_and_holds_the_prompt_hash(
@@ -92,11 +92,12 @@ def test_a_recording_is_keyed_by_step_task_and_go_and_holds_the_prompt_hash(
     assert blob["provider"] == "fake"
     keys = [(c["step"], c["task"], c["go"]) for c in blob["calls"]]
     assert keys == [("merge.md", None, 1), ("planner.md", None, 1),
-                    ("reviewer.md", None, 1), ("worker.md", 1, 1),
-                    ("worker.md", 2, 1)]
+                    ("retro.md", None, 1), ("reviewer.md", None, 1),
+                    ("worker.md", 1, 1), ("worker.md", 2, 1)]
+    said = {"planner.md": PLAN, "retro.md": fake_provider.NOTHING_TO_KEEP}
     for c in blob["calls"]:
         assert len(c["prompt"]) == 64
-        assert c["say"] == (PLAN if c["step"] == "planner.md" else DIGEST)
+        assert c["say"] == said.get(c["step"], DIGEST)
     assert "modified in the last 7 days" not in json.dumps(blob)
 
 
@@ -178,7 +179,7 @@ def test_a_failed_go_is_recorded_and_replayed_as_one(evals_root, monkeypatch):
     out, budget, _ = engine.run_once(FLOW, provider=again)
     assert again.unused() == []
     assert out == live_out
-    assert budget.calls == live_budget.calls == 6
+    assert budget.calls == live_budget.calls == 7
     assert budget.spent() == live_budget.spent()
 
 

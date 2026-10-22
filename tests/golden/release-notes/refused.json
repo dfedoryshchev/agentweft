@@ -2,11 +2,12 @@
   "exit": 0,
   "raised": null,
   "path": [
-    "1 worker.md refused"
+    "1 worker.md refused",
+    "2 retro.md ok"
   ],
   "journal": [
     "<time>  release-notes  running  <secs>s  release-notes-<run>",
-    "<time>  release-notes  refused at worker.md  <secs>s  release-notes-<run>  declined  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  release-notes-<run>/handoff.md"
+    "<time>  release-notes  refused at worker.md  <secs>s  release-notes-<run>  declined  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  release-notes-<run>/handoff.md"
   ],
   "index": [],
   "handoff": [
@@ -72,9 +73,11 @@
     "release-notes-<run>/budget-plan.md",
     "release-notes-<run>/handoff.md",
     "release-notes-<run>/manifest.json",
+    "release-notes-<run>/retro.md",
     "release-notes-<run>/rulings.json",
     "release-notes-<run>/steps.jsonl",
     "release-notes-<run>/steps/001-worker.md",
+    "release-notes-<run>/steps/002-retro.md",
     "release-notes-<run>/why.md",
     "release-notes-<run>/workdir",
     "release-notes-<run>/worker.md"
@@ -152,11 +155,106 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
     "started worker.md",
     "refused at worker.md: REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+    "started retro.md",
+    "retro: <tmp>/runs/release-notes-<run>/retro.md",
     "# release-notes release-notes-<run>: refused (spec cited) at worker.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
     "release-notes ran worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -183,6 +281,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
+    "retro.md go 1 11509facc0e9a2e39f509cfc7f042a90953b845b35a751ca920cd1472547e2b7",
     "worker.md go 1 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d"
   ]
 }

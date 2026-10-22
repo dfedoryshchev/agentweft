@@ -4,11 +4,12 @@
   "path": [
     "1 planner.md ok -> tester.md",
     "2 tester.md gate failed -> tester.md  FAIL red-test",
-    "3 tester.md gate failed  FAIL red-test"
+    "3 tester.md gate failed  FAIL red-test",
+    "4 retro.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
+    "<time>  build-feature  failed at tester.md  <secs>s  build-feature-<run>  gate failed  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "GATE  build-feature  red-test at tester.md"
@@ -96,12 +97,14 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro.md",
     "build-feature-<run>/rulings.json",
     "build-feature-<run>/start-snapshot.json",
     "build-feature-<run>/steps.jsonl",
     "build-feature-<run>/steps/001-planner.md",
     "build-feature-<run>/steps/002-tester.md",
     "build-feature-<run>/steps/003-tester.md",
+    "build-feature-<run>/steps/004-retro.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/tester.md",
     "build-feature-<run>/why.md",
@@ -341,6 +344,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 4,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/004-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -351,6 +447,8 @@
     "started tester.md",
     "  FAIL red-test - no FAILS: line, so the test never failed",
     "gate failed at tester.md, stopping",
+    "started retro.md",
+    "retro: <tmp>/runs/build-feature-<run>/retro.md",
     "# build-feature build-feature-<run>: stopped: gate failed at tester.md - red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
     "build-feature ran planner.md -> tester.md -> tester.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 0 of 2 gates passed; red first: not proven by a gate.",
@@ -388,6 +486,7 @@
   ],
   "prompts": [
     "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
+    "retro.md go 1 75f942dc612483020ab32fde1749680ea9e6488d9bdd261a4e4832274c491b94",
     "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",
     "tester.md go 2 793c736a341caa92fb49ad9aede9fd1bf02d29c412f1d73792e472c9f0c51dca"
   ]

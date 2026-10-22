@@ -145,6 +145,7 @@
   "printed": [
     "started planner.md",
     "stopped at planner.md: interrupted while planner.md was running",
+    "retro not run: the run stopped on interrupt",
     "# ops-check ops-check-<run>: stopped: interrupted at planner.md - interrupted while planner.md was running",
     "ops-check ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

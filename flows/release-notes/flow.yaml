@@ -1,4 +1,5 @@
 name: release-notes
+retro: true
 steps:
   - role: worker
     prompt: worker.md

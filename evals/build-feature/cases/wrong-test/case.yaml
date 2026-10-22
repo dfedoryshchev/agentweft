@@ -63,4 +63,5 @@ expect:
       - worker.md ok -> reviewer.md  PASS command  PASS red-first
       - reviewer.md ok -> reviewer-runs.md
       - reviewer-runs.md ok
-  calls: 7
+      - retro.md ok
+  calls: 8

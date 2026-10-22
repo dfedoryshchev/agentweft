@@ -38,4 +38,5 @@ expect:
       - worker.md ok -> merge.md
       - merge.md ok -> reviewer.md
       - reviewer.md ok  PASS length  PASS regex
-  calls: 6
+      - retro.md ok
+  calls: 7

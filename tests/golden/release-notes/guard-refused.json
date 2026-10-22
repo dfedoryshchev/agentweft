@@ -252,6 +252,7 @@
   "printed": [
     "started worker.md",
     "refused at reviewer.md: CLAUDE.md changed in <tmp>/place since the run started, and reviewer.md would start its model there and read it",
+    "retro not run: CLAUDE.md changed in <tmp>/place since the run started, and retro.md would start its model there and read it",
     "# release-notes release-notes-<run>: stopped: guard refused at reviewer.md - CLAUDE.md changed in <tmp>/place since the run started, and reviewer.md would start its model there and read it",
     "release-notes ran worker.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

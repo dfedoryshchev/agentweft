@@ -2,11 +2,12 @@
   "exit": 0,
   "raised": null,
   "path": [
-    "1 planner.md refused"
+    "1 planner.md refused",
+    "2 retro.md ok"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
-    "<time>  weekly digest  refused at planner.md  <secs>s  weekly-digest-<run>  declined  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  weekly-digest-<run>/handoff.md"
+    "<time>  weekly digest  refused at planner.md  <secs>s  weekly-digest-<run>  declined  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes  weekly-digest-<run>/handoff.md"
   ],
   "index": [],
   "handoff": [
@@ -73,9 +74,11 @@
     "weekly-digest-<run>/handoff.md",
     "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/planner.md",
+    "weekly-digest-<run>/retro.md",
     "weekly-digest-<run>/rulings.json",
     "weekly-digest-<run>/steps.jsonl",
     "weekly-digest-<run>/steps/001-planner.md",
+    "weekly-digest-<run>/steps/002-retro.md",
     "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir"
   ],
@@ -152,11 +155,106 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
     "started planner.md",
     "refused at planner.md: REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
+    "started retro.md",
+    "retro: <tmp>/runs/weekly-digest-<run>/retro.md",
     "# weekly digest weekly-digest-<run>: refused (spec cited) at planner.md - REFUSED: notes.md:2 \"the rent is due on the 1st\" is money, not notes",
     "weekly digest ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -183,6 +281,7 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35"
+    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
+    "retro.md go 1 da7481c605332850516fe06981423ee9ef65918ec75cbb64d4921aa621fc77c4"
   ]
 }

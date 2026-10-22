@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-17T09:42:36",
+  "recorded": "2026-10-22T10:04:57",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -21,6 +21,21 @@
         "calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n",
         "tests/test_add_zero.py": "from calc import add\n\n\ndef test_add_zero():\n    assert add(0, 0) == 0\n"
       }
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "944bc010058b98e271599852dd6d4bdb0b5478b00ab89d483bff979a066e83a3",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
     },
     {
       "step": "worker.md",

@@ -2,11 +2,12 @@
   "exit": 2,
   "raised": null,
   "path": [
-    "1 planner.md failed"
+    "1 planner.md failed",
+    "2 retro.md ok"
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
-    "<time>  repo-audit  failed at planner.md  <secs>s  repo-audit-<run>  no answer  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  nothing came out of planner.md in 3 goes; the provider said: an empty answer  repo-audit-<run>/handoff.md"
+    "<time>  repo-audit  failed at planner.md  <secs>s  repo-audit-<run>  no answer  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  nothing came out of planner.md in 3 goes; the provider said: an empty answer  repo-audit-<run>/handoff.md"
   ],
   "index": [
     "FAILED  repo-audit  at planner.md"
@@ -81,9 +82,11 @@
     "repo-audit-<run>/handoff.md",
     "repo-audit-<run>/manifest.json",
     "repo-audit-<run>/planner.md",
+    "repo-audit-<run>/retro.md",
     "repo-audit-<run>/rulings.json",
     "repo-audit-<run>/steps.jsonl",
     "repo-audit-<run>/steps/001-planner.md",
+    "repo-audit-<run>/steps/002-retro.md",
     "repo-audit-<run>/why.md",
     "repo-audit-<run>/workdir"
   ],
@@ -162,6 +165,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 2,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/002-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -174,6 +270,8 @@
     "step planner.md failed (transient): an empty answer",
     "giving up",
     "run stopped at planner.md",
+    "started retro.md",
+    "retro: <tmp>/runs/repo-audit-<run>/retro.md",
     "# repo-audit repo-audit-<run>: stopped: tool fault at planner.md - nothing came out of planner.md in 3 goes; the provider said: an empty answer",
     "repo-audit ran planner.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -207,6 +305,7 @@
   "prompts": [
     "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
     "planner.md go 2 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
-    "planner.md go 3 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34"
+    "planner.md go 3 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
+    "retro.md go 1 8fdd90c7503e88aca23399a3a2045930345cca243e868df888d44979dc3c020b"
   ]
 }

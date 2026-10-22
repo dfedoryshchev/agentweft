@@ -289,6 +289,7 @@
     "started patcher.md",
     "patcher.md says a test the run will not rewrite is wrong",
     "parked at patcher.md, waiting for a ruling",
+    "retro not run: the run stopped on parked",
     "# fix-with-test fix-with-test-<run>: needs you: ruling at patcher.md - needs a ruling: patcher.md says test_old.py::test_old is wrong (it wants add(2, 2) to be 0), and it was in the place when the run started, so the run will not rewrite it: which holds, the test or the spec line?",
     "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 1 of 1 gates passed; red now: test_old.py::test_old (a test the run started with); red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",

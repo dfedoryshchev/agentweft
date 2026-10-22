@@ -8,9 +8,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, state, stops
 
 NL = chr(10)
+# the shipped flow looks back after every run that ends, once, last
+RETRO = "retro.md"
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
 SUPPLIED = "tests/test_report.py"
 BROKEN = "def add(a, b):" + NL + "    return a - b" + NL
@@ -52,6 +55,8 @@ def run_it(tmp_path, monkeypatch, added=None, fixes=True, said=PATCHER,
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         asked.append(step)
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
         if step == "patcher.md":
             if fixes:
                 (project / "calc.py").write_text(FIXED, encoding="utf-8")
@@ -63,6 +68,10 @@ def run_it(tmp_path, monkeypatch, added=None, fixes=True, said=PATCHER,
         return WORKER, False
 
     monkeypatch.setattr(engine, "call", fake_call)
+    # the retro is granted only to read, and a step with a grant is refused
+    # unless the cli's version holds it to that grant
+    monkeypatch.setattr(cli_provider.CliProvider, "version",
+                        lambda self: cli_provider.FLOOR)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
     monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")
@@ -84,7 +93,7 @@ def run_it(tmp_path, monkeypatch, added=None, fixes=True, said=PATCHER,
 def test_a_supplied_test_and_a_patch_that_adds_no_test_finish(
         tmp_path, monkeypatch):
     code, asked, red_first = run_it(tmp_path, monkeypatch)
-    assert asked == ["worker.md", "patcher.md"]
+    assert asked == ["worker.md", "patcher.md", RETRO]
     assert code == stops.EXIT_OK
     assert red_first[-1]["ok"]
 
@@ -93,7 +102,7 @@ def test_a_supplied_test_carries_a_patch_whose_new_tests_all_pass_before_it(
         tmp_path, monkeypatch):
     code, asked, red_first = run_it(tmp_path, monkeypatch,
                                     {"tests/test_more.py": PIN})
-    assert asked == ["worker.md", "patcher.md"], red_first
+    assert asked == ["worker.md", "patcher.md", RETRO], red_first
     assert code == stops.EXIT_OK
     gate = red_first[-1]
     assert gate["ok"]

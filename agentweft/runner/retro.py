@@ -17,7 +17,7 @@ different outcome for the run.
 import json
 import re
 
-from agentweft.flow.spec import step_id
+from agentweft.flow.spec import CONDITIONAL, step_id
 from agentweft.guardrails import factsguard
 from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
@@ -40,10 +40,36 @@ FINE = ("ok", "asked", "decided", "escalated", trace.WARM)
 # failed attempts carry to the leg that ends the run.
 HELD = (stops.OUTAGE, stops.BUDGET, stops.INTERRUPT, stops.PARKED,
         stops.CONFLICT)
+# a provider that refused a step outright (no credentials, not allowed to run
+# here) refuses the retro the same way; the crashed attempt is still a failed
+# one for the leg that carries the run on
+HOLDS = HELD + (stops.EXCEPTION,)
 
 
 def on(fm):
-    return fm.get("retro") is True
+    """whether the flow runs the retro at all: `retro: true`, or
+    `retro: conditional` on a run that had something to look back at."""
+    said = fm.get("retro")
+    return said is True or said == CONDITIONAL
+
+
+def conditional(fm):
+    return fm.get("retro") == CONDITIONAL
+
+
+def trouble(run, lines, issued, worked, changed, looked):
+    """-> "" when a conditional retro has something to look back at, else
+    why it does not run: the run changed no file, had no failed attempt, no
+    gate issue or refused write, and no question. a place outside git cannot
+    say what changed, so it counts as changed."""
+    asked = any(l.get("outcome") in ("asked", "decided", "escalated")
+                or l.get("cause") in (stops.PARKED, stops.CONFLICT)
+                for l, _ in looked)
+    if lines or issued or worked or changed is None or changed or asked \
+            or getattr(getattr(run, "kept", None), "written", None):
+        return ""
+    return ("conditional, and the run changed no file, had no failed attempt,"
+            " no gate issue and no question")
 
 
 def failed(lines):
@@ -178,8 +204,13 @@ def ruled(run):
     return out or ["- none"]
 
 
+BEFORE = "already modified before the run"
+
+
 def changed_files(run):
-    """-> the paths git says the run changed, None outside git."""
+    """-> the paths git says the run changed, None outside git. a file that
+    was already modified before the run started is the place's, not the
+    run's: git cannot tell the run's part of it apart."""
     tree = getattr(run, "tree", None)
     try:
         found = tree.changes() if tree is not None else {}
@@ -187,13 +218,15 @@ def changed_files(run):
         return None
     if not found.get("git"):
         return None
-    return [f[0] for f in found.get("files") or []]
+    return [f[0] for f in found.get("files") or []
+            if not str(f[3]).endswith(BEFORE)]
 
 
 def store_of(run):
     store = getattr(run, "facts", None)
     if store is None:
-        store = run.facts = factsguard.Store(run.workdir)
+        store = run.facts = factsguard.Store(
+            run.workdir, off=factsguard.lane_off(getattr(run, "fm", None)))
     return store
 
 
@@ -306,12 +339,19 @@ def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
 def held(run, stopped):
     """-> why the retro does not run after this stop, or ""."""
     cause = (stopped or {}).get("cause")
-    if cause in HELD:
+    if cause in HOLDS:
         return "the run stopped on " + cause
     waits = run.budget.ahead()
     if waits and waits[0] == REACHED:
         return waits[1]
     return ""
+
+
+def refused(run):
+    """-> why the retro may not start, the way a step may not: its model
+    would start in a place a step left an instruction file in."""
+    check = getattr(run, "refused", None)
+    return check(STEP) if callable(check) else ""
 
 
 def ask(run, text, used):
@@ -334,18 +374,24 @@ def after(run, trail, run_id, flow, outcome, folder, stopped=None,
 def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     from .engine import Answer
 
-    skip = held(run, stopped)
+    skip = held(run, stopped) or refused(run)
     if skip:
         print("retro not run: " + skip)
         return
     lines = whys(trail, earlier)
     looked = recorded(trail, earlier)
-    store = store_of(run)
+    issued, worked = issues(looked), workarounds(looked)
     changed = changed_files(run)
+    if conditional(getattr(run, "fm", None) or {}):
+        skip = trouble(run, lines, issued, worked, changed, looked)
+        if skip:
+            print("retro not run: " + skip)
+            return
+    store = store_of(run)
     stale, live = kept_facts(store, changed)
-    text = prompt(run_id, flow, outcome, folder, lines, issues(looked),
-                  workarounds(looked), parts(looked, ruled(run), changed,
-                                             stale, live, store.cap))
+    text = prompt(run_id, flow, outcome, folder, lines, issued, worked,
+                  parts(looked, ruled(run), changed, stale, live,
+                        0 if store.off else store.cap))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)
@@ -392,7 +438,14 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
 def kept_up(run, trail, earlier, store, said, run_id):
     """-> what the runner did with the answer's FACTS block. a fault of its
     own is said in the block's note, never raised: the retro's outcome is
-    the answer it gave."""
+    the answer it gave. a flow whose lane is off acts on none of it."""
+    if store.off:
+        done = Maintained()
+        if upkeep.parse(said) != (None, ""):
+            done.present = True
+            done.lines.append("- the flow's lane is off, so the FACTS block"
+                              " was not acted on")
+        return done
     try:
         return upkeep.maintain(store, record_of(run, trail, earlier), said,
                                run_id)

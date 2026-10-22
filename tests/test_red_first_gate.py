@@ -8,11 +8,14 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft import runner
+from agentweft.providers import fake_provider
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parent.parent / "flows"
+# the shipped flow looks back after every leg that ends, once, last
+RETRO = "retro.md"
 
 BUGGY = "def add(a, b):" + NL + "    return a - b" + NL
 FIXED = "def add(a, b):" + NL + "    return a + b" + NL
@@ -346,7 +349,8 @@ def a_flow_run(tmp_path, monkeypatch, place, mode, verify="off"):
     answers = {
         "worker.md": WORKER_SAID,
         "patcher.md": "TEST: tests/test_calc.py" + NL + "patched it" + NL,
-        "verify.md": "PASS the patch is the smallest thing" + NL}
+        "verify.md": "PASS the patch is the smallest thing" + NL,
+        RETRO: fake_provider.NOTHING_TO_KEEP}
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         prompts_seen[step] = prompt
@@ -577,6 +581,8 @@ def test_a_resumed_run_replays_from_the_snapshot_it_started_with(
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         goes.append(step)
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
         if step == "worker.md":
             write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
             return WORKER_SAID, False
@@ -593,7 +599,7 @@ def test_a_resumed_run_replays_from_the_snapshot_it_started_with(
     monkeypatch.setattr(sys, "argv", ["run.py", "fix-with-test", "--force",
                                       "--resume", first.name])
     engine.main()
-    assert goes == ["worker.md", "patcher.md", "patcher.md"]
+    assert goes == ["worker.md", "patcher.md", RETRO, "patcher.md", RETRO]
     second = [p for p in state.RUNS.iterdir() if p.is_dir() and p != first][0]
     handoff = (second / "handoff.md").read_text(encoding="utf-8")
     assert "red first: shown on patcher.md" in handoff
@@ -609,6 +615,8 @@ def test_a_resumed_run_with_no_kept_snapshot_does_not_replay(tmp_path,
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         goes.append(step)
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
         if step == "worker.md":
             write(place, "tests/test_calc.py", RED_TEST, "no commits", "")
             return WORKER_SAID, False
@@ -621,7 +629,7 @@ def test_a_resumed_run_with_no_kept_snapshot_does_not_replay(tmp_path,
     monkeypatch.setattr(sys, "argv", ["run.py", "fix-with-test", "--force",
                                       "--resume", first.name])
     engine.main()
-    assert goes == ["worker.md", "patcher.md"]
-    second = [p for p in state.RUNS.iterdir() if p.is_dir() and p != first][0]
+    assert goes == ["worker.md", "patcher.md", RETRO, RETRO]
+    second =[p for p in state.RUNS.iterdir() if p.is_dir() and p != first][0]
     assert "no start snapshot" in (second / "why.md").read_text(
         encoding="utf-8")

@@ -3,11 +3,12 @@
   "raised": null,
   "path": [
     "1 planner.md ok -> worker.md",
-    "2 worker.md failed"
+    "2 worker.md failed",
+    "3 retro.md ok"
   ],
   "journal": [
     "<time>  repo-audit  running  <secs>s  repo-audit-<run>",
-    "<time>  repo-audit  failed at worker.md  <secs>s  repo-audit-<run>  overlap  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  task 1 wrote stray.md, which it did not name  repo-audit-<run>/handoff.md"
+    "<time>  repo-audit  failed at worker.md  <secs>s  repo-audit-<run>  overlap  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  task 1 wrote stray.md, which it did not name  repo-audit-<run>/handoff.md"
   ],
   "index": [
     "FAILED  repo-audit  at worker.md"
@@ -87,10 +88,12 @@
     "repo-audit-<run>/handoff.md",
     "repo-audit-<run>/manifest.json",
     "repo-audit-<run>/planner.md",
+    "repo-audit-<run>/retro.md",
     "repo-audit-<run>/rulings.json",
     "repo-audit-<run>/steps.jsonl",
     "repo-audit-<run>/steps/001-planner.md",
     "repo-audit-<run>/steps/002-worker.md",
+    "repo-audit-<run>/steps/003-retro.md",
     "repo-audit-<run>/tasks.jsonl",
     "repo-audit-<run>/why.md",
     "repo-audit-<run>/workdir",
@@ -283,6 +286,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/003-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -291,6 +387,8 @@
     "preflight: no ranking to check against, worker.md not checked",
     "started worker.md",
     "tasks overlap at worker.md: task 1 wrote stray.md, which it did not name",
+    "started retro.md",
+    "retro: <tmp>/runs/repo-audit-<run>/retro.md",
     "# repo-audit repo-audit-<run>: stopped: tasks overlap at worker.md - task 1 wrote stray.md, which it did not name",
     "repo-audit ran planner.md -> worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -323,6 +421,7 @@
   ],
   "prompts": [
     "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
+    "retro.md go 1 1e8bcfbd636aa94b110ad9c85ce34caa9f5fca3932ff1378dd66495da8d72602",
     "worker.md task 1 go 1 62336afe9ddd1f8cd72edc4f35bb301d9b697fea7f1ed90138fff7e05446cc3e",
     "worker.md task 2 go 1 fa67fda1e7309cbdae0502b3a93366a4ebd34df0b9622fc061f07d0eb378cf0a"
   ]

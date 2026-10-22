@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-17T11:59:29",
+  "recorded": "2026-10-22T10:03:34",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -9,6 +9,21 @@
       "go": 1,
       "prompt": "849b1590c102aac9e8a17b13fd529a8c496300079d0876a6803da27b3398ff49",
       "say": "- behaviour: fields(\"a;b\", delimiter=\";\") is [\"a\", \"b\"]\n  file: roster.py\n  spec: adds to TASK.md:3\n- behaviour: fields(\"a,b\") with no delimiter is still [\"a\", \"b\"]\n  file: roster.py\n  spec: allows TASK.md:3\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "a339c4ca334baff8100f1c1666e8ab8629d6f123ba40760e50b82afeba4d1682",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
       "detail": "",
       "retryable": null,
       "outage": null,

@@ -182,6 +182,7 @@
     "started worker.md",
     "worker.md found the request contradicts the spec",
     "stopped at worker.md on a spec conflict",
+    "retro not run: the run stopped on conflict",
     "# summarise-and-check summarise-and-check-<run>: stopped: spec conflict at worker.md - spec conflict: the request contradicts RULES.md:3. which one holds?",
     "summarise-and-check ran worker.md in <secs>s.",
     "suite: 1 check passed (the quote at RULES.md:3 is there as the run found it); red first: not proven by a gate.",

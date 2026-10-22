@@ -100,13 +100,15 @@ def test_a_gate_that_named_the_place_replays_in_another_place(unwritten,
     live = harness.run_flow_for("fix-with-test", harness.load_case(unwritten),
                                 record=True)
     assert live[2] == ""
-    assert [l["outcome"] for l in live.steps] == ["gate failed", "ok", "ok"]
+    assert [l["outcome"] for l in live.steps] == ["gate failed", "ok", "ok",
+                                                  "ok"]
     kept = json.loads((unwritten / recording.FILE).read_text(encoding="utf-8"))
-    assert len(kept["calls"]) == 3
+    assert len(kept["calls"]) == 4
 
     def ask(self, prompt, timeout=None):
         raise AssertionError("a replayed case called its provider")
     monkeypatch.setattr(fake_provider.FakeProvider, "ask", ask)
     again = harness.run_flow_for("fix-with-test", harness.load_case(unwritten))
     assert again[2] == ""
-    assert [l["outcome"] for l in again.steps] == ["gate failed", "ok", "ok"]
+    assert [l["outcome"] for l in again.steps] == ["gate failed", "ok", "ok",
+                                                   "ok"]

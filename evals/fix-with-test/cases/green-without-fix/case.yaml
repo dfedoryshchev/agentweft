@@ -35,4 +35,5 @@ expect:
       - worker.md ok -> patcher.md  PASS red-test
       - patcher.md gate failed -> patcher.md  PASS red-test  FAIL red-first  PASS command
       - patcher.md gate failed  PASS red-test  FAIL red-first  PASS command
-  calls: 3
+      - retro.md ok
+  calls: 4

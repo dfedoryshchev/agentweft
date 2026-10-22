@@ -27,6 +27,13 @@ PREFIX = "recording "
 # the head of what the runner adds to a prompt when a gate sent the step back
 GATE_SAID = "your last answer failed a gate, so this step runs again."
 DURATION = re.compile(r"(?<= in )\d+(?:\.\d+)?s\b")
+# the head of the run's record the retro is handed: what follows quotes the
+# run's own lines and files, its seconds and times with them
+RECORD_SAID = re.compile(r"\nwhy each failed attempt failed, from steps\.jsonl:\n")
+SECONDS = re.compile(r"\b\d+(?:\.\d+)?s\b")
+STAMP = re.compile(r"\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?")
+# the commit the case's place starts from is made fresh each run
+SHA = re.compile(r"\b[0-9a-f]{7,40}\b")
 
 
 def spellings(path):
@@ -49,8 +56,11 @@ def neutral(prompt, place=None, trail=None):
     and hands on the tail of what that printed, separators, timings and all.
     those become `<place>` and `<python>` wherever they are, and in what a
     gate said a backslash is a slash and a duration is `<secs>s`. the folder
-    the case's lines go to, which the retro is pointed at, is `<trail>`. the
-    words the step was given are left as they are."""
+    the case's lines go to, which the retro is pointed at, is `<trail>`, and
+    in the run's record the retro is handed (its lines and why.md) a
+    backslash is a slash, a number of seconds `<secs>s`, a date or time
+    `<time>` and a commit id `<sha>`. the words the step was given are left
+    as they are."""
     text = (prompt or "").replace("\r\n", "\n")
     for where, name in ((sys.executable, "<python>"), (trail, "<trail>"),
                         (place, "<place>")):
@@ -60,7 +70,15 @@ def neutral(prompt, place=None, trail=None):
     head, said, tail = text.partition(GATE_SAID)
     if said:
         tail = DURATION.sub("<secs>s", tail.replace("\\", "/"))
-    return head + said + tail
+    text = head + said + tail
+    at = RECORD_SAID.search(text)
+    if at:
+        said = text[at.start():].replace("\\", "/")
+        for pattern, name in ((STAMP, "<time>"), (SECONDS, "<secs>s"),
+                              (SHA, "<sha>")):
+            said = pattern.sub(name, said)
+        text = text[:at.start()] + said
+    return text
 
 
 def digest(prompt, place=None, trail=None):

@@ -128,9 +128,10 @@ def test_the_sides_are_not_the_same_size():
     # `reviewers` and a step's `lens` are two more, one way: a phase seats
     # its reviewers as agents and says what each looks for in their prose.
     #
-    # `facts_per_run` is one more, one way: a phase keeps no facts to cap.
+    # `facts_per_run` is one more, one way: a phase keeps no facts to cap,
+    # and `lane` another: it has none to turn off.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 46
+    assert len(compare.flow_only()) == 47
     assert len(compare.phase_only()) == 7
 
 

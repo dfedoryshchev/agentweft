@@ -116,9 +116,10 @@ def test_the_command_prints_the_step_and_the_mode(root, monkeypatch, capsys):
 def test_subset_holds_a_run_that_stopped_to_what_it_may_have_run(
         root, monkeypatch):
     """the fake's own answer plans nothing, so the run stops at the fanned
-    step: nothing ran past it, which is what subset asks."""
+    step: nothing ran past it but the retro, which is what subset asks."""
     case = a_case(root, {"steps": {"match": "subset",
-                                   "path": ["planner.md", "worker.md"]}},
+                                   "path": ["planner.md", "worker.md",
+                                            "retro.md"]}},
                   reply=None)
     rows = failed(replayed(case, monkeypatch))
     assert [r for r in rows if r[0].startswith("the steps")] == []
@@ -127,7 +128,8 @@ def test_subset_holds_a_run_that_stopped_to_what_it_may_have_run(
 def test_subset_fails_a_run_that_went_on_past_the_reference(root,
                                                             monkeypatch):
     case = a_case(root, {"steps": {"match": "subset",
-                                   "path": ["planner.md", "worker.md"]}})
+                                   "path": ["planner.md", "worker.md",
+                                            "retro.md"]}})
     assert failed(replayed(case, monkeypatch)) == [
         ("the steps it took (subset)",
          "ran outside the reference: merge.md ok -> reviewer.md, "
@@ -153,17 +155,17 @@ def test_a_gate_asserted_to_fail_that_passed_fails_the_case(root,
 def test_strict_holds_the_order_and_the_outcomes(root, monkeypatch):
     want = {"steps": {"match": "strict", "path": [
         "planner.md ok -> worker.md", "worker.md ok", "merge.md",
-        "reviewer.md ok  PASS length  PASS regex"]}}
+        "reviewer.md ok  PASS length  PASS regex", "retro.md ok"]}}
     assert failed(replayed(a_case(root, want), monkeypatch)) == []
 
 
 def test_the_number_of_calls_is_asserted(root, monkeypatch):
-    assert failed(replayed(a_case(root, {"calls": 5}), monkeypatch)) == []
+    assert failed(replayed(a_case(root, {"calls": 6}), monkeypatch)) == []
 
 
 def test_a_wrong_number_of_calls_fails_the_case(root, monkeypatch):
     assert failed(replayed(a_case(root, {"calls": 4}), monkeypatch)) == [
-        ("it made 4 calls", "it made 5")]
+        ("it made 4 calls", "it made 6")]
 
 
 def test_a_mode_that_does_not_exist_fails_the_case_and_says_the_four(

@@ -23,7 +23,8 @@ REPLIES = {
                            "+    return a + b\n",
                     "writes": {"calc.py": FIXED}}]}
 PATH = ["worker.md ok -> patcher.md  PASS red-test",
-        "patcher.md ok  PASS red-test  PASS red-first  PASS command"]
+        "patcher.md ok  PASS red-test  PASS red-first  PASS command",
+        "retro.md ok"]
 
 
 @pytest.fixture
@@ -90,7 +91,7 @@ def test_a_recording_keeps_the_writes_and_replays_them(case_dir, monkeypatch):
     blob = json.loads((case_dir / recording.FILE).read_text(encoding="utf-8"))
     wrote = {c["step"]: c.get("writes") for c in blob["calls"]}
     assert wrote == {"worker.md": {"test_calc.py": TEST},
-                     "patcher.md": {"calc.py": FIXED}}
+                     "patcher.md": {"calc.py": FIXED}, "retro.md": None}
     assert (case_dir / "place" / "calc.py").read_text(
         encoding="utf-8") == BUGGY
 
@@ -100,7 +101,8 @@ def test_a_recording_keeps_the_writes_and_replays_them(case_dir, monkeypatch):
     case, out = ran(case_dir)
     assert case["recording"] is not None
     assert out[2] == ""
-    assert [took["step"] for took in out.steps] == ["worker.md", "patcher.md"]
+    assert [took["step"] for took in out.steps] == ["worker.md", "patcher.md",
+                                                    "retro.md"]
     assert [g["ok"] for took in out.steps for g in took["gates"]] == [True] * 4
 
 

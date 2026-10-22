@@ -3,7 +3,8 @@
   "raised": null,
   "path": [
     "1 worker.md ok -> reviewer.md",
-    "2 reviewer.md ok"
+    "2 reviewer.md ok",
+    "3 retro.md ok"
   ],
   "journal": [],
   "index": [
@@ -64,12 +65,14 @@
     "code-review-<run>/handoff.md",
     "code-review-<run>/manifest.json",
     "code-review-<run>/models",
+    "code-review-<run>/retro.md",
     "code-review-<run>/reviewer.md",
     "code-review-<run>/rulings.json",
     "code-review-<run>/start-snapshot.json",
     "code-review-<run>/steps.jsonl",
     "code-review-<run>/steps/001-worker.md",
     "code-review-<run>/steps/002-reviewer.md",
+    "code-review-<run>/steps/003-retro.md",
     "code-review-<run>/workdir",
     "code-review-<run>/worker.md",
     "index.md",
@@ -263,6 +266,99 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 3,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/003-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -274,6 +370,8 @@
     "saved <tmp>/runs/code-review-<day>-1.md",
     "VERDICT: ok",
     "- [high] app.py:12 the loop reads one past the end of items",
+    "started retro.md",
+    "retro: <tmp>/runs/code-review-<run>/retro.md",
     "# code-review code-review-<run>: done",
     "code-review ran worker.md -> reviewer.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",
@@ -289,6 +387,7 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
+    "retro.md go 1 0e251b725618ba6a390e78baea0b1476a91285d3ed9c7a2524b929d3c5f387cf",
     "reviewer.md go 1 57e1e290dc35063f198deac485cad4b153a380e2f3d2fa41f3cc00fec8f09c06",
     "worker.md go 1 4ef397e1b7873dbd6f9a537df0d3dafd57fa45856b98bbaa233dcfcde7c206b8"
   ]

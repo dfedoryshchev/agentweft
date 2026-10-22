@@ -1,4 +1,5 @@
 name: weekly digest
+retro: true
 steps:
   - role: planner
     prompt: planner.md

@@ -1,4 +1,5 @@
 name: ops-check
+retro: true
 steps:
   - role: planner
     prompt: planner.md

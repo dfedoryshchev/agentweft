@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
-from agentweft.providers import cli_provider
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, stops
 
 try:
@@ -22,7 +22,10 @@ except ImportError:
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
-TASK = "calc gets mul(a, b), as TASK.md says"
+# the shipped flow looks back after every run that ends, once, last; a park
+# for a ruling holds it
+RETRO = "retro.md"
+TASK ="calc gets mul(a, b), as TASK.md says"
 SPEC = "# calc" + NL + NL + "mul(a, b) returns a times b" + NL
 BEFORE = "def add(a, b):" + NL + "    return a + b" + NL
 AFTER = BEFORE + NL + NL + "def mul(a, b):" + NL + "    return a * b" + NL
@@ -69,6 +72,7 @@ def run_it(tmp_path, monkeypatch, answers, writes, old=False):
     git(project, "add", ".")
     git(project, "commit", "-q", "-m", "start")
     asked, sent = [], []
+    answers = dict({RETRO: [fake_provider.NOTHING_TO_KEEP]}, **answers)
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         n = asked.count(step)
@@ -107,7 +111,7 @@ def test_a_wrong_test_the_tester_wrote_goes_back_to_it_and_is_red_again(
     asked, sent, code, folder, project = run_it(tmp_path, monkeypatch,
                                                 answers, writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "tester.md",
-                     "worker.md", "reviewer.md", "reviewer-runs.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
     again = sent[3]
     assert "# tester" in again
@@ -190,7 +194,7 @@ def test_an_invented_spec_quote_fails_the_step_and_never_reaches_the_writer(
     asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
                                           writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "worker.md",
-                     "reviewer.md", "reviewer-runs.md"]
+                     "reviewer.md", "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
     gates = (folder / "gates.md").read_text(encoding="utf-8")
     first = gates.split("## worker.md")[1].split("##")[0]
@@ -223,7 +227,7 @@ def test_several_wrong_tests_go_back_to_their_writer_in_one_round(
     asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
                                           writes)
     assert asked == ["planner.md", "tester.md", "worker.md", "tester.md",
-                     "worker.md", "reviewer.md", "reviewer-runs.md"]
+                     "worker.md", "reviewer.md", "reviewer-runs.md", RETRO]
     assert code == stops.EXIT_OK
     again = sent[3]
     assert "tests/test_mul.py::test_mul" + NL in again

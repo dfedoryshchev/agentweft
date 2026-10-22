@@ -8,11 +8,12 @@
     "4 tester.md ok -> worker.md  PASS red-test",
     "5 worker.md ok -> reviewer.md  PASS command  PASS red-first",
     "6 reviewer.md ok -> reviewer-runs.md",
-    "7 reviewer-runs.md ok"
+    "7 reviewer-runs.md ok",
+    "8 retro.md ok"
   ],
   "journal": [
     "<time>  build-feature  running  <secs>s  build-feature-<run>",
-    "<time>  build-feature  ok, 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  7 calls, 840 tokens counted (input 700, output 140), unpriced: model-in-replay x7, reported $0.0700 (cli x7)  build-feature-<run>/handoff.md"
+    "<time>  build-feature  ok, 1 promise(s) not checked  <secs>s  build-feature-<run>  build-feature-<day>-1.md  8 calls, 960 tokens counted (input 800, output 160), unpriced: model-in-replay x8, reported $0.0800 (cli x8)  build-feature-<run>/handoff.md"
   ],
   "index": [
     "build-feature-<day>-1.md  build-feature  5 steps"
@@ -97,6 +98,7 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro.md",
     "build-feature-<run>/reviewer-runs.md",
     "build-feature-<run>/reviewer.md",
     "build-feature-<run>/rulings.json",
@@ -109,6 +111,7 @@
     "build-feature-<run>/steps/005-worker.md",
     "build-feature-<run>/steps/006-reviewer.md",
     "build-feature-<run>/steps/007-reviewer-runs.md",
+    "build-feature-<run>/steps/008-retro.md",
     "build-feature-<run>/task.md",
     "build-feature-<run>/tester.md",
     "build-feature-<run>/workdir",
@@ -716,6 +719,99 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 8,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/008-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -735,6 +831,8 @@
     "saved <tmp>/runs/build-feature-<day>-1.md",
     "VERDICT: ok",
     "- calc.py: mul(a, b) added",
+    "started retro.md",
+    "retro: <tmp>/runs/build-feature-<run>/retro.md",
     "# build-feature build-feature-<run>: done",
     "build-feature ran planner.md -> tester.md -> worker.md (sent back) -> tester.md -> worker.md -> reviewer.md -> reviewer-runs.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: 4 of 4 gates passed; red first: gate-proven on tester.md (red, exit 1, python -m pytest -q test_mul.py).",
@@ -751,6 +849,7 @@
   ],
   "prompts": [
     "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
+    "retro.md go 1 7f28c548f5b2006feefde809f645a0723bcc7b94b24b11d313ab2591613c1c4e",
     "reviewer-runs.md go 1 ed8b96a37474376aab4f97ffcabbb2036ee215636305b04b449b01eefeb2ff98",
     "reviewer.md go 1 46f514d5c6769c8d04e4961508511e44e8e179f2082c1df314f29486bac9fa9d",
     "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",

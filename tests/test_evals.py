@@ -29,8 +29,9 @@ def test_the_case_provider_beats_the_flows():
     spec = runner.config("weekly-digest")
     run = Run("weekly-digest", spec, {}, provider={"provider": "fake"})
     assert run.provider.name == "fake"
-    # the merge step names a provider and the reviewer carries a grant
-    assert [p.name for p in run.by_step.values()] == ["fake", "fake"]
+    # the merge step names a provider, the reviewer carries a grant, and the
+    # retro is granted only to read
+    assert [p.name for p in run.by_step.values()] == ["fake", "fake", "fake"]
 
 
 DIGEST = ("VERDICT: ok" + chr(10) + chr(10) + "## what changed" + chr(10) + "- a.md | changed | x" + chr(10)
@@ -55,13 +56,13 @@ def scored(monkeypatch, reply=None):
 
 def test_a_case_runs_every_step_of_its_flow(monkeypatch):
     r = scored(monkeypatch, DIGEST)
-    assert r["calls"] == 5
+    assert r["calls"] == 6
     assert r["passed"] == r["checked"]
 
 
 def test_a_gate_on_the_last_step_is_in_the_score(monkeypatch):
     r = scored(monkeypatch, DIGEST + chr(10) + "here is the digest" + chr(10))
-    assert r["calls"] == 6
+    assert r["calls"] == 7
     assert r["passed"] < r["checked"]
     assert [row["detail"] for row in r["rows"] if row["ok"] is False] == [
         "gate regex failed at reviewer.md"]
@@ -70,7 +71,7 @@ def test_a_gate_on_the_last_step_is_in_the_score(monkeypatch):
 def test_a_quote_the_inbox_does_not_hold_fails_the_digest(monkeypatch):
     r = scored(monkeypatch, DIGEST + '"the box caught fire on monday", says'
                ' infra.md' + chr(10))
-    assert r["calls"] == 6
+    assert r["calls"] == 7
     assert [row["detail"] for row in r["rows"] if row["ok"] is False] == [
         "gate quote failed at reviewer.md"]
 
@@ -78,7 +79,7 @@ def test_a_quote_the_inbox_does_not_hold_fails_the_digest(monkeypatch):
 def test_a_quote_the_inbox_holds_passes_the_digest(monkeypatch):
     r = scored(monkeypatch, DIGEST + '"the box fell over on tuesday", says'
                ' infra.md' + chr(10))
-    assert r["calls"] == 5
+    assert r["calls"] == 6
     assert r["passed"] == r["checked"]
 
 

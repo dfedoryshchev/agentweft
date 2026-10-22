@@ -16,6 +16,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.flow import spec
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, settings, state
 
 NL = chr(10)
@@ -34,7 +35,8 @@ PATCHER = "TEST: tests/test_calc.py" + NL + "return a + b"
 VERIFIED = NL.join(["PASS the test is written before the patch",
                     "PASS the test fails on the unpatched code",
                     "PASS the patch is the smallest thing that turns it green"])
-ANSWERS = {"worker.md": WORKER, "patcher.md": PATCHER, "verify.md": VERIFIED}
+ANSWERS = {"worker.md": WORKER, "patcher.md": PATCHER, "verify.md": VERIFIED,
+           "retro.md": fake_provider.NOTHING_TO_KEEP}
 
 
 def fix_run(tmp_path, monkeypatch, flows=FLOWS, project_files=None):
@@ -57,6 +59,10 @@ def fix_run(tmp_path, monkeypatch, flows=FLOWS, project_files=None):
         return ANSWERS.get(step, ""), False
 
     monkeypatch.setattr(engine, "call", fake_call)
+    # the retro is granted only to read, and a step with a grant is refused
+    # unless the cli's version holds it to that grant
+    monkeypatch.setattr(cli_provider.CliProvider, "version",
+                        lambda self: cli_provider.FLOOR)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(flows)])
     monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")

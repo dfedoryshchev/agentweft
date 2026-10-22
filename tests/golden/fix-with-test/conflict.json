@@ -310,6 +310,7 @@
     "started patcher.md",
     "patcher.md found the request contradicts the spec",
     "stopped at patcher.md on a spec conflict",
+    "retro not run: the run stopped on conflict",
     "# fix-with-test fix-with-test-<run>: stopped: spec conflict at patcher.md - spec conflict: the request contradicts TASK.md:3. which one holds?",
     "fix-with-test ran worker.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 1 of 1 gates passed; 1 check passed (the quote at TASK.md:3 is there as the run found it); red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",

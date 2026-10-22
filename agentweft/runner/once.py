@@ -36,13 +36,21 @@ def run_once(flow, provider=None, task=None, trail=None, workdir=None):
     `workdir` is the place it works in, over the flow's own."""
     fm = config(flow)
     made = None
+    told = None
     if trail is None and retro.on(fm):
         # the retro reads the run's lines, so a run asked for none keeps them
         # where nothing else sees them
-        made = trail = tempfile.mkdtemp()
+        made = trail = Path(tempfile.mkdtemp())
+        if getattr(provider, "trail", False) is None:
+            # a recording names the folder the retro is pointed at as
+            # <trail>, and this one is new every run
+            told = provider
+            told.trail = made
     try:
         return scored(flow, fm, provider, task, trail, workdir)
     finally:
+        if told is not None:
+            told.trail = None
         if made is not None:
             shutil.rmtree(made, ignore_errors=True)
 
@@ -52,7 +60,7 @@ def scored(flow, fm, provider, task, trail, workdir):
     run = Run(flow, fm, by_role, provider=provider, task=task, workdir=workdir)
     route = router.Router(fm)
     run.ups = route.ups
-    kept = trace.Trail(trail) if trail is not None else None
+    kept = trace.Trail(Path(trail)) if trail is not None else None
     if trail is not None:
         run.keep_in(Path(trail))
     ended = {}
@@ -61,7 +69,7 @@ def scored(flow, fm, provider, task, trail, workdir):
     def note(outcome, why=None, cause=None, to=None, output=None):
         taken = run.taken()
         if cause:
-            ended["cause"] = cause
+            ended.update(cause=cause, why=why or "", at=state["step"])
         if kept is None:
             return
         step, out = state["step"], state["out"]
@@ -77,11 +85,31 @@ def scored(flow, fm, provider, task, trail, workdir):
 
     said = steps_of(flow, fm, run, route, trail, kept, state, note)
     if kept is not None and retro.on(fm):
-        stopped = {"cause": ended["cause"]} if ended.get("cause") else None
+        stopped = dict(ended) if ended.get("cause") else None
+        stopped_why(Path(trail), stopped)
         retro.after(run, kept, RUN_ID, fm["name"], summary.outcome(stopped),
                     Path(trail), stopped)
     upkeep.tally(run, kept)
     return said
+
+
+def stopped_why(folder, stopped):
+    """write why.md beside the lines for a run that stopped short, as a cli
+    run does, so the retro of a scored run reads why it stopped. no
+    handoff.md is written: it names the provider that answered, which a
+    replay names as itself, and the commit the place started from, made new
+    each run, so a replayed retro could not send the prompt it recorded; what
+    the retro needs of it is already in its record. one that cannot be
+    written is said, and the retro reads what there is."""
+    if not stopped:
+        return
+    try:
+        (folder / "why.md").write_text(
+            "stopped at " + stopped["at"] + "\ncause      " + stopped["cause"]
+            + "\n\n" + stopped["why"] + "\n", encoding="utf-8")
+    except OSError as e:
+        print("why.md not written for the retro: " + type(e).__name__ + ": "
+              + str(e))
 
 
 def steps_of(flow, fm, run, route, trail, kept, state, note):

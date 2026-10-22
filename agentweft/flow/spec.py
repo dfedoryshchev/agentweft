@@ -85,9 +85,15 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
-         "reviewers", "police", "network", "facts_per_run")
+         "reviewers", "police", "network", "facts_per_run", "lane")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
+# `retro: conditional` runs it only after a run that had something to look
+# back at; true runs it after every run, false never
+CONDITIONAL = "conditional"
+# whether a run reads and keeps the project's facts (`orchestrate/facts.py`);
+# yaml reads a bare `off` as false, which is the same answer
+LANES = ("project", "off")
 NO_LEAD = "none"
 # whether the run commits as it goes (`runner/commits.py`)
 COMMITS = ("none", "wip", "squash")
@@ -375,7 +381,7 @@ def check_sacrifice(raw):
 
 TYPES = {"timeout": int, "retries": int, "workers": int, "max_calls": int,
          "max_tokens": int, "journal": bool, "name": str, "workdir": str,
-         "tests_e2e": bool, "retro": bool, "brief": bool}
+         "tests_e2e": bool, "brief": bool}
 
 
 def counts(value):
@@ -536,6 +542,11 @@ def check(raw):
         bad.append("send_backs should be a whole number, 0 or more")
     if "facts_per_run" in raw and not counts(raw["facts_per_run"]):
         bad.append("facts_per_run should be a whole number, 0 or more")
+    if "retro" in raw and not isinstance(raw["retro"], bool) \
+            and raw["retro"] != CONDITIONAL:
+        bad.append("retro should be true, false or " + CONDITIONAL)
+    if "lane" in raw and raw["lane"] is not False and raw["lane"] not in LANES:
+        bad.append("lane should be one of " + ", ".join(LANES))
     bad.extend(check_lead(raw))
     if "on_stop" in raw and raw["on_stop"] not in ON_STOP:
         bad.append("on_stop should be one of " + ", ".join(ON_STOP))

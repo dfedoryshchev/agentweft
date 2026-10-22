@@ -5,11 +5,12 @@
     "1 worker.md ok -> patcher.md  PASS red-test",
     "2 patcher.md redo -> worker.md",
     "3 worker.md ok -> patcher.md  PASS red-test",
-    "4 patcher.md ok  PASS red-test  PASS red-first  PASS command"
+    "4 patcher.md ok  PASS red-test  PASS red-first  PASS command",
+    "5 retro.md ok"
   ],
   "journal": [
     "<time>  fix-with-test  running  <secs>s  fix-with-test-<run>",
-    "<time>  fix-with-test  ok  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  fix-with-test-<run>/handoff.md"
+    "<time>  fix-with-test  ok  <secs>s  fix-with-test-<run>  fix-with-test-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)  fix-with-test-<run>/handoff.md"
   ],
   "index": [
     "fix-with-test-<day>-1.md  fix-with-test  2 steps"
@@ -93,6 +94,7 @@
     "fix-with-test-<run>/manifest.json",
     "fix-with-test-<run>/patcher.md",
     "fix-with-test-<run>/red-proof.json",
+    "fix-with-test-<run>/retro.md",
     "fix-with-test-<run>/rulings.json",
     "fix-with-test-<run>/start-snapshot.json",
     "fix-with-test-<run>/steps.jsonl",
@@ -100,6 +102,7 @@
     "fix-with-test-<run>/steps/002-patcher.md",
     "fix-with-test-<run>/steps/003-worker.md",
     "fix-with-test-<run>/steps/004-patcher.md",
+    "fix-with-test-<run>/steps/005-retro.md",
     "fix-with-test-<run>/task.md",
     "fix-with-test-<run>/workdir",
     "fix-with-test-<run>/worker.md",
@@ -477,6 +480,91 @@
           "red-proof.json": "<hash>"
         }
       }
+    },
+    {
+      "seq": 5,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "cause": null,
+      "why": null,
+      "file": "steps/005-retro.md",
+      "task_file": "task.md",
+      "tasks": null,
+      "handoff": null,
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": "<hash>",
+          "red-proof.json": "<hash>"
+        }
+      }
     }
   ],
   "printed": [
@@ -495,6 +583,8 @@
     "-    return a - b",
     "+    total = a + b",
     "+    return total",
+    "started retro.md",
+    "retro: <tmp>/runs/fix-with-test-<run>/retro.md",
     "# fix-with-test fix-with-test-<run>: done - add returns a + b; it subtracted",
     "fix-with-test ran worker.md -> patcher.md (sent back) -> worker.md -> patcher.md in <secs>s on: add(1, 2) returns -1.",
     "suite: 5 of 5 gates passed; red first: gate-proven on worker.md (red, exit 1, python -m pytest -q test_calc.py).",
@@ -514,6 +604,7 @@
   "prompts": [
     "patcher.md go 1 618774d7c688f327e6d656ab51663ecaeeffddfd73b05800e2caf925872ca964",
     "patcher.md go 2 e12513d6f8a8e4e2c05be1dd21757dc4c68ae791df34070011658639c10e15f0",
+    "retro.md go 1 d82869650e68ebd0e46509041f0ce24aaeae23454c269440526a0cfce39536ce",
     "worker.md go 1 4385694ea53b31fca17d5407049e0d5d9265f2cf3b12d68bb6570986843d64c2",
     "worker.md go 2 b9a8af4b1a9e019f37335a3b736ddb707ed4f9ee069583f84a8981e2ebfb048d"
   ]

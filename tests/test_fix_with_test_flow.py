@@ -12,10 +12,13 @@ sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.guardrails import gates
 from agentweft.guardrails.gates.command_gate import CommandGate
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
 
 NL = chr(10)
+# the shipped flow looks back after every run that ends, once, last
+RETRO = "retro.md"
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
 NODE = "tests/test_calc.py::test_add"
 BROKEN = "def add(a, b):" + NL + "    return a - b" + NL
@@ -104,9 +107,15 @@ def run_it(tmp_path, monkeypatch, answers, fixes=True, flows=FLOWS):
                                                             encoding="utf-8")
         if step == "patcher.md" and fixes:
             (project / "calc.py").write_text(FIXED, encoding="utf-8")
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
         return answers.get(step, ""), False
 
     monkeypatch.setattr(engine, "call", fake_call)
+    # the retro is granted only to read, and a step with a grant is refused
+    # unless the cli's version holds it to that grant
+    monkeypatch.setattr(cli_provider.CliProvider, "version",
+                        lambda self: cli_provider.FLOOR)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(flows)])
     monkeypatch.setattr(state, "STATE_DIR", tmp_path / "state")
@@ -126,7 +135,7 @@ def run_it(tmp_path, monkeypatch, answers, fixes=True, flows=FLOWS):
 def test_red_on_a_node_id_then_green_then_the_suite(tmp_path, monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": PATCHER})
-    assert asked == ["worker.md", "patcher.md"], written
+    assert asked == ["worker.md", "patcher.md", RETRO], written
     assert "FAIL " not in written
     assert "PASS command - exit 0" in written.split("## patcher.md")[1]
 
@@ -135,7 +144,7 @@ def test_a_patcher_that_names_no_test_is_held_to_the_workers(tmp_path,
                                                              monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": "return a + b"})
-    assert asked == ["worker.md", "patcher.md"], written
+    assert asked == ["worker.md", "patcher.md", RETRO], written
     assert "PASS red-test - green, exit 0" in written.split("## patcher.md")[1]
 
 
@@ -143,7 +152,7 @@ def test_a_patcher_that_names_no_test_and_fixes_nothing_stops(tmp_path,
                                                               monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": "return a + b"}, fixes=False)
-    assert asked == ["worker.md", "patcher.md", "patcher.md"]
+    assert asked == ["worker.md", "patcher.md", "patcher.md", RETRO]
     assert "wanted 0" in written.split("## patcher.md")[1]
 
 
@@ -151,7 +160,7 @@ def test_a_patch_that_leaves_the_test_red_stops_at_the_patcher(tmp_path,
                                                               monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": PATCHER}, fixes=False)
-    assert asked == ["worker.md", "patcher.md", "patcher.md"]
+    assert asked == ["worker.md", "patcher.md", "patcher.md", RETRO]
     assert "FAIL red-test" in written.split("## patcher.md")[1]
 
 
@@ -161,7 +170,8 @@ def test_with_the_judge_on_a_bulleted_fail_stops_the_run(tmp_path,
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": PATCHER, "verify.md": answer},
         flows=judged(tmp_path))
-    assert asked == ["worker.md", "patcher.md", "verify.md", "verify.md"]
+    assert asked == ["worker.md", "patcher.md", "verify.md", "verify.md",
+                     RETRO]
     assert "FAIL verdict" in written
 
 
@@ -181,7 +191,7 @@ def test_with_the_judge_on_an_unsure_check_finishes_with_it_on_record(
     asked, written = run_it(tmp_path, monkeypatch, {
         "worker.md": WORKER, "patcher.md": PATCHER, "verify.md": answer},
         flows=judged(tmp_path))
-    assert asked == ["worker.md", "patcher.md", "verify.md"], written
+    assert asked == ["worker.md", "patcher.md", "verify.md", RETRO], written
     assert "FAIL verdict" not in written
     assert "1 unproven" in written
     folder = next(p for p in (tmp_path / "runs").iterdir()
@@ -202,7 +212,7 @@ def test_with_the_judge_on_an_unsure_check_finishes_with_it_on_record(
 
 def test_an_empty_worker_answer_is_reported_as_nothing(tmp_path, monkeypatch):
     asked, written = run_it(tmp_path, monkeypatch, {"worker.md": ""})
-    assert asked == ["worker.md"]
+    assert asked == ["worker.md", RETRO]
     # the run stops on the empty answer itself, before the red-test gate can
     # report on an answer that never came
     assert written == ""

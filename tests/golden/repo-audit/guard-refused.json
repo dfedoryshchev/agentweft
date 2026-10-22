@@ -223,6 +223,7 @@
     "started planner.md",
     "no risk map: no server in a replay",
     "refused at worker.md: CLAUDE.md changed in <tmp>/place since the run started, and worker.md would start its model there and read it",
+    "retro not run: CLAUDE.md changed in <tmp>/place since the run started, and retro.md would start its model there and read it",
     "# repo-audit repo-audit-<run>: stopped: guard refused at worker.md - CLAUDE.md changed in <tmp>/place since the run started, and worker.md would start its model there and read it",
     "repo-audit ran planner.md -> worker.md in <secs>s.",
     "suite: no gates ran; red first: not proven by a gate.",

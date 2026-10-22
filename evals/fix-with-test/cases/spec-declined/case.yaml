@@ -13,4 +13,5 @@ expect:
     match: strict
     path:
       - worker.md refused
-  calls: 1
+      - retro.md ok
+  calls: 2

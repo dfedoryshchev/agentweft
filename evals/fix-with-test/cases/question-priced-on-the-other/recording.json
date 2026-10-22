@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-20T19:27:51",
+  "recorded": "2026-10-22T10:04:45",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -20,6 +20,21 @@
       "writes": {
         "calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n"
       }
+    },
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "e152e9b6e761a7a8db5d78c2ac5e2b5260498eb33f6487217082675cef169445",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
     },
     {
       "step": "worker.md",

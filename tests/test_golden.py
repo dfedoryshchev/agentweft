@@ -34,7 +34,7 @@ from conftest import answering, golden_names, unknown_goldens
 sys.path.insert(0, ".")
 from agentweft.evals import recording
 from agentweft.evals import steps as took
-from agentweft.providers import cli_provider
+from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import (engine, prompts, resume, retro, ruling, settings,
                               stops, trace)
 
@@ -592,6 +592,11 @@ FIX_RETRO = ("## seq 2 patcher.md\nfailed: wrong test, test_calc.py::test_add"
              " where add lives\nchange: worker.md - name the module the code"
              " under test is in\n\n## change first\nworker.md - name the module"
              " the code under test is in\n")
+# the shipped flows run the retro after every run; a case that scripts no
+# answer for it gets this one, an answer with nothing to change or keep
+NO_RETRO_WORK = fake_provider.NOTHING_TO_KEEP
+CASES[("build-feature", "redo")]["answers"]["retro.md"] = [BUILD_RETRO]
+CASES[("fix-with-test", "wrong-test")]["answers"]["retro.md"] = [FIX_RETRO]
 
 # the knobs a flow turns on that no shipped flow ships with: each case is a
 # pinned path with the shipped flow's file changed by `knobs` and nothing else
@@ -606,10 +611,6 @@ KNOBBED = {
         "pass", {"steps": {"planner.md": {"verbosity": "terse"},
                            "reviewer.md": {"verbosity": "terse"},
                            "reviewer-runs.md": {"verbosity": "terse"}}}, {}),
-    ("build-feature", "retro-redo"): (
-        "redo", {"retro": True}, {"retro.md": [BUILD_RETRO]}),
-    ("fix-with-test", "retro-wrong-test"): (
-        "wrong-test", {"retro": True}, {"retro.md": [FIX_RETRO]}),
 }
 for (_flow, _path), (_base, _knobs, _more) in KNOBBED.items():
     CASES[(_flow, _path)] = dict(
@@ -753,6 +754,8 @@ class Script(object):
             n = self.asked.get((step, task), 0)
             self.asked[(step, task)] = n + 1
             self.prompts.append((step, task, n + 1, kw.get("input") or ""))
+        if step == retro.STEP and step not in self.answers:
+            planned, n = [NO_RETRO_WORK], 0
         if not planned or n >= len(planned):
             raise AssertionError("the script has no answer " + str(n + 1)
                                  + " for " + step
@@ -1201,11 +1204,11 @@ def no_retro(monkeypatch):
     ("build-feature", "resume-carried", no_carry, '"continued": "worker-1"'),
     ("fix-with-test", "resume-carried", no_carry, '"continued": "patcher-1"'),
     ("build-feature", "terse-readers", no_terse, '"asked": "terse"'),
-    ("build-feature", "retro-redo", no_retro, '"step": "retro.md"'),
-    ("fix-with-test", "retro-wrong-test", no_retro, '"step": "retro.md"')],
+    ("build-feature", "redo", no_retro, '"step": "retro.md"'),
+    ("fix-with-test", "wrong-test", no_retro, '"step": "retro.md"')],
     ids=["build-feature/resume-carried", "fix-with-test/resume-carried",
-         "build-feature/terse-readers", "build-feature/retro-redo",
-         "fix-with-test/retro-wrong-test"])
+         "build-feature/terse-readers", "build-feature/redo",
+         "fix-with-test/wrong-test"])
 def test_a_knob_golden_fails_with_its_mechanism_switched_off(
         flow, path, off, gone, tmp_path, monkeypatch, capsys):
     assert gone in golden_file(flow, path).read_bytes().decode("utf-8")

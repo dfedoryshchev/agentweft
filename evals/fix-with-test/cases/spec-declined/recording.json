@@ -1,8 +1,23 @@
 {
-  "recorded": "2026-10-17T19:09:15",
+  "recorded": "2026-10-22T10:04:56",
   "provider": "fake",
   "asked": null,
   "calls": [
+    {
+      "step": "retro.md",
+      "task": null,
+      "go": 1,
+      "prompt": "be1c6474384514a6b89458e299a050ec03ae76985070fb9f234a233cdd9e2a69",
+      "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
     {
       "step": "worker.md",
       "task": null,

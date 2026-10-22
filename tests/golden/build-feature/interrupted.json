@@ -150,6 +150,7 @@
   "printed": [
     "started planner.md",
     "stopped at planner.md: interrupted while planner.md was running",
+    "retro not run: the run stopped on interrupt",
     "# build-feature build-feature-<run>: stopped: interrupted at planner.md - interrupted while planner.md was running",
     "build-feature ran planner.md in <secs>s on: calc gets mul(a, b), which multiplies.",
     "suite: no gates ran; red first: not proven by a gate.",
