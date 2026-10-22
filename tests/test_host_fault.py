@@ -1,0 +1,208 @@
+"""a test that fails because the machine could not start a process, an
+OSError with a WinError or errno code on every red, says nothing about the
+change. the start-tests replay, the `command` gate and red-first's run with
+the fix run it once more; a fault that holds is an issue the gate could not
+get past, never a spec conflict question or a send-back."""
+import json
+import subprocess
+import sys
+
+sys.path.insert(0, ".")
+from agentweft.guardrails import hostfault
+from agentweft.providers import cli_provider, fake_provider
+from agentweft.runner import engine, prompts, resume, state, stops
+
+NL = chr(10)
+RETRO = "retro.md"
+BUGGY = "VERSION = 1" + NL + NL + NL + "def add(a, b):" + NL \
+    + "    return a - b" + NL
+FIXED = "VERSION = 2" + NL + NL + NL + "def add(a, b):" + NL \
+    + "    return a + b" + NL
+WRONG = "VERSION = 2" + NL + NL + NL + "def add(a, b):" + NL \
+    + "    return 0" + NL
+FAULT = "OSError('[WinError 87] The parameter is incorrect')"
+TOOL = ("import os" + NL + NL + "import calc" + NL + NL + NL
+        + "def test_tool_runs():" + NL
+        + "    flag = os.environ.get('START_FLAKE', '')" + NL
+        + "    if flag and os.path.exists(flag):" + NL
+        + "        os.remove(flag)" + NL
+        + "        raise " + FAULT + NL
+        + "    if os.environ.get('START_FAULT') and calc.VERSION == 2:" + NL
+        + "        raise " + FAULT + NL
+        + "    if os.environ.get('START_BREAKS') and calc.VERSION == 2:" + NL
+        + "        assert calc.add(0, 0) == 1, 'the tool broke'" + NL)
+ADD = ("import os" + NL + NL + "import calc" + NL + NL + NL
+       + "def test_add():" + NL
+       + "    flag = os.environ.get('NEW_FLAKE', '')" + NL
+       + "    if flag and os.path.exists(flag) and calc.VERSION == 2:" + NL
+       + "        os.remove(flag)" + NL
+       + "        raise " + FAULT + NL
+       + "    assert calc.add(1, 2) == 3, 'add is still wrong'" + NL)
+TESTER = ("  - role: tester" + NL + "    prompt: tester.md" + NL
+          + "    writes: tests" + NL + "    gates:" + NL
+          + "      - gate: red-test" + NL + "        red: true" + NL
+          + "        command: [\"python\", \"-m\", \"pytest\", \"-q\","
+          " \"{test}\"]" + NL)
+COMMAND = ("      - gate: command" + NL + "        command: [\"python\","
+           " \"-m\", \"pytest\", \"-q\", \"-p\", \"no:cacheprovider\"]" + NL
+           + "        expect: 0" + NL)
+RED_FIRST = ("      - gate: red-first" + NL + "        command: [\"python\","
+             " \"-m\", \"pytest\", \"-q\", \"-p\", \"no:cacheprovider\","
+             " \"{test}\"]" + NL)
+
+
+def worker(*gates):
+    return ("  - role: worker" + NL + "    prompt: worker.md" + NL
+            + "    writes: product" + NL
+            + ("    gates:" + NL + "".join(gates) if gates else ""))
+
+
+def git(where, *args):
+    return subprocess.run(["git", "-C", str(where)] + list(args),
+                          capture_output=True, text=True, check=True).stdout
+
+
+def a_place(where):
+    (where / "tests").mkdir(parents=True)
+    for rel, text in (("calc.py", BUGGY), ("conftest.py", ""),
+                      ("tests/test_tool.py", TOOL)):
+        (where / rel).write_text(text, encoding="utf-8")
+    git(where, "init", "-q")
+    git(where, "config", "user.email", "t@t")
+    git(where, "config", "user.name", "t")
+    git(where, "config", "commit.gpgsign", "false")
+    git(where, "add", ".")
+    git(where, "commit", "-qm", "start")
+    return where
+
+
+def a_flow(tmp_path, steps):
+    folder = tmp_path / "flows" / "build"
+    folder.mkdir(parents=True)
+    (folder / "flow.yaml").write_text(
+        "name: build" + NL + "steps:" + NL + steps + "provider:" + NL
+        + "  provider: fake" + NL, encoding="utf-8")
+    for role in ("tester", "worker"):
+        (folder / (role + ".md")).write_text("# " + role + NL + NL + "go."
+                                             + NL, encoding="utf-8")
+
+
+def run(tmp_path, monkeypatch, steps, fix=FIXED, flake=None):
+    """-> (exit code, steps called, the run's folder). `flake` names the
+    environment variable whose marker file is made as the worker answers,
+    so the next test run to read it fails on the fault once."""
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, steps)
+    marker = tmp_path / "flake"
+    if flake:
+        monkeypatch.setenv(flake, str(marker))
+    called = []
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        called.append(step)
+        if step == RETRO:
+            return fake_provider.NOTHING_TO_KEEP, False
+        if step == "tester.md":
+            (place / "tests" / "test_add.py").write_text(ADD,
+                                                         encoding="utf-8")
+            return ("FAILS: assert -1 == 3" + NL + "TEST: tests/test_add.py"
+                    + NL), False
+        (place / "calc.py").write_text(fix, encoding="utf-8")
+        if flake:
+            marker.write_text("", encoding="utf-8")
+        return "- calc.py: add sums" + NL, False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    monkeypatch.setattr(cli_provider.CliProvider, "version",
+                        lambda self: cli_provider.FLOOR)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
+    monkeypatch.setattr(sys, "argv", ["run.py", "build", "--force",
+                                      "--workdir", str(place)])
+    code = engine.main()
+    folder = sorted((p for p in state.RUNS.iterdir() if p.is_dir()),
+                    key=lambda p: p.stat().st_mtime_ns)[-1]
+    return code, called, folder
+
+
+def gate_lines(folder):
+    return [json.loads(l) for l in (folder / "gates.jsonl").read_text(
+        encoding="utf-8").split(NL) if l.strip()]
+
+
+def read(path):
+    return path.read_text(encoding="utf-8")
+
+
+def test_a_start_test_red_once_on_a_host_fault_is_run_again_and_passes(
+        tmp_path, monkeypatch):
+    code, called, folder = run(tmp_path, monkeypatch, TESTER + worker(),
+                               flake="START_FLAKE")
+    assert code == stops.EXIT_OK, read(folder / "gates.md")
+    assert called == ["tester.md", "worker.md"]
+    assert "PASS start-tests" in read(folder / "gates.md")
+
+
+def test_a_start_test_red_on_a_host_fault_twice_is_an_issue_not_a_conflict(
+        tmp_path, monkeypatch):
+    monkeypatch.setenv("START_FAULT", "1")
+    code, called, folder = run(tmp_path, monkeypatch, TESTER + worker())
+    assert called == ["tester.md", "worker.md"]
+    assert not (folder / "question.md").exists()
+    why = read(folder / "why.md")
+    assert "cause      " + stops.GATE in why
+    assert "could not run the start tests" in why
+    assert "[WinError 87]" in why
+    [line] = [l for l in gate_lines(folder) if l["gate"] == "start-tests"]
+    assert line["ok"] is False
+    assert line["issue"].startswith("start-tests could not run the start"
+                                    " tests")
+
+
+def test_a_suite_red_once_on_a_host_fault_is_run_again_and_not_sent_back(
+        tmp_path, monkeypatch):
+    code, called, folder = run(tmp_path, monkeypatch,
+                               TESTER + worker(COMMAND), flake="START_FLAKE")
+    assert called == ["tester.md", "worker.md"], read(folder / "gates.md")
+    assert code == stops.EXIT_OK
+    assert "PASS command" in read(folder / "gates.md")
+
+
+def test_a_suite_red_on_a_host_fault_twice_stops_with_an_issue_unsent_back(
+        tmp_path, monkeypatch):
+    monkeypatch.setenv("START_FAULT", "1")
+    code, called, folder = run(tmp_path, monkeypatch,
+                               TESTER + worker(COMMAND))
+    assert called == ["tester.md", "worker.md"]
+    assert code == stops.exit_code(stops.GATE)
+    [line] = [l for l in gate_lines(folder) if l["gate"] == "command"]
+    assert line["ok"] is False
+    assert "[WinError 87]" in line["issue"]
+
+
+def test_a_new_test_red_with_the_fix_on_a_host_fault_once_is_run_again(
+        tmp_path, monkeypatch):
+    code, called, folder = run(tmp_path, monkeypatch,
+                               TESTER + worker(RED_FIRST), flake="NEW_FLAKE")
+    assert called == ["tester.md", "worker.md"], read(folder / "gates.md")
+    assert code == stops.EXIT_OK
+    assert "PASS red-first" in read(folder / "gates.md")
+
+
+def test_one_fault_on_every_red_is_the_hosts_and_two_are_not():
+    said = "OSError: [WinError 87] The parameter is incorrect"
+    assert hostfault.same([said, said]) == said
+    assert hostfault.same([said, "AssertionError: assert 1 == 2"]) == ""
+    assert hostfault.same([said, "OSError: [Errno 22] Invalid argument"]) == ""
+    assert hostfault.same([]) == ""
+    assert hostfault.same(["TypeError: add() takes 2 arguments"]) == ""
+    assert hostfault.same(["FileNotFoundError: [Errno 2] No such file"]) == ""
+
+
+def test_the_faults_are_read_off_a_test_runs_short_summary():
+    out = ("F." + NL + "=== short test summary info ===" + NL
+           + "FAILED tests/test_tool.py::test_tool_runs - OSError: [WinError"
+           " 87] The parameter is incorrect" + NL + "1 failed, 1 passed")
+    assert hostfault.of_run(out) == ("OSError: [WinError 87] The parameter is"
+                                     " incorrect")

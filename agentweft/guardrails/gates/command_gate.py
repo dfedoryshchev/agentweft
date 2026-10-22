@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from agentweft.guardrails import hostfault
 from agentweft.mcp import preflight
 
 from .base import Gate, fresh_python, register
@@ -78,6 +79,23 @@ class CommandGate(Gate):
         tmp.write_text(text, encoding="utf-8")
         argv = [str(tmp) if a == "{file}" else a for a in cmd]
 
+        said = (" (" + why + ")") if why else ""
+        r = self.once(argv, want, said)
+        fault = r.host
+        if not fault:
+            return r
+        again = self.once(argv, want, said)
+        if again.ok:
+            again.detail = again.detail + " (run again: the first run failed" \
+                " on " + fault + ")"
+            return again
+        if again.host:
+            return hostfault.held(again, "run " + argv[0], again.host)
+        return again
+
+    def once(self, argv, want, said):
+        """-> what one run of `argv` shows. a fail whose every red is the
+        host's own fault carries it as `host`, to be run again."""
         try:
             with fresh_python() as env:
                 r = subprocess.run(argv, capture_output=True, text=True,
@@ -88,17 +106,20 @@ class CommandGate(Gate):
         except FileNotFoundError:
             return self.broke("not on PATH: " + argv[0])
         except OSError as e:
-            return self.broke("cannot start " + argv[0] + ": "
-                              + (e.strerror or str(e)))
+            out = self.broke("cannot start " + argv[0] + ": "
+                             + (e.strerror or str(e)))
+            out.host = hostfault.line(hostfault.named(e))
+            return out
         except subprocess.TimeoutExpired:
             return self.could_not(False, "timed out",
                                   "could not finish: timed out after "
                                   + str(int(self.opts.get("timeout", 60)))
                                   + "s")
 
-        said = (" (" + why + ")") if why else ""
         if r.returncode == want:
             return self.ok("exit " + str(r.returncode) + said)
         # a test runner's verdict is at the end of what it prints
-        return self.fail("exit " + str(r.returncode) + ": "
-                         + tail(r.stderr or r.stdout) + said)
+        out = self.fail("exit " + str(r.returncode) + ": "
+                        + tail(r.stderr or r.stdout) + said)
+        out.host = hostfault.of_run(r.stdout + "\n" + r.stderr)
+        return out

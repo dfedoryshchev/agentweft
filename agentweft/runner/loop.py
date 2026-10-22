@@ -560,6 +560,17 @@ def go(leg):
                             question=held[1], replayed=True, checked=[(
                                 "start tests", False, "run again against "
                                 + step + ", not all green as they were")])
+            if failed and all(getattr(r, "host", "") for r in
+                              out.meta["gates"] if not r.ok):
+                print("gate " + failed + " could not run at " + step
+                      + ", stopping: the machine could not start a process,"
+                      " twice")
+                return stop(stops.GATE, gate_why(out.meta["gates"])
+                            + "; " + step + " was not sent back: the fault"
+                            " is the machine's, not the step's",
+                            "gate failed", entry,
+                            index="GATE  " + flow + "  " + failed + " at "
+                            + step)
             if failed:
                 # nothing goes past a failed gate: the step goes again with
                 # what the gate said, and once the cap is spent the run stops

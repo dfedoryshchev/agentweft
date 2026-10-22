@@ -35,10 +35,13 @@ class Result(object):
     checked what it is there to check. `seconds` is how long it took, None
     until the runner times it. `named` is the test ids a red-test gate ran in
     place of a whole file the step named, None when it ran what was named.
+    `host` is the fault the machine raised starting a process on every red,
+    run twice (`hostfault.py`), "" for none: a fail with it is not the
+    step's, and the step is not sent back for it.
     """
 
     __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
-                 "broke", "issue", "seconds", "named")
+                 "broke", "issue", "seconds", "named", "host")
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
                  skipped=False, broke=False, issue=""):
@@ -52,6 +55,7 @@ class Result(object):
         self.issue = issue
         self.seconds = None
         self.named = None
+        self.host = ""
 
     def __bool__(self):
         return self.ok

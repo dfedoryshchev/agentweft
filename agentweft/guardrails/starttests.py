@@ -27,7 +27,7 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
-from agentweft.guardrails import worktree
+from agentweft.guardrails import hostfault, worktree
 from agentweft.guardrails.gates.base import Result, fresh_python
 from agentweft.guardrails.snapshot import TEST_MODULE, _read, changed
 
@@ -106,7 +106,8 @@ def run_tests(base, files, there, timeout):
     except subprocess.TimeoutExpired:
         return None, "the tests timed out after " + str(timeout) + "s"
     except OSError as e:
-        return None, "could not start " + " ".join(base) + ": " + str(e)
+        return None, ("could not start " + " ".join(base) + ": "
+                      + hostfault.named(e))
     found = outcomes(r.stdout)
     if r.returncode not in (0, 1) and not found:
         tail = (r.stdout + r.stderr).strip().splitlines()[-1:] or [""]
@@ -182,6 +183,13 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
                              issue="could not replay: " + why))
     base = base_of(cmd)
     after, why = tests_in(start, files, base, timeout, now=True)
+    if after is None and hostfault.line(why):
+        after, again = tests_in(start, files, base, timeout, now=True)
+        if after is None and hostfault.line(again):
+            return Replay(hostfault.held(Result(NAME, False, again + ", twice"),
+                                         "run the start tests",
+                                         hostfault.line(again)))
+        why = again or why
     if after is None:
         return Replay(Result(NAME, False, why,
                              issue="could not run the start tests: " + why))
@@ -200,6 +208,23 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
         green["passed"] = [t for t, (s, _) in before.items()
                            if s == "PASSED"]
     red = gone_red(after, green["found"])
+    fault = hostfault.same(said for _, said in red)
+    if fault:
+        again, why = tests_in(start, files, base, timeout, now=True)
+        if again is None and not hostfault.line(why):
+            return Replay(Result(NAME, False, why, issue="could not run the"
+                                 " start tests: " + why))
+        red = gone_red(again, green["found"]) if again is not None else red
+        held = hostfault.same(said for _, said in red) if again is not None \
+            else hostfault.line(why)
+        if held:
+            return Replay(hostfault.held(Result(
+                NAME, False, "could not run the start tests: every one red"
+                " now failed on " + held + ", twice"), "run the start tests",
+                held))
+        if not red:
+            return Replay(Result(NAME, True, ok_line(again) + " (run again:"
+                                 " the first run failed on " + fault + ")"))
     if not red:
         return Replay(Result(NAME, True, ok_line(after)))
     return Replay(Result(NAME, False, said_of(red)), red)

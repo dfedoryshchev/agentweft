@@ -6,7 +6,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from agentweft.guardrails import worktree
+from agentweft.guardrails import hostfault, worktree
 from agentweft.guardrails.snapshot import _sha, is_test, is_tooling
 
 from .base import Gate, fresh_python, register
@@ -356,8 +356,13 @@ class RedFirstGate(Gate):
 
     name = "red-first"
     options = ("command", "timeout", "expect", "results")
+    # what each test that did not pass printed on the side run last, and the
+    # host's fault that held on every red with the fix, run twice
+    printed = None
+    held = ""
 
     def run(self, text):
+        self.printed, self.held = {}, ""
         if not (text or "").strip():
             return self.fail("the step answered nothing")
         cmd = self.opts.get("command")
@@ -395,7 +400,17 @@ class RedFirstGate(Gate):
                     out, there, start.place))
         except ValueError as e:
             return self.broke("could not replay without the fix: " + str(e))
+        self.printed = {}
         after = self.side(cmd, ids, start.place)
+        self.held = ""
+        bad = [i for i in ids if after[i][0] != "green"]
+        fault = hostfault.same(self.printed.get(i, after[i][0]) for i in bad)
+        if fault:
+            self.printed = {}
+            after.update(self.side(cmd, bad, start.place))
+            bad = [i for i in bad if after[i][0] != "green"]
+            self.held = hostfault.same(self.printed.get(i, after[i][0])
+                                       for i in bad)
         record = [{"test": i, "before": before[i][0], "kind": before[i][1],
                    "after": after[i][0]} for i in ids]
         self.label(record)
@@ -486,7 +501,12 @@ class RedFirstGate(Gate):
                     text = failed[0][3]
                     said[i] = self.could_not_run(text, adds, False, where) or (
                         "red", kind_of(text))
+                    self.keep(i, text)
         return said, stopped
+
+    def keep(self, test, output):
+        if self.printed is not None:
+            self.printed[test] = output
 
     def could_not_run(self, output, adds, collection=True, where=None):
         """-> (red | error, kind) for a test that never reached the code it
@@ -508,10 +528,12 @@ class RedFirstGate(Gate):
         or name error misses what the fix adds, which makes it red."""
         r, why = self.ran(cmd, test, where)
         if r is None:
+            self.keep(test, why)
             return why, ""
         if r.returncode == 0:
             return "green", ""
         output = r.stdout + "\n" + r.stderr
+        self.keep(test, output)
         said = self.could_not_run(output, adds, r.returncode == 2, where)
         if said:
             return said
@@ -556,7 +578,7 @@ class RedFirstGate(Gate):
         except OSError as e:
             if isinstance(e, FileNotFoundError) and Path(where).is_dir():
                 return None, "not on PATH"
-            return None, "could not start: " + str(e)
+            return None, "could not start: " + hostfault.named(e)
         return r, ""
 
     def judge(self, record, text, given=None):
@@ -587,6 +609,9 @@ class RedFirstGate(Gate):
                 r = self.done(False, t["test"] + " does not pass with the"
                               " fix: " + t["after"], record,
                               unstarted(t["after"]))
+                if self.held:
+                    return hostfault.held(r, "run " + t["test"]
+                                          + " with the fix", self.held)
                 if t["after"] == "timed out" or r.broke:
                     r.issue = ("could not run " + t["test"] + " with the fix: "
                                + t["after"])

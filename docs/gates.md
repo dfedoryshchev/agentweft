@@ -122,6 +122,21 @@ with no `TEST:` line, a coverage report missing or unreadable. nothing about
 the result changes: a timeout still fails and a replay with no start still
 passes. the retro reads the issues, and the handoff's retro tally lists them.
 
+a test fails too when the machine cannot start a process it runs: an
+`OSError` with a WinError or errno code (`OSError: [WinError 87] The
+parameter is incorrect`), raised at spawn, which no change to the code can
+cause or cure. so the `command` gate, red-first's run of each new test with
+the fix, and the start-tests replay (below) read what failed: when every red
+is a bare `OSError` with the same code, or the gate could not start its
+program on one, they run once more and take that run's result, the pass
+saying `run again: the first run failed on <it>`. a fault that holds on the
+second run is the gate's issue, `could not run ...: <the fault>`, and a
+broke fail. the run stops there with the gate's line and the step is not
+sent back: going again would meet the same machine. only `OSError` itself
+counts; its subclasses (`FileNotFoundError`, `PermissionError`) and every
+other exception are what wrong code raises too, and stay the change's red
+(`guardrails/hostfault.py`).
+
 a gate reads the answer without its HANDOFF block (`journal.md`, "what each
 step hands over"): the block is the step's account of the work, and a length
 cap or a pattern is about the work.
@@ -558,7 +573,8 @@ records it as a `start-tests` line in `gates.md`:
   `conflict`, naming the test id and its assertion (`docs/journal.md`). which
   tests were green at the start is read from the suite baseline below, and
   only when something came back red: a test red at the start is never blamed
-  on the run.
+  on the run. every one red now on the same machine fault runs once more
+  (above); held, it is the gate's issue and asks no question.
 - unless a ruling in `decisions.md` covers it: one that names the test (its
   id, with or without the folders before the file), or one that quotes in
   double quotes, three words or more, a line of a spec file as the run found
