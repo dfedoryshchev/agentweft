@@ -21,7 +21,10 @@ write a ruling, so facts get the same walls rulings have
 
 and a fact the runner is asked to write is held to the record before
 anything is written (`Store.add`): no secret in any field, a one-line claim
-and a why, no `|`, a known kind and label, every scope in the place, evidence
+and a why, no `|`, a known kind and label, no `gate-issue` that names an OS
+error code (`WinError n`, `Errno n`: what the machine raised as the run went,
+which a later run on a sound machine would be handed as the project's), every
+scope in the place, evidence
 the runner can check (a quoted line that is at that line, a command a gate
 of this run ran with that exit code, a ruling on record), an anchor whose
 hash the runner takes itself, a check that reads only its scope and holds
@@ -54,6 +57,8 @@ STAMPED = re.compile(r"^decisions\.md\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*$")
 RAN = re.compile(r"^`?(?P<cmd>.+?)`?\s+exit\s+(?P<code>-?\d+)\s*$")
 SEEN = re.compile(r"(proposed|attached|honoured|contradicted) (\d+)")
 COUNTERS = ("proposed", "attached", "honoured", "contradicted")
+GATE_ISSUE = "gate-issue"
+OS_ERROR = re.compile(r"\[?\b(?:WinError|Errno) \d+\b")
 TOKEN = re.compile(
     r"(?:sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}"
     r"|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"
@@ -525,6 +530,11 @@ class Store(object):
         if kind not in facts.KINDS:
             return ("kind " + (kind or "(none)") + " is not one of "
                     + ", ".join(facts.KINDS))
+        if kind == GATE_ISSUE and any(OS_ERROR.search(text)
+                                      for _, text in p.texts()):
+            return ("a gate-issue that names an OS error code is the"
+                    " machine's state as the run went, not the project's: a"
+                    " later run on a sound machine would be handed it")
         label = p.get("label").strip()
         if label not in facts.LABELS + ("", "none"):
             return ("label " + label + " is not one of "

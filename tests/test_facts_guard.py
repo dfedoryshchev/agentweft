@@ -134,6 +134,35 @@ def test_a_proposal_naming_a_credential_file_is_refused(tmp_path):
     assert why == "it looks like a secret: a credential file in why"
 
 
+MACHINE = ("the machine's state as the run went, not the project's: a later"
+           " run on a sound machine would be handed it")
+
+
+def test_a_gate_issue_naming_an_os_error_code_is_the_machines_and_refused(
+        tmp_path):
+    store, record = a_store(tmp_path)
+    for said in ("the tests that run the cli fail with OSError: [WinError 87]"
+                 " The parameter is incorrect",
+                 "subprocess raises [Errno 22] Invalid argument at spawn"):
+        fact, why = store.add(proposal(kind="gate-issue", scope=["pkg/"],
+                                       claim=said), record)
+        assert fact is None
+        assert why == "a gate-issue that names an OS error code is " + MACHINE
+    assert facts.read(tmp_path) == []
+
+
+def test_a_gate_issue_of_the_project_is_held_like_any_fact(tmp_path):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(proposal(kind="gate-issue", scope=["pkg/"],
+                                   claim="red-first cannot replay pkg/: the"
+                                         " tests import a module built at"
+                                         " install"), record)
+    assert MACHINE not in why
+    fact, why = store.add(proposal(claim="parse raises OSError [Errno 22] on"
+                                         " a bad path"), record)
+    assert MACHINE not in why
+
+
 def test_a_long_mixed_string_is_refused_and_a_hash_is_not(tmp_path):
     store, record = a_store(tmp_path)
     fact, why = store.add(proposal(
