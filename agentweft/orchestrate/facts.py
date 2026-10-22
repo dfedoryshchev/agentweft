@@ -332,7 +332,7 @@ def anchored(root, path, first, last):
     """-> the Anchor of lines first..last of `path` as they are now, None
     when the file does not hold them."""
     target = Path(root) / norm(path)
-    if not target.is_file():
+    if escapes(root, path) or not target.is_file():
         return None
     lines = text_lines(target)
     if first < 1 or last > len(lines) or last < first:
@@ -357,7 +357,8 @@ class Change(object):
 def heal_one(root, fact, today):
     """-> the Change `heal` makes to one fact, None for none."""
     at = anchor_of(fact)
-    if fact.status not in (LIVE, STALE) or at is None or not at.sha:
+    if fact.status not in (LIVE, STALE) or at is None or not at.sha \
+            or escapes(root, at.path):
         return None
     target = Path(root) / at.path
     if not target.is_file():
@@ -517,16 +518,34 @@ def bre(pattern):
 
 
 def outside(root, rel):
-    """whether `rel`, as a check names it, is not a path inside the place."""
+    """whether `rel`, as a check or a fact names it, is not a path inside
+    the place: absolute, on a drive, or one that leads out of it through
+    `..` or a link."""
     if not rel or rel.startswith("/") or os.path.isabs(rel) \
             or re.match(r"^[A-Za-z]:", rel):
         return True
-    base = Path(os.path.abspath(str(root)))
-    try:
-        Path(os.path.abspath(str(base / rel))).relative_to(base)
-    except ValueError:
-        return True
+    for how in (os.path.abspath, os.path.realpath):
+        base = Path(how(str(root)))
+        try:
+            Path(how(str(Path(root) / rel))).relative_to(base)
+        except ValueError:
+            return True
     return False
+
+
+def escapes(root, path):
+    """whether a fact's scope or anchor path leaves the place: `outside` it,
+    or naming `..` at all, which no scope compares equal to."""
+    path = norm(path)
+    if path == PROJECT:
+        return False
+    if ".." in path.split("/"):
+        return True
+    if is_glob(path):
+        path = path[:min(path.find(c) for c in "*?[" if c in path)]
+        if not path:
+            return False
+    return outside(root, path)
 
 
 def walk(root, base, own=None):

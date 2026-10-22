@@ -481,14 +481,17 @@ is written; a refused one is not written and its reason is kept:
    `convention`, `why`, `defect`, `gate-issue`, a label from `important`,
    `wip`, `investigation` or none.
 3. every scope is in the place: the file, the folder, a file a glob matches,
-   or `.`.
+   or `.`. a scope that is absolute, starts with a drive, names `..` or
+   leads out of the place through a link is refused (`the scope ../ is
+   outside the place`), so an entry is only ever written under `facts/`.
 4. its evidence is on the record: `<file>:<line> "<quote>"` with the quote at
    that line, as the run found the file or as it is now; `<command> exit
    <code>` with a gate of this run that ran that command to that exit code;
    or `decisions.md <stamp>` with a ruling the runner has on record at that
    stamp. anything else does not hold.
-5. its anchor names lines the file has; the runner hashes them itself, and a
-   hash written in the proposal is ignored.
+5. its anchor names lines the file has, in the place by the same rule as a
+   scope, for a new fact and for a re-anchor alike; the runner hashes them
+   itself, and a hash written in the proposal is ignored.
 6. the same claim on the same scopes as a live fact is counted on that fact
    (`seen: proposed 2, ...`) instead of written again.
 7. at most three new facts a run (`per-run cap`); a supersession is a new

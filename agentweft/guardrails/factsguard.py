@@ -348,12 +348,17 @@ class Store(object):
         if not scopes:
             return "it names no scope"
         for s in scopes:
+            if facts.escapes(self.root, s):
+                return "the scope " + s + " is outside the place"
             if not in_place(self.root, s):
                 return "the scope " + s + " is not in the place"
         held = record.holds(p.get("source"))
         if held:
             return "the evidence does not hold: " + held
         said = p.get("anchor").strip()
+        if said and self.anchor_out(said):
+            return "the anchor " + self.anchor_out(said) + " is outside the" \
+                " place"
         if said and self.anchor_for(said) is None:
             return "the anchor " + said.split()[0] + " is not lines of the file"
         said = p.get("check").strip()
@@ -450,6 +455,13 @@ class Store(object):
                     out.append(fact.id)
         return out
 
+    def anchor_out(self, said):
+        """-> the path of anchor `said` when it leaves the place, else ""."""
+        m = re.match(r"^(.+):(\d+)-(\d+)\b", said.strip())
+        if m and facts.escapes(self.root, m.group(1)):
+            return m.group(1)
+        return ""
+
     def anchor_for(self, said):
         m = re.match(r"^(.+):(\d+)-(\d+)\b", said.strip())
         if not m:
@@ -515,6 +527,8 @@ class Store(object):
     def put(self, fact, rel):
         """write `fact` into facts/<rel>, as the runner's."""
         path = facts.folder(self.root) / rel
+        if facts.escapes(facts.folder(self.root), rel):
+            raise ValueError(rel + " is not a file under facts/")
         head, found = (facts.parse(path.read_text(encoding="utf-8"), path)
                        if path.is_file() else (["# facts: " + rel[:-3]], []))
         found = [f for f in found if f.id != fact.id] + [fact]
@@ -565,6 +579,9 @@ class Store(object):
                     return "it looks like a secret: " + what + " in " + key
             if self.held(id) is None:
                 return id + " is not a live or stale fact"
+            if self.anchor_out(said or ""):
+                return ("the anchor " + self.anchor_out(said)
+                        + " is outside the place")
             held = record.holds("evidence: " + (evidence or ""))
             if held:
                 return "the evidence does not hold: " + held

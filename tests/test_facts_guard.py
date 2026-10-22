@@ -183,6 +183,47 @@ def test_a_scope_that_is_not_in_the_place_is_refused(tmp_path):
     assert why == "the scope pkg/b.py is not in the place"
 
 
+def test_a_scope_outside_the_place_is_refused_and_nothing_is_written(
+        tmp_path):
+    place = tmp_path / "work" / "repo"
+    store, record = a_store(place)
+    put(tmp_path, "other/x.py", "x = 1" + NL)
+    put(place, "README.md", "# the project" + NL + "read me" + NL)
+    for scope in ("../", "../../", "../../other/", "../../other/x.py",
+                  "pkg/../../", str(tmp_path / "other") + "/",
+                  (tmp_path / "other").as_posix() + "/", "/", "../**",
+                  "pkg/../README.md"):
+        _, why = store.add(proposal(scope=[scope], anchor=""), record)
+        assert why == ("the scope " + facts.norm(scope)
+                       + " is outside the place"), (scope, why)
+    assert sorted(p.relative_to(tmp_path).as_posix()
+                  for p in tmp_path.rglob("*") if p.is_file()) == [
+        "other/x.py", "work/repo/README.md", "work/repo/pkg/a.py"]
+    assert (place / "README.md").read_text(encoding="utf-8") == \
+        "# the project" + NL + "read me" + NL
+
+
+def test_an_anchor_outside_the_place_is_refused_on_a_fact_and_a_reanchor(
+        tmp_path):
+    place = tmp_path / "repo"
+    store, record = a_store(place)
+    put(tmp_path, "secret.py", CODE)
+    outside = (tmp_path / "secret.py").as_posix()
+    for path in ("../secret.py", outside, "pkg/../../secret.py"):
+        _, why = store.add(proposal(anchor=path + ":3-6"), record)
+        assert why == "the anchor " + path + " is outside the place", \
+            (path, why)
+    fact, why = store.add(proposal(), record)
+    assert why == ""
+    for path in ("../secret.py", outside):
+        why = store.reanchor(fact.id, path + ":3-6",
+                             'pkg/a.py:5 "raise ValueError"', record)
+        assert why == "the anchor " + path + " is outside the place", \
+            (path, why)
+    [kept] = facts.read(place)
+    assert kept.get("anchor").startswith("pkg/a.py:3-6 ")
+
+
 def test_a_claim_with_no_why_or_two_lines_or_a_pipe_is_refused(tmp_path):
     store, record = a_store(tmp_path)
     assert store.add(proposal(why=""), record)[1] == "it has no why"
