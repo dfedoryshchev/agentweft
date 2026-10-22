@@ -501,7 +501,8 @@ PACKAGE = re.compile(
     r"to\s+(?:the\s+)?)(?:dependency|dependencies|requirements)",
     re.I)
 WRITES = re.compile(r"\b(?:write|overwrite|create|edit|modify|append|delete"
-                    r"|remove|replace|change|update|empty|truncate|add)\b",
+                    r"|remove|replace|change|update|empty|truncate|add"
+                    r"|mark|skip|xfail|deselect|disable|decorate)\b",
                     re.I)
 PATHISH = re.compile(r"(?<![\w/.@:-])((?:[\w.-]+/)*[\w.-]*\.[A-Za-z]{1,5}"
                      r"|(?:[\w.-]+/)+[\w.-]+)(?![\w/])")
