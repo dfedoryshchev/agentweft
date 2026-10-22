@@ -41,6 +41,25 @@ from . import wrongtest
 STALE = 24 * 3600
 
 
+def spec_paths(workdir):
+    """-> the spec files in the place, by path from it."""
+    root = Path(workdir)
+    out = []
+    for glob in snapshot.spec_globs():
+        try:
+            hits = sorted(root.glob(glob))
+        except (OSError, ValueError):
+            continue
+        for hit in hits:
+            inside = sorted(p for p in hit.rglob("*") if p.is_file()) \
+                if hit.is_dir() else [hit] if hit.is_file() else []
+            for p in inside:
+                rel = p.relative_to(root).as_posix()
+                if rel not in out:
+                    out.append(rel)
+    return out
+
+
 def replays(fm):
     """whether any step of the flow has a red-first gate, which needs the
     place as the run found it."""
@@ -708,6 +727,41 @@ class Run(object):
                 return brief_on(s, self.fm)
         return True
 
+    def files_handed(self, step, task=None, extra=""):
+        """-> the paths `step` is handed: the ones the task names, the spec
+        files, the ones the steps before it named on their MUST NOT MISS,
+        DID and READ lines, and a fanned task's own FILES."""
+        from agentweft.mcp.preflight import files_mentioned
+
+        out = sorted(files_mentioned(self.task_text or ""))
+        out.extend(p for p in spec_paths(self.workdir) if p not in out)
+        notes = getattr(self, "brief", None)
+        if notes is not None:
+            out.extend(p for p in notes.paths(step) if p not in out)
+        if task is not None:
+            out.extend(p for p in sorted(files_mentioned(extra))
+                       if p not in out)
+        return out
+
+    def facts_handed(self, step, task=None, extra=""):
+        """-> the project's facts for the files `step` is handed, the ones
+        the runner has on record, in the order the brief shows them."""
+        from agentweft.orchestrate import facts
+
+        store = getattr(self, "facts", None)
+        if store is None:
+            return []
+        try:
+            found = store.read()
+            if not found:
+                return []
+            return facts.handed(store.root, self.files_handed(step, task,
+                                                              extra), found)
+        except (OSError, ValueError) as e:
+            print("facts: not handed to " + step + ": " + type(e).__name__
+                  + ": " + str(e))
+            return []
+
     def lens_for(self, step):
         """-> what this reviewer reads for and what the others in the run
         read for, or "" when it is not one of two or more with a lens."""
@@ -816,10 +870,12 @@ class Run(object):
         values = prompts.spec_of(prompt, getattr(self, "start", None))
         notes = getattr(self, "brief", None)
         briefed = ""
+        handed = []
         if not self.briefs(step):
             prompt = prompts.drop_brief(prompt, resolver.fragment("brief"))
         else:
-            briefed = notes.text(step) if notes else ""
+            handed = self.facts_handed(step, task, extra) if notes else []
+            briefed = notes.text(step, handed) if notes else ""
             values.update(prompts.brief_of(briefed))
         if self.task_text is not None:
             values[prompts.MARK] = self.task_text
@@ -841,7 +897,8 @@ class Run(object):
         head = prompt
         # the brief quotes files as they are now, so a step's own edit between
         # its goes would move a head that holds nothing new for it
-        held = head.replace(briefed, notes.key(step), 1) if briefed else head
+        held = head.replace(briefed, notes.key(step, handed), 1) if briefed \
+            else head
         if extra:
             prompt = prompt + extra
         ran = [line for k, lines in getattr(self, "proven", {}).items()
@@ -864,6 +921,8 @@ class Run(object):
         prompt = prompt + self.gate_said.get(step, "")
         prompt = prompt + getattr(self, "ruled", {}).get(step, "") + last
         tried = trace.Attempt(task)
+        if handed:
+            tried.facts = [f.id for f, _ in notes.fit(handed)[0]]
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
         used.at(step, task)

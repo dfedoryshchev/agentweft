@@ -236,6 +236,9 @@ session on:
   when that session had waited past its cache's lifetime: the seconds it
   waited. such a call writes the whole session to the cache again, so its
   cost is a cold re-entry, not a warm one.
+- `facts_attached` is only on the line of a step whose brief handed it some
+  of the project's facts ("what is known about a file", below): their ids,
+  the ones shown in full, in the order shown.
 - a go that never answered, one that timed out say, stated no cost and was
   paid for all the same. it is in `cost` at the price table's figure: from
   its session's transcript when the cli wrote one, else estimated from the
@@ -1218,6 +1221,13 @@ beside the entries and hold none: `facts/INDEX.md`, which the runner renders
 after every write it makes, a line per live fact by scope and the stale ones
 apart, and `facts/PROPOSED.md`, the guards and doc changes the retro
 proposed, for a person; the runner applies none of them.
+
+a step is handed the facts for the files it is handed, in its brief
+(`docs/flows.md`, "the brief the run keeps"), and its line in `steps.jsonl`
+names them as `facts_attached`. once the leg has ended, after its retro, the
+runner adds to each fact's `seen: ... attached <n>` the steps of the leg that
+were handed it: a count written while steps run would be a change to the
+place under them.
 
 ## what it does not do
 

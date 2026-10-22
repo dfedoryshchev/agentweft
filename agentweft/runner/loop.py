@@ -13,7 +13,7 @@ from agentweft.orchestrate import decisions, park
 from .config import steps
 from .handoff import EMPTY
 from . import investigate
-from . import (chain, leftred, manifest, resume, retro, ruling, warm)
+from . import (chain, leftred, manifest, resume, retro, ruling, upkeep, warm)
 from . import ending
 from . import state
 from . import stops
@@ -178,6 +178,7 @@ def go(leg):
                         state.RUNS / pick_up if pick_up else None)
             record.data[chain.FIELD] = trail.head()
             record.save(run.budget)
+        upkeep.tally(run, trail)
         return path, lines
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,

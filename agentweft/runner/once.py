@@ -10,7 +10,7 @@ from .handoff import EMPTY
 from .errors import Outage
 from .prompts import flow_path
 from . import (investigate, retro, router, ruling, stops, summary, trace,
-               wrongtest)
+               upkeep, wrongtest)
 from .asking import lead_pass, rides, to_lead, worked_then_asked
 from .fanout import run_fanout
 from .gating import (and_forged, boundary_note, check_step, forged_by,
@@ -80,6 +80,7 @@ def scored(flow, fm, provider, task, trail, workdir):
         stopped = {"cause": ended["cause"]} if ended.get("cause") else None
         retro.after(run, kept, RUN_ID, fm["name"], summary.outcome(stopped),
                     Path(trail), stopped)
+    upkeep.tally(run, kept)
     return said
 
 

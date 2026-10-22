@@ -530,6 +530,21 @@ class Store(object):
         facts.write(fact.file, head, found)
         self.mine(fact)
 
+    def attached(self, lines):
+        """add one to a fact's `attached` for each line of `lines`, the
+        run's steps.jsonl lines, that says it was handed the fact; -> the
+        ids counted."""
+        tally = {}
+        for line in lines:
+            for id in (line or {}).get("facts_attached") or []:
+                tally[id] = tally.get(id, 0) + 1
+        out = []
+        for fact in self.read() if tally else []:
+            if fact.id in tally and fact.id not in out:
+                self.count(fact, "attached", tally[fact.id])
+                out.append(fact.id)
+        return out
+
     def keep_in(self, folder):
         self.folder = Path(folder)
         self.save()

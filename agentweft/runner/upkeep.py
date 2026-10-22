@@ -258,3 +258,19 @@ def maintain(store, record, said, run_id, today=None):
     except (OSError, ValueError, KeyError, TypeError) as e:
         done.fault = type(e).__name__ + ": " + str(e)
     return done
+
+
+def tally(run, trail):
+    """count on each fact the steps of this leg it was handed, once the leg
+    has ended: a count written while steps run would be a change to the
+    place under them. a store that cannot be written is said, never raised."""
+    store = getattr(run, "facts", None)
+    if store is None or trail is None:
+        return []
+    try:
+        return store.attached(entry.written or {}
+                              for entry, _ in trail.closed)
+    except (OSError, ValueError, KeyError) as e:
+        print("facts: attached not counted: " + type(e).__name__ + ": "
+              + str(e))
+        return []

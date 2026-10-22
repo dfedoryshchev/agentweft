@@ -295,6 +295,29 @@ def lookup(root, path, found=None):
     return [f for _, f in picked]
 
 
+HONOURED = re.compile(r"\bhonoured (\d+)")
+
+
+def handed(root, paths, found=None):
+    """-> the facts that hold for any of `paths`, each once: live before
+    stale, `important` before the rest, the most honoured first, and
+    otherwise nearest first, path by path in the order given."""
+    found = read(root) if found is None else found
+    seen, order = set(), []
+    for path in paths:
+        for fact in lookup(root, path, found=found):
+            if fact.id not in seen:
+                seen.add(fact.id)
+                order.append(fact)
+
+    def honoured(f):
+        m = HONOURED.search(f.get("seen"))
+        return int(m.group(1)) if m else 0
+
+    return sorted(order, key=lambda f: (f.status != LIVE,
+                                        f.label != "important", -honoured(f)))
+
+
 def text_lines(path):
     return path.read_text(encoding="utf-8", errors="replace").replace(
         "\r\n", "\n").split("\n")

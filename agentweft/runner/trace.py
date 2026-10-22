@@ -46,11 +46,14 @@ class Attempt(object):
     """
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
-                 "retries", "effort", "verbosity", "continued", "lapsed")
+                 "retries", "effort", "verbosity", "continued", "lapsed",
+                 "facts")
 
     def __init__(self, task=None):
         self.task = task
         self.effort = None
+        # the ids of the project's facts this go was handed in its brief
+        self.facts = None
         self.verbosity = None
         # the session this go carried on, None for one started fresh
         self.continued = None
@@ -543,4 +546,10 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
     lapsed = [a.lapsed for a in attempts if getattr(a, "lapsed", None)]
     if lapsed:
         out["lapsed"] = lapsed[-1]
+    handed = []
+    for a in attempts:
+        handed.extend(i for i in getattr(a, "facts", None) or []
+                      if i not in handed)
+    if handed:
+        out["facts_attached"] = handed
     return out

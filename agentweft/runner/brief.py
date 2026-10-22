@@ -13,6 +13,11 @@ and the same prompt inside one run is still the same answer.
 
 the brief is capped. what does not fit is named, so a step knows to open it.
 the run keeps the whole of it as `brief.md` in its folder.
+
+a step is also handed the project's facts (`orchestrate/facts.py`) for the
+files it is handed, first in its brief and under a cap of their own: each
+with its why, its source and its anchored lines as the place has them now,
+the live ones first and the stale ones marked.
 """
 import re
 import subprocess
@@ -26,6 +31,13 @@ CAP = 8000
 QUOTE_LINES = 12
 LINE_WIDTH = 200
 RESERVE = 400
+# about 500 tokens of the brief's cap: a fact is the non-obvious way of one
+# place, and more of them than this reads as an overview
+FACTS_CAP = 2000
+FACTS_HEAD = ("facts for the files you are handed, kept by the runner across"
+              " runs: what this project decided about them and why. hold to"
+              " them; a change that departs from one says so and why on a"
+              " DECIDED or DOUBTS line.")
 NONE_YET = "(the brief is empty: no step before you handed one over in this run)"
 
 CREDENTIAL = re.compile(r"^(\.env(\..*)?|\.netrc|\.pypirc|id_[^.]+"
@@ -46,6 +58,20 @@ def where_of(item):
     if last < first:
         first, last = last, first
     return m.group("path"), first, last, m.group("note").strip()
+
+
+def named_in(items):
+    """-> the paths `items` name, in the order first named."""
+    from agentweft.mcp.preflight import files_mentioned
+
+    out = []
+    for item in items:
+        text = item if isinstance(item, str) else str(item)
+        found = where_of(text)
+        names = [found[0].replace("\\", "/")] if found else []
+        names.extend(sorted(files_mentioned(text)))
+        out.extend(n for n in names if n not in out)
+    return out
 
 
 def untracked(where):
@@ -123,6 +149,8 @@ class Brief(object):
             found["facts"].append((role, line))
         for item in block.get("read", []):
             found["read"].append((role, item))
+        found["paths"] = named_in(list(block.get("must_not_miss", []))
+                                  + list(did) + list(block.get("read", [])))
         with self.lock:
             self.goes[(step, task)] = found
 
@@ -145,10 +173,25 @@ class Brief(object):
                         out[key].append(entry)
         return out["rules"], out["facts"], out["read"]
 
-    def key(self, before=None):
+    def paths(self, before=None):
+        """-> every path the MUST NOT MISS, DID and READ lines of the steps
+        before `before` name, in the order first named."""
+        with self.lock:
+            goes = list(self.goes.items())
+        rank = dict((s, n) for n, s in enumerate(self.order))
+        limit = rank.get(before, len(self.order)) if before else None
+        out = []
+        for (step, _), found in goes:
+            if limit is not None and rank.get(step, len(self.order)) >= limit:
+                continue
+            out.extend(p for p in found.get("paths", []) if p not in out)
+        return out
+
+    def key(self, before=None, handed=()):
         """-> what the brief for `before` holds, without the lines it quotes
-        from the place."""
-        return repr(self.entries(before))
+        from the place: the facts handed are keyed by id and status."""
+        said = [(f.id, f.status) for f in handed]
+        return repr(self.entries(before)) + (repr(said) if said else "")
 
     def quote(self, path, first, last):
         """-> the lines as the place has them now, numbered, or [] for a
@@ -182,15 +225,77 @@ class Brief(object):
             out.extend(self.quote(*found[:3]))
         return "\n".join(out)
 
-    def text(self, before=None):
+    def kept_facts(self, handed):
+        """-> the lines of the facts section for `handed`, under FACTS_CAP,
+        [] for none. what does not fit is named with the file it is in."""
+        shown, left = self.fit(handed)
+        if not shown and not left:
+            return []
+        out = [FACTS_HEAD] + [piece for _, piece in shown]
+        if left:
+            out.append(str(len(left)) + " more left out at the size cap; open"
+                       " them yourself if you need them: " + ", ".join(
+                           f.id + " (" + self.facts_file(f) + ")"
+                           for f in left))
+        return out
+
+    def fit(self, handed):
+        """-> ([(fact, its text)] that fit under FACTS_CAP, [the facts that
+        do not])."""
+        shown, left, size = [], [], len(FACTS_HEAD)
+        for fact in handed or ():
+            piece = self.fact_chunk(fact)
+            if size + len(piece) + 1 > FACTS_CAP:
+                left.append(fact)
+                continue
+            shown.append((fact, piece))
+            size = size + len(piece) + 1
+        return shown, left
+
+    def facts_file(self, fact):
+        if fact.file is None or self.where is None:
+            return "facts/"
+        try:
+            return Path(fact.file).resolve().relative_to(
+                self.where.resolve()).as_posix()
+        except ValueError:
+            return "facts/"
+
+    def fact_chunk(self, fact):
+        """-> one fact as a step reads it: id, scope, kind and label, the
+        claim, its why and source, and its anchored lines when it is live."""
+        from agentweft.orchestrate import facts
+
+        what = ", ".join([fact.kind or "fact"] + ([fact.label]
+                         if fact.label and fact.label != "none" else []))
+        head = "- " + fact.id + " " + ", ".join(fact.scopes) + " (" + what + ")"
+        if fact.status == facts.STALE:
+            said = fact.get("stale").split(" ", 1)
+            head = (head + ", possibly stale" + (", " + said[1] if len(said) > 1
+                                                  else "")
+                    + (" (" + said[0] + ")" if said[0] else ""))
+        out = [head + ": " + fact.claim, "  why: " + fact.why]
+        if fact.get("source"):
+            out.append("  source: " + fact.get("source"))
+        at = facts.anchor_of(fact)
+        if at is not None and fact.status == facts.LIVE:
+            out.extend(self.quote(at.path, at.first, at.last))
+        return "\n".join(out)
+
+    def text(self, before=None, handed=()):
         """-> the brief for the step `before`, or the whole of it, under
-        CAP characters; "" when there is nothing in it."""
+        CAP characters; "" when there is nothing in it. `handed` is the
+        project's facts for the files the step is handed, nearest first."""
         rules, facts, read = self.entries(before)
+        kept = self.kept_facts(handed)
         if not (rules or facts or read):
-            return ""
+            return "\n".join(kept)[:CAP]
         out = ["what the steps before you found. the lines are quoted from"
                " the place as it is now."]
         size = len(out[0])
+        if kept:
+            size = size + len("\n".join(kept)) + 2
+            out = kept + [""] + out
         left = []
         for title, entries in (("rules the work is held to:", rules),
                                ("facts already established:", facts),

@@ -119,8 +119,24 @@ its end. the whole of it is kept as `brief.md` in the run's folder. a run
 picked up with `--resume` builds it again from what the earlier legs' steps
 handed over, as their `steps.jsonl` lines kept it.
 
-`brief: false` on the flow, or on one step, sends no brief: the step starts
-from the handoff of the step before it, and opens the files itself. a step's
+the brief opens with the project's facts (`journal.md`, "what is known about
+a file") for the files the step is handed: the paths the task names, the spec
+files, the paths the steps before it named on their MUST NOT MISS, DID and
+READ lines, and a fanned task's own FILES. so the first step is handed the
+facts of what the task names, and a later step that an earlier READ line
+sent to `pkg/cli.py` is handed the facts of `pkg/cli.py`, of `pkg/` and of
+the project. each comes with its id, scope, kind and label, its claim, why
+and source, and, when it is live, its anchored lines quoted from the place
+as it is now (the same rules for what may be quoted). live ones come first,
+`important` ones first among them, then the most honoured, then the nearest;
+a stale one comes after them marked `possibly stale` with why and the day.
+they are capped at 2000 characters inside the brief's 8000; the ones that do
+not fit are named by id and the file they are in, for the step to open. a
+place with no facts gets the brief it got before.
+
+`brief: false` on the flow, or on one step, sends no brief and no facts: the
+step starts from the handoff of the step before it, and opens the files
+itself. a step's
 own `brief:` wins over the flow's. on is the default, and the run keeps
 `brief.md` either way.
 
