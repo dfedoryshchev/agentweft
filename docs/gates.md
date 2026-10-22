@@ -135,7 +135,10 @@ broke fail. the run stops there with the gate's line and the step is not
 sent back: going again would meet the same machine. only `OSError` itself
 counts; its subclasses (`FileNotFoundError`, `PermissionError`) and every
 other exception are what wrong code raises too, and stay the change's red
-(`guardrails/hostfault.py`).
+(`guardrails/hostfault.py`). red-first's run of each new test without the
+fix is held the same way only where the test could not be started at all,
+the fault raised before any test body ran: there a red is what it wants, so
+a fault inside a test still reads as one.
 
 a gate reads the answer without its HANDOFF block (`journal.md`, "what each
 step hands over"): the block is the step's account of the work, and a length

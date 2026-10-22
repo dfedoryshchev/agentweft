@@ -210,6 +210,58 @@ def test_a_start_test_stop_is_raised_by_the_check_not_by_the_step(
     assert "raised by worker" not in decision
 
 
+def without_the_fix_cannot_start(monkeypatch, place, times):
+    """red-first's runs anywhere but the place, the checkout without the fix,
+    fail to start `times` times with the bare OSError the host raised."""
+    import types
+
+    from agentweft.guardrails.gates import redfirst_gate
+
+    left = [times]
+
+    def run(argv, **kw):
+        if kw.get("cwd") != str(place) and left[0]:
+            left[0] -= 1
+            raise OSError(22, "The parameter is incorrect", None, 87)
+        return subprocess.run(argv, **kw)
+
+    monkeypatch.setattr(redfirst_gate, "subprocess", types.SimpleNamespace(
+        run=run, TimeoutExpired=subprocess.TimeoutExpired))
+
+
+def red_first_on_a_fix(tmp_path):
+    from agentweft.guardrails import gates, snapshot
+
+    place = a_place(tmp_path / "repo")
+    g = gates.build({"gate": "red-first", "command": [
+        sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+        "{test}"]}, where=place, start=snapshot.take(place))
+    (place / "tests" / "test_add.py").write_text(ADD, encoding="utf-8")
+    (place / "calc.py").write_text(FIXED, encoding="utf-8")
+    return place, g
+
+
+def test_a_new_test_that_cannot_start_without_the_fix_once_is_run_again(
+        tmp_path, monkeypatch):
+    place, g = red_first_on_a_fix(tmp_path)
+    without_the_fix_cannot_start(monkeypatch, place, 1)
+    r = g.run("patched it")
+    assert r, r.detail
+    assert [t["before"] for t in r.tests] == ["red"]
+
+
+def test_a_new_test_that_cannot_start_without_the_fix_twice_is_the_hosts(
+        tmp_path, monkeypatch):
+    place, g = red_first_on_a_fix(tmp_path)
+    without_the_fix_cannot_start(monkeypatch, place, 2)
+    r = g.run("patched it")
+    assert not r and r.broke
+    assert r.host == "OSError: [WinError 87] The parameter is incorrect"
+    assert r.issue == ("could not run tests/test_add.py::test_add without the"
+                       " fix: OSError: [WinError 87] The parameter is"
+                       " incorrect")
+
+
 def test_one_fault_on_every_red_is_the_hosts_and_two_are_not():
     said = "OSError: [WinError 87] The parameter is incorrect"
     assert hostfault.same([said, said]) == said

@@ -357,13 +357,15 @@ class RedFirstGate(Gate):
 
     name = "red-first"
     options = ("command", "timeout", "expect", "results")
-    # what each test that did not pass printed on the side run last, and the
-    # host's fault that held on every red with the fix, run twice
+    # what each test that did not pass printed on the side run last, the
+    # host's fault that held on every red with the fix, run twice, and the
+    # one that held on every test that could not be started without it
     printed = None
     held = ""
+    held_before = ""
 
     def run(self, text):
-        self.printed, self.held = {}, ""
+        self.printed, self.held, self.held_before = {}, "", ""
         if not (text or "").strip():
             return self.fail("the step answered nothing")
         cmd = self.opts.get("command")
@@ -397,8 +399,15 @@ class RedFirstGate(Gate):
             with worktree.temporary(start.root, start.start) as tree:
                 start.lay_out(tree, changes)
                 there = start.place_in(tree)
-                before = self.side(cmd, ids, there, lambda out: fix_adds(
-                    out, there, start.place))
+                def adds(out):
+                    return fix_adds(out, there, start.place)
+
+                before = self.side(cmd, ids, there, adds)
+                if unstarted_fault(before):
+                    before.update(self.side(cmd, [
+                        i for i in ids if before[i][0].startswith(
+                            "could not start")], there, adds))
+                    self.held_before = unstarted_fault(before)
         except ValueError as e:
             return self.broke("could not replay without the fix: " + str(e))
         self.printed = {}
@@ -605,6 +614,11 @@ class RedFirstGate(Gate):
                               unstarted(t["before"]))
                 r.issue = ("could not run " + t["test"] + " without the fix: "
                            + t["before"])
+                if self.held_before and t["before"].startswith(
+                        "could not start"):
+                    return hostfault.held(r, "run " + t["test"]
+                                          + " without the fix",
+                                          self.held_before)
                 return r
             if t["after"] != "green":
                 printed = (self.printed or {}).get(t["test"], "")
@@ -659,3 +673,12 @@ class RedFirstGate(Gate):
 def unstarted(said):
     """whether `one` said the test runner never started."""
     return said == "not on PATH" or said.startswith("could not start")
+
+
+def unstarted_fault(said):
+    """-> the host's fault every test in `said` ({id: what `one` said}) that
+    could not be started names, "" when none of them failed to start or
+    one did for another reason. no test body ran, so it says nothing of the
+    change."""
+    return hostfault.same(s for s, _ in said.values()
+                          if s.startswith("could not start"))
