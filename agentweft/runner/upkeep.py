@@ -261,15 +261,21 @@ def maintain(store, record, said, run_id, today=None):
 
 
 def tally(run, trail):
-    """count on each fact the steps of this leg it was handed, once the leg
-    has ended: a count written while steps run would be a change to the
-    place under them. a store that cannot be written is said, never raised."""
+    """count on each fact the steps of this leg it was handed, and the steps
+    whose change held or broke its check, once the leg has ended: a count
+    written while steps run would be a change to the place under them. a
+    store that cannot be written is said, never raised."""
     store = getattr(run, "facts", None)
     if store is None or trail is None:
         return []
+    lines = [entry.written or {} for entry, _ in trail.closed]
     try:
-        return store.attached(entry.written or {}
-                              for entry, _ in trail.closed)
+        out = store.attached(lines)
+        for id in (store.held_to(lines) if hasattr(store, "held_to")
+                   else []):
+            if id not in out:
+                out.append(id)
+        return out
     except (OSError, ValueError, KeyError) as e:
         print("facts: attached not counted: " + type(e).__name__ + ": "
               + str(e))

@@ -66,6 +66,7 @@ def trouble(run, lines, issued, worked, changed, looked):
                 or l.get("cause") in (stops.PARKED, stops.CONFLICT)
                 for l, _ in looked)
     if lines or issued or worked or changed is None or changed or asked \
+            or unheld(looked) \
             or getattr(getattr(run, "kept", None), "written", None):
         return ""
     return ("conditional, and the run changed no file, had no failed attempt,"
@@ -310,7 +311,20 @@ def parts(looked, rulings, changed, stale, live, cap):
               else "- not a git checkout, so what changed is not recorded"]),
             ("facts marked stale, to re-anchor, retire or supersede:", stale),
             ("facts on record for the files this run changed:", live),
+            ("fact checks a step's change broke or that could not run,"
+             " from steps.jsonl:", unheld(looked)),
             ("new facts this run may write:", ["- " + str(cap)])]
+
+
+def unheld(lines):
+    """-> one line per fact check a pass not yet looked at broke or could
+    not run, with its seq and step."""
+    return ["- seq " + str(line.get("seq")) + " " + str(line.get("step"))
+            + ": " + str(c.get("fact")) + " " + str(c.get("result")) + ": "
+            + stops.flat(str(c.get("check"))) + (" - " + stops.flat(
+                str(c["said"])) if c.get("said") else "")
+            for line, _ in lines for c in line.get("conformance") or []
+            if c.get("result") != "held"]
 
 
 def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),

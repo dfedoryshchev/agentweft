@@ -299,7 +299,7 @@
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 2c5acce9cc269edec9e0bd6970f91b40ca063d47818dd10242d55c1647a3c4fd",
+    "retro.md go 1 48e457f37f8f170984c3f1c9fc09fcf4cd284496fca00b678b17e7cc70a9ea7d",
     "worker.md go 1 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33",
     "worker.md go 2 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33",
     "worker.md go 3 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33"

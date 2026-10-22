@@ -493,6 +493,58 @@ is written; a refused one is not written and its reason is kept:
    (`seen: proposed 2, ...`) instead of written again.
 7. at most three new facts a run (`per-run cap`); a supersession is a new
    fact, and marks the one it replaces `superseded`.
+8. a `check:`, when it has one, runs and holds on the place as it is (`the
+   check cannot run: ...`, `the check reads <path>, which is not in the
+   fact's scope`, `the check does not hold on the tree as it is: ...`).
+
+### a fact's check
+
+a fact can carry a program the runner holds the place to:
+
+    check: grep -n "print(" pkg/parse.py exits 1
+
+it is one grep, `grep [flags] <pattern> <path>... [exits <n>]`, and the
+runner reads and runs it in its own process: no shell, no process, so a
+check a model proposed, or one in a project cloned with its `facts/`, can
+run nothing. the flags it takes are `-n`, `-r` / `-R`, `-E`, `-F`, `-i`,
+`-w`, `-q`, `-s`, `-H`, `-h`, `-l`, `-e <pattern>` and `--include=<glob>`;
+without `-E` or `-F` the pattern is a basic grep pattern, so `print(` is the
+text `print(`. `exits 1` means the fact holds when no line matches, `exits 0`
+(or no `exits`) when one does. every path is a file or, with `-r`, a folder
+in the place and in the fact's scope; a recursive read never looks in
+`.git`, caches, installed packages (`node_modules`, `venv`, `.venv`), `facts/` (which quotes the very lines its checks look for)
+or the runner's own folder. anything else, a path outside the place, a file
+that is not there, a flag it does not take, a pattern that does not read,
+another command, `;` or `|` in a path, cannot run.
+
+after every step, with its gates, the runner hashes the files in the scope
+of each live fact with a check; when they changed since the last step, the
+check runs, and the step's line in `steps.jsonl` gets `conformance`, one
+entry per fact: its id, scope, claim and check, the `result` (`held`,
+`broken` or `could not run`) and what it `said` (`grep exits 0, the fact
+says 1: pkg/parse.py:5: print(...)`, the first line that matched). a step
+that left the scope alone runs no check. a check that could not run is
+never a pass: it is said on the line and in the handoff, and counts as
+neither honoured nor contradicted.
+
+    conformance: warn
+
+the default: a broken check is said and the run goes on. the handoff lists
+each fact whose last check in the run did not hold under "not done" (`a
+fact's check broken at the end of the run:`), and every check that ran under
+`## conformance`; the retro is handed the ones that broke or could not run.
+
+    conformance: fail
+
+makes a broken check a gate, `conformance`, that fails the step and sends it
+back like any gate (`send_backs` times, then the run stops on it). the scope
+is held as it was before the break, so the step's next go is checked again
+even when it leaves the file alone; a check that could not run passes with
+an `issue` (`docs/gates.md`), never as one that held. any other value is
+refused when the flow loads.
+
+once the leg ends, each fact's `seen` line counts the steps whose change
+held its check (`honoured`) and broke it (`contradicted`).
 
 ## the files that brief the model
 

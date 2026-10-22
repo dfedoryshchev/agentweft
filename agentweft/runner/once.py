@@ -81,6 +81,8 @@ def scored(flow, fm, provider, task, trail, workdir):
         entry.ungated = out.meta.get("ungated") if output is not None else None
         entry.handoff = out.block if output is not None else None
         entry.proved = output is not None and bool(out.meta.get("proved"))
+        entry.conformance = out.meta.pop("conformance", None) \
+            if output is not None else None
         kept.close(entry, outcome, why=why, to=to, cause=cause)
 
     said = steps_of(flow, fm, run, route, trail, kept, state, note)

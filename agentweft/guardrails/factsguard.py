@@ -22,8 +22,13 @@ anything is written (`Store.add`): no secret in any field, a one-line claim
 and a why, no `|`, a known kind and label, every scope in the place, evidence
 the runner can check (a quoted line that is at that line, a command a gate
 of this run ran with that exit code, a ruling on record), an anchor whose
-hash the runner takes itself, at most `cap` new facts a run, and the same
-claim on the same scope counted on the fact already there instead.
+hash the runner takes itself, a check that reads only its scope and holds
+on the place now, at most `cap` new facts a run, and the same claim on the
+same scope counted on the fact already there instead.
+
+a fact's check runs again after every step that changed a file in its scope
+(`Store.conform`), and the end of the leg counts each step whose change held
+it or broke it (`Store.held_to`).
 """
 import datetime
 import hashlib
@@ -193,10 +198,12 @@ class Store(object):
     heals and writes none of them, and a step is still held to leaving the
     store as it found it."""
 
-    def __init__(self, workdir, cap=CAP, off=False):
+    def __init__(self, workdir, cap=CAP, off=False, own=None):
         self.root = Path(workdir)
         self.cap = cap
         self.off = off
+        # the runner's own folder, which no check reads
+        self.own = own
         self.lock = threading.Lock()
         self.folder = None
         self.written = []
@@ -205,6 +212,7 @@ class Store(object):
         # the facts this run has counted a proposal on: a run counts once
         self.counted = set()
         self.taken()
+        self.watch()
 
     def taken(self):
         """note the store as it is now as the runner's own."""
@@ -348,12 +356,99 @@ class Store(object):
         said = p.get("anchor").strip()
         if said and self.anchor_for(said) is None:
             return "the anchor " + said.split()[0] + " is not lines of the file"
+        said = p.get("check").strip()
+        if said:
+            why = self.check_refusal(said, scopes)
+            if why:
+                return why
         old = p.get("supersedes").strip()
         if old and not [f for f in self.read() if f.id == old
                         and f.status in (facts.LIVE, facts.STALE)]:
             return ("it supersedes " + old + ", which is not a live or stale"
                     " fact")
         return ""
+
+    def check_refusal(self, said, scopes):
+        """-> why a fact with check `said` is not written: the check cannot
+        run, reads a file outside the fact's scopes, or does not hold on the
+        place as it is now."""
+        check, why = facts.parse_check(said)
+        if check is None:
+            return "the check cannot run: " + why
+        for path in check.paths:
+            inside = [s for s in scopes if s == facts.PROJECT
+                      or facts.rank(s, path) is not None
+                      or s.endswith("/") and path.rstrip("/") + "/" == s]
+            if not inside:
+                return ("the check reads " + path + ", which is not in the"
+                        " fact's scope")
+        held, why = facts.run_check(self.root, said, self.own)
+        if held is None:
+            return "the check cannot run: " + why[len("could not run: "):]
+        if not held:
+            return "the check does not hold on the tree as it is: " + why
+        return ""
+
+    def conform(self, again=False):
+        """-> a line per live fact with a check whose scope changed since it
+        was last looked at, with what the check said: held, broken or could
+        not run. `again` keeps a broken one's scope as it was, so the next
+        step is held to it too until it holds."""
+        if self.off:
+            return []
+        out = []
+        with self.lock:
+            for f in self.read():
+                said = f.get("check").strip()
+                if f.status != facts.LIVE or not said:
+                    continue
+                now = facts.scope_digest(self.root, f.scopes, self.own)
+                was = self.watched.setdefault(f.id, now)
+                if was == now and f.id not in self.pending:
+                    continue
+                held, why = facts.run_check(self.root, said, self.own)
+                result = facts.HELD if held else facts.UNRUN \
+                    if held is None else facts.BROKEN
+                if result == facts.BROKEN and again:
+                    self.pending.add(f.id)
+                else:
+                    self.pending.discard(f.id)
+                    self.watched[f.id] = now
+                out.append({"fact": f.id, "scope": f.scopes,
+                            "claim": f.claim, "check": said,
+                            "result": result, "said": why})
+        return out
+
+    def watch(self):
+        """note the scope of every live fact with a check as it is now."""
+        self.watched, self.pending = {}, set()
+        if self.off:
+            return
+        for f in self.read():
+            if f.status == facts.LIVE and f.get("check").strip():
+                self.watched[f.id] = facts.scope_digest(self.root, f.scopes,
+                                                        self.own)
+
+    def held_to(self, lines):
+        """add one to a fact's `honoured` for each check it held after a
+        step of `lines`, the run's steps.jsonl lines, and to `contradicted`
+        for each it was broken; -> the ids counted. a check that could not
+        run counts for neither."""
+        tally = {}
+        for line in lines:
+            for c in (line or {}).get("conformance") or []:
+                key = {facts.HELD: "honoured",
+                       facts.BROKEN: "contradicted"}.get(c.get("result"))
+                if key:
+                    tally.setdefault(c.get("fact"), {}).setdefault(key, 0)
+                    tally[c.get("fact")][key] += 1
+        out = []
+        for fact in self.read() if tally else []:
+            for key, n in sorted((tally.get(fact.id) or {}).items()):
+                self.count(fact, key, n)
+                if fact.id not in out:
+                    out.append(fact.id)
+        return out
 
     def anchor_for(self, said):
         m = re.match(r"^(.+):(\d+)-(\d+)\b", said.strip())

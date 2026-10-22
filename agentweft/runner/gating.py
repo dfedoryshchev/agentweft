@@ -165,6 +165,10 @@ def check_step(run, route, step, out, run_dir=None):
     the gates read the answer without its HANDOFF block: the block is the
     step's account of the work, and a length cap or a pattern is about the
     work.
+
+    the check of each fact whose scope the step changed runs here too, its
+    lines put on `out.meta["conformance"]`; with `conformance: fail` a
+    broken one is a failed gate.
     """
     held = getattr(run, "held", lambda g, s: g.run)
     results = [clocked(held(g, step), without(out.output))
@@ -222,6 +226,14 @@ def check_step(run, route, step, out, run_dir=None):
             results.append(line)
         if held:
             out.meta["conflict"] = held
+    conformed = getattr(run, "conformed", None)
+    if callable(conformed):
+        began = time.time()
+        lines, gate = conformed(step)
+        if lines:
+            out.meta["conformance"] = lines
+        if gate is not None:
+            results.append(timed(gate, began))
     kept = getattr(run, "kept", None)
     began = time.time()
     # a gate runs code the step wrote, so a write it makes is the step's,

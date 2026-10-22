@@ -28,6 +28,7 @@ role: retro
       why: <the reason, from this run>
       source: seq <n> <step>; evidence: <file>:<line> "<the words at that line>"
       anchor: <file>:<first>-<last>
+      check: <optional: grep "<pattern>" <a file or folder in its scope> exits <0 or 1>>
     supersede: <F-id>
       <the fields of the fact that replaces it>
     re-anchor: <F-id>
@@ -50,5 +51,6 @@ role: retro
 - every stale fact gets a re-anchor with evidence, a supersede or a retire; one you cannot judge is left as it is
 - a failed attempt, a gate issue or a refused write that a program could have caught gets a guard; a guard is a test, a gate or a key, never a sentence for a prompt
 - a defect a step found beside the change and did not fix is a `defect` fact on its file, its evidence the line it is at, with a guard: the test that would show it. one fixed by a test needs neither
+- a convention a pattern can show gets a check: one grep (flags -n -r -E -F -i -w, `--include=<glob>`) over files in its scope and the exit code that means it holds, 1 for a line that must never appear. the runner runs it itself, refuses a fact whose check does not hold now, and runs it again after every step that changes the scope
 - no secret, token or credential file name in any field, and never a `|`
 - nothing else: no verdict, no handoff block

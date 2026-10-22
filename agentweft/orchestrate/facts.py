@@ -33,6 +33,7 @@ gone in two runs is `retired`. a fact with no anchor is never stale by
 content.
 """
 import datetime
+import fnmatch
 import hashlib
 import os
 import re
@@ -412,6 +413,233 @@ def heal(root, today=None):
             write(path, head, found)
             out.extend(made)
     return out
+
+
+CHECKED_FLAGS = set("nrREFiwqsHhl")
+EXITS = re.compile(r"^(.*?)\s+exits?\s+(\S+)\s*$")
+# what a check never reads: git's own files, caches that change whenever the
+# tests run, and installed packages, too big to hash again after every step
+NOT_READ = (".git", "__pycache__", ".pytest_cache", "node_modules", ".venv",
+            "venv")
+HELD, BROKEN, UNRUN = "held", "broken", "could not run"
+
+
+class Check(object):
+    """a fact's `check:` as the runner reads it: a grep, its patterns, its
+    paths and the exit code that means the fact holds."""
+
+    __slots__ = ("flags", "patterns", "paths", "include", "want")
+
+    def __init__(self):
+        self.flags = set()
+        self.patterns = []
+        self.paths = []
+        self.include = []
+        self.want = 0
+
+
+def parse_check(text):
+    """-> (Check, "") or (None, why it cannot run). a check is
+    `grep [flags] <pattern> <path>... [exits <n>]`, the one shape the runner
+    runs, in its own process."""
+    import shlex
+
+    text = (text or "").strip()
+    want = 0
+    m = EXITS.match(text)
+    if m:
+        if not re.match(r"^\d+$", m.group(2)):
+            return None, "exits " + m.group(2) + " is not an exit code"
+        text, want = m.group(1), int(m.group(2))
+    try:
+        words = shlex.split(text)
+    except ValueError as e:
+        return None, "it does not read as a command: " + str(e)
+    if not words or words[0] != "grep":
+        return None, ("only a grep runs as a fact's check, never "
+                      + (words[0] if words else "nothing"))
+    out = Check()
+    out.want = want
+    rest = words[1:]
+    i = 0
+    while i < len(rest):
+        w = rest[i]
+        if w == "--":
+            i = i + 1
+            break
+        if w.startswith("--include="):
+            out.include.append(w.split("=", 1)[1])
+        elif w.startswith("--"):
+            return None, "grep " + w + " is not one a check takes"
+        elif w == "-e" and i + 1 < len(rest):
+            out.patterns.append(rest[i + 1])
+            i = i + 1
+        elif w.startswith("-") and len(w) > 1:
+            bad = [c for c in w[1:] if c not in CHECKED_FLAGS]
+            if bad:
+                return None, "grep -" + bad[0] + " is not one a check takes"
+            out.flags.update(w[1:])
+        else:
+            break
+        i = i + 1
+    rest = rest[i:]
+    if not out.patterns:
+        if not rest:
+            return None, "it names no pattern"
+        out.patterns.append(rest[0])
+        rest = rest[1:]
+    out.include.extend(w.split("=", 1)[1] for w in rest
+                       if w.startswith("--include="))
+    rest = [w for w in rest if not w.startswith("--include=")]
+    if not rest:
+        return None, "it names no file to read"
+    for p in rest:
+        if p.startswith("-") or re.search(r"[;&|<>$`]", p):
+            return None, p + " is not a path"
+    out.paths = [norm(p) for p in rest]
+    return out, ""
+
+
+def bre(pattern):
+    """-> a basic grep pattern as python reads it: `(`, `)`, `{`, `}`, `|`,
+    `+` and `?` are plain unless a backslash makes them special."""
+    out, i = [], 0
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "\\" and i + 1 < len(pattern):
+            n = pattern[i + 1]
+            out.append(n if n in "(){}|+?" else c + n)
+            i = i + 2
+            continue
+        out.append("\\" + c if c in "(){}|+?" else c)
+        i = i + 1
+    return "".join(out)
+
+
+def outside(root, rel):
+    """whether `rel`, as a check names it, is not a path inside the place."""
+    if not rel or rel.startswith("/") or os.path.isabs(rel) \
+            or re.match(r"^[A-Za-z]:", rel):
+        return True
+    base = Path(os.path.abspath(str(root)))
+    try:
+        Path(os.path.abspath(str(base / rel))).relative_to(base)
+    except ValueError:
+        return True
+    return False
+
+
+def walk(root, base, own=None):
+    """-> every file under `base`, in a fixed order, past the folders a check
+    never reads: git's, caches, the runner's own and the store, which quotes
+    the very lines its checks look for."""
+    skip = set([Path(os.path.abspath(str(folder(root))))])
+    if own is not None:
+        skip.add(Path(os.path.abspath(str(own))))
+    out = []
+    for dirpath, dirs, names in os.walk(str(base)):
+        here = Path(os.path.abspath(dirpath))
+        dirs[:] = sorted(d for d in dirs if d not in NOT_READ
+                         and here / d not in skip)
+        out.extend(here / n for n in sorted(names))
+    return out
+
+
+def rel_of(root, path):
+    return Path(os.path.abspath(str(path))).relative_to(
+        Path(os.path.abspath(str(root)))).as_posix()
+
+
+def run_check(root, text, own=None):
+    """-> (True, "") when the check holds on the place now, (False, what
+    grep found against what the fact says) when it does not, (None, "could
+    not run: <why>") when it cannot say. it is read and run here, never
+    handed to a shell or a process. `own` is the runner's folder."""
+    check, why = parse_check(text)
+    if check is None:
+        return None, "could not run: " + why
+    root = Path(root)
+    flags = re.I if "i" in check.flags else 0
+    try:
+        found = []
+        for p in check.patterns:
+            if "F" in check.flags:
+                p = re.escape(p)
+            elif "E" not in check.flags:
+                p = bre(p)
+            if "w" in check.flags:
+                p = r"(?<!\w)(?:" + p + r")(?!\w)"
+            found.append(re.compile(p, flags))
+    except re.error as e:
+        return None, "could not run: the pattern does not read: " + str(e)
+    files = []
+    for rel in check.paths:
+        if outside(root, rel):
+            return None, "could not run: " + rel + " is not in the place"
+        target = root / rel
+        if target.is_dir():
+            if not check.flags & set("rR"):
+                return None, "could not run: " + rel + " is a folder"
+            files.extend(walk(root, target, own))
+        elif target.is_file():
+            files.append(target)
+        else:
+            return None, "could not run: " + rel + " is not a file"
+    first = None
+    for path in files:
+        if check.include and not any(fnmatch.fnmatch(path.name, g)
+                                     for g in check.include):
+            continue
+        try:
+            lines = text_lines(path)
+        except OSError as e:
+            return None, "could not run: " + rel_of(root, path) + ": " + str(e)
+        for n, line in enumerate(lines, 1):
+            if any(f.search(line) for f in found):
+                first = (path, n, line)
+                break
+        if first:
+            break
+    code = 0 if first else 1
+    if code == check.want:
+        return True, ""
+    said = "grep exits " + str(code) + ", the fact says " + str(check.want)
+    if first:
+        said = (said + ": " + rel_of(root, first[0]) + ":" + str(first[1])
+                + ":" + first[2])
+    return False, said
+
+
+def check_paths(text):
+    """-> the paths a check reads, [] when it does not parse."""
+    check, _ = parse_check(text)
+    return check.paths if check is not None else []
+
+
+def scope_digest(root, scopes, own=None):
+    """-> one sha256 of every file the scopes hold now, by content."""
+    root = Path(root)
+    parts = []
+    for scope in scopes:
+        scope = norm(scope)
+        if scope == PROJECT or is_glob(scope):
+            found = walk(root, root, own)
+        elif scope.endswith("/"):
+            found = walk(root, root / scope, own) \
+                if (root / scope).is_dir() else []
+        else:
+            found = [root / scope]
+        for path in found:
+            rel = rel_of(root, path)
+            if is_glob(scope) and rank(scope, rel) is None:
+                continue
+            try:
+                data = path.read_bytes()
+            except OSError:
+                data = None
+            parts.append(rel + " " + (hashlib.sha256(data).hexdigest()
+                                      if data is not None else "gone"))
+    return hashlib.sha256("\n".join(sorted(parts)).encode("utf-8")).hexdigest()
 
 
 def index_lines(found):

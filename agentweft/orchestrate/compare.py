@@ -183,6 +183,10 @@ FLOW_ONLY = (
     Pair("flow.lane", "",
          "whether a run reads and keeps the project's facts at all. a phase "
          "keeps no facts of its own, so it has nothing to turn off."),
+    Pair("flow.conformance", "",
+         "whether a step whose change breaks a fact's check is only told of "
+         "it or sent back. a phase keeps no facts, so it has no check to "
+         "break."),
     Pair("flow.investigate", "",
          "a step put in front of the flow's own that finds the cause and the "
          "sites it reaches before anything is written. a phase that wants one "

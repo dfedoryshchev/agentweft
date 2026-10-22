@@ -144,7 +144,8 @@ class Run(object):
         # runner's, not a change any step made
         self.facts = factsguard.Store(self.workdir,
                                       cap=factsguard.cap_of(fm),
-                                      off=factsguard.lane_off(fm))
+                                      off=factsguard.lane_off(fm),
+                                      own=state.RUNS)
         self.healed = self.heal_facts()
         self.briefed = briefing.digest(self.workdir)
         self.project = held or project.hold(self.workdir)
@@ -217,6 +218,39 @@ class Run(object):
         for change in made:
             print("facts: " + str(change))
         return made
+
+    def conformed(self, step):
+        """-> (a line per fact whose check ran because `step` changed a file
+        in its scope, the gate the flow's `conformance: fail` makes of them
+        or None). a broken check warns by default; with fail it fails the
+        step, and one that could not run passes saying so, never as a check
+        that held. a store that cannot be read is said, and checks nothing."""
+        store = getattr(self, "facts", None)
+        if store is None or not hasattr(store, "conform"):
+            return [], None
+        fail = (getattr(self, "fm", None) or {}).get("conformance") == "fail"
+        try:
+            lines = store.conform(again=fail)
+        except (OSError, ValueError) as e:
+            print("facts: checks not run after " + step + ": "
+                  + type(e).__name__ + ": " + str(e))
+            return [], None
+        for c in lines:
+            print("  conformance " + c["fact"] + " " + c["result"]
+                  + (": " + c["said"] if c["said"] else ""))
+        if not fail or not lines:
+            return lines, None
+        broken = [c for c in lines if c["result"] == "broken"]
+        unrun = [c for c in lines if c["result"] == "could not run"]
+        said = "; ".join(c["fact"] + " on " + ", ".join(c["scope"]) + ": "
+                         + c["claim"] + "; " + c["check"] + " - " + c["said"]
+                         for c in broken or unrun)
+        if broken:
+            return lines, Result("conformance", False, said)
+        if unrun:
+            return lines, Result("conformance", True, said,
+                                 issue="could not run a fact's check: " + said)
+        return lines, None
 
     def decided(self):
         """-> the rulings in decisions.md the runner has on record."""

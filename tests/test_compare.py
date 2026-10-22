@@ -129,9 +129,10 @@ def test_the_sides_are_not_the_same_size():
     # its reviewers as agents and says what each looks for in their prose.
     #
     # `facts_per_run` is one more, one way: a phase keeps no facts to cap,
-    # and `lane` another: it has none to turn off.
+    # and `lane` another: it has none to turn off. `conformance` too: it has
+    # no fact whose check a change could break.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 47
+    assert len(compare.flow_only()) == 48
     assert len(compare.phase_only()) == 7
 
 

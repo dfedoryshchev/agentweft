@@ -579,7 +579,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 71d7296d1a68765e39b7edcfdb58ca338b7b7d9a3f76aad8e26f8bd773a3c29b",
+    "retro.md go 1 7f66043928e06ed552994e95374e12c2cdec1d43e2cfb63b533c39448f741691",
     "reviewer.md go 1 c5d93d40a94242841fb325ae2bdf7886a28d6298c990dc66260a35886651a6fd",
     "reviewer.md go 2 8361b05c64be61a8fe8a5791a04d3a514e76babd3a4b6df071e8034c6431da13",
     "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938",

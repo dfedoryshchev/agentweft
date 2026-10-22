@@ -444,6 +444,32 @@ def facts_of(line, root=None):
     sessions.extend(t["session"] for t in (line.get("tasks") or [])
                     if isinstance(t, dict) and t.get("session"))
     out["read"] = read_of(sessions, root, line.get("continued"))
+    out["conformance"] = line.get("conformance") or []
+    return out
+
+
+def checked(passes):
+    """-> (pass, line) for every fact check a pass's change set off, in
+    the order they ran."""
+    return [(p, c) for p in passes
+            for c in (p.get("facts") or {}).get("conformance") or []]
+
+
+def check_left(passes):
+    """-> the view's lines for each fact whose last check in the run did
+    not hold: broken, or could not run."""
+    last = {}
+    for p, c in checked(passes):
+        last[c.get("fact")] = (p, c)
+    out = []
+    for p, c in last.values():
+        where = c.get("fact", "") + " on " + ", ".join(c.get("scope") or [])
+        if c.get("result") == "broken":
+            out.append(where + ", broken by " + at(p) + ": "
+                       + c.get("claim", ""))
+        elif c.get("result") == "could not run":
+            out.append(where + ", its check could not run after " + at(p)
+                       + ": " + c.get("said", ""))
     return out
 
 
@@ -1071,6 +1097,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                                  else ", fixed or not, not said")
                   + " (" + ", ".join(roles) + ")"
                   for f, roles in beside_it if not f["fixed"]]),
+                ("a fact's check broken at the end of the run:",
+                 check_left(every)),
                 ("cut for the budget, not run:", cut_lines(skipped)),
                 ("police, shadow - seen, the run not stopped for it:",
                  list(shadowed)),
@@ -1137,6 +1165,16 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.append("## found beside the change")
         out.extend("- " + ", ".join(roles) + ": " + f["defect"] + " - "
                    + beside_said(f, files) for f, roles in beside_it)
+
+    ran_checks = checked(every)
+    if ran_checks:
+        out.append("")
+        out.append("## conformance")
+        out.extend("- " + at(p) + ": " + c.get("fact", "") + " ("
+                   + ", ".join(c.get("scope") or []) + ") "
+                   + c.get("result", "") + ": " + c.get("check", "")
+                   + (" - " + stops.flat(c["said"]) if c.get("said") else "")
+                   for p, c in ran_checks)
 
     out.append("")
     out.append("## changed")

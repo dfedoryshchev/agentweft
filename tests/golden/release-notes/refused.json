@@ -282,7 +282,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 bbbb6ec3ce995f8be0e70d870ade14ad12d89a012278fc6f8e7cb5bdb74ef775",
+    "retro.md go 1 015b4df44e0919d53482c23df432d652d30dca65aec41ef92e8d23b0d501a814",
     "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938"
   ]
 }

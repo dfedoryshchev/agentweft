@@ -421,7 +421,7 @@
   ],
   "prompts": [
     "planner.md go 1 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
-    "retro.md go 1 8bc88d3b1fa046bd5d6362d322c77a510f7baa6849fd83bfbd504a4508efbd8d",
+    "retro.md go 1 404ab29023443a543371249a36b94cb6ddca536df83a60a952da6522adc3598f",
     "worker.md task 1 go 1 c69c09d3bfca42dead63ae70a1935568d914e1b58fa23df93b43b87e451b7b82",
     "worker.md task 2 go 1 8041031c2e32ae9830239e0a3564928966a5a2b7a67ec4a12b9fcd5e3b25948a"
   ]

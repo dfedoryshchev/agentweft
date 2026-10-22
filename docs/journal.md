@@ -239,6 +239,10 @@ session on:
 - `facts_attached` is only on the line of a step whose brief handed it some
   of the project's facts ("what is known about a file", below): their ids,
   the ones shown in full, in the order shown.
+- `conformance` is only on the line of a step that changed a file in the
+  scope of a fact with a `check:`: per fact, its id, scope, claim and check,
+  the `result` (`held`, `broken` or `could not run`) and what it `said`
+  (`docs/guardrails.md`, "a fact's check").
 - a go that never answered, one that timed out say, stated no cost and was
   paid for all the same. it is in `cost` at the price table's figure: from
   its session's transcript when the cli wrote one, else estimated from the
@@ -543,7 +547,9 @@ answers, in order:
   cites, with the roles that raised it, and how many times when one role
   raised it again after a send-back, so a doubt that was not fixed says so;
   then each defect a step found beside the change and left (`found beside the
-  change, not fixed:`).
+  change, not fixed:`), and each fact whose check the run's last look at it
+  found broken or could not run (`a fact's check broken at the end of the
+  run:`, `docs/guardrails.md`, "a fact's check").
 - **product gaps**: each spec line an open question turns on, and each spec
   file the run changed.
 
@@ -560,8 +566,10 @@ change (`## found beside the change`, only when a step found something: each
 defect once by its words, with the roles that named it, as the last of them
 left it: `fixed, shown by <test>`, `fixed, no test names it` or `not fixed`;
 a test whose file is not among the files the run changed adds `; its file
-did not change in this run`), what changed, what was
-read, what was tested, what a ruling is owed on, what was not verified, what
+did not change in this run`), each fact check a step's change set off
+(`## conformance`, only when one ran: `- <step>: <id> (<scope>) held`,
+`broken` or `could not run`, the check and what it said), what changed,
+what was read, what was tested, what a ruling is owed on, what was not verified, what
 the next session must keep (each line once, with the roles that kept it),
 what went wrong on the way, and what the run was.
 the whole file looks like the example at the end of this section.
@@ -1245,7 +1253,10 @@ a step is handed the facts for the files it is handed, in its brief
 names them as `facts_attached`. once the leg has ended, after its retro, the
 runner adds to each fact's `seen: ... attached <n>` the steps of the leg that
 were handed it: a count written while steps run would be a change to the
-place under them.
+place under them. a fact with a `check:` is held to it after every step
+that changes its scope (`docs/guardrails.md`, "a fact's check"), and the
+same end of the leg adds `honoured` for each step whose change kept it and
+`contradicted` for each that broke it.
 
 ## what it does not do
 

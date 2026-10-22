@@ -325,8 +325,8 @@ so the retro is on by default in what ships; a flow opts out with
 conditional` runs it only after a run that had something to look back at:
 it changed a file (one that was already modified before the run does not
 count; outside git the run cannot tell and it counts), had a failed
-attempt, a gate that could not do its job or a refused write, or asked a
-question (a ruling written, a step that asked or was decided for, a park).
+attempt, a gate that could not do its job, a refused write or a fact's
+check that broke or could not run, or asked a question (a ruling written, a step that asked or was decided for, a park).
 any other run prints `retro not run: conditional, and the run changed no
 file, had no failed attempt, no gate issue and no question` and spends
 nothing on it.
@@ -380,7 +380,16 @@ start, no fact handed to a step, nothing the retro proposes acted on (its
 on`), and the retro is told it may write 0. a step is still held to leaving
 `facts/` as it found it. `lane: project`, the default, keeps them in the
 place (`docs/journal.md`, "what is known about a file"). yaml reads a bare
-`off` as false, and false is off too.
+`off` as false, and false is off too. with the lane off no fact's check runs
+either.
+
+    conformance: fail
+
+a fact can carry a `check:`, one grep the runner runs itself after every
+step that changes a file in the fact's scope (`docs/guardrails.md`, "a
+fact's check"). by default, `conformance: warn`, a broken check is said on
+the step's line and in the handoff and the run goes on; `fail` makes it a
+gate that sends the step back. a check that cannot run is never a pass.
 
 the rest of what it writes is advice, never a gate. a retro that errors or
 comes back empty is a `retro.md` line in `steps.jsonl` with `outcome:

@@ -85,7 +85,8 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
-         "reviewers", "police", "network", "facts_per_run", "lane")
+         "reviewers", "police", "network", "facts_per_run", "lane",
+         "conformance")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 # `retro: conditional` runs it only after a run that had something to look
@@ -94,6 +95,9 @@ CONDITIONAL = "conditional"
 # whether a run reads and keeps the project's facts (`orchestrate/facts.py`);
 # yaml reads a bare `off` as false, which is the same answer
 LANES = ("project", "off")
+# what a fact's check broken by a step's change does to the run: warn says
+# so and goes on, fail is a gate that sends the step back
+CONFORMANCE = ("warn", "fail")
 NO_LEAD = "none"
 # whether the run commits as it goes (`runner/commits.py`)
 COMMITS = ("none", "wip", "squash")
@@ -547,6 +551,8 @@ def check(raw):
         bad.append("retro should be true, false or " + CONDITIONAL)
     if "lane" in raw and raw["lane"] is not False and raw["lane"] not in LANES:
         bad.append("lane should be one of " + ", ".join(LANES))
+    if "conformance" in raw and raw["conformance"] not in CONFORMANCE:
+        bad.append("conformance should be warn or fail")
     bad.extend(check_lead(raw))
     if "on_stop" in raw and raw["on_stop"] not in ON_STOP:
         bad.append("on_stop should be one of " + ", ".join(ON_STOP))

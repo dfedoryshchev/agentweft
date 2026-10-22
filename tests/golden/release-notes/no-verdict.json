@@ -407,7 +407,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 a0db7fcdadce61e6ce6c719d88f5edc301f82fde3c3e5611ea113895bc3bdbf6",
+    "retro.md go 1 1f263bd3a5038e663d59fafe3afd6d12cff9d298d34b07357ff5dd293e6454af",
     "reviewer.md go 1 8361b05c64be61a8fe8a5791a04d3a514e76babd3a4b6df071e8034c6431da13",
     "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938"
   ]
