@@ -18,7 +18,7 @@ def test_a_case_knows_where_its_inputs_are():
 
 def test_a_case_pins_its_provider():
     case = harness.load_case(harness.cases_for("weekly-digest")[0])
-    assert case["provider"] == {"provider": "fake"}
+    assert case["provider"]["provider"] == "fake"
 
 
 def test_the_case_provider_beats_the_flows():
@@ -43,10 +43,11 @@ PLAN = ("TASK: a.md\nLIST: changed\nWHY: x\nFILES:\n- a.md\n\n"
 
 
 def scored(monkeypatch, reply=None):
-    """a real case through the real flow, scored the way the harness scores it."""
-    from agentweft.runner import engine
-
-    case = harness.load_case(harness.cases_for("weekly-digest")[0])
+    """a real case's inbox through the real flow, live on the fake's answers
+    (`reply`, or the fake's own with none), scored the way the harness
+    scores it."""
+    case = dict(harness.load_case(harness.cases_for("weekly-digest")[0]),
+                recording=None, provider={"provider": "fake"})
     if reply is not None:
         case["provider"] = {"provider": "fake", "reply": reply,
                             "replies": {"planner.md": PLAN}}

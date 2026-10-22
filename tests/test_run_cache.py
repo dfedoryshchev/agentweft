@@ -139,6 +139,8 @@ def test_the_process_holds_no_answers_of_its_own():
 
 def test_two_eval_cases_on_one_flow_do_not_share_answers(monkeypatch):
     case = harness.load_case(harness.cases_for("weekly-digest")[0])
+    # a case with a recording replays it and never asks the provider set here
+    case["recording"] = None
     seen = []
     for word in ("first", "second"):
         case["provider"] = {"provider": "fake", "reply": (

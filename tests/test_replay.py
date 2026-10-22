@@ -183,9 +183,25 @@ def test_a_failed_go_is_recorded_and_replayed_as_one(evals_root, monkeypatch):
     assert budget.spent() == live_budget.spent()
 
 
+def test_record_with_no_case_named_writes_no_recording_a_case_never_had(
+        evals_root, monkeypatch, capsys):
+    other = evals_root.parent / "another"
+    shutil.copytree(evals_root, other)
+    recorded(other)
+    was = (other / recording.FILE).read_text(encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["evals", FLOW, "--record", "--no-save"])
+    assert evals_main.main() == 0
+    assert not (evals_root / recording.FILE).exists()
+    assert json.loads((other / recording.FILE).read_text(
+        encoding="utf-8"))["recorded"] >= json.loads(was)["recorded"]
+    assert ("two-files has no recording, so none was made: --case two-files"
+            " --record makes one") in capsys.readouterr().out
+
+
 def test_the_command_replays_and_a_stale_one_fails_and_keeps_the_baseline(
         evals_root, monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr(sys, "argv", ["evals", FLOW, "--record"])
+    monkeypatch.setattr(sys, "argv", ["evals", FLOW, "--case", "two-files",
+                                      "--record"])
     assert evals_main.main() == 0
     assert (evals_root / recording.FILE).exists()
     baseline = harness.LAST.read_text(encoding="utf-8")
@@ -225,8 +241,10 @@ def test_one_case_can_be_recorded_on_its_own(evals_root, monkeypatch, capsys):
     assert "no case called nope" in capsys.readouterr().out
 
 
-def test_the_shipped_recorded_case_replays_what_it_does_live(monkeypatch):
-    path = [p for p in harness.cases_for(FLOW) if p.name == "quiet-week"][0]
+@pytest.mark.parametrize("name", ["busy-week", "quiet-week"])
+def test_the_shipped_recorded_case_replays_what_it_does_live(name,
+                                                             monkeypatch):
+    path = [p for p in harness.cases_for(FLOW) if p.name == name][0]
     case = harness.load_case(path)
     assert case["recording"] is not None
     live = dict(case, recording=None)

@@ -160,6 +160,10 @@ sacrifice list, which only a run of the cli does.
   start commit though the code would pass it, and the run goes on, `done`
 - `repo-audit/two-files`: plan, two workers fanned out, merge, review, five
   calls, `done`
+- `weekly-digest/busy-week`: four files planned into the three lists, four
+  workers fanned out, merge, review, retro, eight calls, `done`
+- `weekly-digest/quiet-week`: three files, one of them empty, seven calls,
+  `done`
 
 ## recorded cases
 
@@ -169,7 +173,11 @@ calls nothing, so it runs offline and gives the same answers every time.
     python -m agentweft.evals weekly-digest --case quiet-week --record
 
 runs the case's own provider and writes what it answered, over the old one.
-without `--case` every case of the flow is recorded. each call is kept under
+without `--case` every case of the flow that has a recording is recorded
+again; a case with none runs as it would and is not recorded, with a line
+under the table saying so, since a first recording is one somebody asks for
+by name. each
+call is kept under
 its step, its task when the step is fanned out, and which go it was, with a
 sha256 of the prompt it was sent and never the prompt itself. the files an
 answer left in the place are kept with it and written again on replay.

@@ -315,7 +315,8 @@ def evals(monkeypatch, *args):
 def test_an_eval_keeps_a_record_and_says_when_it_was_replayed(digest,
                                                              monkeypatch):
     scores = str(digest)
-    assert evals(monkeypatch, "--record", "--scores", scores) == 0
+    assert evals(monkeypatch, "--case", "two-files", "--record", "--scores",
+                 scores) == 0
     assert evals(monkeypatch, "--scores", scores) == 0
     got = [json.loads(l) for l in digest.read_text(encoding="utf-8")
            .splitlines()]

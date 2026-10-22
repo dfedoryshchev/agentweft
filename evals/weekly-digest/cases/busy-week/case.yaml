@@ -1,5 +1,51 @@
 inbox: inbox
 provider:
   provider: fake
+  replies:
+    planner.md: |
+      TASK: hiring.md
+      LIST: needs-me
+      WHY: two people to decide on by the 30th
+      FILES:
+      - hiring.md
+
+      TASK: infra.md
+      LIST: changed
+      WHY: the box fell over on tuesday
+      FILES:
+      - infra.md
+
+      TASK: plan.md
+      LIST: changed
+      WHY: rewritten twice this week
+      FILES:
+      - plan.md
+
+      TASK: misc.md
+      LIST: can-wait
+      WHY: nothing that matters
+      FILES:
+      - misc.md
+  reply: |
+    VERDICT: ok
+
+    ## what changed
+    - infra.md | changed | the box fell over on tuesday
+    - plan.md | changed | rewritten twice this week
+
+    ## needs me
+    - hiring.md | needs-me | two people to decide on by the 30th
+
+    ## can wait
+    - misc.md | can-wait | nothing that matters
 expect:
   invariants: all
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> worker.md
+      - worker.md ok -> merge.md
+      - merge.md ok -> reviewer.md
+      - reviewer.md ok  PASS length  PASS regex  PASS quote
+      - retro.md ok
+  calls: 8

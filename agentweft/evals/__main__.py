@@ -35,23 +35,31 @@ def main():
         cases = picked
 
     record = "--record" in sys.argv
+    named = "--case" in sys.argv
     results = []
     unmatched = []
+    unrecorded = []
     for path in cases:
         case = harness.load_case(path)
+        mine = record and (named or case["recording"] is not None)
+        if record and not mine:
+            unrecorded.append(case["name"])
         started = time.time()
-        ran = harness.run_flow_for(flow, case, record=record)
+        ran = harness.run_flow_for(flow, case, record=mine)
         out, budget, stopped = ran
         if stopped.startswith(recording.PREFIX):
             unmatched.append(case["name"])
         scored = harness.score(spec, out, budget, stopped,
                                time.time() - started, steps=ran.steps,
                                expect=case["expect"])
-        scored["replayed"] = bool(case["recording"]) and not record
+        scored["replayed"] = bool(case["recording"]) and not mine
         scored["stopped"] = stopped
         scored["key"] = harness.produced_by(flow, spec, case, ran.steps)
         results.append((case["name"], scored))
     print(harness.table(flow, results))
+    for name in unrecorded:
+        print(name + " has no recording, so none was made: --case " + name
+              + " --record makes one")
     if unmatched:
         print("")
         print(", ".join(unmatched) + ": the recording does not match this run,"

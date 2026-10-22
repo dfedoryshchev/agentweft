@@ -103,7 +103,8 @@ def test_the_same_case_on_the_whole_flow_passes(root, monkeypatch):
 def test_the_command_prints_the_step_and_the_mode(root, monkeypatch, capsys):
     a_case(root, {"steps": {"match": "superset", "path": WHOLE}})
     without_merge(root)
-    monkeypatch.setattr(sys, "argv", ["evals", FLOW, "--record", "--no-save"])
+    monkeypatch.setattr(sys, "argv", ["evals", FLOW, "--case", "case",
+                                      "--record", "--no-save"])
     assert evals_main.main() == 0
     nothing_is_called(monkeypatch)
     monkeypatch.setattr(sys, "argv", ["evals", FLOW, "--no-save"])
