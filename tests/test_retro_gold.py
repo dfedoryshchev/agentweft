@@ -11,6 +11,7 @@ from agentweft.bench import __main__ as bench
 from agentweft.bench import retrogold
 from agentweft.providers import Provider, Reply, base
 from agentweft.providers.base import Usage
+from agentweft.runner import upkeep
 
 CASES = Path(__file__).resolve().parent.parent / "bench" / "retro-gold"
 NAMES = ["cross-file", "layered", "refactor", "shift"]
@@ -27,15 +28,47 @@ def test_the_four_cases_are_there_each_with_its_record_and_gold():
 def test_the_gold_itself_gets_full_marks():
     for case in retrogold.cases(CASES):
         got = retrogold.score(retrogold.answer_of(case),
-                              retrogold.gold_of(case))
+                              retrogold.gold_of(case), case)
         assert (got["score"], got["passed"]) == (4, True), (case.name, got)
+
+
+def test_every_gold_fact_is_one_the_runner_would_write():
+    for case in retrogold.cases(CASES):
+        items, _ = upkeep.parse(retrogold.answer_of(case))
+        found = [(v, val, f) for v, val, f in items if v == "fact"]
+        assert found, case.name
+        for verb, value, fields in found:
+            assert retrogold.refusal(case, verb, value, fields) == "", \
+                case.name
+
+
+def test_a_fact_the_runner_would_refuse_scores_no_fact_point():
+    case = CASES / "cross-file"
+    gold = retrogold.gold_of(case)
+    answer = retrogold.answer_of(case)
+    unbacked = answer.replace('TASK.md:4 "every user-facing error is raised'
+                              ' as LogcountError"',
+                              'TASK.md:4 "errors are printed where they'
+                              ' happen"')
+    assert unbacked != answer
+    got = retrogold.score(unbacked, gold, case)
+    assert (got["fact"], got["score"]) == (0, 3)
+    no_why = "\n".join(l for l in answer.split("\n")
+                       if not l.strip().startswith("why: TASK.md"))
+    assert retrogold.score(no_why, gold, case)["fact"] == 0
+    place = case / "place"
+    before = sorted(p.relative_to(place).as_posix()
+                    for p in place.rglob("*"))
+    retrogold.score(answer, gold, case)
+    assert sorted(p.relative_to(place).as_posix()
+                  for p in place.rglob("*")) == before
 
 
 def test_an_answer_that_sends_the_change_to_the_wrong_file_gets_nothing():
     case = CASES / "cross-file"
     wrong = retrogold.answer_of(case).replace("logcount/reader.py",
                                               "logcount/cli.py")
-    got = retrogold.score(wrong, retrogold.gold_of(case))
+    got = retrogold.score(wrong, retrogold.gold_of(case), case)
     assert got["change"] == 0
     assert (got["score"], got["passed"]) == (0, False)
 
@@ -45,20 +78,20 @@ def test_each_item_is_scored_on_its_own():
     gold = retrogold.gold_of(case)
     answer = retrogold.answer_of(case)
     no_cause = answer.replace("round", "trunc")
-    assert retrogold.score(no_cause, gold)["cause"] == 0
-    assert retrogold.score(no_cause, gold)["score"] == 3
+    assert retrogold.score(no_cause, gold, case)["cause"] == 0
+    assert retrogold.score(no_cause, gold, case)["score"] == 3
     wrong_seq = answer.replace("## seq 2 worker.md", "## seq 3 patcher.md")
-    assert retrogold.score(wrong_seq, gold)["failed"] == 0
+    assert retrogold.score(wrong_seq, gold, case)["failed"] == 0
     wrong_kind = answer.replace("kind: convention", "kind: decision")
-    assert retrogold.score(wrong_kind, gold)["fact"] == 0
-    assert retrogold.score("", gold) == dict(retrogold.score("", gold),
-                                             score=0, passed=False)
+    assert retrogold.score(wrong_kind, gold, case)["fact"] == 0
+    assert retrogold.score("", gold, case) == dict(
+        retrogold.score("", gold, case), score=0, passed=False)
 
 
 def test_a_fact_in_a_block_that_does_not_parse_scores_nothing():
     case = CASES / "cross-file"
     broken = retrogold.answer_of(case).replace("END FACTS", "")
-    assert retrogold.score(broken, retrogold.gold_of(case))["fact"] == 0
+    assert retrogold.score(broken, retrogold.gold_of(case), case)["fact"] == 0
 
 
 def test_the_record_s_prompt_is_the_one_a_run_hands_the_retro():

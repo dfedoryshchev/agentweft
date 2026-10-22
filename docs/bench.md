@@ -248,7 +248,10 @@ record. an answer scores one for each of:
 - `cause`: that section's `why:` line holds every word `cause` lists
 - `change`: that section's `change:` line names the `change` file
 - `fact`: the FACTS block parses and has a fact or supersession of the gold's
-  kind with one of the gold's scopes
+  kind with one of the gold's scopes, one the runner would write: held to a
+  copy of the case's `place/` and a record read from `record/steps.jsonl`
+  (`docs/guardrails.md`, "the facts only the runner writes"), so a fact with
+  evidence the record does not back, or no why, scores nothing
 
 a change sent to the wrong file scores 0 whatever else it got right. a case
 passes when every one of the k repeats scores 4; the gold itself scores 4 on

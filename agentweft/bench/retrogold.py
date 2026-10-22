@@ -12,7 +12,8 @@ program checks it on:
       scope: [pkg/]               one of these among the fact's scopes
       kind: convention
 
-an answer scores one for each of the four. a change sent to the wrong file
+an answer scores one for each of the four; the fact only when the runner
+would write it on the case's record. a change sent to the wrong file
 is worth nothing whatever else it got right, so it scores 0. a blind reader
 gives the change text and the fact's why 0 to 2 apart (`reader`, None until
 then). a case passes a cell when every repeat scores 4.
@@ -25,6 +26,8 @@ seconds it took.
 import datetime
 import json
 import re
+import shutil
+import tempfile
 import time
 import types
 from pathlib import Path
@@ -32,6 +35,7 @@ from pathlib import Path
 import yaml
 
 from agentweft.guardrails import factsguard
+from agentweft.orchestrate import decisions
 from agentweft.runner import retro, trace, upkeep
 
 GOLD = "gold.yaml"
@@ -116,9 +120,44 @@ def path_form(text):
     return (text or "").replace("\\", "/").strip().lower()
 
 
-def score(answer, gold):
+def record_of(case, place):
+    """-> the Record a run holds for the case: the place, the (command, exit
+    code) of each gate line in record/steps.jsonl that names its command,
+    and the rulings in the place's decisions.md."""
+    ran = []
+    for line in lines_of(Path(case) / "record"):
+        for g in line.get("gates") or []:
+            m = retro.EXIT.search(str(g.get("detail") or "")) \
+                if isinstance(g, dict) and g.get("command") else None
+            if m:
+                ran.append((g["command"] if isinstance(g["command"], str)
+                            else " ".join(g["command"]), int(m.group(1))))
+    try:
+        stamps = [d.at.strftime(decisions.STAMP)
+                  for d in decisions.read(place)]
+    except (OSError, ValueError, AttributeError):
+        stamps = []
+    return factsguard.Record(place, ran=ran, stamps=stamps)
+
+
+def refusal(case, verb, value, fields):
+    """-> why the runner would not write the proposed fact on the case's
+    record, "" when it would: held to a copy of place/, so nothing in the
+    case is touched."""
+    with tempfile.TemporaryDirectory(prefix="retro-gold-",
+                                     ignore_cleanup_errors=True) as tmp:
+        place = Path(tmp) / "place"
+        shutil.copytree(str(Path(case) / "place"), str(place))
+        given = dict(fields, supersedes=value) if verb == "supersede" \
+            else fields
+        return factsguard.Store(place).refusal(factsguard.Proposal(given),
+                                               record_of(case, place))
+
+
+def score(answer, gold, case):
     """-> one per item (0 or 1), `score` out of 4, `passed`, and `reader`
-    left for the blind reader."""
+    left for the blind reader. the fact point needs a fact the runner would
+    write on the case's record, `case` its folder."""
     seq, step = gold["failed"].split()[1:3]
     found = sections(answer).get((int(seq), step))
     got = dict.fromkeys(ITEMS, 0)
@@ -130,10 +169,11 @@ def score(answer, gold):
                             in path_form(found.get("change")))
     items, _ = upkeep.parse(answer)
     wanted = {path_form(s).rstrip("/") for s in gold["fact"]["scope"]}
-    for verb, _, fields in items or []:
+    for verb, value, fields in items or []:
         scopes = {path_form(s).rstrip("/") for s in fields.get("scope") or []}
         if verb in ("fact", "supersede") and scopes & wanted \
-                and fields.get("kind") == gold["fact"]["kind"]:
+                and fields.get("kind") == gold["fact"]["kind"] \
+                and not refusal(case, verb, value, fields):
             got["fact"] = 1
     total = sum(got.values()) if got["change"] else 0
     return dict(got, score=total, passed=total == len(ITEMS), reader=None)
@@ -162,7 +202,7 @@ def run(folder, block, k, said=print):
     for case in cases(folder):
         for n in range(1, k + 1):
             text, cost, tokens, seconds = ask(provider, case)
-            got = score(text, gold_of(case))
+            got = score(text, gold_of(case), case)
             rows.append(dict(got, case=case.name, k=n, cost=cost,
                              tokens=tokens, seconds=seconds, answer=text))
             said(case.name + " k" + str(n) + ": " + str(got["score"])
