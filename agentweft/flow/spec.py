@@ -112,7 +112,7 @@ SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
               "gates", "provider", "preflight", "pause", "model", "tools",
               "reports", "writes_tests", "writes", "effort", "verbosity",
-              "continue", "brief", "lens")
+              "continue", "brief", "lens", "on_missed")
 WRITES = ("tests", "product", "spec", "none")
 # a `writes: spec` step with no `tools:` of its own: looking and editing, no
 # shell, since a shell writes where no grant can say
@@ -652,6 +652,13 @@ def check(raw):
                                    + ", which is not a role or a step before "
                                    "it. there is: "
                                    + (", ".join(earlier) or "nothing"))
+        target = step.get("on_missed")
+        if target is not None and not any(
+                isinstance(s, dict) and s.get("role") == target
+                and s.get("writes") == "tests"
+                for s in (raw.get("steps") or [])[:i]):
+            bad.append(at + "on_missed names " + str(target) + ", which is"
+                       " not the role of a step before it that writes: tests")
         for name in (step["role"], step_name(step)):
             if name not in earlier:
                 earlier.append(name)

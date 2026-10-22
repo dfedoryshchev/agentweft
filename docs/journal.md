@@ -1011,6 +1011,23 @@ judged together: one that has to be a ruling (a test the run started with, a
 `spec:` line that is not there, a test that has gone back as often as
 `send_backs` allows) parks the answer, and nothing goes back.
 
+a reviewer step with `on_missed: <role>` names, under its verdict, the
+likeliest wrong implementation the tests as they are would let pass, and the
+case that would fail it (`runner/wouldpass.py`):
+
+    WOULD PASS: mul returns a + b, which mul(2, 2) cannot tell from a times b
+    CATCH: mul(2, 5) is 10
+
+or `WOULD PASS: none`. under a verdict that lets the work through, the line
+goes to the nearest step before the reviewer with that role, the one that
+wrote the tests, at the very end of its prompt, and its red-test gate shows
+the new case red on the start commit before the work walks on. the reviewer's
+line in `steps.jsonl` is a `redo` with `to` naming that step. the steps after
+it go again in the flow's order, the one that wrote the code told the case
+may pass already, so the suite holds the code to the case too. once a run:
+a second line is read and goes nowhere. a redo's line waits for the verdict
+that lets the work through.
+
 the runner asks one of its own when a step in a flow with `spec_files:
 additions` removes or rewrites a line of the spec the run started with
 (`docs/guardrails.md`, "the spec files"). the run parks after that step's

@@ -43,6 +43,16 @@ class Router(object):
                 self.on_redo[step_id(s)] = \
                     self._earlier(i, lambda role: role == target) \
                     or first_for_role.get(target, target + ".md")
+        # where a reviewer's WOULD PASS line goes (`wouldpass.py`): only to a
+        # step before it, the one that wrote the tests it read
+        self.on_missed = {}
+        for i, s in enumerate(spec.steps):
+            target = s.get("on_missed")
+            found = self._earlier(i, lambda role: role == target) \
+                if target else None
+            if found:
+                self.on_missed[step_id(s)] = found
+        self.missed = 0
         self.must = {}
         for s in spec.steps:
             if s.get("must_produce"):
@@ -109,6 +119,16 @@ class Router(object):
                 return self.sent_to(target)
         i = self.order.index(step)
         return self.order[i + 1] if i + 1 < len(self.order) else None
+
+    def missed_to(self, step):
+        """-> the step a WOULD PASS line from `step` goes to, None when `step`
+        sends none or one has gone this run. asked once per line, which is
+        what spends it."""
+        target = self.on_missed.get(step)
+        if not target or self.missed:
+            return None
+        self.missed += 1
+        return target
 
     def gate_cap(self, step):
         """how many times a failed gate sends this step back before the run

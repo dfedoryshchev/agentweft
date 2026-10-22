@@ -259,6 +259,11 @@ FLOW_ONLY = (
          "the one line a reviewer reads for that the other reviewers do not, "
          "checked to differ and sent to each of them. an agent's stance is in "
          "its own prose, where nothing compares it with the next one's."),
+    Pair("step.on_missed", "",
+         "where a reviewer's one wrong implementation the tests would pass "
+         "goes for the case that fails it: the step that wrote the tests, once "
+         "a run. a phase's review sends work back by verdict only, and has no "
+         "word for a test the tests are missing."),
 )
 
 

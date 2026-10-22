@@ -21,5 +21,15 @@ what has changed in it since:
 
 {SPEC_DIFF}
 
-after the verdict line, the list of changed files, corrected, in the worker's
-shape: one `- <file>: <what changed>` line each.
+under the verdict line, whatever the verdict, the likeliest wrong
+implementation the tests as they are would let pass, and the case that would
+fail it, each on its own line:
+
+    WOULD PASS: <the wrong implementation, in one line>
+    CATCH: <the case that fails it>
+
+or `WOULD PASS: none` when every wrong one you can name fails a test already.
+it is not a redo: on an ok, the step that wrote the tests adds the case.
+
+after those, the list of changed files, corrected, in the worker's shape: one
+`- <file>: <what changed>` line each.

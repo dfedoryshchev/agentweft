@@ -20,7 +20,7 @@ from . import stops
 from . import summary
 from . import trace
 from . import worktrees
-from . import wrongtest
+from . import wouldpass, wrongtest
 from .asking import (asked_file, lead_pass, rides, to_lead,
                      worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
@@ -653,6 +653,29 @@ def go(leg):
                 out = handed
                 continue
 
+            missed = wouldpass.read(out.output) \
+                if honest and out.verdict != "redo" else None
+            writer = route.missed_to(step) if missed else None
+            if writer:
+                print(step + " names a wrong implementation the tests would"
+                      " pass, sent to " + writer + " for the case")
+                if step in before:
+                    entry.changed = before[step] != snapshot.fingerprint(
+                        run.workdir, own=state.RUNS)
+                trail.close(entry, "redo", why="the tests would pass "
+                            + missed[0] + ", back to " + writer
+                            + " for the case", to=writer)
+                record.mark(step, manifest.REDO, run_id, out.output)
+                record.save(run.budget)
+                run.gate_said[writer] = wouldpass.told(step, *missed)
+                coder = route.on_redo.get(step)
+                if coder:
+                    run.gate_said[coder] = wouldpass.then(writer, step,
+                                                          missed[0])
+                out = given.get(writer, EMPTY)
+                came_from = step
+                step = writer
+                continue
             stuck = route.out_of_redos(out)
             nxt = route.next(step, out)
             waiting = run.pause_for(step) or ("user" if stuck else None)

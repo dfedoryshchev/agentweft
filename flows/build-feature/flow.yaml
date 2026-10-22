@@ -30,6 +30,7 @@ steps:
     writes: none
     tools: [read, grep, shell]
     on_redo: worker
+    on_missed: tester
     lens: "the spec and the tests: each thing the spec asks for has code and a test that checks it, and nothing the feature does not need has changed"
   - role: reviewer
     prompt: reviewer-runs.md
