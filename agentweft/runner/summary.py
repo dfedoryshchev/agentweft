@@ -637,6 +637,71 @@ def assumed(item):
     return out
 
 
+YES = ("yes", "y", "true", "fixed")
+NO = ("no", "n", "false", "not fixed", "not yet")
+
+
+def beside(item):
+    """an ADJACENT item -> {"defect", "fixed", "test"}: `fixed` True, False
+    or None when the step did not say, `test` "" when it named none. read
+    from the lines under the defect or, in a one-line form, from between its
+    `|` separators."""
+    parts = [p.strip() for p in item.split("\n")]
+    if len(parts) == 1:
+        parts = [p.strip() for p in item.split("|")]
+    out = {"defect": parts[0], "fixed": None, "test": ""}
+    for p in parts[1:]:
+        low = p.lower()
+        if low.startswith("fixed:"):
+            said = p[6:].strip().lower().rstrip(".")
+            out["fixed"] = True if said in YES else False if said in NO \
+                else None
+        elif low.startswith("test:"):
+            said = p[5:].strip().strip("`")
+            out["test"] = "" if said.lower() in handoff.NONE_WORDS else said
+        else:
+            out["defect"] = out["defect"] + " | " + p
+    return out
+
+
+def beside_said(found, files=None):
+    """-> how a found defect stands: fixed and by which test, or not. a
+    test named for a fix whose file is not among `files`, the paths the run
+    changed (None outside git), says so."""
+    if found["fixed"] is None:
+        return "fixed or not, not said"
+    if not found["fixed"]:
+        return "not fixed"
+    if not found["test"]:
+        return "fixed, no test names it"
+    out = "fixed, shown by " + found["test"]
+    path = found["test"].split("::")[0].replace("\\", "/")
+    if files is not None and path not in files:
+        out = out + "; its file did not change in this run"
+    return out
+
+
+def found_beside(blocks):
+    """-> each defect the steps found beside the change, once: [(found, the
+    roles that named it)], as the last step that named it left it."""
+    out = []
+    for role, b in blocks:
+        if not _present(b):
+            continue
+        for item in b.get("adjacent") or []:
+            found = beside(item)
+            key = front.norm(found["defect"])
+            home = next((h for h in out if front.norm(h[0]["defect"]) == key),
+                        None)
+            if home is None:
+                out.append((found, [role]))
+                continue
+            home[0].update(fixed=found["fixed"], test=found["test"])
+            if role not in home[1]:
+                home[1].append(role)
+    return out
+
+
 def ended(stopped, unsure=()):
     """-> the words after the run id: the outcome first, then for a stop
     where and why."""
@@ -978,6 +1043,14 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     why.append(("assumed - tell me if wrong:",
                 [role + ": " + assumed(i) for role, b in blocks
                  if _present(b) for i in b["assumed"]]))
+    files = [f[0].replace("\\", "/") for f in changes.get("files") or []] \
+        if changes.get("git") else None
+    beside_it = found_beside(blocks)
+    why.append(("also fixed beside the change:",
+                [f["defect"] + (", shown by " + f["test"] if f["test"]
+                                else ", no test names it")
+                 + " (" + ", ".join(roles) + ")"
+                 for f, roles in beside_it if f["fixed"]]))
     left_out = []
     for role, b in blocks:
         if _present(b):
@@ -993,6 +1066,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                   front.doubts(every, taken)]
                  + [investigate.STEP + " saw and did not fix: " + l[2:]
                     for l in investigate.listed(dug, "RELATED")]),
+                ("found beside the change, not fixed:",
+                 [f["defect"] + ("" if f["fixed"] is False
+                                 else ", fixed or not, not said")
+                  + " (" + ", ".join(roles) + ")"
+                  for f, roles in beside_it if not f["fixed"]]),
                 ("cut for the budget, not run:", cut_lines(skipped)),
                 ("police, shadow - seen, the run not stopped for it:",
                  list(shadowed)),
@@ -1053,6 +1131,12 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     said.extend("- " + investigate.STEP + " saw and did not fix: " + l[2:]
                 for l in investigate.listed(dug, "RELATED"))
     out.extend(said or ["- none raised"])
+
+    if beside_it:
+        out.append("")
+        out.append("## found beside the change")
+        out.extend("- " + ", ".join(roles) + ": " + f["defect"] + " - "
+                   + beside_said(f, files) for f, roles in beside_it)
 
     out.append("")
     out.append("## changed")

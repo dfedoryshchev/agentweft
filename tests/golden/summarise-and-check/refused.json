@@ -148,6 +148,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -292,7 +293,7 @@
     ]
   ],
   "prompts": [
-    "retro.md go 1 5ed9a21430cb06eecc6d593dd20813281ab8239a55ee1043600ffc38f262ab4c",
-    "worker.md go 1 447636c9755f82b074f8a8c1827f9763a8a903ad0c36946bd0bf045c030603ab"
+    "retro.md go 1 02372a3ce96da35e995f6e64ac99f5832bdb40503550565c1ea8abdd4b84949a",
+    "worker.md go 1 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33"
   ]
 }

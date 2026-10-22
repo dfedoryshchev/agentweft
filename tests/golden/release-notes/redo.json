@@ -152,6 +152,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -257,6 +258,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -330,6 +332,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -435,6 +438,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -575,10 +579,10 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 6089ca5ba18805fbd84839229aa4e938e6aea8c1aefff9efdc3bd5fd6e23429d",
-    "reviewer.md go 1 5323873cb5a86b7c9c56f5c902c232b408930a54c6a820b5048258e851fdc847",
-    "reviewer.md go 2 818e17fc73e390fe2ed04bff1b63f92d9cf81cb8fcc97380c7b983b5f2f0d0e0",
-    "worker.md go 1 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d",
-    "worker.md go 2 2c9e36a4c355f3fc1b647c445d86d2741f1154c51e3b0eeced92abc6e6933d3b"
+    "retro.md go 1 71d7296d1a68765e39b7edcfdb58ca338b7b7d9a3f76aad8e26f8bd773a3c29b",
+    "reviewer.md go 1 c5d93d40a94242841fb325ae2bdf7886a28d6298c990dc66260a35886651a6fd",
+    "reviewer.md go 2 8361b05c64be61a8fe8a5791a04d3a514e76babd3a4b6df071e8034c6431da13",
+    "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938",
+    "worker.md go 2 6ee8386a226a2efe2aeefbf96ab7fc3129c5e31121bb96a2ea4e18621bedefc3"
   ]
 }

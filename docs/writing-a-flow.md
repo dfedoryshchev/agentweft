@@ -337,7 +337,10 @@ once the handoff is written, every run that ends hands the retro role
 attempt (a gate that failed, a send-back, a stop), each gate that could not
 do its job (an `issue`, `docs/gates.md`) and each shell write a step went on
 past after the hook refused it, by seq and step; each step's DID, ASSUMED,
-TRIED and DOUBTS lines; the rulings written in the run; the files git says
+TRIED and DOUBTS lines, and each defect it found beside the change (its
+ADJACENT items, `docs/journal.md`, "what each step hands over") with whether
+it was fixed and by which test, a defect left not fixed being the retro's
+`defect` fact; the rulings written in the run; the files git says
 it changed; the project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts it may
 write; `why.md` when the run stopped short; and `handoff.md`. a clean run is

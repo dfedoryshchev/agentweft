@@ -182,6 +182,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -261,6 +262,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -346,6 +348,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -431,6 +434,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -592,10 +596,10 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
-    "retro.md go 1 2482f08831f7089bc67f28127c0b0843d600f906f846e208dbc10014e40ecd9f",
-    "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",
-    "worker.md go 1 0429c0efce339fd738b7aba5a2564683e5774ce3a66f910b5352a7c29a89fcc8",
-    "worker.md go 2 ccc5cc6611e11b3c4ff23ee7e8e65be02fb57421168fa5a0a24870dabea23907"
+    "planner.md go 1 552f7a6d676b0b3047de59c09066cb9354593796e365c9da6a6ffe70f9083690",
+    "retro.md go 1 6985f02781b5c89b3aabc9fffd22ff4c8fd193105f4eedc0d5306d9827aa629e",
+    "tester.md go 1 01e461eb6396adb9c1b7b60545b616163c4392306d22789a12f3e567f2592f27",
+    "worker.md go 1 87f995453cb0aa3294a0f6c3520dd83fed4144833144e04716e65e849e45388a",
+    "worker.md go 2 83ec2457f8a20a720ec6d01b158f4dfc7929c47e35318ba1d1db918ded27ac62"
   ]
 }

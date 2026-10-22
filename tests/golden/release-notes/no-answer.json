@@ -150,6 +150,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -298,9 +299,9 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 19d85931ff115239f884c0e0ee1e3db3bc8659641c7eb312afb8fd0808900622",
-    "worker.md go 1 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d",
-    "worker.md go 2 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d",
-    "worker.md go 3 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d"
+    "retro.md go 1 3943b4a9cc2b2451b8f9d1d2b9551a19b0c60d469204f2831d6c5693362d11af",
+    "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938",
+    "worker.md go 2 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938",
+    "worker.md go 3 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938"
   ]
 }

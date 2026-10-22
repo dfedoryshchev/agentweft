@@ -152,6 +152,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -257,6 +258,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -330,6 +332,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -435,6 +438,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -572,10 +576,10 @@
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 7677bab629ae3ffd8c4a099abf0c3c3810fe77050408232791e9bdac439a3c1e",
-    "reviewer.md go 1 cb2b8712a64968a58047efbba823465a7f60a09957be45cd0ba6fe6e6634a3e9",
-    "reviewer.md go 2 9c24b0cd5640981ad8a3aa138f2421ae27d710c875cf8d86ee115c39e3777704",
-    "worker.md go 1 447636c9755f82b074f8a8c1827f9763a8a903ad0c36946bd0bf045c030603ab",
-    "worker.md go 2 8720559895196b2d7c3b80e26e7e8e19feb03c4f7e51da1f49c92cefc7c6554f"
+    "retro.md go 1 29036d88dce312620559348a965d87a76436880a8ed05b83909fc70a9f591ade",
+    "reviewer.md go 1 ef70bd3a7464c2de1dcadf70443222b1d090739c683b614862d35892f4d3660c",
+    "reviewer.md go 2 105c629c86e3b03c0733005b66e9b3df863a7c09176e29ef23488804f45d34dc",
+    "worker.md go 1 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33",
+    "worker.md go 2 9f2bc0090d9c7432d08bcb46ca55a87b122eedb7ad60ff4901c41e53c9b9a441"
   ]
 }

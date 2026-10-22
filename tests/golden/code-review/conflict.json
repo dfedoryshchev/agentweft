@@ -163,6 +163,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -226,6 +227,6 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 4ef397e1b7873dbd6f9a537df0d3dafd57fa45856b98bbaa233dcfcde7c206b8"
+    "worker.md go 1 841b219d95cbccaf0155aee3284bdf801a6784a2dfd0d0785f86ac8cfa4fc6be"
   ]
 }

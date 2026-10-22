@@ -151,6 +151,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -298,8 +299,8 @@
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
-    "planner.md go 2 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
-    "retro.md go 1 9c6b7fff392beec62e8a7339fadeb7c21962ec1400df1ee4cbd8256ebac30ca1"
+    "planner.md go 1 cff238945fbeed64a1184332540820374213f3cdf185a6cd3a050b9d2b5737e4",
+    "planner.md go 2 cff238945fbeed64a1184332540820374213f3cdf185a6cd3a050b9d2b5737e4",
+    "retro.md go 1 e418d7b2f01fe7200744215c117880e18c8ed1333186d8e6e7adb207bfdbe5d0"
   ]
 }

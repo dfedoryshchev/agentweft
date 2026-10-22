@@ -142,6 +142,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -281,7 +282,7 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
-    "retro.md go 1 da7481c605332850516fe06981423ee9ef65918ec75cbb64d4921aa621fc77c4"
+    "planner.md go 1 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
+    "retro.md go 1 78b2e89815c8fe7b9f6e596fe976bf6af461136cd175520c5b2e93496fd51581"
   ]
 }

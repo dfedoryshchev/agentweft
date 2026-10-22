@@ -219,6 +219,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -408,6 +409,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -486,7 +488,7 @@
     ]
   ],
   "prompts": [
-    "reviewer.md go 1 818e17fc73e390fe2ed04bff1b63f92d9cf81cb8fcc97380c7b983b5f2f0d0e0",
-    "worker.md go 1 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d"
+    "reviewer.md go 1 8361b05c64be61a8fe8a5791a04d3a514e76babd3a4b6df071e8034c6431da13",
+    "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938"
   ]
 }

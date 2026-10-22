@@ -7,8 +7,8 @@ being smuggled through the same string.
 
 every step's answer now ends with a HANDOFF block: what it did, what it
 verified and how, what it did not verify, what it assumed, what it doubts,
-what the rest of the work must not miss, what it tried and dropped, what it
-read. the block is parsed here onto the step's line in steps.jsonl, handed to
+what it found beside the change and whether it fixed it, what the rest of
+the work must not miss, what it tried and dropped, what it read. the block is parsed here onto the step's line in steps.jsonl, handed to
 the next step at the top of its prompt, and folded into the run's handoff.md.
 
 a step that ends without one is recorded `missing`. nothing is made up in its
@@ -36,7 +36,8 @@ from . import verbs
 
 SECTIONS = (("DID", "did"), ("VERIFIED", "verified"),
             ("NOT VERIFIED", "not_verified"), ("ASSUMED", "assumed"),
-            ("DOUBTS", "doubts"), ("MUST NOT MISS", "must_not_miss"),
+            ("DOUBTS", "doubts"), ("ADJACENT", "adjacent"),
+            ("MUST NOT MISS", "must_not_miss"),
             ("TRIED", "tried"), ("READ", "read"))
 KEYS = dict((head, key) for head, key in SECTIONS)
 KNOWN = set(KEYS.values())
@@ -56,6 +57,7 @@ CLOSE = re.compile("^" + DECOR + r"END HANDOFF[\s*`_:.]*$", re.I)
 NONE_WORDS = ("", "none", "nothing", "-", "n/a", "na", "none.")
 PART = re.compile(r"^(cmd|command|ran|saw|output)\s*:\s*(.*)$", re.I)
 BECAUSE = re.compile(r"^(why|if wrong)\s*:\s*(.*)$", re.I)
+FOUND = re.compile(r"^(fixed|test)\s*:\s*(.*)$", re.I)
 ABOVE = re.compile(r"^\(?\s*(?:the\s+)?(?:same(?:\s+(?:command|cmd))?"
                    r"(?:\s+as\s+(?:above|before|the\s+one\s+above))?"
                    r"|as\s+above|see\s+above)\s*\.?\s*\)?$", re.I)
@@ -106,7 +108,8 @@ def parse(text):
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
     is kept under `other` as the step wrote it. an ASSUMED item's `why:` and
     `if wrong:` lines are its own, kept on lines of their own under the
-    choice; the older one-line form with `|` stays one line. `QUESTION:`
+    choice, and so are an ADJACENT item's `fixed:` and `test:` lines; the
+    older one-line form with `|` stays one line. `QUESTION:`
     opens an open question, and the `RECOMMEND:` and `SIZE:` lines after it
     are its own, under `questions`; `QUESTION: none` asks nothing.
     """
@@ -123,6 +126,9 @@ def parse(text):
             continue
         if items is out["assumed"] and items and _labelled(line, BECAUSE):
             items[-1] = items[-1] + "\n" + _labelled(line, BECAUSE)
+            continue
+        if items is out["adjacent"] and items and _labelled(line, FOUND):
+            items[-1] = items[-1] + "\n" + _labelled(line, FOUND)
             continue
         head = verbs.key_of(line)
         if head is not None and head[0] in ASKING and not head[2]:
@@ -590,6 +596,7 @@ def brief(h):
     for key, title in (("did", h.role + " did:"),
                        ("assumed", h.role + " assumed, and says so:"),
                        ("doubts", h.role + " doubts:"),
+                       ("adjacent", h.role + " found beside the change:"),
                        ("not_verified", h.role + " did not verify:"),
                        ("tried", h.role + " tried and dropped:")):
         if b[key]:

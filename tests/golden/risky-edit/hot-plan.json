@@ -153,6 +153,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -256,6 +257,6 @@
     "handoff: <tmp>/runs/risky-edit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 189cb6ed9953b70a305063b6aa07715e2b0c9bc1811d71bc3f7d75fd9a652c3e"
+    "planner.md go 1 3833e2c85e567e7d63d4e87e06769f134721a5f6bfe35a7eef20dd249d003183"
   ]
 }

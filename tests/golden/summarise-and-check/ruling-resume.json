@@ -235,6 +235,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -308,6 +309,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -413,6 +415,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -603,9 +606,9 @@
     ]
   ],
   "prompts": [
-    "retro.md go 1 90667268d3916e08293eb013361182294ddda960ec3d5a2fc293c85fe8d1ab6f",
-    "reviewer.md go 1 2506d2ff02306e05bac3cf110c3ce3af013a667d9d669e4e1fe7198e9c1d7ca2",
-    "worker.md go 1 447636c9755f82b074f8a8c1827f9763a8a903ad0c36946bd0bf045c030603ab",
-    "worker.md go 2 e5332211b892ffb7eae09372ceafbea29a9e5d2126def8a5789ed488eb321411"
+    "retro.md go 1 bf0fde8ce9507aa676d0c49cfeb0cbf1e99c7e1f609a7a2b80de8a0e166321ed",
+    "reviewer.md go 1 d90064fc93f29851d75bfbcdb2f985233f19db4282d0c7d40276ef87935622f0",
+    "worker.md go 1 21084691849571a9fb70121617ded29199ee5291efe34b898cfe6391f872de33",
+    "worker.md go 2 d4409873d0e7e30ad1588f9d6961cad7ebbc2fdb84dd95dc275c851c868d61e0"
   ]
 }

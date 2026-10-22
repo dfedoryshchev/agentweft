@@ -142,6 +142,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -282,7 +283,7 @@
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
-    "retro.md go 1 a6569a5773927e276443aeddd915586939812316c3ea65041ef953fc95e89882"
+    "planner.md go 1 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
+    "retro.md go 1 119e8ca965bb0a92d2cedfc73424a3671325a8c7d59b1df9968025ad186976ab"
   ]
 }

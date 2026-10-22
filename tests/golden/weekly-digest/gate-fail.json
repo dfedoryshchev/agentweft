@@ -183,6 +183,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -297,6 +298,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -370,6 +372,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -491,6 +494,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -612,6 +616,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -768,12 +773,12 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 f00be6ad7310b85de6e8703f79f27b29374b90b43d3ac55dc639d9156f0c62da",
-    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
-    "retro.md go 1 a96e2d00b119a4a697d63f074a4789ce8c532c42d9860d6d9da5ba7080905836",
-    "reviewer.md go 1 ed97eb807869873b0fdd94c151a64d5dd80a16d9088c52c37367877fffe2d979",
-    "reviewer.md go 2 6f7819e0376e51e35f20a54459176b749f215f836183256a25ff164ec659447f",
-    "worker.md task 1 go 1 b9e13a619ed92f2e52eb58f0e86a6d6c5d8e94c85e0f9d1cba5d25c3d309e33d",
-    "worker.md task 2 go 1 e2bd89d3b536a64d689ad96d4ab4c90082787b76a09e3287c502477f842352ad"
+    "merge.md go 1 3789ed4727063d5c68ba502a0dd000fe2a8516c1bab8b09e000bd4256dffba48",
+    "planner.md go 1 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
+    "retro.md go 1 9b242b5abbef04b57d752de1e4528c3ab6e4a580a0a9133291988430b5c9e6ea",
+    "reviewer.md go 1 e376cc8af36fa608bcd52fd06a7c22ea8bd7f6488b09b49599e75cd1f1de5e78",
+    "reviewer.md go 2 d000b9c904e6b2622ce39c752aa72455aa09d39e77e7b7f4995fe11302da6f6d",
+    "worker.md task 1 go 1 2d5ddce717bd4f07b33ae041add22a6db02ac1a6fceee35d0ddc5860d3ee228f",
+    "worker.md task 2 go 1 fa7a5fa4dfb479f9d05f538ac9b38f191dd1df2769d9e25fdae6ddc39e42bf3b"
   ]
 }

@@ -226,6 +226,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -351,6 +352,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -456,6 +458,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -532,8 +535,8 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
-    "reviewer.md go 1 5412e4872b3d1805d8e3d3ee86567f8d6daf700078036eae402aee3bb265971b",
-    "worker.md go 1 7c4bd5dc982f363213a4f181b2161f583fe5d52374e93e994714a5f042f06997"
+    "planner.md go 1 cff238945fbeed64a1184332540820374213f3cdf185a6cd3a050b9d2b5737e4",
+    "reviewer.md go 1 81a47ecd5adbd3358793e1235469882b60528f494b79bbf3f27a4025a8069bd5",
+    "worker.md go 1 97d72f52cb73dd675b97f6e022a96857e8410b00c0e2864eb77c42ea0e2cd01a"
   ]
 }

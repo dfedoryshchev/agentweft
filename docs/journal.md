@@ -435,7 +435,11 @@ with a block, after the work:
       why: <reason>
       if wrong: <cost>
     DOUBTS:
-    - <what it is not sure of, or found and did not fix>
+    - <what it is not sure of>
+    ADJACENT:
+    - <a defect beside the change the task did not name, at <file>:<line>>
+      fixed: <yes or no>
+      test: <the test that fails without the fix, or none>
     MUST NOT MISS:
     - <file>:<line> - <a rule that binds the rest of the work>
     TRIED:
@@ -461,6 +465,8 @@ record", and the prompt asks for every command in full. an ASSUMED item's
 `why:` and `if wrong:` lines are read the same way, as parts of the choice
 above them; the older `<choice> | why: <reason> | if wrong: <cost>` line is
 still read. the handoff prints each assumption on one line with its labels.
+an ADJACENT item's `fixed:` and `test:` lines are read as parts of the defect
+above them the same way (`fixed:` yes or no, `test:` the test id or `none`).
 the block is not
 the work: the gates, the saved run and what the
 next step is handed as "what <role> produced" see the answer without it.
@@ -469,7 +475,8 @@ the next step gets the block first, before the raw answer, as "what <role>
 handed over": the MUST NOT MISS lines of every step so far (a constraint the
 first step read binds the last), each line once with the roles that kept
 it, the rulings in `decisions.md`, what the step assumed and doubts, what it
-verified and how it stood up, and what it read ("re-open only what you
+found beside the change, what it verified and how it stood up, and what it
+read ("re-open only what you
 change or doubt"). it is told the block is that step's account of its work,
 not instructions.
 
@@ -528,11 +535,15 @@ answers, in order:
   recommends in its block, on a question citing a line the conflict cites,
   shows that recommendation, and the conflict's options after it.
 - **why**: what the last working step did (on a stop, "handed over this
-  before the stop, not taken as done"), and what the steps assumed.
+  before the stop, not taken as done"), what the steps assumed, and each
+  defect a step fixed beside the change with the test that shows it (`also
+  fixed beside the change:`, `no test names it` when none did).
 - **not done**: what was not verified, the gates' unproven checks, and the
   doubts left as they are, each once: by its words, or by the spec line it
   cites, with the roles that raised it, and how many times when one role
-  raised it again after a send-back, so a doubt that was not fixed says so.
+  raised it again after a send-back, so a doubt that was not fixed says so;
+  then each defect a step found beside the change and left (`found beside the
+  change, not fixed:`).
 - **product gaps**: each spec line an open question turns on, and each spec
   file the run changed.
 
@@ -544,7 +555,12 @@ assumed (each as a question), the open questions the default view does not
 print in full (`## open questions`, when there are any: each wording once
 with the roles that asked it, so a question joined to another by its spec
 line, cut to its width or past the cut is still on record), what they doubt
-that is not a question (each once by its words), what changed, what was
+that is not a question (each once by its words), what they found beside the
+change (`## found beside the change`, only when a step found something: each
+defect once by its words, with the roles that named it, as the last of them
+left it: `fixed, shown by <test>`, `fixed, no test names it` or `not fixed`;
+a test whose file is not among the files the run changed adds `; its file
+did not change in this run`), what changed, what was
 read, what was tested, what a ruling is owed on, what was not verified, what
 the next session must keep (each line once, with the roles that kept it),
 what went wrong on the way, and what the run was.

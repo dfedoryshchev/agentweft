@@ -274,6 +274,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -347,6 +348,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -426,6 +428,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -511,6 +514,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -616,6 +620,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -721,6 +726,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -913,12 +919,12 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
-    "planner.md go 2 65d39391a27f3aeec35e85b06289ebc3a5c85562c6ec6d73fadf0b9f846c609d",
-    "retro.md go 1 c0aa15391d5660966dec8f615db816b72b90edbde0d49b913fdce1901fb557e5",
-    "reviewer-runs.md go 1 ccded4459de2e6b98cf26212991921aac82fe92597127545f815bc3fc62e1c97",
-    "reviewer.md go 1 b7ed83869d0bcbf4cf12a70f9c825aa1689fad760cf5ceecb6b758800004a4d0",
-    "tester.md go 1 a587f537b8da2c8782d4a1630167addae0a0a098075c8ff77e79ec0669d2a845",
-    "worker.md go 1 24cdbac7662ce8c788cc0a42f3d80017b89030f4c7f311daa0ce7fac5682a335"
+    "planner.md go 1 552f7a6d676b0b3047de59c09066cb9354593796e365c9da6a6ffe70f9083690",
+    "planner.md go 2 fb469e6d4c95a5d4f85541b7fdd536541c8998c5db72e7468d387371c44c724a",
+    "retro.md go 1 b75a828d55223a0fb3568fed53182ebd1705943ac495e2a6c1385aa555a6d8a8",
+    "reviewer-runs.md go 1 fb850e9e88c58085c56aefbddf1f08802d6f11fa60f114cc0b5f6fc5ef35979a",
+    "reviewer.md go 1 185b7fa68246c63e61013089a7dea74c6b368ca30eb5691a88d3d4787092a4ef",
+    "tester.md go 1 4baf13035d98454f5b995bebb6c7f38cbbd46d01056dca415f3be0d37ed5e0d9",
+    "worker.md go 1 9da739aa36eff6f4487ecaced5ba50a36582287eec44130fb7a2dfe7899e4e05"
   ]
 }

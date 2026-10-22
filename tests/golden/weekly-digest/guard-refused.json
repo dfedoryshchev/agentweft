@@ -152,6 +152,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -253,6 +254,6 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35"
+    "planner.md go 1 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32"
   ]
 }

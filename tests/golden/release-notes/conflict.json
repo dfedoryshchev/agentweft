@@ -163,6 +163,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -226,6 +227,6 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 943e1839dc630d0e833285247262154e9cdef529a5e2b6a75a70955eb1411f1d"
+    "worker.md go 1 6b74cac611d56b82c37b00351ebdc04973572fe7802893947880829be6fa6938"
   ]
 }

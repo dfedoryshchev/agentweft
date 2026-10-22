@@ -359,6 +359,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [
           "the task - add(1, 2) is 3"
         ],
@@ -594,6 +595,7 @@
         "doubts": [
           "nothing else calls add, so no caller was checked"
         ],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -810,10 +812,10 @@
     ]
   ],
   "prompts": [
-    "patcher.md go 1 618774d7c688f327e6d656ab51663ecaeeffddfd73b05800e2caf925872ca964",
-    "patcher.md go 2 4677b586d07fa05762864937dca36f2ce5a435753da548e051c9f664bad1db12",
-    "patcher.md go 3 4677b586d07fa05762864937dca36f2ce5a435753da548e051c9f664bad1db12",
-    "retro.md go 1 24cdfa472d20786d7494d03eda63ce65d53c4071353a82d56ac8a7244f2252e9",
-    "worker.md go 1 4385694ea53b31fca17d5407049e0d5d9265f2cf3b12d68bb6570986843d64c2"
+    "patcher.md go 1 2f5da7e0f474558a225bc001c61e8c17cce8808a9158ec1f6b4156ef6aad11f6",
+    "patcher.md go 2 059197756ebe6c3241de7cd852139d4e3bc8f913676bd2947414db11f162148a",
+    "patcher.md go 3 059197756ebe6c3241de7cd852139d4e3bc8f913676bd2947414db11f162148a",
+    "retro.md go 1 45c2114cee375e040e3c85b81905bcc1f88d36d32f0d20941f6b7d7002c17c1d",
+    "worker.md go 1 9237c65f6d8a28c1ec8436651b59a05f1bbde0f9cd35cb296023e48684ad72fa"
   ]
 }

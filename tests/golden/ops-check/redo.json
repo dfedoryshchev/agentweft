@@ -158,6 +158,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -231,6 +232,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -336,6 +338,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -409,6 +412,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -514,6 +518,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -651,11 +656,11 @@
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 7d132685e219a260c4490a1033b4be28f6d1d64a769fe65c318030867e487b82",
-    "retro.md go 1 9cbd9b2adb966b7cfd085d86ca153bbf53f999fdc05af7b9af9a7389492e521c",
-    "reviewer.md go 1 9ecd5c22876dd736357f7c3b474a3810ef4b92b9f71a79f80c6c7da862733c7d",
-    "reviewer.md go 2 ee61c79a7bf434ef34c643212894e27157d818c70c51beb675b835f884844db5",
-    "worker.md go 1 7c4bd5dc982f363213a4f181b2161f583fe5d52374e93e994714a5f042f06997",
-    "worker.md go 2 13e3adae548a4bf096b18e518551287bc5a2b1dc6ebd65d998e40a1074417339"
+    "planner.md go 1 cff238945fbeed64a1184332540820374213f3cdf185a6cd3a050b9d2b5737e4",
+    "retro.md go 1 87d1028e3611791ccad83e3f46be87e05415af5d3037459a84280f8a8d0a5b35",
+    "reviewer.md go 1 b04ff965f038a741004eda2e22a1005caca88c13f7548938bfed2e57f44f54a9",
+    "reviewer.md go 2 5fa04d1c81fd79b3fbcb48cc4cc822609ce388ead0e551c914677f75b52000e5",
+    "worker.md go 1 97d72f52cb73dd675b97f6e022a96857e8410b00c0e2864eb77c42ea0e2cd01a",
+    "worker.md go 2 b5d851306e3e2b7fd6a41c0dd919ef12421f8887ca096b5062112bf393a72215"
   ]
 }

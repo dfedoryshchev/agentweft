@@ -234,6 +234,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -400,6 +401,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -473,6 +475,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -578,6 +581,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -659,10 +663,10 @@
     ]
   ],
   "prompts": [
-    "merge.md go 1 e3e3402fc8532d415b5d68c54487200959246a6d3f32535a7c4ffdca91066bab",
-    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
-    "reviewer.md go 1 542291cad28dd149c09503b7d0c2a1dc8bbe9589d5ff343374c245ca16185a7d",
-    "worker.md task 1 go 1 d36a35fc504cc147a7da80c2a95eaf372248770d2ac1fcdc26f0280b912eb312",
-    "worker.md task 2 go 1 754bf80b010e57402b0c58352ee2fdd976783e4189ea223f01caa0dc5b55adcb"
+    "merge.md go 1 b8cca06878b0fcfeaf4d757ef1da3a74feb117bc4575ba1b2c8f72a929326047",
+    "planner.md go 1 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
+    "reviewer.md go 1 242f8e11db0af4a898c8a4903422010e4536b99b8ceb30eb6d8548899e73c4ef",
+    "worker.md task 1 go 1 9353f627eb5ff788fef564dbfdbbd725d53eee6b49118c6c8d6aa31416239628",
+    "worker.md task 2 go 1 53f6b8b0cf54b0f44657296cbcd416311d2efb99afc233cb4d4a5aae609d9eca"
   ]
 }

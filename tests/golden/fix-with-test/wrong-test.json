@@ -189,6 +189,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [
           "the task - add(1, 2) is 3"
         ],
@@ -266,6 +267,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -358,6 +360,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [
           "the task - add(1, 2) is 3"
         ],
@@ -467,6 +470,7 @@
         "doubts": [
           "nothing else calls add, so no caller was checked"
         ],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -602,10 +606,10 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 618774d7c688f327e6d656ab51663ecaeeffddfd73b05800e2caf925872ca964",
-    "patcher.md go 2 e12513d6f8a8e4e2c05be1dd21757dc4c68ae791df34070011658639c10e15f0",
-    "retro.md go 1 d82869650e68ebd0e46509041f0ce24aaeae23454c269440526a0cfce39536ce",
-    "worker.md go 1 4385694ea53b31fca17d5407049e0d5d9265f2cf3b12d68bb6570986843d64c2",
-    "worker.md go 2 b9a8af4b1a9e019f37335a3b736ddb707ed4f9ee069583f84a8981e2ebfb048d"
+    "patcher.md go 1 2f5da7e0f474558a225bc001c61e8c17cce8808a9158ec1f6b4156ef6aad11f6",
+    "patcher.md go 2 6d65acea6bd91f847b2f47be468a16ff1291c09c3fa737d14980760892dc24dd",
+    "retro.md go 1 f9918101090671b537aaf82491dbb096f80bd3b1541fe82698fdd9194dcf17c6",
+    "worker.md go 1 9237c65f6d8a28c1ec8436651b59a05f1bbde0f9cd35cb296023e48684ad72fa",
+    "worker.md go 2 3e5d93e54bbb0c40d47a88a322b3365a7b169421afa2edb5fa74a5993da3d026"
   ]
 }

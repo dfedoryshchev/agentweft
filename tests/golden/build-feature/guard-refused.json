@@ -165,6 +165,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -270,6 +271,6 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37"
+    "planner.md go 1 552f7a6d676b0b3047de59c09066cb9354593796e365c9da6a6ffe70f9083690"
   ]
 }

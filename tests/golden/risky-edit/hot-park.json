@@ -156,6 +156,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -229,6 +230,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -281,7 +283,7 @@
     "handoff: <tmp>/runs/risky-edit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 189cb6ed9953b70a305063b6aa07715e2b0c9bc1811d71bc3f7d75fd9a652c3e",
-    "worker.md go 1 33d5ab9361dc3cb744c3623b447496356d15385dc90f1f13408af7e1683858a0"
+    "planner.md go 1 3833e2c85e567e7d63d4e87e06769f134721a5f6bfe35a7eef20dd249d003183",
+    "worker.md go 1 7ce3ac483116f794b31332a7bcf386d76109383df9a96dbcfde2530303fa4dd6"
   ]
 }

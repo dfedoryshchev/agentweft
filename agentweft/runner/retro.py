@@ -173,14 +173,15 @@ def refusals(path):
 
 
 HANDED = (("did", "did"), ("assumed", "assumed"), ("tried", "tried"),
-          ("doubts", "doubts"))
+          ("doubts", "doubts"), ("adjacent", "found beside the change"))
 # one item of the record, as long as it needs to be to be read and no longer
 ITEM = 240
 
 
 def handed(lines):
-    """-> a line per DID, ASSUMED, TRIED and DOUBTS item each pass not yet
-    looked at handed over, with its seq and step."""
+    """-> a line per DID, ASSUMED, TRIED, DOUBTS and ADJACENT item each pass
+    not yet looked at handed over, with its seq and step; a defect found
+    beside the change says whether it was fixed and by which test."""
     out = []
     for line, _ in lines:
         block = line.get("handoff") or {}
@@ -189,6 +190,9 @@ def handed(lines):
         for key, word in HANDED:
             for item in block.get(key) or []:
                 text = item if isinstance(item, str) else str(item)
+                if key == "adjacent":
+                    found = summary.beside(text)
+                    text = found["defect"] + " - " + summary.beside_said(found)
                 out.append("- seq " + str(line.get("seq")) + " "
                            + str(line.get("step")) + " " + word + ": "
                            + stops.flat(text)[:ITEM])

@@ -248,6 +248,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -321,6 +322,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -435,6 +437,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -508,6 +511,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -613,6 +617,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -801,12 +806,12 @@
     ]
   ],
   "prompts": [
-    "merge.md go 1 dea0480f85dae946acbf0cc95399a15982272fd00b04825199273ec3716bd6f2",
-    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
-    "planner.md go 2 5801fe77d8a1dc494aca26317f459ece8451c95f54072754e3daf7e475fd13c1",
-    "retro.md go 1 7da0f0b6b5edd063cc99530b72485cd32e45a6af4e55960813343b7cee5ec6ff",
-    "reviewer.md go 1 04363adffeb38afd25adbab4a338561087740c9f873b1f367cca487aa9ee8848",
-    "worker.md task 1 go 1 d36a35fc504cc147a7da80c2a95eaf372248770d2ac1fcdc26f0280b912eb312",
-    "worker.md task 2 go 1 754bf80b010e57402b0c58352ee2fdd976783e4189ea223f01caa0dc5b55adcb"
+    "merge.md go 1 4e95d0a65a26f1a1eaa6e5ef2d295e080fc0258c22e7b043c12a9e1bcf744298",
+    "planner.md go 1 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
+    "planner.md go 2 04a6667c4a292f33e6159a26e2b1203244fc8b90f9ea16081624815553f1b26d",
+    "retro.md go 1 a60df19af56c78ac9678b03cc54955deaa7b66e09d302430da25c048be01df0a",
+    "reviewer.md go 1 19630c0c39181574263613170094b4d90de02a812b8428a762284c66a3b67dea",
+    "worker.md task 1 go 1 9353f627eb5ff788fef564dbfdbbd725d53eee6b49118c6c8d6aa31416239628",
+    "worker.md task 2 go 1 53f6b8b0cf54b0f44657296cbcd416311d2efb99afc233cb4d4a5aae609d9eca"
   ]
 }

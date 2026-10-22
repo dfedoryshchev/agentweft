@@ -254,6 +254,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -385,6 +386,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -470,6 +472,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -575,6 +578,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -680,6 +684,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -762,10 +767,10 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
-    "reviewer-runs.md go 1 bba0015265fa31a1a41a0e58de133303f88ee27775ee05db1db25e752545499c",
-    "reviewer.md go 1 f440fa337ec3e47b317f141058175b89e06ce05f315552fee555ce28d69dee33",
-    "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",
-    "worker.md go 1 7704c2cd31d37581384d52a2a0ac5687c6e73c79ed2074ad7374e87eec7f1908"
+    "planner.md go 1 552f7a6d676b0b3047de59c09066cb9354593796e365c9da6a6ffe70f9083690",
+    "reviewer-runs.md go 1 225ebd5736f12b0a803265f33037d71d0e8d0cf6a3f5f5ae61c115046a9b78b5",
+    "reviewer.md go 1 ebcb0f5af14c2c843329d5d8f81dd12283c1b23fd641c21a59230cfa2068ad0d",
+    "tester.md go 1 01e461eb6396adb9c1b7b60545b616163c4392306d22789a12f3e567f2592f27",
+    "worker.md go 1 24a9530df5cb78c41cc2fcc1ddf30818d2440fb531a63415cf3a8d82a7f0a794"
   ]
 }

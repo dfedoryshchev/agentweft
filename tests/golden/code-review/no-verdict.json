@@ -157,6 +157,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -262,6 +263,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -405,8 +407,8 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 70449f3110e00061ecaa63e17deb45d77840e9549a687750650b7d9fa1553cd1",
-    "reviewer.md go 1 57e1e290dc35063f198deac485cad4b153a380e2f3d2fa41f3cc00fec8f09c06",
-    "worker.md go 1 4ef397e1b7873dbd6f9a537df0d3dafd57fa45856b98bbaa233dcfcde7c206b8"
+    "retro.md go 1 a6e30594eb24b20f5a9a6af8ab618b00af1bfa9562cde3eba97631d064b175f9",
+    "reviewer.md go 1 52fc9a2fd71ae98e02cc03783a1a39a2f5782e1dd00a819d6ece75bd0f9eb083",
+    "worker.md go 1 841b219d95cbccaf0155aee3284bdf801a6784a2dfd0d0785f86ac8cfa4fc6be"
   ]
 }

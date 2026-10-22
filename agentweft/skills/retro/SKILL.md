@@ -49,5 +49,6 @@ role: retro
 - a fact is the WHY or the non-obvious way of one place, never a summary of what the code does; propose one only when this run showed it, at most the number the record allows
 - every stale fact gets a re-anchor with evidence, a supersede or a retire; one you cannot judge is left as it is
 - a failed attempt, a gate issue or a refused write that a program could have caught gets a guard; a guard is a test, a gate or a key, never a sentence for a prompt
+- a defect a step found beside the change and did not fix is a `defect` fact on its file, its evidence the line it is at, with a guard: the test that would show it. one fixed by a test needs neither
 - no secret, token or credential file name in any field, and never a `|`
 - nothing else: no verdict, no handoff block

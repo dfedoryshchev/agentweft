@@ -152,6 +152,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -302,9 +303,9 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
-    "planner.md go 2 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
-    "planner.md go 3 19313f58c12a0f9c1628b33ba1fdf5beb5d1191028a18a597899eccfc73c2b35",
-    "retro.md go 1 16fa67091d72e741bf0aae3126247b6ce59669108d71641689d9a3467284cd78"
+    "planner.md go 1 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
+    "planner.md go 2 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
+    "planner.md go 3 ff981ea5cd2867c4733fbb33c35a138d7e1b0ee30ae10b8b24b5a10c80cecf32",
+    "retro.md go 1 92854621d56f1721793495ef1f5ec22a8c64d439acd65cd58cb0c48e2f6b1b5c"
   ]
 }

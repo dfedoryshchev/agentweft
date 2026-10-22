@@ -164,6 +164,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -243,6 +244,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -316,6 +318,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -395,6 +398,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -468,6 +472,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -599,11 +604,11 @@
     "handoff: <tmp>/runs/retro-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 5f1f6a15e34b03037eb5f438c8652107b47333071f33f8abcdd7053bbecb82ea",
-    "reviewer.md go 1 69e8069ac77481cc523d00767785db784ad54f1d7017cd045f3e80bfa0c315c5",
-    "reviewer.md go 2 1417f62899ddf9cfbde7448f4ae00394f578caadf507d7c2c63d10ce60cea9af",
-    "worker.md go 1 c34a308ad8bab088af1e7411e9dc6cb452af71794da9d0b8188c11eb7e295be2",
-    "worker.md go 2 34dcd3f27854622bb637fe7fdb2f4f27d3eb287082e30f019e005eec847847cd",
-    "worker.md go 3 fcdc5bc064ba11a0c9ec604d5f4dc9009efa51a0c694883348b539140bcf672e"
+    "retro.md go 1 db0fb2c0a00224041b1b92fa016cc6f46efd7a2dbd51132f461cb7b5742daf3f",
+    "reviewer.md go 1 d3d39c644d94a73e2cd06e65ebb5221ba5424ae0884d2bd9f7ba68567c39aeda",
+    "reviewer.md go 2 4a9f2c388db23cdbbbf76a48ba5e1f107587a238cb6708ee72c74781c0fe8129",
+    "worker.md go 1 21fcc68fb15a057a429ebba581d5c30c9d488411eeeaf4c9db23f802098333f4",
+    "worker.md go 2 a7901b9d5a760d33221c3cc19a7e58d24101576f5efae5ce9df59d62f0e3f079",
+    "worker.md go 3 3dd1a0b47342726f4c3923b04d1f8c408e078e1f29eb09b7b2f946bdcfb68aaa"
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-10-22T10:04:45",
+  "recorded": "2026-10-22T11:02:03",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 1,
-      "prompt": "cfd6ffe88cc7ed2b950ecda4a286e7c20f116569f396536955744f14d4633135",
+      "prompt": "8958c02baf7deb24f24f65311930d6c54d1fce7f26e0c29c4161b243e59aeefa",
       "say": "TEST: tests/test_add.py\n\ncalc.py: add returned a - b, it returns a + b now\n\nNEEDS: should add() turn down a string, the way sub() does not?\nRECOMMEND: leave it\nSIZE: none if left; one line in calc.py plus a test if a string should be turned down\n",
       "detail": "",
       "retryable": null,
@@ -25,7 +25,7 @@
       "step": "retro.md",
       "task": null,
       "go": 1,
-      "prompt": "e152e9b6e761a7a8db5d78c2ac5e2b5260498eb33f6487217082675cef169445",
+      "prompt": "33ea780410eca0963ce6b5be5fd90a36460795f3ae06a2f99cd82ebe93e587de",
       "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
       "detail": "",
       "retryable": null,
@@ -40,7 +40,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "437b286803cc441e22f88f05e474023cbf1a93a5006e2da1152d8495960f5120",
+      "prompt": "b9ed042db5741ae04f35a4bf18f8aab0f324d98d8ebe0be2ae22d3d604414105",
       "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
       "detail": "",
       "retryable": null,

@@ -159,6 +159,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -273,6 +274,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -420,9 +422,9 @@
     "handoff: <tmp>/runs/repo-audit-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 82dcf8dcb4acd7e55e12b7f6cd33ca58bcfddd4e278b94b23e7b560b1c18fe34",
-    "retro.md go 1 1e8bcfbd636aa94b110ad9c85ce34caa9f5fca3932ff1378dd66495da8d72602",
-    "worker.md task 1 go 1 62336afe9ddd1f8cd72edc4f35bb301d9b697fea7f1ed90138fff7e05446cc3e",
-    "worker.md task 2 go 1 fa67fda1e7309cbdae0502b3a93366a4ebd34df0b9622fc061f07d0eb378cf0a"
+    "planner.md go 1 19ee4987835c218705e20327581c2a977254c56a96a0817825b8a27d240aeae6",
+    "retro.md go 1 40d12c5b224248fa91b2431d35418652eeee751c4cbc50ba925bf4c6e3c340cb",
+    "worker.md task 1 go 1 aa7b205283797ea80d320c63405064aba7175892ffaae8adfbd9eb0540241562",
+    "worker.md task 2 go 1 92807875e6b061cd7232af72e2fdc5e0de356f8a54a9394787c7f2e1111cb21b"
   ]
 }

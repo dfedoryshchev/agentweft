@@ -176,6 +176,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -260,6 +261,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -339,6 +341,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -424,6 +427,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -529,6 +533,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -634,6 +639,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -776,12 +782,12 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 e32f099cb36e5d9e322043858a3943acf4063a2b179ff39fd85d473ebc7adc37",
-    "retro.md go 1 524ee6af54754d6b657fd25e592719203380306514366c6532d418146f3e9dc2",
-    "reviewer-runs.md go 1 d27724b518de57381831f29546e89cc423dad24e262a52f5d23b2671fdd5cb7f",
-    "reviewer.md go 1 511174204e08942bff803ac68f407f2f01de453aa9f2ddfe211de8ea723739e7",
-    "tester.md go 1 89321460663e4bc7b70caac3d27f6630281b94b4957d37c1b1bba255cd5a8d87",
-    "tester.md go 2 c6d93cf04f1228fc1cfa8e66ff3a11b41279a43fc58ebe833c460225627b708d",
-    "worker.md go 1 0429c0efce339fd738b7aba5a2564683e5774ce3a66f910b5352a7c29a89fcc8"
+    "planner.md go 1 552f7a6d676b0b3047de59c09066cb9354593796e365c9da6a6ffe70f9083690",
+    "retro.md go 1 630ea597380119bc9f6b36889c537633d414d5d646c9ce28eabf00c48903e2cb",
+    "reviewer-runs.md go 1 c97522e396f6e6f7592d0366845c995c1feb073b60ff089e1dac8a4d53db7926",
+    "reviewer.md go 1 40d16a8e3f360382f8e58db17838d2d80b04c4d61ef2b17a5ec34a3ddb7a8950",
+    "tester.md go 1 01e461eb6396adb9c1b7b60545b616163c4392306d22789a12f3e567f2592f27",
+    "tester.md go 2 89fa52e0108825a7a577b503c901106a3c0b46ef47d3b9f3ecf5726a8a7c62a9",
+    "worker.md go 1 87f995453cb0aa3294a0f6c3520dd83fed4144833144e04716e65e849e45388a"
   ]
 }

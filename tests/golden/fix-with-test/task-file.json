@@ -177,6 +177,7 @@
         "not_verified": [],
         "assumed": [],
         "doubts": [],
+        "adjacent": [],
         "must_not_miss": [
           "the task - add(1, 2) is 3"
         ],
@@ -286,6 +287,7 @@
         "doubts": [
           "nothing else calls add, so no caller was checked"
         ],
+        "adjacent": [],
         "must_not_miss": [],
         "tried": [],
         "read": [],
@@ -425,8 +427,8 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "patcher.md go 1 618774d7c688f327e6d656ab51663ecaeeffddfd73b05800e2caf925872ca964",
-    "retro.md go 1 39fc976ca5120ac56e7cc3bd1e01d127a786b6ebb4ab909d3e389333cbe01aca",
-    "worker.md go 1 e8226428ff688413daa61020f6082b9d3879c2cb99cd01a28c4cc00a893aa0f2"
+    "patcher.md go 1 2f5da7e0f474558a225bc001c61e8c17cce8808a9158ec1f6b4156ef6aad11f6",
+    "retro.md go 1 77b528dec9287d50b2f65968c4c245ab150972db49166ded7193d492848b1489",
+    "worker.md go 1 62a1be0ac4327f5904dec5465b38b25592a5236a9bd425f34bd96b247f8fd85d"
   ]
 }
