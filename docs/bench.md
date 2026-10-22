@@ -313,7 +313,8 @@ the retro (every shipped flow does), or run 1 keeps nothing.
 a row per pair and repeat holds:
 
 - `first`: run 1's outcome, how many new facts its retro had the runner
-  write (`facts_written`), how many of the gold's `trail` they
+  write (`facts_written`) and how many more the per-run cap refused
+  (`facts_capped`), how many of the gold's `trail` they
   match by scope and kind (`trail_found` of `trail`), the ids of the ones the
   gold names false, its cost, seconds and each step's seconds, tokens and
   cost
@@ -330,7 +331,9 @@ a row per pair and repeat holds:
 the summary gives each arm's correct, finished, conventions, cost and wall,
 and the probation rules, set before any pair ran:
 
-- no run writes more than 3 new facts; a run that does is counted as spam
+- no run proposes more than 3 new facts, counting the ones written and the
+  ones the per-run cap refused (`facts_capped` on each run's row): a run
+  that does is counted as spam, though the cap let only 3 through
 - at least one in 4 attached facts is used by the run it was handed to
   (`none attached` when no fact was handed, which is not judged)
 - no fact the gold names false is written: one is printed as `the write path

@@ -161,6 +161,15 @@ def kept(record):
     return out
 
 
+def capped(record):
+    """-> how many new facts the run's retro proposed that the per-run cap
+    refused: proposals the probation rule counts with the ones written."""
+    return sum(1 for line in record
+               for r in ((line.get("facts") or {}).get("refused") or [])
+               if isinstance(r, dict)
+               and str(r.get("why", "")).startswith("per-run cap"))
+
+
 def scope_set(scopes):
     return set(facts.norm(s).rstrip("/").lower() for s in scopes or [])
 
@@ -256,6 +265,7 @@ def second(flow, spec, provider, pair, place, start, tmp, arm):
            "facts_attached": given,
            "facts_used": used(given, facts.read(place), paths),
            "facts_written": len(kept(record)),
+           "facts_capped": capped(record),
            "usd": money.get("usd"),
            "usd_estimated": money.get("estimated", False),
            "calls": getattr(budget, "calls", 0),
@@ -282,6 +292,7 @@ def first(flow, spec, provider, pair, place, tmp):
     return {"why": stopped,
             "outcome": scorer.outcome(stopped, record, trail, place),
             "facts_written": len(ids),
+            "facts_capped": capped(record),
             "trail": len(pair["gold"].get("trail") or []),
             "trail_found": len(found), "false_facts": false,
             "usd": money_of(budget).get("usd"), "wall": wall,
@@ -361,15 +372,22 @@ def run(flow, provider, pairs, k, twin=False, said=print, scored=None):
     return rows
 
 
+def proposed(ran):
+    """-> the new facts one run's retro proposed: written, and refused by
+    the per-run cap."""
+    return ran["facts_written"] + ran.get("facts_capped", 0)
+
+
 def probation(rows):
-    """-> the probation rules over `rows`: no run writes more than
-    MOST_FACTS new facts, at least one in ONE_IN attached facts is used by
-    the run it was handed to, and no fact the gold names false is written.
-    a false fact kills the write path until it is fixed and measured
-    again. the twin keeps no fact and is handed none, so it is not read."""
+    """-> the probation rules over `rows`: no run proposes more than
+    MOST_FACTS new facts, the ones written and the ones the per-run cap
+    refused, at least one in ONE_IN attached facts is used by the run it
+    was handed to, and no fact the gold names false is written. a false
+    fact kills the write path until it is fixed and measured again. the
+    twin keeps no fact and is handed none, so it is not read."""
     lanes = [r["second"][LANE] for r in rows if LANE in r["second"]]
-    counts = [r["first"]["facts_written"] for r in rows] + [
-        s["facts_written"] for s in lanes]
+    counts = [proposed(r["first"]) for r in rows] + [
+        proposed(s) for s in lanes]
     spam = len([n for n in counts if n > MOST_FACTS])
     attached = sum(len(s["facts_attached"]) for s in lanes)
     usedn = sum(len(s["facts_used"]) for s in lanes)

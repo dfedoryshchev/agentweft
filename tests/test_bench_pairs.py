@@ -46,6 +46,7 @@ class Pairing(Provider):
     loud = True
     retros = 0
     saw = []
+    first = KEEP
 
     def at(self, step, task):
         self.step = step
@@ -54,7 +55,7 @@ class Pairing(Provider):
         where = Path(self.where)
         if getattr(self, "step", None) == "retro.md":
             Pairing.retros = Pairing.retros + 1
-            return Reply(KEEP if Pairing.retros == 1 else NOTHING)
+            return Reply(Pairing.first if Pairing.retros == 1 else NOTHING)
         if "count the words" in prompt:
             Pairing.saw.append((bool(list((where / "facts").rglob("*.md"))),
                                 (where / "facts" / "rates.json").is_file(),
@@ -83,6 +84,7 @@ def a_set(tmp_path, monkeypatch):
     Pairing.retros = 0
     Pairing.loud = True
     Pairing.saw = []
+    Pairing.first = KEEP
     folder = tmp_path / "set"
     put(folder / "bench.yaml", yaml.safe_dump(
         {"flow": "one-step", "provider": {"provider": "pairing"}}))
@@ -177,6 +179,21 @@ def test_the_probation_scorer_flags_a_run_with_four_new_facts_as_spam():
     said = pairs.probation([a_row(3), a_row(4)])
     assert (said["most"], said["spam"], said["holds"]) == (4, 1, False)
     assert pairs.probation([a_row(3, 3)])["holds"] is True
+
+
+def test_a_retro_that_proposes_four_new_facts_is_spam_though_the_cap_wrote_three(
+        a_set, tmp_path):
+    block = KEEP.split("FACTS" + NL, 1)[1].split("END FACTS")[0]
+    Pairing.first = (KEEP.split("FACTS" + NL, 1)[0] + "FACTS" + NL
+                     + "".join(block.replace("never prints", "never prints ("
+                                             + str(n) + ")")
+                               for n in range(4))
+                     + "END FACTS" + NL)
+    got = scored(a_set, tmp_path)
+    said = got["summary"]["probation"]
+    assert (said["most"], said["spam"], said["holds"]) == (4, 1, False)
+    first = got["runs"][0]["first"]
+    assert (first["facts_written"], first["facts_capped"]) == (3, 1)
 
 
 def test_fewer_than_one_in_four_attached_facts_used_fails_probation():
