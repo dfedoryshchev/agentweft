@@ -196,7 +196,14 @@ turns only that gate off: the order checks still want a red proof.
   and the command runs there with `{test}` replaced by the whole line. a line
   written as prose, `file - name` (any dash), `file, name`, `file :: name` or
   `name in file`, runs as `file::name`, and fails if the file defines no such
-  name; a line that reads as none of these fails quoting it. red
+  name; a line that reads as none of these fails quoting it. a line of
+  several ids, each `file::name`, runs them all, one argument each. a whole
+  file named red that also holds tests the run started with runs as the ids
+  of the tests the step added or changed in it, the pass naming them, and
+  the step's `TEST:` line is handed on as those ids with a line saying what
+  it named: a start test beside them is never handed to the next step as
+  one it was given. a place with no start commit to read the file from runs
+  the whole file. red
   passes on `expect` (default 1, a pytest run with a failing test) and on
   nothing else, so a test that passes, was never written, or was not
   collected is not red. red runs on the code as the run found it: while
@@ -209,7 +216,8 @@ turns only that gate off: the order checks still want a red proof.
   `"false"`, `no`, `0`) wants exit 0, in the `workdir`, and a step with no
   `TEST:` line of its own is held to the one the newest
   earlier step in the run named (red never borrows one: the step that says a
-  test fails names it). a `red` that is neither true nor false fails. without a command the pass
+  test fails names it). a step that names the whole file an earlier step's
+  ids are in is held to those ids. a `red` that is neither true nor false fails. without a command the pass
   says nothing was run. an empty answer fails as `the step answered nothing`,
   not as a test that never failed.
 - **red-first** - `command: [...]` with `{test}` in it, `expect` (default 1),

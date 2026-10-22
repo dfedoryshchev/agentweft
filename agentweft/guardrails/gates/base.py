@@ -33,11 +33,12 @@ class Result(object):
     "could not <what>: <why>", whatever it decided: a test run that timed
     out still fails and a replay that had no start still passes, and neither
     checked what it is there to check. `seconds` is how long it took, None
-    until the runner times it.
+    until the runner times it. `named` is the test ids a red-test gate ran in
+    place of a whole file the step named, None when it ran what was named.
     """
 
     __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
-                 "broke", "issue", "seconds")
+                 "broke", "issue", "seconds", "named")
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
                  skipped=False, broke=False, issue=""):
@@ -50,6 +51,7 @@ class Result(object):
         self.broke = broke
         self.issue = issue
         self.seconds = None
+        self.named = None
 
     def __bool__(self):
         return self.ok

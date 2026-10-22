@@ -6,7 +6,7 @@ from agentweft.guardrails import boundary, police, rulings
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.gates.redfirst_gate import said_of
-from agentweft.guardrails.gates.redtest_gate import named_test
+from agentweft.guardrails.gates.redtest_gate import as_ids, named_test
 from agentweft.mcp import context, preflight
 
 from . import leftred, ruling, stops, wrongtest
@@ -244,6 +244,12 @@ def check_step(run, route, step, out, run_dir=None):
         results.insert(0, timed(Result(rulings.GATE, False, ran), began))
     out.meta["gates"] = results
     out.meta["ungated"] = not results
+    ids = [r.named for r in results if r.ok and r.named]
+    if ids:
+        out.output = as_ids(out.output, ids[0])
+        if isinstance(getattr(run, "produced", None), dict) \
+                and step in run.produced:
+            run.produced[step] = out.output
     for r in results:
         print("  " + repr(r))
     if isinstance(getattr(run, "proven", None), dict):

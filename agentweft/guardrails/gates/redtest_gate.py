@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 from agentweft.guardrails import worktree
-from agentweft.guardrails.snapshot import changed
+from agentweft.guardrails.snapshot import changed, test_ids
 
 from .base import Gate, fresh_python, register
 from .command_gate import tail
@@ -78,22 +78,74 @@ class RedTestGate(Gate):
                 return self.could_not(False, "no " + TEST + " line, so there"
                                       " is no test to run", "could not run a"
                                       " test: no " + TEST + " line names one")
-            path = (place / named.split("::")[0]).resolve()
-            try:
-                path.relative_to(place.resolve())
-            except ValueError:
-                return self.fail(named + " is outside " + str(place))
-            if not path.is_file():
-                return self.fail(named.split("::")[0] + " is not in "
-                                 + str(place)
-                                 + ", so the test was never written")
+            for one in named.split():
+                path = (place / one.split("::")[0]).resolve()
+                try:
+                    path.relative_to(place.resolve())
+                except ValueError:
+                    return self.fail(one + " is outside " + str(place))
+                if not path.is_file():
+                    return self.fail(one.split("::")[0] + " is not in "
+                                     + str(place)
+                                     + ", so the test was never written")
             if name and not defines(path, name):
                 return self.fail(name + " is not a test in "
                                  + named.split("::")[0])
-            argv = [named if a == "{test}" else a for a in argv]
+            given = named
+            named = self.added_in(named, place) if want_red \
+                else self.as_given(named)
+            ids = named.split()
+            argv = [w for a in argv for w in (ids if a == "{test}" else [a])]
+            if named != given:
+                r = self.checked(argv, place, want_red, said)
+                r.named = ids
+                r.detail = r.detail + " (" + named + ": the tests the step" \
+                    " added to " + given + ", which also holds tests the" \
+                    " run started with)"
+                return r
+        return self.checked(argv, place, want_red, said)
+
+    def checked(self, argv, place, want_red, said):
         if want_red and self.product_moved():
             return self.on_start(argv, said)
         return self.judged(argv, place, want_red, said, {})
+
+    def added_in(self, named, place):
+        """-> the ids of the tests the run added to, or changed in, a whole
+        file named red that also holds tests the run started with; `named`
+        as it was when it is not such a file, or the start cannot be read."""
+        s = self.start
+        if "::" in named or " " in named or s is None or not s.hashed \
+                or not s.root:
+            return named
+        try:
+            rel = (place / named).resolve().relative_to(
+                Path(s.root).resolve()).as_posix()
+        except ValueError:
+            return named
+        was = s.before(rel)
+        if was is None or not test_ids(was, rel):
+            return named
+        try:
+            ids = s.new_test_ids([(rel, (place / named).read_bytes())])
+        except ValueError:
+            return named
+        ids = [i for i in ids if "::" in i]
+        return " ".join(ids) if ids else named
+
+    def as_given(self, named):
+        """-> the ids an earlier step's red test was held to, when `named`
+        is the whole file they are in: green is shown on the tests handed
+        on, not on the start tests beside them."""
+        if "::" in named or " " in named:
+            return named
+        for answer in reversed(self.earlier):
+            then = read_test(answer or "")[0]
+            ids = then.split()
+            if ids and all(i.split("::")[0] == named and "::" in i
+                           for i in ids):
+                return then
+        return named
 
     def product_moved(self):
         """whether a product file is not as the start snapshot hashed it."""
@@ -176,6 +228,7 @@ FILE_THEN_NAME = re.compile(
     r"|\s*::\s*)(?P<name>" + NAME + r")$")
 NAME_IN_FILE = re.compile(
     r"^(?P<name>" + NAME + r")\s+in\s+(?P<file>" + FILE + r")$")
+ID = re.compile(r"^" + FILE + r"(?:::" + NAME + r")+$")
 
 
 def read_test(text):
@@ -197,6 +250,8 @@ def read_test(text):
             return "", "", ""
         if not any(c.isspace() for c in bare):
             return said.strip("`"), "", ""
+        if all(ID.match(w) for w in bare.split()):
+            return " ".join(bare.split()), "", ""
         m = FILE_THEN_NAME.match(bare) or NAME_IN_FILE.match(bare)
         if m:
             return m["file"] + "::" + m["name"], m["name"], ""
@@ -207,6 +262,22 @@ def read_test(text):
 
 def named_test(text):
     return read_test(text)[0]
+
+
+def as_ids(text, ids):
+    """-> text with its first `TEST:` line naming `ids`, and a line under it
+    saying what the step had named, so every step after it is handed the
+    tests it added and not the start tests in the same file."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if line.strip().startswith(TEST):
+            was = line.strip()[len(TEST):].strip()
+            lines[i:i + 1] = [TEST + " " + " ".join(ids),
+                              "(named " + was + ", which also holds tests"
+                              " the run started with: held to the tests it"
+                              " added there)"]
+            return "\n".join(lines)
+    return text
 
 
 def defines(path, name):
