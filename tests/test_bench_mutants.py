@@ -273,6 +273,34 @@ def test_mutants_no_test_kills_do_not_count_toward_the_minimum(tmp_path):
         len(kills["test_calc::test_adds"])) + " of 4" in text
 
 
+def test_a_new_test_whose_kills_the_old_suite_already_makes_owns_none(
+        tmp_path):
+    old = "import calc\n\n\ndef test_adds():\n    assert calc.add(1, 2) == 3\n"
+    start, place = a_change(
+        tmp_path, {"calc.py": "def add(a, b):\n    return a + b\n",
+                   "test_calc.py": old},
+        {"calc.py": "def add(a, b):\n    total = a + b\n    return total\n"
+                    "\n\ndef neg(a):\n    return -a\n",
+         "test_calc.py": old},
+        {"test_calc_new.py": "import calc\n\n\ndef test_adds_two():\n"
+                             "    assert calc.add(2, 2) == 4\n\n\n"
+                             "def test_negates():\n"
+                             "    assert calc.neg(3) == -3\n"})
+    got = mutants.score(start, place)
+    adds = "test_calc_new::test_adds_two"
+    assert got["tests"][adds]
+    assert got["suite"] == 1
+    assert set(got["tests"][adds]) <= set(got["suite_kills"])
+    assert got["unique"][adds] == []
+    assert got["unique"]["test_calc_new::test_negates"]
+    assert got["unique_kills"] == len(got["unique"][
+        "test_calc_new::test_negates"])
+    text = "\n".join(mutants.lines(got))
+    assert "the suite it joined kills " in text
+    assert "no kill of its own 1" in text
+    assert "      " + adds in text
+
+
 def test_no_mutant_runs_when_no_new_test_is_green_with_the_fix(
         tmp_path, monkeypatch):
     start, place = project(tmp_path)

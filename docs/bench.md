@@ -188,6 +188,12 @@ the same place gives the same mutants, in the same order. when no new test
 is green with the fix, no mutant runs. a folder named build, dist, venv and
 the like is left out inside the place, never because of where the place is.
 
+the tests the project started with, the suite the new ones joined, run
+against each mutant too. a mutant one of them kills was caught already, so a
+new test's own kills, its unique kills, are only the mutants nothing in that
+suite kills. a new test whose every kill the suite makes already adds a pass
+count and no catch.
+
 the row gets `mutants`, and the report a section per run:
 
 - `tests`: each test green with the fix, and the mutants it kills
@@ -207,13 +213,18 @@ the row gets `mutants`, and the report a section per run:
 - `minimum`: how many mutants some test kills that a run needs before a
   shared signature is called a likely duplicate
 - `judged`: how many mutants some test green with the fix kills
+- `suite`: how many of the tests the project started with pass with the
+  fix, and `suite_kills` the mutants they kill
+- `unique`: each new test and the mutants it kills that the suite does not;
+  `unique_kills` how many mutants only the new tests kill. the report lists
+  the tests with no kill of their own
 
 a shared signature is a lead, not proof. the report only labels: no test is
 deleted or skipped because of it.
 
 the summary adds the threshold, the minimum, the signatures, the likely
-duplicate tests and the undecided ones (each group past its first) and the
-pins.
+duplicate tests and the undecided ones (each group past its first), the
+pins, the unique kills and the tests with no kill of their own.
 
 ## the retro's gold
 

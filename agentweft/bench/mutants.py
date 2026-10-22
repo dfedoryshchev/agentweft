@@ -7,6 +7,10 @@ comparison flipped, a number one up or down, a condition negated, a statement
 deleted, two statements swapped). every new test runs against every mutant,
 and the mutants a test fails on are its kill signature.
 
+the tests the project already had run against every mutant too: a mutant
+one of them kills is one the suite caught already, so a new test's unique
+kills are only the mutants nothing in the suite it joined kills.
+
 tests with the same signature likely guard the same thing: sixteen tests
 that all die on one deleted line are one test written sixteen times. with
 fewer than MINIMUM mutants that some test kills, a shared signature is only
@@ -252,6 +256,24 @@ def new_tests(start, place):
     return out
 
 
+def old_tests(start, place):
+    """-> the ids of the tests the place holds as the project started with
+    them: the suite the run's new tests joined."""
+    was, now = files(start), files(place)
+    out = []
+    for rel in sorted(now):
+        if not snapshot.is_test(rel) or rel not in was:
+            continue
+        found = snapshot.test_ids(now[rel], rel)
+        if found is None:
+            if was[rel] == now[rel]:
+                out.append(rel)
+            continue
+        had = snapshot.test_ids(was[rel], rel) or {}
+        out.extend(i for i, code in found.items() if had.get(i) == code)
+    return out
+
+
 def run(place, mutant, tests, limit=None):
     """-> {case: passed} for `tests` on a copy of `place` with `mutant`'s
     files laid over it. a run past `limit` seconds is {}: every case
@@ -322,23 +344,35 @@ def score(start, place, seed=SEED, most=MOST, at=DUPLICATE_AT,
     duplicates. nothing is removed or skipped: the report only labels."""
     made = build(start, place, seed, most)
     tests = new_tests(start, place)
+    suite = old_tests(start, place)
     out = {"mutants": [m["name"] for m in made], "duplicate_at": at,
            "minimum": least, "tests": {}, "signatures": 0,
            "duplicates": [], "undecided": [], "pins": [],
            "red_with_fix": [], "files": sorted({rel for m in made
-                                               for rel in m["files"]})}
+                                               for rel in m["files"]}),
+           "suite": 0, "suite_kills": [], "unique": {}, "unique_kills": 0}
     if not made or not tests:
         return out
     began = time.time()
     fixed = run(place, None, tests)
+    ran = run(place, None, suite) if suite else {}
     limit = max(TIMEOUT, SLOWER * (time.time() - began))
+    joined = sorted(c for c, ok in ran.items() if ok)
     green = sorted(c for c, ok in fixed.items() if ok)
     out["red_with_fix"] = sorted(c for c, ok in fixed.items() if not ok)
     if not green:
         return out
-    seen = dict((m["name"], run(place, m, tests, limit)) for m in made)
+    seen = dict((m["name"], run(place, m, tests + suite, limit))
+                for m in made)
     kills = dict((c, [m["name"] for m in made if not seen[m["name"]].get(c)])
                  for c in green)
+    made_already = sorted({m["name"] for m in made for c in joined
+                           if not seen[m["name"]].get(c)})
+    unique = dict((c, [m for m in kills[c] if m not in made_already])
+                  for c in green)
+    out.update({"suite": len(joined), "suite_kills": made_already,
+                "unique": unique,
+                "unique_kills": len({m for c in green for m in unique[c]})})
     found = groups(kills, at)
     shared = [g for g in found if len(g) > 1]
     # a mutant nothing kills (a dead line deleted) cannot tell two tests
@@ -377,6 +411,16 @@ def lines(got):
         out.append("    " + str(len(g)) + " tests, one signature")
         out.extend("      kills " + m for m in got["tests"][g[0]])
         out.extend("      " + t for t in g)
+    if got["tests"]:
+        out.append("  the suite it joined kills "
+                   + str(len(got.get("suite_kills", []))) + " of "
+                   + str(len(got["mutants"])) + " mutants with "
+                   + str(got.get("suite", 0)) + " tests; unique kills "
+                   + str(got.get("unique_kills", 0)))
+        none = [t for t in sorted(got.get("unique", {}))
+                if got["tests"][t] and not got["unique"][t]]
+        out.append("  no kill of its own " + str(len(none)))
+        out.extend("      " + t for t in none)
     out.append("  pins " + str(len(got["pins"])))
     out.extend("    " + t for t in got["pins"])
     out.append("  red with the fix " + str(len(got["red_with_fix"])))

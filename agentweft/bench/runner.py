@@ -191,6 +191,9 @@ def table(flow, rows, total):
                    + ", not enough mutants to judge "
                    + str(total["undecided"])
                    + ", pins " + str(total["mutant_pins"])
+                   + ", unique kills " + str(total["unique_kills"])
+                   + ", tests with no kill of their own "
+                   + str(total["no_own_kill"])
                    + ", duplicate threshold " + str(total["duplicate_at"])
                    + ", minimum to judge " + str(total["minimum"]))
     for r in rows:

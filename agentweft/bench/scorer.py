@@ -291,5 +291,10 @@ def summary(rows, k):
                                       for g in m["duplicates"]),
                     "undecided": sum(len(g) - 1 for m in scored
                                      for g in m["undecided"]),
-                    "mutant_pins": sum(len(m["pins"]) for m in scored)})
+                    "mutant_pins": sum(len(m["pins"]) for m in scored),
+                    "unique_kills": sum(m.get("unique_kills", 0)
+                                        for m in scored),
+                    "no_own_kill": sum(1 for m in scored
+                                       for t, u in m.get("unique", {}).items()
+                                       if m["tests"].get(t) and not u)})
     return out
