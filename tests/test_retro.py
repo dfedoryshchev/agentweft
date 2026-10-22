@@ -284,6 +284,31 @@ def test_a_retro_that_comes_back_empty_is_a_failed_line(
     assert not (the_folder() / "retro.md").exists()
 
 
+def section(note, heading):
+    return note.split("## " + heading + "\n", 1)[1].split("\n## ", 1)[0]
+
+
+def test_the_handoff_s_spend_lines_count_the_retro_that_ran_after_it(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "clean", ["worker", "reviewer"],
+           tail="retro: true\n" + CLAUDE)
+    fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+             answer("## change first\n- none\n"))
+    assert engine.main() == 0
+    note = (the_folder() / "handoff.md").read_text(encoding="utf-8")
+    spent = section(note, "retro")
+    assert spent.split("\n")[:5] == [
+        "- worker.md 0.0s ($0.2500), won none: no events",
+        "- reviewer.md 0.0s ($0.2500), won none: no events",
+        "- retro.md 0.0s ($0.2500), won none: no events (after this handoff"
+        " was written)",
+        "- won none: 3 passes, 0s, $0.7500",
+        "- total: 3 passes, 0s, $0.7500"]
+    run = section(note, "run")
+    assert "- spend: 3 calls, " in run and ", the retro's call included" \
+        in run, run
+
+
 def test_a_retro_the_limit_refused_is_still_charged(
         tmp_path, monkeypatch, fake_cli):
     two_fails(tmp_path, monkeypatch, fake_cli, tail="retro: true\n",

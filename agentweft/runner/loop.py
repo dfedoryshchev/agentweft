@@ -173,11 +173,16 @@ def go(leg):
                                   run.policing, hits, seen, told, unseen))
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
+            went = len(trail.closed)
             retro.after(run, trail, run_id, fm["name"],
                         record.data["outcome"], folder, stopped,
                         state.RUNS / pick_up if pick_up else None)
             record.data[chain.FIELD] = trail.head()
             record.save(run.budget)
+            if len(trail.closed) > went:
+                summary.after_retro(path, list(earlier)
+                                    + passes(trail, run, fm),
+                                    run.budget.summary())
         upkeep.tally(run, trail)
         return path, lines
 

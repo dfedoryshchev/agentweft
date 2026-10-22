@@ -911,6 +911,43 @@ def bought(passes):
     return out + ["- total: " + _tally(passes)]
 
 
+AFTER = " (after this handoff was written)"
+
+
+def section(lines, heading):
+    """-> (first, end) of `## heading`'s lines below its heading, end the
+    index past the last; None when the handoff has no such section."""
+    if "## " + heading not in lines:
+        return None
+    first = lines.index("## " + heading) + 1
+    end = next((n for n in range(first, len(lines))
+                if lines[n].startswith("## ")), len(lines))
+    while end > first and not lines[end - 1].strip():
+        end -= 1
+    return first, end
+
+
+def after_retro(path, every, spend):
+    """the handoff the retro read, once the retro has run: the retro's pass
+    in the retro section with the sums taken again over every pass, and the
+    run's spend as it stands. `every` is every pass, the retro's last."""
+    lines = Path(path).read_text(encoding="utf-8").split("\n")
+    found = section(lines, "retro")
+    if found:
+        first, end = found
+        sums = [n for n in range(first, end) if lines[n].startswith("- won ")
+                or lines[n].startswith("- total: ")]
+        if sums:
+            lines[sums[0]:sums[-1] + 1] = ([retro(every[-1:])[0] + AFTER]
+                                           + bought(every))
+    found = section(lines, "run")
+    if found:
+        for n in range(*found):
+            if lines[n].startswith("- spend: "):
+                lines[n] = "- spend: " + spend + ", the retro's call included"
+    Path(path).write_text("\n".join(lines), encoding="utf-8")
+
+
 def wall(passes, clock):
     """-> the line that puts this run's wall beside the seconds of its
     steps and its gates, and the runner's own, which is the rest: the three

@@ -647,7 +647,12 @@ five sections are written by the runner alone:
   commits, the end-of-run checks that are not gates), so the three add up to
   the wall of this run, not of the runs it picked up. fanned tasks that ran
   at once can sum past the wall; the line then says the steps are summed and
-  leaves the runner out.
+  leaves the runner out. the retro runs after the handoff is written, and
+  reads it, so once it has run its own line goes in after the other passes,
+  marked `(after this handoff was written)`, the sums by what was won and the
+  total are taken again with it, and "run"'s `spend:` line is the run's whole
+  spend, ending `the retro's call included`. the wall stays the run's
+  without the retro.
 
     ## changed
     - calc.py +1 -1 (committed), lines 2
