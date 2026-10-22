@@ -10,12 +10,13 @@ from .handoff import EMPTY
 from .errors import Outage
 from .prompts import flow_path
 from . import (investigate, retro, router, ruling, stops, summary, trace,
-               upkeep, wrongtest)
+               upkeep, wouldpass, wrongtest)
 from .asking import lead_pass, rides, to_lead, worked_then_asked
 from .fanout import run_fanout
-from .gating import (and_forged, boundary_note, check_step, forged_by,
-                     forged_first, gate_told, gate_why, off_task, outage_why,
-                     police_line, preflight_after, preflight_before, risk_map)
+from .gating import (LEFT_OUT, and_forged, boundary_note, check_step,
+                     forged_by, forged_first, gate_told, gate_why, off_task,
+                     outage_why, police_line, preflight_after,
+                     preflight_before, reviewers_on, risk_map)
 from .run import Run
 
 # the run id a scored case's retro is told, in place of a live run's
@@ -119,8 +120,14 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
     and where from, for `note`; `kept` is the trail, None for no lines."""
     given = {}
     risk_text = ""
+    sizing = {}
+    case_for = None
     while state["step"]:
         step, out = state["step"], state["out"]
+        said = reviewers_on(run, fm, step, sizing)
+        if said and said[0] == LEFT_OUT:
+            state["step"] = route.next(step, EMPTY)
+            continue
         refused = run.refused(step)
         if refused:
             note("refused", refused, stops.REFUSED)
@@ -273,9 +280,37 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
         if unproven:
             note("parked", unproven, stops.PARKED, output=out.output)
             return out.output, run.budget, "parked at " + step + ": " + unproven
+        missed = wouldpass.read(out.output) \
+            if honest and out.verdict != "redo" else None
+        writer = route.missed_to(step) if missed else None
+        if writer:
+            note("redo", "the tests would pass " + missed[0] + ", back to "
+                 + writer + " for the case", to=writer, output=out.output)
+            run.gate_said[writer] = wouldpass.told(step, *missed)
+            coder = route.on_redo.get(step)
+            if coder:
+                run.gate_said[coder] = wouldpass.then(writer, step, missed[0])
+                case_for = (writer, step, coder)
+            state["out"] = given.get(writer, EMPTY)
+            state["came_from"] = step
+            state["step"] = writer
+            continue
         nxt = route.next(step, out)
-        note("redo" if out.verdict == "redo" and nxt else "ok", to=nxt,
+        sent_back = out.verdict == "redo" and nxt
+        already = None
+        if case_for and step == case_for[0]:
+            _, named, coder = case_for
+            case_for = None
+            ran = run.suite_of(coder) \
+                if nxt == coder and not sent_back else []
+            if wouldpass.green(ran):
+                already = wouldpass.passes_already(coder, ran)
+                run.gate_said.pop(coder, None)
+                nxt = route.next(named, EMPTY)
+        note("redo" if sent_back else "ok", already, to=nxt,
              output=out.output)
+        if already:
+            state["out"] = given.get(named, out)
         state["came_from"] = step
         state["step"] = nxt
     return state["out"].output, run.budget, ""

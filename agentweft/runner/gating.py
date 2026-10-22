@@ -345,6 +345,33 @@ def sized_change(run):
                           getattr(run, "ranking", None))
 
 
+SIZED = "size"
+LEFT_OUT = "left out"
+
+
+def reviewers_on(run, fm, step, sizing):
+    """-> (SIZED, the size line) before a flow's first reviewer when it has
+    `small_reviewers`, the change sized then; (LEFT_OUT, why) for a reviewer
+    past the ones it runs on a change sized small, which is left out; else
+    None. `sizing` keeps the size from the first reviewer to the rest."""
+    from agentweft.flow.spec import REVIEWER
+
+    small = fm.get("small_reviewers")
+    reviewing = [s.get("prompt") for s in fm.get("steps") or []
+                 if isinstance(s, dict) and s.get("role") == REVIEWER]
+    if small is None or step not in reviewing:
+        return None
+    if reviewing.index(step) == 0:
+        sizing["now"] = sized_change(run)
+        return SIZED, preflight.size_line(sizing["now"])
+    if reviewing.index(step) >= small and (
+            sizing.get("now") or {}).get("size") == preflight.SMALL:
+        return LEFT_OUT, ("left out " + step + ": the change sized small, and"
+                          " the flow runs " + str(small) + " reviewer"
+                          + ("" if small == 1 else "s") + " on a small one")
+    return None
+
+
 HUNK_NEW = re.compile(r"^@@ -\S+ \+(\d+)")
 
 

@@ -101,7 +101,10 @@ a scored case takes the steps a run of the cli takes on the same answers:
 the planner of a flow with `context` is handed the risk map, a step with
 `preflight` is checked before and after it runs and held the same way,
 what a step came back with that it was not granted goes to `boundary.md`
-beside the lines, and a flow that runs the retro (every shipped flow does)
+beside the lines, a reviewer's `WOULD PASS:` line goes to the step that
+wrote the tests and back on the same terms (`docs/journal.md`), a flow with
+`small_reviewers` sizes the change before its first reviewer and leaves out
+the reviewers a run leaves out on a small one, and a flow that runs the retro (every shipped flow does)
 ends on its `retro.md` line, charged like any step and counted in the
 case's steps and calls, with `why.md` beside the lines when the run stopped
 short. a case that scripts no `retro.md` answer gets the fake's own one for

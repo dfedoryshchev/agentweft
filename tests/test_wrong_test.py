@@ -59,8 +59,10 @@ def git(where, *args):
                    capture_output=True)
 
 
-def run_it(tmp_path, monkeypatch, answers, writes, old=False):
-    """-> (steps asked, every prompt sent, exit code, the run's folder)."""
+def run_it(tmp_path, monkeypatch, answers, writes, old=False, scored=False):
+    """-> (steps asked, every prompt sent, exit code, the run's folder). a
+    run `scored` as an eval has no exit code, and its folder is the trail
+    its lines went to."""
     project = tmp_path / "project"
     (project / "tests").mkdir(parents=True)
     (project / "conftest.py").write_text("", encoding="utf-8")
@@ -92,6 +94,12 @@ def run_it(tmp_path, monkeypatch, answers, writes, old=False):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
     monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
+    if scored:
+        trail = tmp_path / "trail"
+        trail.mkdir()
+        engine.run_once("build-feature", task=TASK, trail=trail,
+                        workdir=project)
+        return asked, sent, None, trail, project
     monkeypatch.setattr(sys, "argv", [
         "run.py", "build-feature", "--force", "--flows", str(FLOWS),
         "--workdir", "project", "--task", TASK])
