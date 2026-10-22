@@ -9,6 +9,8 @@ from pathlib import Path
 sys.path.insert(0, ".")
 from agentweft.bench import __main__ as bench
 from agentweft.bench import retrogold
+from agentweft.providers import Provider, Reply, base
+from agentweft.providers.base import Usage
 
 CASES = Path(__file__).resolve().parent.parent / "bench" / "retro-gold"
 NAMES = ["cross-file", "layered", "refactor", "shift"]
@@ -111,6 +113,41 @@ def test_a_case_passes_only_when_every_repeat_does(tmp_path, capsys):
                        str(out)]) == 0
     assert json.loads(out.read_text(encoding="utf-8"))["summary"][
         "passed"] == 3
+
+
+class Counted(Provider):
+    """answers each record with its gold and says what it used."""
+
+    name = "counted"
+
+    def ask(self, prompt, timeout=None):
+        case = Path(self.where).parent
+        return Reply(retrogold.answer_of(case), cost=0.02,
+                     usage=Usage({"input_tokens": 1000, "output_tokens": 200,
+                                  "cache_read_input_tokens": 300}))
+
+
+def test_step_mode_keeps_the_tokens_and_seconds_of_every_answer(
+        tmp_path, monkeypatch, capsys):
+    monkeypatch.setitem(base.registry, Counted.name, Counted)
+    folder = a_set(tmp_path, [])
+    (folder / "bench.yaml").write_text(json.dumps(
+        {"provider": {"provider": "counted"}}), encoding="utf-8")
+    out = tmp_path / "scores.json"
+    assert bench.main(["--retro", str(folder), "--live", "--out",
+                       str(out)]) == 0
+    runs = json.loads(out.read_text(encoding="utf-8"))["runs"]
+    assert [r["tokens"] for r in runs] == [
+        {"counted": True, "input": 1300, "output": 200, "cache_read": 300,
+         "cache_creation": 0}] * 4
+    assert all(isinstance(r["seconds"], float) and r["seconds"] >= 0
+               for r in runs)
+    assert [r["cost"] for r in runs] == [0.02] * 4
+    (tmp_path / "fake").mkdir()
+    fake = a_set(tmp_path / "fake", [retrogold.answer_of(CASES / "layered")])
+    assert bench.main(["--retro", str(fake), "--out", str(out)]) == 0
+    runs = json.loads(out.read_text(encoding="utf-8"))["runs"]
+    assert all(r["tokens"] == {"counted": False} for r in runs)
 
 
 def test_step_mode_on_a_real_model_runs_only_with_live(tmp_path, capsys):

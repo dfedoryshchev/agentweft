@@ -258,5 +258,78 @@ blind reader gives the change text and the fact's why 0 to 2.
 the provider is `provider:` in the folder's `bench.yaml`; one that calls a
 real model runs only with `--live`. the scores go to `--out`, or to
 `runs/bench/retro-<set>-<time>.json`, with a row per case and repeat (the
-four items, the score, the answer, its cost when the provider said) and the
-summary: cases, cases passed, k.
+four items, the score, the answer, its cost when the provider said, its
+`tokens` counted the way a step's line counts them, `{"counted": false}` when
+the provider said none, and the `seconds` the answer took) and the summary:
+cases, cases passed, k.
+
+## a second run on the same repo
+
+a bench set runs each task once on a fresh project, so it never shows what
+the facts one run leaves (`journal.md`, "what is known about a file") save
+the next. `--pairs` runs two related tasks one after the other on the same
+project:
+
+    python -m agentweft.bench --pairs <set> --k 2 --twin --live
+
+a pair is a folder:
+
+    <set>/errors/
+      first.md          the task that leaves facts behind (run 1)
+      second.md         a related task on the same files (run 2)
+      hidden/           the suite run 2 is scored on, never seen by a run
+      repo/             the project both runs start from, or the set's repo/
+      gold.yaml         what run 1 should leave, and what run 2 is held to
+
+`gold.yaml` is written before anything runs:
+
+    trail:                      the facts a careful retro keeps after run 1
+      - scope: [pkg/]
+        kind: convention
+    false:                      a fact on one of these scopes whose claim
+      - scope: [pkg/cli.py]     holds every word is one the record does not
+        words: [prints]         back
+    convention:                 the project's documented way run 2 follows
+      scope: [pkg/]
+      check: [python, check.py]
+
+the check runs in the pair's folder with `TASK_REPO` naming the place, the
+way the hidden suite does, so the project a run sees never holds it; exit 0
+is the convention held. a pair with no convention scope or check, no
+`second.md` or no hidden suite refuses the whole set before anything runs.
+
+each repeat runs run 1 on a fresh copy of the project, then run 2 on what run
+1 left: the `lane` arm, handed the facts run 1 kept. `--twin` also runs run 2
+on a copy of what run 1 left, with the flow copied and `lane: off` added (the
+`twin` arm), so the two arms differ in the facts alone. the flow has to run
+the retro (every shipped flow does), or run 1 keeps nothing.
+
+a row per pair and repeat holds:
+
+- `first`: run 1's outcome, how many new facts its retro had the runner
+  write (`facts_written`), how many of the gold's `trail` they
+  match by scope and kind (`trail_found` of `trail`), the ids of the ones the
+  gold names false, its cost, seconds and each step's seconds, tokens and
+  cost
+- `second.lane` and `second.twin`: run 2's outcome, finished and correct on
+  the hidden suite (green at the start is what run 1 left), the files it
+  changed, the facts each step was handed (`facts_attached`, step and id) and
+  the ones the run's change reached (`facts_used`: a fact whose scope holds
+  for a changed file; read from the whole run's diff, as a step's own diff is
+  not kept), and the convention: `honoured` or `contradicted` by its check
+  when the change reached the convention's scope, `untouched` when it did
+  not, `not checked` when the check could not run or ran past the suite's
+  limit, never a pass
+
+the summary gives each arm's correct, finished, conventions, cost and wall,
+and the probation rules, set before any pair ran:
+
+- no run writes more than 3 new facts; a run that does is counted as spam
+- at least one in 4 attached facts is used by the run it was handed to
+  (`none attached` when no fact was handed, which is not judged)
+- no fact the gold names false is written: one is printed as `the write path
+  is killed until fixed`
+
+and `probation holds` or `probation fails`. the scores go to `--out`, or to
+`runs/bench/pairs-<set>-<time>.json`, written again after each repeat so a
+bench that dies keeps what it scored.

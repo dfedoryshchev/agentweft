@@ -19,18 +19,20 @@ then). a case passes a cell when every repeat scores 4.
 
 `python -m agentweft.bench --retro <folder>` asks the retro role alone on
 each case's record (step mode) with the provider in `<folder>/bench.yaml`,
-k times, and scores each answer.
+k times, and scores each answer, with what it cost, its tokens and the
+seconds it took.
 """
 import datetime
 import json
 import re
+import time
 import types
 from pathlib import Path
 
 import yaml
 
 from agentweft.guardrails import factsguard
-from agentweft.runner import retro, upkeep
+from agentweft.runner import retro, trace, upkeep
 
 GOLD = "gold.yaml"
 ANSWER = "gold.md"
@@ -138,12 +140,16 @@ def score(answer, gold):
 
 
 def ask(provider, case):
-    """-> the retro role's answer on the case's record, asked alone, in
-    the case's place."""
+    """-> (the retro role's answer on the case's record, asked alone in the
+    case's place, what it cost, its tokens as a step's line counts them,
+    the seconds it took)."""
     provider.where = str(Path(case) / "place")
     provider.at(retro.STEP, None)
+    began = time.time()
     reply = provider.ask(prompt_of(case))
-    return reply.text or "", getattr(reply, "cost", None)
+    seconds = round(time.time() - began, 3)
+    return (reply.text or "", getattr(reply, "cost", None),
+            trace.tokens([types.SimpleNamespace(replies=[reply])]), seconds)
 
 
 def run(folder, block, k, said=print):
@@ -155,10 +161,10 @@ def run(folder, block, k, said=print):
     rows = []
     for case in cases(folder):
         for n in range(1, k + 1):
-            text, cost = ask(provider, case)
+            text, cost, tokens, seconds = ask(provider, case)
             got = score(text, gold_of(case))
             rows.append(dict(got, case=case.name, k=n, cost=cost,
-                             answer=text))
+                             tokens=tokens, seconds=seconds, answer=text))
             said(case.name + " k" + str(n) + ": " + str(got["score"])
                  + " of 4" + ("" if got["passed"] else ", "
                               + ", ".join(i for i in ITEMS if not got[i])
