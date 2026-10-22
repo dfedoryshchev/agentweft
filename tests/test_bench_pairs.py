@@ -45,6 +45,7 @@ class Pairing(Provider):
     name = "pairing"
     loud = True
     retros = 0
+    saw = []
 
     def at(self, step, task):
         self.step = step
@@ -55,6 +56,8 @@ class Pairing(Provider):
             Pairing.retros = Pairing.retros + 1
             return Reply(KEEP if Pairing.retros == 1 else NOTHING)
         if "count the words" in prompt:
+            Pairing.saw.append(((where / "facts").exists(),
+                                (where / "pkg" / "facts").is_dir()))
             (where / "pkg" / "b.py").write_text(
                 LOUD if Pairing.loud else QUIET, encoding="utf-8")
         return Reply("done" + NL)
@@ -78,6 +81,7 @@ def a_set(tmp_path, monkeypatch):
     monkeypatch.setitem(base.registry, Pairing.name, Pairing)
     Pairing.retros = 0
     Pairing.loud = True
+    Pairing.saw = []
     folder = tmp_path / "set"
     put(folder / "bench.yaml", yaml.safe_dump(
         {"flow": "one-step", "provider": {"provider": "pairing"}}))
@@ -135,6 +139,13 @@ def test_the_twin_is_the_same_run_2_with_no_fact_handed(a_set, tmp_path):
     assert arms["twin"]["changed"] == ["pkg/b.py"]
     assert arms["twin"]["convention"] == "contradicted"
     assert set(got["summary"]) >= {"lane", "twin", "probation"}
+
+
+def test_the_twin_runs_without_the_facts_run_1_left_on_disk(a_set,
+                                                            tmp_path):
+    put(a_set / "errors" / "repo" / "pkg" / "facts" / "rates.json", "{}")
+    scored(a_set, tmp_path, "--twin")
+    assert Pairing.saw == [(True, True), (False, True)]
 
 
 def test_a_set_whose_pair_names_no_convention_is_refused(a_set, tmp_path,

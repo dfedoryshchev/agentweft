@@ -28,8 +28,9 @@ the convention held.
 
 each repeat runs run 1 on a fresh copy of the project, then run 2 on what run
 1 left: the `lane` arm, handed the facts run 1 kept. with `twin`, run 2 also
-runs on a copy of what run 1 left with the flow's `lane: off`: the `twin`
-arm, the same run with no fact, so the two differ in the facts alone.
+runs on a copy of what run 1 left, without its facts/ folder, with the flow's
+`lane: off`: the `twin` arm, the same run with no fact handed or on disk, so
+the two differ in the facts alone.
 """
 import hashlib
 import os
@@ -285,6 +286,20 @@ def first(flow, spec, provider, pair, place, tmp):
             "steps": steps_of(record)}
 
 
+def without_facts(place):
+    """-> a copytree ignore that leaves out the store run 1 left at the top
+    of `place`, and nothing else: a project's own folder named facts deeper
+    down is the project's."""
+    top = Path(place).resolve()
+
+    def ignore(where, names):
+        if Path(where).resolve() == top and facts.FOLDER in names:
+            return [facts.FOLDER]
+        return []
+
+    return ignore
+
+
 def one(flow, spec, provider, pair, attempt, twin=False):
     """-> one repeat of a pair: run 1, then run 2 in each arm."""
     from agentweft.runner import prompts
@@ -297,7 +312,11 @@ def one(flow, spec, provider, pair, attempt, twin=False):
         start = scorer.hidden(pair["hidden"], place)
         if twin:
             off = Path(tmp) / "repo-twin"
-            shutil.copytree(str(place), str(off))
+            shutil.copytree(str(place), str(off), ignore=without_facts(place))
+            if facts.folder(off).exists():
+                raise RuntimeError("the twin's copy still holds "
+                                   + facts.FOLDER + "/, so the arms would not"
+                                   " differ in the facts alone")
         arms = {LANE: second(flow, spec, provider, pair, place, start, tmp,
                              LANE)}
         if twin:
