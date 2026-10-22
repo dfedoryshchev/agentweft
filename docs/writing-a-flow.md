@@ -70,7 +70,11 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
   included (`docs/gates.md`)
 - two reviewers, each `on_redo: worker`, send the code back, not the tests.
   the first reads the change against the spec and the tests, the second runs
-  the new code on what the tests leave out. a redo from either sends the work
+  the new code on what the tests leave out and holds it to the project's own
+  way: the facts handed for its files (`docs/journal.md`), the spec's layout
+  and rules, and how the code beside it already does the same thing. a change
+  done a way those rule out is a redo, with a `CONVENTION:` line quoting the
+  fact or the `file:line` it goes against. a redo from either sends the work
   back, and it comes past both again
 - the first reviewer also names, under its verdict, one wrong implementation
   the tests would let pass and the case that fails it. with `on_missed:
@@ -87,7 +91,7 @@ flow runs build-feature with the spec reviewer alone:
     - role: reviewer
       prompt: reviewer-runs.md
       on_redo: worker
-      lens: "what the tests do not run: the new code run by hand ..."
+      lens: "what the tests do not run, and the project's own way: ..."
     reviewers: 2
 
 the suite is `python -m pytest -q`, written in its `flow.yaml`. a project

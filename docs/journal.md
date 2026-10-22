@@ -1292,6 +1292,11 @@ that changes its scope (`docs/guardrails.md`, "a fact's check"), and the
 same end of the leg adds `honoured` for each step whose change kept it and
 `contradicted` for each that broke it.
 
+in the shipped build-feature flow the second reviewer reads the facts it is
+handed as the project's documented way: a change that departs from one, or
+from the spec's layout or the code beside it, is a redo with a `CONVENTION:`
+line quoting what it goes against (`docs/writing-a-flow.md`).
+
 ## what it does not do
 
 a resumed run writes its own journal lines, so a task that stopped and was
