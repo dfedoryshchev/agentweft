@@ -271,6 +271,6 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9"
+    "planner.md go 1"
   ]
 }

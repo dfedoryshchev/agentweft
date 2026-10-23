@@ -177,6 +177,6 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 820de7b5f6b02d28f79581ebdb8029fe7d3e9195eb23623d1d063029b0613832"
+    "planner.md go 1"
   ]
 }

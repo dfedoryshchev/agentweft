@@ -813,10 +813,10 @@
     ]
   ],
   "prompts": [
-    "patcher.md go 1 3fe5414ff5b38bf75871eb6eba004969d78e607df54058864ccab4b0dadfd108",
-    "patcher.md go 2 b6cd0273a3b348b5335bc99daf3c1cce784b74c0050941ff063105d255564da3",
-    "patcher.md go 3 b6cd0273a3b348b5335bc99daf3c1cce784b74c0050941ff063105d255564da3",
-    "retro.md go 1 775074f9bc4570b3d7da537352e875dff953c81f0a91f92aa802e3deab272253",
-    "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7"
+    "patcher.md go 1",
+    "patcher.md go 2",
+    "patcher.md go 3",
+    "retro.md go 1",
+    "worker.md go 1"
   ]
 }

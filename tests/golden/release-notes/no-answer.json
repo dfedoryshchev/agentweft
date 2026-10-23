@@ -300,9 +300,9 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 ab1c0db93a7d0cb7756dee9c8a6200165729db0e86dfe7a635ce409079787f27",
-    "worker.md go 1 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2",
-    "worker.md go 2 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2",
-    "worker.md go 3 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2"
+    "retro.md go 1",
+    "worker.md go 1",
+    "worker.md go 2",
+    "worker.md go 3"
   ]
 }

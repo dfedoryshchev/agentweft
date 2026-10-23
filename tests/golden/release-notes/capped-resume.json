@@ -488,7 +488,7 @@
     ]
   ],
   "prompts": [
-    "reviewer.md go 1 536b2320ad2b4019c6ba4583bde57fb11431a32a6bc951d0b85075b573dd73da",
-    "worker.md go 1 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2"
+    "reviewer.md go 1",
+    "worker.md go 1"
   ]
 }

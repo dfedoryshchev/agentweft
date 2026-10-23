@@ -173,6 +173,6 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2"
+    "worker.md go 1"
   ]
 }

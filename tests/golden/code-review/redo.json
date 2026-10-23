@@ -574,10 +574,10 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 f65627a8a2178bf13cf16c9d2ae1015ba82378de5d649e659d342e864aaef95f",
-    "reviewer.md go 1 aee7a0dda36e4a5745696ccb652ac5abc46f3ce728e0ed30d89e66b6dea9b44c",
-    "reviewer.md go 2 09ba59b3f58963b7a7529eb8ecf14e64188f8120f4636a74b244b3f43296d8c2",
-    "worker.md go 1 5442697407ba2b8a3abb9c3899126f4ca6f842e5f9ff58ea16a0ef7b647cc5d0",
-    "worker.md go 2 a9d6a6247bc63436bcf27e1281413a021a97798c4696bf56b84a15e29b29478f"
+    "retro.md go 1",
+    "reviewer.md go 1",
+    "reviewer.md go 2",
+    "worker.md go 1",
+    "worker.md go 2"
   ]
 }

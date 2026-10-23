@@ -922,12 +922,12 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9",
-    "planner.md go 2 b75d3fafb2e24c4465e2aac2587475833f0b610cf6dafa7d6e94cc7d9aaac2f0",
-    "retro.md go 1 da8557b3afffd06655f54af9e5dc4f1b4370e7fbe16d9bd8b011d7b9d5542848",
-    "reviewer-runs.md go 1 381e4bcbd1d252f828c8baebc775c2bf510531a004a634c0f41742272546fe7b",
-    "reviewer.md go 1 c25f9d8d0c29db2b5e46ceb740f82441a046b71a750622ab29eb06fa3fbcf9ee",
-    "tester.md go 1 46d4d405b342dd693c1f71b9b1aa928d836e86456f2afc246d9bb89ef61333fb",
-    "worker.md go 1 8fe0bb6180b9d53d1802b4ec96c459d92d8903528b13017b430feb29987b2ade"
+    "planner.md go 1",
+    "planner.md go 2",
+    "retro.md go 1",
+    "reviewer-runs.md go 1",
+    "reviewer.md go 1",
+    "tester.md go 1",
+    "worker.md go 1"
   ]
 }

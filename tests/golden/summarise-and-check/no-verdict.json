@@ -408,8 +408,8 @@
     "handoff: <tmp>/runs/summarise-and-check-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 c6126fdf7b46fd98cbb51d4d9787960d24e93b6f73c757dde29c116db99fb5f4",
-    "reviewer.md go 1 4bef63a0f5fba515c0a5aee0be4d394c7073f353f3a7c9607897e3bfd405603b",
-    "worker.md go 1 8346ac76a5cc658994e3aeaf6aca77f1ff5a91931590fb70bfd150d87dd5d65f"
+    "retro.md go 1",
+    "reviewer.md go 1",
+    "worker.md go 1"
   ]
 }

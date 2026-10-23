@@ -895,13 +895,13 @@
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9",
-    "retro.md go 1 a7864876845f874ed76ae1610fcb565369692171bc08c99fb75712444a5ca061",
-    "reviewer-runs.md go 1 ddb7b8a7cc726f81a7431083e7feffff04159c1be7a8844d065256b9a54f9a63",
-    "reviewer.md go 1 ee8b7aab231e2e3c69f5c7771c777bde231c7bc4c4025b9fb0d5ebf0d4579180",
-    "reviewer.md go 2 921dac619fdf7f5d5efa05be3080fd8824c78fecb2366cabf22d6b713d2ea9be",
-    "tester.md go 1 85735529d343d847bb9078bb04cd01400d6a2b173b0dbaf69b6dd856b0e9f4fe",
-    "worker.md go 1 df7ec1bf76ab6543a5f5cc761851fbf7b0cd3f5128db85549ff62521299b1146",
-    "worker.md go 2 e857de9a5d4318571d73fbad0b201b0fe9a880bfb58fc7ad17bc1fc05b7954c1"
+    "planner.md go 1",
+    "retro.md go 1",
+    "reviewer-runs.md go 1",
+    "reviewer.md go 1",
+    "reviewer.md go 2",
+    "tester.md go 1",
+    "worker.md go 1",
+    "worker.md go 2"
   ]
 }

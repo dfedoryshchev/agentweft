@@ -301,8 +301,8 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 f3950f463ad6f40e3e2c43bc6ef54e61de668001dfc3e5cdcade09d811c6d78a",
-    "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7",
-    "worker.md go 2 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7"
+    "retro.md go 1",
+    "worker.md go 1",
+    "worker.md go 2"
   ]
 }

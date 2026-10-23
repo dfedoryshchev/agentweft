@@ -229,6 +229,6 @@
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 b21c59175f3013c6e7fd8ff7c71332b93808a5815b259cd6ef60331db2360791"
+    "planner.md go 1"
   ]
 }

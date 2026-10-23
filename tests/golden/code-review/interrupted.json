@@ -173,6 +173,6 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "worker.md go 1 5442697407ba2b8a3abb9c3899126f4ca6f842e5f9ff58ea16a0ef7b647cc5d0"
+    "worker.md go 1"
   ]
 }

@@ -610,11 +610,11 @@
     "handoff: <tmp>/runs/weekly-digest-<run>/handoff.md"
   ],
   "prompts": [
-    "merge.md go 1 ee040543c911be4b8572779f61cd838e12da22933ae4892de4e925b33c056ef1",
-    "planner.md go 1 820de7b5f6b02d28f79581ebdb8029fe7d3e9195eb23623d1d063029b0613832",
-    "retro.md go 1 c4d26e1df6718ca52236809f5dbd6560db8cc206ed523c2cc80c9bf02fe9269a",
-    "reviewer.md go 1 9533376968852c2ae6c5c7a3b4539737d3373063d82c2974e8e7616e8d9cfbed",
-    "worker.md task 1 go 1 0c699398d01d696365a082c23da567d9bf4a56aed9e63eee0babfbeff58c5bd0",
-    "worker.md task 2 go 1 d133806c2d4f0c392c3719517df1f342e36fdeb9312d53485dc32c70460fe01c"
+    "merge.md go 1",
+    "planner.md go 1",
+    "retro.md go 1",
+    "reviewer.md go 1",
+    "worker.md task 1 go 1",
+    "worker.md task 2 go 1"
   ]
 }

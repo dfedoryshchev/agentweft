@@ -1028,13 +1028,13 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9",
-    "planner.md go 2 3f2ee87c8204ce52ec17f2d6709c786d45befea9ad6b5ddf2fa01807e0ba9196",
-    "retro.md go 1 7231cb209d0c5a4cafe942a5cd5cc495a7b60d3974939127607451594d213f58",
-    "reviewer-runs.md go 1 4daf23703ac6c46df77336377d2f53a0a635cb4c2fde44a1e5b86e10692914b2",
-    "reviewer.md go 1 0f0b63bf55e9adc3cf422001ccb3398e0e7c5a986865eaa06d48768cfee928f0",
-    "tester.md go 1 85735529d343d847bb9078bb04cd01400d6a2b173b0dbaf69b6dd856b0e9f4fe",
-    "worker.md go 1 df7ec1bf76ab6543a5f5cc761851fbf7b0cd3f5128db85549ff62521299b1146",
-    "worker.md go 2 3a45363477d0069fab1e958b6e6adf8891c3fd6c9bacddaf4b734614f1cc845e"
+    "planner.md go 1",
+    "planner.md go 2",
+    "retro.md go 1",
+    "reviewer-runs.md go 1",
+    "reviewer.md go 1",
+    "tester.md go 1",
+    "worker.md go 1",
+    "worker.md go 2"
   ]
 }

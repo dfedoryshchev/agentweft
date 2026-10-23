@@ -678,10 +678,10 @@
     ]
   ],
   "prompts": [
-    "planner.md go 1 b21c59175f3013c6e7fd8ff7c71332b93808a5815b259cd6ef60331db2360791",
-    "planner.md go 2 a6e34f79598c64feac7d6f7fedc20991ba8b4c201c0b3f2eb320d0ac74be7b82",
-    "retro.md go 1 44a56c711bfdfc422eba1200e6c09779ed4778f2aa26e7a77e107358773c8fdd",
-    "reviewer.md go 1 adb4094b9bffb8b53ffd1abc33ca5583fd79add6c0bbcf96cbc71bef0eaf9264",
-    "worker.md go 1 079b26c992f4ceada03e3d127c4890f4365409d208ba08d2519598de52325aae"
+    "planner.md go 1",
+    "planner.md go 2",
+    "retro.md go 1",
+    "reviewer.md go 1",
+    "worker.md go 1"
   ]
 }

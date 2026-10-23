@@ -605,11 +605,11 @@
     "handoff: <tmp>/runs/retro-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 eb1d2694ee655e4ff36242312127ef1ae9b16bcba9452748ea170d9c97f7cdf2",
-    "reviewer.md go 1 8e87d1c51a9c2489fc76f888fc880979d918b4a74093191c4f315c15dd2db202",
-    "reviewer.md go 2 dccba328d2b5cb553f4ae690a7fe2c0291a884e5fa8dad2e631023e9b13cdd16",
-    "worker.md go 1 f8e6fe6d64badff6e77a76b5f6108a24921185ef4c36037b9d6972d5c73ee28f",
-    "worker.md go 2 606072d8e1c9af76b773dd7114aff5b960661a6b606374feff7870c14261ca71",
-    "worker.md go 3 53eecc34fbda2a72f857957f05fe2185c8a47f49aa18a6ae686a49202abf8563"
+    "retro.md go 1",
+    "reviewer.md go 1",
+    "reviewer.md go 2",
+    "worker.md go 1",
+    "worker.md go 2",
+    "worker.md go 3"
   ]
 }

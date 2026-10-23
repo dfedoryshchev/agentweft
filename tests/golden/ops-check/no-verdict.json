@@ -491,9 +491,9 @@
     "handoff: <tmp>/runs/ops-check-<run>/handoff.md"
   ],
   "prompts": [
-    "planner.md go 1 b21c59175f3013c6e7fd8ff7c71332b93808a5815b259cd6ef60331db2360791",
-    "retro.md go 1 01548b0ad7d4c930307d9bd98fd9c041574c73163630e030579a13a6b2a613bb",
-    "reviewer.md go 1 9e051b21b08fc8ff5b223bc7980fa50b19a1718d6b3feb0cfc3e961f361bfb25",
-    "worker.md go 1 f92c9fab58cdfdfcffdd637958aec496467223430f4022f619c591fc79f4db7a"
+    "planner.md go 1",
+    "retro.md go 1",
+    "reviewer.md go 1",
+    "worker.md go 1"
   ]
 }

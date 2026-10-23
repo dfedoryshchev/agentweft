@@ -12,7 +12,9 @@ they run on the fake provider, so nothing is called and nothing costs anything.
 a change that moves what a shipped flow does fails its golden in
 `tests/golden/`. read the changed lines it prints, then rewrite that golden
 by name: `pytest tests/test_golden.py --update-golden build-feature/pass`.
-a bare `--update-golden` only writes goldens that do not exist yet.
+a bare `--update-golden` only writes goldens that do not exist yet. a
+prompt edit alone moves no golden, only that golden's line of prompt hashes
+in `tests/golden/prompts.json`, rewritten by the same option.
 
 ## the two extension points
 

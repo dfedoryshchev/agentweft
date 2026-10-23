@@ -4,9 +4,9 @@ a replay runs the real `main()` over a shipped flow with the cli provider
 answering from a script instead of a process, and keeps what a person or the
 next run reads: the steps it took and where each one sent the work, every
 gate, the journal and index lines, the handoff, the files left behind and
-what it printed, plus a sha256 of each prompt sent: the script answers by
-step and go, so without them an edited prompt replays the old answer and
-passes. times, run ids, commit ids, seconds and the temp place are taken
+what it printed, plus a sha256 of each prompt sent, kept apart in
+tests/golden/prompts.json: the script answers by step and go, so without
+them an edited prompt replays the old answer and passes. times, run ids, commit ids, seconds and the temp place are taken
 out first, so the same run on another day, machine or OS reads the same. a
 case marked `git` runs in a repo on a branch `work` with main checked out
 beside it, so the sign-off has a branch to read; an answer's `then` moves
@@ -15,6 +15,7 @@ main while the step works.
 `python -m pytest tests/test_golden.py --update-golden` writes the missing
 files; `--update-golden flow/path` rewrites the existing one it names.
 """
+import contextlib
 import datetime
 import difflib
 import json
@@ -24,6 +25,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import types
 from pathlib import Path
 
@@ -906,10 +908,11 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     # sorted again once the stamps are out: "<flow>-<day>-1.md" against the
     # run folder "<flow>-<day>-<time>/" orders by the hour the run started in
     got["files"] = sorted(got["files"])
-    got["prompts"] = sorted(
-        recording.named(step, task, n) + " "
-        + recording.digest(scrub(prompt, tmp_path))
-        for step, task, n, prompt in script.prompts)
+    sent = [(recording.named(step, task, n),
+             recording.digest(scrub(prompt, tmp_path)))
+            for step, task, n, prompt in script.prompts]
+    got["prompts"] = sorted(name for name, _ in sent)
+    got[HASHES] = sorted(name + " " + digest for name, digest in sent)
     return got
 
 
@@ -1038,17 +1041,77 @@ def golden_file(flow, path):
     return GOLDEN / flow / (path + ".json")
 
 
+# every golden's prompt hashes, by flow/path, in one file: a shared fragment
+# changes every prompt, and moves this file and no golden
+HASHES = "prompt hashes"
+
+
+def table_file():
+    return GOLDEN / "prompts.json"
+
+
+def table():
+    found = table_file()
+    if not found.exists():
+        return {}
+    return json.loads(found.read_bytes().decode("utf-8"))
+
+
+def split(got):
+    """-> (what the golden file holds, the prompt hashes or None)."""
+    return (dict((k, v) for k, v in got.items() if k != HASHES),
+            got.get(HASHES))
+
+
+@contextlib.contextmanager
+def held(path):
+    """the table is one file every xdist worker rewriting goldens writes to,
+    so each takes it alone."""
+    lock = path.parent / (path.name + ".lock")
+    for _ in range(1200):
+        try:
+            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            time.sleep(0.05)
+    else:
+        raise RuntimeError(str(lock) + " is held; delete it if no test run"
+                           " is writing goldens")
+    try:
+        yield
+    finally:
+        os.close(fd)
+        os.remove(str(lock))
+
+
+def put(name, hashes):
+    path = table_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with held(path):
+        kept = table()
+        kept[name] = hashes
+        path.write_bytes(dump(dict(sorted(kept.items()))).encode("utf-8"))
+
+
 def compare(flow, path, got, update):
     target = golden_file(flow, path)
+    body, hashes = split(got)
+    name = flow + "/" + path
     if update:
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(dump(got).encode("utf-8"))
+        target.write_bytes(dump(body).encode("utf-8"))
+        if hashes is not None:
+            put(name, hashes)
         return
     assert target.exists(), (str(target.relative_to(REPO)) + " is missing. "
                              "python -m pytest tests/test_golden.py "
                              "--update-golden writes it")
     want = json.loads(target.read_bytes().decode("utf-8"))
-    assert dump(got).split("\n") == dump(want).split("\n")
+    assert dump(body).split("\n") == dump(want).split("\n")
+    if hashes is not None:
+        assert hashes == table().get(name), (
+            "a prompt of " + name + " changed since tests/golden/prompts.json"
+            " was written. --update-golden " + name + " rewrites it")
 
 
 def changed(was, now):
@@ -1058,29 +1121,46 @@ def changed(was, now):
 
 
 def settle(flow, path, got, names, said):
-    """compares when `names` is None, else writes a missing golden and
-    rewrites an existing one only when `names` holds flow/path."""
+    """compares when `names` is None, else writes a missing golden or prompt
+    table entry and rewrites an existing one only when `names` holds
+    flow/path."""
     target = golden_file(flow, path)
     name = flow + "/" + path
     if names is None:
         return compare(flow, path, got, False)
+    body, hashes = split(got)
     if not target.exists():
         compare(flow, path, got, True)
         said.append("wrote " + name)
         return
     lines = changed(dump(json.loads(target.read_bytes().decode("utf-8"))),
-                    dump(got))
+                    dump(body))
+    was = table().get(name)
+    if hashes is not None and was is None:
+        put(name, hashes)
+        said.append("wrote the prompt hashes of " + name)
+        was = hashes
+    moved = changed(dump(was), dump(hashes)) if hashes is not None else []
     if name in names:
-        if not lines:
+        if not lines and not moved:
             said.append(name + " already matches")
             return
-        compare(flow, path, got, True)
-        said.extend(["rewrote " + name] + lines)
+        if lines:
+            target.write_bytes(dump(body).encode("utf-8"))
+            said.extend(["rewrote " + name] + lines)
+        if moved:
+            put(name, hashes)
+            said.extend(["rewrote the prompt hashes of " + name] + moved)
         return
-    if lines:
-        pytest.fail("\n".join(lines + [
-            name + " differs from its golden, left as it was. "
-            "--update-golden " + name + " rewrites it"]), pytrace=False)
+    if lines or moved:
+        what = (name + " differs from its golden" if lines else
+                "the prompt hashes of " + name + " differ from"
+                " tests/golden/prompts.json")
+        if lines and moved:
+            what = what + ", and its prompt hashes too"
+        pytest.fail("\n".join(lines + moved + [
+            what + "; left as it was. --update-golden " + name
+            + " rewrites it"]), pytrace=False)
 
 
 @pytest.mark.parametrize("flow,path", sorted(CASES),
@@ -1183,9 +1263,40 @@ def test_an_edited_prompt_does_not_replay_its_golden_silently(
         return
     with pytest.raises(AssertionError):
         compare("code-review", "pass", got, False)
-    want = json.loads(golden_file("code-review", "pass").read_bytes())
-    assert [p for p in got["prompts"] if p not in want["prompts"]] == [
-        p for p in got["prompts"] if p.startswith("worker.md ")]
+    want = table()["code-review/pass"]
+    assert [p for p in got[HASHES] if p not in want] == [
+        p for p in got[HASHES] if p.startswith("worker.md ")]
+    body, _ = split(got)
+    assert body == json.loads(golden_file("code-review", "pass").read_bytes())
+
+
+def test_a_fragment_only_change_moves_the_prompt_table_and_no_golden(
+        tmp_path, monkeypatch, capsys):
+    from agentweft.roles import resolver
+
+    kept = tmp_path / "golden"
+    shutil.copytree(str(GOLDEN), str(kept))
+    monkeypatch.setattr(sys.modules[__name__], "GOLDEN", kept)
+    package = tmp_path / "package"
+    for part in ("fragments", "skills"):
+        shutil.copytree(str(resolver.HERE / part), str(package / part))
+    shared = package / "fragments" / "handoff.md"
+    shared.write_bytes(shared.read_bytes() + b"\nkeep each line short.\n")
+    monkeypatch.setattr(resolver, "HERE", package)
+    golden = golden_file("code-review", "pass")
+    before = golden.read_bytes().replace(b"\r\n", b"\n")
+    table = kept / "prompts.json"
+    was = table.read_bytes() if table.exists() else b""
+    got = replay("code-review", CASES[("code-review", "pass")], tmp_path,
+                 monkeypatch, capsys)
+    with pytest.raises(pytest.fail.Exception):
+        settle("code-review", "pass", got, frozenset(), [])
+    said = []
+    settle("code-review", "pass", got, frozenset({"code-review/pass"}), said)
+    assert golden.read_bytes().replace(b"\r\n", b"\n") == before
+    assert table.read_bytes() != was
+    moved = [l for l in said if l.startswith("+")]
+    assert moved and all("go 1 " in l for l in moved)
 
 
 def no_carry(monkeypatch):
