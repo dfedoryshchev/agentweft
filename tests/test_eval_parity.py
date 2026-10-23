@@ -93,13 +93,18 @@ def test_an_eval_leaves_out_the_reviewer_a_run_leaves_out_on_a_small_change(
     import shutil
 
     import test_wrong_test as wt
+    from agentweft.mcp import context
 
     flows = tmp_path / "flows"
     shutil.copytree(str(wt.FLOWS), str(flows))
     yml = flows / "build-feature" / "flow.yaml"
     yml.write_text(yml.read_text(encoding="utf-8").replace(
-        "small_reviewers: 2", "small_reviewers: 1"), encoding="utf-8")
+        "small_reviewers: 2", "small_reviewers: 1")
+        + 'context:\n  command: ["ranker"]\n', encoding="utf-8")
     monkeypatch.setattr(wt, "FLOWS", flows)
+    # a change sizes small only against a risk map that ranks it cold
+    monkeypatch.setattr(context, "risk_map", lambda config, where=None: (
+        "calc.py 0.1\n", ""))
     answers = {"planner.md": [wt.PLAN], "tester.md": [wt.TESTER],
                "worker.md": [wt.WORKER], "reviewer.md": [wt.OK],
                "reviewer-runs.md": [wt.OK]}

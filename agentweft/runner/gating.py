@@ -385,15 +385,18 @@ def added_since_start(run):
     tree = run.tree
     if not tree.git or not tree.start:
         return None
-    files, path, number = {}, None, 0
+    files, path, old, number = {}, None, None, 0
     for line in (_git(run.workdir, "-c", "core.quotepath=false", "diff",
                       "--unified=0", "--no-color", "--no-ext-diff",
-                      tree.start, "--", ".") or "").split("\n"):
+                      "--no-renames", tree.start, "--", ".") or "").split("\n"):
         if line.startswith("+++ "):
-            path = line[6:] if line.startswith("+++ b/") else None
+            # a deleted file's new side is /dev/null: its lines taken out
+            # count under the path it had
+            path = line[6:] if line.startswith("+++ b/") else old
             if path is not None:
                 files.setdefault(path, [[], 0])
         elif line.startswith("--- "):
+            old = line[6:] if line.startswith("--- a/") else None
             continue
         elif line.startswith("@@"):
             m = HUNK_NEW.match(line)

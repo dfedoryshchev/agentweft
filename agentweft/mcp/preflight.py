@@ -99,6 +99,14 @@ CONFIG_SUFFIXES = (".toml", ".ini", ".cfg", ".conf", ".yaml", ".yml", ".json",
                    ".env", ".properties")
 CONFIG_NAMES = ("settings.py", "config.py", "conftest.py", "setup.py",
                 "dockerfile", "makefile", ".env")
+# what the code installs and builds with: a changed line here reaches every
+# file, so it is config whose every line counts, set key or not
+MANIFEST = re.compile(r"^(?:requirements[\w.-]*\.(?:txt|in)|constraints[\w.-]*"
+                      r"\.txt|pyproject\.toml|setup\.cfg|pipfile|package\.json"
+                      r"|pnpm-lock\.yaml|go\.mod|go\.sum|gemfile|cargo\.toml"
+                      r"|[\w.-]+\.lock|package-lock\.json|(?:gnu)?makefile"
+                      r"|(?:docker|container)file(?:\.[\w.-]+)?"
+                      r"|[\w.-]+\.dockerfile)$")
 # a line that sets a key in a config file, not a comment or a header
 CONFIG_KEY = re.compile(r"^\s*[\"']?[\w.\-]+[\"']?\s*[:=]")
 NEW_NAME = re.compile(r"^(?:async\s+)?(?:def|class)\s+([A-Za-z]\w*)")
@@ -123,6 +131,8 @@ def file_kind(path):
         return "locale"
     if suffix in DOC_SUFFIXES or parts[0] == "docs":
         return "docs"
+    if manifest(path):
+        return "config"
     if suffix in DATA_SUFFIXES or (suffix in CONFIG_SUFFIXES and any(
             p in DATA_DIRS for p in parts[:-1])):
         return "data"
@@ -131,15 +141,25 @@ def file_kind(path):
     return "code"
 
 
+def manifest(path):
+    """whether `path` is a dependency or build manifest, outside a data
+    folder."""
+    parts = [p.lower() for p in _slashes(path).split("/")]
+    return bool(MANIFEST.match(parts[-1])) and not any(
+        p in DATA_DIRS for p in parts[:-1])
+
+
 def size(files, ranking_text=None, threshold=DEFAULT_THRESHOLD):
     """-> how big and how risky a change is, from the files it changed:
-    [(path, the lines it added, how many it took out)], None when the change
-    could not be read. `blast` is high when it touches a file the risk map
-    ranks at or above `threshold`, sets a key in a config file, or adds a
-    command-line flag; `logic_lines` counts only code, never tests, docs,
-    data or locale files. a change is `small` only with a low blast, few
-    logic lines, few code files and at most one new public name. `why` says
-    what decided it, one reason a line."""
+    [(path, the lines it added, how many it took out)], a deleted file with
+    every line taken out, None when the change could not be read. `blast` is
+    high when it touches a file the risk map ranks at or above `threshold`,
+    sets a key in a config file, changes a dependency manifest, or adds a
+    command-line flag; with no risk map to read it is `unknown`, never low.
+    `logic_lines` counts only code, never tests, docs, data or locale
+    files. a change is `small` only with a low blast, few logic lines, few
+    code files and at most one new public name. `why` says what decided it,
+    one reason a line."""
     out = {"size": NOT_SMALL, "blast": "low", "logic": "logic",
            "logic_lines": 0, "files": 0, "why": [], "read": files is not None}
     if files is None:
@@ -156,7 +176,10 @@ def size(files, ranking_text=None, threshold=DEFAULT_THRESHOLD):
                 out["blast"] = "high"
                 out["why"].append(path + " is ranked " + str(score)
                                   + " on the risk map")
-        if kind == "config" and any(CONFIG_KEY.match(l) for l in added):
+        if kind == "config" and manifest(path) and (added or removed):
+            out["blast"] = "high"
+            out["why"].append(path + " changes a dependency manifest")
+        elif kind == "config" and any(CONFIG_KEY.match(l) for l in added):
             out["blast"] = "high"
             out["why"].append(path + " sets a key in a config file")
         if kind != "code":
@@ -168,6 +191,10 @@ def size(files, ranking_text=None, threshold=DEFAULT_THRESHOLD):
             out["why"].append(path + " adds a command-line flag")
         names.extend(m.group(1) for m in (NEW_NAME.match(l) for l in added)
                      if m and not m.group(1).startswith("_"))
+    if not ranking and out["blast"] != "high":
+        out["blast"] = "unknown"
+        out["why"].append("no risk map to rank the files against, so the"
+                          " blast radius is unknown")
     if not out["logic_lines"]:
         out["logic"] = "low-logic"
     if out["logic_lines"] > SMALL_LINES:
