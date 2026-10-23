@@ -410,8 +410,9 @@ named in the detail. the record is per test, in `steps.jsonl` (the gate's
 error's name, `after`, and on a red test `red_on`: `assertion`, `missing
 name` when what it calls is not there yet (an `ImportError`,
 `ModuleNotFoundError` or `NameError` red as above, or an `AttributeError`
-saying a module or object has no such attribute), or `error` for another
-exception the code raised) and in the handoff under "tests and checks", and the
+on an attribute that is not in the start tree and is in the place now, and
+never one on `None`, which is the code returning nothing), or `error` for
+another exception the code raised) and in the handoff under "tests and checks", and the
 steps after it are told what it ran: a verify step reads that the test failed
 without the fix as a run, not as something it has to take on trust. so are the
 red-test gate's own red runs, which happened before any later step started.

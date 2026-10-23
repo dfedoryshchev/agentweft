@@ -30,7 +30,8 @@ INSTALLED = ("site-packages", "dist-packages")
 IMPORT_NAME = re.compile(r"cannot import name '([\w.]+)'(?: from '([\w.]+)')?")
 NO_MODULE = re.compile(r"No module named '([\w.]+)'")
 NOT_DEFINED = re.compile(r"name '(\w+)' is not defined")
-NO_ATTRIBUTE = re.compile(r"has no attribute '\w+'")
+NO_ATTRIBUTE = re.compile(r"(?:module '([\w.]+)'|'(\w+)' object|type object "
+                          r"'(\w+)') has no attribute '(\w+)'")
 MISSING_NAME = "missing name"
 PIN_OK = re.compile(r"^PIN OK:(.*)$")
 # the steps that decide what is built, not the ones that write it: a step
@@ -53,14 +54,14 @@ def kind_of(output):
     return ""
 
 
-def red_on(kind, output):
+def red_on(kind, added=False):
     """-> what a test red without the fix failed on: "assertion", "missing
-    name" when the code it calls is not there yet (an import, a name, an
-    attribute the fix adds), or "error" for an exception the code raised."""
+    name" when the code it calls is not there yet (an import, a name, or an
+    attribute the fix adds, `added` from `attribute_added`), or "error" for
+    an exception the code raised."""
     if kind == "assertion":
         return "assertion"
-    if kind in MISSES or (kind == "AttributeError"
-                          and NO_ATTRIBUTE.search(output or "")):
+    if kind in MISSES or (kind == "AttributeError" and added):
         return MISSING_NAME
     return "error" if kind else ""
 
@@ -219,6 +220,47 @@ def fix_adds(output, start, now):
     if missing is None:
         return False
     return exists(start, *missing) is False and exists(now, *missing) is True
+
+
+def named_anywhere(root, name):
+    """-> whether any python file under `root` defines `name`: a function,
+    a class or a method, or binds it, a plain name or an attribute. None
+    when a file that could say does not parse."""
+    files = py_files(root) or sorted(Path(root).rglob("*.py"))
+    said = False
+    for f in files:
+        try:
+            tree = ast.parse(Path(f).read_text(encoding="utf-8",
+                                               errors="replace"))
+        except (SyntaxError, ValueError, OSError):
+            said = None
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                 ast.ClassDef)) and node.name == name:
+                return True
+            if isinstance(node, ast.Name) and node.id == name \
+                    and isinstance(node.ctx, ast.Store):
+                return True
+            if isinstance(node, ast.Attribute) and node.attr == name \
+                    and isinstance(node.ctx, ast.Store):
+                return True
+    return said
+
+
+def attribute_added(output, start, now):
+    """whether the AttributeError in `output` misses an attribute that is
+    not in the start tree `start` and is in the place `now`. never one on
+    None: that is the code returning nothing, whatever the fix adds."""
+    m = NO_ATTRIBUTE.search(output or "")
+    if not m or m.group(2) == "NoneType":
+        return False
+    module, name = m.group(1), m.group(4)
+    if module:
+        return exists(start, module, name) is False \
+            and exists(now, module, name) is True
+    return named_anywhere(start, name) is False \
+        and named_anywhere(now, name) is True
 
 
 def frames(output):
@@ -427,9 +469,12 @@ class RedFirstGate(Gate):
                         i for i in ids if before[i][0].startswith(
                             "could not start")], there, adds))
                     self.held_before = unstarted_fault(before)
+                added = set(i for i in ids if before[i] == (
+                    "red", "AttributeError") and attribute_added(
+                        self.printed.get(i, ""), there, start.place))
         except ValueError as e:
             return self.broke("could not replay without the fix: " + str(e))
-        unfixed, self.printed = dict(self.printed), {}
+        self.printed = {}
         after = self.side(cmd, ids, start.place)
         self.held = ""
         bad = [i for i in ids if after[i][0] != "green"]
@@ -444,7 +489,7 @@ class RedFirstGate(Gate):
                    "after": after[i][0]} for i in ids]
         for t in record:
             if t["before"] == "red":
-                t["red_on"] = red_on(t["kind"], unfixed.get(t["test"], ""))
+                t["red_on"] = red_on(t["kind"], t["test"] in added)
         self.label(record)
         return self.judge(record, text, (cmd, carried, came, start))
 

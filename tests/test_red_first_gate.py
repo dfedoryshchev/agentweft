@@ -141,6 +141,51 @@ def test_the_red_proof_says_what_each_red_test_failed_on(tmp_path, test, kind,
     assert (r.tests[0]["kind"], r.tests[0]["red_on"]) == (kind, on)
 
 
+FINDS = ("def find(xs, x):" + NL + "    return None" + NL + NL + NL
+         + "class Box(object):" + NL + "    def get(self):" + NL
+         + "        return 1" + NL)
+FOUND = ("def find(xs, x):" + NL + "    return Box() if x in xs else None"
+         + NL + NL + NL + "class Box(object):" + NL + "    def get(self):"
+         + NL + "        return 1" + NL + NL + "    def size(self):" + NL
+         + "        return 2" + NL)
+ON_NONE = ("from calc import find" + NL + NL + NL + "def test_find():" + NL
+           + "    assert find([1], 1).get() == 1" + NL)
+ON_A_METHOD_ADDED = ("from calc import Box" + NL + NL + NL
+                     + "def test_size():" + NL
+                     + "    assert Box().size() == 2" + NL)
+
+
+@pytest.mark.parametrize("test, on", [
+    (ON_NONE, "error"), (ON_A_METHOD_ADDED, "missing name")])
+def test_an_attribute_error_is_a_missing_name_only_for_one_the_fix_adds(
+        tmp_path, test, on):
+    place = a_repo(tmp_path / "repo")
+    (place / "calc.py").write_text(FINDS, encoding="utf-8")
+    git(place, "commit", "-qam", "finds")
+    run = started(place)
+    write(place, "tests/test_calc.py", test, "no commits", "")
+    write(place, "calc.py", FOUND, "no commits", "")
+    r = replayed(run)
+    assert r, r.detail
+    assert (r.tests[0]["kind"], r.tests[0]["red_on"]) == ("AttributeError",
+                                                         on)
+
+
+def test_an_attribute_on_none_is_never_a_missing_name(tmp_path):
+    for where in ("start", "now"):
+        (tmp_path / where).mkdir()
+    (tmp_path / "now" / "calc.py").write_text(
+        "def get():" + NL + "    return 1" + NL, encoding="utf-8")
+    said = "E   AttributeError: 'NoneType' object has no attribute 'get'"
+    assert redfirst_gate.attribute_added(said, tmp_path / "start",
+                                         tmp_path / "now") is False
+    assert redfirst_gate.attribute_added(said.replace("NoneType", "Box"),
+                                         tmp_path / "start",
+                                         tmp_path / "now") is True
+    assert redfirst_gate.red_on("AttributeError", False) == "error"
+    assert redfirst_gate.red_on("AttributeError", True) == "missing name"
+
+
 MISSPELT = ("def test_add():" + NL + "    from calc import ad" + NL + NL
             + "    assert ad(1, 2) == 3" + NL)
 
