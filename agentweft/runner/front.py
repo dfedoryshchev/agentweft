@@ -33,6 +33,25 @@ CARRY = ("what it needs from you and the command to carry on are under"
          " needs you, below.")
 DECLINED = ("nothing carries it on; the step's reason is under needs you,"
             " below.")
+# the causes whose stop says what to do whatever its reason; on any other a
+# gate, a crash or a refusal is fixed by reading why, and the stop and its
+# carry-on line are the decision
+ADVISED = {stops.BUDGET: "raise the cap and carry on: {command}",
+           stops.OUTAGE: "carry on as it is once the limit resets; nothing in"
+                         " the run needs changing: {command}",
+           stops.INTERRUPT: "carry on as it is; {at} runs again: {command}"}
+
+
+def advice(stopped, command):
+    """-> the recommendation a stop's cause gives, with the command that
+    carries it on, "" for a cause that gives none or a run nothing carries
+    on."""
+    said = ADVISED.get((stopped or {}).get("cause"))
+    if not said or not command:
+        return ""
+    return said.format(at=stopped["at"], command=command)
+
+
 # the kinds a stopped run waits on: they lead the decisions, before any
 # question that did not stop it
 WAITS = ("needs", "conflict")
@@ -370,6 +389,8 @@ def _decision(found, most, width, stop=None):
     if stop:
         out.append(_cut("- " + stop[0], width))
         out.append("  " + stop[1])
+        if len(stop) > 2 and stop[2]:
+            out.append(_cut("  recommendation: " + stop[2], width))
         return out + _also(found, most, width)
     if not found:
         out.append("- none: nothing waits on you.")

@@ -246,7 +246,11 @@ or under it is scored. the points, in order:
    item; `none` only on a done run; a done run with a ruling on record never
    shows a question open; when the flow's lead escalated, the recommendation
    shown is the lead's; never `none given` while the record holds one; a park
-   carries its `--resume` command
+   carries its `--resume` command. a stop no step asked about is its own
+   decision: on the cap, a provider limit or an interrupt it needs the
+   recommendation that cause gives; on any other (a gate, a crash, a
+   refusal) its carry-on line holds the point, since what to do there is
+   read from why it stopped
 3. `changed, from git`: each file with its lines and commit state
 4. `read, with the line that mattered`: every pass that read files has a
    `said:` line under it

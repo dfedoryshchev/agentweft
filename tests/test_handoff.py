@@ -952,6 +952,41 @@ def why_of(lines):
     return view[view.index("## why"):view.index("## not done")]
 
 
+def decision_of(lines):
+    view = lines[:lines.index("## full record")]
+    return view[view.index("## the one decision"):view.index("## why")]
+
+
+def a_stop(cause, command="python run.py demo --resume demo-1"):
+    needs = park.lines("worker.md", None, [("worker.md", 2)], ["worker.md"],
+                       command, why="it stopped", cause=cause)
+    return stopped_build({"cause": cause, "why": "it stopped",
+                          "at": "worker.md"}, needs)
+
+
+def test_a_stop_whose_cause_says_what_to_do_recommends_it():
+    capped = decision_of(a_stop(stops.BUDGET, "python run.py demo --resume"
+                                " demo-1 --max-calls <n>"))
+    assert ("  recommendation: raise the cap and carry on: python run.py demo"
+            " --resume demo-1 --max-calls <n>") in capped
+    assert ("  recommendation: carry on as it is once the limit resets;"
+            " nothing in the run needs changing: python run.py demo --resume"
+            " demo-1") in decision_of(a_stop(stops.OUTAGE))
+    assert ("  recommendation: carry on as it is; worker.md runs again:"
+            " python run.py demo --resume demo-1") in decision_of(
+                a_stop(stops.INTERRUPT))
+
+
+def test_a_stop_whose_fix_depends_on_its_why_recommends_nothing_and_scores():
+    from agentweft.bench import ladder
+
+    lines = a_stop(stops.GATE)
+    assert not [l for l in decision_of(lines) if "recommendation" in l]
+    point = [p for p in ladder.score("\n".join(lines))["points"]
+             if p["point"] == "decision"][0]
+    assert point["got"] == 1, point["line"]
+
+
 def test_what_was_tried_and_dropped_sits_in_the_why_and_still_carries():
     lines = summary.build("demo-1", "demo", "t", [summary.a_pass(
         "patcher.md", "patcher", 1.0, handoff.parse(TRIED), [], False, "ok",

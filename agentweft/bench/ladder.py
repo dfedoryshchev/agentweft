@@ -14,7 +14,7 @@ how often each point was missed.
 import re
 from pathlib import Path
 
-from agentweft.runner import stops
+from agentweft.runner import front, stops
 
 FILE = "handoff.md"
 DONE, STOPPED, PARKED, FAILED = "done", "stopped", "parked", "failed"
@@ -184,6 +184,14 @@ def _decision(c):
     if lead and not rec.startswith("recommendation (" + lead.group(1)):
         return 0, ("the lead, " + lead.group(1) + ", escalated it with its"
                    " own recommendation, and the one decision shows another")
+    if not rec and c["path"] != DONE and item[2:].startswith(c["word"]) \
+            and (front.CARRY in under or front.DECLINED in under):
+        cause = next((CAUSE.match(l).group(1) for l in
+                      c["secs"].get("run", []) if CAUSE.match(l)), None)
+        if cause in front.ADVISED:
+            return 0, ("a " + cause + " stop with no recommendation, while"
+                       " its cause gives one")
+        return 1, "the stop is the decision, with what carries it on"
     if not rec:
         return 0, "no recommendation line"
     if "none given" in rec and any(

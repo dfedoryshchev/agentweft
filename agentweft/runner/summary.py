@@ -1195,8 +1195,11 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 ("read, addressed to an agent, not acted on:", list(told))]
     stop = None
     if stopped and not (found and found[0]["kind"] in front.WAITS):
+        carry = carry_on(needs, command)
         stop = (ended(stopped), front.DECLINED
-                if stopped["cause"] == stops.DECLINED else front.CARRY)
+                if stopped["cause"] == stops.DECLINED else front.CARRY,
+                front.advice(stopped, carry[1].strip()
+                             if carry[0] == CARRY_ON else ""))
     view = front.view(out, found, why, not_done,
                       front.gaps(found, changes.get("spec_changed", []),
                                  lead=not stop), stop=stop)

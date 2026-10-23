@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, ".")
 from agentweft.bench import __main__ as bench
 from agentweft.bench import ladder
+from agentweft.runner import front, stops
 
 HERE = Path(__file__).parent / "ladder"
 DONE = (HERE / "done-fix.md").read_text(encoding="utf-8")
@@ -76,6 +77,32 @@ def test_a_point_the_path_has_no_line_for_is_not_applicable_never_zero():
     assert got(scored)["checks"] is None
     assert scored["applicable"] == 8
     assert scored["score"] == 10
+
+
+def a_stop_decision(cause, rec=None):
+    word = stops.outcome(cause)
+    head = "# demo demo-1: " + word + " at worker.md - it stopped"
+    return "\n".join(
+        [head, "", "## the one decision", "- " + word + " at worker.md - it"
+         " stopped", "  " + front.CARRY]
+        + (["  recommendation: " + rec] if rec else [])
+        + ["", "## not done", "- not done: the run stopped at worker.md",
+           "", "## run", "- cause: " + cause + " at worker.md", "",
+           "to carry on", "  python run.py demo --resume demo-1"])
+
+
+def test_a_stop_that_is_its_own_decision_holds_it_with_its_carry_on_line():
+    for cause in (stops.GATE, stops.EXCEPTION, stops.OVERLAP):
+        assert got(ladder.score(a_stop_decision(cause)))["decision"] == 1, \
+            cause
+
+
+def test_a_stop_whose_cause_names_what_to_do_needs_the_recommendation():
+    for cause in (stops.BUDGET, stops.OUTAGE, stops.INTERRUPT):
+        assert got(ladder.score(a_stop_decision(cause)))["decision"] == 0, \
+            cause
+        assert got(ladder.score(a_stop_decision(cause, "carry on")))[
+            "decision"] == 1, cause
 
 
 def test_a_decided_question_shown_open_on_a_done_run_is_a_false_line():

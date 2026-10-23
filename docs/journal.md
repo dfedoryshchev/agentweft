@@ -543,8 +543,11 @@ answers, in order:
   and options, whatever asked it: a `NEEDS:` or `CONFLICT:` line, `VERDICT:
   park`, a `REFUSED:` with no spec line cited, a spec change request, or the
   runner. a stop that asked nothing (a gate, the cap, an outage, a crash, a
-  refusal that cites the spec) leads with the stop itself, where and why,
-  and the questions the steps left open follow it under `also open:`.
+  refusal that cites the spec) leads with the stop itself, where and why;
+  on the cap, a provider limit or an interrupt a `recommendation:` line
+  under it says what that cause asks for with the command (raise the cap
+  and carry on; carry on as it is once the limit resets; carry on as it
+  is, the step runs again), and the questions the steps left open follow it under `also open:`.
   the recommendation shown is the deciding role's: when the lead escalated
   the question and recommended an answer (its own `RECOMMEND:`, or the one
   its block gives a question), that one comes first, as `recommendation
