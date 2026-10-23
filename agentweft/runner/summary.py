@@ -739,6 +739,37 @@ def ended(stopped, unsure=()):
     return out + (" - " + stops.flat(why) if why else "")
 
 
+def left_undone(stopped, needs, changes):
+    """-> the plain line a stopped run's "not done" leads with: where it
+    stopped, the steps its needs section says are left to run, and what
+    git says of what it changed. None on a run that did not stop."""
+    if not stopped:
+        return None
+    from agentweft.orchestrate import park
+
+    at = stopped["at"]
+    if stopped["cause"] == stops.DECLINED:
+        return ("not done: the work the task asked for; " + at
+                + " declined it, and the run ends on that")
+    left = park.left_of(needs)
+    out = "not done: the run stopped at " + at
+    if left:
+        out = out + "; left to run: " + ", ".join(left)
+    elif left == []:
+        return (out + " with no step left to run after it; what carries it"
+                " on is under needs you")
+    else:
+        out = out + "; the steps after it have not run"
+    if not changes.get("git"):
+        return out
+    files = changes.get("files") or []
+    if not files:
+        return out + "; nothing in the tree changed"
+    return (out + "; the " + (str(len(files)) + " files" if len(files) > 1
+                              else "file") + " it changed "
+            + ("are" if len(files) > 1 else "is") + " not taken as done")
+
+
 def asks(passes):
     """-> the lines a step wrote that only a person can answer: a NEEDS or
     REFUSED line with its cites and options, read by the verb parser."""
@@ -1134,7 +1165,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 if all(front.norm(i) != front.norm(l.split(": ", 1)[1])
                        for l in left_out):
                     left_out.append(line)
-    not_done = [("not verified:", left_out + [step + " unproven: " + line
+    plain = left_undone(stopped, needs, changes)
+    not_done = [(None, [plain] if plain else []),
+                ("not verified:", left_out + [step + " unproven: " + line
                                               for step, line in unsure]),
                 ("doubts, left as they are:",
                  [text + " (" + who + ")" for text, who in

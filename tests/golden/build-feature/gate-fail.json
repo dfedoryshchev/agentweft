@@ -25,7 +25,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at tester.md; left to run: tester.md, worker.md, reviewer.md, reviewer-runs.md",
     "## product gaps",
     "- none",
     "## full record",
@@ -463,7 +463,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at tester.md; left to run: tester.md, worker.md, reviewer.md, reviewer-runs.md",
     "## product gaps",
     "- none",
     "## needs you",
@@ -490,7 +490,7 @@
   ],
   "prompts": [
     "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9",
-    "retro.md go 1 06f6ecff90a4eab35bf1ded1c7b147b7cf8922c0abee1f76c2c15c0802ff3db4",
+    "retro.md go 1 60ca85540c558c922e5d017b4145cba9e6963d717588dcf7b02c65595401dce7",
     "tester.md go 1 85735529d343d847bb9078bb04cd01400d6a2b173b0dbaf69b6dd856b0e9f4fe",
     "tester.md go 2 22a1b246463038cc7be467d7aff1c62e81afd381439a9d9761f013b7c6de4268"
   ]

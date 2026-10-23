@@ -4,8 +4,8 @@ the record below it is long and in the runner's order; this is in the
 reader's. it opens with the outcome and one sentence and the suite, then the
 one decision the run leaves (on a stop, the question it waits on or the stop
 itself), then why (what the last working step did and what the steps
-assumed), what was not done (what nobody verified and the doubts left as
-they are), and the spec lines an open question turns on. it is held to
+assumed), what was not done (on a stop, a plain line on what is left; then
+what nobody verified and the doubts left as they are), and the spec lines an open question turns on. it is held to
 BUDGET tokens, about four characters to a token; a list that does not fit
 is cut, and the line that cuts it points at the full record below.
 

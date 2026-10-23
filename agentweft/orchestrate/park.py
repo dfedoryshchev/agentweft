@@ -97,7 +97,22 @@ def ran_and_left(out, done, left):
     out.append("")
 
 
-ANSWER = ' --answer "<your ruling>"'
+def left_of(lines):
+    """-> the steps the "left" block of a section `ran_and_left` wrote
+    names, [] when it says nothing is left, None when the section has no
+    such block (a refusal, or no section)."""
+    lines = list(lines or [])
+    if "left" not in lines:
+        return None
+    out = []
+    for line in lines[lines.index("left") + 1:]:
+        if not line.startswith("  "):
+            break
+        out.append(line.strip())
+    return [] if out == ["nothing"] else out
+
+
+ANSWER =' --answer "<your ruling>"'
 
 
 def ruling(step, who, done, left, command, question, worked=None,

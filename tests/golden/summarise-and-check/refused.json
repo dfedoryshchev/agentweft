@@ -27,7 +27,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the work the task asked for; worker.md declined it, and the run ends on that",
     "## product gaps",
     "- none",
     "## full record",
@@ -274,7 +274,7 @@
       "## why",
       "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
       "## not done",
-      "- none",
+      "- not done: the work the task asked for; worker.md declined it, and the run ends on that",
       "## product gaps",
       "- none",
       "## needs you",
@@ -294,7 +294,7 @@
     ]
   ],
   "prompts": [
-    "retro.md go 1 5aab8cf42be5265387ca922651f31f277ee113b26463ce55f70ff8373ee33220",
+    "retro.md go 1 bfb3c045d4ff063bca868b632d258b881fdb49fb8b9a2857bbe7da007348afce",
     "worker.md go 1 8346ac76a5cc658994e3aeaf6aca77f1ff5a91931590fb70bfd150d87dd5d65f"
   ]
 }

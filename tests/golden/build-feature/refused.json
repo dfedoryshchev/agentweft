@@ -21,7 +21,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the work the task asked for; planner.md declined it, and the run ends on that",
     "## product gaps",
     "- none",
     "## full record",
@@ -270,7 +270,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the work the task asked for; planner.md declined it, and the run ends on that",
     "## product gaps",
     "- none",
     "## needs you",
@@ -287,6 +287,6 @@
   ],
   "prompts": [
     "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9",
-    "retro.md go 1 ecc4512bed74e516eb8c72b4a99268244b433c6450be27352e5da4ea6cf61895"
+    "retro.md go 1 6365dc4f588f6e96a7cf0a802daee12a66e0ca9ceeffb6cbb875034a9f2f284e"
   ]
 }

@@ -868,6 +868,80 @@ def test_the_park_section_says_what_ran_what_is_left_and_how_to_carry_on():
     assert lines[-1] == "  python run.py demo --resume demo-1"
 
 
+def stopped_build(stopped, needs, changes=None):
+    return summary.build("demo-1", "demo", "t", [summary.a_pass(
+        "worker.md", "worker", 1.0, handoff.parse(WORKER), [], False,
+        "ok", "")], changes or {"git": False}, [], "", stopped=stopped,
+        needs=needs, command="python run.py demo --resume demo-1")
+
+
+def not_done_of(lines):
+    view = lines[:lines.index("## full record")]
+    return view[view.index("## not done"):view.index("## product gaps")]
+
+
+CHANGED = {"git": True, "commits": [], "start": None,
+           "files": [("calc.py", 1, 1, "uncommitted"),
+                     ("tests/test_calc.py", 4, 0, "untracked")]}
+
+
+def test_a_park_says_in_a_line_of_its_own_what_is_left_to_run():
+    needs = park.ruling("worker.md", "user", [("worker.md", 2)],
+                        ["worker.md", "reviewer.md"],
+                        "python run.py demo --resume demo-1", "which one?",
+                        worked="")
+    lines = stopped_build({"cause": stops.PARKED, "why": "which one?",
+                           "at": "worker.md"}, needs, CHANGED)
+    assert ("- not done: the run stopped at worker.md; left to run:"
+            " worker.md, reviewer.md; the 2 files it changed are not taken"
+            " as done") in not_done_of(lines)
+
+
+def test_a_gate_stop_with_nothing_changed_says_so_and_what_is_left():
+    needs = park.lines("worker.md", None, [("worker.md", 2)],
+                       ["worker.md", "reviewer.md"],
+                       "python run.py demo --resume demo-1",
+                       why="regex failed", cause=stops.GATE)
+    lines = stopped_build({"cause": stops.GATE, "why": "regex failed",
+                           "at": "worker.md"}, needs,
+                          dict(CHANGED, files=[]))
+    assert ("- not done: the run stopped at worker.md; left to run:"
+            " worker.md, reviewer.md; nothing in the tree changed") \
+        in not_done_of(lines)
+
+
+def test_a_stop_at_the_last_step_and_a_declined_one_say_what_is_not_done():
+    needs = park.lines("reviewer.md", "user", [("reviewer.md", 2)], [],
+                       "python run.py demo --resume demo-1")
+    lines = stopped_build({"cause": stops.PARKED, "why": "",
+                           "at": "reviewer.md"}, needs)
+    assert ("- not done: the run stopped at reviewer.md with no step left"
+            " to run after it; what carries it on is under needs you") \
+        in not_done_of(lines)
+    needs = park.refused("worker.md", "TASK.md:3 - no network", [])
+    lines = stopped_build({"cause": stops.DECLINED, "why": "TASK.md:3",
+                           "at": "worker.md"}, needs)
+    assert ("- not done: the work the task asked for; worker.md declined it,"
+            " and the run ends on that") in not_done_of(lines)
+
+
+def test_a_done_run_has_no_not_done_line_and_every_stop_scores_the_point():
+    from agentweft.bench import ladder
+
+    done = summary.build("demo-1", "demo", "t", [summary.a_pass(
+        "worker.md", "worker", 1.0, handoff.parse(WORKER), [], False, "ok",
+        "")], {"git": False}, [], "")
+    assert not [l for l in not_done_of(done) if l.startswith("- not done:")]
+    needs = park.lines("worker.md", None, [("worker.md", 2)], ["worker.md"],
+                       "python run.py demo --resume demo-1", why="boom",
+                       cause=stops.EXCEPTION)
+    text = "\n".join(stopped_build({"cause": stops.EXCEPTION, "why": "boom",
+                                    "at": "worker.md"}, needs))
+    point = [p for p in ladder.score(text)["points"]
+             if p["point"] == "not_done"][0]
+    assert point["got"] == 1, point["line"]
+
+
 def test_the_journal_line_points_at_the_handoff():
     now = datetime.datetime(2026, 1, 2, 3, 4)
     ok = stops.line(now, "demo", "ok", 4, "demo-1", saved="d-1.md",

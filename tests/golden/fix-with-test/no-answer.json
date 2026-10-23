@@ -23,7 +23,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at worker.md; left to run: worker.md, patcher.md",
     "## product gaps",
     "- none",
     "## full record",
@@ -282,7 +282,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at worker.md; left to run: worker.md, patcher.md",
     "## product gaps",
     "- none",
     "## needs you",
@@ -301,7 +301,7 @@
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 d466278b897d120af227625cc0e6f85621488bb384923cefeb6bb287721ea2ca",
+    "retro.md go 1 f3950f463ad6f40e3e2c43bc6ef54e61de668001dfc3e5cdcade09d811c6d78a",
     "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7",
     "worker.md go 2 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7"
   ]

@@ -26,7 +26,7 @@
     "worker handed over this before the stop, not taken as done:",
     "- add(1, 2) is -1: calc.py:2 returns a - b",
     "## not done",
-    "- none",
+    "- not done: the run stopped at patcher.md; left to run: patcher.md",
     "## product gaps",
     "- none",
     "## full record",
@@ -524,7 +524,7 @@
     "worker handed over this before the stop, not taken as done:",
     "- add(1, 2) is -1: calc.py:2 returns a - b",
     "## not done",
-    "- none",
+    "- not done: the run stopped at patcher.md; left to run: patcher.md",
     "## product gaps",
     "- none",
     "## needs you",
@@ -548,7 +548,7 @@
   "prompts": [
     "patcher.md go 1 3fe5414ff5b38bf75871eb6eba004969d78e607df54058864ccab4b0dadfd108",
     "patcher.md go 2 8c2f5912bc7d5ff00c730a11e1a47f94c953f02baab4d4b25160b5e7d08c1b58",
-    "retro.md go 1 dc8cd1a705c1fe028016b2e87b606e132ba158a202806866b1d39d0cda18beb1",
+    "retro.md go 1 dbdc759fa8e047bea1ab4f12758cca7387686ac70f999fa99e5c641df3646e7a",
     "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7"
   ]
 }

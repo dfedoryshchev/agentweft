@@ -23,7 +23,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at reviewer.md; left to run: reviewer.md; the file it changed is not taken as done",
     "## product gaps",
     "- none",
     "## full record",
@@ -364,7 +364,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at reviewer.md; left to run: reviewer.md; the file it changed is not taken as done",
     "## product gaps",
     "- none",
     "## needs you",
@@ -382,7 +382,7 @@
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 c2959504debcf1c1acfa4e1447517eada8a36f7f60a8f8f9703b9322717a179e",
+    "retro.md go 1 f9a00f5370f466291fae32abbc3154de9cdbd04cc3ab0e9685b65daa093e95ba",
     "worker.md go 1 5442697407ba2b8a3abb9c3899126f4ca6f842e5f9ff58ea16a0ef7b647cc5d0"
   ]
 }

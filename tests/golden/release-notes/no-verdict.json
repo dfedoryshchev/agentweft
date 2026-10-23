@@ -24,7 +24,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at reviewer.md; left to run: reviewer.md",
     "## product gaps",
     "- none",
     "## full record",
@@ -389,7 +389,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the run stopped at reviewer.md; left to run: reviewer.md",
     "## product gaps",
     "- none",
     "## needs you",
@@ -408,7 +408,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 1f263bd3a5038e663d59fafe3afd6d12cff9d298d34b07357ff5dd293e6454af",
+    "retro.md go 1 88eeb4eb4573648bf8a239ac43100a81b68d034ec4775f0efd1ce5b6ab903d6e",
     "reviewer.md go 1 536b2320ad2b4019c6ba4583bde57fb11431a32a6bc951d0b85075b573dd73da",
     "worker.md go 1 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2"
   ]

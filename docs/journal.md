@@ -556,7 +556,13 @@ answers, in order:
   before the stop, not taken as done"), what the steps assumed, and each
   defect a step fixed beside the change with the test that shows it (`also
   fixed beside the change:`, `no test names it` when none did).
-- **not done**: what was not verified, the gates' unproven checks, and the
+- **not done**: on a stop, first a line of its own that says plainly what
+  is left, read from the record: `- not done: the run stopped at <step>;
+  left to run: <the steps its needs section lists>`, then what git says of
+  the tree (`nothing in the tree changed`, or the files it changed are `not
+  taken as done`); a refusal that cites the spec says `the work the task
+  asked for` is not done, and a stop with no step left after it points at
+  needs you. a finished run has no such line. then what was not verified, the gates' unproven checks, and the
   doubts left as they are, each once: by its words, or by the spec line it
   cites, with the roles that raised it, and how many times when one role
   raised it again after a send-back, so a doubt that was not fixed says so;

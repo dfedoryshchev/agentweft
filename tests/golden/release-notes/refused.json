@@ -21,7 +21,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the work the task asked for; worker.md declined it, and the run ends on that",
     "## product gaps",
     "- none",
     "## full record",
@@ -267,7 +267,7 @@
     "## why",
     "- no step handed over a block, so what was done is only what git and the gates show in the full record.",
     "## not done",
-    "- none",
+    "- not done: the work the task asked for; worker.md declined it, and the run ends on that",
     "## product gaps",
     "- none",
     "## needs you",
@@ -283,7 +283,7 @@
     "handoff: <tmp>/runs/release-notes-<run>/handoff.md"
   ],
   "prompts": [
-    "retro.md go 1 015b4df44e0919d53482c23df432d652d30dca65aec41ef92e8d23b0d501a814",
+    "retro.md go 1 75c869e47bd683c2269bdbbf41ecd7b70fbc398cede1632bcc1f17590e6f5e7e",
     "worker.md go 1 19c4fd0f0706b4ecda93a82dff3e42246c268ddeab94ed678d23cad0779db9f2"
   ]
 }
