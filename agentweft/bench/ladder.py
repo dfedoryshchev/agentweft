@@ -258,13 +258,21 @@ def _checks(c):
     lines = c["secs"].get("tests and checks", [])
     gates = [l for l in lines if re.match(r"^- \S+: (?:PASS|FAIL) ", l)]
     said = [VERIFIED.match(l).group(1) for l in lines if VERIFIED.match(l)]
-    if not gates and not said:
-        return None, "no gate ran and no step said it verified"
-    bad = [s for s in said if s in ("unbacked", "shortened")]
+    unchecked = said.count("unchecked")
+    held = [s for s in said if s != "unchecked"]
+    if not gates and not held:
+        return None, ("no gate ran and no step said it verified" if not said
+                      else str(unchecked) + " verified line"
+                      + ("" if unchecked == 1 else "s") + " unchecked, no"
+                      " transcript to hold them to, and no gate ran")
+    bad = [s for s in held if s != "backed"]
     if bad:
-        return 0, str(len(bad)) + " verified lines the record does not back"
-    return 1, (str(len(gates)) + " gates, " + str(len(said))
-               + " verified lines, none unbacked")
+        return 0, (str(len(bad)) + " verified lines the record does not back"
+                   " (" + ", ".join(sorted(set(bad))) + ")")
+    return 1, (str(len(gates)) + " gates, " + str(len(held))
+               + " verified line" + ("" if len(held) == 1 else "s") + " backed"
+               + (", " + str(unchecked) + " unchecked, not counted"
+                  if unchecked else ""))
 
 
 def _why(c):

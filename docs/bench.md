@@ -256,8 +256,11 @@ or under it is scored. the points, in order:
    `said:` line under it
 5. `tests red then green`: the red first line is `shown on` or `gate-proven
    on`, every new test is green with the fix, no start test is red
-6. `checks backed`: no `verified:` line the record does not back
-   (`unbacked` or `shortened`)
+6. `checks backed`: every `verified:` line the record held to a transcript
+   or a file is `backed`; `unbacked`, `shortened` and `ran` (the command
+   is there, nothing of its output quoted) are 0. an `unchecked` line, with
+   no transcript to hold it to, is counted apart and decides nothing: with
+   no gate and no other line the point is `n/a`
 7. `why in one section`: the why section says what was done, and the
    alternatives tried and dropped sit in it, not only under carry forward
 8. `not done said plainly`: the section is there; on a stop a line of its own
@@ -272,7 +275,7 @@ or under it is scored. the points, in order:
 
 a point the run's path has no line for is `n/a`, left out, never 0: tests on
 a stop that wrote none, checks on a run where no gate ran and no step said it
-verified, changed outside a git checkout. the score is the points held over
+verified a line anything could check, changed outside a git checkout. the score is the points held over
 the points that apply, out of ten; a first line with no outcome word scores
 0 on every point. each run prints its path (done, stopped, parked, failed),
 its score and the ten named lines, and each path its runs, mean and how

@@ -124,6 +124,40 @@ def test_an_unbacked_verified_line_loses_checks_backed():
     assert got(ladder.score(text))["checks"] == 0
 
 
+def test_a_verified_line_that_quotes_nothing_it_ran_loses_checks_backed():
+    text = DONE.replace("saw: 38 passed in 5.26s -> backed",
+                        "-> ran: nothing of its output quoted")
+    scored = ladder.score(text)
+    assert got(scored)["checks"] == 0
+    line = [p for p in scored["points"] if p["point"] == "checks"][0]["line"]
+    assert "ran" in line
+
+
+def no_gates(text):
+    return "\n".join(l for l in text.split("\n")
+                     if not (l.startswith("- ") and (": PASS " in l
+                                                     or ": FAIL " in l)))
+
+
+def test_verified_lines_nothing_checked_are_not_applicable_never_held():
+    text = no_gates(DONE).replace("-> backed", "-> unchecked: no transcript"
+                                  " for this step")
+    scored = ladder.score(text)
+    assert got(scored)["checks"] is None
+    line = [p for p in scored["points"] if p["point"] == "checks"][0]["line"]
+    assert "2 verified lines unchecked" in line
+
+
+def test_an_unchecked_line_beside_backed_ones_is_counted_apart():
+    text = DONE.replace("saw: 38 passed in 5.26s -> backed",
+                        "saw: 38 passed in 5.26s -> unchecked: no transcript"
+                        " for this step")
+    scored = ladder.score(text)
+    assert got(scored)["checks"] == 1
+    line = [p for p in scored["points"] if p["point"] == "checks"][0]["line"]
+    assert "1 verified line backed" in line and "1 unchecked" in line
+
+
 def test_a_done_word_on_a_tree_the_hidden_suite_finds_red_is_not_true():
     assert got(ladder.score(DONE, correct=False))["outcome"] == 0
     assert got(ladder.score(DONE, correct=True))["outcome"] == 1
