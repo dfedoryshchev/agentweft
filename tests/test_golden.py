@@ -1073,15 +1073,64 @@ def held(path):
             fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             break
         except FileExistsError:
+            gone = stale(lock)
+            if gone:
+                print("took back " + str(lock) + ": " + gone)
+                try:
+                    os.remove(str(lock))
+                except OSError:
+                    pass
+                continue
             time.sleep(0.05)
     else:
         raise RuntimeError(str(lock) + " is held; delete it if no test run"
                            " is writing goldens")
+    os.write(fd, str(os.getpid()).encode("ascii"))
     try:
         yield
     finally:
         os.close(fd)
         os.remove(str(lock))
+
+
+LOCK_BOUND = 30
+
+
+def alive(pid):
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            return True
+        return True
+    import ctypes
+
+    # os.kill on windows ends the process it names, so ask the kernel
+    kernel = ctypes.windll.kernel32
+    handle = kernel.OpenProcess(0x00100000, False, pid)
+    if not handle:
+        return False
+    try:
+        return kernel.WaitForSingleObject(handle, 0) == 0x102
+    finally:
+        kernel.CloseHandle(handle)
+
+
+def stale(lock):
+    """-> why the lock is a dead worker's, "" while its owner may hold it:
+    its pid is gone, or it is older than a write of the table ever takes."""
+    try:
+        said = lock.read_text(encoding="ascii").strip()
+        age = time.time() - lock.stat().st_mtime
+    except (OSError, ValueError):
+        return ""
+    if said.isdigit() and not alive(int(said)):
+        return "its owner, pid " + said + ", is gone"
+    if age > LOCK_BOUND:
+        return "it is " + str(int(age)) + "s old"
+    return ""
 
 
 def put(name, hashes):
@@ -1297,6 +1346,56 @@ def test_a_fragment_only_change_moves_the_prompt_table_and_no_golden(
     assert table.read_bytes() != was
     moved = [l for l in said if l.startswith("+")]
     assert moved and all("go 1 " in l for l in moved)
+
+
+def a_dead_pid():
+    done = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
+                          capture_output=True, encoding="utf-8")
+    return int(done.stdout.strip())
+
+
+@pytest.mark.parametrize("left", ["dead-owner", "old"])
+def test_a_table_lock_a_dead_worker_left_is_taken_back(
+        left, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(sys.modules[__name__], "GOLDEN", tmp_path / "golden")
+    lock = tmp_path / "golden" / "prompts.json.lock"
+    lock.parent.mkdir()
+    if left == "dead-owner":
+        lock.write_text(str(a_dead_pid()), encoding="utf-8")
+    else:
+        lock.write_text("", encoding="utf-8")
+        old = time.time() - 3600
+        os.utime(str(lock), (old, old))
+    waits = []
+
+    def sleep(secs):
+        waits.append(secs)
+        if len(waits) > 20:
+            pytest.fail("the lock a dead worker left was never taken back")
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    put("some-flow/pass", ["worker.md go 1 ab"])
+    assert table() == {"some-flow/pass": ["worker.md go 1 ab"]}
+    assert not lock.exists()
+    assert "took back" in capsys.readouterr().out
+
+
+def test_a_table_lock_a_live_worker_holds_is_waited_for(tmp_path,
+                                                        monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "GOLDEN", tmp_path / "golden")
+    lock = tmp_path / "golden" / "prompts.json.lock"
+    lock.parent.mkdir()
+    lock.write_text(str(os.getpid()), encoding="utf-8")
+    waits = []
+
+    def sleep(secs):
+        waits.append(secs)
+        if len(waits) == 3:
+            lock.unlink()
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    put("some-flow/pass", ["worker.md go 1 ab"])
+    assert len(waits) == 3
 
 
 def no_carry(monkeypatch):
