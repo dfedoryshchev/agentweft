@@ -553,7 +553,10 @@ answers, in order:
   recommends in its block, on a question citing a line the conflict cites,
   shows that recommendation, and the conflict's options after it.
 - **why**: what the last working step did (on a stop, "handed over this
-  before the stop, not taken as done"), what the steps assumed, and each
+  before the stop, not taken as done"), what the steps tried and dropped and
+  why (`tried and dropped, and why:`, each TRIED item once with its role,
+  then each RULED OUT line of the investigator; they still carry under
+  "carry forward" too), what the steps assumed, and each
   defect a step fixed beside the change with the test that shows it (`also
   fixed beside the change:`, `no test names it` when none did).
 - **not done**: on a stop, first a line of its own that says plainly what

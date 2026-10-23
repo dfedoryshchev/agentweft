@@ -1146,6 +1146,14 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         why = [(None, ["no step handed over a block, so what was done is"
                        " only what git and the gates show in the full"
                        " record."])]
+    dropped = []
+    for line in ([role + ": " + i for role, b in blocks if _present(b)
+                  for i in b["tried"]]
+                 + [investigate.STEP + " ruled out: " + l[2:]
+                    for l in investigate.listed(dug, "RULED OUT")]):
+        if line not in dropped:
+            dropped.append(line)
+    why.append(("tried and dropped, and why:", dropped))
     why.append(("assumed - tell me if wrong:",
                 [role + ": " + assumed(i) for role, b in blocks
                  if _present(b) for i in b["assumed"]]))

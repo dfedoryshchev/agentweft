@@ -942,6 +942,34 @@ def test_a_done_run_has_no_not_done_line_and_every_stop_scores_the_point():
     assert point["got"] == 1, point["line"]
 
 
+TRIED = ("HANDOFF\nDID:\n- calc.py: add returns a + b\nTRIED:\n"
+         "- a fix in the caller - dropped: two callers would need it\n"
+         "END HANDOFF\n")
+
+
+def why_of(lines):
+    view = lines[:lines.index("## full record")]
+    return view[view.index("## why"):view.index("## not done")]
+
+
+def test_what_was_tried_and_dropped_sits_in_the_why_and_still_carries():
+    lines = summary.build("demo-1", "demo", "t", [summary.a_pass(
+        "patcher.md", "patcher", 1.0, handoff.parse(TRIED), [], False, "ok",
+        "")] * 2, {"git": False}, [], "",
+        found="RULED OUT:\n- reader.py - it never sees the value\n")
+    why = why_of(lines)
+    assert why[why.index("tried and dropped, and why:") + 1:][:2] == [
+        "- patcher: a fix in the caller - dropped: two callers would need it",
+        "- investigator.md ruled out: reader.py - it never sees the value"]
+    assert ("- tried and dropped: patcher: a fix in the caller - dropped: two"
+            " callers would need it") in lines
+    from agentweft.bench import ladder
+
+    point = [p for p in ladder.score("\n".join(lines))["points"]
+             if p["point"] == "why"][0]
+    assert point["got"] == 1, point["line"]
+
+
 def test_the_journal_line_points_at_the_handoff():
     now = datetime.datetime(2026, 1, 2, 3, 4)
     ok = stops.line(now, "demo", "ok", 4, "demo-1", saved="d-1.md",
