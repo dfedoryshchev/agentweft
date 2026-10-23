@@ -30,7 +30,12 @@ TOOL = ("import os" + NL + NL + "import calc" + NL + NL + NL
         + "    if os.environ.get('START_FAULT') and calc.VERSION == 2:" + NL
         + "        raise " + FAULT + NL
         + "    if os.environ.get('START_BREAKS') and calc.VERSION == 2:" + NL
-        + "        assert calc.add(0, 0) == 1, 'the tool broke'" + NL)
+        + "        assert calc.add(0, 0) == 1, 'the tool broke'" + NL
+        + "    full = os.environ.get('START_RMDIR', '')" + NL
+        + "    if full and calc.VERSION == 2:" + NL
+        + "        os.makedirs(os.path.join(full, 'd'), exist_ok=True)" + NL
+        + "        open(os.path.join(full, 'd', 'f'), 'w').close()" + NL
+        + "        os.rmdir(os.path.join(full, 'd'))" + NL)
 ADD = ("import os" + NL + NL + "import calc" + NL + NL + NL
        + "def test_add():" + NL
        + "    flag = os.environ.get('NEW_FLAKE', '')" + NL
@@ -210,6 +215,14 @@ def test_a_start_test_stop_is_raised_by_the_check_not_by_the_step(
     assert "raised by worker" not in decision
 
 
+def spawn_fault():
+    """the bare OSError a host raises when it cannot start a process: the
+    WinError code exists only on Windows, the errno one is POSIX's."""
+    if sys.platform == "win32":
+        return OSError(22, "The parameter is incorrect", None, 87)
+    return OSError(8, "Exec format error")
+
+
 def without_the_fix_cannot_start(monkeypatch, place, times):
     """red-first's runs anywhere but the place, the checkout without the fix,
     fail to start `times` times with the bare OSError the host raised."""
@@ -222,7 +235,7 @@ def without_the_fix_cannot_start(monkeypatch, place, times):
     def run(argv, **kw):
         if kw.get("cwd") != str(place) and left[0]:
             left[0] -= 1
-            raise OSError(22, "The parameter is incorrect", None, 87)
+            raise spawn_fault()
         return subprocess.run(argv, **kw)
 
     monkeypatch.setattr(redfirst_gate, "subprocess", types.SimpleNamespace(
@@ -256,10 +269,10 @@ def test_a_new_test_that_cannot_start_without_the_fix_twice_is_the_hosts(
     without_the_fix_cannot_start(monkeypatch, place, 2)
     r = g.run("patched it")
     assert not r and r.broke
-    assert r.host == "OSError: [WinError 87] The parameter is incorrect"
+    said = "OSError: " + str(spawn_fault())
+    assert r.host == said
     assert r.issue == ("could not run tests/test_add.py::test_add without the"
-                       " fix: OSError: [WinError 87] The parameter is"
-                       " incorrect")
+                       " fix: " + said)
 
 
 def test_one_fault_on_every_red_is_the_hosts_and_two_are_not():
@@ -270,6 +283,108 @@ def test_one_fault_on_every_red_is_the_hosts_and_two_are_not():
     assert hostfault.same([]) == ""
     assert hostfault.same(["TypeError: add() takes 2 arguments"]) == ""
     assert hostfault.same(["FileNotFoundError: [Errno 2] No such file"]) == ""
+
+
+def test_a_code_bugs_bare_oserror_is_the_changes_red_not_the_hosts():
+    for said in ("OSError: [WinError 145] The directory is not empty: 'x'",
+                 "OSError: [Errno 39] Directory not empty: 'x'",
+                 "OSError: [Errno 22] Invalid argument: 'a:b'",
+                 "OSError: [Errno 18] Invalid cross-device link: 'a' -> 'b'"):
+        assert hostfault.same([said, said]) == "", said
+        assert hostfault.line(said) == "", said
+
+
+def test_a_spawn_code_is_the_hosts_with_or_without_a_traceback():
+    for said in ("OSError: [WinError 87] The parameter is incorrect",
+                 "OSError: [WinError 193] %1 is not a valid Win32 application",
+                 "OSError: [WinError 2] The system cannot find the file",
+                 "OSError: [Errno 7] Argument list too long",
+                 "OSError: [Errno 8] Exec format error",
+                 "OSError: [Errno 12] Cannot allocate memory"):
+        assert hostfault.same([said, said]) == said, said
+
+
+def test_any_code_is_the_hosts_when_the_traceback_shows_the_spawn():
+    said = ("Python\\Lib\\subprocess.py:1538: in _execute_child" + NL
+            + "E   OSError: [WinError 206] The filename or extension is too"
+            " long")
+    assert hostfault.key(said) == "WinError 206"
+    assert hostfault.key("E   OSError: [WinError 206] The filename or"
+                         " extension is too long") == ""
+
+
+def test_an_oserror_caught_at_the_spawn_says_where_it_was_raised():
+    def _execute_child():
+        raise OSError(36, "File name too long")
+
+    def elsewhere():
+        raise OSError(36, "File name too long")
+
+    for raiser, host in ((_execute_child, True), (elsewhere, False)):
+        try:
+            raiser()
+        except OSError as e:
+            said = hostfault.named(e)
+        assert bool(hostfault.line(said)) is host, said
+
+
+def failed_run(*sections):
+    """a pytest run's output: one failure section per (test, traceback),
+    then the short summary naming the error each ended on."""
+    out = "FF" + NL + "=== FAILURES ===" + NL
+    for test, trace in sections:
+        out = out + "___ " + test + " ___" + NL + NL + trace + NL
+    out = out + "=== short test summary info ===" + NL
+    for test, trace in sections:
+        out = out + "FAILED tests/test_t.py::" + test + " - " \
+            + trace.splitlines()[-1][4:] + NL
+    return out + str(len(sections)) + " failed"
+
+
+def test_a_run_whose_reds_are_a_code_bugs_bare_oserror_is_no_fault():
+    bug = ("tests/test_t.py:9: in test_tidy" + NL + "    os.rmdir(d)" + NL
+           + "E   OSError: [WinError 145] The directory is not empty: 'd'")
+    assert hostfault.of_run(failed_run(("test_tidy", bug),
+                                       ("test_tidy_again", bug))) == ""
+
+
+def test_a_run_whose_every_red_shows_the_spawn_is_the_hosts():
+    spawn = ("tests/test_t.py:9: in test_tool" + NL + "    run(['tool'])" + NL
+             + "/usr/lib/python3/subprocess.py:1955: in _execute_child" + NL
+             + "E   OSError: [Errno 36] File name too long: 'tool'")
+    assert hostfault.of_run(failed_run(("test_tool", spawn))) == \
+        "OSError: [Errno 36] File name too long: 'tool'"
+    bug = ("tests/test_t.py:9: in test_tidy" + NL
+           + "E   OSError: [Errno 36] File name too long: 'tool'")
+    assert hostfault.of_run(failed_run(("test_tool", spawn),
+                                       ("test_tidy", bug))) == ""
+
+
+def test_a_command_gate_red_on_a_code_bugs_oserror_is_the_steps(tmp_path):
+    from agentweft.guardrails import gates
+
+    (tmp_path / "test_tidy.py").write_text(
+        "import os" + NL + NL + NL + "def test_tidy(tmp_path):" + NL
+        + "    (tmp_path / 'd').mkdir()" + NL
+        + "    (tmp_path / 'd' / 'f').write_text('')" + NL
+        + "    os.rmdir(str(tmp_path / 'd'))" + NL, encoding="utf-8")
+    g = gates.build({"gate": "command", "expect": 0, "command": [
+        sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+        "test_tidy.py"]}, where=tmp_path)
+    r = g.run("tidied it")
+    assert not r and not r.broke, r.detail
+    assert r.host == ""
+    assert "run again" not in r.detail
+
+
+def test_a_start_test_red_on_a_code_bugs_oserror_is_a_conflict_not_a_fault(
+        tmp_path, monkeypatch):
+    monkeypatch.setenv("START_RMDIR", str(tmp_path / "full"))
+    code, called, folder = run(tmp_path, monkeypatch, TESTER + worker())
+    why = read(folder / "why.md")
+    assert "cause      " + stops.CONFLICT in why, why
+    assert "the machine" not in why
+    assert (folder / "question.md").exists()
 
 
 def test_the_faults_are_read_off_a_test_runs_short_summary():
