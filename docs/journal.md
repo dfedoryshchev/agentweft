@@ -1055,13 +1055,18 @@ wrote the tests, at the very end of its prompt, and its red-test gate shows
 the new case red on the start commit before the work walks on. the reviewer's
 line in `steps.jsonl` is a `redo` with `to` naming that step. the steps after
 it go again in the flow's order, the one that wrote the code told the case
-may pass already, so the suite holds the code to the case too. first the
-runner runs that step's suite gates (its `command` gates) with the case in:
-when they pass, the code already holds to the case, so that step does not go
-again and the run goes on from the step after the reviewer, handed what the
-reviewer was. the test writer's line in `steps.jsonl` says so in its `why`,
-and `gates.md` keeps what the suite said. a suite gate that fails, is skipped
-or could not run sends the work round as above. once a run:
+may pass already, so the suite holds the code to the case too. the case has
+to be a test: when no test id is new since the reviewer named it, the test
+writer goes once more, told it added none (its line in `steps.jsonl` a
+`redo` to itself), and when the next go adds none either, `gates.md` and the
+line's `why` say `no case added`, and the one that wrote the code goes again
+in the flow's order, told what the reviewer named and that no case holds it.
+with a new test in, the runner runs that step's suite gates (its `command`
+gates): when they pass, the code already holds to the case, so that step
+does not go again and the run goes on from the step after the reviewer,
+handed what the reviewer was. the test writer's line in `steps.jsonl` says
+so in its `why`, and `gates.md` keeps what the suite said. a suite gate that
+fails, is skipped or could not run sends the work round as above. once a run:
 a second line is read and goes nowhere. a redo's line waits for the verdict
 that lets the work through.
 

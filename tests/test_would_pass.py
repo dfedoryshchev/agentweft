@@ -105,6 +105,57 @@ def test_a_case_that_already_passes_does_not_send_the_worker_round_again(
     assert '"to": "reviewer-runs.md"' in steps
 
 
+def no_case_added(tmp_path, monkeypatch, scored=False, then=RIGHT):
+    """the tester's next go writes the tests it had, and adds no case; the
+    go after it writes `then`."""
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [WORKER], "reviewer.md": [NAMED, OK],
+               "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", then)],
+              "worker.md": [("calc.py", AFTER)]}
+    return run_it(tmp_path, monkeypatch, answers, writes, scored=scored)
+
+
+def test_a_tester_that_adds_no_case_goes_back_once_and_never_skips_the_worker(
+        tmp_path, monkeypatch):
+    asked, sent, code, folder, _ = no_case_added(tmp_path, monkeypatch)
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "tester.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md", RETRO]
+    assert code == stops.EXIT_OK
+    assert "added no case" in sent[5]
+    assert WRONG_WAY in sent[5]
+    gates = (folder / "gates.md").read_text(encoding="utf-8")
+    assert "the case passes on the code as it is" not in gates
+    assert "no case added" in gates.split("## tester.md")[3]
+    assert WRONG_WAY in sent[6]
+    assert "added a case" not in sent[6]
+    steps = (folder / "steps.jsonl").read_text(encoding="utf-8")
+    assert "no case added" in steps
+
+
+def test_a_tester_that_adds_the_case_when_sent_back_for_it_counts(
+        tmp_path, monkeypatch):
+    asked = no_case_added(tmp_path, monkeypatch, then=MORE)[0]
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "tester.md", "tester.md", "reviewer-runs.md", RETRO]
+
+
+def test_a_scored_run_whose_tester_adds_no_case_never_skips_the_worker(
+        tmp_path, monkeypatch):
+    asked, sent, _, trail, _ = no_case_added(tmp_path, monkeypatch,
+                                             scored=True)
+    assert asked == ["planner.md", "tester.md", "worker.md", "reviewer.md",
+                     "tester.md", "tester.md", "worker.md", "reviewer.md",
+                     "reviewer-runs.md", RETRO]
+    assert "added no case" in sent[5]
+    assert "added a case" not in sent[6]
+    steps = (trail / "steps.jsonl").read_text(encoding="utf-8")
+    assert "no case added" in steps
+
+
 def test_none_goes_nowhere(tmp_path, monkeypatch):
     answers = {"planner.md": [PLAN], "tester.md": [TESTER],
                "worker.md": [WORKER], "reviewer.md": [NAMED_NONE],

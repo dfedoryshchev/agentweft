@@ -690,7 +690,10 @@ def go(leg):
                 if coder:
                     run.gate_said[coder] = wouldpass.then(writer, step,
                                                           missed[0])
-                    case_for = (writer, step, coder)
+                    case_for = {"writer": writer, "named": step,
+                                "coder": coder, "missed": missed,
+                                "before": wouldpass.ids(run.start),
+                                "again": False}
                 out = given.get(writer, EMPTY)
                 came_from = step
                 step = writer
@@ -719,24 +722,46 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting=waiting, told=why)
             sent_back = out.verdict == "redo" and nxt
-            already = None
-            if case_for and step == case_for[0]:
-                _, named, coder = case_for
+            already = kept = None
+            if case_for and step == case_for["writer"]:
+                named, coder = case_for["named"], case_for["coder"]
+                new = wouldpass.added(case_for["before"], run.start)
+                if new == [] and not sent_back and not case_for["again"]:
+                    case_for["again"] = True
+                    print(step + " added no case, sent back for it once more")
+                    if step in before:
+                        entry.changed = before[step] != snapshot.fingerprint(
+                            run.workdir, own=state.RUNS)
+                    trail.close(entry, "redo", why=step + " added no case for"
+                                " what " + named + " named, back to " + step
+                                + " once more", to=step)
+                    record.mark(step, manifest.REDO, run_id, out.output)
+                    record.save(run.budget)
+                    run.gate_said[step] = wouldpass.none_added(
+                        named, *case_for["missed"])
+                    out = handed
+                    came_from = step
+                    continue
+                wrong = case_for["missed"][0]
                 case_for = None
                 ran = run.suite_of(coder) \
-                    if nxt == coder and not sent_back else []
-                if wouldpass.green(ran):
-                    already = wouldpass.passes_already(coder, ran)
-                    print(already)
-                    with open(step_dir / "gates.md", "a",
-                              encoding="utf-8") as gf:
-                        gf.write(already + NEWLINE)
+                    if nxt == coder and not sent_back and new else []
+                if not new and not sent_back:
+                    kept = wouldpass.no_case(step, named, coder, new)
+                    run.gate_said[coder] = wouldpass.unheld(named, wrong)
+                elif wouldpass.green(ran):
+                    already = kept = wouldpass.passes_already(coder, ran)
                     run.gate_said.pop(coder, None)
                     nxt = route.next(named, EMPTY)
+                if kept:
+                    print(kept)
+                    with open(step_dir / "gates.md", "a",
+                              encoding="utf-8") as gf:
+                        gf.write(kept + NEWLINE)
             if step in before:
                 entry.changed = before[step] != snapshot.fingerprint(
                     run.workdir, own=state.RUNS)
-            trail.close(entry, "redo" if sent_back else "ok", why=already,
+            trail.close(entry, "redo" if sent_back else "ok", why=kept,
                         to=nxt)
             record.mark(step, manifest.REDO if sent_back else manifest.PASSED,
                         run_id, out.output)

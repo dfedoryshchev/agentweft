@@ -291,24 +291,42 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             coder = route.on_redo.get(step)
             if coder:
                 run.gate_said[coder] = wouldpass.then(writer, step, missed[0])
-                case_for = (writer, step, coder)
+                case_for = {"writer": writer, "named": step, "coder": coder,
+                            "missed": missed,
+                            "before": wouldpass.ids(run.start),
+                            "again": False}
             state["out"] = given.get(writer, EMPTY)
             state["came_from"] = step
             state["step"] = writer
             continue
         nxt = route.next(step, out)
         sent_back = out.verdict == "redo" and nxt
-        already = None
-        if case_for and step == case_for[0]:
-            _, named, coder = case_for
+        already = kept = None
+        if case_for and step == case_for["writer"]:
+            named, coder = case_for["named"], case_for["coder"]
+            new = wouldpass.added(case_for["before"], run.start)
+            if new == [] and not sent_back and not case_for["again"]:
+                case_for["again"] = True
+                note("redo", step + " added no case for what " + named
+                     + " named, back to " + step + " once more", to=step,
+                     output=out.output)
+                run.gate_said[step] = wouldpass.none_added(
+                    named, *case_for["missed"])
+                state["out"] = handed
+                state["came_from"] = step
+                continue
+            wrong = case_for["missed"][0]
             case_for = None
             ran = run.suite_of(coder) \
-                if nxt == coder and not sent_back else []
-            if wouldpass.green(ran):
-                already = wouldpass.passes_already(coder, ran)
+                if nxt == coder and not sent_back and new else []
+            if not new and not sent_back:
+                kept = wouldpass.no_case(step, named, coder, new)
+                run.gate_said[coder] = wouldpass.unheld(named, wrong)
+            elif wouldpass.green(ran):
+                already = kept = wouldpass.passes_already(coder, ran)
                 run.gate_said.pop(coder, None)
                 nxt = route.next(named, EMPTY)
-        note("redo" if sent_back else "ok", already, to=nxt,
+        note("redo" if sent_back else "ok", kept, to=nxt,
              output=out.output)
         if nxt and not sent_back and run.lens_for(nxt) \
                 and run.role_for(step) == REVIEWER:

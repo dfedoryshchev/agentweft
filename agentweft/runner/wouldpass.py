@@ -15,7 +15,10 @@ red before the code it tests, as on its first go. the steps after it go again
 in the flow's order, so the code is held to the new case too, unless the
 suite gates of the step that wrote the code pass with the case in: then the
 code already holds to it, and the run goes on from the step after the
-reviewer, which has read this code already. once a run: a
+reviewer, which has read this code already. a go that adds no new test id
+added no case: the test writer goes once more for it, and after a second
+such go the record says `no case added` and the steps after it go again,
+the code never let through on a case that is not there. once a run: a
 reviewer that names another one the next time is read and not sent. a redo
 is the reviewer's verdict on the code and goes where `on_redo` says.
 """
@@ -58,6 +61,51 @@ def told(step, wrong, catch):
             " it, and it is run to show that. what " + step + " said:\n\n"
             + KEY + ": " + wrong + "\n" + (CATCH + ": " + catch + "\n"
                                            if catch else ""))
+
+
+def ids(start):
+    """-> the test ids the run has added or changed so far, None when the
+    run took no snapshot to read them from."""
+    if start is None or not getattr(start, "hashed", None):
+        return None
+    return set(start.new_test_ids())
+
+
+def added(before, start):
+    """-> the test ids that are new since `before` was read, None when
+    either side could not be read."""
+    now = ids(start)
+    if before is None or now is None:
+        return None
+    return sorted(now - before)
+
+
+def none_added(step, wrong, catch):
+    """-> the end of the test writer's prompt when its go added no test: it
+    goes once more for the case."""
+    return ("\n\n" + step + " named one wrong implementation the tests would"
+            " let pass, and your last go added no case for it: no test id is"
+            " new since then. add the one case that fails it as a new test,"
+            " beside the tests you wrote, and change none of them. what "
+            + step + " said:\n\n" + KEY + ": " + wrong + "\n"
+            + (CATCH + ": " + catch + "\n" if catch else ""))
+
+
+def no_case(writer, step, coder, new):
+    """-> the line the record keeps when the test writer added no case for
+    what `step` named: `coder` goes again in the flow's order."""
+    return ("no case added: " + writer + " added no test for what " + step
+            + " named" + (" (no snapshot to read its tests from)"
+                          if new is None else "")
+            + ", so " + coder + " goes again in the flow's order")
+
+
+def unheld(step, wrong):
+    """-> the end of the next prompt of the step that wrote the code when
+    no case was added for what the reviewer named."""
+    return ("\n\n" + step + " named a wrong implementation the tests would let"
+            " pass: " + wrong + ". no case was added for it, so check the code"
+            " is not that one; change the code only where it is.\n")
 
 
 def green(results):
