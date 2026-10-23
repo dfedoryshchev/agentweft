@@ -236,12 +236,19 @@ a model:
 
     python -m agentweft.bench --ladder runs/fix-with-test-2026-01-05-213305
     python -m agentweft.bench --ladder runs/
+    python -m agentweft.bench --ladder runs/ --hidden verdicts.json
 
 a folder is a run's record, or any folder above some; every `handoff.md` at
-or under it is scored. the points, in order:
+or under it is scored. `--hidden` names a JSON file mapping a run folder's
+name to the hidden suite's verdict on its tree, `true` for green (a file
+that does not read that way stops the bench, nothing scored). the points, in
+order:
 
-1. `outcome true`: the first line's outcome word is the one the run section's
-   cause names (`done` with none), and a stop names its cause after it
+1. `outcome consistent`: the first line's outcome word is the one the run
+   section's cause names (`done` with none), and a stop names its cause
+   after it. that is all the handoff can be held to on its own; a run the
+   `--hidden` file names is also held to its verdict, `done` on a red tree
+   is a miss, and the point is then named `outcome true`
 2. `the one decision first and right`: it is the first section and holds one
    item; `none` only on a done run; a done run with a ruling on record never
    shows a question open; when the flow's lead escalated, the recommendation

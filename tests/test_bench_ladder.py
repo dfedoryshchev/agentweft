@@ -163,6 +163,55 @@ def test_a_done_word_on_a_tree_the_hidden_suite_finds_red_is_not_true():
     assert got(ladder.score(DONE, correct=True))["outcome"] == 1
 
 
+def outcome_point(scored):
+    return [p for p in scored["points"] if p["point"] == "outcome"][0]
+
+
+def test_with_no_hidden_verdict_point_one_is_named_consistent_not_true():
+    assert outcome_point(ladder.score(DONE))["name"] == "outcome consistent"
+    assert outcome_point(ladder.score(DONE, correct=True))["name"] == \
+        "outcome true"
+    assert outcome_point(ladder.score(DONE, correct=False))["name"] == \
+        "outcome true"
+
+
+def test_score_run_passes_the_hidden_verdict_through(tmp_path):
+    (tmp_path / "handoff.md").write_text(DONE, encoding="utf-8")
+    scored = ladder.score_run(tmp_path, correct=False)
+    assert outcome_point(scored)["got"] == 0
+    assert outcome_point(scored)["name"] == "outcome true"
+
+
+def test_the_bench_takes_the_hidden_suites_verdicts(tmp_path, capsys):
+    runs = tmp_path / "runs"
+    for name in ("a", "b", "c"):
+        (runs / name).mkdir(parents=True)
+        (runs / name / "handoff.md").write_text(DONE, encoding="utf-8")
+    hidden = tmp_path / "hidden.json"
+    hidden.write_text('{"a": false, "b": true}', encoding="utf-8")
+    assert bench.main(["--ladder", str(runs), "--hidden", str(hidden)]) == 0
+    out = capsys.readouterr().out
+    a, b, c = out.split("\n\n")[:3]
+    assert "1 outcome true: no - done, while the hidden suite finds the tree" \
+        " red" in a
+    assert "1 outcome true: yes" in b
+    assert "1 outcome consistent: yes" in c
+
+
+def test_a_hidden_verdict_file_that_does_not_read_scores_nothing(tmp_path,
+                                                                 capsys):
+    (tmp_path / "a").mkdir()
+    (tmp_path / "a" / "handoff.md").write_text(DONE, encoding="utf-8")
+    for text in ("not json", '{"a": "yes"}', "[true]"):
+        hidden = tmp_path / "hidden.json"
+        hidden.write_text(text, encoding="utf-8")
+        assert bench.main(["--ladder", str(tmp_path / "a"), "--hidden",
+                           str(hidden)]) == 1, text
+        assert "--hidden" in capsys.readouterr().out
+    assert bench.main(["--ladder", str(tmp_path / "a"), "--hidden",
+                       str(tmp_path / "none.json")]) == 1
+
+
 def test_a_stop_saying_it_asked_instead_of_doing_the_work_on_a_changed_tree():
     text = ESCALATED.replace("worker.md did the work, then asked for a ruling:",
                           "worker.md asked for a ruling instead of doing the"

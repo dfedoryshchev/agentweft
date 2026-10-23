@@ -10,7 +10,12 @@ a conflict stop, is not applicable: it is left out of the score, never 0.
 the score is the points held over the points that apply, out of ten. runs
 are grouped by path (done, stopped, parked, failed), each with its mean and
 how often each point was missed.
+
+the first point can hold the handoff only to its own record unless the
+hidden suite's verdict on the tree is given (`--hidden`): without it the
+point is named `outcome consistent`, with it `outcome true`.
 """
+import json
 import re
 from pathlib import Path
 
@@ -23,7 +28,8 @@ PATHS = (DONE, STOPPED, PARKED, FAILED)
 UNREAD = "unread"
 FAILED_AS = (stops.outcome(stops.GATE), stops.outcome(stops.EXCEPTION),
              stops.outcome(stops.INTERRUPT))
-POINTS = (("outcome", "outcome true"),
+TRUE = "outcome true"
+POINTS = (("outcome", "outcome consistent"),
           ("decision", "the one decision first and right"),
           ("changed", "changed, from git"),
           ("read", "read, with the line that mattered"),
@@ -132,6 +138,8 @@ def score(text, correct=None):
     out = []
     for point, name in POINTS:
         got, line = marks[point]
+        if point == "outcome" and correct is not None:
+            name = TRUE
         out.append({"point": point, "name": name, "got": got, "line": line})
     held = [p["got"] for p in out if p["got"] is not None]
     earned = sum(held)
@@ -472,16 +480,40 @@ def table(rows):
     return "\n".join(out)
 
 
+def verdicts(path):
+    """-> {run folder name: whether the hidden suite found its tree green}
+    read from the JSON file at `path`. ValueError when it does not read as
+    that: a verdict that cannot be read is never taken as none."""
+    try:
+        got = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise ValueError("--hidden " + str(path) + " does not read: " + str(e))
+    if not isinstance(got, dict) or not all(
+            isinstance(v, bool) for v in got.values()):
+        raise ValueError("--hidden " + str(path) + " has to map each run"
+                         " folder's name to true or false")
+    return got
+
+
 def main(argv, valued=None, fake=None):
-    """`--ladder <folder>...`: each run folder at or under them scored."""
+    """`--ladder <folder>... [--hidden <file>]`: each run folder at or under
+    them scored. `--hidden` names a JSON file of the hidden suite's verdicts,
+    by run folder name: a run it names has its first point held to it."""
     at = argv.index("--ladder")
-    folders = [a for a in argv[at + 1:] if not a.startswith("--")]
+    folders, skip = [], False
+    for a in argv[at + 1:]:
+        if skip or a.startswith("--"):
+            skip = a == "--hidden"
+            continue
+        folders.append(a)
     if not folders:
         raise ValueError("--ladder needs a run folder, or a folder of them")
+    hidden = valued(argv, "--hidden") if valued else None
+    known = verdicts(hidden) if hidden is not None else {}
     found = runs_in(folders)
     if not found:
         print("no handoff.md at or under " + ", ".join(folders)
               + ": nothing to score")
         return 1
-    print(table([score_run(f) for f in found]))
+    print(table([score_run(f, known.get(Path(f).name)) for f in found]))
     return 0

@@ -13,7 +13,8 @@ USAGE = ("usage: python -m agentweft.bench <set> [--k <n>] [--flow <flow>]"
          " [--out <file>] [--live]\n"
          "       python -m agentweft.bench --pairs <set> [--k <n>]"
          " [--flow <flow>] [--twin] [--out <file>] [--live]\n"
-         "       python -m agentweft.bench --ladder <run folder>...")
+         "       python -m agentweft.bench --ladder <run folder>..."
+         " [--hidden <verdicts.json>]")
 FAKE = "fake"
 
 
