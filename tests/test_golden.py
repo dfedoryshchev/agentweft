@@ -1063,74 +1063,65 @@ def split(got):
             got.get(HASHES))
 
 
+def lock_of(path):
+    """-> the file the table at `path` is locked on, in the temp folder so
+    nothing is left beside the goldens."""
+    import hashlib
+    import tempfile
+
+    return Path(tempfile.gettempdir()) / (
+        "agentweft-golden-" + hashlib.sha256(str(path.resolve()).encode(
+            "utf-8")).hexdigest()[:16] + ".lock")
+
+
+def take(f):
+    """-> whether the lock on the open file `f` was free and is now held."""
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
 @contextlib.contextmanager
 def held(path):
     """the table is one file every xdist worker rewriting goldens writes to,
-    so each takes it alone."""
-    lock = path.parent / (path.name + ".lock")
-    for _ in range(1200):
-        try:
-            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            break
-        except FileExistsError:
-            gone = stale(lock)
-            if gone:
-                print("took back " + str(lock) + ": " + gone)
-                try:
-                    os.remove(str(lock))
-                except OSError:
-                    pass
-                continue
+    so each takes it alone. the lock is the system's own on an open file:
+    it goes when its holder closes it or dies, so a dead worker's lock is
+    never taken back by a guess and a live one is never taken."""
+    with open(str(lock_of(path)), "a+b") as f:
+        for _ in range(1200):
+            if take(f):
+                break
             time.sleep(0.05)
-    else:
-        raise RuntimeError(str(lock) + " is held; delete it if no test run"
-                           " is writing goldens")
-    os.write(fd, str(os.getpid()).encode("ascii"))
-    try:
-        yield
-    finally:
-        os.close(fd)
-        os.remove(str(lock))
-
-
-LOCK_BOUND = 30
-
-
-def alive(pid):
-    if os.name != "nt":
+        else:
+            raise RuntimeError(str(lock_of(path)) + " is held by a test run"
+                               " writing goldens")
         try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return False
-        except PermissionError:
-            return True
-        return True
-    import ctypes
-
-    # os.kill on windows ends the process it names, so ask the kernel
-    kernel = ctypes.windll.kernel32
-    handle = kernel.OpenProcess(0x00100000, False, pid)
-    if not handle:
-        return False
-    try:
-        return kernel.WaitForSingleObject(handle, 0) == 0x102
-    finally:
-        kernel.CloseHandle(handle)
+            yield
+        finally:
+            give(f)
 
 
-def stale(lock):
-    """-> why the lock is a dead worker's, "" while its owner may hold it:
-    its pid is gone, or it is older than a write of the table ever takes."""
-    try:
-        said = lock.read_text(encoding="ascii").strip()
-        age = time.time() - lock.stat().st_mtime
-    except (OSError, ValueError):
-        return ""
-    if said.isdigit() and not alive(int(said)):
-        return "its owner, pid " + said + ", is gone"
-    if age > LOCK_BOUND:
-        return "it is " + str(int(age)) + "s old"
-    return ""
+def give(f):
+    """the lock `take` took on the open file `f`, let go."""
+    if os.name == "nt":
+        import msvcrt
+
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 
 def put(name, hashes):
@@ -1348,54 +1339,70 @@ def test_a_fragment_only_change_moves_the_prompt_table_and_no_golden(
     assert moved and all("go 1 " in l for l in moved)
 
 
-def a_dead_pid():
-    done = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
-                          capture_output=True, encoding="utf-8")
-    return int(done.stdout.strip())
-
-
-@pytest.mark.parametrize("left", ["dead-owner", "old"])
-def test_a_table_lock_a_dead_worker_left_is_taken_back(
-        left, tmp_path, monkeypatch, capsys):
+def test_a_table_lock_file_a_dead_worker_left_never_blocks(tmp_path,
+                                                          monkeypatch):
     monkeypatch.setattr(sys.modules[__name__], "GOLDEN", tmp_path / "golden")
-    lock = tmp_path / "golden" / "prompts.json.lock"
-    lock.parent.mkdir()
-    if left == "dead-owner":
-        lock.write_text(str(a_dead_pid()), encoding="utf-8")
-    else:
-        lock.write_text("", encoding="utf-8")
-        old = time.time() - 3600
-        os.utime(str(lock), (old, old))
-    waits = []
-
-    def sleep(secs):
-        waits.append(secs)
-        if len(waits) > 20:
-            pytest.fail("the lock a dead worker left was never taken back")
-
-    monkeypatch.setattr(time, "sleep", sleep)
+    (tmp_path / "golden").mkdir()
+    lock_of(table_file()).write_text("12345", encoding="utf-8")
+    monkeypatch.setattr(time, "sleep", lambda secs: pytest.fail(
+        "waited on a lock nobody holds"))
     put("some-flow/pass", ["worker.md go 1 ab"])
     assert table() == {"some-flow/pass": ["worker.md go 1 ab"]}
-    assert not lock.exists()
-    assert "took back" in capsys.readouterr().out
 
 
 def test_a_table_lock_a_live_worker_holds_is_waited_for(tmp_path,
                                                         monkeypatch):
     monkeypatch.setattr(sys.modules[__name__], "GOLDEN", tmp_path / "golden")
-    lock = tmp_path / "golden" / "prompts.json.lock"
-    lock.parent.mkdir()
-    lock.write_text(str(os.getpid()), encoding="utf-8")
+    (tmp_path / "golden").mkdir()
+    other = open(str(lock_of(table_file())), "a+b")
+    assert take(other)
     waits = []
 
     def sleep(secs):
         waits.append(secs)
         if len(waits) == 3:
-            lock.unlink()
+            give(other)
 
     monkeypatch.setattr(time, "sleep", sleep)
-    put("some-flow/pass", ["worker.md go 1 ab"])
+    try:
+        put("some-flow/pass", ["worker.md go 1 ab"])
+    finally:
+        other.close()
     assert len(waits) == 3
+
+
+HOLDER = (
+    "import sys, time\n"
+    "from pathlib import Path\n"
+    "sys.path.insert(0, 'tests')\n"
+    "import test_golden as g\n"
+    "g.GOLDEN = Path(sys.argv[1])\n"
+    "with g.held(g.table_file()):\n"
+    "    kept = g.table()\n"
+    "    print('held', flush=True)\n"
+    "    time.sleep(4)\n"
+    "    kept['other-flow/pass'] = ['worker.md go 1 cd']\n"
+    "    g.table_file().write_bytes(g.dump(kept).encode('utf-8'))\n")
+
+
+def test_a_second_writer_never_takes_the_table_while_its_holder_lives(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(sys.modules[__name__], "GOLDEN", tmp_path / "golden")
+    (tmp_path / "golden").mkdir()
+    holder = subprocess.Popen(
+        [sys.executable, "-c", HOLDER, str(tmp_path / "golden")],
+        cwd=str(Path(__file__).resolve().parents[1]), stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, encoding="utf-8")
+    try:
+        assert holder.stdout.readline().strip() == "held", \
+            holder.stderr.read()
+        old = time.time() - 3600
+        for left in (tmp_path / "golden").glob("*.lock"):
+            os.utime(str(left), (old, old))
+        put("some-flow/pass", ["worker.md go 1 ab"])
+    finally:
+        holder.wait(timeout=60)
+    assert sorted(table()) == ["other-flow/pass", "some-flow/pass"]
 
 
 def no_carry(monkeypatch):
