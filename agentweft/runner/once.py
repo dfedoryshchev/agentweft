@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from agentweft.flow.spec import REVIEWER
 from agentweft.roles import resolver
 
 from .config import config, steps
@@ -309,6 +310,9 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
                 nxt = route.next(named, EMPTY)
         note("redo" if sent_back else "ok", already, to=nxt,
              output=out.output)
+        if nxt and not sent_back and run.lens_for(nxt) \
+                and run.role_for(step) == REVIEWER:
+            state["out"] = handed
         if already:
             state["out"] = given.get(named, out)
         state["came_from"] = step

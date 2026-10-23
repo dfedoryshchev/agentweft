@@ -86,7 +86,8 @@ prompt. `fix-with-test` fixes a bug. `build-feature` builds one from a spec:
 a second reviewer is a second lens, not a second opinion. when a flow runs
 more than one reviewer, each says in `lens:` the one line it reads for, no
 two say the same, and each is told its own line and the others'. the next
-reviewer is handed the work the first one was, not its verdict.
+reviewer is handed the work the first one was, not its verdict, in a run
+and in a scored eval case alike.
 `reviewers: <n>` runs the first n of them, so `reviewers: 1` in a copy of the
 flow runs build-feature with the spec reviewer alone:
 

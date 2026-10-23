@@ -110,6 +110,32 @@ def test_an_eval_leaves_out_the_reviewer_a_run_leaves_out_on_a_small_change(
     assert scored == live
 
 
+def test_an_eval_hands_the_second_lensed_reviewer_the_work_as_a_run_does(
+        tmp_path, monkeypatch):
+    from agentweft.runner import state
+
+    import test_wrong_test as wt
+
+    said = "VERDICT: ok" + wt.NL + wt.NL + "the spec lines hold" + wt.NL
+    answers = {"planner.md": [wt.PLAN], "tester.md": [wt.TESTER],
+               "worker.md": [wt.WORKER], "reviewer.md": [said],
+               "reviewer-runs.md": [wt.OK]}
+    writes = {"tester.md": [("tests/test_mul.py", wt.RIGHT)],
+              "worker.md": [("calc.py", wt.AFTER)]}
+    handed = []
+    for name, scored in (("live", False), ("eval", True)):
+        place = tmp_path / name
+        place.mkdir()
+        monkeypatch.setattr(state, "RUNS", place / "runs")
+        asked, sent, _, _, _ = wt.run_it(place, monkeypatch, answers, writes,
+                                         scored=scored)
+        handed.append(sent[asked.index("reviewer-runs.md")])
+    live, scored = handed
+    assert "mul(a, b) added" in live and "the spec lines hold" not in live
+    assert "mul(a, b) added" in scored
+    assert "the spec lines hold" not in scored
+
+
 def test_an_eval_of_a_flow_with_preflight_holds_the_step_a_run_holds(
         tmp_path, monkeypatch, fake_cli):
     live, scored = both(tmp_path, monkeypatch, fake_cli, "risky",
