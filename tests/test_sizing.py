@@ -4,6 +4,8 @@ a locale file is hundreds of lines and holds no logic. no model is asked.
 """
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.flow import reader
 from agentweft.flow import spec as flowspec
@@ -150,6 +152,33 @@ def test_a_deleted_locale_file_holds_no_logic(tmp_path):
     got = size()
     assert got["files"] == 1
     assert got["logic_lines"] == 0
+
+
+E = chr(0xe9)
+
+
+@pytest.mark.parametrize("name", ["caf" + E + ".py", "two words.py",
+                                  "sub dir/r" + E + "sum" + E + ".py"])
+def test_a_new_untracked_file_is_sized_whatever_its_name(tmp_path, name):
+    repo = a_repo(tmp_path, {"calc.py": "x = 1" + NL})
+    _, size = sized_now(repo, COLD)
+    (repo / name).parent.mkdir(parents=True, exist_ok=True)
+    (repo / name).write_text(NL.join("v" + str(i) + " = " + str(i)
+                                     for i in range(30)) + NL,
+                             encoding="utf-8")
+    got = size()
+    assert got["files"] == 1, got
+    assert got["logic_lines"] == 30
+
+
+@pytest.mark.parametrize("name", ["caf" + E + ".py", "two words.py"])
+def test_a_changed_tracked_file_is_sized_whatever_its_name(tmp_path, name):
+    repo = a_repo(tmp_path, {name: "x = 1" + NL})
+    _, size = sized_now(repo, COLD)
+    (repo / name).write_text("x = 2" + NL + "y = 3" + NL, encoding="utf-8")
+    got = size()
+    assert got["files"] == 1, got
+    assert got["logic_lines"] == 3
 
 
 def test_a_deleted_dependency_manifest_is_high_blast(tmp_path):

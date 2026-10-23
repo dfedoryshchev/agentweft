@@ -140,15 +140,17 @@ def _lines(text):
 
 
 def _porcelain(place):
+    """-> [(the two status letters, the path now)], each path as it is on
+    disk: `-z` leaves a name with a space or a non-ASCII letter unquoted."""
     out = []
-    for line in (_git(place, "status", "--porcelain", "--untracked-files=all",
-                      "--", ".") or "").split("\n"):
-        if len(line) < 4:
+    entries = iter((_git(place, "status", "--porcelain", "-z",
+                         "--untracked-files=all", "--", ".") or "").split("\0"))
+    for entry in entries:
+        if len(entry) < 4:
             continue
-        path = line[3:]
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        out.append((line[:2], path))
+        out.append((entry[:2], entry[3:]))
+        if entry[0] in "RC":
+            next(entries, None)
     return out
 
 
