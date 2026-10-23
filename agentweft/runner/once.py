@@ -14,7 +14,7 @@ from . import (investigate, retro, router, ruling, stops, summary, trace,
                upkeep, wouldpass, wrongtest)
 from .asking import lead_pass, rides, to_lead, worked_then_asked
 from .fanout import run_fanout
-from .gating import (LEFT_OUT, and_forged, boundary_note, check_step,
+from .gating import (LEFT_OUT, SIZED, and_forged, boundary_note, check_step,
                      forged_by, forged_first, gate_told, gate_why, off_task,
                      outage_why, police_line, preflight_after,
                      preflight_before, reviewers_on, risk_map)
@@ -126,7 +126,10 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
     while state["step"]:
         step, out = state["step"], state["out"]
         said = reviewers_on(run, fm, step, sizing)
-        if said and said[0] == LEFT_OUT:
+        if said and said[0] == SIZED:
+            print("sized the change: " + said[1])
+        elif said and said[0] == LEFT_OUT:
+            print(said[1])
             state["step"] = route.next(step, EMPTY)
             continue
         refused = run.refused(step)
@@ -252,6 +255,14 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             note("conflict", held[1], stops.CONFLICT, output=out.output)
             return out.output, run.budget, "spec conflict at " + step + ": " \
                 + held[0][len("spec conflict: "):]
+        if failed and all(getattr(r, "host", "") for r in out.meta["gates"]
+                          if not r.ok):
+            note("gate failed", gate_why(out.meta["gates"]) + "; " + step
+                 + " was not sent back: the fault is the machine's, not the"
+                 " step's", stops.GATE, output=out.output)
+            return (out.output, run.budget, "gate " + failed + " could not run"
+                    " at " + step + ": the machine could not start a process,"
+                    " twice")
         again = route.gate_back(step) if failed else None
         if again:
             note("gate failed", gate_why(out.meta["gates"]), to=again,

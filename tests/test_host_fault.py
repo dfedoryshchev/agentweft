@@ -92,10 +92,12 @@ def a_flow(tmp_path, steps):
                                              + NL, encoding="utf-8")
 
 
-def run(tmp_path, monkeypatch, steps, fix=FIXED, flake=None):
+def run(tmp_path, monkeypatch, steps, fix=FIXED, flake=None, scored=False):
     """-> (exit code, steps called, the run's folder). `flake` names the
     environment variable whose marker file is made as the worker answers,
-    so the next test run to read it fails on the fault once."""
+    so the next test run to read it fails on the fault once. a run `scored`
+    as an eval has no exit code, and its folder is the trail its lines went
+    to."""
     place = a_place(tmp_path / "repo")
     a_flow(tmp_path, steps)
     marker = tmp_path / "flake"
@@ -123,6 +125,11 @@ def run(tmp_path, monkeypatch, steps, fix=FIXED, flake=None):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
     monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
+    if scored:
+        trail = tmp_path / "trail"
+        trail.mkdir()
+        engine.run_once("build", task="add sums", trail=trail, workdir=place)
+        return None, called, trail
     monkeypatch.setattr(sys, "argv", ["run.py", "build", "--force",
                                       "--workdir", str(place)])
     code = engine.main()
@@ -184,6 +191,19 @@ def test_a_suite_red_on_a_host_fault_twice_stops_with_an_issue_unsent_back(
     [line] = [l for l in gate_lines(folder) if l["gate"] == "command"]
     assert line["ok"] is False
     assert "[WinError 87]" in line["issue"]
+
+
+def test_a_scored_run_stops_on_a_host_fault_that_holds_and_sends_none_back(
+        tmp_path, monkeypatch):
+    monkeypatch.setenv("START_FAULT", "1")
+    _, called, trail = run(tmp_path, monkeypatch, TESTER + worker(COMMAND),
+                           scored=True)
+    assert called == ["tester.md", "worker.md"], called
+    steps = [json.loads(l) for l in read(trail / "steps.jsonl").split(NL)
+             if l.strip()]
+    last = [s for s in steps if s["step"] == "worker.md"][-1]
+    assert last["cause"] == stops.GATE
+    assert "the fault is the machine's" in last["why"]
 
 
 def test_a_new_test_red_with_the_fix_on_a_host_fault_once_is_run_again(

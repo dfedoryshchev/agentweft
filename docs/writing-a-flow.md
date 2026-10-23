@@ -110,8 +110,9 @@ none) the blast is unknown, never low, so the change is not small. its logic
 lines count code only, the lines a deleted file took out with them, so a
 long locale, data or docs file adds none. a change is small with a low
 blast, at most 20 logic lines in at most 2 code files and at most one new
-public name. the handoff says the size
-and why under "tests and checks", and each reviewer it left out. build-feature
+public name. a run prints the size as it sizes it and each reviewer it
+leaves out, a scored eval run too, and the handoff says the size and why
+under "tests and checks", and each reviewer it left out. build-feature
 ships with 2, so a small change still gets both; `small_reviewers: 1` in a
 copy runs the spec reviewer alone on one. a place outside git is not sized,
 and every reviewer runs.

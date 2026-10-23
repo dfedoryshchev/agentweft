@@ -132,7 +132,8 @@ program on one, they run once more and take that run's result, the pass
 saying `run again: the first run failed on <it>`. a fault that holds on the
 second run is the gate's issue, `could not run ...: <the fault>`, and a
 broke fail. the run stops there with the gate's line and the step is not
-sent back: going again would meet the same machine. only `OSError` itself
+sent back: going again would meet the same machine; a scored eval run
+stops the same way. only `OSError` itself
 counts; its subclasses (`FileNotFoundError`, `PermissionError`) and every
 other exception are what wrong code raises too, and stay the change's red
 (`guardrails/hostfault.py`). and a bare `OSError` is the machine's only when

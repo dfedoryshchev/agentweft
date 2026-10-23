@@ -172,7 +172,7 @@ def flowspec_root():
     return Path(__file__).resolve().parents[1] / "flows" / "build-feature"
 
 
-def a_run(tmp_path, monkeypatch, small=None, ranked=COLD):
+def a_run(tmp_path, monkeypatch, small=None, ranked=COLD, scored=False):
     """the shipped feature flow on a two-line change; `ranked` is the risk
     map its planner is handed, None for a flow with no map to fetch."""
     import shutil
@@ -200,8 +200,20 @@ def a_run(tmp_path, monkeypatch, small=None, ranked=COLD):
     writes = {"tester.md": [("tests/test_mul.py", wt.RIGHT)],
               "worker.md": [("calc.py", wt.AFTER)]}
     asked, _, code, folder, _ = wt.run_it(tmp_path, monkeypatch, answers,
-                                          writes)
+                                          writes, scored=scored)
+    if scored:
+        return asked, code, None
     return asked, code, (folder / "handoff.md").read_text(encoding="utf-8")
+
+
+def test_a_scored_run_says_the_size_and_the_reviewer_it_left_out(
+        tmp_path, monkeypatch, capsys):
+    asked = a_run(tmp_path, monkeypatch, small=1, scored=True)[0]
+    assert "reviewer.md" in asked and "reviewer-runs.md" not in asked
+    out = capsys.readouterr().out
+    assert "sized the change: small, low blast" in out
+    assert ("left out reviewer-runs.md: the change sized small, and the flow"
+            " runs 1 reviewer on a small one") in out
 
 
 def test_the_shipped_flow_sizes_the_change_and_still_runs_both_reviewers(
