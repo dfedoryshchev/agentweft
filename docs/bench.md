@@ -260,7 +260,10 @@ or under it is scored. the points, in order:
    or a file is `backed`; `unbacked`, `shortened` and `ran` (the command
    is there, nothing of its output quoted) are 0. an `unchecked` line, with
    no transcript to hold it to, is counted apart and decides nothing: with
-   no gate and no other line the point is `n/a`
+   no gate and no other line the point is `n/a`. the line says what backs
+   them, per kind (`command`, `stdin`, `read`, `file`; `not named` on a
+   record from before the handoff named it) and how many a command alone
+   backs; each path's summary line carries the same counts
 7. `why in one section`: the why section says what was done, and the
    alternatives tried and dropped sit in it, not only under carry forward
 8. `not done said plainly`: the section is there; on a stop a line of its own

@@ -41,7 +41,10 @@ CITE = re.compile(r"[\w./-]+\.\w+:\d+(?:-\d+)?")
 ESCALATED = re.compile(r"the flow's lead did not decide it: (\S+?)(?:\.md)?"
                        r" escalated it")
 TEST_LINE = re.compile(r"^- \S+::\S+: .*? without the fix.*?, (\w+) with it")
-VERIFIED = re.compile(r"^- \S+ verified: .* -> (\w+)")
+VERIFIED = re.compile(r"^- \S+ verified: .* -> (\w+)(?: by (\w+))?")
+# the kinds of call a backed line can name; a record from before they were
+# named keeps its lines as "not named"
+BY = ("command", "stdin", "read", "file", "not named")
 ROLE_ITEM = re.compile(r"^- ([\w.-]+): (.+)$")
 PLAIN = re.compile(r"^- (not done|not fixed|left undone)\b", re.I)
 EDITS = re.compile(r"^- \S+: PASS (?:spec-files|test-edits) - (\S+?): .*"
@@ -134,7 +137,25 @@ def score(text, correct=None):
     earned = sum(held)
     return {"path": path, "outcome": word, "points": out, "earned": earned,
             "applicable": len(held),
-            "score": round(10.0 * earned / len(held), 1) if held else 0}
+            "score": round(10.0 * earned / len(held), 1) if held else 0,
+            "backing": backing(secs)}
+
+
+def backing(secs):
+    """-> {kind: how many verified lines it backs} off the tests and checks
+    section, every kind in BY named, 0 for none."""
+    out = dict((k, 0) for k in BY)
+    for l in secs.get("tests and checks", []):
+        m = VERIFIED.match(l)
+        if m and m.group(1) == "backed":
+            kind = m.group(2) if m.group(2) in BY else "not named"
+            out[kind] += 1
+    return out
+
+
+def by_kind(counts):
+    """-> "command 1, read 2": the kinds that back a line, in BY's order."""
+    return ", ".join(k + " " + str(counts[k]) for k in BY if counts.get(k))
 
 
 def _outcome(c):
@@ -269,8 +290,12 @@ def _checks(c):
     if bad:
         return 0, (str(len(bad)) + " verified lines the record does not back"
                    " (" + ", ".join(sorted(set(bad))) + ")")
+    kinds = backing(c["secs"])
     return 1, (str(len(gates)) + " gates, " + str(len(held))
                + " verified line" + ("" if len(held) == 1 else "s") + " backed"
+               + (" (by " + by_kind(kinds) + "; " + str(kinds["command"])
+                  + " of " + str(len(held)) + " by a command alone)"
+                  if held else "")
                + (", " + str(unchecked) + " unchecked, not counted"
                   if unchecked else ""))
 
@@ -406,10 +431,13 @@ def summary(rows):
                     missed[p["point"]] += 1
                 elif p["got"] is None:
                     skipped[p["point"]] += 1
+        kinds = dict((k, sum(r.get("backing", {}).get(k, 0) for r in mine))
+                     for k in BY)
         out[path] = {"runs": len(mine),
                      "mean": _num(round(sum(r["score"] for r in mine)
                                         / float(len(mine)), 1)),
-                     "missed": missed, "not_applicable": skipped}
+                     "missed": missed, "not_applicable": skipped,
+                     "backing": kinds}
     return out
 
 
@@ -438,7 +466,9 @@ def table(rows):
                            for p, name in POINTS if s["missed"][p])
         out.append(path + ": " + str(s["runs"]) + " run"
                    + ("" if s["runs"] == 1 else "s") + ", mean "
-                   + str(s["mean"]) + ", missed " + (missed or "none"))
+                   + str(s["mean"]) + ", missed " + (missed or "none")
+                   + ", verified lines backed by "
+                   + (by_kind(s["backing"]) or "none"))
     return "\n".join(out)
 
 

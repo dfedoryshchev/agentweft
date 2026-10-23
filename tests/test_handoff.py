@@ -236,6 +236,72 @@ def test_a_claim_no_read_or_search_call_holds_stays_unbacked(
     assert item["backed"] == "unbacked", item
 
 
+@pytest.mark.parametrize("calls, cited, saw, by", [
+    ([("cd /w && python -m pytest -q", "1 passed in 0.02s")],
+     "python -m pytest -q", "1 passed", "command"),
+    ([("python - <<'EOF'\nx = 1\nprint(x)\nEOF", "1")],
+     "x = 1; print(x)", "1", "stdin")])
+def test_a_backed_claim_keeps_the_kind_of_call_that_backs_it(
+        tmp_path, monkeypatch, calls, cited, saw, by):
+    monkeypatch.setattr(handoff, "PROJECTS", a_transcript(
+        tmp_path / "p", "s-1", calls))
+    block = handoff.back(verified("- it holds\n  cmd: " + cited
+                                  + "\n  saw: " + saw + "\n"),
+                         handoff.transcript("s-1"))
+    [item] = block["verified"]
+    assert (item["backed"], item["by"]) == ("backed", by), item
+    assert handoff.said(item).endswith("-> backed by " + by)
+
+
+def test_a_claim_a_read_call_backs_says_so(tmp_path, monkeypatch):
+    monkeypatch.setattr(handoff, "PROJECTS", a_tool_transcript(
+        tmp_path / "p", "s-1", SEARCHED))
+    block = handoff.back(verified("- the spec says so\n  cmd: Read TASK.md"
+                                  "\n  saw: returns a times b\n"),
+                         handoff.transcript("s-1"))
+    [item] = block["verified"]
+    assert (item["backed"], item["by"]) == ("backed", "read")
+    assert handoff.said(item).endswith("-> backed by read")
+
+
+def test_a_claim_the_file_it_quotes_backs_says_so(tmp_path):
+    (tmp_path / "TASK.md").write_text("# task\namounts are exact decimals\n",
+                                      encoding="utf-8")
+    block = handoff.back(verified('- TASK.md:2 "amounts are exact'
+                                  ' decimals"\n'), None)
+    [item] = handoff.to_files(block, tmp_path)["verified"]
+    assert (item["backed"], item["by"]) == ("backed", "file")
+
+
+def test_a_claim_nothing_held_names_no_kind(tmp_path, monkeypatch):
+    block = handoff.back(verified("- it holds\n  cmd: python -m pytest -q"
+                                  "\n  saw: 1 passed\n"), None)
+    [item] = block["verified"]
+    assert item["by"] is None
+    assert handoff.said(item).endswith("-> unchecked: no transcript for this"
+                                       " step")
+
+
+def test_the_ladder_reports_the_backed_lines_per_kind():
+    from agentweft.bench import ladder
+
+    text = "\n".join([
+        "# demo demo-1: done", "", "## the one decision", "- none", "",
+        "## tests and checks", "- worker.md: PASS command - exit 0 (pytest)",
+        "- worker verified: a | cmd: pytest | saw: 1 passed -> backed by"
+        " command", "- worker verified: b | cmd: Read a.py | saw: x -> backed"
+        " by read", "- worker verified: c | cmd: Read b.py | saw: y -> backed"
+        " by read", "", "## run", ""])
+    scored = ladder.score(text)
+    assert scored["backing"] == {"command": 1, "stdin": 0, "read": 2,
+                                 "file": 0, "not named": 0}
+    point = [p for p in scored["points"] if p["point"] == "checks"][0]
+    assert "by command 1, read 2" in point["line"]
+    assert "1 of 3 by a command alone" in point["line"]
+    report = ladder.table([scored])
+    assert "backed by command 1, read 2" in report
+
+
 def test_a_claim_with_no_such_call_is_unbacked(tmp_path, monkeypatch):
     monkeypatch.setattr(handoff, "PROJECTS", a_transcript(
         tmp_path / "p", "s-1", [("git status", "clean")]))

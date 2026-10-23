@@ -263,7 +263,8 @@
               "1 failed"
             ],
             "backed": "unchecked",
-            "why": "no transcript for this step"
+            "why": "no transcript for this step",
+            "by": null
           }
         ],
         "not_verified": [],
@@ -423,7 +424,8 @@
               "1 passed"
             ],
             "backed": "unchecked",
-            "why": "no transcript for this step"
+            "why": "no transcript for this step",
+            "by": null
           }
         ],
         "not_verified": [],

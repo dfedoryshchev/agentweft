@@ -29,7 +29,10 @@ call backs a `cmd:` that names the tool, the pattern searched for and the
 file read or searched, whole or by its tail. the model's word for
 what it ran is never taken on its own. a
 claim that quotes a file instead, `<file>:<line> "<the line>"`, is held to
-that line as the run found it.
+that line as the run found it. each claim keeps `by`, what held it:
+`command`, `stdin`, `read` (a Read, Grep or Glob call) or `file`, None
+when nothing did, so a count of backed claims can be split by the kind that
+backs them.
 """
 import json
 import os
@@ -54,6 +57,8 @@ PRESENT = "present"
 UNREADABLE = "unreadable"
 PARTIAL = "partial"
 SHORTENED = "shortened"
+BY_COMMAND, BY_STDIN, BY_READ, BY_FILE = "command", "stdin", "read", "file"
+BY = (BY_COMMAND, BY_STDIN, BY_READ, BY_FILE)
 
 DECOR = r"[\s#*`_\-]*"
 OPEN = re.compile("^" + DECOR + r"HANDOFF[\s*`_:]*$", re.I)
@@ -204,7 +209,8 @@ def claim(item):
     `<claim> | cmd: <command> | saw: <excerpt>`, and is split on those labels
     only, so a pipe inside the command stays in the command."""
     out = {"claim": "", "cmd": "", "saw": "", "excerpts": [],
-           "backed": "unchecked", "why": "not held to a transcript"}
+           "backed": "unchecked", "why": "not held to a transcript",
+           "by": None}
     saws = []
     field = None
     for line in item.split("\n"):
@@ -367,13 +373,19 @@ def back(block, calls):
                            " transcript is not held to it; write it in full")
             continue
         want = norm(item["cmd"])
-        ran = [out for cmd, out in calls if want and (
-            want in norm(cmd) or by_stdin(item["cmd"], cmd)
-            or by_tool(item["cmd"], cmd))]
+        ran, kinds = [], []
+        for cmd, out in calls:
+            kind = (BY_COMMAND if want and want in norm(cmd) else
+                    BY_STDIN if want and by_stdin(item["cmd"], cmd) else
+                    BY_READ if want and by_tool(item["cmd"], cmd) else None)
+            if kind:
+                ran.append(out)
+                kinds.append(kind)
         if not ran:
             item["backed"] = "unbacked"
             item["why"] = "no such command in the step's transcript"
             continue
+        item["by"] = min(kinds, key=BY.index)
         if not item["saw"]:
             item["backed"], item["why"] = "ran", "nothing of its output quoted"
             continue
@@ -405,7 +417,7 @@ def to_files(block, workdir, start=None):
         if wrong:
             item["backed"], item["why"] = "unbacked", wrong
         elif not item["cmd"]:
-            item["backed"], item["why"] = "backed", ""
+            item["backed"], item["why"], item["by"] = "backed", "", BY_FILE
     return block
 
 
@@ -717,6 +729,8 @@ def said(item):
     if item["saw"]:
         out = out + " | saw: " + item["saw"]
     tail = item["backed"]
+    if item.get("by"):
+        tail = tail + " by " + item["by"]
     if item["why"] and item["backed"] != "backed":
         tail = tail + ": " + item["why"]
     return out + " -> " + tail

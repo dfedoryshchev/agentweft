@@ -178,7 +178,7 @@ after them on the line of a step whose provider said them, and `continued`
                  "verified": [{"claim": "1 passed",
                                "cmd": "python -m pytest -q test_calc.py",
                                "saw": "1 passed", "backed": "backed",
-                               "why": ""}],
+                               "why": "", "by": "command"}],
                  "not_verified": [], "assumed": [], "doubts": [],
                  "must_not_miss": ["TASK.md:3 - amounts are exact decimals"],
                  "tried": [], "read": ["calc.py:1-4 - the whole module"],
@@ -394,6 +394,12 @@ after them on the line of a step whose provider said them, and `continued`
   the same way as a command: a `cmd:` that names the tool, the pattern a
   search looked for and the file it read or searched, whole or by its tail
   (`Grep "def mul" calc.py`, `Read TASK.md`), is held to that call's output.
+  `by` names what held the claim: `command` (the command's own words),
+  `stdin` (a script fed on stdin, by its body), `read` (a Read, Grep or Glob
+  call) or `file` (the file line it quotes), null when nothing did. the
+  handoff's line says it after the state (`-> backed by read`), and the
+  bench ladder counts backed lines per kind and by a command alone, so a
+  count that moved can be told apart from the kinds that newly back a line.
 - `chain` comes last: `{"prev": "<sha256>", "files": {"start-snapshot.json":
   "<sha256>", "red-proof.json": null}}`. `prev` is the sha256 of the line
   before it as it stands in the file, null on the first line; `files` is the
