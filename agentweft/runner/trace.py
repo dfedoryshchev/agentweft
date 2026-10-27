@@ -430,6 +430,45 @@ def sessions(attempts):
             if getattr(r, "session", None)}
 
 
+FALLBACK = "model_refusal_fallback"
+
+
+def fallback(attempts):
+    """-> {"asked", "answered_by"} when a session of the step records the
+    provider's fallback, the model it switched to answering in place of the
+    one asked; None for a step answered by the model it asked, or with no
+    transcript to tell."""
+    from agentweft.runner.handoff import projects
+
+    for s in sorted(sessions(attempts)):
+        try:
+            found = sorted(projects().glob("*/" + s + ".jsonl"))
+        except OSError:
+            continue
+        if not found:
+            continue
+        fell = switched = None
+        for raw in found[0].read_text(encoding="utf-8",
+                                      errors="replace").split("\n"):
+            try:
+                data = json.loads(raw)
+            except ValueError:
+                continue
+            if not isinstance(data, dict):
+                continue
+            if data.get("type") == "system" and data.get("subtype") == FALLBACK:
+                fell = True
+            message = data.get("message")
+            asked = data.get("requestedModel")
+            if switched is None and data.get("type") == "assistant" \
+                    and isinstance(message, dict) and asked \
+                    and message.get("model") and message["model"] != asked:
+                switched = {"asked": asked, "answered_by": message["model"]}
+        if fell and switched:
+            return switched
+    return None
+
+
 def shell_writes_denied(p, attempts, folder):
     """-> how many shell writes the cli refused this step, None when it was
     not handed the check or no session says which refusals were its own."""
@@ -582,4 +621,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
         out["facts_attached"] = handed
     if entry.case:
         out["case"] = entry.case
+    fell = fallback(attempts)
+    if fell:
+        out["fallback"] = fell
     return out

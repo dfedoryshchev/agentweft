@@ -101,6 +101,46 @@ def every_line(tmp_path):
     return out
 
 
+def fell_back(where, session, asked, answered):
+    """a transcript of a session the provider switched to another model in:
+    the turn asked of `asked` answered by `answered`, the fallback event, and
+    the turn asked again of `answered`."""
+    rows = [{"type": "assistant", "requestedModel": asked,
+             "message": {"id": "a", "model": answered, "usage": {}}},
+            {"type": "system", "subtype": "model_refusal_fallback",
+             "content": "switched to another model"},
+            {"type": "assistant", "requestedModel": answered,
+             "message": {"id": "b", "model": answered, "usage": {}}}]
+    path = where / "project" / (session + ".jsonl")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+
+
+def test_a_step_answered_after_the_fallback_says_which_model_answered(
+        tmp_path, monkeypatch, fake_cli):
+    from agentweft.runner import handoff
+
+    monkeypatch.setattr(handoff, "PROJECTS", str(tmp_path / "projects"))
+    fell_back(tmp_path / "projects", "s-1", "m-small-1", "m-big-1")
+    a_flow(tmp_path, monkeypatch, "two", ["worker", "reviewer"])
+    two = answer("did the thing\n", session="s-1")
+    data = json.loads(two[1].decode("utf-8"))
+    data["modelUsage"] = {"m-big-1": {}, "m-small-1": {}}
+    fake_cli((0, json.dumps(data).encode("utf-8"), b""),
+             answer("VERDICT: ok\n\nfine\n", session="s-2"))
+    engine.main()
+    [folder] = folders(tmp_path)
+    worker, reviewer = lines(folder)
+    assert worker["fallback"] == {"asked": "m-small-1",
+                                  "answered_by": "m-big-1"}
+    assert "fallback" not in reviewer
+    said = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert ("- worker.md was answered by m-big-1, not m-small-1, after the"
+            " provider's fallback") in said
+    assert "reviewer.md was answered by" not in said
+
+
 def test_a_two_step_run_writes_one_line_per_step(tmp_path, monkeypatch,
                                                  fake_cli):
     a_flow(tmp_path, monkeypatch, "two",

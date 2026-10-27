@@ -193,7 +193,11 @@ after them on the line of a step whose provider said them, and `continued`
   stopped here.
 - `model` is the id the provider sends, null for one that sends none (the fake,
   or a cli command other than claude). `model_reported` is what the provider
-  said answered.
+  said answered. when the step's transcript records the cli's
+  `model_refusal_fallback`, the line also carries `fallback`, `{"asked":
+  <the model the turn asked for>, "answered_by": <the model that answered
+  it>}`, and the handoff's run section says `<step> was answered by <model>,
+  not <asked>, after the provider's fallback` under the spend.
 - `model_choice` is what this step's role was asked to run on, null when
   nothing chose and the provider's own model answered:
   `{"role": "reviewer", "asked": "low", "from": "run", "applies": true}`.

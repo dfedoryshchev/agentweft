@@ -420,7 +420,20 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
 
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
-         "shell_writes_denied", "shell_trap_recoveries", "won")
+         "shell_writes_denied", "shell_trap_recoveries", "won", "fallback")
+
+
+def fallen(passes):
+    """-> a line for each pass another model answered after the provider's
+    fallback, so the price gap it leaves is not the only trace of it."""
+    out = []
+    for p in passes:
+        fell = (p.get("facts") or {}).get("fallback")
+        if isinstance(fell, dict) and fell.get("answered_by"):
+            out.append("- " + at(p) + " was answered by " + fell["answered_by"]
+                       + ", not " + str(fell.get("asked")) + ", after the"
+                       " provider's fallback")
+    return out
 
 
 def read_of(sessions, root=None, earlier=None):
@@ -999,6 +1012,8 @@ def after_retro(path, every, spend, police=None):
         for n in range(*found):
             if lines[n].startswith("- spend: "):
                 lines[n] = "- spend: " + spend + ", the retro's call included"
+                lines[n + 1:n + 1] = fallen(every[-1:])
+                break
     found = section(lines, "police")
     if found and police:
         lines[found[0]:found[1]] = police
@@ -1434,6 +1449,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         + (" (sent back)" if p["outcome"] == "redo" else "")
         for p in passes) if passes else "- steps: none ran")
     out.append("- spend: " + (spend or "0 calls, 0 tokens"))
+    out.extend(fallen(passes))
     out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))
     out.append("- record: runs/" + run_id + "/steps.jsonl, gates.jsonl,"
