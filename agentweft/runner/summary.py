@@ -507,6 +507,7 @@ def _passes_in(folder, roles, fm):
     root = None
     if (folder / "workdir").is_file():
         root = (folder / "workdir").read_text(encoding="utf-8").strip() or None
+    seqs = []
     for raw in path.read_text(encoding="utf-8").split("\n"):
         try:
             line = json.loads(raw)
@@ -526,6 +527,24 @@ def _passes_in(folder, roles, fm):
                                  gate_names(fm, step)),
                           line.get("ungated"), line.get("outcome") or "",
                           said, facts=facts_of(line, root)))
+        seqs.append(line.get("seq"))
+    for case in cases(path):
+        if case.get("red") and case.get("seq") in seqs:
+            out[seqs.index(case["seq"])]["facts"]["won"] = "caught"
+    return out
+
+
+def cases(path):
+    """-> the `case` of every line in steps.jsonl at `path`: what a test writer
+    added for a reviewer's routed line, as held to the code."""
+    out = []
+    for raw in path.read_text(encoding="utf-8").split("\n"):
+        try:
+            line = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(line.get("case"), dict):
+            out.append(line["case"])
     return out
 
 

@@ -1059,7 +1059,12 @@ or `WOULD PASS: none`. under a verdict that lets the work through, the line
 goes to the nearest step before the reviewer with that role, the one that
 wrote the tests, at the very end of its prompt, and its red-test gate shows
 the new case red on the start commit before the work walks on. the reviewer's
-line in `steps.jsonl` is a `redo` with `to` naming that step. the steps after
+line in `steps.jsonl` is `routed`, not a redo, with `to` naming that step,
+and `won: none`: naming a case catches nothing yet. the test writer's line
+that ends the case keeps `case` (the reviewer's `seq` and `step`, and `red`,
+whether a suite gate of the step that wrote the code failed with the case
+in), and the handoff and the retro read the reviewer's pass as `caught`
+only when the case was red there. the steps after
 it go again in the flow's order, the one that wrote the code told the case
 may pass already, so the suite holds the code to the case too. the case has
 to be a test: when no test id is new since the reviewer named it, the test

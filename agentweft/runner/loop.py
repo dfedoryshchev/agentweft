@@ -680,7 +680,7 @@ def go(leg):
                 if step in before:
                     entry.changed = before[step] != snapshot.fingerprint(
                         run.workdir, own=state.RUNS)
-                trail.close(entry, "redo", why="the tests would pass "
+                trail.close(entry, trace.ROUTED, why="the tests would pass "
                             + missed[0] + ", back to " + writer
                             + " for the case", to=writer)
                 record.mark(step, manifest.REDO, run_id, out.output)
@@ -691,6 +691,7 @@ def go(leg):
                     run.gate_said[coder] = wouldpass.then(writer, step,
                                                           missed[0])
                     case_for = {"writer": writer, "named": step,
+                                "seq": entry.seq,
                                 "coder": coder, "missed": missed,
                                 "before": wouldpass.ids(run.start),
                                 "again": False}
@@ -743,9 +744,10 @@ def go(leg):
                     came_from = step
                     continue
                 wrong = case_for["missed"][0]
-                case_for = None
                 ran = run.suite_of(coder) \
                     if nxt == coder and not sent_back and new else []
+                entry.case = wouldpass.held(case_for, ran)
+                case_for = None
                 if not new and not sent_back:
                     kept = wouldpass.no_case(step, named, coder, new)
                     run.gate_said[coder] = wouldpass.unheld(named, wrong)

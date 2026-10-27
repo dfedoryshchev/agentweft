@@ -68,12 +68,12 @@ def scored(flow, fm, provider, task, trail, workdir):
     ended = {}
     state = {"out": EMPTY, "step": steps(flow)[0], "came_from": None}
 
-    def note(outcome, why=None, cause=None, to=None, output=None):
+    def note(outcome, why=None, cause=None, to=None, output=None, case=None):
         taken = run.taken()
         if cause:
             ended.update(cause=cause, why=why or "", at=state["step"])
         if kept is None:
-            return
+            return None
         step, out = state["step"], state["out"]
         entry = kept.open(step, taken, run.by_step.get(step, run.provider),
                           state["came_from"], output=output,
@@ -85,7 +85,9 @@ def scored(flow, fm, provider, task, trail, workdir):
         entry.proved = output is not None and bool(out.meta.get("proved"))
         entry.conformance = out.meta.pop("conformance", None) \
             if output is not None else None
+        entry.case = case
         kept.close(entry, outcome, why=why, to=to, cause=cause)
+        return entry
 
     said = steps_of(flow, fm, run, route, trail, kept, state, note)
     if kept is not None and retro.on(fm):
@@ -296,13 +298,15 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             if honest and out.verdict != "redo" else None
         writer = route.missed_to(step) if missed else None
         if writer:
-            note("redo", "the tests would pass " + missed[0] + ", back to "
-                 + writer + " for the case", to=writer, output=out.output)
+            routed = note(trace.ROUTED, "the tests would pass " + missed[0]
+                          + ", back to " + writer + " for the case", to=writer,
+                          output=out.output)
             run.gate_said[writer] = wouldpass.told(step, *missed)
             coder = route.on_redo.get(step)
             if coder:
                 run.gate_said[coder] = wouldpass.then(writer, step, missed[0])
                 case_for = {"writer": writer, "named": step, "coder": coder,
+                            "seq": routed.seq if routed else None,
                             "missed": missed,
                             "before": wouldpass.ids(run.start),
                             "again": False}
@@ -312,7 +316,7 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             continue
         nxt = route.next(step, out)
         sent_back = out.verdict == "redo" and nxt
-        already = kept = None
+        already = kept = case = None
         if case_for and step == case_for["writer"]:
             named, coder = case_for["named"], case_for["coder"]
             new = wouldpass.added(case_for["before"], run.start)
@@ -327,9 +331,10 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
                 state["came_from"] = step
                 continue
             wrong = case_for["missed"][0]
-            case_for = None
             ran = run.suite_of(coder) \
                 if nxt == coder and not sent_back and new else []
+            case = wouldpass.held(case_for, ran)
+            case_for = None
             if not new and not sent_back:
                 kept = wouldpass.no_case(step, named, coder, new)
                 run.gate_said[coder] = wouldpass.unheld(named, wrong)
@@ -338,7 +343,7 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
                 run.gate_said.pop(coder, None)
                 nxt = route.next(named, EMPTY)
         note("redo" if sent_back else "ok", kept, to=nxt,
-             output=out.output)
+             output=out.output, case=case)
         if nxt and not sent_back and run.lens_for(nxt) \
                 and run.role_for(step) == REVIEWER:
             state["out"] = handed

@@ -35,6 +35,9 @@ FOLDER = "steps"
 # the outcome of a line holding only the warm calls a step was kept warm
 # with (`warm.py`), when no later go of it took them; it is not a pass
 WARM = "warm"
+# the outcome of a reviewer's line that let the work through and named a
+# wrong implementation the tests would pass: the case goes to the test writer
+ROUTED = "routed"
 
 
 class Attempt(object):
@@ -268,7 +271,7 @@ class Entry(object):
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
-                 "conformance")
+                 "conformance", "case")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -294,6 +297,9 @@ class Entry(object):
         self.facts = None
         # what each fact's check said after this pass changed its scope
         self.conformance = None
+        # on the test writer's pass only: the case a reviewer named, as held
+        # to the code (`wouldpass.held`)
+        self.case = None
 
 
 class Trail(object):
@@ -473,7 +479,10 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     say) checked nothing. decided: the lead's decision is on record. a stop
     for the budget, an outage, a crash or no answer bought nothing; a redo
     that only switched the cause step on was the runner's choice, not a
-    defect the step found.
+    defect the step found. a reviewer's `routed` line bought nothing yet: its
+    case is held to the code on the test writer's line (`case`), and the
+    reviewer caught something only when that case failed there
+    (`summary.passes_of` reads it so).
     """
     from .investigate import STEP
     from .stops import CONFLICT, DECLINED, OFF_TASK, PARKED, REFUSED
@@ -571,4 +580,6 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
                       if i not in handed)
     if handed:
         out["facts_attached"] = handed
+    if entry.case:
+        out["case"] = entry.case
     return out

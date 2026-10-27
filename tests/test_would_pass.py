@@ -6,13 +6,15 @@ the shipped build-feature flow's first reviewer has `on_missed: tester`: a
 prompt, once a run; `none` goes nowhere. canned answers, a real pytest in a
 git repo, as `test_wrong_test.py` runs them.
 """
+import json
 import sys
+import types
 from pathlib import Path
 
 sys.path.insert(0, ".")
 from agentweft.flow import reader
 from agentweft.flow import spec as flowspec
-from agentweft.runner import stops
+from agentweft.runner import stops, summary
 
 from test_wrong_test import (AFTER, OK, PLAN, RIGHT, TESTER, WORKER, NL,
                              run_it)
@@ -34,6 +36,17 @@ MORE = RIGHT + NL + NL + ("def test_mul_two_five():" + NL
                           + "    assert mul(2, 5) == 10" + NL)
 # passes the one test there is and fails the case the reviewer names
 SIX = AFTER.replace("return a * b", "return 6")
+
+
+def lines(folder):
+    return [json.loads(l) for l in (folder / "steps.jsonl").read_text(
+        encoding="utf-8").split(NL) if l.strip()]
+
+
+def won_of(folder):
+    """-> (step, won) of each pass, as the handoff and the retro read them."""
+    return [(p["step"], p["facts"]["won"]) for p in summary.passes_of(
+        folder, {}, types.SimpleNamespace(steps=[]))]
 
 
 def test_the_line_and_its_case_are_read_off_their_own_lines():
@@ -81,6 +94,43 @@ def test_a_named_wrong_implementation_goes_to_the_tester_with_its_case(
     assert "PASS red-test - red" in second
     steps = (folder / "steps.jsonl").read_text(encoding="utf-8")
     assert '"to": "tester.md"' in steps
+
+
+def test_a_reviewer_whose_case_fails_on_the_code_caught_it(tmp_path,
+                                                          monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],
+               "worker.md": [WORKER], "reviewer.md": [NAMED, NAMED],
+               "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", MORE)],
+              "worker.md": [("calc.py", SIX), ("calc.py", AFTER)]}
+    folder = run_it(tmp_path, monkeypatch, answers, writes)[3]
+    said = lines(folder)
+    reviewer = said[3]
+    assert (reviewer["step"], reviewer["outcome"], reviewer["won"]) == (
+        "reviewer.md", "routed", "none")
+    assert said[4]["step"] == "tester.md"
+    assert said[4]["case"] == {"seq": reviewer["seq"], "step": "reviewer.md",
+                               "red": True}
+    assert won_of(folder)[3] == ("reviewer.md", "caught")
+
+
+def test_a_reviewer_whose_case_passes_on_the_code_caught_nothing(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],
+               "worker.md": [WORKER], "reviewer.md": [NAMED],
+               "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", MORE)],
+              "worker.md": [("calc.py", AFTER)]}
+    folder = run_it(tmp_path, monkeypatch, answers, writes)[3]
+    said = lines(folder)
+    reviewer = said[3]
+    assert (reviewer["step"], reviewer["outcome"], reviewer["won"]) == (
+        "reviewer.md", "routed", "none")
+    assert said[4]["case"] == {"seq": reviewer["seq"], "step": "reviewer.md",
+                               "red": False}
+    assert won_of(folder)[3] == ("reviewer.md", "none")
 
 
 def test_a_case_that_already_passes_does_not_send_the_worker_round_again(

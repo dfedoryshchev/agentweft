@@ -18,7 +18,9 @@ code already holds to it, and the run goes on from the step after the
 reviewer, which has read this code already. a go that adds no new test id
 added no case: the test writer goes once more for it, and after a second
 such go the record says `no case added` and the steps after it go again,
-the code never let through on a case that is not there. once a run: a
+the code never let through on a case that is not there. the reviewer's line
+reads `routed`, never a redo, and the test writer's line keeps `case`: the
+reviewer caught something only when the case failed on the code. once a run: a
 reviewer that names another one the next time is read and not sent. a redo
 is the reviewer's verdict on the code and goes where `on_redo` says.
 """
@@ -114,6 +116,16 @@ def green(results):
     return bool(results) and all(
         r.ok and not getattr(r, "skipped", False)
         and not getattr(r, "host", "") for r in results)
+
+
+def held(case_for, results):
+    """-> what the test writer's line keeps of the case the reviewer named:
+    the reviewer's seq and step, and `red`, whether a suite gate of the step
+    that wrote the code ran with the case in and failed on it. only a red
+    case is a wrong implementation the reviewer caught."""
+    red = any(not r.ok and not getattr(r, "skipped", False)
+              and not getattr(r, "host", "") for r in results or ())
+    return {"seq": case_for.get("seq"), "step": case_for["named"], "red": red}
 
 
 def passes_already(coder, results):
