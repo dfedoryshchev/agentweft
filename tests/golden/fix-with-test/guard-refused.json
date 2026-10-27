@@ -73,6 +73,9 @@
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won stopped: 1 pass, <secs>s, $0.0000, cost not stated on 1",
     "- won none: 0 passes, <secs>s, $0.0000",
+    "- prevented: 1 refusal (writes: 1)",
+    "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0100",
+    "- USD on steps that won nothing and checked 0: $0.0000",
     "- total: 2 passes, <secs>s, $0.0100, cost not stated on 1",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
@@ -152,7 +155,8 @@
         {
           "gate": "writes",
           "ok": false,
-          "detail": "worker.md writes tests only and changed product code: CLAUDE.md. put each back as the run found it"
+          "detail": "worker.md writes tests only and changed product code: CLAUDE.md. put each back as the run found it",
+          "prevented": "worker.md writes tests only and changed product code: CLAUDE.md. put each back as the run found it"
         },
         {
           "gate": "red-test",
@@ -163,6 +167,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 2,
       "cause": null,
       "why": "writes: worker.md writes tests only and changed product code: CLAUDE.md. put each back as the run found it",
       "file": "steps/001-worker.md",
@@ -246,6 +251,7 @@
       "ungated": null,
       "outcome": "refused",
       "won": "stopped",
+      "checked": 0,
       "cause": "refused",
       "why": "CLAUDE.md changed in <tmp>/place since the run started, and worker.md would start its model there and read it",
       "file": null,

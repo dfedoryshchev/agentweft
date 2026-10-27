@@ -81,6 +81,9 @@
     "- worker.md <secs>s ($0.0100), won caught: parked; failed test-edits - worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won none: 0 passes, <secs>s, $0.0000",
+    "- prevented: 2 refusals (test-edits: 2)",
+    "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0200",
+    "- USD on steps that won nothing and checked 0: $0.0000",
     "- total: 2 passes, <secs>s, $0.0200",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
@@ -166,12 +169,14 @@
         {
           "gate": "test-edits",
           "ok": false,
-          "detail": "worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand"
+          "detail": "worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
+          "prevented": "worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand"
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 2,
       "cause": null,
       "why": "test-edits: worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
       "file": "steps/001-worker.md",
@@ -251,12 +256,14 @@
         {
           "gate": "test-edits",
           "ok": false,
-          "detail": "worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand"
+          "detail": "worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
+          "prevented": "worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand"
         }
       ],
       "ungated": false,
       "outcome": "parked",
       "won": "caught",
+      "checked": 2,
       "cause": "parked",
       "why": "needs a ruling: worker.md changed tests the run started with: test_calc.py (changed, with no start commit to compare it against). put each back as the run found it; a new test goes in as a test of its own. a ruling in decisions.md that names the test, or quotes the spec line that decides it, lets the change stand",
       "file": "steps/002-worker.md",

@@ -171,7 +171,7 @@ after them on the line of a step whose provider said them, and `continued`
      "gates": [{"gate": "length", "ok": true,
                                "detail": "1 lines"}],
      "ungated": false,
-     "outcome": "ok", "won": "none", "cause": null, "why": null,
+     "outcome": "ok", "won": "none", "checked": 1, "cause": null, "why": null,
      "file": "steps/001-worker.md",
      "task_file": "task.md", "tasks": null,
      "handoff": {"state": "present", "did": ["calc.py: add returns a + b"],
@@ -354,7 +354,15 @@ after them on the line of a step whose provider said them, and `continued`
   - `decided`: the lead's go whose decision is on record in `decisions.md`;
     the pass that asked is `none`, it runs again.
   - `none`: anything else, an all-pass judge among them.
-  the retro in `handoff.md` sums seconds and money by it.
+  the retro in `handoff.md` sums seconds and money by it. `won` keeps to
+  these six, since the sums are taken by them.
+- `checked` is what the pass checked whatever it won: the VERIFIED lines of
+  its HANDOFF block its transcript backed, by any kind, plus the gates that
+  ran on its work (not `skipped`, not `broke`). a `none` that checked 9 is a
+  price; a `none` that checked 0 is the line to cut.
+- a gate entry that refused the work (not ok, not broke, not skipped)
+  carries `prevented`, its reason; a line that stopped off task (police)
+  carries `prevented` too, the stop's why.
 - a flow that runs the retro (every shipped flow: `retro: true`, or
   `retro: conditional` after a run with something to look back at) can end
   on one more line, step `retro.md`,
@@ -685,7 +693,14 @@ five sections are written by the runner alone:
   leftover processes ended, all from `steps.jsonl`, and what it won (`won`
   on the step line); then one line per send-back with the reviewer's reason;
   then the money and seconds summed by what each pass won, `won none` always
-  among them, and the total, which is the sum of the steps. a pass whose cost
+  among them; `prevented: k refusals (<gate>: n, ...)` when a gate or police
+  refused anything; `USD on steps that won nothing and checked nothing: $x of
+  $y` (the waste) and `USD on steps that won nothing and checked n: $z` (a
+  price, not waste); `upkeep, not waste:` the retro's spend, never counted
+  in the waste (police makes no model call, so it costs nothing here); and
+  the total, which is the sum
+  of the steps. a pass that won `none` reads `won none, checked n`, and the
+  retro reads its own product, `won facts n (m refused)`. a pass whose cost
   was not stated is counted and named, never added in as nothing. last, the
   run's wall beside its steps, its gates and the runner: `- wall 41.0s:
   steps 29.3s, gates 9.2s, runner 2.5s`. a step's seconds are its model's
@@ -714,13 +729,15 @@ five sections are written by the runner alone:
       said, not in its transcript: docs/old.md:1-9 - the old notes
 
     ## retro
-    - worker.md 12.0s ($0.2500), won none: no events
+    - worker.md 12.0s ($0.2500), won none, checked 0: no events
     - reviewer.md 4.1s ($0.2500), won caught: sent back
-    - worker.md 9.3s ($0.2500), won none: no events
-    - reviewer.md 3.9s ($0.2500), won none: no events
+    - worker.md 9.3s ($0.2500), won none, checked 0: no events
+    - reviewer.md 3.9s ($0.2500), won none, checked 3: no events
     - reviewer.md sent the work back: notes.md still says three
     - won caught: 1 pass, 4.1s, $0.2500
     - won none: 3 passes, 25.2s, $0.7500
+    - USD on steps that won nothing and checked nothing: $0.5000 of $1.0000
+    - USD on steps that won nothing and checked 3: $0.2500
     - total: 4 passes, 29.3s, $1.0000
     - wall 41.0s: steps 29.3s, gates 9.2s, runner 2.5s
 

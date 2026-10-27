@@ -35,7 +35,7 @@ KEYS = ["seq", "time", "step", "from", "to", "provider", "command", "model",
         "model_reported", "model_choice", "effort", "verbosity", "grant", "tokens", "cost", "priced", "cost_from",
         "cost_parts", "budget", "session", "seconds", "cached",
         "retries", "background_killed", "shell_writes_denied",
-        "shell_trap_recoveries", "gates", "ungated", "outcome", "won", "cause", "why", "file",
+        "shell_trap_recoveries", "gates", "ungated", "outcome", "won", "checked", "cause", "why", "file",
         "task_file", "tasks", "handoff", "chain"]
 
 # an en dash, a CJK word and a Cyrillic letter: cp1252 has the first under
@@ -213,7 +213,8 @@ def test_a_failed_gate_writes_the_line_of_the_step_it_stopped(
     assert line["why"] == ("length: 2 lines, cap is 1; worker.md was sent"
                            " back 1 time already (send_backs: 1)")
     assert line["gates"] == [{"gate": "length", "ok": False,
-                              "detail": "2 lines, cap is 1"}]
+                              "detail": "2 lines, cap is 1",
+                              "prevented": "2 lines, cap is 1"}]
     assert line["file"] == "steps/002-worker.md"
 
 

@@ -78,14 +78,18 @@
     "## carry forward",
     "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
     "## retro",
-    "- planner.md <secs>s ($0.0100), won none: no events",
+    "- planner.md <secs>s ($0.0100), won none, checked 0: no events",
     "- tester.md <secs>s ($0.0100), won proved: no events",
     "- worker.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info ============================ FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; issue: red-first could not replay: the place is not in a git work tree",
     "- worker.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info ============================ FAILED test_add.py::test_add - assert -1 == 3 1 failed, 1 passed in <secs>s; issue: red-first could not replay: the place is not in a git work tree",
-    "- retro.md <secs>s ($0.0100), won none: no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 2 passes, <secs>s, $0.0200",
+    "- prevented: 2 refusals (command: 2)",
+    "- USD on steps that won nothing and checked nothing: $0.0100 of $0.0500",
+    "- USD on steps that won nothing and checked 0: $0.0000",
+    "- upkeep, not waste: the retro $0.0100",
     "- total: 5 passes, <secs>s, $0.0500",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
@@ -171,6 +175,7 @@
       "ungated": true,
       "outcome": "ok",
       "won": "none",
+      "checked": 0,
       "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
@@ -251,6 +256,7 @@
       "ungated": false,
       "outcome": "ok",
       "won": "proved",
+      "checked": 1,
       "cause": null,
       "why": null,
       "file": "steps/002-tester.md",
@@ -325,7 +331,8 @@
         {
           "gate": "command",
           "ok": false,
-          "detail": "exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
+          "detail": "exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s",
+          "prevented": "exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
         },
         {
           "gate": "red-first",
@@ -337,6 +344,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 2,
       "cause": null,
       "why": "command: exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s",
       "file": "steps/003-worker.md",
@@ -411,7 +419,8 @@
         {
           "gate": "command",
           "ok": false,
-          "detail": "exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
+          "detail": "exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s",
+          "prevented": "exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s"
         },
         {
           "gate": "red-first",
@@ -423,6 +432,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 2,
       "cause": "gate failed",
       "why": "command: exit 1: =========================== short test summary info ============================\nFAILED test_add.py::test_add - assert -1 == 3\n1 failed, 1 passed in <secs>s; worker.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/004-worker.md",
@@ -521,6 +531,7 @@
       "ungated": null,
       "outcome": "ok",
       "won": "none",
+      "checked": 0,
       "cause": null,
       "why": null,
       "file": "steps/005-retro.md",

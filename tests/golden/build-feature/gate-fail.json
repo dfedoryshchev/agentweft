@@ -73,12 +73,16 @@
     "## carry forward",
     "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
     "## retro",
-    "- planner.md <secs>s ($0.0100), won none: no events",
+    "- planner.md <secs>s ($0.0100), won none, checked 0: no events",
     "- tester.md <secs>s ($0.0100), won caught: gate failed; failed red-test - no FAILS: line, so the test never failed",
     "- tester.md <secs>s ($0.0100), won caught: gate failed; failed red-test - no FAILS: line, so the test never failed",
-    "- retro.md <secs>s ($0.0100), won none: no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won none: 2 passes, <secs>s, $0.0200",
+    "- prevented: 2 refusals (red-test: 2)",
+    "- USD on steps that won nothing and checked nothing: $0.0100 of $0.0400",
+    "- USD on steps that won nothing and checked 0: $0.0000",
+    "- upkeep, not waste: the retro $0.0100",
     "- total: 4 passes, <secs>s, $0.0400",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
@@ -162,6 +166,7 @@
       "ungated": true,
       "outcome": "ok",
       "won": "none",
+      "checked": 0,
       "cause": null,
       "why": null,
       "file": "steps/001-planner.md",
@@ -236,12 +241,14 @@
         {
           "gate": "red-test",
           "ok": false,
-          "detail": "no FAILS: line, so the test never failed"
+          "detail": "no FAILS: line, so the test never failed",
+          "prevented": "no FAILS: line, so the test never failed"
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 1,
       "cause": null,
       "why": "red-test: no FAILS: line, so the test never failed",
       "file": "steps/002-tester.md",
@@ -316,12 +323,14 @@
         {
           "gate": "red-test",
           "ok": false,
-          "detail": "no FAILS: line, so the test never failed"
+          "detail": "no FAILS: line, so the test never failed",
+          "prevented": "no FAILS: line, so the test never failed"
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 1,
       "cause": "gate failed",
       "why": "red-test: no FAILS: line, so the test never failed; tester.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/003-tester.md",
@@ -420,6 +429,7 @@
       "ungated": null,
       "outcome": "ok",
       "won": "none",
+      "checked": 0,
       "cause": null,
       "why": null,
       "file": "steps/004-retro.md",

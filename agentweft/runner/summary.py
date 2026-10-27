@@ -460,6 +460,13 @@ def facts_of(line, root=None):
                     if isinstance(t, dict) and t.get("session"))
     out["read"] = read_of(sessions, root, line.get("continued"))
     out["conformance"] = line.get("conformance") or []
+    out["checked"] = line.get("checked")
+    out["prevented"] = [g.get("gate") or "a gate" for g in line.get("gates")
+                        or [] if isinstance(g, dict) and g.get("prevented")]
+    if line.get("prevented"):
+        out["prevented"].append("police")
+    kept = line.get("facts")
+    out["kept_facts"] = kept if isinstance(kept, dict) else None
     return out
 
 
@@ -941,8 +948,7 @@ def retro(passes):
                 said.append(words + " " + str(f[key]))
         took = p["seconds"] if p["seconds"] is not None else 0
         out.append("- " + at(p) + " " + str(took) + "s (" + _money(f) + ")"
-                   + (", won " + f["won"] if f.get("won") else "") + ": "
-                   + ("; ".join(said) or "no events"))
+                   + won_words(p) + ": " + ("; ".join(said) or "no events"))
     out.extend("- " + p["step"] + " sent the work back: " + p["redo_why"]
                for p in passes if p["outcome"] == "redo" and p["redo_why"])
     if not out:
@@ -962,9 +968,40 @@ def _tally(passes):
     return out
 
 
+def won_words(p):
+    """-> what a pass won, in words: `won` as the line keeps it, one of
+    `trace.WON`; the retro's own product, the facts it wrote and the ones
+    refused, in place of a `none` that would read as nothing bought; and the
+    checks a pass that won nothing still made."""
+    f = p.get("facts") or {}
+    if not f.get("won"):
+        return ""
+    kept = f.get("kept_facts")
+    if p["step"] == retro_step() and kept is not None:
+        return (", won facts " + str(len(kept.get("written") or []))
+                + " (" + str(len(kept.get("refused") or [])) + " refused)")
+    if f["won"] == "none" and f.get("checked") is not None:
+        return ", won none, checked " + str(f["checked"])
+    return ", won " + f["won"]
+
+
+def retro_step():
+    from .retro import STEP
+
+    return STEP
+
+
+def _cost(p):
+    c = (p.get("facts") or {}).get("cost")
+    return c if isinstance(c, (int, float)) and not isinstance(c, bool) else 0
+
+
 def bought(passes):
     """the spend and seconds of every pass summed by what it won, `none`
-    always among them, then the total, which is the sum of the steps."""
+    always among them; what the gates and police refused; the spend on
+    passes that won nothing, split by whether they checked anything, with
+    the retro's upkeep beside it and never in it; then the total, which is
+    the sum of the steps."""
     groups = {}
     for p in passes:
         groups.setdefault((p.get("facts") or {}).get("won") or "not recorded",
@@ -973,6 +1010,30 @@ def bought(passes):
     order = list(trace.WON) + ["not recorded"]
     out = ["- won " + k + ": " + _tally(groups[k]) for k in order
            if k in groups]
+    refused = {}
+    for p in passes:
+        for gate in (p.get("facts") or {}).get("prevented") or ():
+            refused[gate] = refused.get(gate, 0) + 1
+    if refused:
+        out.append("- prevented: " + str(sum(refused.values())) + " refusal"
+                   + ("" if sum(refused.values()) == 1 else "s") + " ("
+                   + ", ".join(g + ": " + str(n)
+                               for g, n in sorted(refused.items())) + ")")
+    upkeep = [p for p in passes if p["step"] == retro_step()]
+    idle = [p for p in passes if p not in upkeep
+            and (p.get("facts") or {}).get("won") == "none"
+            and (p.get("facts") or {}).get("checked") is not None]
+    waste = [p for p in idle if not p["facts"]["checked"]]
+    price = [p for p in idle if p["facts"]["checked"]]
+    out.append("- USD on steps that won nothing and checked nothing: $%.4f of"
+               " $%.4f" % (sum(_cost(p) for p in waste),
+                          sum(_cost(p) for p in passes)))
+    out.append("- USD on steps that won nothing and checked "
+               + str(sum(p["facts"]["checked"] for p in price))
+               + ": $%.4f" % sum(_cost(p) for p in price))
+    if upkeep:
+        out.append("- upkeep, not waste: the retro $%.4f"
+                   % sum(_cost(p) for p in upkeep))
     return out + ["- total: " + _tally(passes)]
 
 

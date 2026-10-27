@@ -71,9 +71,13 @@
     "## retro",
     "- worker.md <secs>s ($0.0100), won caught: gate failed; failed writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
     "- worker.md <secs>s ($0.0100), won caught: gate failed; failed writes - worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
-    "- retro.md <secs>s ($0.0100), won none: no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won none: 1 pass, <secs>s, $0.0100",
+    "- prevented: 2 refusals (writes: 2)",
+    "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0300",
+    "- USD on steps that won nothing and checked 0: $0.0000",
+    "- upkeep, not waste: the retro $0.0100",
     "- total: 3 passes, <secs>s, $0.0300",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "## run",
@@ -155,7 +159,8 @@
         {
           "gate": "writes",
           "ok": false,
-          "detail": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it"
+          "detail": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
+          "prevented": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it"
         },
         {
           "gate": "red-test",
@@ -166,6 +171,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 2,
       "cause": null,
       "why": "writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
       "file": "steps/001-worker.md",
@@ -240,7 +246,8 @@
         {
           "gate": "writes",
           "ok": false,
-          "detail": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it"
+          "detail": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it",
+          "prevented": "worker.md writes tests only and changed product code: calc.py. put each back as the run found it"
         },
         {
           "gate": "red-test",
@@ -251,6 +258,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
+      "checked": 2,
       "cause": "gate failed",
       "why": "writes: worker.md writes tests only and changed product code: calc.py. put each back as the run found it; worker.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/002-worker.md",
@@ -349,6 +357,7 @@
       "ungated": null,
       "outcome": "ok",
       "won": "none",
+      "checked": 0,
       "cause": null,
       "why": null,
       "file": "steps/003-retro.md",

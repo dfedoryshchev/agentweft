@@ -314,3 +314,78 @@ def test_an_old_line_of_two_kinds_is_still_mixed():
                  "priced": None,
                  "cost_from": {"provider": 1, "estimate": 1}})
     assert (g.table_priced, g.estimated, g.unsplit) == (0, 0, Decimal("0.5"))
+
+
+def a_line(outcome="ok", block=None, gates=(), cause=None, why=None,
+           step="reviewer.md"):
+    entry = trace.Entry(1, step, [], Said(), None, None, False)
+    entry.gates = list(gates)
+    entry.handoff = block
+    return trace.line(entry, outcome, why=why, cause=cause)
+
+
+def verified(*backed):
+    return {"state": "present", "verified": [
+        {"claim": "claim " + str(n), "backed": b, "by": "command"}
+        for n, b in enumerate(backed)]}
+
+
+def test_a_reviewer_that_found_nothing_says_how_much_it_checked():
+    five = a_line(block=verified("backed", "backed", "backed", "backed",
+                                 "backed", "unbacked", "unchecked"))
+    assert (five["won"], five["checked"]) == ("none", 5)
+    none = a_line(block=verified("unbacked", "ran"))
+    assert (none["won"], none["checked"]) == ("none", 0)
+    gated = a_line(block=verified("backed"), gates=[
+        a_gate("length", True, "2 lines")])
+    assert gated["checked"] == 2
+
+
+def test_a_gate_that_refused_says_what_it_prevented():
+    said = a_line(gates=[a_gate("writes", False, "writes nothing and changed"
+                                " product code: o.txt"),
+                         a_gate("length", True, "2 lines")])
+    refused, passed = said["gates"]
+    assert refused["prevented"] == ("writes nothing and changed product"
+                                    " code: o.txt")
+    assert "prevented" not in passed
+
+
+def test_a_police_stop_says_what_it_prevented():
+    said = a_line("stopped", cause=stops.OFF_TASK,
+                  why="worker.md reached a host the flow does not allow")
+    assert said["prevented"] == ("worker.md reached a host the flow does not"
+                                 " allow")
+    assert "prevented" not in a_line()
+
+
+def a_pass_of(step, cost, won, checked=None, **more):
+    facts = dict({"cost": cost, "won": won, "checked": checked}, **more)
+    return {"step": step, "seconds": 1.0, "outcome": "ok", "gates": [],
+            "facts": facts}
+
+
+def test_the_retro_reads_what_it_wrote():
+    retro = a_pass_of("retro.md", 0.05, "none", 0, kept_facts={
+        "written": ["F-0001", "F-0002"], "refused": [{"item": "fact on a",
+                                                     "why": "no evidence"}]})
+    assert summary.won_words(retro) == ", won facts 2 (1 refused)"
+    assert summary.won_words(a_pass_of("reviewer.md", 0.2, "none", 9)) == \
+        ", won none, checked 9"
+    assert summary.won_words(a_pass_of("worker.md", 0.1, "delivered", 3)) == \
+        ", won delivered"
+
+
+def test_the_spend_on_passes_that_won_nothing_is_split_by_what_they_checked():
+    passes = [a_pass_of("worker.md", 0.1, "delivered", 2),
+              a_pass_of("reviewer.md", 0.2, "none", 5),
+              a_pass_of("reviewer-runs.md", 0.3, "none", 0),
+              a_pass_of("worker.md", 0.15, "caught", 1, prevented=["writes"]),
+              a_pass_of("retro.md", 0.05, "none", 0)]
+    said = summary.bought(passes)
+    assert "- prevented: 1 refusal (writes: 1)" in said
+    assert ("- USD on steps that won nothing and checked nothing: $0.3000 of"
+            " $0.8000") in said
+    assert "- USD on steps that won nothing and checked 5: $0.2000" in said
+    assert "- upkeep, not waste: the retro $0.0500" in said
+    assert said[-1].startswith("- total: 5 passes")

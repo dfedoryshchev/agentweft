@@ -422,6 +422,8 @@ def gate_line(g):
     said = issue_of(g)
     if said:
         out["issue"] = said
+    if not out["ok"] and not out.get("broke") and not out.get("skipped"):
+        out["prevented"] = g.detail or g.gate
     return out
 
 
@@ -548,6 +550,18 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     return "none"
 
 
+def checked(block, gates=()):
+    """-> what a pass checked, whatever it won: the VERIFIED lines of its
+    HANDOFF block its transcript backed, by any kind, and the gates that ran
+    on its work, skipped or broken ones not counted."""
+    verified = (block or {}).get("verified") if isinstance(block, dict) \
+        else None
+    backed = sum(1 for i in verified or ()
+                 if isinstance(i, dict) and i.get("backed") == "backed")
+    return backed + sum(1 for g in gates or ()
+                        if not g.get("skipped") and not g.get("broke"))
+
+
 def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
          folder=None):
     attempts = entry.attempts
@@ -599,6 +613,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "outcome": outcome,
            "won": won(outcome, cause, gates, to, entry.proved, entry.changed,
                       entry.decided),
+           "checked": checked(entry.handoff, gates),
            "cause": cause,
            "why": why,
            "file": entry.file,
@@ -607,6 +622,10 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "handoff": entry.handoff}
     if said["turns"] is not None:
         out["turns"] = said["turns"]
+    from .stops import OFF_TASK
+
+    if cause == OFF_TASK and why:
+        out["prevented"] = why
     went_on = [a.continued for a in attempts if a.continued]
     if went_on:
         out["continued"] = went_on[-1]

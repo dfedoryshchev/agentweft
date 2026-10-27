@@ -138,7 +138,7 @@ def test_a_resume_counts_the_retro_and_owes_it_no_handoff_block(
     assert engine.main() == 0
     [again] = [p for p in state.RUNS.iterdir() if p.is_dir() and p != first]
     note = (again / "handoff.md").read_text(encoding="utf-8")
-    assert "- retro.md 0s ($0.2500), won none: no events" in note
+    assert "- retro.md 0s ($0.2500), won none, checked 0: no events" in note
     assert "handoff missing: retro.md" not in note
     assert "handoff missing: worker.md" in note
 
@@ -298,12 +298,15 @@ def test_the_handoff_s_spend_lines_count_the_retro_that_ran_after_it(
     note = (the_folder() / "handoff.md").read_text(encoding="utf-8")
     spent = section(note, "retro")
     assert spent.split("\n")[:5] == [
-        "- worker.md 0.0s ($0.2500), won none: no events",
-        "- reviewer.md 0.0s ($0.2500), won none: no events",
-        "- retro.md 0.0s ($0.2500), won none: no events (after this handoff"
-        " was written)",
+        "- worker.md 0.0s ($0.2500), won none, checked 0: no events",
+        "- reviewer.md 0.0s ($0.2500), won none, checked 0: no events",
+        "- retro.md 0.0s ($0.2500), won none, checked 0: no events (after this"
+        " handoff was written)",
         "- won none: 3 passes, 0s, $0.7500",
-        "- total: 3 passes, 0s, $0.7500"]
+        "- USD on steps that won nothing and checked nothing: $0.5000 of"
+        " $0.7500"]
+    assert "- upkeep, not waste: the retro $0.2500" in spent.split("\n")
+    assert "- total: 3 passes, 0s, $0.7500" in spent.split("\n")
     run = section(note, "run")
     assert "- spend: 3 calls, " in run and ", the retro's call included" \
         in run, run
