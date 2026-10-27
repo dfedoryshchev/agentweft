@@ -116,10 +116,10 @@
   ],
   "build-feature/suite-red": [
     "planner.md go 1 b5ab9a6aa0e7bf9033f467668d9dc0431aee7b7b9f36bc7f8a9da9d45861c5f9",
-    "retro.md go 1 0a8acf35102f6ad82b5ae0643aab221b95616f29cacf1e088b67dcd9ce94850e",
+    "retro.md go 1 19a1a71e76316376ff636f84affedf0a08832ef3494dbf8f6d0d9f5c5d84a77f",
     "tester.md go 1 85735529d343d847bb9078bb04cd01400d6a2b173b0dbaf69b6dd856b0e9f4fe",
     "worker.md go 1 df7ec1bf76ab6543a5f5cc761851fbf7b0cd3f5128db85549ff62521299b1146",
-    "worker.md go 2 2b277381c3ed48179aac9169ad86b28dcefff6276e9722a5fb25dcc25718ed60"
+    "worker.md go 2 cf07276af85e6ce14acf343688adfdb52c5f3e39afdb4b079d99ba483d4c8a98"
   ],
   "build-feature/terse-readers": [
     "planner.md go 1 25b83ef7e4b1d9125a33ac7db3a87db45040b5a7b6759269ba0cf55a60d83b47",
@@ -284,8 +284,8 @@
   ],
   "fix-with-test/suite-red": [
     "patcher.md go 1 3fe5414ff5b38bf75871eb6eba004969d78e607df54058864ccab4b0dadfd108",
-    "patcher.md go 2 8c2f5912bc7d5ff00c730a11e1a47f94c953f02baab4d4b25160b5e7d08c1b58",
-    "retro.md go 1 dbdc759fa8e047bea1ab4f12758cca7387686ac70f999fa99e5c641df3646e7a",
+    "patcher.md go 2 dd25c9a13b7f2a19e332ccce85b371676c89ea6eec8056977a0a0ccb603314b3",
+    "retro.md go 1 5c520e1e58f2da3b28294b6c9bdc0c3a4edb0732fbc2cb88789486cce2575f8e",
     "worker.md go 1 2df4a78977eb8188568254452840f331c469992fe5fde2aeeb9b7412078687d7"
   ],
   "fix-with-test/task-file": [

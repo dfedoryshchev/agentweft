@@ -1,4 +1,5 @@
 """a failed gate sends the step back once with what the gate said, then stops."""
+import re
 import sys
 
 sys.path.insert(0, ".")
@@ -93,6 +94,38 @@ def test_a_command_gate_keeps_the_end_of_what_it_printed(tmp_path):
     r = g.run("")
     assert not r.ok
     assert r.detail.endswith("x END")
+
+
+def test_a_quoted_section_rule_does_not_carry_the_terminal_width():
+    from agentweft.guardrails.gates.command_gate import tail
+    said = "FAILED test_calc.py::test_add - assert -1 == 3\n1 failed in 0.01s"
+    narrow = "=" * 27 + " short test summary info " + "=" * 27 + "\n" + said
+    wide = "=" * 27 + " short test summary info " + "=" * 28 + "\n" + said
+    assert tail("." * 200 + "\n" + narrow) == tail("." * 200 + "\n" + wide)
+    assert tail("_" * 30 + " test_add " + "_" * 31 + "\n" + said) == \
+        tail("_" * 30 + " test_add " + "_" * 30 + "\n" + said)
+    assert tail("-" * 79 + "\n" + said) == tail("-" * 80 + "\n" + said)
+
+
+def test_a_failed_test_run_reads_the_same_at_any_terminal_width(
+        tmp_path, monkeypatch):
+    from agentweft.guardrails.gates import command_gate
+    (tmp_path / "calc.py").write_text(BUGGY, encoding="utf-8")
+    (tmp_path / "test_calc.py").write_text(
+        TEST + "\n\ndef test_zero():\n    assert add(0, 0) == 0\n",
+        encoding="utf-8")
+    g = command_gate.CommandGate(command=[
+        sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
+        "test_calc.py"])
+    g.where = tmp_path
+    said = []
+    for width in ("80", "81"):
+        monkeypatch.setenv("COLUMNS", width)
+        r = g.run("")
+        assert not r.ok
+        said.append(re.sub(r"in [0-9.]+s", "in <secs>s", r.detail))
+    assert "short test summary info" in said[0]
+    assert said[0] == said[1]
 
 
 def test_a_scored_run_sends_a_failed_gate_back_too(tmp_path, monkeypatch,

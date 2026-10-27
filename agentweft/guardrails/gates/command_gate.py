@@ -1,3 +1,4 @@
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -8,13 +9,30 @@ from agentweft.mcp import preflight
 from .base import Gate, fresh_python, register
 
 QUOTE = 160
+# pytest draws its section rules to the terminal's width, one column less on
+# windows. redrawn as it draws them with no terminal, not shorter: a short rule
+# lets the line above it into the cut, a path in the machine's own separator
+WIDTH = 80
+TITLED_RULE = re.compile(r"(?m)^([=_-])\1{2,} (\S.*?) \1{2,}(?=\r?$)")
+BARE_RULE = re.compile(r"(?m)^([=_-])\1{9,}(?=\r?$)")
+
+
+def drawn(m):
+    sep = m.group(1)
+    if m.re is BARE_RULE:
+        return sep * WIDTH
+    title = m.group(2)
+    n = max((WIDTH - len(title) - 2) // 2, 1)
+    line = sep * n + " " + title + " " + sep * n
+    return line + sep if len(line) < WIDTH else line
 
 
 def tail(output, limit=QUOTE):
     """-> the end of `output` in at most `limit` characters, from the start of
     the oldest line that fits whole, or from a word in the first half of the
-    cut when the last line alone is longer, else the cut as it falls."""
-    text = output.strip()
+    cut when the last line alone is longer, else the cut as it falls. a
+    section rule is redrawn `WIDTH` wide first."""
+    text = BARE_RULE.sub(drawn, TITLED_RULE.sub(drawn, output)).strip()
     if len(text) <= limit:
         return text
     cut = text[-limit:]

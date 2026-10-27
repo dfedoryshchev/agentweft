@@ -89,7 +89,10 @@ before the run stops, at 0 the first failure stops it.
 a command or red-test gate keeps the last 160 characters of what the command
 printed, not the first: a test runner says what failed at the end. the
 quote starts at the start of the oldest line that fits whole in them, or at
-a word when the last line alone is longer.
+a word when the last line alone is longer. a section rule pytest drew, like
+`=== short test summary info ===`, is drawn again 80 wide first: pytest
+draws it to the terminal's width and one column short on windows, so the
+same failure quotes the same on every machine.
 
 a command, red-test or red-first gate runs its command with
 `PYTHONDONTWRITEBYTECODE=1` and `PYTHONPYCACHEPREFIX` set to a new empty
