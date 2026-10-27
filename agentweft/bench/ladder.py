@@ -205,11 +205,10 @@ def _decision(c):
         return 0, "none, on a run that stopped"
     if item.lower().startswith("- decided"):
         return 1, item[2:]
-    ruled = [l for l in c["secs"].get("rulings", [])
-             if l.startswith("- on record:")]
-    if c["path"] == DONE and ruled:
-        return 0, ("a question shown open on a done run with a ruling on"
-                   " record: " + ruled[0][len("- on record: "):])
+    ruled = _settled(c, item, under)
+    if ruled:
+        return 0, ("a question shown open on a done run that a ruling on"
+                   " record decided: " + ruled)
     rec = next((l for l in under if l.startswith("recommendation")), "")
     lead = ESCALATED.search(c["text"])
     if lead and not rec.startswith("recommendation (" + lead.group(1)):
@@ -403,13 +402,62 @@ def _no_false(c):
             re.match(r"^- \S+: PASS red-(?:test|first) - red", l)
             for l in secs.get("tests and checks", [])):
         return 0, "gate-proven, with no red gate that went red"
-    ruled = any(l.startswith("- on record:") for l in secs.get("rulings", []))
-    open_ = [i for i, _ in items(secs.get("the one decision", []))
-             if not i.startswith("- none") and
-             not i.lower().startswith("- decided")]
-    if c["path"] == DONE and ruled and open_:
+    if any(_settled(c, i, u) for i, u in items(secs.get(
+            "the one decision", [])) if not i.startswith("- none")
+            and not i.lower().startswith("- decided")):
         return 0, "a decided question shown open"
     return 1, "none of the known false lines"
+
+
+QUIET = frozenset("""a all also an and any are as at be both but by can do
+does each every for from given has have how if in into is it its more no not
+of on one only or other say says same should so than that the their them then
+there these this those to was what when where which who why will with would
+""".split())
+WORD = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)*")
+
+
+def _words(text):
+    out = set()
+    for w in WORD.findall(CITE.sub(" ", text).lower()):
+        if len(w) < 3 or w in QUIET or w.isdigit():
+            continue
+        out.add(w[:-1] if w.endswith("s") and len(w) > 3 else w)
+    return out
+
+
+def _question(c, item):
+    """-> the open question in full: the one decision cuts a long one, and
+    the open questions section holds it whole."""
+    said = item[2:]
+    if said.endswith("..."):
+        for l in c["secs"].get("open questions", []):
+            m = ROLE_ITEM.match(l)
+            if m and m.group(2).startswith(said[:-3]):
+                return m.group(2).split(" (recommendation", 1)[0]
+    return said
+
+
+def _settled(c, item, under):
+    """-> the ruling on record that decided the question a done run shows
+    open, "" for none. a ruling decided it when it cites a line the
+    question cites, or holds at least half of the question's words."""
+    if c["path"] != DONE:
+        return ""
+    question = _question(c, item)
+    cites = set(CITE.findall(" ".join(
+        [question] + [l for l in under if l.startswith("raised by")])))
+    asked = _words(question)
+    for l in c["secs"].get("rulings", []):
+        if not l.startswith("- on record:"):
+            continue
+        ruling = l[len("- on record: "):]
+        said = ruling.split(": ", 1)[-1]
+        if cites & set(CITE.findall(said)):
+            return ruling
+        if asked and 2 * len(asked & _words(said)) >= len(asked):
+            return ruling
+    return ""
 
 
 def _once(c):

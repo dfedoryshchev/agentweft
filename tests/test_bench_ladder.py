@@ -105,16 +105,60 @@ def test_a_stop_whose_cause_names_what_to_do_needs_the_recommendation():
             "decision"] == 1, cause
 
 
-def test_a_decided_question_shown_open_on_a_done_run_is_a_false_line():
-    text = DONE.replace(
-        "- none: nothing waits on you.",
-        "- which option comes first\n  raised by planner; cites TASK.md:23"
-        "\n  recommendation: the order the spec lists").replace(
-        "- none on record in decisions.md",
-        "- on record: 2026-01-05 21:40  options keep the spec's order")
-    marks = got(ladder.score(text))
+ORDER_RULED = ("- on record: 2026-01-05 21:40 planner.md decided for worker.md:"
+               " Leave the order among invalid option values unspecified."
+               " Keep the order `_check_options` already uses: `--scale`,"
+               " then `--sep`.")
+ORDER_OPEN = ("- When `--sep` and `--scale` are all invalid, which error is"
+              " reported? TASK.md:23 only says option values come first\n"
+              "  raised by planner, worker; cites TASK.md:23\n"
+              "  recommendation: keep the order the code already has")
+NEWLINE_OPEN = ("- Should an LF `--sep` print a raw newline in `error: invalid"
+                " --sep: <C>`, giving two stderr lines against TASK.md:11, or"
+                " print it escaped?\n"
+                "  raised by tester, worker; cites TASK.md:11\n"
+                "  recommendation: keep it raw, as the request words it")
+
+
+def ruled_open(question, ruling):
+    return got(ladder.score(DONE.replace(
+        "- none: nothing waits on you.", question).replace(
+        "- none on record in decisions.md", ruling)))
+
+
+def test_the_question_a_ruling_decided_shown_open_on_a_done_run_is_false():
+    marks = ruled_open(ORDER_OPEN, ORDER_RULED)
     assert marks["decision"] == 0
     assert marks["no_false"] == 0
+
+
+def test_a_ruling_on_another_question_leaves_the_open_one_standing():
+    marks = ruled_open(NEWLINE_OPEN, ORDER_RULED)
+    assert marks["decision"] == 1
+    assert marks["no_false"] == 1
+
+
+def test_a_ruling_citing_the_open_questions_line_decided_it():
+    marks = ruled_open(NEWLINE_OPEN, "- on record: 2026-01-05 21:40 planner.md"
+                       " decided for worker.md: print it raw, as TASK.md:11"
+                       " reads")
+    assert marks["decision"] == 0
+    assert marks["no_false"] == 0
+
+
+def test_a_cut_question_is_matched_on_its_full_text_in_open_questions():
+    cut = ("- When both are given at once and `--s...\n"
+           "  raised by planner; cites TASK.md:24\n"
+           "  recommendation: keep the order the code already has")
+    text = DONE.replace("- none: nothing waits on you.", cut).replace(
+        "- none on record in decisions.md", ORDER_RULED)
+    assert got(ladder.score(text))["no_false"] == 1
+    text = text.replace(
+        "## doubts", "## open questions\n- planner: When both are given at"
+        " once and `--sep` and `--scale` are all invalid, which error is"
+        " reported? TASK.md:23 only says option values come first"
+        " (recommendation: keep the order)\n\n## doubts", 1)
+    assert got(ladder.score(text))["no_false"] == 0
 
 
 def test_an_unbacked_verified_line_loses_checks_backed():

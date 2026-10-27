@@ -250,10 +250,14 @@ order:
    `--hidden` file names is also held to its verdict, `done` on a red tree
    is a miss, and the point is then named `outcome true`
 2. `the one decision first and right`: it is the first section and holds one
-   item; `none` only on a done run; a done run with a ruling on record never
-   shows a question open; when the flow's lead escalated, the recommendation
-   shown is the lead's; never `none given` while the record holds one; a park
-   carries its `--resume` command. a stop no step asked about is its own
+   item; `none` only on a done run; a done run never shows open a question a
+   ruling on record decided (the ruling cites a line the question cites, or
+   holds at least half of the question's words, the question read whole
+   from open questions when the one decision cuts it; a ruling on another
+   question leaves it standing); when the flow's lead escalated, the
+   recommendation shown is the lead's; never `none given` while the record
+   holds one; a park carries its `--resume` command. a stop no step asked
+   about is its own
    decision: on the cap, a provider limit or an interrupt it needs the
    recommendation that cause gives; on any other (a gate, a crash, a
    refusal) its carry-on line holds the point, since what to do there is
@@ -282,8 +286,8 @@ order:
    starts `- not done:` or `- not fixed:`
 9. `no false line`: none of the known false lines: "instead of doing the
    work" on a tree holding product code, `UNRULED` on an addition a gate
-   allowed, `gate-proven` with no red gate that went red, a decided question
-   shown open
+   allowed, `gate-proven` with no red gate that went red, a question a ruling
+   on record decided shown open (matched as in point 2)
 10. `once, for everyone`: no two entries under open questions, assumed or
     doubts cite the same file line; a done run with new tests carries a
     command to see the fix by hand
