@@ -184,6 +184,25 @@ def test_a_proposal_whose_quote_is_not_at_that_line_is_refused(tmp_path):
                    " pkg/a.py:2")
 
 
+def test_evidence_over_a_wrapped_line_holds_only_with_the_lines_cited(
+        tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    put(tmp_path, "pkg/README.md", NL.join([
+        "an empty line is an error: parse raises", "ValueError and never",
+        "returns an empty list.", ""]))
+    quote = "parse raises ValueError and never returns an empty list"
+    fact, why = store.add(proposal(
+        source='seq 2 worker.md; evidence: pkg/README.md:1 "' + quote + '"'),
+        record)
+    assert fact is None
+    assert why == ('the evidence does not hold: "' + quote + '" is not at'
+                   " pkg/README.md:1")
+    fact, why = store.add(proposal(
+        source='seq 2 worker.md; evidence: pkg/README.md:1-3 "' + quote
+               + '"'), record)
+    assert why == "" and fact is not None
+
+
 def test_a_proposal_with_no_evidence_the_runner_can_check_is_refused(
         tmp_path):
     store, record = a_store(tmp_path)

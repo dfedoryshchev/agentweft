@@ -1128,7 +1128,12 @@ CONFLICT line whose quote is there, whoever wrote it.
 
 the `request:` line counts only straight after the CONFLICT line. the older
 one-line form, `| <the request's words>` after the quote, is still read. the cite may be a range (`TASK.md:51-53`), and the quote is read as one line
-across it, with runs of spaces counted as one. the runner checks the quote is
+across it, with runs of spaces counted as one. a quote that starts at the
+cited line and runs on, unbroken, into the lines after it in the same
+paragraph, a sentence the file wraps, is read the same way: the question
+then cites the lines it covers (`TASK.md:61-64`), and an `override:` may
+change those. a quote that starts at another line, skips one or runs past a
+blank line is not there. the runner checks the quote is
 at that line as the run found it: from the start snapshot, so `git show
 <start>:<file>` or the bytes of a file that was already loose, never the file
 as a step left it. a step cannot make its own cite true by editing the spec

@@ -358,8 +358,10 @@ def as_found(workdir, rel, start=None):
 def conflict_of(output, workdir, start=None, handed=()):
     """-> None for an answer with no CONFLICT line, else (the question, "")
     when the quote is at the line it cites as the run found it, or ("", what
-    is wrong with it) when it is not. an answer that marks a behaviour
-    `spec: contradicts` and has no CONFLICT line is wrong the same way,
+    is wrong with it) when it is not. a quote that runs on past the cite
+    (`runs_to`) is asked about citing every line it covers. an answer that
+    marks a behaviour `spec: contradicts` and has no CONFLICT line is wrong
+    the same way,
     unless each line it marks is one an earlier step's answer, in `handed`,
     already holds: that is the step quoting what it was given."""
     said = verbs.parse(output).conflict
@@ -374,13 +376,16 @@ def conflict_of(output, workdir, start=None, handed=()):
     words = flat(m.group(5)) or request_of(output)
     if not quote:
         return "", "the CONFLICT line cites " + cite + " and quotes nothing"
-    found, why = at_line(workdir, rel, first, last, start)
-    if found is None:
+    lines, why = lines_of(workdir, rel, first, last, start)
+    if lines is None:
         return "", "the CONFLICT line cites " + cite + ", and " + why
-    if quote not in found:
+    end = runs_to(lines, first, last, quote)
+    if end is None:
         return "", ('the CONFLICT line quotes "' + quote + '", which is not'
                     " at " + cite + " as the run found it. quote the line"
                     " as it is, or answer without a CONFLICT line")
+    if end != last:
+        cite = rel + ":" + str(first) + "-" + str(end)
     return question_of_conflict(cite, quote, words), ""
 
 
@@ -419,9 +424,9 @@ def cite_of(m):
     return rel, first, last, flat(m.group(4)), cite
 
 
-def at_line(workdir, rel, first, last, start=None):
-    """-> (lines `first` to `last` of `rel` as the run found them, as one
-    flat string, "") or (None, why they cannot be read)."""
+def lines_of(workdir, rel, first, last, start=None):
+    """-> (every line of `rel` as the run found it, "") or (None, why lines
+    `first` to `last` of it cannot be read)."""
     text = as_found(workdir, rel, start)
     if text is None:
         return None, rel + " was not there when the run started"
@@ -429,7 +434,35 @@ def at_line(workdir, rel, first, last, start=None):
     if not 1 <= first <= last <= len(lines):
         return None, (rel + " had " + str(len(lines)) + " lines when the run"
                       " started")
+    return lines, ""
+
+
+def at_line(workdir, rel, first, last, start=None):
+    """-> (lines `first` to `last` of `rel` as the run found them, as one
+    flat string, "") or (None, why they cannot be read)."""
+    lines, why = lines_of(workdir, rel, first, last, start)
+    if lines is None:
+        return None, why
     return flat(" ".join(lines[first - 1:last])), ""
+
+
+def runs_to(lines, first, last, quote):
+    """-> the last line of `lines` that `quote` reaches, or None when it is
+    not there. a quote in lines `first` to `last` ends at `last`; one that
+    starts in them and runs on, unbroken, into the lines of the same
+    paragraph after them ends at the line it ends on."""
+    found = flat(" ".join(lines[first - 1:last]))
+    if quote in found:
+        return last
+    end = last
+    while end < len(lines) and lines[end].strip():
+        end += 1
+        held = flat(" ".join(lines[first - 1:end]))
+        if 0 <= held.find(quote) < len(found):
+            return end
+        if len(held) > len(found) + len(quote):
+            return None
+    return None
 
 
 def misquote(said, workdir, start=None, who="the answer"):
@@ -779,14 +812,12 @@ def conflict_asked(output, workdir, start=None):
     m = CONFLICT.match((said or "").strip())
     if not m:
         return None
-    rel, first, last, _, _ = cite_of(m)
-    text = as_found(workdir, rel, start)
-    if text is None:
+    rel, first, last, quote, _ = cite_of(m)
+    lines, _ = lines_of(workdir, rel, first, last, start)
+    if lines is None:
         return None
-    lines = text.split("\n")
-    if not 1 <= first <= last <= len(lines):
-        return None
-    return lines_asked(lines[first - 1:last])
+    end = runs_to(lines, first, last, quote) or last
+    return lines_asked(lines[first - 1:end])
 
 
 def answers_lines(d, line, asked):

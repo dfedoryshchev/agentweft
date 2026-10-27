@@ -50,7 +50,7 @@ fails. a judge that finds the request is really a change to the spec says so
 as a value, not as prose under an ok.
 
 a `CONFLICT: <file>:<line> "<quote>"` line, with `request: <the request's
-words>` on the line after it, is read first. when the quote is at that line as the run found it, the run stops on
+words>` on the line after it, is read first. when the quote is at that line as the run found it, or starts there and runs on into the lines of its paragraph (the question then cites them all), the run stops on
 cause `conflict` before any gate runs, so a red test the step marked as
 contradicting the spec is never something the step is sent back to turn
 green. when it is not, a `conflict` result goes in front of the step's gates

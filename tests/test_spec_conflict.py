@@ -390,6 +390,98 @@ def test_a_quote_across_a_cited_range_is_read_as_one_line(tmp_path):
     assert ruling.conflict_of(said.replace("1-2", "2"), tmp_path)[1]
 
 
+# one sentence of a spec, wrapped over four lines of the file
+WRAPPED = NL.join([
+    "# logsift", "",
+    "Any other line is MALFORMED. Malformed lines are skipped: they never"
+    " count, never match and never",
+    "print. After the output, if any lines were skipped, one line goes to"
+    " stderr:",
+    "`warning: skipped 1 malformed line` or `warning: skipped <n> malformed"
+    " lines` (n > 1); the exit code",
+    "stays 0.", "",
+    "With `--strict` (every command), the first malformed line is an error"
+    " instead:", ""])
+SENTENCE = ("Any other line is MALFORMED. Malformed lines are skipped: they"
+            " never count, never match and never print. After the output, if"
+            " any lines were skipped, one line goes to stderr: `warning:"
+            " skipped 1 malformed line` or `warning: skipped <n> malformed"
+            " lines` (n > 1); the exit code stays 0.")
+STRICT = "request: every command fails on the first malformed line" + NL
+
+
+def wrapped_at(line, quote=SENTENCE):
+    return "CONFLICT: TASK.md:" + line + ' "' + quote + '"' + NL + STRICT
+
+
+def test_a_quote_that_runs_on_from_the_cited_line_cites_the_lines_it_covers(
+        tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    question, wrong = ruling.conflict_of(wrapped_at("3"), tmp_path)
+    assert wrong == ""
+    assert question.split(NL)[0] == ("NEEDS: the request contradicts"
+                                     " TASK.md:3-6. which one holds?")
+    assert '- TASK.md:3-6 - "' + SENTENCE + '"' in question
+    assert ruling.authorised(question) == ["TASK.md:3-6"]
+    asked = ruling.conflict_asked(wrapped_at("3"), tmp_path)
+    assert ruling.asked_lines({"runner": asked}) == tuple(
+        WRAPPED.split(NL)[2:6])
+    # a quote that ends where the cite does keeps the cite as written
+    short = wrapped_at("3", "Malformed lines are skipped")
+    assert ruling.conflict_of(short, tmp_path)[0].split(NL)[0] == (
+        "NEEDS: the request contradicts TASK.md:3. which one holds?")
+
+
+def test_a_wrapped_quote_cited_at_a_line_inside_the_sentence_fails(tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    question, wrong = ruling.conflict_of(wrapped_at("4"), tmp_path)
+    assert question == ""
+    assert "which is not at TASK.md:4 as the run found it" in wrong
+
+
+def test_a_wrapped_quote_with_a_word_changed_fails(tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    changed = SENTENCE.replace("goes to stderr", "goes to stdout")
+    question, wrong = ruling.conflict_of(wrapped_at("3", changed), tmp_path)
+    assert question == ""
+    assert "which is not at TASK.md:3 as the run found it" in wrong
+
+
+def test_a_quote_that_skips_a_line_fails(tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    lines = WRAPPED.split(NL)
+    skipped = ruling.flat(lines[2] + " " + lines[4])
+    question, wrong = ruling.conflict_of(wrapped_at("3", skipped), tmp_path)
+    assert question == ""
+    assert "which is not at TASK.md:3 as the run found it" in wrong
+
+
+def test_a_quote_does_not_run_on_past_the_end_of_its_paragraph(tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    across = "the exit code stays 0. With `--strict` (every command)"
+    question, wrong = ruling.conflict_of(wrapped_at("5", across), tmp_path)
+    assert question == ""
+    assert "which is not at TASK.md:5 as the run found it" in wrong
+
+
+def test_a_wrapped_conflict_stops_the_run_citing_the_whole_sentence(
+        tmp_path, monkeypatch):
+    a_place(tmp_path / "project", {
+        "TASK.md": WRAPPED, "report.py": REPORT, "conftest.py": "",
+        "tests/test_report.py": BASELINE})
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [wrapped_at("3")]}),
+                        lambda s, n: None, "--task", REQUEST)
+    assert asked == ["planner.md"]
+    assert end(tmp_path).cause == "conflict"
+    [folder] = folders(tmp_path)
+    question = (folder / "question.md").read_text(encoding="utf-8")
+    assert "the request contradicts TASK.md:3-6." in question
+    handoff = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert "the quote at TASK.md:3-6 is there as the run found it" in handoff
+    assert '- TASK.md:3-6 - "' + SENTENCE + '"' in handoff
+
+
 def test_the_request_words_go_on_the_next_line(tmp_path):
     (tmp_path / "TASK.md").write_text(SPEC, encoding="utf-8")
     said = ('CONFLICT: TASK.md:3 "the report lists students alphabetically"'
