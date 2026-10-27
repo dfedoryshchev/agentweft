@@ -25,7 +25,8 @@ and a why, no `|`, a known kind and label, no `gate-issue` that names an OS
 error code (`WinError n`, `Errno n`: what the machine raised as the run went,
 which a later run on a sound machine would be handed as the project's), every
 scope in the place, evidence
-the runner can check (a quoted line that is at that line, a command a gate
+the runner can check (a quoted line that is at that line, its escapes read
+(`quote_of`), a command a gate
 of this run ran with that exit code, a ruling on record), an anchor whose
 hash the runner takes itself, a check that reads only its scope and holds
 on the place now, at most `cap` new facts a run, and the same claim on the
@@ -55,6 +56,8 @@ CAP = 3
 EVIDENCE = re.compile(r"\bevidence:\s*(.*)$", re.S)
 STAMPED = re.compile(r"^decisions\.md\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*$")
 RAN = re.compile(r"^`?(?P<cmd>.+?)`?\s+exit\s+(?P<code>-?\d+)\s*$")
+CITE = re.compile(r'''^[`'"]?([^\s:`'"]+):(\d+)(?:-(\d+))?[`'"]?\s+"''')
+ESCAPED = re.compile(r'\\(["\\])')
 SEEN = re.compile(r"(proposed|attached|honoured|contradicted) (\d+)")
 COUNTERS = ("proposed", "attached", "honoured", "contradicted")
 GATE_ISSUE = "gate-issue"
@@ -140,9 +143,13 @@ class Record(object):
             return "no ruling on record in decisions.md at " + stamp.group(1)
         from agentweft.runner import ruling
 
-        quoted = ruling.CONFLICT.match(said) or ruling.FIRST_QUOTE.match(said)
+        quoted = quote_of(said)
         if quoted:
-            rel, first, last, quote, cite = ruling.cite_of(quoted)
+            rel, first, last, cite, body = quoted
+            if body is None:
+                return ("the quote of " + cite + " stops at a \" inside it,"
+                        " so it is cut short")
+            quote = ruling.flat(body)
             if not quote:
                 return cite + " quotes nothing"
             seen = [ruling.at_line(self.workdir, rel, first, last, at)[0]
@@ -150,7 +157,7 @@ class Record(object):
             seen = [s for s in seen if s is not None]
             if not seen:
                 return cite + " is not lines of a file in the place"
-            if any(quote in s for s in seen):
+            if any(ruling.flat(q) in s for q in read_as(body) for s in seen):
                 return ""
             return '"' + quote + '" is not at ' + cite
         ran = RAN.match(said)
@@ -162,6 +169,51 @@ class Record(object):
                     + str(code))
         return ("it names no quote, command or decisions.md stamp the runner"
                 " can check")
+
+
+def quote_of(said):
+    """-> None when evidence `said` is not `<file>:<line> "<quote>"`, else
+    (file, first line, last line, the cite, the quote as written). the quote
+    runs to the last `"` of the evidence, inner quotes and all; one followed
+    by more words ends at its first `"` not written `\\"`, and is None when
+    another `"` comes after that one: it was cut at a quote of its own."""
+    m = CITE.match(said)
+    if not m:
+        return None
+    rel, first = m.group(1), int(m.group(2))
+    last = int(m.group(3) or first)
+    cite = rel + ":" + str(first) + ("-" + str(last) if last != first else "")
+    rest = said[m.end():].rstrip()
+    if rest.endswith('"'):
+        return rel, first, last, cite, rest[:-1]
+    shut = closing(rest)
+    if shut < 0:
+        return None
+    if closing(rest, shut + 1) >= 0:
+        return rel, first, last, cite, None
+    return rel, first, last, cite, rest[:shut]
+
+
+def closing(text, at=0):
+    """-> where the first `"` from `at` on that is not written `\\"` is in
+    `text`, or -1."""
+    while at < len(text):
+        if text[at] == "\\":
+            at += 2
+            continue
+        if text[at] == '"':
+            return at
+        at += 1
+    return -1
+
+
+def read_as(body):
+    """-> the ways a quote can be read: as written, with `\\"` read as `"`,
+    and with `\\\\` read as `\\` too. each is held to the file, so reading
+    one that is not there admits nothing."""
+    quotes = body.replace('\\"', '"')
+    out = [body, quotes, ESCAPED.sub(lambda m: m.group(1), body)]
+    return [q for n, q in enumerate(out) if q not in out[:n]]
 
 
 def squash(text):

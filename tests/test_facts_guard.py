@@ -203,6 +203,69 @@ def test_evidence_over_a_wrapped_line_holds_only_with_the_lines_cited(
     assert why == "" and fact is not None
 
 
+CLI = NL.join(["def check(args):", "    if args.curve < 0:",
+               '        raise GradebookError(f"invalid --curve: {args.curve}")',
+               "", "def key_of(entry):",
+               '    return f"{entry.status // 100}xx"', ""])
+
+
+def quoting(line, quote):
+    return 'seq 2 worker.md; evidence: pkg/cli.py:' + line + ' "' + quote + '"'
+
+
+def test_evidence_with_its_inner_quotes_escaped_holds(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    put(tmp_path, "pkg/cli.py", CLI)
+    for n, (line, quote) in enumerate((
+            ("3", '        raise GradebookError(f\\"invalid --curve:'
+                  ' {args.curve}\\")'),
+            ("6", '    return f\\"{entry.status // 100}xx\\"'))):
+        fact, why = store.add(proposal(claim="claim " + str(n),
+                                       source=quoting(line, quote)), record)
+        assert why == "" and fact is not None
+
+
+def test_evidence_with_its_inner_quotes_as_they_are_holds(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    put(tmp_path, "pkg/cli.py", CLI)
+    fact, why = store.add(proposal(source=quoting(
+        "6", '    return f"{entry.status // 100}xx"')), record)
+    assert why == "" and fact is not None
+
+
+def test_escaped_evidence_that_is_not_in_the_file_is_refused(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    put(tmp_path, "pkg/cli.py", CLI)
+    fact, why = store.add(proposal(source=quoting(
+        "6", '    return f\\"{entry.status // 10}xx\\"')), record)
+    assert fact is None
+    assert why == ('the evidence does not hold: "return f\\"{entry.status //'
+                   ' 10}xx\\"" is not at pkg/cli.py:6')
+
+
+def test_evidence_cut_at_a_quote_inside_it_is_refused(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    put(tmp_path, "pkg/cli.py", CLI)
+    # read to its first quote, `return f` is at the line, and the words after
+    # the last quote would hide that the rest of it is not
+    fact, why = store.add(proposal(source=quoting(
+        "6", '    return f"{entry.code}xx"') + " is the key"), record)
+    assert fact is None
+    assert why == ('the evidence does not hold: the quote of pkg/cli.py:6'
+                   ' stops at a " inside it, so it is cut short')
+    fact, why = store.add(proposal(
+        source=quoting("6", "    return f") + ' is the key"'), record)
+    assert fact is None
+
+
+def test_a_quote_with_words_after_it_still_holds(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    fact, why = store.add(proposal(
+        source='seq 2 worker.md; evidence: pkg/a.py:5 "raise ValueError"'
+               " (the empty-line path)"), record)
+    assert why == "" and fact is not None
+
+
 def test_a_proposal_with_no_evidence_the_runner_can_check_is_refused(
         tmp_path):
     store, record = a_store(tmp_path)

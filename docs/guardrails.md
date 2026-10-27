@@ -500,7 +500,11 @@ is written; a refused one is not written and its reason is kept:
    leads out of the place through a link is refused (`the scope ../ is
    outside the place`), so an entry is only ever written under `facts/`.
 4. its evidence is on the record: `<file>:<line> "<quote>"` with the quote at
-   that line, as the run found the file or as it is now; `<command> exit
+   that line, as the run found the file or as it is now. the quote runs to
+   the last `"` of the evidence, so a code line's own quotes stay in it,
+   and it holds when it is at the line as written or with `\"` read as `"`
+   (and `\\` as `\`); a quote that ends at an inner `"` with more words and
+   another `"` after it is cut short and refused. `<command> exit
    <code>` with a gate of this run that ran that command to that exit code;
    or `decisions.md <stamp>` with a ruling the runner has on record at that
    stamp. anything else does not hold.
