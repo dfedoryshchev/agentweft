@@ -384,27 +384,62 @@ TRIED and DOUBTS lines, and each defect it found beside the change (its
 ADJACENT items, `docs/journal.md`, "what each step hands over") with whether
 it was fixed and by which test, a defect left not fixed being the retro's
 `defect` fact; the rulings written in the run; the files git says
-it changed; the project's facts that are stale or hold for those files
-(`docs/journal.md`, "what is known about a file"); how many new facts it may
-write; `why.md` when the run stopped short; and `handoff.md`. a clean run is
-handed `- none failed` and the rest, so the retro keeps the facts even when
-nothing went wrong. it writes `runs/<run-id>/retro.md`: per failed attempt
-what failed, why, and which gate, prompt or `flow.yaml` key to change, the
-one change to make first, and one FACTS block. it is granted `read` and
-nothing else, whatever the flow's steps are granted.
+it changed; the docs that name one of those files or a name the diff took
+out or put in (a flag, a function, a class), with the lines that name them,
+at most 6 docs and 4000 characters, the ones left out at the cap named; the
+project's facts that are stale or hold for those files
+(`docs/journal.md`, "what is known about a file"); how many new facts, and
+how many doc edits and guards, it may make; `why.md` when the run stopped
+short; and `handoff.md`. a clean run is
+handed `- none failed` and the rest, so the retro keeps the facts and the
+docs even when nothing went wrong. it writes `runs/<run-id>/retro.md`: per
+failed attempt what failed, why, and which gate, prompt or `flow.yaml` key
+to change, the one change to make first, a `## docs` line per named doc,
+`current` or `edit`, and one FACTS block. it is granted `read` and nothing
+else, whatever the flow's steps are granted.
 
 the FACTS block is the one part the runner acts on (`runner/upkeep.py`):
 a `fact`, a `supersede`, a `re-anchor` and a `retire` are done once each
 holds against the record (`docs/guardrails.md`, "the facts only the runner
-writes"), a new fact written as `by runner from retro`; a `guard` and a
-`doc` change are appended to `facts/PROPOSED.md` for a person and never
-applied. the runner renders `facts/INDEX.md`, a line per live fact and the
-stale ones apart. what it did with each item, each refusal with its reason,
-goes at the end of `retro.md` under "what the runner did with the FACTS
-block", at the end of `handoff.md` under "the retro's proposals", and on the
-retro's line in `steps.jsonl` as `facts` (`written`, `counted`, `changed`,
-`refused`, `proposed`, `owed`). a block that does not parse writes nothing
-and says so in one line; an answer with no block changes no fact.
+writes"), a new fact written as `by runner from retro`. an `edit` (file,
+`now`, `after`, `because`; an older `doc` item reads the same) is made in
+the working tree once it holds against the tree as the run left it
+(`guardrails/retroedits.py`): the file is a doc (markdown, text,
+reStructuredText, asciidoc or a README), not a spec, a test or a credential
+file; `now` is in it once as written; every code span and `--flag` the
+`after` quotes is in a file of the tree that is not a doc, or is a command
+a gate of the run ran; no field looks like a secret. `CLAUDE.md`, `AGENTS.md`, `.claude/`
+and `rules/` files may be edited and are listed first, `instruction file
+touched`; a step that writes one is still refused before the next step
+starts, and the runner writes after the last. a test `guard` with `code`
+lines (one per line of the file, its indent kept) is written as a new python
+test module only when it passes on the tree as left, run with the flow's own
+pytest; one that fails, runs no test or cannot run is taken out again. a
+gate or `flow.yaml` key guard is a line for a person. what fails a check is
+a line with its reason and goes to `facts/PROPOSED.md`, which keeps nothing
+else but the guards a recurring fact is owed. the runner renders
+`facts/INDEX.md`, a line per live fact and the stale ones apart.
+
+none of it is staged. under `commits: none` the handoff ends on "the
+retro's changes (unstaged, yours to stage)": a line per file with why,
+instruction files first, then the facts, the docs and the guards. under
+`commits: wip` or `squash`, on a run whose steps all passed, they are one
+commit of their own after the task's, `retro: kept <files> current`, and the
+section says "in their own commit, yours to review" with its sha; a run that
+stopped short leaves them unstaged and says so, since the leg that carries
+it on commits after it. they are never the run's change: each is listed in
+`runs/<run-id>/facts.json` under `applied` with its bytes' sha256, and a leg
+that carries the run on takes a file that still holds those bytes as no
+product change, no test it wrote, nothing for the fence and nothing for a
+step commit.
+
+what the runner did with each item, each refusal with its reason, goes at
+the end of `retro.md` under "what the runner did with the FACTS block", at
+the end of `handoff.md` under "the retro's proposals", and on the retro's
+line in `steps.jsonl` as `facts` (`written`, `counted`, `changed`,
+`applied`, `refused`, `proposed`, `owed`). a block that does not parse
+writes nothing and says so in one line; an answer with no block changes no
+fact and no file.
 
     facts_per_run: 3
 
@@ -414,6 +449,11 @@ run. a `gate-issue` or `defect` fact counted again climbs: in two runs it is
 `important`, in three a guard is proposed for it marked `recurring`, from
 four on the handoff lists it as hardening owed every run until it is
 retired.
+
+    edits_per_run: 3
+
+caps the doc edits and test guards one run's retro has the runner make,
+together (3 when unsaid); one past the cap is refused with the reason.
 
     lane: off
 

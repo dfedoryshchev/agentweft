@@ -1,7 +1,8 @@
 """the retro held to a gold: four recorded runs, each with one failed attempt
-whose cause is in the record, and the answer a careful reader writes for
-it. the scorer checks the attempt, the cause, the file to change and the
-fact by program, and step mode asks the retro role alone on a record."""
+whose cause is in the record, a fifth whose renamed flag left a README line
+stale, and the answer a careful reader writes for each. the scorer checks
+the attempt, the cause, the file to change, the fact and the doc edit by
+program, and step mode asks the retro role alone on a record."""
 import json
 import sys
 from pathlib import Path
@@ -14,14 +15,18 @@ from agentweft.providers.base import Usage
 from agentweft.runner import upkeep
 
 CASES = Path(__file__).resolve().parent.parent / "bench" / "retro-gold"
-NAMES = ["cross-file", "layered", "refactor", "shift"]
+NAMES = ["cross-file", "layered", "refactor", "renamed-flag", "shift"]
+FAILED = [n for n in NAMES if n != "renamed-flag"]
+STALE = CASES / "renamed-flag"
 
 
-def test_the_four_cases_are_there_each_with_its_record_and_gold():
+def test_the_five_cases_are_there_each_with_its_record_and_gold():
     assert [c.name for c in retrogold.cases(CASES)] == NAMES
     for case in retrogold.cases(CASES):
         gold = retrogold.gold_of(case)
-        assert set(gold) >= {"failed", "cause", "change", "fact"}, case.name
+        wanted = {"failed", "cause", "change", "fact"} \
+            if case.name in FAILED else {"edit"}
+        assert set(gold) >= wanted, case.name
         assert (case / "record" / "steps.jsonl").is_file(), case.name
 
 
@@ -29,11 +34,43 @@ def test_the_gold_itself_gets_full_marks():
     for case in retrogold.cases(CASES):
         got = retrogold.score(retrogold.answer_of(case),
                               retrogold.gold_of(case), case)
-        assert (got["score"], got["passed"]) == (4, True), (case.name, got)
+        full = 4 if case.name in FAILED else 1
+        assert (got["score"], got["passed"]) == (full, True), (case.name, got)
+
+
+def test_the_stale_readme_is_handed_to_the_retro_and_its_edit_is_made():
+    prompt = retrogold.prompt_of(STALE)
+    part = prompt.split("docs that name a file or a name this run changed,"
+                        " each to confirm current or edit:\n")[1]
+    assert part.split("\n\n")[0].split("\n") == [
+        "- README.md names --file:",
+        "  README.md:7: pass --file out.txt to write the counts to a file"
+        " instead of stdout."]
+    items, _ = upkeep.parse(retrogold.answer_of(STALE))
+    [(verb, value, fields)] = items
+    assert (verb, value) == ("edit", "README.md")
+    assert retrogold.edit_refusal(STALE, value, fields) == ""
+
+
+def test_an_edit_that_keeps_the_old_flag_or_quotes_a_new_one_scores_nothing():
+    gold = retrogold.gold_of(STALE)
+    answer = retrogold.answer_of(STALE)
+    kept = answer.replace("after: pass --output out.txt",
+                          "after: pass --file or --output out.txt")
+    assert retrogold.score(kept, gold, STALE)["edit"] == 0
+    made_up = answer.replace("after: pass --output out.txt",
+                             "after: pass --output out.txt or --to")
+    assert retrogold.score(made_up, gold, STALE)["edit"] == 0
+    elsewhere = answer.replace("edit: README.md", "edit: TASK.md")
+    assert retrogold.score(elsewhere, gold, STALE) == dict(
+        edit=0, score=0, passed=False, reader=None)
+    assert retrogold.score(answer, gold, STALE)["edit"] == 1
 
 
 def test_every_gold_fact_is_one_the_runner_would_write():
     for case in retrogold.cases(CASES):
+        if case.name not in FAILED:
+            continue
         items, _ = upkeep.parse(retrogold.answer_of(case))
         found = [(v, val, f) for v, val, f in items if v == "fact"]
         assert found, case.name
@@ -131,9 +168,11 @@ def test_step_mode_asks_the_retro_alone_on_each_record_and_scores_it(
                        str(out)]) == 0
     kept = json.loads(out.read_text(encoding="utf-8"))
     assert [(r["case"], r["k"], r["score"]) for r in kept["runs"]] == [
-        (n, k, 4) for n in NAMES for k in (1, 2)]
-    assert kept["summary"] == {"cases": 4, "passed": 4, "k": 2}
-    assert "4 of 4 cases passed at 2 of 2" in capsys.readouterr().out
+        (n, k, 4 if n in FAILED else 1) for n in NAMES for k in (1, 2)]
+    assert kept["summary"] == {"cases": 5, "passed": 5, "k": 2}
+    said = capsys.readouterr().out
+    assert "5 of 5 cases passed at 2 of 2" in said
+    assert "renamed-flag k1: 1 of 1" in said
 
 
 def test_a_case_passes_only_when_every_repeat_does(tmp_path, capsys):
@@ -145,7 +184,7 @@ def test_a_case_passes_only_when_every_repeat_does(tmp_path, capsys):
     assert bench.main(["--retro", str(folder), "--k", "2", "--out",
                        str(out)]) == 0
     assert json.loads(out.read_text(encoding="utf-8"))["summary"][
-        "passed"] == 3
+        "passed"] == 4
 
 
 class Counted(Provider):
@@ -172,10 +211,10 @@ def test_step_mode_keeps_the_tokens_and_seconds_of_every_answer(
     runs = json.loads(out.read_text(encoding="utf-8"))["runs"]
     assert [r["tokens"] for r in runs] == [
         {"counted": True, "input": 1300, "output": 200, "cache_read": 300,
-         "cache_creation": 0}] * 4
+         "cache_creation": 0}] * 5
     assert all(isinstance(r["seconds"], float) and r["seconds"] >= 0
                for r in runs)
-    assert [r["cost"] for r in runs] == [0.02] * 4
+    assert [r["cost"] for r in runs] == [0.02] * 5
     (tmp_path / "fake").mkdir()
     fake = a_set(tmp_path / "fake", [retrogold.answer_of(CASES / "layered")])
     assert bench.main(["--retro", str(fake), "--out", str(out)]) == 0

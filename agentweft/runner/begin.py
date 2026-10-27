@@ -8,8 +8,8 @@ from agentweft.roles import resolver
 
 from .config import config, due, steps, where
 from agentweft.flow.spec import REVIEWER, step_id
-from agentweft.guardrails import (baseline, redorder, sacrifice, signoff,
-                                  skips, snapshot)
+from agentweft.guardrails import (baseline, factsguard, redorder, sacrifice,
+                                  signoff, skips, snapshot)
 from agentweft.orchestrate import decisions, park, project
 
 from .handoff import EMPTY, Handoff
@@ -333,6 +333,13 @@ def begin(unrecorded):
                 snapshot.Snapshot(run.workdir, why="resumed, start state not"
                                   " kept")
             run.order.start = run.start
+        if pick_up:
+            applied = factsguard.applied_in(
+                manifest.legs(state.RUNS / pick_up)[0])
+            if run.start is not None:
+                run.start.kept_out(applied)
+            if run.fence is not None:
+                run.fence.kept_out(applied)
         if pick_up and fm.get("conformance") == "fail":
             run.facts.hold_broken()
         run.committer = commits.Committer(

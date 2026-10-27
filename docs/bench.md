@@ -316,14 +316,17 @@ each case is a folder:
       gold.md             the answer a careful reader writes for the record
       gold.yaml           what the program checks the answer on
 
-the four cases cover the changes a retro has to see through: one convention
+the five cases cover the changes a retro has to see through: one convention
 unified across several files with one module missed (`cross-file`), a
 responsibility moved to a new module with one caller left behind (`shift`),
-an option carried through layers that stopped one short (`layered`), and an
-extraction with no change in behaviour that changed one (`refactor`).
+an option carried through layers that stopped one short (`layered`), an
+extraction with no change in behaviour that changed one (`refactor`), and a
+clean run that renamed a command-line flag and left the README line naming
+the old one (`renamed-flag`).
 
 the prompt is the one a run hands the retro, built by the same code from the
-record. an answer scores one for each of:
+record, the docs that name what the diff changed among it. a case names the
+items it is scored on in `gold.yaml`, and an answer scores one for each of:
 
 - `failed`: a `## seq <n> <step>` section for the attempt `gold.yaml` names
 - `cause`: that section's `why:` line holds every word `cause` lists
@@ -333,16 +336,23 @@ record. an answer scores one for each of:
   copy of the case's `place/` and a record read from `record/steps.jsonl`
   (`docs/guardrails.md`, "the facts only the runner writes"), so a fact with
   evidence the record does not back, or no why, scores nothing
+- `edit`: the FACTS block has an `edit` of the gold's file whose `now` holds
+  every word of the gold's `now` and whose `after` holds every word of its
+  `after` and none of its `now`, one the runner would make on a copy of
+  `place/` (`docs/writing-a-flow.md`, section 10), so an edit that quotes a
+  flag the tree does not have scores nothing
 
-a change sent to the wrong file scores 0 whatever else it got right. a case
-passes when every one of the k repeats scores 4; the gold itself scores 4 on
-every case, and a test holds it there. each row keeps `reader`, None until a
+the four cases with a failed attempt are scored on the first four, and
+`renamed-flag` on the edit. a change sent to the wrong file scores 0
+whatever else it got right. a case passes when every one of the k repeats
+scores all its items; the gold itself does on every case, and a test holds
+it there. each row keeps `reader`, None until a
 blind reader gives the change text and the fact's why 0 to 2.
 
 the provider is `provider:` in the folder's `bench.yaml`; one that calls a
 real model runs only with `--live`. the scores go to `--out`, or to
 `runs/bench/retro-<set>-<time>.json`, with a row per case and repeat (the
-four items, the score, the answer, its cost when the provider said, its
+case's items, the score, the answer, its cost when the provider said, its
 `tokens` counted the way a step's line counts them, `{"counted": false}` when
 the provider said none, and the `seconds` the answer took) and the summary:
 cases, cases passed, k.

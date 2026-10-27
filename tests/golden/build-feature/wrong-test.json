@@ -77,7 +77,7 @@
     "- reviewer.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer-runs.md <secs>s ($0.0100), won none, checked 0: no events",
     "- worker.md sent the work back: WRONG TEST: test_mul.py::test_mul",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won delivered: 1 pass, <secs>s, $0.0100",
     "- won proved: 2 passes, <secs>s, $0.0200",

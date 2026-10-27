@@ -85,7 +85,7 @@
     "- worker.md <secs>s ($0.0100), won proved: no events",
     "- patcher.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info ============================ FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; issue: red-first could not replay: the place is not in a git work tree",
     "- patcher.md <secs>s ($0.0100), won caught: gate failed; failed command - exit 1: =========================== short test summary info ============================ FAILED test_neg.py::test_neg - assert 2 == -2 1 failed, 1 passed in <secs>s; issue: red-first could not replay: the place is not in a git work tree",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won proved: 1 pass, <secs>s, $0.0100",
     "- won none: 1 pass, <secs>s, $0.0100",

@@ -129,14 +129,15 @@ def test_the_sides_are_not_the_same_size():
     # its reviewers as agents and says what each looks for in their prose.
     #
     # `facts_per_run` is one more, one way: a phase keeps no facts to cap,
-    # and `lane` another: it has none to turn off. `conformance` too: it has
+    # `edits_per_run` another: it has no retro to make edits, and `lane`
+    # another: it has none to turn off. `conformance` too: it has
     # no fact whose check a change could break. a step's `on_missed` one
     # more: a phase's review sends work back by verdict only.
     #
     # `small_reviewers` is one more, one way: a phase seats the agents it
     # names whatever the change is, and has no size to read.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 50
+    assert len(compare.flow_only()) == 51
     assert len(compare.phase_only()) == 7
 
 

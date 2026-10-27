@@ -1130,15 +1130,20 @@ def _tally(passes):
 
 def won_words(p):
     """-> what a pass won, in words: `won` as the line keeps it, one of
-    `trace.WON`; the retro's own product, the facts it wrote and the ones
-    refused, in place of a `none` that would read as nothing bought; and the
-    checks a pass that won nothing still made."""
+    `trace.WON`; the retro's own product, the facts it wrote, the docs it
+    had edited, the guards written and the items refused, in place of a
+    `none` that would read as nothing bought; and the checks a pass that
+    won nothing still made."""
     f = p.get("facts") or {}
     if not f.get("won"):
         return ""
     kept = f.get("kept_facts")
     if p["step"] == retro_step() and kept is not None:
+        kinds = [a.get("kind") for a in kept.get("applied") or []
+                 if isinstance(a, dict)]
         return (", won facts " + str(len(kept.get("written") or []))
+                + ", docs " + str(sum(1 for k in kinds if k != "guard"))
+                + ", guards " + str(kinds.count("guard"))
                 + " (" + str(len(kept.get("refused") or [])) + " refused)")
     if f["won"] == "none" and f.get("checked") is not None:
         return ", won none, checked " + str(f["checked"])

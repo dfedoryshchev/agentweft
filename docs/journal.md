@@ -368,7 +368,9 @@ after them on the line of a step whose provider said them, and `continued`
   on one more line, step `retro.md`,
   written after the handoff: `outcome` `ok` or `failed` with its why, never
   a cause, `won` `none`, `budget` null (`writing-a-flow.md`). what it wrote
-  is `runs/<run-id>/retro.md`.
+  is `runs/<run-id>/retro.md`; the files the runner changed for it are its
+  `facts.applied` (path, kind `doc`, `instruction` or `guard`, because),
+  with `facts.commit` the sha when they went into a `retro:` commit.
 - a run with `--keep-warm` charges each warm call to the step it kept warm:
   its tokens and cost are on that step's next line. a step not asked again
   after one gets a line of its own when the run ends, `outcome` `warm`, `won`
@@ -724,7 +726,9 @@ five sections are written by the runner alone:
   in the waste (police makes no model call, so it costs nothing here); and
   the total, which is the sum
   of the steps. a pass that won `none` reads `won none, checked n`, and the
-  retro reads its own product, `won facts n (m refused)`. a pass whose cost
+  retro reads its own product, `won facts n, docs m, guards g (r refused)`:
+  the facts written, the docs and instruction files edited, the test guards
+  written, and every item refused. a pass whose cost
   was not stated is counted and named, never added in as nothing. last, the
   run's wall beside its steps, its gates and the runner: `- wall 41.0s:
   steps 29.3s, gates 9.2s, runner 2.5s`. a step's seconds are its model's
@@ -1380,8 +1384,10 @@ first (`docs/guardrails.md`, "the facts only the runner writes"), with its
 `source` and `written: <stamp> by runner from retro`. two more files sit
 beside the entries and hold none: `facts/INDEX.md`, which the runner renders
 after every write it makes, a line per live fact by scope and the stale ones
-apart, and `facts/PROPOSED.md`, the guards and doc changes the retro
-proposed, for a person; the runner applies none of them. every `.md` file
+apart, and `facts/PROPOSED.md`, the retro's guards and doc changes that
+failed a check, each with why, and the guards a recurring fact is owed, for
+a person. the ones that held are made in the tree, unstaged, and listed in
+the handoff (`docs/writing-a-flow.md`, section 10). every `.md` file
 under `facts/` is the store's, those two names included; any other file
 there is the project's own and the runner leaves it alone.
 

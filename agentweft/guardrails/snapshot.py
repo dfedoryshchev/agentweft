@@ -163,10 +163,13 @@ class Snapshot(object):
     git still is: an order check needs content, not history."""
 
     __slots__ = ("place", "root", "start", "tests", "specs", "product",
-                 "loose", "own", "why", "hashed", "ingit")
+                 "loose", "own", "why", "hashed", "ingit", "runner")
 
     def __init__(self, place, own=None, why=""):
         self.place = Path(place).resolve()
+        # {path from the top of the repo: sha256} of the files the runner
+        # changed for a retro in a leg before this one (`kept_out`)
+        self.runner = {}
         self.root = None
         self.start = None
         self.tests = {}
@@ -255,6 +258,12 @@ class Snapshot(object):
             data = _read(self.root / rel)
             if data is None:
                 continue
+            if self.runner.get(rel) == _sha(data):
+                for start, now in ((self.tests, tests), (self.specs, specs),
+                                   (self.product, product)):
+                    if rel in start:
+                        now[rel] = start[rel]
+                continue
             if is_test(rel):
                 tests[rel] = _sha(data)
             elif is_spec(self.from_place(rel)):
@@ -329,9 +338,32 @@ class Snapshot(object):
         out = []
         for rel in self.test_files():
             now = _read(self.root / rel)
-            if now is not None and self.tests.get(rel) != _sha(now):
+            if now is not None and self.tests.get(rel) != _sha(now) \
+                    and self.runner.get(rel) != _sha(now):
                 out.append((rel, now))
         return out
+
+    def kept_out(self, applied):
+        """take `applied`, {path from the place: sha256} of the files the
+        runner changed for an earlier leg's retro, as no change of this
+        run's while each holds those bytes: not product changed, not a test
+        the run wrote, not a file a step commit holds."""
+        if self.root is None:
+            return
+        for rel, digest in (applied or {}).items():
+            try:
+                self.runner[(self.place / rel).resolve().relative_to(
+                    self.root.resolve()).as_posix()] = digest
+            except (ValueError, OSError):
+                continue
+
+    def runners_write(self, rel):
+        """whether `rel`, from the top of the repo, holds the bytes the
+        runner wrote for an earlier leg's retro."""
+        if rel not in self.runner:
+            return False
+        data = _read(self.root / rel)
+        return data is not None and _sha(data) == self.runner[rel]
 
     def runners(self, rel):
         """whether `rel`, a path from the top of the repo, is the runner's

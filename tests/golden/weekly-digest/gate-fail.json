@@ -84,7 +84,7 @@
     "- merge.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md <secs>s ($0.0100), won caught: gate failed; failed regex - matched here is|as an ai|i hope this and should not have",
     "- reviewer.md <secs>s ($0.0100), won caught: gate failed; failed regex - matched here is|as an ai|i hope this and should not have",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won none: 4 passes, <secs>s, $0.0500",
     "- prevented: 2 refusals (regex: 2)",

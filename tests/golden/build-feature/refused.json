@@ -55,7 +55,7 @@
     "- task: calc gets mul(a, b), which multiplies (all of it in runs/build-feature-<run>/task.md)",
     "## retro",
     "- planner.md <secs>s ($0.0100), won stopped: refused",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won stopped: 1 pass, <secs>s, $0.0100",
     "- won none: 1 pass, <secs>s, $0.0100",
     "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0200",

@@ -8,8 +8,10 @@ write a ruling, so facts get the same walls rulings have
 
 - the runner keeps its own account, runs/<id>/facts.json, outside the place:
   a sha256 of every entry there when the run started and of every entry it
-  writes. between runs the store is the person's, and an entry written by
-  hand counts.
+  writes, and of every file outside facts/ it changes for the retro
+  (`applied`), which a leg that carries the run on takes as the runner's.
+  between runs the store is the person's, and an entry written by hand
+  counts.
 - after each step the store is compared with what the runner last wrote; a
   step that added, edited or removed anything under facts/ fails like a gate
   and the store is put back. `rulings.Kept.check` runs this check with its
@@ -418,6 +420,10 @@ class Store(object):
         self.adopted = set()
         # the facts this run has counted a proposal on: a run counts once
         self.counted = set()
+        # every store file the runner wrote, in order, and the files outside
+        # facts/ it changed for the retro (`runner/upkeep.py`)
+        self.touched = []
+        self.applied = []
         self.taken()
         self.watch()
 
@@ -440,6 +446,7 @@ class Store(object):
         """note `rels`, store files the runner has just written, as its own
         and in the ledger."""
         rels = sorted(set(rels))
+        self.touched.extend(r for r in rels if r not in self.touched)
         for rel in rels:
             try:
                 self.data[rel] = (self.root / rel).read_bytes()
@@ -934,7 +941,8 @@ class Store(object):
 
     def propose(self, lines):
         """-> "" once `lines` are at the end of facts/PROPOSED.md, else why
-        not. what is there is for a person; the runner applies none of it."""
+        not. what is there is for a person: the retro's guards and doc
+        changes that failed a check, and the guards its ladder owes."""
         with self.lock, self.shared(force=True):
             for text in lines:
                 what = secret_in(text)
@@ -943,8 +951,9 @@ class Store(object):
             path = facts.folder(self.root) / facts.PROPOSED
             path.parent.mkdir(parents=True, exist_ok=True)
             head = [] if path.is_file() else [
-                "# proposed", "", "guards and doc changes the retro proposed."
-                " the runner applies none of them.", ""]
+                "# proposed", "", "the retro's guards and doc changes that"
+                " failed a check, each with why, and the guards a recurring"
+                " fact is owed. the runner made none of them.", ""]
             with open(path, "a", encoding="utf-8", newline="\n") as f:
                 f.write("\n".join(head + list(lines) + [""]) + "\n")
             self.wrote([self.rel(path)])
@@ -979,6 +988,15 @@ class Store(object):
                     out.append(fact.id)
         return out
 
+    def applied_write(self, rel, kind, because):
+        """note `rel`, a file outside facts/ the runner just changed for the
+        retro, as the runner's write: its bytes now, what it is and why."""
+        data = (self.root / rel).read_bytes()
+        self.applied.append({"path": rel, "kind": kind,
+                             "sha256": hashlib.sha256(data).hexdigest(),
+                             "because": because})
+        self.save()
+
     def keep_in(self, folder):
         self.folder = Path(folder)
         self.save()
@@ -987,16 +1005,36 @@ class Store(object):
         """write the account, once there is a store or a proposal to keep
         one of: a place with no facts/ leaves no file."""
         if self.folder is None or not (self.data or self.found or self.written
-                                       or self.refused):
+                                       or self.refused or self.applied):
             return
         self.folder.mkdir(parents=True, exist_ok=True)
         # a refusal keeps its scope and reason only: the claim may be the
         # secret it was refused for
-        (self.folder / FILE).write_text(
-            json.dumps({"found": self.found, "written": self.written,
-                        "refused": [{"scope": p.get("scope"), "why": why}
-                                    for p, why in self.refused]},
-                       indent=2) + "\n", encoding="utf-8")
+        account = {"found": self.found, "written": self.written,
+                   "refused": [{"scope": p.get("scope"), "why": why}
+                               for p, why in self.refused]}
+        if self.applied:
+            account["applied"] = self.applied
+        (self.folder / FILE).write_text(json.dumps(account, indent=2) + "\n",
+                                        encoding="utf-8")
+
+
+def applied_in(folders):
+    """-> {path from the place: sha256} of every file outside facts/ the
+    runner changed for a retro in the run folders `folders`, the last write
+    of each: a step after it that leaves those bytes changed nothing."""
+    out = {}
+    for folder in folders:
+        try:
+            data = json.loads((Path(folder) / FILE).read_text(
+                encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for w in (data.get("applied") or []) if isinstance(data, dict) \
+                else []:
+            if isinstance(w, dict) and w.get("path") and w.get("sha256"):
+                out[w["path"]] = w["sha256"]
+    return out
 
 
 def beyond(check, scopes):

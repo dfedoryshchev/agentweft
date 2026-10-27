@@ -144,7 +144,7 @@
     "- worker.md <secs>s ($0.0200), won none, checked 0: no events",
     "- merge.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md <secs>s ($0.0100), won none, checked 0: no events",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won stopped: 1 pass, <secs>s, $0.0100",
     "- won none: 5 passes, <secs>s, $0.0600",
     "- USD on steps that won nothing and checked nothing: $0.0500 of $0.0700",

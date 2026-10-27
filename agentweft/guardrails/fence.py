@@ -2,7 +2,8 @@
 
 the rule is recoverability, not permission. a file git tracks can be restored
 from git, and a file this run created did not exist before it, so a step is
-free to touch both. a file that was in the place before the run and that git
+free to touch both; a file the runner wrote for the retro of a leg before
+this one is the run's too (`kept_out`). a file that was in the place before the run and that git
 does not track - a `.env`, a local fixture, work nobody has committed yet - has
 no copy anywhere, and a step that changes, removes or adds one to git parks the
 run for a person.
@@ -106,6 +107,17 @@ class Fence(object):
             try:
                 self.before[rel] = (_stat(p), _sha(p))
             except OSError:
+                continue
+
+    def kept_out(self, applied):
+        """leave out the files the runner changed for an earlier leg's
+        retro, paths from the place: the run made them, so they are its own
+        to touch, as a file an earlier step created is."""
+        for rel in applied or ():
+            try:
+                self.before.pop((self.place / rel).resolve().relative_to(
+                    self.root).as_posix(), None)
+            except (ValueError, OSError):
                 continue
 
     def loose(self):

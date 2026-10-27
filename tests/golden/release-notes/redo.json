@@ -60,7 +60,7 @@
     "- worker.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md sent the work back: a hash and an author name are in the notes",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won none: 4 passes, <secs>s, $0.0400",
     "- USD on steps that won nothing and checked nothing: $0.0300 of $0.0500",

@@ -1,0 +1,9 @@
+--- a/logcount/cli.py
++++ b/logcount/cli.py
+@@ -6,4 +6,4 @@
+     path = None
+-    if "--file" in argv:
+-        at = argv.index("--file")
++    if "--output" in argv:
++        at = argv.index("--output")
+         path = argv[at + 1]

@@ -461,7 +461,12 @@ it, a check reads it, and a change to it is a change to the product.
   entry under `facts/` when the run started (after the start's heal, which is
   the runner's) and of every entry the runner writes, and the reason for
   every fact it refused. a place with no `facts/` and nothing proposed leaves
-  no file. an entry written by hand between runs counts.
+  no file. an entry written by hand between runs counts. it also lists under
+  `applied` each file outside `facts/` the runner changed for the retro, a
+  doc edit or a test guard (`docs/writing-a-flow.md`, section 10), with the
+  sha256 of its bytes: a leg that carries the run on reads it, so a file
+  that still holds those bytes is no product change, no new test of the
+  run's, nothing the fence guards and nothing a step commit takes.
 - after every step, and again after its gates and after a stop's test run,
   the store is compared with what the runner last wrote, in the same check as
   `decisions.md`. a step that added, edited or removed a store file fails

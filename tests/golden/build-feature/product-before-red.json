@@ -74,7 +74,7 @@
     "- worker.md <secs>s ($0.0100), won delivered: issue: red-first could not replay: the place is not in a git work tree",
     "- reviewer.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer-runs.md <secs>s ($0.0100), won none, checked 0: no events",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 1 pass, <secs>s, $0.0100",
     "- won delivered: 1 pass, <secs>s, $0.0100",
     "- won proved: 1 pass, <secs>s, $0.0100",

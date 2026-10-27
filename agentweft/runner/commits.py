@@ -15,7 +15,10 @@ the same with commits and without.
 
 a commit holds what the run changed and nothing else: a file that was
 already loose when the run started (a `.env`, a note nobody committed, a
-change already staged) stays out while its bytes are what they were. the run
+change already staged) stays out while its bytes are what they were, and so
+does a file the runner changed for an earlier leg's retro. the retro's own
+changes are one commit of their own, `retro: ...`, after the task's, once
+every step has passed (`runner/retro.py`). the run
 never commits on the branch it was started on and never pushes. the author
 and the committer are whoever git config names in the place, and with no
 user.name or user.email there the run refuses before its first step.
@@ -82,6 +85,7 @@ class Committer(object):
         self.order = None
         self.folder = None
         self.unsquashed = None
+        self.retro_sha = None
         if prior and prior.get("mode") and prior["mode"] != how:
             raise ValueError("the run committed as commits: " + prior["mode"]
                              + ", and this one would as commits: " + how
@@ -185,10 +189,13 @@ class Committer(object):
         if self.how == NONE or self.folder is None:
             return
         self.folder.mkdir(parents=True, exist_ok=True)
-        (self.folder / FILE).write_text(json.dumps({
-            "mode": self.how, "branch": self.branch, "base": self.base,
-            "was": self.was, "made": self.made, "squashed": self.squashed},
-            indent=1, sort_keys=True), encoding="utf-8")
+        kept = {"mode": self.how, "branch": self.branch, "base": self.base,
+                "was": self.was, "made": self.made, "squashed": self.squashed}
+        if self.retro_sha:
+            kept["retro"] = self.retro_sha
+        (self.folder / FILE).write_text(json.dumps(kept, indent=1,
+                                                   sort_keys=True),
+                                        encoding="utf-8")
 
     def pending(self):
         """-> the paths from the top of the repo the run has changed and not
@@ -198,6 +205,8 @@ class Committer(object):
         for rel in self.start._dirty():
             if rel in self.start.loose and \
                     _read(self.start.root / rel) == self.start.loose[rel]:
+                continue
+            if self.start.runners_write(rel):
                 continue
             if rel not in out:
                 out.append(rel)
@@ -241,6 +250,29 @@ class Committer(object):
         sha = self._commit(paths, "wip(" + flow + "): " + name)
         if sha:
             self.made.append({"step": name, "sha": sha, "files": paths})
+            self.save()
+        return sha
+
+    def retro(self, paths, message):
+        """commit the files the retro had the runner change, `paths`, as one
+        commit of their own on the run's branch. -> the sha, or None when
+        nothing in them differs from the commit before."""
+        if self.how == NONE:
+            return None
+        on = self.current()
+        if on != self.branch:
+            raise ValueError("the place left the run's branch " + str(
+                self.branch) + " for " + (on or "no branch"))
+        rels = []
+        for p in paths:
+            try:
+                rels.append(Path(p).resolve().relative_to(
+                    Path(self.start.root).resolve()).as_posix())
+            except ValueError:
+                continue
+        sha = self._commit(rels, message) if rels else None
+        if sha:
+            self.retro_sha = sha
             self.save()
         return sha
 

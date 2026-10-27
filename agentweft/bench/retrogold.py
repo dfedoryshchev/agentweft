@@ -11,12 +11,18 @@ program checks it on:
     fact:
       scope: [pkg/]               one of these among the fact's scopes
       kind: convention
+    edit:
+      file: README.md             the doc the edit names
+      now: [--file]               words its now holds, all
+      after: [--output]           words its after holds, all, and none of now's
 
-an answer scores one for each of the four; the fact only when the runner
-would write it on the case's record. a change sent to the wrong file
-is worth nothing whatever else it got right, so it scores 0. a blind reader
-gives the change text and the fact's why 0 to 2 apart (`reader`, None until
-then). a case passes a cell when every repeat scores 4.
+a case names the items it is scored on: a run with a failed attempt the
+first four, a run that left a doc stale the edit. an answer scores one for
+each; the fact only when the runner would write it, and the edit only when
+the runner would make it, on the case's record. a change sent to the wrong
+file is worth nothing whatever else it got right, so it scores 0. a blind
+reader gives the change text and the fact's why 0 to 2 apart (`reader`, None
+until then). a case passes a cell when every repeat scores all its items.
 
 `python -m agentweft.bench --retro <folder>` asks the retro role alone on
 each case's record (step mode) with the provider in `<folder>/bench.yaml`,
@@ -34,13 +40,15 @@ from pathlib import Path
 
 import yaml
 
-from agentweft.guardrails import factsguard
+from agentweft.guardrails import factsguard, retroedits
 from agentweft.orchestrate import decisions
 from agentweft.runner import retro, trace, upkeep
 
 GOLD = "gold.yaml"
 ANSWER = "gold.md"
-ITEMS = ("failed", "cause", "change", "fact")
+ITEMS = ("failed", "cause", "change", "fact", "edit")
+# the items a case with a failed attempt is scored on
+FAILED = ("failed", "cause", "change")
 SECTION = re.compile(r"^##\s+seq\s+(\d+)\s+(\S+)\s*$")
 FIELD = re.compile(r"^(failed|why|change)\s*:\s*(.*?)\s*$")
 
@@ -90,12 +98,21 @@ def prompt_of(case):
         folder=record, closed=[(types.SimpleNamespace(written=l), None)
                                for l in lines_of(record)])
     looked = retro.recorded(trail)
+    changed = changed_in(record)
+    gone, put = retroedits.names_of(diff_of(record))
+    docs = retroedits.named(case / "place", changed, gone + put) \
+        if changed else []
     return retro.prompt(gold.get("run", case.name), gold.get("flow", ""),
                         gold.get("outcome", "done"), record,
                         retro.whys(trail), retro.issues(looked),
                         retro.workarounds(looked),
-                        retro.parts(looked, ["- none"], changed_in(record),
-                                    [], [], factsguard.CAP))
+                        retro.parts(looked, ["- none"], changed, [], [],
+                                    factsguard.CAP, docs))
+
+
+def diff_of(record):
+    path = Path(record) / "diff.patch"
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
 def sections(answer):
@@ -154,29 +171,64 @@ def refusal(case, verb, value, fields):
                                                record_of(case, place))
 
 
+def edit_refusal(case, value, fields):
+    """-> why the runner would not make the proposed edit on the case's
+    record, "" when it would: held to a copy of place/, as a fact is."""
+    with tempfile.TemporaryDirectory(prefix="retro-gold-",
+                                     ignore_cleanup_errors=True) as tmp:
+        place = Path(tmp) / "place"
+        shutil.copytree(str(Path(case) / "place"), str(place))
+        return retroedits.edit_refusal(
+            place, value or fields.get("file") or "", fields,
+            record_of(case, place), retroedits.Tree(place))[0]
+
+
+def items_of(gold):
+    """-> the items a case is scored on, in order."""
+    return [i for i in ITEMS if i in gold
+            or i in FAILED and "failed" in gold]
+
+
 def score(answer, gold, case):
-    """-> one per item (0 or 1), `score` out of 4, `passed`, and `reader`
-    left for the blind reader. the fact point needs a fact the runner would
-    write on the case's record, `case` its folder."""
-    seq, step = gold["failed"].split()[1:3]
-    found = sections(answer).get((int(seq), step))
-    got = dict.fromkeys(ITEMS, 0)
-    if found is not None:
-        got["failed"] = 1
-        why = (found.get("why") or "").lower()
-        got["cause"] = int(all(w.lower() in why for w in gold["cause"]))
-        got["change"] = int(path_form(gold["change"])
-                            in path_form(found.get("change")))
+    """-> one per item the case names (0 or 1), `score` out of them,
+    `passed`, and `reader` left for the blind reader. the fact point needs a
+    fact the runner would write, and the edit point an edit it would make,
+    on the case's record, `case` its folder."""
+    names = items_of(gold)
+    got = dict.fromkeys(names, 0)
+    if "failed" in gold:
+        seq, step = gold["failed"].split()[1:3]
+        found = sections(answer).get((int(seq), step))
+        if found is not None:
+            got["failed"] = 1
+            why = (found.get("why") or "").lower()
+            got["cause"] = int(all(w.lower() in why for w in gold["cause"]))
+            got["change"] = int(path_form(gold["change"])
+                                in path_form(found.get("change")))
     items, _ = upkeep.parse(answer)
-    wanted = {path_form(s).rstrip("/") for s in gold["fact"]["scope"]}
-    for verb, value, fields in items or []:
-        scopes = {path_form(s).rstrip("/") for s in fields.get("scope") or []}
-        if verb in ("fact", "supersede") and scopes & wanted \
-                and fields.get("kind") == gold["fact"]["kind"] \
-                and not refusal(case, verb, value, fields):
-            got["fact"] = 1
-    total = sum(got.values()) if got["change"] else 0
-    return dict(got, score=total, passed=total == len(ITEMS), reader=None)
+    if "fact" in gold:
+        wanted = {path_form(s).rstrip("/") for s in gold["fact"]["scope"]}
+        for verb, value, fields in items or []:
+            scopes = {path_form(s).rstrip("/")
+                      for s in fields.get("scope") or []}
+            if verb in ("fact", "supersede") and scopes & wanted \
+                    and fields.get("kind") == gold["fact"]["kind"] \
+                    and not refusal(case, verb, value, fields):
+                got["fact"] = 1
+    if "edit" in gold:
+        want = gold["edit"]
+        for verb, value, fields in items or []:
+            now, after = fields.get("now") or "", fields.get("after") or ""
+            if verb in upkeep.EDITS \
+                    and path_form(value or fields.get("file")) \
+                    == path_form(want["file"]) \
+                    and all(w in now for w in want["now"]) \
+                    and all(w in after for w in want["after"]) \
+                    and not any(w in after for w in want["now"]) \
+                    and not edit_refusal(case, value, fields):
+                got["edit"] = 1
+    total = sum(got.values()) if got.get("change", 1) else 0
+    return dict(got, score=total, passed=total == len(names), reader=None)
 
 
 def ask(provider, case):
@@ -202,13 +254,15 @@ def run(folder, block, k, said=print):
     for case in cases(folder):
         for n in range(1, k + 1):
             text, cost, tokens, seconds = ask(provider, case)
+            names = items_of(gold_of(case))
             got = score(text, gold_of(case), case)
             rows.append(dict(got, case=case.name, k=n, cost=cost,
                              tokens=tokens, seconds=seconds, answer=text))
             said(case.name + " k" + str(n) + ": " + str(got["score"])
-                 + " of 4" + ("" if got["passed"] else ", "
-                              + ", ".join(i for i in ITEMS if not got[i])
-                              + " missed"))
+                 + " of " + str(len(names))
+                 + ("" if got["passed"] else ", "
+                    + ", ".join(i for i in names if not got[i])
+                    + " missed"))
     return rows
 
 

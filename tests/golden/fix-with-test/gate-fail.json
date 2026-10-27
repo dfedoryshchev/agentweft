@@ -66,7 +66,7 @@
     "## retro",
     "- worker.md <secs>s ($0.0100), won caught: gate failed; failed red-test - no FAILS: line, so the test never failed",
     "- worker.md <secs>s ($0.0100), won caught: gate failed; failed red-test - no FAILS: line, so the test never failed",
-    "- retro.md <secs>s ($0.0100), won facts 0 (0 refused): no events (after this handoff was written)",
+    "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won caught: 2 passes, <secs>s, $0.0200",
     "- won none: 1 pass, <secs>s, $0.0100",
     "- prevented: 2 refusals (red-test: 2)",

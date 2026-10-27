@@ -1,0 +1,2 @@
+{"seq": 1, "step": "worker.md", "outcome": "ok", "gates": [{"gate": "command", "ok": true, "detail": "exit 0"}], "handoff": {"did": ["logcount/cli.py: --file renamed to --output, as TASK.md 1 asks"]}}
+{"seq": 2, "step": "reviewer.md", "outcome": "ok", "gates": [{"gate": "verdict", "ok": true, "detail": "VERDICT: ok"}], "handoff": {"did": ["read logcount/cli.py against TASK.md 1: --output writes through output.emit"]}}

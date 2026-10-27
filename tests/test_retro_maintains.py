@@ -1,7 +1,8 @@
 """the retro, with `retro: true`, runs after every run that ends, is handed
 the run's record, and proposes facts, supersessions, re-anchors, retirements,
 guards and doc changes in one typed block. the runner holds each to the
-record and writes the facts; guards and doc changes are only proposed."""
+record and writes the facts; a guard or doc change that fails its check is
+only proposed (`test_retro_changes.py` holds the ones that are made)."""
 import json
 import sys
 
@@ -84,21 +85,29 @@ def test_one_valid_fact_is_written_one_refused_and_a_guard_proposed(
     proposed = (tmp_path / "facts" / "PROPOSED.md").read_text(
         encoding="utf-8")
     assert "kind: test" in proposed and "where: tests/test_a.py" in proposed
+    assert "refused: it has no code" in proposed
     assert "now: parse returns a list" in proposed
-    assert "## doc README.md" in proposed
+    assert "## edit README.md" in proposed
+    assert "refused: README.md is not a file in the place" in proposed
     last = steps_of(folder)[-1]
     assert last["step"] == "retro.md"
     assert last["facts"]["written"] == ["F-0001"]
     assert last["facts"]["refused"] == [
         {"item": "fact on pkg/gone.py",
-         "why": "the scope pkg/gone.py is not in the place"}]
+         "why": "the scope pkg/gone.py is not in the place"},
+        {"item": "guard for seq 1", "why": "it has no code"},
+        {"item": "doc change to README.md",
+         "why": "README.md is not a file in the place"}]
     assert last["facts"]["proposed"] == 2
     note = (folder / "handoff.md").read_text(encoding="utf-8")
     part = note.split("## the retro's proposals")[1]
     assert "- wrote F-0001 (pkg/a.py, why): parse raises" in part
     assert "- refused a fact on pkg/gone.py: the scope" in part
-    assert "- guard (test, tests/test_a.py): an empty line raises" in part
-    assert "- doc README.md: parse returns a list and raises" in part
+    assert ("- refused a guard for seq 1: it has no code (in"
+            " facts/PROPOSED.md)") in part
+    assert ("- refused a doc change to README.md: README.md is not a file in"
+            " the place (in facts/PROPOSED.md)") in part
+    assert "won facts 1, docs 0, guards 0 (3 refused)" in note
     index = (tmp_path / "facts" / "INDEX.md").read_text(encoding="utf-8")
     assert "- F-0001 pkg/a.py important: parse raises on an empty line" \
         in index

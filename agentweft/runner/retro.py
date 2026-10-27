@@ -3,23 +3,28 @@ the handoff is written. it reads the run's record - the reasons each step
 gave and what each led to, first, then why each failed attempt failed, each
 gate that could not do its job, each shell write a step went on
 after being refused, what each step handed over, the rulings written, the
-files changed, and the project's facts that are stale or hold for those
-files - and writes runs/<run id>/retro.md: what failed, why, which gate or
-prompt to change, and a FACTS block of what the project's facts should
-become.
+files changed, the project's facts that are stale or hold for those files,
+and the docs that name a changed file or a name the diff took out or put
+in - and writes runs/<run id>/retro.md: what failed, why, which gate or
+prompt to change, whether each named doc is current, and a FACTS block of
+what the project's facts and docs should become.
 
 the role (`roles/library/retro.md`) is handed this run's facts; the skill
 (`skills/retro/`) is the procedure. the FACTS block is the one part the
 runner acts on (`runner/upkeep.py`): it writes each fact that holds against
-the record and proposes the guards and doc changes, and the retro itself
-writes nothing. a retro that fails is its own line in steps.jsonl, never a
+the record, makes each doc edit and writes each test guard that holds
+against the tree as left, and proposes the rest; the retro itself writes
+nothing. none of it is staged: under `commits: wip` or `squash`, on a run
+whose steps all passed, it is one commit of its own, `retro: ...`, after
+the task's. a retro that fails is its own line in steps.jsonl, never a
 different outcome for the run.
 """
 import json
 import re
+from pathlib import Path
 
 from agentweft.flow.spec import CONDITIONAL, step_id
-from agentweft.guardrails import factsguard, police
+from agentweft.guardrails import factsguard, police, redorder, retroedits
 from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
@@ -318,21 +323,81 @@ def record_of(run, trail, earlier):
                              stamps=stamps)
 
 
-def parts(looked, rulings, changed, stale, live, cap):
+def parts(looked, rulings, changed, stale, live, cap, docs=(),
+          edits=retroedits.CAP):
     """-> (heading, lines) for each part of the record after the failed
     attempts, gate issues and refused writes. `changed` is None outside
-    git."""
+    git; `docs` is the docs that name what changed (`retroedits.named`)."""
     return [("what each step handed over, from steps.jsonl:", handed(looked)),
             ("rulings written in this run, from decisions.md:", rulings),
             ("files this run changed, from git:",
              ["- " + p for p in changed] if changed else
              ["- nothing changed in the tree" if changed is not None
               else "- not a git checkout, so what changed is not recorded"]),
+            ("docs that name a file or a name this run changed, each to"
+             " confirm current or edit:", list(docs)),
             ("facts marked stale, to re-anchor, retire or supersede:", stale),
             ("facts on record for the files this run changed:", live),
             ("fact checks a step's change broke or that could not run,"
              " from steps.jsonl:", unheld(looked)),
-            ("new facts this run may write:", ["- " + str(cap)])]
+            ("new facts this run may write:", ["- " + str(cap)]),
+            ("doc edits and guards this run may make:",
+             ["- " + str(edits if cap else 0)])]
+
+
+def diff_of(run, changed):
+    """-> the change to the files in `changed` as `git diff` prints it, from
+    the start commit to the tree as left, a file git does not track as all
+    added; "" when there is no start to diff from."""
+    tree = getattr(run, "tree", None)
+    start = getattr(getattr(run, "start", None), "start", None) \
+        or getattr(tree, "start", None)
+    if tree is None or not getattr(tree, "git", False) or not start:
+        return ""
+    out = summary._git(tree.root, "diff", "--unified=0", "--no-color",
+                       "--no-ext-diff", start, "--", *changed) or ""
+    tracked = set(summary._lines(summary._git(
+        tree.root, "ls-files", "--", *changed)))
+    for path in changed:
+        if path in tracked:
+            continue
+        try:
+            text = (tree.root / path).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        out = out + "\n" + "\n".join("+" + l for l in text.split("\n"))
+    return out
+
+
+def named_docs(run, changed, store):
+    """-> the lines for the docs of the place that name a file the run
+    changed or a name its diff took out or put in; [] when the lane is
+    off or nothing changed."""
+    if store.off or not changed:
+        return []
+    gone, put = retroedits.names_of(diff_of(run, changed))
+    try:
+        return retroedits.named(store.root, relative(run, changed),
+                                gone + put, own=store.own)
+    except OSError:
+        return []
+
+
+def relative(run, changed):
+    """-> `changed`, paths from the top of the repo, as paths from the
+    place, the ones outside it left out."""
+    tree = getattr(run, "tree", None)
+    root, place = getattr(tree, "root", None), getattr(tree, "place", None)
+    if root is None or place is None:
+        return list(changed)
+    out = []
+    for rel in changed:
+        try:
+            out.append((Path(root) / rel).resolve().relative_to(
+                Path(place).resolve()).as_posix())
+        except ValueError:
+            continue
+    return out
 
 
 def unheld(lines):
@@ -431,7 +496,9 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     stale, live = kept_facts(store, changed)
     text = prompt(run_id, flow, outcome, folder, lines, issued, worked,
                   parts(looked, ruled(run), changed, stale, live,
-                        0 if store.off else store.cap),
+                        0 if store.off else store.cap,
+                        named_docs(run, changed, store),
+                        retroedits.cap_of(getattr(run, "fm", None))),
                   reasons=reasons(looked))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
@@ -456,12 +523,17 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     if not said and not why:
         why = "nothing came out of " + STEP
     done = Maintained()
+    touched = len(store.touched)
     if not why:
         done = kept_up(run, trail, earlier, store, said, run_id)
+    files = upkeep.files_changed(done, store.touched[touched:], store.root)
+    kept = committed(run, [p for p, _ in files], done) if files else None
     entry = trail.open(STEP, [tried], used, None, output=said or None)
     entry.police = seen
     if done.present:
         entry.facts = done.record()
+        if kept and kept[0]:
+            entry.facts["commit"] = kept[0]
     trail.close(entry, "failed" if why else "ok", why=why, planned=False)
     if why:
         print("retro failed, the run's outcome stands: " + why)
@@ -472,10 +544,65 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
                                + "\n".join(told) + "\n", encoding="utf-8")
     for line in told:
         print("facts: " + line[2:])
-    if told and (folder / summary.FILE).is_file():
+    changes = []
+    if files:
+        changes = ([upkeep.COMMITTED if kept[0] else upkeep.CHANGES, ""]
+                   + ([kept[1]] if kept[1] else [])
+                   + [line for _, line in files])
+        for line in changes[2:]:
+            print("retro changed: " + line[2:])
+    if (told or changes) and (folder / summary.FILE).is_file():
         with open(folder / summary.FILE, "a", encoding="utf-8") as f:
-            f.write("\n" + upkeep.SECTION + "\n\n" + "\n".join(told) + "\n")
+            if changes:
+                f.write("\n" + "\n".join(changes) + "\n")
+            if told:
+                f.write("\n" + upkeep.SECTION + "\n\n" + "\n".join(told)
+                        + "\n")
     print("retro: " + str(folder / FILE))
+
+
+def committed(run, paths, done):
+    """-> (the sha of the retro's own commit or None, a line on it or "").
+    under `commits: none` nothing is committed. otherwise the retro's files
+    are one commit after the task's, made only once every step has passed:
+    a run that stops short goes on in a leg whose step commits would come
+    after it."""
+    from . import commits
+
+    who = getattr(run, "committer", None)
+    if who is None or who.how == commits.NONE:
+        return None, ""
+    if who.order is None:
+        return None, ("- not committed: the run stopped before every step"
+                      " passed, and the leg that carries it on commits after"
+                      " it; left unstaged")
+    try:
+        sha = who.retro([(Path(store_root(run)) / p) for p in paths],
+                        message(done))
+    except ValueError as e:
+        return None, "- not committed: " + str(e) + "; left unstaged"
+    if not sha:
+        return None, ""
+    return sha, ("- " + sha[:12] + " " + message(done) + ", on "
+                 + str(who.branch))
+
+
+def store_root(run):
+    return getattr(getattr(run, "facts", None), "root", None) or run.workdir
+
+
+def message(done):
+    """-> the retro commit's subject: what it kept current."""
+    said = [a["path"] for a in done.kinds(retroedits.INSTRUCTION,
+                                          retroedits.DOC, retroedits.GUARD)]
+    n = len(done.written) + len(done.changed) + len(done.counted)
+    if n:
+        said.append("the facts" if said else str(n) + " fact"
+                    + ("" if n == 1 else "s"))
+    if not said:
+        said = ["the facts' proposals"]
+    return "retro: kept " + (", ".join(said[:-1]) + " and " + said[-1]
+                             if len(said) > 1 else said[0]) + " current"
 
 
 def policed(run, used, tried, text, folder):
@@ -519,9 +646,15 @@ def kept_up(run, trail, earlier, store, said, run_id):
             done.lines.append("- the flow's lane is off, so the FACTS block"
                               " was not acted on")
         return done
+    fm = getattr(run, "fm", None)
+    keep = retroedits.Keeper(store.root, own=store.own,
+                             cap=retroedits.cap_of(fm),
+                             tests=redorder.test_command(fm)
+                             if fm is not None and hasattr(fm, "steps")
+                             else None)
     try:
         return upkeep.maintain(store, record_of(run, trail, earlier), said,
-                               run_id)
+                               run_id, keep=keep)
     except (OSError, ValueError, KeyError, TypeError) as e:
         done = Maintained()
         done.present = True
