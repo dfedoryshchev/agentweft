@@ -161,6 +161,72 @@ def test_a_cut_question_is_matched_on_its_full_text_in_open_questions():
     assert got(ladder.score(text))["no_false"] == 0
 
 
+STALE = ("- worker: I cite the spec at TASK.md:86, where the quoted sentence"
+         " starts; it continues onto line 87? why: the grep matched line 87."
+         " if wrong: the line number is off by one.")
+STILL_TRUE = ("- worker: I treated TASK.md as the only spec? why: no SPEC*.md"
+              " or docs/ exists. if wrong: another spec file could override"
+              " TASK.md:87.")
+
+
+def a_resent_conflict(first, final="TASK.md:87", refused="TASK.md:86"):
+    head = ("# fix-with-test fix-1: stopped: spec conflict at worker.md - spec"
+            " conflict: the request contradicts " + final + ". which one"
+            " holds?")
+    return "\n".join([
+        head, "", "fix-with-test ran worker.md -> worker.md in 60s on: rows.",
+        "", "## the one decision",
+        "- the request contradicts " + final + ". which one holds?",
+        "  raised by worker; cites " + final,
+        "  recommendation: keep the spec. (size: none)",
+        "", "## why", "worker handed over this before the stop:",
+        "- rows of one file are never duplicates, so the request is ruled"
+        " out", "", "## not done", "- not done: the run stopped at"
+        " worker.md; nothing in the tree changed", "", "## needs you",
+        "to carry on", "  python run.py fix-with-test --resume fix-1"
+        " --answer x", "", "## assumed - tell me if wrong", first,
+        "- worker: I cited " + final + " alone, the line whose words rule the"
+        " request out? why: the gate rejected the whole sentence. if wrong:"
+        " the gate may want TASK.md:86-87.", "", "## doubts", "- none raised",
+        "", "## changed", "- nothing changed in the tree", "", "## read",
+        "- worker.md read: TASK.md (whole file)",
+        "  said: TASK.md:86-87 - rows of one file are never duplicates", "",
+        "## tests and checks",
+        '- worker.md: FAIL conflict - the CONFLICT line quotes "Rows of one'
+        ' file are never duplicates.", which is not at ' + refused + " as"
+        " the run found it. quote the line as it is, or answer without a"
+        " CONFLICT line", "- worker.md: PASS quote check - the quote at "
+        + final + " is there as the run found it", "- red first: not proven"
+        " by a gate", "", "## rulings", "- none on record in decisions.md",
+        "", "## run", "- steps: worker.md 33.3s -> worker.md 28.9s",
+        "- cause: conflict at worker.md", ""])
+
+
+def no_false(text):
+    return [p for p in ladder.score(text)["points"]
+            if p["point"] == "no_false"][0]
+
+
+def test_an_assumed_line_a_later_pass_contradicted_is_a_false_line():
+    point = no_false(a_resent_conflict(STALE))
+    assert point["got"] == 0
+    assert "worker.md" in point["line"] and "TASK.md:86" in point["line"]
+
+
+def test_an_assumed_line_on_the_wrapped_span_the_final_cite_cut_is_false():
+    first = ("- worker: I read TASK.md:158-159 as one spec line that wraps"
+             " onto two lines, and quoted both lines in full? why: the"
+             " sentence starts on 158. if wrong: the conflict is the same.")
+    assert no_false(a_resent_conflict(first, "TASK.md:158",
+                                      "TASK.md:158"))["got"] == 0
+
+
+def test_a_first_pass_assumed_line_still_true_is_no_false_line():
+    assert no_false(a_resent_conflict(STILL_TRUE))["got"] == 1
+    assert no_false(a_resent_conflict(STALE.replace(
+        "TASK.md:86", "TASK.md:87")))["got"] == 1
+
+
 def test_an_unbacked_verified_line_loses_checks_backed():
     text = DONE.replace("saw: 38 passed in 5.26s -> backed",
                         "saw: 38 passed -> unbacked: no such command in the"

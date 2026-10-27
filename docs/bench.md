@@ -287,7 +287,10 @@ order:
 9. `no false line`: none of the known false lines: "instead of doing the
    work" on a tree holding product code, `UNRULED` on an addition a gate
    allowed, `gate-proven` with no red gate that went red, a question a ruling
-   on record decided shown open (matched as in point 2)
+   on record decided shown open (matched as in point 2), an assumed line a
+   later pass contradicted: on a conflict stop whose step the conflict gate
+   refused first, an assumption of that step citing the refused line, or
+   another span of the line the stop settled on
 10. `once, for everyone`: no two entries under open questions, assumed or
     doubts cite the same file line; a done run with new tests carries a
     command to see the fix by hand

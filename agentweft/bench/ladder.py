@@ -406,7 +406,55 @@ def _no_false(c):
             "the one decision", [])) if not i.startswith("- none")
             and not i.lower().startswith("- decided")):
         return 0, "a decided question shown open"
+    stale = _stale(c)
+    if stale:
+        return 0, stale
     return 1, "none of the known false lines"
+
+
+REFUSED_AT = re.compile(r"^- (\S+): FAIL conflict - .*, which is not at (\S+)"
+                        r" as the run found it")
+
+
+def _span(cite):
+    rel, lines = cite.rsplit(":", 1)
+    first, _, last = lines.partition("-")
+    return rel, int(first), int(last or first)
+
+
+def _stale(c):
+    """-> what is false about an assumed line a later pass of the stopping
+    step contradicted, "" for none. a pass the conflict gate refused hands
+    on its assumptions; the pass after it settles the cite the stop holds,
+    and an assumption citing the refused line, or another span of the
+    settled one, no longer holds."""
+    cause = next((CAUSE.match(l) for l in c["secs"].get("run", [])
+                  if CAUSE.match(l)), None)
+    if cause is None or cause.group(1) != stops.CONFLICT:
+        return ""
+    step = cause.group(2)
+    refused = set(m.group(2) for m in (REFUSED_AT.match(l) for l in
+                                       c["secs"].get("tests and checks", []))
+                  if m and m.group(1) == step)
+    final = CITE.findall(c["rest"])
+    if not refused or not final:
+        return ""
+    rel, first, last = _span(final[0])
+    role = step[:-3] if step.endswith(".md") else step
+    for line in c["secs"].get("assumed - tell me if wrong", []):
+        m = ROLE_ITEM.match(line)
+        if not m or m.group(1) != role:
+            continue
+        claim = re.split(r"\?? why: ", m.group(2), maxsplit=1)[0]
+        cites = [x for x in CITE.findall(claim) if _span(x)[0] == rel]
+        if not cites or final[0] in cites:
+            continue
+        for x in cites:
+            _, a, b = _span(x)
+            if x in refused or (a <= last and first <= b):
+                return (step + " assumed " + x + ", and its later pass"
+                        " settled " + final[0] + ": " + claim[:120])
+    return ""
 
 
 QUIET = frozenset("""a all also an and any are as at be both but by can do
