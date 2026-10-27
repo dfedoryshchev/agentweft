@@ -1,6 +1,7 @@
 """`retro: true` on a flow: one last step after every run that ends, once
-the handoff is written. it reads the run's record - why each failed attempt
-failed, each gate that could not do its job, each shell write a step went on
+the handoff is written. it reads the run's record - the reasons each step
+gave and what each led to, first, then why each failed attempt failed, each
+gate that could not do its job, each shell write a step went on
 after being refused, what each step handed over, the rulings written, the
 files changed, and the project's facts that are stale or hold for those
 files - and writes runs/<run id>/retro.md: what failed, why, which gate or
@@ -23,7 +24,7 @@ from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
 
-from . import investigate, manifest, stops, summary, trace, upkeep
+from . import handoff, investigate, manifest, stops, summary, trace, upkeep
 from .errors import Fatal, Outage
 from .upkeep import Maintained, execute  # noqa: F401
 
@@ -200,6 +201,24 @@ def handed(lines):
     return out
 
 
+def reasons(lines):
+    """-> a line per BECAUSE item each pass not yet looked at handed over,
+    with its seq and step, where the reason came from and what it led to."""
+    out = []
+    for line, _ in lines:
+        block = line.get("handoff") or {}
+        if not isinstance(block, dict) or line.get("step") == STEP:
+            continue
+        for item in block.get("because") or []:
+            r = handoff.reason(item if isinstance(item, str) else str(item))
+            out.append("- seq " + str(line.get("seq")) + " "
+                       + str(line.get("step")) + " because "
+                       + stops.flat(r["reason"] + " (from " + (
+                           r["from"] or "own read") + ") -> led to "
+                           + (r["led_to"] or "none named"))[:ITEM])
+    return out
+
+
 def ruled(run):
     """-> a line per ruling the runner wrote in this run, any leg."""
     kept = getattr(run, "kept", None)
@@ -328,14 +347,17 @@ def unheld(lines):
 
 
 def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
-           more=()):
-    """-> the role, the skill, then this run's record. `more` is
-    (heading, lines) for each further part of it."""
+           more=(), reasons=()):
+    """-> the role, the skill, then this run's record, the reasons the steps
+    gave first. `more` is (heading, lines) for each further part of it."""
     text = (resolver.role_prompt(STEP).rstrip("\n") + "\n\n"
             + resolver.skill(ROLE).strip("\n") + "\n\n"
             + "this run:\n- run: " + run_id + "\n- flow: " + flow
-            + "\n- outcome: " + outcome + "\n\n"
-            + "why each failed attempt failed, from steps.jsonl:\n"
+            + "\n- outcome: " + outcome + "\n\n")
+    if reasons:
+        text = (text + "the reasons each step gave for its work and what each"
+                " led to, from steps.jsonl:\n" + "\n".join(reasons) + "\n\n")
+    text = (text + "why each failed attempt failed, from steps.jsonl:\n"
             + "\n".join(lines or ["- none failed"]) + "\n")
     if issued:
         text = (text + "\ngates that could not do their job, from steps.jsonl:"
@@ -409,7 +431,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     stale, live = kept_facts(store, changed)
     text = prompt(run_id, flow, outcome, folder, lines, issued, worked,
                   parts(looked, ruled(run), changed, stale, live,
-                        0 if store.off else store.cap))
+                        0 if store.off else store.cap),
+                  reasons=reasons(looked))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)

@@ -460,6 +460,10 @@ with a block, after the work:
     HANDOFF
     DID:
     - <the outcome in one line, then one line per file or finding>
+    BECAUSE:
+    - <a reason that shaped the work>
+      from: <file>:<line>, a test id, a gate, or own read
+      led to: a test id, <file>:<lines>, TRIED <item>, ASSUMED <item>, QUESTION, DECIDED <ruling>, or nothing
     VERIFIED:
     - <claim>
       cmd: <the command it ran>
@@ -502,7 +506,10 @@ record", and the prompt asks for every command in full. an ASSUMED item's
 above them; the older `<choice> | why: <reason> | if wrong: <cost>` line is
 still read. the handoff prints each assumption on one line with its labels.
 an ADJACENT item's `fixed:` and `test:` lines are read as parts of the defect
-above them the same way (`fixed:` yes or no, `test:` the test id or `none`).
+above them the same way (`fixed:` yes or no, `test:` the test id or `none`),
+and so are a BECAUSE item's `from:` and `led to:` lines (or the one-line
+`<reason> | from: <where> | led to: <what>`). a block from before BECAUSE
+was asked for still reads, with no reasons in it.
 the block is not
 the work: the gates, the saved run and what the
 next step is handed as "what <role> produced" see the answer without it.
@@ -574,7 +581,20 @@ answers, in order:
   recommends in its block, on a question citing a line the conflict cites,
   shows that recommendation, and the conflict's options after it.
 - **why**: what the last working step did (on a stop, "handed over this
-  before the stop, not taken as done"), what the steps tried and dropped and
+  before the stop, not taken as done"), the reasons each step gave, by role
+  (`<role>'s reasons, and what each led to:`, each `because <reason>
+  (<from>) -> <what it led to>`, `own read` for a reason that names no
+  source): the runner holds every `led to:` to the record, a test id to the
+  red proof and the gates' tests, a `<file>:<lines>` to the diff and the lines
+  its change covers, a TRIED, ASSUMED or QUESTION item to the step's own
+  block, a DECIDED one to `decisions.md`, each by its words (three words or
+  twelve letters at least: a bare TRIED, ASSUMED or DECIDED names nothing; a
+  bare QUESTION stands when the block asks one), and `nothing` stands as
+  said; one it
+  cannot find reads `-> (not in the record)`. a step whose flow says it writes
+  tests, product or spec and that gave no reason reads `none given`, never
+  `missing`; a step that writes nothing is listed only when it gave one. then
+  what the steps tried and dropped and
   why (`tried and dropped, and why:`, each TRIED item once with its role,
   then each RULED OUT line of the investigator; they still carry under
   "carry forward" too), what the steps assumed, and each
@@ -610,7 +630,11 @@ change (`## found beside the change`, only when a step found something: each
 defect once by its words, with the roles that named it, as the last of them
 left it: `fixed, shown by <test>`, `fixed, no test names it` or `not fixed`;
 a test whose file is not among the files the run changed adds `; its file
-did not change in this run`), each fact check a step's change set off
+did not change in this run`), every reason the steps gave (`## reasons`,
+when the why section lists one: each line once by its role, then `-
+why_unbacked: <n>`, the reasons the record does not hold, which "not
+verified" also lists as "reasons the record does not show"), each fact
+check a step's change set off
 (`## conformance`, only when one ran: `- <step>: <id> (<scope>) held`,
 `broken` or `could not run`, the check and what it said), what changed,
 what was read, what was tested, what a ruling is owed on, what was not verified, what

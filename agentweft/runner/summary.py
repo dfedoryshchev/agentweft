@@ -305,7 +305,7 @@ def authority(blocks, decided_in_run):
         if block.get("state") not in (handoff.PRESENT, handoff.PARTIAL):
             continue
         for _, key in handoff.SECTIONS:
-            for item in block[key]:
+            for item in block.get(key) or []:
                 text = item["claim"] if isinstance(item, dict) else item
                 m = AUTHORITY.search(text)
                 if m and not NEGATED.search(text[:m.start()]):
@@ -407,11 +407,12 @@ def redo_why(said):
 
 
 def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
-           facts=None):
+           facts=None, writes=""):
     """one pass of one step, the shape `build` reads. `facts` is what its
     steps.jsonl line holds for the retro and the files its transcript shows
-    it read (`facts_of`)."""
-    return {"step": step, "role": role, "seconds": seconds,
+    it read (`facts_of`); `writes` is what the flow says the step writes
+    (`writes_of`)."""
+    return {"step": step, "role": role, "seconds": seconds, "writes": writes,
             "block": block if isinstance(block, dict) else handoff.empty(),
             "gates": gates, "ungated": ungated, "outcome": outcome,
             "verbs": verbs.parse(said),
@@ -546,7 +547,8 @@ def _passes_in(folder, roles, fm):
                                  gate_commands(fm, step, said),
                                  gate_names(fm, step)),
                           line.get("ungated"), line.get("outcome") or "",
-                          said, facts=facts_of(line, root)))
+                          said, facts=facts_of(line, root),
+                          writes=writes_of(fm, step)))
         seqs.append(line.get("seq"))
     for case in cases(path):
         if case.get("red") and case.get("seq") in seqs:
@@ -767,6 +769,164 @@ def found_beside(blocks):
             if role not in home[1]:
                 home[1].append(role)
     return out
+
+
+WRITING = ("tests", "product", "spec")
+NOTHING = ("nothing", "none", "no change", "nothing changed")
+LED = re.compile(r"^(TRIED|ASSUMED|QUESTION|DECIDED)\b\W*(.*)$", re.I)
+SPOT = re.compile(r"^(\S+?):(\d+)(?:\s*-\s*(\d+))?$")
+SPAN = re.compile(r"(\d+)(?:-(\d+))?")
+UNHELD = "(not in the record)"
+UNBACKED = "why_unbacked"
+
+
+def writes_of(fm, step):
+    """-> what the flow says `step` writes (`tests`, `product`, `spec`,
+    `none`), "" when it does not say."""
+    for s in getattr(fm, "steps", None) or []:
+        if step_id(s) == step:
+            return s.get("writes") or ""
+    return ""
+
+
+def _path(text):
+    text = text.strip().strip("`'\"<>").replace("\\", "/")
+    return text[2:] if text.startswith("./") else text
+
+
+def _tail(a, b):
+    """whether two paths or test ids name the same thing, one perhaps by its
+    tail: `test_calc.py::t` is `tests/test_calc.py::t`, `t` is either."""
+    a, b = _path(a).lower(), _path(b).lower()
+    if not a or not b:
+        return False
+    return a == b or a.endswith("/" + b) or b.endswith("/" + a) \
+        or a.endswith("::" + b) or b.endswith("::" + a)
+
+
+def _spans(text):
+    """-> [(first, last)] for a `git diff` range line, "2, 5-7"; a range
+    where lines were only taken out is the line it was taken out after."""
+    return [(int(a), int(b or a)) for a, b in SPAN.findall(text or "")]
+
+
+def record_of(passes, changes, decided, proof):
+    """-> what a reason's `led to:` is held to: the test ids the red proof and
+    the gates hold, the files the run changed with the lines each change
+    covers, and the rulings on record."""
+    ids, commands = [], []
+    for p in passes:
+        for g in p["gates"]:
+            ids.extend(t["test"] for t in g.get("tests") or []
+                       if isinstance(t, dict) and t.get("test"))
+            if g.get("command"):
+                commands.append(g["command"])
+    if proof:
+        ids.extend(i for i in proof.get("ids") or [] if isinstance(i, str))
+    files = {}
+    if changes.get("git"):
+        spans = changes.get("ranges") or {}
+        for path, _, _, how in changes.get("files") or []:
+            files.setdefault(path, []).extend(
+                _spans(spans.get((path, how.split(",")[0]), "")))
+    return {"ids": ids, "commands": commands, "files": files,
+            "decided": list(decided)}
+
+
+def _among(said, items):
+    """whether `said` names one of `items`, by its words: bare, it names any
+    there is. an item read inside `said` counts only when it says enough to
+    name one."""
+    want = handoff.norm(said).strip(" .:;<>")
+    if not want:
+        return bool(items)
+    for i in items:
+        head = handoff.norm(i.split("\n")[0]).split(" - ")[0].strip()
+        if want in handoff.norm(i) or (_names_one(head) and head in want):
+            return True
+    return False
+
+
+def _names_one(text):
+    """whether `text` says enough to name one item: three words or twelve
+    letters. a bare label names none, however many items there are."""
+    words = handoff.norm(text).strip(" .:;<>")
+    return len(words.split()) >= 3 or len(words) >= 12
+
+
+def led(said, block, record):
+    """whether the record holds what one `led to:` names: `nothing` always;
+    a TRIED or ASSUMED item among the block's own, by its words; a QUESTION
+    the block asks, bare or by its words; a DECIDED one among the rulings on
+    record, by its words; a `<file>:<lines>` in the diff, its lines
+    among the lines the change covers; a test id the red proof or a gate
+    holds."""
+    said = (said or "").strip().strip("`")
+    if not said:
+        return False
+    if said.lower().rstrip(".") in NOTHING:
+        return True
+    m = LED.match(said)
+    if m:
+        kind, rest = m.group(1).upper(), m.group(2)
+        if kind != "QUESTION" and not _names_one(rest):
+            return False
+        if kind == "TRIED":
+            return _among(rest, block.get("tried") or [])
+        if kind == "ASSUMED":
+            return _among(rest, block.get("assumed") or [])
+        if kind == "QUESTION":
+            return _among(rest, [q["question"] for q in
+                                 block.get("questions") or []]
+                          + (block.get("other") or {}).get("NEEDS", []))
+        return _among(rest, [d.decided + " - " + d.why
+                             for d in record["decided"]])
+    if "::" not in said:
+        spot = SPOT.match(said)
+        path = spot.group(1) if spot else said
+        for have, spans in record["files"].items():
+            if not _tail(path, have):
+                continue
+            if not spot or not spans:
+                return True
+            first = int(spot.group(2))
+            last = int(spot.group(3) or first)
+            if any(a <= last and first <= b for a, b in spans):
+                return True
+    if any(_tail(said, i) for i in record["ids"]):
+        return True
+    return "::" in said and any(said in c for c in record["commands"])
+
+
+def reasons(passes, record):
+    """-> [(role, [line]), ...] for every role that gave a reason and every
+    step that writes a file, the role's reasons once each in the order given:
+    `because <reason> (<from>) -> <what it led to>`, or `-> (not in the
+    record)`. a writing step that gave none says `none given`; one that
+    handed over no block is under not verified as missing already. and the
+    count the record does not hold."""
+    out, unheld = [], []
+    for p in passes:
+        b = p["block"]
+        if not _present(b):
+            continue
+        mine = next((r for r in out if r[0] == p["role"]), None)
+        if mine is None:
+            mine = (p["role"], [])
+            out.append(mine)
+        for item in b.get("because") or []:
+            r = handoff.reason(item)
+            held = led(r["led_to"], b, record)
+            line = ("because " + r["reason"] + " (" + (r["from"] or "own read")
+                    + ") -> " + (r["led_to"] if held else UNHELD))
+            if line not in mine[1]:
+                mine[1].append(line)
+                if not held:
+                    unheld.append((p["role"], r))
+    writing = set(p["role"] for p in passes if p.get("writes") in WRITING)
+    out = [(role, lines or ["none given"]) for role, lines in out
+           if lines or role in writing]
+    return out, unheld
 
 
 def ended(stopped, unsure=()):
@@ -1243,6 +1403,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         why = [(None, ["no step handed over a block, so what was done is"
                        " only what git and the gates show in the full"
                        " record."])]
+    gave, unheld = reasons(every, record_of(every, changes, decided, proof))
+    why.extend((role + "'s reasons, and what each led to:", lines)
+               for role, lines in gave)
     dropped = []
     for line in ([role + ": " + i for role, b in blocks if _present(b)
                   for i in b["tried"]]
@@ -1356,6 +1519,13 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.extend("- " + ", ".join(roles) + ": " + f["defect"] + " - "
                    + beside_said(f, files) for f, roles in beside_it)
 
+    if gave:
+        out.append("")
+        out.append("## reasons")
+        out.extend("- " + role + ": " + line for role, lines in gave
+                   for line in lines)
+        out.append("- " + UNBACKED + ": " + str(len(unheld)))
+
     ran_checks = checked(every)
     if ran_checks:
         out.append("")
@@ -1452,6 +1622,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 + i["claim"] + " (" + i["why"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
                 if i["backed"] == "unbacked")
+    said.extend("- reasons the record does not show: " + role + ": "
+                + r["reason"] + " (led to: " + (r["led_to"] or "none named")
+                + ")"
+                for role, r in unheld)
     said.extend("- shortened, so not held to the record: " + role + ": "
                 + i["claim"] + " (" + i["cmd"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]

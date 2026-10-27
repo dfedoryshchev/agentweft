@@ -24,6 +24,10 @@
     "## why",
     "patcher handed over this before the stop, not taken as done:",
     "- wrote no patch",
+    "worker's reasons, and what each led to:",
+    "- none given",
+    "patcher's reasons, and what each led to:",
+    "- none given",
     "## not done",
     "- not done: the run stopped at patcher.md; left to run: patcher.md",
     "## product gaps",
@@ -65,6 +69,10 @@
     "- patcher: TASK.md:3 says add returns a minus b. should the spec change? (recommendation: keep the spec as written (size: keeping the spec costs nothing))",
     "## doubts",
     "- none raised",
+    "## reasons",
+    "- worker: none given",
+    "- patcher: none given",
+    "- why_unbacked: 0",
     "## changed",
     "- not a git checkout, so what changed is not recorded",
     "## read",
@@ -192,6 +200,7 @@
         "did": [
           "add(1, 2) is -1: calc.py:2 returns a - b"
         ],
+        "because": [],
         "verified": [
           {
             "claim": "the test fails on the code as it stands",
@@ -285,6 +294,7 @@
         "did": [
           "wrote no patch"
         ],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -329,6 +339,10 @@
     "## why",
     "patcher handed over this before the stop, not taken as done:",
     "- wrote no patch",
+    "worker's reasons, and what each led to:",
+    "- none given",
+    "patcher's reasons, and what each led to:",
+    "- none given",
     "## not done",
     "- not done: the run stopped at patcher.md; left to run: patcher.md",
     "## product gaps",

@@ -297,6 +297,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -378,6 +379,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -453,6 +455,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -530,6 +533,7 @@
         "did": [
           "escalated the rounding question"
         ],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -623,6 +627,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -730,6 +735,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -837,6 +843,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],

@@ -20,6 +20,7 @@ import re
 from pathlib import Path
 
 from agentweft.runner import front, stops
+from agentweft.runner.summary import UNHELD
 
 FILE = "handoff.md"
 DONE, STOPPED, PARKED, FAILED = "done", "stopped", "parked", "failed"
@@ -119,7 +120,8 @@ def items(lines):
 
 def score(text, correct=None):
     """-> {"path", "outcome", "points": [{"point", "name", "got", "line"}],
-    "earned", "applicable", "score"} for a handoff's text. `got` is 1, 0, or
+    "earned", "applicable", "score", "backing", "why_unbacked"} for a
+    handoff's text. `got` is 1, 0, or
     None when the point does not apply to the run's path. `correct` is what
     the hidden suite found of the tree, when a bench knows it: a done word
     on a tree it finds red is not a true outcome."""
@@ -146,7 +148,7 @@ def score(text, correct=None):
     return {"path": path, "outcome": word, "points": out, "earned": earned,
             "applicable": len(held),
             "score": round(10.0 * earned / len(held), 1) if held else 0,
-            "backing": backing(secs)}
+            "backing": backing(secs), "why_unbacked": unbacked(secs)}
 
 
 def backing(secs):
@@ -318,8 +320,56 @@ def _why(c):
                          for l in lines):
         return 0, (str(len(tried)) + " alternatives tried and dropped sit"
                    " outside the why section")
-    return 1, "the cause and the fix" + (" against the alternatives"
-                                         if tried else "") + " in one section"
+    said = ("the cause and the fix" + (" against the alternatives"
+                                       if tried else "") + " in one section")
+    gave = reasons(c["secs"])
+    if gave is None:
+        return 1, said
+    if _conflict(c):
+        return 1, said + "; the reasons rule not applicable on a conflict stop"
+    unheld = sum(1 for held in gave.values() for h in held if not h)
+    if unheld:
+        return 0, (str(unheld) + " reason" + ("" if unheld == 1 else "s")
+                   + " not in the record")
+    bare = [role for role, held in gave.items() if not any(held)]
+    if bare:
+        return 0, ", ".join(bare) + " gave no reason the record holds"
+    n = sum(len(held) for held in gave.values())
+    return 1, said + "; " + str(n) + " reason" + ("" if n == 1 else "s") \
+        + " resolved"
+
+
+REASON = re.compile(r"^- ([\w.-]+): (?:(none given)|because .* -> (.*))$")
+
+
+def reasons(secs):
+    """-> {role: [whether the record holds each of its reasons]} off the
+    reasons section, [] for a writing step that gave none; None when the
+    handoff has no such section."""
+    if "reasons" not in secs:
+        return None
+    out = {}
+    for line in secs["reasons"]:
+        m = REASON.match(line)
+        if m:
+            held = out.setdefault(m.group(1), [])
+            if not m.group(2):
+                held.append(m.group(3).strip() != UNHELD)
+    return out
+
+
+def unbacked(secs):
+    """-> the run's why_unbacked count off its reasons section, 0 for none."""
+    for line in secs.get("reasons", []):
+        if line.startswith("- why_unbacked: "):
+            n = line.split(": ", 1)[1].strip()
+            return int(n) if n.isdigit() else 0
+    return 0
+
+
+def _conflict(c):
+    return any(CAUSE.match(l) and CAUSE.match(l).group(1) == stops.CONFLICT
+               for l in c["secs"].get("run", []))
 
 
 def _not_done(c):
@@ -445,7 +495,9 @@ def summary(rows):
                      "mean": _num(round(sum(r["score"] for r in mine)
                                         / float(len(mine)), 1)),
                      "missed": missed, "not_applicable": skipped,
-                     "backing": kinds}
+                     "backing": kinds,
+                     "why_unbacked": sum(r.get("why_unbacked", 0)
+                                         for r in mine)}
     return out
 
 
@@ -476,7 +528,8 @@ def table(rows):
                    + ("" if s["runs"] == 1 else "s") + ", mean "
                    + str(s["mean"]) + ", missed " + (missed or "none")
                    + ", verified lines backed by "
-                   + (by_kind(s["backing"]) or "none"))
+                   + (by_kind(s["backing"]) or "none")
+                   + ", why_unbacked " + str(s["why_unbacked"]))
     return "\n".join(out)
 
 

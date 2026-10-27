@@ -34,6 +34,8 @@
     "## why",
     "worker handed over this before the stop, not taken as done:",
     "- add(1, 2) is -1: calc.py:2 returns a - b",
+    "worker's reasons, and what each led to:",
+    "- none given",
     "## not done",
     "- not done: the run stopped at patcher.md; left to run: patcher.md",
     "## product gaps",
@@ -60,6 +62,9 @@
     "- nothing assumed, or no step said",
     "## doubts",
     "- none raised",
+    "## reasons",
+    "- worker: none given",
+    "- why_unbacked: 0",
     "## changed",
     "- not a git checkout, so what changed is not recorded",
     "## read",
@@ -104,6 +109,10 @@
     "## why",
     "patcher did:",
     "- add returns a + b; it subtracted",
+    "worker's reasons, and what each led to:",
+    "- none given",
+    "patcher's reasons, and what each led to:",
+    "- none given",
     "## not done",
     "doubts, left as they are:",
     "- nothing else calls add, so no caller was checked (patcher)",
@@ -115,6 +124,10 @@
     "- nothing assumed, or no step said",
     "## doubts",
     "- patcher: nothing else calls add, so no caller was checked",
+    "## reasons",
+    "- worker: none given",
+    "- patcher: none given",
+    "- why_unbacked: 0",
     "## changed",
     "- not a git checkout, so what changed is not recorded",
     "## read",
@@ -259,6 +272,7 @@
         "did": [
           "add(1, 2) is -1: calc.py:2 returns a - b"
         ],
+        "because": [],
         "verified": [
           {
             "claim": "the test fails on the code as it stands",
@@ -422,6 +436,7 @@
         "did": [
           "add returns a + b; it subtracted"
         ],
+        "because": [],
         "verified": [
           {
             "claim": "1 passed",
@@ -474,6 +489,8 @@
       "## why",
       "worker handed over this before the stop, not taken as done:",
       "- add(1, 2) is -1: calc.py:2 returns a - b",
+      "worker's reasons, and what each led to:",
+      "- none given",
       "## not done",
       "- not done: the run stopped at patcher.md; left to run: patcher.md",
       "## product gaps",
@@ -517,6 +534,10 @@
       "## why",
       "patcher did:",
       "- add returns a + b; it subtracted",
+      "worker's reasons, and what each led to:",
+      "- none given",
+      "patcher's reasons, and what each led to:",
+      "- none given",
       "## not done",
       "doubts, left as they are:",
       "- nothing else calls add, so no caller was checked (patcher)",

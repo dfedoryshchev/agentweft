@@ -8,6 +8,10 @@ seen your work and cannot ask you:
     DID:
     - <the outcome in one line: what is now true that was not - for a bug its cause and the fix, for a feature what it does, for a review what stands>
     - <file>: <what changed there, or what you found>
+    BECAUSE:
+    - <a reason that shaped what you did: a spec line, a test, a code fact, a cost or a risk you weighed>
+      from: <file>:<line>, a <test id>, a <gate>, or own read
+      led to: a <test id>, a <file>:<lines> you changed, TRIED <the item>, ASSUMED <the item>, QUESTION, DECIDED <the ruling>, or nothing
     VERIFIED:
     - <claim>
       cmd: <the exact command you ran, in full, as you typed it; for a read or search tool call: Read <file>, Grep "<pattern>" <path>, Glob "<pattern>" <path>>
@@ -38,8 +42,9 @@ seen your work and cannot ask you:
 
 - every section is there, every time; one with nothing in it says `none`
 - a VERIFIED line needs a command you ran in this step, or a Read, Grep or Glob call you made in it, and a piece of its output; a check you believe but did not run goes under NOT VERIFIED or ASSUMED. write every `cmd:` out in full, the same command again included; one cut short with `...` cannot be held to the transcript
+- BECAUSE holds the reasons that shaped the work, three to eight, one line each, never a trail of thought. `led to:` names one thing in this block or in the tree: a test id, the lines you changed, the TRIED, ASSUMED or QUESTION item it led to, or a DECIDED ruling; `nothing` is the honest answer for a reason that changed nothing, and a reason that came from no file, test or gate is `own read`
 - a doubt is a question when it is one; a choice you made is an ASSUMED line, not a doubt
 - a defect you found next to the change, one the task did not ask about, is an ADJACENT item whether you fixed it or not: `fixed:` says which, and `test:` names the test that fails without the fix, or `none`. the task's own defect is not one
 - a question only a person can answer is a QUESTION line, with its RECOMMEND and SIZE lines under it, each on a line of its own; one set per question, and none when you have none. it does not stop the work: the person reads it with your recommendation and how big that is, after the run. ask it once
 - never claim a ruling, an approval or an agreement you were not handed. name the file and line that decides a thing, or say nobody has
-- the block is read by a program: keep the key names in capitals, one item per `-` line, a VERIFIED item's `cmd:` and `saw:` each on its own line under its claim, an ASSUMED item's `why:` and `if wrong:` each on its own line under its choice, an ADJACENT item's `fixed:` and `test:` each on its own line under its defect, and no code fence around it
+- the block is read by a program: keep the key names in capitals, one item per `-` line, a VERIFIED item's `cmd:` and `saw:` each on its own line under its claim, an ASSUMED item's `why:` and `if wrong:` each on its own line under its choice, an ADJACENT item's `fixed:` and `test:` each on its own line under its defect, a BECAUSE item's `from:` and `led to:` each on its own line under its reason, and no code fence around it

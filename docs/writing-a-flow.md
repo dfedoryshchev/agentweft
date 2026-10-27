@@ -372,7 +372,11 @@ nothing on it.
 
 once the handoff is written, every run that ends hands the retro role
 (`roles/library/retro.md`) its record, with the retro skill
-(`skills/retro/SKILL.md`) as the procedure: the why line of each failed
+(`skills/retro/SKILL.md`) as the procedure: first the reasons each step
+gave for its work (its BECAUSE items, by seq and step, each with where it
+came from and what it led to), which the retro reads a fact's `why` off
+first, a fact born from one that cites a file line taking that line as its
+evidence; then the why line of each failed
 attempt (a gate that failed, a send-back, a stop), each gate that could not
 do its job (an `issue`, `docs/gates.md`) and each shell write a step went on
 past after the hook refused it, by seq and step; each step's DID, ASSUMED,

@@ -5,8 +5,8 @@ fine while a step only ever produced prose, but the reviewer now produces a
 verdict as well and the fanout produces several pieces, and both of those were
 being smuggled through the same string.
 
-every step's answer now ends with a HANDOFF block: what it did, what it
-verified and how, what it did not verify, what it assumed, what it doubts,
+every step's answer now ends with a HANDOFF block: what it did, the reasons
+that shaped it and what each led to, what it verified and how, what it did not verify, what it assumed, what it doubts,
 what it found beside the change and whether it fixed it, what the rest of
 the work must not miss, what it tried and dropped, what it read. the block is parsed here onto the step's line in steps.jsonl, handed to
 the next step at the top of its prompt, and folded into the run's handoff.md.
@@ -41,8 +41,8 @@ from pathlib import Path
 
 from . import verbs
 
-SECTIONS = (("DID", "did"), ("VERIFIED", "verified"),
-            ("NOT VERIFIED", "not_verified"), ("ASSUMED", "assumed"),
+SECTIONS = (("DID", "did"), ("BECAUSE", "because"),
+            ("VERIFIED", "verified"), ("NOT VERIFIED", "not_verified"), ("ASSUMED", "assumed"),
             ("DOUBTS", "doubts"), ("ADJACENT", "adjacent"),
             ("MUST NOT MISS", "must_not_miss"),
             ("TRIED", "tried"), ("READ", "read"))
@@ -65,7 +65,9 @@ OPEN = re.compile("^" + DECOR + r"HANDOFF[\s*`_:]*$", re.I)
 CLOSE = re.compile("^" + DECOR + r"END HANDOFF[\s*`_:.]*$", re.I)
 NONE_WORDS = ("", "none", "nothing", "-", "n/a", "na", "none.")
 PART = re.compile(r"^(cmd|command|ran|saw|output)\s*:\s*(.*)$", re.I)
-BECAUSE = re.compile(r"^(why|if wrong)\s*:\s*(.*)$", re.I)
+ASSUMING = re.compile(r"^(why|if wrong)\s*:\s*(.*)$", re.I)
+CITED = re.compile(r"^(from|led to)\s*:\s*(.*)$", re.I)
+OLD_CITED = re.compile(r"\s*\|\s*(from|led to)\s*:\s*", re.I)
 FOUND = re.compile(r"^(fixed|test)\s*:\s*(.*)$", re.I)
 ABOVE = re.compile(r"^\(?\s*(?:the\s+)?(?:same(?:\s+(?:command|cmd))?"
                    r"(?:\s+as\s+(?:above|before|the\s+one\s+above))?"
@@ -121,7 +123,8 @@ def parse(text):
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
     is kept under `other` as the step wrote it. an ASSUMED item's `why:` and
     `if wrong:` lines are its own, kept on lines of their own under the
-    choice, and so are an ADJACENT item's `fixed:` and `test:` lines; the
+    choice, and so are an ADJACENT item's `fixed:` and `test:` lines and a
+    BECAUSE item's `from:` and `led to:` lines; the
     older one-line form with `|` stays one line. `QUESTION:`
     opens an open question, and the `RECOMMEND:` and `SIZE:` lines after it
     are its own, under `questions`; `QUESTION: none` asks nothing.
@@ -137,8 +140,11 @@ def parse(text):
         if items is out["verified"] and items and _labelled(line):
             items[-1] = items[-1] + "\n" + _labelled(line)
             continue
-        if items is out["assumed"] and items and _labelled(line, BECAUSE):
-            items[-1] = items[-1] + "\n" + _labelled(line, BECAUSE)
+        if items is out["assumed"] and items and _labelled(line, ASSUMING):
+            items[-1] = items[-1] + "\n" + _labelled(line, ASSUMING)
+            continue
+        if items is out["because"] and items and _labelled(line, CITED):
+            items[-1] = items[-1] + "\n" + _labelled(line, CITED)
             continue
         if items is out["adjacent"] and items and _labelled(line, FOUND):
             items[-1] = items[-1] + "\n" + _labelled(line, FOUND)
@@ -194,11 +200,31 @@ def parse(text):
 
 def _labelled(line, labels=PART):
     """-> a `cmd:` / `saw:` line under a VERIFIED claim, or with `labels`
-    BECAUSE a `why:` / `if wrong:` line under an ASSUMED one, bullet taken
+    ASSUMING a `why:` / `if wrong:` line under an ASSUMED one, bullet taken
     off, or None for any other line."""
     m = verbs.BULLET.match(line)
     body = (m.group(1) if m else line).strip()
     return body if labels.match(body) else None
+
+
+def reason(item):
+    """a BECAUSE item -> {"reason", "from", "led_to"}: the reason on its
+    first line, its `from:` and `led to:` lines under it, or after a `|` on
+    the one line."""
+    out = {"reason": "", "from": "", "led_to": ""}
+    field = "reason"
+    for line in item.split("\n"):
+        bits = OLD_CITED.split(line.strip())
+        pairs = list(zip(bits[1::2], bits[2::2]))
+        m = CITED.match(bits[0])
+        if m:
+            pairs.insert(0, (m.group(1), m.group(2)))
+        elif bits[0]:
+            out[field] = (out[field] + " " + bits[0]).strip()
+        for label, value in pairs:
+            field = "from" if label.lower() == "from" else "led_to"
+            out[field] = value.strip()
+    return out
 
 
 def claim(item):
@@ -609,7 +635,7 @@ def merge(blocks):
                       + " tasks handed over a block")
     for b in present:
         for _, key in SECTIONS:
-            out[key].extend(b[key])
+            out[key].extend(b.get(key) or [])
         out["questions"].extend(b.get("questions") or [])
         for key, items in b["other"].items():
             out["other"].setdefault(key, []).extend(items)

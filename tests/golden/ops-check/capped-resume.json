@@ -228,6 +228,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -356,6 +357,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],
@@ -463,6 +465,7 @@
       "handoff": {
         "state": "missing",
         "did": [],
+        "because": [],
         "verified": [],
         "not_verified": [],
         "assumed": [],

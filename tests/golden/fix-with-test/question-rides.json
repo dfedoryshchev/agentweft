@@ -23,6 +23,10 @@
     "## why",
     "patcher did:",
     "- add returns a + b; it subtracted",
+    "worker's reasons, and what each led to:",
+    "- none given",
+    "patcher's reasons, and what each led to:",
+    "- none given",
     "## not done",
     "doubts, left as they are:",
     "- when both arguments are wrong, which error is reported first? assumed: the first argument's, the order add already checks in (size: Zero code lines) (patcher)",
@@ -34,6 +38,10 @@
     "- nothing assumed, or no step said",
     "## doubts",
     "- patcher: when both arguments are wrong, which error is reported first? assumed: the first argument's, the order add already checks in (size: Zero code lines)",
+    "## reasons",
+    "- worker: none given",
+    "- patcher: none given",
+    "- why_unbacked: 0",
     "## changed",
     "- not a git checkout, so what changed is not recorded",
     "## read",
@@ -168,6 +176,7 @@
         "did": [
           "add(1, 2) is -1: calc.py:2 returns a - b"
         ],
+        "because": [],
         "verified": [
           {
             "claim": "the test fails on the code as it stands",
@@ -278,6 +287,7 @@
         "did": [
           "add returns a + b; it subtracted"
         ],
+        "because": [],
         "verified": [
           {
             "claim": "1 passed",
@@ -430,6 +440,10 @@
     "## why",
     "patcher did:",
     "- add returns a + b; it subtracted",
+    "worker's reasons, and what each led to:",
+    "- none given",
+    "patcher's reasons, and what each led to:",
+    "- none given",
     "## not done",
     "doubts, left as they are:",
     "- when both arguments are wrong, which error is reported first? assumed: the first argument's, the order add already checks in (size: Zero code lines) (patcher)",

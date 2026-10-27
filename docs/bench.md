@@ -272,7 +272,12 @@ order:
    record from before the handoff named it) and how many a command alone
    backs; each path's summary line carries the same counts
 7. `why in one section`: the why section says what was done, and the
-   alternatives tried and dropped sit in it, not only under carry forward
+   alternatives tried and dropped sit in it, not only under carry forward.
+   on a handoff with a `## reasons` section, every role listed there gives
+   at least one reason the record holds and none it does not (`(not in the
+   record)`), else 0 with the count or the role named; a conflict stop is
+   held to the first half only. each run keeps its `why_unbacked` count, and
+   each path's summary line sums it
 8. `not done said plainly`: the section is there; on a stop a line of its own
    starts `- not done:` or `- not fixed:`
 9. `no false line`: none of the known false lines: "instead of doing the

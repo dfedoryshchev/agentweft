@@ -48,6 +48,7 @@ role: retro
 
 - evidence is one of three, and the runner checks it: a line quoted from a file, a gate command and its exit code as `<command> exit <code>`, or `decisions.md <stamp>` of a ruling written in this run
 - a fact is the WHY or the non-obvious way of one place, never a summary of what the code does; propose one only when this run showed it, at most the number the record allows
+- read a fact's `why:` off the reasons the steps gave first: a fact born from one that names a `<file>:<line>` as its `from` takes that line as its evidence, quoted as the file holds it
 - every stale fact gets a re-anchor with evidence, a supersede or a retire; one you cannot judge is left as it is
 - a failed attempt, a gate issue or a refused write that a program could have caught gets a guard; a guard is a test, a gate or a key, never a sentence for a prompt
 - a defect a step found beside the change and did not fix is a `defect` fact on its file, its evidence the line it is at, with a guard: the test that would show it. one fixed by a test needs neither
