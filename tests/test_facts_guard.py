@@ -151,6 +151,57 @@ def test_a_gate_issue_naming_an_os_error_code_is_the_machines_and_refused(
     assert facts.read(tmp_path) == []
 
 
+HOSTED = ("is how this host behaved, not the project's way: a later run on"
+          " another machine would be handed it as a rule of the project")
+
+
+def test_a_convention_about_the_runs_own_shell_is_refused(tmp_path):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(proposal(
+        kind="convention",
+        claim="line-break and non-ASCII characters in tests are written as"
+              " Python escapes such as \\N{LINE SEPARATOR}, never as raw"
+              " bytes, and the file is written with the Write tool, not a"
+              " shell",
+        why="in this Windows Git Bash, sed, heredocs and python -c lost"
+            " backslash escapes and non-ASCII characters on the way to"
+            " files; patcher had to revert reader.py with git checkout"),
+        record)
+    assert fact is None
+    assert why == ("a convention that names the run's own machine or shell"
+                   " (this Windows) " + HOSTED)
+    assert facts.read(tmp_path) == []
+
+
+def test_a_gate_issue_about_the_runs_own_host_is_refused(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    for claim in ("Under the red-first and full-suite gates, tests that start"
+                  " the CLI through `run_cli` fail with OSError WinError 87."
+                  " The same tests pass when run by hand in the step shell.",
+                  "the gate's pytest cannot start the CLI on this machine;"
+                  " by hand it starts"):
+        fact, why = store.add(proposal(kind="gate-issue", scope=["pkg/"],
+                                       claim=claim), record)
+        assert fact is None, claim
+    assert why == ("a gate-issue that names the run's own machine or shell"
+                   " (this machine) " + HOSTED)
+
+
+def test_a_convention_that_names_an_os_for_the_product_is_written(tmp_path):
+    store, record = a_store(tmp_path, cap=9)
+    for n, (claim, why) in enumerate((
+            ("paths are written with forward slashes on every OS",
+             "the CLI supports Windows, macOS and Linux alike"),
+            ("parse never starts a shell: subprocess runs with shell=False",
+             "a line of input must never reach a shell"),
+            ("rounding boundary tests use decimal boundaries, not whole"
+             " numbers", "at whole-number boundaries half-even also rounds"
+             " up, so those tests passed without the fix"))):
+        fact, said = store.add(proposal(kind="convention", claim=claim,
+                                        why=why), record)
+        assert said == "" and fact is not None, claim
+
+
 def test_a_gate_issue_of_the_project_is_held_like_any_fact(tmp_path):
     store, record = a_store(tmp_path)
     fact, why = store.add(proposal(kind="gate-issue", scope=["pkg/"],

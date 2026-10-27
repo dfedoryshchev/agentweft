@@ -494,7 +494,13 @@ is written; a refused one is not written and its reason is kept:
    `wip`, `investigation` or none. a `gate-issue` that names an OS error code
    (`WinError 87`, `Errno 22`) is refused: it is what the machine raised as
    the run went (`gates.md`, the fault a gate runs once more), not the
-   project's, and a later run on a sound machine would be handed it.
+   project's, and a later run on a sound machine would be handed it. a
+   `convention` or `gate-issue` whose claim or why names the run's own shell
+   or host (Git Bash, PowerShell, `cmd.exe`, MSYS, Cygwin, `python -c`, a
+   heredoc, antivirus, an OS error code, or "this machine", "this shell",
+   "this Windows" and the like) is refused the same way. an OS or a shell
+   named for the product ("paths use forward slashes on every OS", "the CLI
+   never starts a shell") is not the host and is written.
 3. every scope is in the place: the file, the folder, a file a glob matches,
    or `.`. a scope that is absolute, starts with a drive, names `..` or
    leads out of the place through a link is refused (`the scope ../ is

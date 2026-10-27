@@ -23,7 +23,8 @@ and a fact the runner is asked to write is held to the record before
 anything is written (`Store.add`): no secret in any field, a one-line claim
 and a why, no `|`, a known kind and label, no `gate-issue` that names an OS
 error code (`WinError n`, `Errno n`: what the machine raised as the run went,
-which a later run on a sound machine would be handed as the project's), every
+which a later run on a sound machine would be handed as the project's), no
+convention or gate-issue that names the run's own shell or host, every
 scope in the place, evidence
 the runner can check (a quoted line that is at that line, its escapes read
 (`quote_of`), a command a gate
@@ -62,6 +63,16 @@ SEEN = re.compile(r"(proposed|attached|honoured|contradicted) (\d+)")
 COUNTERS = ("proposed", "attached", "honoured", "contradicted")
 GATE_ISSUE = "gate-issue"
 OS_ERROR = re.compile(r"\[?\b(?:WinError|Errno) \d+\b")
+# the kinds a later run takes as the project's rule
+HOSTED = ("convention", GATE_ISSUE)
+# the run's own shell and host, never the product's: a bare OS name or
+# "shell" is left alone, since a product may support Windows or never start
+# a shell
+HOST = re.compile(
+    r"\b(?:git bash|powershell|cmd\.exe|msys2?|mingw(?:64)?|cygwin"
+    r"|python -c|here-?docs?|antivirus|WinError \d+|Errno \d+)\b"
+    r"|\b(?:this|the run's|the runner's|the step's|the step) (?:machine|host"
+    r"|box|computer|shell|terminal|windows|macos|mac|linux|os)\b", re.I)
 TOKEN = re.compile(
     r"(?:sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}"
     r"|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"
@@ -609,6 +620,15 @@ class Store(object):
             return ("a gate-issue that names an OS error code is the"
                     " machine's state as the run went, not the project's: a"
                     " later run on a sound machine would be handed it")
+        if kind in HOSTED:
+            host = next((m.group(0) for m in (HOST.search(p.get(key))
+                                              for key in ("claim", "why"))
+                         if m), "")
+            if host:
+                return ("a " + kind + " that names the run's own machine or"
+                        " shell (" + host + ") is how this host behaved, not"
+                        " the project's way: a later run on another machine"
+                        " would be handed it as a rule of the project")
         label = p.get("label").strip()
         if label not in facts.LABELS + ("", "none"):
             return ("label " + label + " is not one of "
