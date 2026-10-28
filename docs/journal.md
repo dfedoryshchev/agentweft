@@ -424,6 +424,10 @@ and `continued`
   the same way as a command: a `cmd:` that names the tool, the pattern a
   search looked for and the file it read or searched, whole or by its tail
   (`Grep "def mul" calc.py`, `Read TASK.md`), is held to that call's output.
+  a `Read <file>` with one path after it is held the same way to a shell
+  command that printed that file with cat, head, tail or `sed -n`, and to
+  that call's output; a read whose output went to a file, or a grep of the
+  file, does not back it.
   `by` names what held the claim: `command` (the command's own words),
   `stdin` (a script fed on stdin, by its body), `read` (a Read, Grep or Glob
   call) or `file` (the file line it quotes), null when nothing did. the

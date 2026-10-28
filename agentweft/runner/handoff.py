@@ -26,11 +26,13 @@ points at the command above ("same command as above") is read as the nearest
 one above it. a script fed on stdin is held to its body: every statement
 the `cmd:` cites must be in one such command's body. a Read, Grep or Glob
 call backs a `cmd:` that names the tool, the pattern searched for and the
-file read or searched, whole or by its tail. the model's word for
-what it ran is never taken on its own. a
+file read or searched, whole or by its tail; a `Read <file>` with one path
+is also backed by a shell command that printed that file. the model's word
+for what it ran is never taken on its own. a
 claim that quotes a file instead, `<file>:<line> "<the line>"`, is held to
 that line as the run found it. each claim keeps `by`, what held it:
-`command`, `stdin`, `read` (a Read, Grep or Glob call) or `file`, None
+`command`, `stdin`, `read` (a Read, Grep or Glob call, or the shell call
+that printed the file a `Read <file>` names) or `file`, None
 when nothing did, so a count of backed claims can be split by the kind that
 backs them.
 """
@@ -81,6 +83,8 @@ HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
 # the tools that read or search, held as a call the way a Bash command is
 TOOLS = ("Read", "Grep", "Glob")
 WORD = re.compile(r"[^\s\"'`()]+")
+READ_ONE = re.compile(r"^Read\s+[`'\"]?([^\s`'\"]+)[`'\"]?$")
+TO_FILE = re.compile(r"(?:^|\s)[1&]?>>?(?!&)")
 
 PROJECTS = None
 
@@ -383,6 +387,18 @@ def by_tool(cited, call):
     return not parts[2] or _names(cited, parts[2])
 
 
+def by_shell_read(cited, cmd):
+    """whether `cited`, `Read <file>` with one path, names a file the shell
+    command `cmd` printed with cat, head, tail or `sed -n`, whole or by its
+    tail. a read whose output goes to a file printed nothing."""
+    m = READ_ONE.match((cited or "").strip())
+    if not m or cmd.split("\t")[0] in TOOLS:
+        return False
+    return any(_names(m.group(1), path)
+               for part in SEGMENT.split(cmd or "") if not TO_FILE.search(part)
+               for path, _ in _shell_reads(part))
+
+
 def back(block, calls):
     """mark every VERIFIED claim against the (command, output) pairs the
     step's transcript holds. `calls` None means there is no transcript."""
@@ -403,7 +419,9 @@ def back(block, calls):
         for cmd, out in calls:
             kind = (BY_COMMAND if want and want in norm(cmd) else
                     BY_STDIN if want and by_stdin(item["cmd"], cmd) else
-                    BY_READ if want and by_tool(item["cmd"], cmd) else None)
+                    BY_READ if want and (by_tool(item["cmd"], cmd)
+                                         or by_shell_read(item["cmd"], cmd))
+                    else None)
             if kind:
                 ran.append(out)
                 kinds.append(kind)

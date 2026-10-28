@@ -236,6 +236,46 @@ def test_a_claim_no_read_or_search_call_holds_stays_unbacked(
     assert item["backed"] == "unbacked", item
 
 
+PRINTED = "  14\t    if not m or int(m.group(1)) < 1:\n  15\t        raise\n"
+
+
+@pytest.mark.parametrize("command, cited", [
+    ("cat -n place/dates.py place/cli.py", "Read place/dates.py"),
+    ("cat -n place/dates.py place/cli.py", "Read dates.py"),
+    ("cd /w && cat /w/place/dates.py | head -40", "Read place/dates.py"),
+    ("sed -n 10,20p place/dates.py", "Read `place/dates.py`")])
+def test_a_read_line_is_backed_by_the_shell_call_that_printed_that_file(
+        command, cited):
+    block = verified("- the month is checked\n  cmd: " + cited
+                     + "\n  saw: if not m or int(m.group(1)) < 1\n")
+    [item] = handoff.back(block, [(command, PRINTED)])["verified"]
+    assert (item["backed"], item["by"]) == ("backed", "read"), item
+
+
+@pytest.mark.parametrize("command, cited", [
+    ("cat -n place/dates.py place/cli.py", "Read place/money.py"),
+    ('grep -n "if not m" place/dates.py', "Read place/dates.py"),
+    ("cat place/dates.py > copy.py && cat place/cli.py", "Read place/dates.py"),
+    ("cat -n place/dates.py", "Read via sed -n 10,20p place/dates.py"),
+    ("cat -n place/dates.py place/cli.py", "Read place/dates.py place/cli.py"),
+    ("cat -n place/dates.py", "read the file place/dates.py")])
+def test_a_read_line_no_shell_call_printed_that_file_for_stays_unbacked(
+        command, cited):
+    block = verified("- the month is checked\n  cmd: " + cited
+                     + "\n  saw: if not m or int(m.group(1)) < 1\n")
+    [item] = handoff.back(block, [(command, PRINTED)])["verified"]
+    assert item["backed"] == "unbacked", item
+
+
+def test_a_read_line_whose_excerpt_the_printed_file_does_not_show_is_unbacked():
+    block = verified("- the month is checked\n  cmd: Read place/dates.py\n"
+                     "  saw: if not m or int(m.group(1)) < 0\n")
+    [item] = handoff.back(block, [("cat -n place/dates.py", PRINTED)])[
+        "verified"]
+    assert item["backed"] == "unbacked"
+    assert "does not show" in item["why"]
+
+
 @pytest.mark.parametrize("calls, cited, saw, by", [
     ([("cd /w && python -m pytest -q", "1 passed in 0.02s")],
      "python -m pytest -q", "1 passed", "command"),
