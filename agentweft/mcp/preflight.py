@@ -27,14 +27,15 @@ NO_RANKING = "no ranking to check against"
 
 def parse_ranking(text):
     """`path score` per line, which is what every ranking i have seen emits.
-    anything it cannot parse is skipped rather than guessed at."""
+    anything it cannot parse is skipped rather than guessed at. the path is
+    all of the line before its score, a space in it included."""
     out = {}
     for line in (text or "").split(chr(10)):
-        parts = line.strip().split()
+        parts = line.strip().rsplit(None, 1)
         if len(parts) < 2:
             continue
         try:
-            out[parts[0].rstrip(":")] = float(parts[-1])
+            out[parts[0].strip().rstrip(":")] = float(parts[-1])
         except ValueError:
             continue
     return out

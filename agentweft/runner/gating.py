@@ -373,6 +373,14 @@ def reviewers_on(run, fm, step, sizing):
 HUNK_NEW = re.compile(r"^@@ -\S+ \+(\d+)")
 
 
+def _header(line, side):
+    """-> the path on a `---` / `+++` line of `side`, None for another."""
+    if not line.startswith(side):
+        return None
+    # git ends the header with a tab when the path holds a space
+    return line[len(side):].rstrip("\t")
+
+
 def added_since_start(run):
     """-> {path from the top of the repo: ([(line number, line)] added, how
     many taken out)} for what the run changed since it started, read from
@@ -390,11 +398,11 @@ def added_since_start(run):
         if line.startswith("+++ "):
             # a deleted file's new side is /dev/null: its lines taken out
             # count under the path it had
-            path = line[6:] if line.startswith("+++ b/") else old
+            path = _header(line, "+++ b/") or old
             if path is not None:
                 files.setdefault(path, [[], 0])
         elif line.startswith("--- "):
-            old = line[6:] if line.startswith("--- a/") else None
+            old = _header(line, "--- a/")
             continue
         elif line.startswith("@@"):
             m = HUNK_NEW.match(line)

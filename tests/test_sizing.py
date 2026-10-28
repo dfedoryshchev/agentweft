@@ -181,6 +181,18 @@ def test_a_changed_tracked_file_is_sized_whatever_its_name(tmp_path, name):
     assert got["logic_lines"] == 3
 
 
+def test_a_changed_tracked_file_with_a_space_is_matched_to_the_risk_map(
+        tmp_path):
+    repo = a_repo(tmp_path, {"core/big engine.py": "x = 1" + NL,
+                             "calc.py": "x = 1" + NL})
+    _, size = sized_now(repo, "core/big engine.py 0.92" + NL + "calc.py 0.1")
+    (repo / "core" / "big engine.py").write_text("x = 2" + NL,
+                                                 encoding="utf-8")
+    got = size()
+    assert got["blast"] == "high", got
+    assert "core/big engine.py is ranked 0.92 on the risk map" in got["why"]
+
+
 def test_a_deleted_dependency_manifest_is_high_blast(tmp_path):
     repo = a_repo(tmp_path, {"requirements.txt": "requests==2.32.0" + NL})
     _, size = sized_now(repo, COLD)
