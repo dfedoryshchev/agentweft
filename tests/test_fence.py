@@ -339,3 +339,18 @@ def test_a_scored_run_that_forges_a_ruling_and_hits_the_fence_says_both(
     _, _, why = engine.run_once("fenced")
     assert why.startswith("fenced at worker.md: ")
     assert FORGED in why and ".env (changed)" in why
+
+
+def test_a_retro_file_leaves_the_fence_only_while_it_holds_the_retros_bytes(
+        tmp_path):
+    import hashlib
+
+    place = a_repo(tmp_path / "p")
+    (place / "guard_test.py").write_text("def test_a():\n    pass\n",
+                                         encoding="utf-8")
+    wrote = hashlib.sha256((place / "guard_test.py").read_bytes()).hexdigest()
+    f = fence.Fence(place)
+    f.kept_out({"guard_test.py": wrote, "wip.md": "0" * 64})
+    (place / "guard_test.py").unlink()
+    (place / "wip.md").unlink()
+    assert f.crossed() == [("wip.md", "removed")]

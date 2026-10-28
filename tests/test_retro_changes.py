@@ -5,6 +5,8 @@ import hashlib
 import json
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.guardrails import factsguard, fence, snapshot
 from agentweft.runner import engine, prompts, resume, retro, state, stops
@@ -328,7 +330,8 @@ def test_the_fence_takes_a_guard_the_runner_wrote_as_the_runs_own(tmp_path):
         "def test_x():" + NL + "    assert 1" + NL, encoding="utf-8")
     assert held.crossed() == [("tests/test_order_guard.py", "changed")]
     held = fence.Fence(place)
-    held.kept_out(["tests/test_order_guard.py"])
+    held.kept_out({"tests/test_order_guard.py": sha(
+        (place / "tests" / "test_order_guard.py").read_bytes())})
     (place / "tests" / "test_order_guard.py").unlink()
     assert held.crossed() == []
 
@@ -439,3 +442,29 @@ def test_an_edit_is_refused_on_a_text_file_a_package_ships(tmp_path):
         "pkg/prompts/ask.md is in a python package")
     assert refusal_of(tmp_path, "pkg/README.md", "parse lists.",
                       "parse lists words.") == ""
+
+
+@pytest.mark.parametrize("tracked", [False, True])
+def test_an_edit_is_refused_on_a_doc_not_committed_when_the_run_began(
+        tmp_path, monkeypatch, tracked):
+    place = a_documented_place(tmp_path)
+    notes = "# notes" + NL + NL + "report.py sorts the names." + NL
+    if tracked:
+        (place / "README.md").write_text(notes, encoding="utf-8")
+        rel = "README.md"
+    else:
+        (place / "NOTES.md").write_text(notes, encoding="utf-8")
+        rel = "NOTES.md"
+    start = head(place)
+    steps = TESTER + WORKER + "commits: wip" + NL + "retro: true" + NL
+    does = dict(CASES["red first, then the fix"][1])
+    does["retro.md"] = ({}, block(DOC_REPORT.replace("README.md", rel)))
+    assert run_build(tmp_path, monkeypatch, place, steps, does) \
+        == stops.EXIT_OK
+    assert (place / rel).read_text(encoding="utf-8") == notes
+    note = (folders()[-1] / "handoff.md").read_text(encoding="utf-8")
+    assert ("- refused a doc change to " + rel + ": " + rel + " was not"
+            " committed when the run started") in note
+    named = git(place, "log", "--format=", "--name-only",
+                start + "..HEAD").split()
+    assert rel not in named

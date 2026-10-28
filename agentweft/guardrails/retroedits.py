@@ -10,6 +10,8 @@ runner writes it into the working tree, unstaged, only when:
   but its README (it ships with the code), not a spec (the person's word),
   not a test (a test comes in as a guard), not a file that holds a
   credential, and not under facts/ or the runner's own folder;
+- the file was committed as it stood when the run started: one untracked
+  or changed and not committed then has no copy but the person's;
 - the `now:` words are in it as written, once;
 - every name the `after:` words quote, a `code span` or a `--flag`, is in a
   file of the tree as left that is not a doc, or is a command a gate of this
@@ -174,13 +176,34 @@ def place_refusal(root, rel, own):
     return ""
 
 
-def edit_refusal(root, rel, fields, record, tree, own=None):
+def uncommitted(start):
+    """-> the paths from the place that were not committed as they stood
+    when the run started (`start`, its snapshot): untracked, or changed and
+    not committed. their only copy is the person's."""
+    out = set()
+    if start is None or not getattr(start, "start", None):
+        return out
+    for rel, data in (getattr(start, "loose", None) or {}).items():
+        if data is None:
+            continue
+        try:
+            out.add(start.from_place(rel))
+        except ValueError:
+            continue
+    return out
+
+
+def edit_refusal(root, rel, fields, record, tree, own=None, loose=()):
     """-> (why the edit is not made, "" when it is, the file's text after
-    it). `fields` is the item's: now, after, because, evidence."""
+    it). `fields` is the item's: now, after, because, evidence. `loose` is
+    the files not committed when the run started (`uncommitted`)."""
     rel = facts.norm(rel)
     why = place_refusal(root, rel, own)
     if why:
         return why, None
+    if rel in loose:
+        return (rel + " was not committed when the run started, so its only"
+                " copy is yours"), None
     if is_spec(rel):
         return (rel + " is a spec file, the person's word: a change to it is"
                 " theirs to make"), None
@@ -297,11 +320,14 @@ def write_guard(root, rel, code, base, timeout=TIMEOUT):
 
 class Keeper(object):
     """the edits and guards of one retro: the place, the runner's folder,
-    the cap they share and how the flow starts pytest."""
+    the cap they share, how the flow starts pytest and the files not
+    committed when the run started (`uncommitted`)."""
 
-    def __init__(self, root, own=None, cap=CAP, tests=None, timeout=TIMEOUT):
+    def __init__(self, root, own=None, cap=CAP, tests=None, timeout=TIMEOUT,
+                 loose=()):
         self.root = Path(root)
         self.own = own
+        self.loose = set(loose)
         self.cap = cap
         self.base = starttests.base_of(tests)
         self.timeout = timeout
@@ -320,7 +346,7 @@ class Keeper(object):
         if why:
             return why
         why, text = edit_refusal(self.root, rel, fields, record, self.tree,
-                                 self.own)
+                                 self.own, self.loose)
         if why:
             return why
         (self.root / facts.norm(rel)).write_bytes(text.encode("utf-8"))

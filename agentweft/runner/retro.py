@@ -651,7 +651,9 @@ def kept_up(run, trail, earlier, store, said, run_id):
                              cap=retroedits.cap_of(fm),
                              tests=redorder.test_command(fm)
                              if fm is not None and hasattr(fm, "steps")
-                             else None)
+                             else None,
+                             loose=retroedits.uncommitted(
+                                 getattr(run, "start", None)))
     try:
         return upkeep.maintain(store, record_of(run, trail, earlier), said,
                                run_id, keep=keep)
