@@ -50,7 +50,7 @@ role: retro
 
 - evidence is one of three, and the runner checks it: a line quoted from a file, a gate command and its exit code as `<command> exit <code>`, or `decisions.md <stamp>` of a ruling written in this run
 - a fact is the WHY or the non-obvious way of one place, never a summary of what the code does; propose one only when this run showed it, at most the number the record allows
-- read a fact's `why:` off the reasons the steps gave first: a fact born from one that names a `<file>:<line>` as its `from` takes that line as its evidence, quoted as the file holds it
+- a fact's `why:` rests on the evidence in the record, cited by `<file>:<line>`, a test or a ruling: what each step's reasons led to is listed where the runner found it in the record, and a fact that leans on one cites that place
 - every stale fact gets a re-anchor with evidence, a supersede or a retire; one you cannot judge is left as it is
 - a failed attempt, a gate issue or a refused write that a program could have caught gets a guard; a guard is a test, a gate or a key, never a sentence for a prompt
 - a test guard with `code` is a new python test file (`tests/test_<name>.py`) the runner writes only when it passes on the tree as left, so it holds what the code does now and fails when that breaks; a gate or key guard is for a person to make

@@ -1,11 +1,11 @@
 """`retro: true` on a flow: one last step after every run that ends, once
-the handoff is written. it reads the run's record - the reasons each step
-gave and what each led to, first, then why each failed attempt failed, each
-gate that could not do its job, each shell write a step went on
-after being refused, what each step handed over, the rulings written, the
-files changed, the project's facts that are stale or hold for those files,
-and the docs that name a changed file or a name the diff took out or put
-in - and writes runs/<run id>/retro.md: what failed, why, which gate or
+the handoff is written. it reads the run's record - why each failed attempt
+failed, each gate that could not do its job, each shell write a step went on
+after being refused, what each step handed over, where the record holds what
+each step's reasons led to (never the reasons' own words), the rulings
+written, the files changed, the project's facts that are stale or hold for
+those files, and the docs that name a changed file or a name the diff took
+out or put in - and writes runs/<run id>/retro.md: what failed, why, which gate or
 prompt to change, whether each named doc is current, and a FACTS block of
 what the project's facts and docs should become.
 
@@ -21,6 +21,7 @@ different outcome for the run.
 """
 import json
 import re
+import types
 from pathlib import Path
 
 from agentweft.flow.spec import CONDITIONAL, parks_on_fallback, step_id
@@ -29,7 +30,7 @@ from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
 
-from . import handoff, investigate, manifest, stops, summary, trace, upkeep
+from . import investigate, manifest, stops, summary, trace, upkeep
 from .errors import Fatal, Outage
 from .upkeep import Maintained, execute  # noqa: F401
 
@@ -210,21 +211,47 @@ def handed(lines):
     return out
 
 
-def reasons(lines):
-    """-> a line per BECAUSE item each pass not yet looked at handed over,
-    with its seq and step, where the reason came from and what it led to."""
+def gave_reasons(lines):
+    """-> the lines among `lines` of the passes that gave a reason."""
+    return [(line, folder) for line, folder in lines
+            if line.get("step") != STEP and line.get("outcome") != trace.WARM
+            and isinstance(line.get("handoff"), dict)
+            and line["handoff"].get("because")]
+
+
+# the flow steps a run without a flow spec is read against
+NO_FLOW = types.SimpleNamespace(steps=[])
+
+
+def evidence(run, trail, earlier, lines):
+    """-> a line per reason a pass not yet looked at gave that led to
+    something the record holds, with its seq and step: where the runner
+    found it (`summary.held_at`), never the reason's own words."""
+    giving = gave_reasons(lines)
+    if not giving:
+        return []
+    fm = getattr(run, "fm", None) or NO_FLOW
+    every = [summary.line_pass(line, folder, {}, fm) for line, folder
+             in recorded(trail, earlier, False)
+             if line.get("step") != STEP and line.get("outcome") != trace.WARM]
+    tree = getattr(run, "tree", None)
+    try:
+        changes = tree.changes() if tree is not None else {}
+    except (OSError, ValueError):
+        changes = {}
+    try:
+        decided = list(run.decided())
+    except (OSError, ValueError, AttributeError):
+        decided = []
+    record = summary.record_of(every, changes, decided, getattr(
+        getattr(run, "order", None), "proof", None))
     out = []
-    for line, _ in lines:
-        block = line.get("handoff") or {}
-        if not isinstance(block, dict) or line.get("step") == STEP:
-            continue
-        for item in block.get("because") or []:
-            r = handoff.reason(item if isinstance(item, str) else str(item))
-            out.append("- seq " + str(line.get("seq")) + " "
-                       + str(line.get("step")) + " because "
-                       + stops.flat(r["reason"] + " (from " + (
-                           r["from"] or "own read") + ") -> led to "
-                           + (r["led_to"] or "none named"))[:ITEM])
+    for line, folder in giving:
+        for cite in summary.evidence(summary.line_pass(line, folder, {}, fm),
+                                     record):
+            out.append(("- seq " + str(line.get("seq")) + " "
+                        + str(line.get("step")) + " -> "
+                        + stops.flat(cite))[:ITEM])
     return out
 
 
@@ -328,11 +355,15 @@ def record_of(run, trail, earlier):
 
 
 def parts(looked, rulings, changed, stale, live, cap, docs=(),
-          edits=retroedits.CAP):
+          edits=retroedits.CAP, led=()):
     """-> (heading, lines) for each part of the record after the failed
     attempts, gate issues and refused writes. `changed` is None outside
-    git; `docs` is the docs that name what changed (`retroedits.named`)."""
+    git; `docs` is the docs that name what changed (`retroedits.named`);
+    `led` is where the record holds what each step's reasons led to
+    (`evidence`)."""
     return [("what each step handed over, from steps.jsonl:", handed(looked)),
+            ("what each step's reasons led to, as the runner found it in the"
+             " record:", list(led)),
             ("rulings written in this run, from decisions.md:", rulings),
             ("files this run changed, from git:",
              ["- " + p for p in changed] if changed else
@@ -416,17 +447,16 @@ def unheld(lines):
 
 
 def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
-           more=(), reasons=()):
-    """-> the role, the skill, then this run's record, the reasons the steps
-    gave first. `more` is (heading, lines) for each further part of it."""
+           more=()):
+    """-> the role, the skill, then this run's record. `more` is
+    (heading, lines) for each further part of it. the handoff is handed
+    without the steps' own reasons (`summary.without_reasons`): what each
+    led to is in the record as the runner found it (`evidence`)."""
     text = (resolver.role_prompt(STEP).rstrip("\n") + "\n\n"
             + resolver.skill(ROLE).strip("\n") + "\n\n"
             + "this run:\n- run: " + run_id + "\n- flow: " + flow
-            + "\n- outcome: " + outcome + "\n\n")
-    if reasons:
-        text = (text + "the reasons each step gave for its work and what each"
-                " led to, from steps.jsonl:\n" + "\n".join(reasons) + "\n\n")
-    text = (text + "why each failed attempt failed, from steps.jsonl:\n"
+            + "\n- outcome: " + outcome + "\n\n"
+            + "why each failed attempt failed, from steps.jsonl:\n"
             + "\n".join(lines or ["- none failed"]) + "\n")
     if issued:
         text = (text + "\ngates that could not do their job, from steps.jsonl:"
@@ -439,9 +469,10 @@ def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
             text = text + "\n" + heading + "\n" + "\n".join(said) + "\n"
     for name in ("why.md", summary.FILE):
         if (folder / name).is_file():
-            text = (text + "\n" + name + ":\n\n"
-                    + (folder / name).read_text(encoding="utf-8").rstrip("\n")
-                    + "\n")
+            said = (folder / name).read_text(encoding="utf-8")
+            if name == summary.FILE:
+                said = summary.without_reasons(said)
+            text = text + "\n" + name + ":\n\n" + said.rstrip("\n") + "\n"
     return text + "\nevery pass in full: " + str(folder / trace.FILE) + "\n"
 
 
@@ -502,8 +533,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
                   parts(looked, ruled(run), changed, stale, live,
                         0 if store.off else store.cap,
                         named_docs(run, changed, store),
-                        retroedits.cap_of(getattr(run, "fm", None))),
-                  reasons=reasons(looked))
+                        retroedits.cap_of(getattr(run, "fm", None)),
+                        evidence(run, trail, earlier, looked)))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)

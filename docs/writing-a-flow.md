@@ -390,25 +390,29 @@ nothing on it.
 
 once the handoff is written, every run that ends hands the retro role
 (`roles/library/retro.md`) its record, with the retro skill
-(`skills/retro/SKILL.md`) as the procedure: first the reasons each step
-gave for its work (its BECAUSE items, by seq and step, each with where it
-came from and what it led to), which the retro reads a fact's `why` off
-first, a fact born from one that cites a file line taking that line as its
-evidence; then the why line of each failed
+(`skills/retro/SKILL.md`) as the procedure: the why line of each failed
 attempt (a gate that failed, a send-back, a stop), each gate that could not
 do its job (an `issue`, `docs/gates.md`) and each shell write a step went on
 past after the hook refused it, by seq and step; each step's DID, ASSUMED,
 TRIED and DOUBTS lines, and each defect it found beside the change (its
 ADJACENT items, `docs/journal.md`, "what each step hands over") with whether
 it was fixed and by which test, a defect left not fixed being the retro's
-`defect` fact; the rulings written in the run; the files git says
+`defect` fact; for each reason a step gave (its BECAUSE items) whose `led
+to:` the record holds, by seq and step, only where the runner found it: a
+test id, the diff of a file and its lines, `decisions.md <stamp>`, or the
+step's own TRIED, ASSUMED, QUESTION, DECIDED, WOULD PASS or CATCH lines; never
+the reason's own words, and a reason that led to nothing or to what the
+record does not hold is not handed at all, so a fact's `why` rests on
+evidence the retro can cite (a file line, a test, a ruling); the rulings
+written in the run; the files git says
 it changed; the docs that name one of those files or a name the diff took
 out or put in (a flag, a function, a class), with the lines that name them,
 at most 6 docs and 4000 characters, the ones left out at the cap named; the
 project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many doc edits and guards, it may make; `why.md` when the run stopped
-short; and `handoff.md`. a clean run is
+short; and `handoff.md`, with the steps' reasons taken out of it (the
+person's copy keeps them in full). a clean run is
 handed `- none failed` and the rest, so the retro keeps the facts and the
 docs even when nothing went wrong. it writes `runs/<run-id>/retro.md`: per
 failed attempt what failed, why, and which gate, prompt or `flow.yaml` key

@@ -286,16 +286,128 @@ def test_the_ladder_counts_why_unbacked_per_run():
         "why_unbacked"] == 0
 
 
-def test_the_retro_is_handed_the_reasons_first(tmp_path):
+# the words of each reason in BLOCK, which the retro is never handed
+SAID = ("TASK.md:3 says amounts round half up", "the old body truncated",
+        "a decimal context would touch every caller", "ints stay ints",
+        "the sign rule is the owner's to make", "the log format looked odd")
+
+
+def a_run(changes=GIT, proof=PROOF):
+    import types
+
+    return types.SimpleNamespace(fm=None, decided=lambda: [],
+                                 tree=types.SimpleNamespace(
+                                     changes=lambda: changes),
+                                 order=types.SimpleNamespace(proof=proof))
+
+
+def a_trail(folder, *lines):
+    import types
+
+    return types.SimpleNamespace(folder=folder, closed=[
+        (types.SimpleNamespace(written=line), "ok") for line in lines])
+
+
+def test_the_retro_is_handed_where_each_reason_led_never_its_words(tmp_path):
     line = {"seq": 2, "step": "worker.md", "outcome": "ok",
             "handoff": handoff.parse(BLOCK)}
-    said = retro.reasons([(line, Path(tmp_path))])
-    assert said[0] == ("- seq 2 worker.md because TASK.md:3 says amounts round"
-                       " half up (from TASK.md:3) -> led to"
-                       " tests/test_calc.py::test_add_rounds")
-    text = retro.prompt("r1", "flow", "done", Path(tmp_path),
-                        ["- seq 1 worker.md, failed: red"], reasons=said)
-    assert text.index(said[0]) < text.index("why each failed attempt failed")
+    said = retro.evidence(a_run(), a_trail(tmp_path, line), None,
+                          [(line, tmp_path)])
+    assert said == [
+        "- seq 2 worker.md -> test tests/test_calc.py::test_add_rounds",
+        "- seq 2 worker.md -> the diff of calc.py, lines 4-6",
+        "- seq 2 worker.md -> TRIED item 1 of its handoff",
+        "- seq 2 worker.md -> ASSUMED item 1 of its handoff",
+        "- seq 2 worker.md -> a QUESTION of its handoff"]
+    (tmp_path / summary.FILE).write_text("\n".join(built(handoff.parse(
+        BLOCK))) + "\n", encoding="utf-8")
+    text = retro.prompt("r1", "flow", "done", tmp_path, [], more=retro.parts(
+        [(line, tmp_path)], ["- none"], [], [], [], 3, led=said))
+    for line in said:
+        assert line in text
+    for words in SAID:
+        assert words not in text, words
+    assert "reasons" not in text.split("handoff.md:")[1]
+    kept = (tmp_path / summary.FILE).read_text(encoding="utf-8")
+    assert "## reasons" in kept and SAID[0] in kept
+
+
+def test_a_run_s_retro_prompt_holds_none_of_the_steps_reason_words(
+        tmp_path, monkeypatch, fake_cli):
+    from agentweft.runner import engine
+    from test_stops import CLAUDE, a_flow, answer, the_folder
+
+    a_flow(tmp_path, monkeypatch, "says-why", ["worker"],
+           tail="retro: true\n" + CLAUDE)
+    cli_ = fake_cli(answer("done\n\n" + BLOCK),
+                    answer("## change first\n- none\n"))
+    assert engine.main() == 0
+    text = cli_.calls[-1]["stdin"].decode("utf-8")
+    assert "- seq 1 worker.md -> TRIED item 1 of its handoff" in text
+    for words in SAID:
+        assert words not in text, words
+    kept = (the_folder() / summary.FILE).read_text(encoding="utf-8")
+    for words in SAID:
+        assert words in kept, words
+
+
+def test_a_reason_the_record_does_not_hold_is_not_handed_as_evidence(
+        tmp_path):
+    line = {"seq": 2, "step": "worker.md", "outcome": "ok",
+            "handoff": handoff.parse(BLOCK)}
+    said = retro.evidence(a_run(changes={}, proof=None),
+                          a_trail(tmp_path, line), None, [(line, tmp_path)])
+    assert said == ["- seq 2 worker.md -> TRIED item 1 of its handoff",
+                    "- seq 2 worker.md -> ASSUMED item 1 of its handoff",
+                    "- seq 2 worker.md -> a QUESTION of its handoff"]
+
+
+def test_a_decided_reason_is_handed_as_the_ruling_it_is_held_to(tmp_path):
+    ruled = decisions.Decision("keep the spec order", "the spec lists it",
+                               datetime.datetime(2026, 1, 5, 21, 40))
+    line = {"seq": 3, "step": "worker.md", "outcome": "ok",
+            "handoff": handoff.parse(BLOCK.replace(
+                "led to: nothing", "led to: DECIDED keep the spec order"))}
+    run = a_run()
+    run.decided = lambda: [ruled]
+    said = retro.evidence(run, a_trail(tmp_path, line), None,
+                          [(line, tmp_path)])
+    assert said[-1] == ("- seq 3 worker.md -> decisions.md "
+                        + summary.stamp(ruled))
+
+
+def test_a_handoff_with_no_reasons_reaches_the_retro_as_it_is():
+    text = "\n".join(built(handoff.parse(NO_REASONS), writes="none")) + "\n"
+    assert REASONS_LABEL not in text and "## reasons" not in text
+    assert summary.without_reasons(text) == text
+
+
+def test_a_handoff_reaches_the_retro_less_its_reasons_lines_only():
+    block = handoff.parse(BLOCK.replace("led to: calc.py:4-6",
+                                        "led to: calc.py:40-41"))
+    lines = built(block)
+    at = lines.index("## reasons")
+    end = next(n for n in range(at + 1, len(lines))
+               if lines[n].startswith("## "))
+    label = lines.index(REASONS_LABEL)
+    items = next(n for n in range(label + 1, len(lines))
+                 if not lines[n].startswith("- "))
+    assert any(l.startswith(summary.UNSHOWN) for l in lines)
+    assert summary.without_reasons("\n".join(lines)).split("\n") == [
+        l for n, l in enumerate(lines)
+        if not (at <= n < end or label <= n < items
+                or l.startswith(summary.UNSHOWN))]
+
+
+REASONS_LABEL = "worker's reasons, and what each led to:"
+
+
+def test_no_retro_prompt_names_the_steps_reasons_any_more():
+    role = resolver.role_prompt("retro.md")
+    skill = resolver.skill("retro")
+    assert "the reasons each step" not in role
+    assert "reasons the steps gave" not in skill
+    assert "evidence in the record" in skill
 
 
 def held_as(said, block=BLOCK, decided=(), proof=PROOF, changes=GIT,

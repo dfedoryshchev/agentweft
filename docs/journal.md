@@ -651,7 +651,10 @@ a test whose file is not among the files the run changed adds `; its file
 did not change in this run`), every reason the steps gave (`## reasons`,
 when the why section lists one: each line once by its role, then `-
 why_unbacked: <n>`, the reasons the record does not hold, which "not
-verified" also lists as "reasons the record does not show"), each fact
+verified" also lists as "reasons the record does not show"; these are for
+you: the retro is handed this file with every one of those lines taken out,
+and in their place where the record holds what each reason led to, in the
+runner's words), each fact
 check a step's change set off
 (`## conformance`, only when one ran: `- <step>: <id> (<scope>) held`,
 `broken` or `could not run`, the check and what it said), what changed,

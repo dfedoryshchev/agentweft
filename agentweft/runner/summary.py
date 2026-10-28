@@ -571,24 +571,28 @@ def _passes_in(folder, roles, fm):
             continue
         if line.get("outcome") == trace.WARM:
             continue
-        step = line.get("step")
-        said = ""
-        kept = line.get("file")
-        if kept and (folder / kept).is_file():
-            said = (folder / kept).read_text(encoding="utf-8")
-        out.append(a_pass(step, roles.get(step, step),
-                          line.get("seconds") or 0, line.get("handoff"),
-                          _gates(line.get("gates"),
-                                 gate_commands(fm, step, said),
-                                 gate_names(fm, step)),
-                          line.get("ungated"), line.get("outcome") or "",
-                          said, facts=facts_of(line, root),
-                          writes=writes_of(fm, step)))
+        out.append(line_pass(line, folder, roles, fm, root))
         seqs.append(line.get("seq"))
     for case in cases(path):
         if case.get("red") and case.get("seq") in seqs:
             out[seqs.index(case["seq"])]["facts"]["won"] = "caught"
     return out
+
+
+def line_pass(line, folder, roles, fm, root=None):
+    """-> the pass one steps.jsonl line of the run folder `folder` stands
+    for, its step's answer read from the file the line names."""
+    step = line.get("step")
+    said = ""
+    kept = line.get("file")
+    if kept and (folder / kept).is_file():
+        said = (folder / kept).read_text(encoding="utf-8")
+    return a_pass(step, roles.get(step, step), line.get("seconds") or 0,
+                  line.get("handoff"),
+                  _gates(line.get("gates"), gate_commands(fm, step, said),
+                         gate_names(fm, step)),
+                  line.get("ungated"), line.get("outcome") or "", said,
+                  facts=facts_of(line, root), writes=writes_of(fm, step))
 
 
 def cases(path):
@@ -878,22 +882,26 @@ def record_of(passes, changes, decided, proof):
 CODE = re.compile(r"`([^`]+)`")
 
 
-def _among(said, items):
-    """whether `said` names one of `items`, by its words, or by the names it
-    quotes in backticks when every one is in the item: bare, it names any
-    there is. an item read inside `said`, or the names it quotes, count only
-    when they say enough to name one."""
+def _which(said, items):
+    """-> the index of the one of `items` that `said` names, by its words, or
+    by the names it quotes in backticks when every one is in the item: bare,
+    it names the first there is; None for none. an item read inside `said`,
+    or the names it quotes, count only when they say enough to name one."""
     want = handoff.norm(said).strip(" .:;<>")
     if not want:
-        return bool(items)
+        return 0 if items else None
     quoted = CODE.findall(said)
-    for i in items:
+    for n, i in enumerate(items):
         head = handoff.norm(i.split("\n")[0]).split(" - ")[0].strip()
         if want in handoff.norm(i) or (_names_one(head) and head in want):
-            return True
+            return n
         if _names_one(" ".join(quoted)) and all(q in i for q in quoted):
-            return True
-    return False
+            return n
+    return None
+
+
+def _among(said, items):
+    return _which(said, items) is not None
 
 
 def _names_one(text):
@@ -912,59 +920,90 @@ CALLED = re.compile(r"^`([A-Za-z_][\w.]*)(?:\(\))?`$"
 
 
 def led(said, block, record, step=None):
-    """whether the record holds what one `led to:` names: `nothing` always;
-    a TRIED or ASSUMED item among the block's own, by its words; a QUESTION
-    the block asks, bare or by its words; a DECIDED one among the rulings on
-    record or the step's own DECIDED lines, by its words, or the one such
-    line the step gave; the step's own WOULD PASS and CATCH lines, by name;
-    a `<file>:<lines>` in the diff, its lines among the lines the change
-    covers; a test id the red proof or a gate holds, or one in a test file
-    the red proof holds with no id listed. a line that leads with a file
-    or a test id and goes on with a note is held to what it leads with: a
-    function the change touches in that file, its lines, each further file
-    or test id it lists."""
+    """whether the record holds what one `led to:` names (`held_at`)."""
+    return bool(held_at(said, block, record, step))
+
+
+# what `held_at` says of a `led to:` that led to nothing
+LED_NOWHERE = "nothing"
+
+
+def held_at(said, block, record, step=None):
+    """-> where the record holds what one `led to:` names, "" when it does
+    not: `nothing` always (LED_NOWHERE); a TRIED or ASSUMED item among the
+    block's own, by its words; a QUESTION the block asks, bare or by its
+    words; a DECIDED one among the rulings on record or the step's own
+    DECIDED lines, by its words, or the one such line the step gave; the
+    step's own WOULD PASS and CATCH lines, by name; a `<file>:<lines>` in
+    the diff, its lines among the lines the change covers; a test id the red
+    proof or a gate holds, or one in a test file the red proof holds with no
+    id listed. a line that leads with a file or a test id and goes on with a
+    note is held to what it leads with: a function the change touches in
+    that file, its lines, each further file or test id it lists."""
     said = _unquoted(said or "")
     step = step or {}
     if not said:
-        return False
+        return ""
     if said.lower().rstrip(".") in NOTHING:
-        return True
+        return LED_NOWHERE
     m = LED.match(said)
     if m:
         kind, rest = m.group(1).upper(), m.group(2)
         if kind != "QUESTION" and not _names_one(rest):
-            return False
-        if kind == "TRIED":
-            return _among(rest, block.get("tried") or [])
-        if kind == "ASSUMED":
-            return _among(rest, block.get("assumed") or [])
+            return ""
+        if kind in ("TRIED", "ASSUMED"):
+            n = _which(rest, block.get(kind.lower()) or [])
+            return "" if n is None else (kind + " item " + str(n + 1)
+                                         + " of its handoff")
         if kind == "QUESTION":
-            return _among(rest, [q["question"] for q in
-                                 block.get("questions") or []]
-                          + (block.get("other") or {}).get("NEEDS", []))
+            return "a QUESTION of its handoff" if _among(
+                rest, [q["question"] for q in block.get("questions") or []]
+                + (block.get("other") or {}).get("NEEDS", [])) else ""
         own = []
         for d in [step.get("ruled")] + (block.get("other") or {}).get(
                 "DECIDED", []):
             if d and handoff.norm(d) not in [handoff.norm(o) for o in own]:
                 own.append(d)
-        return len(own) == 1 or _among(
-            rest, [d.decided + " - " + d.why for d in record["decided"]]
-            + own)
+        if len(own) == 1:
+            return "its DECIDED line"
+        n = _which(rest, [d.decided + " - " + d.why for d in record["decided"]]
+                   + own)
+        if n is None:
+            return ""
+        if n < len(record["decided"]):
+            return "decisions.md " + stamp(record["decided"][n])
+        return "its DECIDED line"
     named = OWN.findall(said)
     if named:
         would = step.get("would")
-        return bool(would) and ("CATCH" not in named or bool(would[1]))
-    if _held(said, record):
-        return True
+        if not would or ("CATCH" in named and not would[1]):
+            return ""
+        return "its " + " and ".join(sorted(set(named), reverse=True)) \
+            + " lines"
+    held = _held(said, record)
+    if held:
+        return held
     pieces = []
     for p in NOTE.split(said):
         p = p.rstrip(")") if p.count(")") > p.count("(") else p
         if _unquoted(p):
             pieces.append(_unquoted(p))
-    if not pieces or pieces[0].lower().rstrip(".") in NOTHING:
-        return bool(pieces)
-    return _shaped(pieces[0]) and all(_noted(p, record) for p in pieces
-                                      if _shaped(p))
+    if not pieces:
+        return ""
+    if pieces[0].lower().rstrip(".") in NOTHING:
+        return LED_NOWHERE
+    if not _shaped(pieces[0]):
+        return ""
+    out = []
+    for p in pieces:
+        if not _shaped(p):
+            continue
+        held = _noted(p, record)
+        if not held:
+            return ""
+        if held not in out:
+            out.append(held)
+    return "; ".join(out)
 
 
 def _unquoted(text):
@@ -984,8 +1023,9 @@ def _shaped(piece):
 
 
 def _noted(piece, record):
-    """whether the record holds a file or a test id with what follows it:
-    its lines (`new lines 4-6`), a function quoted after it, or a note."""
+    """-> where the record holds a file or a test id with what follows it:
+    its lines (`new lines 4-6`), a function quoted after it, or a note; ""
+    when it does not."""
     head, _, rest = piece.partition(" ")
     rest = rest.strip()
     if not rest:
@@ -997,14 +1037,22 @@ def _noted(piece, record):
                      record)
     called = CALLED.match(rest)
     if not called:
-        return not rest.startswith("`") and _held(head, record)
+        return "" if rest.startswith("`") else _held(head, record)
     name = (called.group(1) or called.group(2)).rstrip("()").split(".")
-    return any(_tail(head, have) and all(n in names for n in name)
-               for have, names in record.get("names", {}).items())
+    for have, names in record.get("names", {}).items():
+        if _tail(head, have) and all(n in names for n in name):
+            return ("the diff of " + have + ", in `" + ".".join(name)
+                    + "`")
+    return ""
+
+
+def _span(a, b):
+    return str(a) if a == b else str(a) + "-" + str(b)
 
 
 def _held(said, record):
-    """whether the record holds one file, `<file>:<lines>` or test id."""
+    """-> where the record holds one file, `<file>:<lines>` or test id, ""
+    when it does not."""
     if "::" not in said:
         spot = SPOT.match(said)
         path = spot.group(1) if spot else said
@@ -1012,17 +1060,24 @@ def _held(said, record):
             if not _tail(path, have):
                 continue
             if not spot or not spans:
-                return True
+                return "the diff of " + have
             first = int(spot.group(2))
             last = int(spot.group(3) or first)
-            if any(a <= last and first <= b for a, b in spans):
-                return True
-    if any(_tail(said, i) for i in record["ids"]):
-        return True
-    if "::" in said and any(_tail(said.split("::")[0], f)
-                            for f in record.get("proved", ())):
-        return True
-    return "::" in said and any(said in c for c in record["commands"])
+            hit = [(a, b) for a, b in spans if a <= last and first <= b]
+            if hit:
+                return ("the diff of " + have + ", lines "
+                        + ", ".join(_span(a, b) for a, b in hit))
+    for i in record["ids"]:
+        if _tail(said, i):
+            return "test " + i
+    if "::" in said:
+        for f in record.get("proved", ()):
+            if _tail(said.split("::")[0], f):
+                return "the red proof's test file " + f
+        for c in record["commands"]:
+            if said in c:
+                return "a gate's command: " + c
+    return ""
 
 
 def reasons(passes, record):
@@ -1054,6 +1109,48 @@ def reasons(passes, record):
     out = [(role, lines or ["none given"]) for role, lines in out
            if lines or role in writing]
     return out, unheld
+
+
+def evidence(p, record):
+    """-> where the record holds what each reason `p` gave led to, once each,
+    for every reason that led to something the record holds: the runner's
+    words for it, never the reason's own."""
+    out = []
+    b = p["block"]
+    if not _present(b):
+        return out
+    for item in b.get("because") or []:
+        cite = held_at(handoff.reason(item)["led_to"], b, record, p)
+        if cite and cite != LED_NOWHERE and cite not in out:
+            out.append(cite)
+    return out
+
+
+# the label of a role's reasons in the why section, after the role
+REASONS_OF = "'s reasons, and what each led to:"
+UNSHOWN = "- reasons the record does not show: "
+
+
+def without_reasons(text):
+    """-> handoff.md's text with the steps' own reasons taken out: the why
+    section's reasons under each role, the reasons section, and the reasons
+    not verified lists. what is left is the record as it was."""
+    out = []
+    section = labelled = False
+    for line in text.split("\n"):
+        if line.startswith("## "):
+            section, labelled = line == "## reasons", False
+        if section:
+            continue
+        if line.endswith(REASONS_OF):
+            labelled = True
+            continue
+        if labelled and line.startswith("- "):
+            continue
+        labelled = False
+        if not line.startswith(UNSHOWN):
+            out.append(line)
+    return "\n".join(out)
 
 
 def ended(stopped, unsure=()):
@@ -1576,8 +1673,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                        " only what git and the gates show in the full"
                        " record."])]
     gave, unheld = reasons(every, record_of(every, changes, decided, proof))
-    why.extend((role + "'s reasons, and what each led to:", lines)
-               for role, lines in gave)
+    why.extend((role + REASONS_OF, lines) for role, lines in gave)
     dropped = []
     for line in ([role + ": " + i for role, b in blocks if _present(b)
                   for i in b["tried"]]
@@ -1794,10 +1890,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 + i["claim"] + " (" + i["why"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
                 if i["backed"] == "unbacked")
-    said.extend("- reasons the record does not show: " + role + ": "
-                + r["reason"] + " (led to: " + (r["led_to"] or "none named")
-                + ")"
-                for role, r in unheld)
+    said.extend(UNSHOWN + role + ": " + r["reason"] + " (led to: "
+                + (r["led_to"] or "none named") + ")" for role, r in unheld)
     said.extend("- shortened, so not held to the record: " + role + ": "
                 + i["claim"] + " (" + i["cmd"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
