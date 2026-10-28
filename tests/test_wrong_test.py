@@ -59,7 +59,8 @@ def git(where, *args):
                    capture_output=True)
 
 
-def run_it(tmp_path, monkeypatch, answers, writes, old=False, scored=False):
+def run_it(tmp_path, monkeypatch, answers, writes, old=False, scored=False,
+           spec=SPEC):
     """-> (steps asked, every prompt sent, exit code, the run's folder). a
     run `scored` as an eval has no exit code, and its folder is the trail
     its lines went to."""
@@ -67,7 +68,7 @@ def run_it(tmp_path, monkeypatch, answers, writes, old=False, scored=False):
     (project / "tests").mkdir(parents=True)
     (project / "conftest.py").write_text("", encoding="utf-8")
     (project / "calc.py").write_text(BEFORE, encoding="utf-8")
-    (project / "TASK.md").write_text(SPEC, encoding="utf-8")
+    (project / "TASK.md").write_text(spec, encoding="utf-8")
     if old:
         (project / "tests" / "test_old.py").write_text(OLD, encoding="utf-8")
     git(project, "init", "-q")
@@ -279,6 +280,63 @@ def test_a_misquote_on_any_claim_fails_the_step(tmp_path):
         + claim("tests/test_mul.py::test_two",
                 spec='TASK.md:3 "mul(a, b) returns a plus b"'), tmp_path)
     assert "returns a plus b" in said
+
+
+# one sentence of the spec, wrapped over two lines of the file
+WRAPPED = ("# calc" + NL + NL + "mul(a, b) returns a times b, and it never"
+           " rounds the" + NL + "product to an int." + NL + NL + "add(a, b)"
+           " returns a plus b." + NL)
+SENTENCE = ("mul(a, b) returns a times b, and it never rounds the product to"
+            " an int.")
+
+
+def wrapped_claim(cite, quote=SENTENCE):
+    return claim("tests/test_mul.py::test_mul",
+                 spec="TASK.md:" + cite + ' "' + quote + '"')
+
+
+def test_a_spec_quote_that_runs_on_from_its_line_is_the_line(tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    assert wrongtest.misquoted(wrapped_claim("3"), tmp_path) == ""
+    assert "which is not at TASK.md:4 as the run found it" in \
+        wrongtest.misquoted(wrapped_claim("4"), tmp_path)
+    changed = SENTENCE.replace("never rounds", "always rounds")
+    assert "which is not at TASK.md:3 as the run found it" in \
+        wrongtest.misquoted(wrapped_claim("3", changed), tmp_path)
+    across = "product to an int. add(a, b) returns a plus b."
+    assert wrongtest.misquoted(wrapped_claim("4", across), tmp_path)
+
+
+def test_a_wrapped_spec_quote_goes_back_to_the_writer_citing_its_lines(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [wrapped_claim("3"), WORKER],
+               "reviewer.md": [OK], "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", WRONG),
+                            ("tests/test_mul.py", RIGHT)],
+              "worker.md": [("", ""), ("calc.py", AFTER)]}
+    asked, sent, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
+                                          writes, spec=WRAPPED)
+    assert asked == ["planner.md", "tester.md", "worker.md", "tester.md",
+                     "worker.md", "reviewer.md", "reviewer-runs.md", RETRO]
+    assert code == stops.EXIT_OK
+    assert sent[3].rstrip().endswith('spec: TASK.md:3-4 "' + SENTENCE + '"')
+    gates = (folder / "gates.md").read_text(encoding="utf-8")
+    assert "FAIL quote" not in gates
+
+
+def test_a_wrapped_spec_quote_on_a_start_test_parks_citing_its_lines(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER],
+               "worker.md": [claim("tests/test_old.py::test_old",
+                                   spec='TASK.md:3 "' + SENTENCE + '"')]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT)]}
+    asked, _, code, folder, _ = run_it(tmp_path, monkeypatch, answers,
+                                       writes, old=True, spec=WRAPPED)
+    assert asked == ["planner.md", "tester.md", "worker.md"]
+    assert code == stops.EXIT_STOP
+    question = (folder / "question.md").read_text(encoding="utf-8")
+    assert "CITES:" + NL + '- TASK.md:3-4 "' + SENTENCE + '"' in question
 
 
 def test_the_claim_is_read_off_its_own_lines_and_never_split_on_a_pipe():

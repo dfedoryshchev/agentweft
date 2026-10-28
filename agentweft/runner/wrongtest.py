@@ -19,8 +19,9 @@ wrote go back to it together, in one round.
 
 the spec line has to be a line that is there: a claim nobody can check is a
 question, the way a REFUSED line without a cite is. its quote has to be what
-that line says as the run found it: a claim on words the spec does not hold
-goes nowhere, and fails the step the way a gate does.
+that line says as the run found it, or start there and run on into the lines
+of its paragraph, and then the claim cites them all: a claim on words the
+spec does not hold goes nowhere, and fails the step the way a gate does.
 """
 from pathlib import Path
 
@@ -28,7 +29,7 @@ from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import cited, misquote
+from .ruling import cited, misquote, spanned
 
 WRONG = "WRONG TEST"
 WHY = "WHY"
@@ -185,8 +186,11 @@ def judge(output, step, run, route):
         if not spec or cited(spec, [], run.workdir) is None:
             return "ask", asked(step, test, why, spec,
                                 "no line of the spec that is there was cited")
-    if misquoted(output, run.workdir, getattr(run, "start", None)):
+    start = getattr(run, "start", None)
+    if misquoted(output, run.workdir, start):
         return None
+    said = [(test, why, spanned(spec, run.workdir, start))
+            for test, why, spec in said]
     for test, why, spec in said:
         if not born(getattr(run, "start", None), test):
             return "ask", asked(step, test, why, spec,

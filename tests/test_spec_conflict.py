@@ -17,10 +17,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.orchestrate import decisions
 from agentweft.providers import cli_provider, fake_provider
-from agentweft.runner import engine, prompts, resume, ruling, state, stops
+from agentweft.runner import (engine, handoff, prompts, resume, ruling, state,
+                              stops)
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parents[1] / "flows"
@@ -462,6 +465,50 @@ def test_a_quote_does_not_run_on_past_the_end_of_its_paragraph(tmp_path):
     question, wrong = ruling.conflict_of(wrapped_at("5", across), tmp_path)
     assert question == ""
     assert "which is not at TASK.md:5 as the run found it" in wrong
+
+
+@pytest.mark.parametrize("who", ["REFUSED", "claim"])
+def test_every_quote_check_takes_a_quote_that_runs_on_from_its_line(
+        tmp_path, who):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    lines = WRAPPED.split(NL)
+
+    def wrong(cite, quote=SENTENCE):
+        said = "TASK.md:" + cite + ' "' + quote + '"'
+        if who == "REFUSED":
+            return ruling.misquoted("REFUSED: " + said + NL, tmp_path)
+        item = {"claim": said, "cmd": ""}
+        handoff.to_files({"verified": [item]}, tmp_path)
+        return item["why"] if item["backed"] == "unbacked" else ""
+
+    assert wrong("3") == ""
+    assert "which is not at TASK.md:4 as the run found it" in wrong("4")
+    changed = SENTENCE.replace("goes to stderr", "goes to stdout")
+    assert "which is not at TASK.md:3 as the run found it" in wrong(
+        "3", changed)
+    skipped = ruling.flat(lines[2] + " " + lines[4])
+    assert "which is not at TASK.md:3 as the run found it" in wrong(
+        "3", skipped)
+    assert wrong("5", "the exit code stays 0. With `--strict`")
+
+
+def test_a_refusal_quoting_a_wrapped_sentence_ends_on_the_lines_it_covers(
+        tmp_path):
+    (tmp_path / "TASK.md").write_text(WRAPPED, encoding="utf-8")
+    said = ruling.asked_of('REFUSED: TASK.md:3 "' + SENTENCE + '" so the'
+                           " request is out" + NL, tmp_path)
+    assert said == (ruling.DECLINED, 'REFUSED: TASK.md:3-6 "' + SENTENCE
+                    + '" so the request is out')
+    short = 'REFUSED: TASK.md:3 "Malformed lines are skipped"' + NL
+    assert ruling.asked_of(short, tmp_path) == (ruling.DECLINED,
+                                                short.strip())
+    quoted = ' "' + SENTENCE + '" so the request is out'
+    assert ruling.spanned("`TASK.md:3`" + quoted, tmp_path) == \
+        "`TASK.md:3-6`" + quoted
+    assert ruling.spanned("TASK.md:3-4" + quoted, tmp_path) == \
+        "TASK.md:3-6" + quoted
+    assert ruling.spanned("TASK.md:4" + quoted, tmp_path) == "TASK.md:4" \
+        + quoted
 
 
 def test_a_wrapped_conflict_stops_the_run_citing_the_whole_sentence(

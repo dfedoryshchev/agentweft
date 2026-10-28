@@ -59,7 +59,9 @@ contradicts the spec).
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that
-is there have to quote what that line says as the run found it; when they do
+is there have to quote what that line says as the run found it, or start
+there and run on into the lines of its paragraph, the way a conflict quote
+may (the refusal and the claim then cite them all); when they do
 not, the refusal does not end the run and the claim goes to no one: a `quote`
 result goes in front of the step's gates and fails it, naming the quote and
 the line (`the WRONG TEST spec: line quotes "...", which is not at

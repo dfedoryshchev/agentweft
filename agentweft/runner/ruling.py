@@ -136,7 +136,7 @@ def asked_of(output, workdir, word=None, allowed=None, start=None):
     if v.refused and not v.needs:
         cite = cited(v.refused, v.cites, workdir)
         if cite is not None:
-            return DECLINED, "REFUSED: " + v.refused
+            return DECLINED, "REFUSED: " + spanned(v.refused, workdir, start)
         v.needs = v.refused + " (refused with no line of the spec cited)"
     if v.needs:
         return ASKED, question_of(v)
@@ -467,7 +467,9 @@ def runs_to(lines, first, last, quote):
 
 def misquote(said, workdir, start=None, who="the answer"):
     """-> "" when `said`, `<file>:<line> "<the line>"`, quotes nothing or
-    quotes what is at that line as the run found it, else what is wrong."""
+    quotes what is at that line as the run found it, a quote that runs on
+    into its paragraph's next lines (`runs_to`) included, else what is
+    wrong."""
     said = (said or "").strip()
     m = CONFLICT.match(said) or FIRST_QUOTE.match(said)
     if not m:
@@ -475,13 +477,31 @@ def misquote(said, workdir, start=None, who="the answer"):
     rel, first, last, quote, cite = cite_of(m)
     if not quote:
         return ""
-    found, why = at_line(workdir, rel, first, last, start)
-    if found is None:
+    lines, why = lines_of(workdir, rel, first, last, start)
+    if lines is None:
         return who + ' quotes "' + quote + '" from ' + cite + ", and " + why
-    if quote in found:
+    if runs_to(lines, first, last, quote) is not None:
         return ""
     return (who + ' quotes "' + quote + '", which is not at ' + cite
             + " as the run found it")
+
+
+def spanned(said, workdir, start=None):
+    """-> `said`, `<file>:<line> "<the line>"`, with its cite the lines its
+    quote covers as the run found them, when the quote runs on past the
+    lines it cites; else `said` as it was."""
+    text = (said or "").strip()
+    m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
+    if not m:
+        return said
+    rel, first, last, quote, _ = cite_of(m)
+    lines, _ = lines_of(workdir, rel, first, last, start)
+    end = runs_to(lines, first, last, quote) \
+        if lines is not None and quote else None
+    if end is None or end == last:
+        return said
+    return (text[:m.start(1)] + rel + ":" + str(first) + "-" + str(end)
+            + text[m.end(3 if m.group(3) else 2):])
 
 
 def misquoted(output, workdir, start=None):
