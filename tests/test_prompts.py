@@ -163,3 +163,11 @@ def test_only_the_judging_roles_get_the_extra_block():
     by_role = resolver.resolve(cfg.raw, runner.flow_path("weekly-digest"))
     assert "allowed to say the work is wrong" in by_role["reviewer"]
     assert "allowed to say the work is wrong" not in by_role["planner"]
+
+
+def test_every_rule_of_a_skill_list_starts_a_line_of_its_own():
+    import pathlib
+    import re
+    for path in sorted(pathlib.Path("agentweft/skills").glob("*/SKILL.md")):
+        for line in path.read_text(encoding="utf-8").split("\n"):
+            assert not re.search(r"\w- [a-z]", line[2:]), (path, line[:80])
