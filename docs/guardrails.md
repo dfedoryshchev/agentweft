@@ -770,6 +770,8 @@ a call like any other: it is read as soon as it answers, and its own line
 (`decided`, `escalated` or `overruled`) carries its `police` field. a hit there stops the run
 before the step that asked goes again, its decision not held, with the lead
 named in the why: `off task at worker.md: planner.md credentials: ...`.
+the step that asked did no work, so carrying on runs it again rather than
+going past it, as it does after a step's own hit.
 
 the retro (`writing-a-flow.md`, "say whether the run looks back") reads the
 place too, so its transcript is read the same way, held to its read grant,

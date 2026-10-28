@@ -917,6 +917,19 @@ def test_a_hit_on_the_leads_pass_stops_the_run_before_the_asker_goes_again(
     assert lines[2]["police"]["hits"] == 1
 
 
+def test_carrying_on_after_a_hit_on_the_leads_pass_runs_the_asker_again(
+        tmp_path, monkeypatch, fake_cli):
+    a_lead_decides(tmp_path, monkeypatch, fake_cli, ON,
+                   answer("done\n", session="s-5"))
+    assert engine.main() == 2
+    first = the_folder().name
+    monkeypatch.setattr(sys, "argv", ["run.py", "f", "--force", "--resume",
+                                      first])
+    assert engine.main() == 0
+    later = [p for p in state.RUNS.iterdir() if p.is_dir() and p.name != first]
+    assert [l["step"] for l in steps_of(later[0])] == ["worker.md"]
+
+
 def test_a_scored_run_polices_the_leads_pass_too(tmp_path, monkeypatch,
                                                  fake_cli):
     a_lead_decides(tmp_path, monkeypatch, fake_cli, ON)

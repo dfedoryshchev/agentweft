@@ -214,7 +214,8 @@ def go(leg):
 
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None, handed=None, question=None, replayed=False,
-             checked=(), worked=None, stopped_for=None, asked=None):
+             checked=(), worked=None, stopped_for=None, asked=None,
+             rerun=False):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -231,7 +232,9 @@ def go(leg):
         step that did the work did that its gates stop the run on, for a
         question the runner asks rather than the step. `asked` is what the
         record keeps of a question the runner asks, so an answer to it is
-        known by the record and not by the question's words.
+        known by the record and not by the question's words. `rerun` is a
+        stop at a step whose work is not done (it asked, and the lead's
+        answer was not held): carrying on runs it again.
 
         -> the exit code.
         """
@@ -254,7 +257,7 @@ def go(leg):
             (folder / "question.md").write_text(question + NEWLINE,
                                                 encoding="utf-8")
         parked = cause in (stops.PARKED, stops.OFF_TASK)
-        if handed:
+        if handed or rerun:
             kept = manifest.NOT_RUN
         elif question:
             kept = manifest.RULING
@@ -286,7 +289,7 @@ def go(leg):
         elif cause == stops.DECLINED:
             needs = park.refused(at, why, done)
         elif waiting:
-            again = cause == stops.OUTAGE
+            again = cause == stops.OUTAGE or rerun
             left = (resume.remaining if again or handed else resume.after)(
                 steps(flow), at)
             needs = park.lines(at, waiting, done, left,
@@ -566,7 +569,7 @@ def go(leg):
                     print("off task at " + step + ": " + off)
                     return stop(stops.OFF_TASK, off, "parked", entry,
                                 index="PARKED  " + flow + "  at " + step,
-                                waiting="user")
+                                waiting="user", rerun=True)
                 if decided:
                     print(run.lead + " decided what " + step + " asked, and "
                           + step + " runs again with it")
