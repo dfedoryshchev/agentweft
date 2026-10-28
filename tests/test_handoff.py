@@ -432,6 +432,40 @@ def test_each_excerpt_is_matched_alone_and_the_missing_one_is_named():
     assert item["backed"] == "backed"
 
 
+CHECKED = [("sh check.sh", "== since [x]\r\nerror: invalid time: x\r\nexit 2\n"
+                           "== until [y]\r\nexit 0\n"),
+           ("sh other.sh", "rate a / b\n")]
+
+
+@pytest.mark.parametrize("saw", [
+    "== since [x] / error: invalid time: x / exit 2",
+    "invalid time: x / exit 2",
+    "exit 2 / == until",
+    "rate a / b"])
+def test_a_saw_of_consecutive_output_lines_joined_by_a_slash_is_backed(saw):
+    block = verified("- bad times are refused\n  cmd: sh\n  saw: " + saw
+                     + "\n")
+    [item] = handoff.back(block, CHECKED)["verified"]
+    assert item["backed"] == "backed", item
+
+
+@pytest.mark.parametrize("saw", [
+    "== since [x] / exit 2",
+    "error: invalid time: x / == since [x]",
+    "== since / error: invalid time: x",
+    "== since [x] / error: invalid / exit 2",
+    "exit 0 / rate a",
+    "exit 2 /  / == until",
+    "ime: x / exit 2",
+    "exit 2 / == unt"])
+def test_a_saw_whose_lines_are_not_consecutive_in_one_call_stays_unbacked(saw):
+    block = verified("- bad times are refused\n  cmd: sh\n  saw: " + saw
+                     + "\n")
+    [item] = handoff.back(block, CHECKED)["verified"]
+    assert item["backed"] == "unbacked", item
+    assert item["why"].endswith("does not show " + saw)
+
+
 RAN = [("cd /w && python -m pytest -q tests/test_calc.py",
         "5 passed in 0.1s\n0 warnings")]
 

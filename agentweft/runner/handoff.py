@@ -19,7 +19,8 @@ a VERIFIED item is a claim with a `cmd:` line naming the command the step ran
 and a `saw:` line per piece of what it printed. when the step's provider keeps
 a transcript, the claim is held to it: `backed` when the command and every
 excerpt are there, `unbacked` when one of them is not (the missing one is
-named), `ran` when the command is there and no excerpt was given,
+named; an excerpt written as `a / b` is held to those output lines,
+consecutive), `ran` when the command is there and no excerpt was given,
 `shortened` when the command is cut short with `...` and so cannot be held
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
 points at the command above ("same command as above") is read as the nearest
@@ -440,6 +441,47 @@ def by_shell_read(cited, cmd):
                for path, _ in _shell_reads(part))
 
 
+def _joins(text, piece, at):
+    """whether `piece`, found in `text` at `at`, starts and ends on a word
+    edge there rather than inside a word."""
+    end = at + len(piece)
+    before = at == 0 or not (text[at - 1].isalnum() and piece[0].isalnum())
+    after = end == len(text) or not (text[end].isalnum()
+                                     and piece[-1].isalnum())
+    return before and after
+
+
+class Shown(object):
+    """one call's output, as an excerpt is held to it."""
+
+    __slots__ = ("text", "lines")
+
+    def __init__(self, out):
+        self.text = norm(out)
+        self.lines = [norm(line) for line in (out or "").split("\n")]
+
+    def shows(self, excerpt):
+        """whether the output shows `excerpt`: as written, or, for an excerpt
+        that writes lines as `a / b`, as those lines, consecutive: the first
+        ends its line, the last starts its line, any between are whole
+        lines."""
+        if norm(excerpt) in self.text:
+            return True
+        pieces = [norm(p) for p in excerpt.split(" / ")]
+        if len(pieces) < 2 or not all(pieces):
+            return False
+        lines, n = self.lines, len(pieces)
+        for i in range(len(lines) - n + 1):
+            first, last = lines[i], lines[i + n - 1]
+            if (first.endswith(pieces[0])
+                    and _joins(first, pieces[0], len(first) - len(pieces[0]))
+                    and last.startswith(pieces[-1])
+                    and _joins(last, pieces[-1], 0)
+                    and lines[i + 1:i + n - 1] == pieces[1:-1]):
+                return True
+        return False
+
+
 def back(block, calls):
     """mark every VERIFIED claim against the (command, output) pairs the
     step's transcript holds. `calls` None means there is no transcript."""
@@ -475,9 +517,9 @@ def back(block, calls):
         if not item["saw"]:
             item["backed"], item["why"] = "ran", "nothing of its output quoted"
             continue
-        shown = [norm(out) for out in ran]
+        shown = [Shown(out) for out in ran]
         missing = [e for e in item.get("excerpts") or excerpts(item["saw"])
-                   if not any(norm(e) in out for out in shown)]
+                   if not any(out.shows(e) for out in shown)]
         if not missing:
             item["backed"], item["why"] = "backed", ""
         else:
