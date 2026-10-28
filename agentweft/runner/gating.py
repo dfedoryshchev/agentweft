@@ -141,14 +141,14 @@ def clocked(gate, text):
     """-> what `gate` said of text, with the seconds it took."""
     began = time.time()
     r = gate(text)
-    r.seconds = since(began)
-    return r
+    return timed(r, began)
 
 
 def timed(result, began):
     """-> `result`, a check the runner made itself, with the seconds since
     `began`, so it has its line in gates.jsonl like any gate."""
     result.seconds = since(began)
+    result.began = began
     return result
 
 
@@ -202,8 +202,7 @@ def check_step(run, route, step, out, run_dir=None):
         began = time.time()
         line, spec_asks = guarded(step, all(r.ok for r in results))
         if line is not None:
-            line.seconds = since(began)
-            results.append(line)
+            results.append(timed(line, began))
         if spec_asks:
             out.meta["spec_ruling"] = spec_asks
     kept = getattr(run, "tests_held", None)
@@ -223,8 +222,7 @@ def check_step(run, route, step, out, run_dir=None):
         began = time.time()
         line, held = replayed(step)
         if line is not None:
-            line.seconds = since(began)
-            results.append(line)
+            results.append(timed(line, began))
         if held:
             out.meta["conflict"] = held
     conformed = getattr(run, "conformed", None)

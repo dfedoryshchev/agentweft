@@ -984,6 +984,8 @@ STAMPS = (
                 r" the wall because fanned tasks ran side by side, gates"
                 r" \d+(\.\d+)?s$", re.M),
      "<secs>s: steps <secs>s, gates <secs>s, runner <secs>s"),
+    (re.compile(r"(?m)^- runner by phase: .*$"),
+     lambda m: re.sub(r"\d+(\.\d+)?s\b", "<secs>s", m.group(0))),
     # the handoff's chain head hashes lines that carry the time
     (re.compile(r"(?<=lines, head )[0-9a-f]{16}"), "<hash>"),
 )

@@ -271,10 +271,16 @@ each step's line also says what it won (`caught`, `stopped`, `delivered`,
 red proof, the place before and after the step, `decisions.md`, the gates'
 entries), never off what a gate or the model wrote. the retro in
 `handoff.md` puts every step's money and seconds against it, with the total
-spent on `won none`: the first place to look for a step to cut. its last
-line puts the run's wall beside the seconds of the steps, of the gates
+spent on `won none`: the first place to look for a step to cut. it also
+sums each role's thinking tokens (`journal.md`, `thinking`). its last lines
+put the run's wall beside the seconds of the steps, of the gates
 (`gates.jsonl`, one line per gate run) and of the runner, which is the rest,
-so the three add up to the wall.
+so the three add up to the wall; then the runner's seconds by phase
+(`runner/laps.py`: setup, sizing, before, snapshot, step, trail, police,
+asks, checks, after, finish, stop, handoff), each the time the runner spent
+in it less the model's and the gates' time inside it, so the phases add up
+to the runner's figure. the run's `manifest.json` keeps the same under
+`runner`: `{"wall", "steps", "gates", "phases": {phase: seconds}}`.
 
 ## the promises
 

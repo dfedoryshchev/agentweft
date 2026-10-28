@@ -89,6 +89,7 @@
     "- upkeep, not waste: the retro $0.0100",
     "- total: 5 passes, <secs>s, $0.0500",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
+    "- runner by phase: setup <secs>s, sizing <secs>s, before <secs>s, snapshot <secs>s, step <secs>s, trail <secs>s, police <secs>s, asks <secs>s, checks <secs>s, after <secs>s, finish <secs>s, stop <secs>s, handoff <secs>s",
     "## run",
     "- steps: worker.md <secs>s -> patcher.md <secs>s (sent back) -> worker.md <secs>s -> patcher.md <secs>s",
     "- spend: 5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5), the retro's call included",

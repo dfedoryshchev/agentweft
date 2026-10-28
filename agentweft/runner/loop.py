@@ -26,6 +26,7 @@ from .asking import (asked_file, lead_pass, rides, to_lead,
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
+from .laps import Laps
 from .gating import (NEWLINE, and_forged, boundary_note, check_step,
                      forged_by, forged_first, gate_told, gate_why,
                      held_after_stop, nothing_why, off_task, outage_why,
@@ -59,6 +60,7 @@ def go(leg):
     pick_up, order, todo, start = leg.pick_up, leg.order, leg.todo, leg.start
     found, seen, out, came_from = leg.found, leg.seen, leg.out, leg.came_from
     uncut = leg.uncut
+    lap = Laps(clock)
     timings = []
     risk_text = ""
     plan = blocks.Plan(run.budget, todo, roles_of(run, todo),
@@ -119,6 +121,7 @@ def go(leg):
     def leave(stopped=None, needs=None, signed=()):
         """write the run's handoff.md from what the runner knows, and hand
         back (its path, its lines)."""
+        lap.to("handoff")
         # a warm call still in flight is ended, and charged, before anything
         # is written down
         warm.stop_all()
@@ -137,7 +140,7 @@ def go(leg):
             run.suite_baseline()
         if left is not None:
             trail.timed("left-red", stopped["at"], since(began),
-                        not left["red"] and not left["named"])
+                        not left["red"] and not left["named"], began=began)
         known = run.baseline if run.baseline and "tests" in run.baseline \
             else None
         left = baseline.label(left, known)
@@ -150,6 +153,13 @@ def go(leg):
         hits, seen = hits + run.shadowed, seen + run.shadow_read
         unseen += run.shadow_unread
         told = police.read_lines(read + run.told_read, str(run.workdir))
+        whole = lap.end()
+        phases = lap.seconds(trail.busy())
+        record.data["runner"] = {
+            "wall": round(whole, 1),
+            "steps": round(sum(p["seconds"] or 0 for p in ran), 1),
+            "gates": round(trail.gate_seconds, 1), "phases": phases}
+        record.save(run.budget)
         lines = summary.build(run_id, fm["name"], asked, ran,
                               run.tree.changes(), run.decided(),
                               run.budget.summary(), stopped=stopped,
@@ -166,8 +176,9 @@ def go(leg):
                               headline=worktrees.headline(made),
                               signed=signed,
                               spec_files=fm.get("spec_files"),
-                              clock={"wall": since(clock),
-                                     "gates": trail.gate_seconds},
+                              clock={"wall": whole,
+                                     "gates": trail.gate_seconds,
+                                     "runner": phases},
                               held=not redorder.ordered(fm)
                               or bool(run.order.skip or run.order.proof),
                               proof=run.order.proof,
@@ -224,6 +235,7 @@ def go(leg):
 
         -> the exit code.
         """
+        lap.to("stop")
         at = at or step or came_from or todo[-1]
         if entry is None and step:
             entry = trail.open(step, run.taken(), used, came_from,
@@ -342,6 +354,7 @@ def go(leg):
     seen_head = (run.signoff or {}).get("head")
     try:
         while step:
+            lap.to("sizing")
             before.clear()
             if step in run.cut:
                 step = route.next(step, EMPTY)
@@ -356,6 +369,7 @@ def go(leg):
                 print(said[1])
                 step = route.next(step, EMPTY)
                 continue
+            lap.to("before")
             used = run.by_step.get(step, run.provider)
             refused = run.refused(step)
             if refused:
@@ -412,8 +426,10 @@ def go(leg):
             print("started " + step)
             handed = out
             given[step] = handed
+            lap.to("snapshot")
             run.look()
             before[step] = snapshot.fingerprint(run.workdir, own=state.RUNS)
+            lap.to("step")
             if step == run.fan:
                 out = run_fanout(run, out)
             else:
@@ -424,6 +440,7 @@ def go(leg):
                     extra = "\n\nthe last run was " + str(seen) + \
                         ". only tell me what is different since then."
                 out = run.step(step, previous=out, extra=extra)
+            lap.to("trail")
             run.gate_said.pop(step, None)
             step_dir = state.RUNS / run_id
             step_dir.mkdir(parents=True, exist_ok=True)
@@ -448,8 +465,10 @@ def go(leg):
                 return stop(stops.PARKED, fenced, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user")
+            lap.to("police")
             off = off_task(run, step, state.RUNS / run_id)
             entry.police = police_line(run, step)
+            lap.to("asks")
             if off:
                 off = and_forged(off, forged)
                 print("off task at " + step + ": " + off)
@@ -565,8 +584,10 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=question, worked=worked)
 
+            lap.to("checks")
             failed, blocked = check_step(run, route, step, out,
                                          run_dir=step_dir)
+            lap.to("after")
             entry.gates = out.meta.get("gates", [])
             entry.ungated = out.meta.get("ungated")
             entry.conformance = out.meta.pop("conformance", None)
@@ -779,6 +800,7 @@ def go(leg):
                 out = given.get(named, out)
             came_from = step
             step = nxt
+        lap.to("finish")
         signed = signoff.check(run.workdir, run.signoff)
         if signed.state in (signoff.CONFLICT, signoff.UNCHECKED):
             cause = stops.MOVED if signed.state == signoff.CONFLICT \

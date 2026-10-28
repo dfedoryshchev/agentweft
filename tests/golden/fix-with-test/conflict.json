@@ -102,6 +102,7 @@
     "- USD on steps that won nothing and checked 0: $0.0000",
     "- total: 2 passes, <secs>s, $0.0200",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
+    "- runner by phase: setup <secs>s, sizing <secs>s, before <secs>s, snapshot <secs>s, step <secs>s, trail <secs>s, police <secs>s, asks <secs>s, checks <secs>s, after <secs>s, finish <secs>s, stop <secs>s, handoff <secs>s",
     "## run",
     "- steps: worker.md <secs>s -> patcher.md <secs>s",
     "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",

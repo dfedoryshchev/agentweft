@@ -1708,6 +1708,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.extend(retro(every))
     if clock:
         out.append(wall(passes, clock))
+        if clock.get("runner"):
+            from .laps import said
+
+            out.append(said(clock["runner"]))
 
     out.append("")
     out.append("## run")

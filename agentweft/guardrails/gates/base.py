@@ -33,7 +33,8 @@ class Result(object):
     "could not <what>: <why>", whatever it decided: a test run that timed
     out still fails and a replay that had no start still passes, and neither
     checked what it is there to check. `seconds` is how long it took, None
-    until the runner times it. `named` is the test ids a red-test gate ran in
+    until the runner times it, and `began` the clock time it started at.
+    `named` is the test ids a red-test gate ran in
     place of a whole file the step named, None when it ran what was named.
     `host` is the fault the machine raised starting a process on every red,
     run twice (`hostfault.py`), "" for none: a fail with it is not the
@@ -41,7 +42,7 @@ class Result(object):
     """
 
     __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
-                 "broke", "issue", "seconds", "named", "host")
+                 "broke", "issue", "seconds", "began", "named", "host")
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
                  skipped=False, broke=False, issue=""):
@@ -54,6 +55,7 @@ class Result(object):
         self.broke = broke
         self.issue = issue
         self.seconds = None
+        self.began = None
         self.named = None
         self.host = ""
 

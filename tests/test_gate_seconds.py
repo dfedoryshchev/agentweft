@@ -102,6 +102,39 @@ def test_steps_gates_and_runner_add_up_to_the_wall(tmp_path, monkeypatch):
     assert abs(sum(timed) - gates) < 1
 
 
+PHASE = re.compile(r"([a-z]+) (\d+(?:\.\d+)?)s")
+
+
+def test_the_runner_s_own_seconds_are_named_by_phase_and_add_up_to_the_wall(
+        tmp_path, monkeypatch):
+    from agentweft.guardrails import snapshot
+
+    real = snapshot.fingerprint
+
+    def slow(*a, **k):
+        time.sleep(0.1)
+        return real(*a, **k)
+
+    monkeypatch.setattr(snapshot, "fingerprint", slow)
+    _, _, code, folder, _ = test_lead.build(tmp_path, monkeypatch,
+                                            [test_lead.DECIDED])
+    assert code == stops.EXIT_OK
+    record = json.loads((folder / "manifest.json").read_text(
+        encoding="utf-8"))
+    runner = record["runner"]
+    phases = runner["phases"]
+    assert {"setup", "before", "snapshot", "step", "checks",
+            "handoff"} <= set(phases)
+    assert abs(runner["steps"] + runner["gates"] + sum(phases.values())
+               - runner["wall"]) <= 1
+    assert phases["snapshot"] >= 0.5
+    said = (folder / "handoff.md").read_text(encoding="utf-8").split("\n")
+    [line] = [l for l in said if l.startswith("- runner by phase: ")]
+    assert dict((n, float(s)) for n, s in PHASE.findall(line)) == phases
+    [found] = [WALL.match(l) for l in said if WALL.match(l)]
+    assert abs(float(found.group(4)) - sum(phases.values())) <= 1
+
+
 def test_fanned_steps_that_sum_past_the_wall_never_give_the_runner_less_than_nothing():
     passes = [{"seconds": 30.0}, {"seconds": 25.0}]
     line = summary.wall(passes, {"wall": 40.0, "gates": 2.0})

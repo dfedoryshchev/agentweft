@@ -327,6 +327,7 @@ class Trail(object):
         self.closed = []
         self.held = []
         self.gate_seconds = 0.0
+        self.gated = []
         self.task_file = TASK if (folder / TASK).is_file() else None
         self.lines = chain.raw(folder)
         chain.kept(folder)
@@ -390,16 +391,19 @@ class Trail(object):
         for done, _ in ready:
             for g in done.gates:
                 self.timed(g.gate, done.step, g.seconds, g.ok, done.seq,
-                           issue_of(g))
+                           issue_of(g), getattr(g, "began", None))
 
-    def timed(self, gate, step, seconds, ok, seq=None, issue=""):
+    def timed(self, gate, step, seconds, ok, seq=None, issue="", began=None):
         """write one gate's seconds to gates.jsonl, and what it could not do
         when there was something. a gate the runner did not time and that
-        says no issue has no line."""
+        says no issue has no line. `began` is when it started, None when
+        nothing said: it is then taken to have ended now."""
         if seconds is None and not issue:
             return
         if seconds is not None:
             self.gate_seconds = self.gate_seconds + seconds
+            began = time.time() - seconds if began is None else began
+            self.gated.append((began, began + seconds))
         line = {"seq": seq, "step": step, "gate": gate, "ok": bool(ok),
                 "seconds": seconds}
         if issue:
@@ -407,6 +411,18 @@ class Trail(object):
         self.folder.mkdir(parents=True, exist_ok=True)
         with open(self.folder / GATES, "a", encoding="utf-8") as f:
             f.write(json.dumps(line) + "\n")
+
+    def busy(self):
+        """-> (start, end) of every go of a pass this trail closed and of
+        every gate it timed: the seconds the wall puts under steps and
+        gates, the rest being the runner's own."""
+        out = list(self.gated)
+        for entry, outcome in self.closed:
+            if outcome == WARM:
+                continue
+            out.extend((a.started, a.started + a.took())
+                       for a in entry.attempts)
+        return out
 
     def still_open(self):
         """-> the entry opened and not yet given an outcome, or None."""
