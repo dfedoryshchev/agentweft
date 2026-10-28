@@ -340,7 +340,9 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             wrong = case_for["missed"][0]
             ran = run.suite_of(coder) \
                 if nxt == coder and not sent_back and new else []
-            case = wouldpass.held(case_for, ran)
+            case = wouldpass.held(
+                case_for, ran, wouldpass.alone(run, new)
+                if ran and not wouldpass.green(ran) else None)
             case_for = None
             if not new and not sent_back:
                 noted = wouldpass.no_case(step, named, coder, new)

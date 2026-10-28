@@ -776,7 +776,9 @@ def go(leg):
                 wrong = case_for["missed"][0]
                 ran = run.suite_of(coder) \
                     if nxt == coder and not sent_back and new else []
-                entry.case = wouldpass.held(case_for, ran)
+                entry.case = wouldpass.held(
+                    case_for, ran, wouldpass.alone(run, new)
+                    if ran and not wouldpass.green(ran) else None)
                 case_for = None
                 if not new and not sent_back:
                     kept = wouldpass.no_case(step, named, coder, new)

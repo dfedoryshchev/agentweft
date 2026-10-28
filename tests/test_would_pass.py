@@ -133,6 +133,37 @@ def test_a_reviewer_whose_case_passes_on_the_code_caught_nothing(
     assert won_of(folder)[3] == ("reviewer.md", "none")
 
 
+def test_a_red_suite_alone_is_not_a_catch_the_case_has_to_fail_itself():
+    from agentweft.guardrails.gates.base import Result
+
+    broken = Result("command", False,
+                    "ERROR tests/test_mul.py - SyntaxError: invalid syntax")
+    case = {"seq": 3, "named": "reviewer.md"}
+    assert wouldpass.held(case, [broken])["red"] is None
+    assert wouldpass.held(case, [broken], alone=False)["red"] is False
+    assert wouldpass.held(case, [broken], alone=True)["red"] is True
+    assert wouldpass.held(case, [Result("command", True)], alone=True)[
+        "red"] is False
+
+
+def test_the_case_is_run_alone_and_only_a_failure_of_its_own_is_red(
+        tmp_path):
+    run = types.SimpleNamespace(fm=types.SimpleNamespace(steps=[]),
+                                workdir=tmp_path)
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_a.py").write_text(
+        "def test_red():" + NL + "    assert 1 == 2" + NL + NL
+        + "def test_green():" + NL + "    assert 1 == 1" + NL,
+        encoding="utf-8")
+    (tmp_path / "tests" / "test_b.py").write_text(
+        "def test_x(:" + NL, encoding="utf-8")
+    assert wouldpass.alone(run, ["tests/test_a.py::test_red"]) is True
+    assert wouldpass.alone(run, ["tests/test_a.py::test_green"]) is False
+    assert wouldpass.alone(run, ["tests/test_b.py::test_x"]) is False
+    assert wouldpass.alone(run, ["tests/calc.test.ts"]) is None
+    assert wouldpass.alone(run, []) is None
+
+
 def test_a_case_that_already_passes_does_not_send_the_worker_round_again(
         tmp_path, monkeypatch):
     answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],

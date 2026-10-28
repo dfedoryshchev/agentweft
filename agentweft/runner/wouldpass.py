@@ -118,14 +118,37 @@ def green(results):
         and not getattr(r, "host", "") for r in results)
 
 
-def held(case_for, results):
+def held(case_for, results, alone=None):
     """-> what the test writer's line keeps of the case the reviewer named:
-    the reviewer's seq and step, and `red`, whether a suite gate of the step
-    that wrote the code ran with the case in and failed on it. only a red
-    case is a wrong implementation the reviewer caught."""
-    red = any(not r.ok and not getattr(r, "skipped", False)
-              and not getattr(r, "host", "") for r in results or ())
+    the reviewer's seq and step, and `red`: true when a suite gate of the
+    step that wrote the code failed with the case in and the case failed
+    run on its own (`alone`), false when the suite passed or the case did
+    not fail, None when the suite failed and the case could not be run on
+    its own. only a red case is a wrong implementation the reviewer
+    caught."""
+    failed = any(not r.ok and not getattr(r, "skipped", False)
+                 and not getattr(r, "host", "") for r in results or ())
+    red = alone if failed else False
     return {"seq": case_for.get("seq"), "step": case_for["named"], "red": red}
+
+
+def alone(run, new, timeout=120):
+    """-> whether a test in `new`, the ids the test writer added, fails when
+    they run on their own with the flow's pytest: True when one FAILED,
+    False when none did (a file that does not collect is an error, not the
+    case failing), None when they are not python test ids or could not
+    run."""
+    from agentweft.guardrails import redorder, starttests
+
+    if not new or not all(".py::" in i for i in new):
+        return None
+    fm = getattr(run, "fm", None)
+    cmd = redorder.test_command(fm) if fm is not None else None
+    found, _ = starttests.run_tests(starttests.base_of(cmd), list(new),
+                                    run.workdir, timeout)
+    if found is None:
+        return None
+    return any(found.get(i, ("",))[0] == "FAILED" for i in new)
 
 
 def passes_already(coder, results):
