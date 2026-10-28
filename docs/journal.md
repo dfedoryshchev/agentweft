@@ -1134,7 +1134,9 @@ another language), and the handoff and the retro read the reviewer's pass
 as `caught` only when `red` is true. the steps after
 it go again in the flow's order, the one that wrote the code told the case
 may pass already, so the suite holds the code to the case too. the case has
-to be a test: when no test id is new since the reviewer named it, the test
+to be a test: when no test id is new since the reviewer named it and none
+the writer had written has new code (a new assert or a parametrize value in
+one counts, and so does a changed test file in another language), the test
 writer goes once more, told it added none (its line in `steps.jsonl` a
 `redo` to itself), and when the next go adds none either, `gates.md` and the
 line's `why` say `no case added`, and the one that wrote the code goes again

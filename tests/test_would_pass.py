@@ -164,6 +164,38 @@ def test_the_case_is_run_alone_and_only_a_failure_of_its_own_is_red(
     assert wouldpass.alone(run, []) is None
 
 
+def test_a_case_added_inside_a_test_the_writer_wrote_first_is_a_case(
+        tmp_path):
+    import subprocess
+
+    from agentweft.guardrails import snapshot
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c",
+                        "user.email=t@t"] + list(args), check=True,
+                       capture_output=True)
+
+    (tmp_path / "calc.py").write_text(AFTER, encoding="utf-8")
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-qm", "start")
+    start = snapshot.Snapshot(tmp_path)
+    (tmp_path / "tests").mkdir()
+    test = tmp_path / "tests" / "test_mul.py"
+    test.write_text("def test_mul():" + NL + "    assert 2 * 2 == 4" + NL,
+                    encoding="utf-8")
+    (tmp_path / "tests" / "calc.test.js").write_text("one" + NL,
+                                                     encoding="utf-8")
+    before = wouldpass.ids(start)
+    assert wouldpass.added(before, start) == []
+    test.write_text("def test_mul():" + NL + "    assert 2 * 2 == 4" + NL
+                    + "    assert 2 * 5 == 10" + NL, encoding="utf-8")
+    (tmp_path / "tests" / "calc.test.js").write_text("one" + NL + "two" + NL,
+                                                     encoding="utf-8")
+    assert wouldpass.added(before, start) == ["tests/calc.test.js",
+                                              "tests/test_mul.py::test_mul"]
+
+
 def test_a_case_that_already_passes_does_not_send_the_worker_round_again(
         tmp_path, monkeypatch):
     answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],

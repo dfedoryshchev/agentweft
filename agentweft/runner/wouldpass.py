@@ -15,8 +15,8 @@ red before the code it tests, as on its first go. the steps after it go again
 in the flow's order, so the code is held to the new case too, unless the
 suite gates of the step that wrote the code pass with the case in: then the
 code already holds to it, and the run goes on from the step after the
-reviewer, which has read this code already. a go that adds no new test id
-added no case: the test writer goes once more for it, and after a second
+reviewer, which has read this code already. a go that adds no test id and
+changes the code of none it had written added no case: the test writer goes once more for it, and after a second
 such go the record says `no case added` and the steps after it go again,
 the code never let through on a case that is not there. the reviewer's line
 reads `routed`, never a redo, and the test writer's line keeps `case`: the
@@ -66,20 +66,34 @@ def told(step, wrong, catch):
 
 
 def ids(start):
-    """-> the test ids the run has added or changed so far, None when the
-    run took no snapshot to read them from."""
+    """-> {test id: its code} for the tests the run has added or changed so
+    far, a whole file's id keyed to the file's hash; None when the run took
+    no snapshot to read them from."""
+    import hashlib
+
+    from agentweft.guardrails.snapshot import test_ids
+
     if start is None or not getattr(start, "hashed", None):
         return None
-    return set(start.new_test_ids())
+    changes = start.test_changes()
+    codes = {}
+    for rel, now in changes:
+        name = start.from_place(rel)
+        codes[name] = hashlib.sha256(now).hexdigest()
+        if rel.endswith(".py"):
+            codes.update(test_ids(now, name) or {})
+    return dict((i, codes.get(i, codes.get(i.split("::")[0])))
+                for i in start.new_test_ids(changes))
 
 
 def added(before, start):
-    """-> the test ids that are new since `before` was read, None when
-    either side could not be read."""
+    """-> the test ids that are new or whose code changed since `before`
+    was read, None when either side could not be read: a case put inside a
+    test the writer wrote on its first go is a case too."""
     now = ids(start)
     if before is None or now is None:
         return None
-    return sorted(now - before)
+    return sorted(i for i, code in now.items() if before.get(i) != code)
 
 
 def none_added(step, wrong, catch):
