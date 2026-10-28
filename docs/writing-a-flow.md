@@ -405,8 +405,9 @@ writes"), a new fact written as `by runner from retro`. an `edit` (file,
 `now`, `after`, `because`; an older `doc` item reads the same) is made in
 the working tree once it holds against the tree as the run left it
 (`guardrails/retroedits.py`): the file is a doc (markdown, text,
-reStructuredText, asciidoc or a README), not a spec, a test or a credential
-file; `now` is in it once as written; every code span and `--flag` the
+reStructuredText, asciidoc or a README), not a dependency or build manifest
+(`requirements.txt` and the rest), not a file inside a python package but
+its README, not a spec, a test or a credential file; `now` is in it once as written; every code span and `--flag` the
 `after` quotes is in a file of the tree that is not a doc, or is a command
 a gate of the run ran; no field looks like a secret. `CLAUDE.md`, `AGENTS.md`, `.claude/`
 and `rules/` files may be edited and are listed first, `instruction file

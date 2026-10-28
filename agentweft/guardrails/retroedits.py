@@ -5,9 +5,11 @@ an `edit:` names a file, the words in it `now:` and the words `after:`. the
 runner writes it into the working tree, unstaged, only when:
 
 - the file is a doc in the place: markdown, text, reStructuredText or
-  asciidoc, or a README. not a spec (the person's word), not a test (a test
-  comes in as a guard), not a file that holds a credential, and not under
-  facts/ or the runner's own folder;
+  asciidoc, or a README. not a dependency or build manifest (requirements.txt
+  and the rest, `preflight.manifest`), not a file inside a python package
+  but its README (it ships with the code), not a spec (the person's word),
+  not a test (a test comes in as a guard), not a file that holds a
+  credential, and not under facts/ or the runner's own folder;
 - the `now:` words are in it as written, once;
 - every name the `after:` words quote, a `code span` or a `--flag`, is in a
   file of the tree as left that is not a doc, or is a command a gate of this
@@ -35,6 +37,7 @@ from pathlib import Path, PurePosixPath
 
 from agentweft.guardrails import briefing, factsguard, starttests
 from agentweft.guardrails.snapshot import TEST_MODULE, is_spec, is_test
+from agentweft.mcp import preflight
 from agentweft.orchestrate import facts
 
 # files a run's retro may have the runner change beyond facts/: doc edits
@@ -62,8 +65,27 @@ def cap_of(fm):
 
 
 def is_doc(rel):
+    """whether `rel` is a doc by its name: a doc suffix or a README, never a
+    dependency or build manifest such as requirements.txt."""
     name = PurePosixPath(rel).name.lower()
-    return name.startswith("readme") or PurePosixPath(name).suffix in SUFFIXES
+    if preflight.manifest(name):
+        return False
+    path = PurePosixPath(name)
+    return path.suffix in SUFFIXES or path.stem == "readme" and (
+        not path.suffix or path.suffix in SUFFIXES)
+
+
+def packaged(root, rel):
+    """-> the folder of `rel` that holds an `__init__.py`, "" for none: a
+    file there ships with the code, a README aside."""
+    if PurePosixPath(rel).stem.lower() == "readme":
+        return ""
+    parts = PurePosixPath(rel).parts[:-1]
+    for n in range(len(parts), 0, -1):
+        folder = "/".join(parts[:n])
+        if (Path(root) / folder / "__init__.py").is_file():
+            return folder
+    return ""
 
 
 def is_instruction(rel):
@@ -167,6 +189,10 @@ def edit_refusal(root, rel, fields, record, tree, own=None):
     if not is_doc(rel):
         return (rel + " is not a doc (markdown, text, reStructuredText,"
                 " asciidoc or a README)"), None
+    folder = packaged(root, rel)
+    if folder:
+        return (rel + " is in a python package (" + folder + "), so it ships"
+                " with the code"), None
     for key in ("now", "after", "because", "evidence"):
         what = factsguard.secret_in(fields.get(key) or "")
         if what:
@@ -346,6 +372,7 @@ def docs_in(root, own=None):
     for path in facts.walk(root, root, own):
         rel = facts.rel_of(root, path)
         if is_doc(rel) and not is_spec(rel) and not is_test(rel) \
+                and not packaged(root, rel) \
                 and not place_refusal(root, rel, own):
             found.append(rel)
     return sorted(found, key=lambda r: (not is_instruction(r), r))

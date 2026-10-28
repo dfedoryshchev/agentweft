@@ -406,3 +406,36 @@ def test_an_edit_is_refused_on_a_spec_a_test_a_secret_and_the_store(
     assert said["facts/INDEX.md"].startswith("facts/INDEX.md is under facts/")
     assert said["../out.md"] == "../out.md is outside the place"
     assert said["pkg/a.py"].startswith("pkg/a.py is not a doc")
+
+
+def refusal_of(tmp_path, rel, now, after):
+    from agentweft.guardrails import retroedits
+
+    return retroedits.edit_refusal(
+        tmp_path, rel, {"now": now, "after": after, "because": "z"},
+        factsguard.Record(tmp_path), retroedits.Tree(tmp_path))[0]
+
+
+def test_an_edit_is_refused_on_a_dependency_manifest(tmp_path):
+    put(tmp_path, "requirements.txt", "requests==2.31.0" + NL)
+    assert refusal_of(tmp_path, "requirements.txt", "requests==2.31.0",
+                      "requests==2.32.0").startswith(
+        "requirements.txt is not a doc")
+
+
+def test_an_edit_is_refused_on_code_named_like_a_readme(tmp_path):
+    put(tmp_path, "pkg/readme_render.py", "LIMIT = 10" + NL)
+    assert refusal_of(tmp_path, "pkg/readme_render.py", "LIMIT = 10",
+                      "LIMIT = 99").startswith(
+        "pkg/readme_render.py is not a doc")
+
+
+def test_an_edit_is_refused_on_a_text_file_a_package_ships(tmp_path):
+    put(tmp_path, "pkg/__init__.py", "")
+    put(tmp_path, "pkg/prompts/ask.md", "answer in one line." + NL)
+    put(tmp_path, "pkg/README.md", "# pkg" + NL + "parse lists." + NL)
+    assert refusal_of(tmp_path, "pkg/prompts/ask.md", "one line",
+                      "two lines").startswith(
+        "pkg/prompts/ask.md is in a python package")
+    assert refusal_of(tmp_path, "pkg/README.md", "parse lists.",
+                      "parse lists words.") == ""
