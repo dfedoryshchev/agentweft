@@ -240,7 +240,20 @@ def why_point(text):
 def test_the_ladder_keeps_the_why_point_when_every_reason_resolves():
     point = why_point("\n".join(built(handoff.parse(BLOCK))))
     assert point["got"] == 1
-    assert "6 reasons resolved" in point["line"]
+    assert "5 reasons resolved, 1 led to nothing" in point["line"]
+
+
+def test_the_ladder_takes_the_why_point_when_every_reason_led_to_nothing():
+    nothing = ("BECAUSE:\n"
+               "- the log format looked odd\n"
+               "  from: log.py:2\n"
+               "  led to: nothing\n"
+               "- the names looked long\n"
+               "  led to: none\n")
+    point = why_point("\n".join(built(handoff.parse(BLOCK.replace(
+        REASONS, nothing)))))
+    assert point["got"] == 0
+    assert "worker gave no reason that led to anything" in point["line"]
 
 
 def test_the_ladder_takes_the_why_point_for_a_reason_not_in_the_record():

@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 
 from agentweft.runner import front, stops
-from agentweft.runner.summary import UNHELD
+from agentweft.runner.summary import NOTHING as LED_NOWHERE, UNHELD
 
 FILE = "handoff.md"
 DONE, STOPPED, PARKED, FAILED = "done", "stopped", "parked", "failed"
@@ -326,23 +326,30 @@ def _why(c):
         return 1, said
     if _conflict(c):
         return 1, said + "; the reasons rule not applicable on a conflict stop"
-    unheld = sum(1 for held in gave.values() for h in held if not h)
+    unheld = sum(1 for held in gave.values() for h in held if h is False)
     if unheld:
         return 0, (str(unheld) + " reason" + ("" if unheld == 1 else "s")
                    + " not in the record")
-    bare = [role for role, held in gave.items() if not any(held)]
+    bare = [role for role, held in gave.items() if not held]
     if bare:
         return 0, ", ".join(bare) + " gave no reason the record holds"
-    n = sum(len(held) for held in gave.values())
+    idle = [role for role, held in gave.items()
+            if all(h == NOTHING for h in held)]
+    if idle:
+        return 0, ", ".join(idle) + " gave no reason that led to anything"
+    n = sum(1 for held in gave.values() for h in held if h is True)
+    none = sum(1 for held in gave.values() for h in held if h == NOTHING)
     return 1, said + "; " + str(n) + " reason" + ("" if n == 1 else "s") \
-        + " resolved"
+        + " resolved" + (", " + str(none) + " led to nothing" if none else "")
 
 
 REASON = re.compile(r"^- ([\w.-]+): (?:(none given)|because .* -> (.*))$")
+NOTHING = "nothing"
 
 
 def reasons(secs):
-    """-> {role: [whether the record holds each of its reasons]} off the
+    """-> {role: [for each of its reasons, True when the record holds what
+    it led to, False when not, NOTHING when it led to nothing]} off the
     reasons section, [] for a writing step that gave none; None when the
     handoff has no such section."""
     if "reasons" not in secs:
@@ -353,7 +360,9 @@ def reasons(secs):
         if m:
             held = out.setdefault(m.group(1), [])
             if not m.group(2):
-                held.append(m.group(3).strip() != UNHELD)
+                led = m.group(3).strip()
+                held.append(NOTHING if led.lower().rstrip(".") in LED_NOWHERE
+                            else led != UNHELD)
     return out
 
 

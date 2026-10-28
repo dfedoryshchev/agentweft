@@ -279,7 +279,9 @@ order:
    alternatives tried and dropped sit in it, not only under carry forward.
    on a handoff with a `## reasons` section, every role listed there gives
    at least one reason the record holds and none it does not (`(not in the
-   record)`), else 0 with the count or the role named; a conflict stop is
+   record)`), and a reason that led to `nothing` is counted apart and is not
+   one the record holds, so a role whose every reason led to nothing scores
+   0; else 0 with the count or the role named; a conflict stop is
    held to the first half only. each run keeps its `why_unbacked` count, and
    each path's summary line sums it
 8. `not done said plainly`: the section is there; on a stop a line of its own
