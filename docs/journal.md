@@ -1058,7 +1058,10 @@ that asked runs again with it at the very end of its prompt. in
 and the lead's go is a line of its own, `decided`. the run parks for you
 instead when the lead answers `ESCALATE: <why>` or neither line (its go
 `escalated`), or answers `DECIDED:` with no `why:` line or after changing
-`decisions.md` itself (its go `overruled`, with why on the line). a
+`decisions.md` itself (its go `overruled`, with why on the line). the lead's
+go is held to the off task check like any step's (`guardrails.md`), its own
+line carrying the `police` field; a hit that stops the run stops it there,
+before the asking step goes again. a
 decision is judged by what the step acting
 on it changes, not by the files it names: one that cites `TASK.md:3` or a
 test and changes nothing stands. a lead decides inside the spec and the

@@ -765,6 +765,12 @@ command that carries on:
 
     off task at worker.md: network: Bash "pip install leftpad" installs a package, and the flow's network: does not let it
 
+the lead's go at a question (`journal.md`, when a step asks for a ruling) is
+a call like any other: it is read as soon as it answers, and its own line
+(`decided`, `escalated` or `overruled`) carries its `police` field. a hit there stops the run
+before the step that asked goes again, its decision not held, with the lead
+named in the why: `off task at worker.md: planner.md credentials: ...`.
+
 the retro (`writing-a-flow.md`, "say whether the run looks back") reads the
 place too, so its transcript is read the same way, held to its read grant,
 and its line carries the same `police` field. it comes after the handoff, so

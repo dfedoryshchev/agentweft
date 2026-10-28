@@ -558,9 +558,15 @@ def go(leg):
                 return stop(stops.DECLINED, said[1], "refused", entry)
             if said:
                 head, decided, question = to_lead(run, step, said[1], given,
-                                                  run_id)
+                                                  run_id, folder=step_dir)
                 if head is not None:
                     lead_pass(trail, run, head, step, decided)
+                off = head.meta.get("off") if head is not None else ""
+                if off:
+                    print("off task at " + step + ": " + off)
+                    return stop(stops.OFF_TASK, off, "parked", entry,
+                                index="PARKED  " + flow + "  at " + step,
+                                waiting="user")
                 if decided:
                     print(run.lead + " decided what " + step + " asked, and "
                           + step + " runs again with it")

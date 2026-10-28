@@ -2,15 +2,21 @@
 from agentweft.guardrails import rulings
 
 from . import lead, ruling
-from .gating import check_step, gate_why
+from .gating import and_forged, check_step, gate_why, off_task, police_line
 from .handoff import EMPTY, PARTIAL, PRESENT
 
 
-def to_lead(run, step, question, given, where):
+def to_lead(run, step, question, given, where, folder=None):
     """-> (the lead's Handoff or None, the end of `step`'s next prompt when
     the lead decided or "", the question as the operator gets it when it
     did not). a flow with no lead, and the lead's own question, go to the
-    operator as they were asked."""
+    operator as they were asked.
+
+    the lead's go is read by the off task check as soon as it answers, like
+    any step's: what it found goes on the lead's own line (`meta["police"]`),
+    and a hit that stops the run is `meta["off"]`, the decision not held, so
+    the step that asked never runs again on it. `folder` is where police.md
+    is written."""
     head = getattr(run, "lead", None)
     if head is None or head == step:
         return None, "", question
@@ -36,7 +42,13 @@ def to_lead(run, step, question, given, where):
             run.produced.pop(head, None)
         else:
             run.produced[head] = was
+    off = off_task(run, head, folder)
+    out.meta["police"] = police_line(run, head)
     forged = getattr(run, "forged", {}).pop(head, "")
+    if off:
+        off = and_forged(head + " " + off, forged)
+        out.meta["passed"] = out.meta["off"] = off
+        return out, "", lead.passed(question, off)
     if forged:
         out.meta["passed"] = forged
         return out, "", lead.passed(question, forged)
@@ -59,6 +71,7 @@ def lead_pass(trail, run, out, asker, decided):
                        run.by_step.get(run.lead, run.provider), asker,
                        output=out.output)
     entry.handoff = out.block
+    entry.police = out.meta.get("police")
     entry.decided = bool(decided)
     if decided:
         trail.close(entry, "decided", to=asker)

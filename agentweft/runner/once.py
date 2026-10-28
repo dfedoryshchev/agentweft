@@ -226,13 +226,17 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             return out.output, run.budget, ""
         if said:
             mine = run.taken()
-            head, decided, question = to_lead(run, step, said[1], given,
-                                              "a run of " + flow)
+            head, decided, question = to_lead(
+                run, step, said[1], given, "a run of " + flow,
+                folder=Path(trail) if trail is not None else None)
             theirs = run.taken()
             run.attempts = mine
+            off = head.meta.get("off") if head is not None else ""
             if decided:
                 note("asked", said[1].split("\n")[0], to=run.lead,
                      output=out.output)
+            elif off:
+                note("parked", off, stops.OFF_TASK, output=out.output)
             else:
                 worked_then_asked(run, route, step, out)
                 note("parked", question, stops.PARKED, output=out.output)
@@ -243,6 +247,9 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
                 run.ruled[step] = decided
                 state["out"] = handed
                 continue
+            if off:
+                return (out.output, run.budget, "off task at " + step + ": "
+                        + off)
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + question.split("\n")[0])
         failed, blocked = check_step(run, route, step, out)
@@ -316,7 +323,7 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             continue
         nxt = route.next(step, out)
         sent_back = out.verdict == "redo" and nxt
-        already = kept = case = None
+        already = noted = case = None
         if case_for and step == case_for["writer"]:
             named, coder = case_for["named"], case_for["coder"]
             new = wouldpass.added(case_for["before"], run.start)
@@ -336,13 +343,13 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             case = wouldpass.held(case_for, ran)
             case_for = None
             if not new and not sent_back:
-                kept = wouldpass.no_case(step, named, coder, new)
+                noted = wouldpass.no_case(step, named, coder, new)
                 run.gate_said[coder] = wouldpass.unheld(named, wrong)
             elif wouldpass.green(ran):
-                already = kept = wouldpass.passes_already(coder, ran)
+                already = noted = wouldpass.passes_already(coder, ran)
                 run.gate_said.pop(coder, None)
                 nxt = route.next(named, EMPTY)
-        note("redo" if sent_back else "ok", kept, to=nxt,
+        note("redo" if sent_back else "ok", noted, to=nxt,
              output=out.output, case=case)
         if nxt and not sent_back and run.lens_for(nxt) \
                 and run.role_for(step) == REVIEWER:

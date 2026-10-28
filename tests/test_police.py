@@ -865,6 +865,69 @@ def test_a_scored_run_stops_off_task_too(tmp_path, monkeypatch, fake_cli):
     assert why.startswith("off task at worker.md: network")
 
 
+# the lead's go at a question is a call like any other
+
+LEAD = "lead: planner\n"
+ASKS = "NEEDS: is a blank amount zero?\nCITES:\n- TASK.md:1\n"
+DECIDES = "DECIDED: zero\nwhy: TASK.md:1 says amounts are strings\n"
+
+
+def a_lead_decides(tmp_path, monkeypatch, fake_cli, tail, *after):
+    a_flow(tmp_path, monkeypatch, "f", ["planner", "worker"],
+           tail=tail + LEAD)
+    (tmp_path / "TASK.md").write_text("amounts are strings\n",
+                                      encoding="utf-8")
+    transcript(tmp_path, monkeypatch, "s-3", SECRET)
+    fake_cli(answer("plan\n", session="s-1"), answer(ASKS, session="s-2"),
+             answer(DECIDES, session="s-3"), *after)
+
+
+def test_the_leads_decision_pass_is_policed_on_its_own_line(
+        tmp_path, monkeypatch, fake_cli):
+    a_lead_decides(tmp_path, monkeypatch, fake_cli, SHADOW,
+                   answer("done\n", session="s-4"))
+    assert engine.main() == 0
+    folder = the_folder()
+    lines = steps_of(folder)
+    assert [(l["step"], l["outcome"]) for l in lines] == [
+        ("planner.md", "ok"), ("worker.md", "asked"),
+        ("planner.md", "decided"), ("worker.md", "ok")]
+    assert all("police" in l for l in lines), lines
+    led = lines[2]["police"]
+    assert (led["hits"], led["seen"], led["mode"]) == (1, True, "shadow")
+    assert lines[3]["police"]["hits"] == 0
+    said = (folder / "police.md").read_text(encoding="utf-8")
+    assert "planner.md credentials" in said
+    record = (folder / "handoff.md").read_text(encoding="utf-8").split(
+        "## police")[1].split("\n## ")[0]
+    assert 'planner.md credentials: Read "/w/.env"' in record
+
+
+def test_a_hit_on_the_leads_pass_stops_the_run_before_the_asker_goes_again(
+        tmp_path, monkeypatch, fake_cli):
+    a_lead_decides(tmp_path, monkeypatch, fake_cli, ON)
+    assert engine.main() == 2
+    [end] = ends()
+    assert end.cause == "off task"
+    assert end.why.startswith("planner.md credentials")
+    lines = steps_of(the_folder())
+    assert [l["step"] for l in lines] == ["planner.md", "worker.md",
+                                          "planner.md"]
+    assert all("police" in l for l in lines), lines
+    assert lines[2]["police"]["hits"] == 1
+
+
+def test_a_scored_run_polices_the_leads_pass_too(tmp_path, monkeypatch,
+                                                 fake_cli):
+    a_lead_decides(tmp_path, monkeypatch, fake_cli, ON)
+    _, _, why = engine.run_once("f", trail=tmp_path / "trail")
+    assert why.startswith("off task at worker.md: planner.md credentials")
+    lines = steps_of(tmp_path / "trail")
+    assert [l["step"] for l in lines] == ["planner.md", "worker.md",
+                                          "planner.md"]
+    assert all("police" in l for l in lines), lines
+
+
 # what the mcp server hands a client
 
 
