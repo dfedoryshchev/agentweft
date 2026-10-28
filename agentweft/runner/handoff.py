@@ -20,7 +20,8 @@ and a `saw:` line per piece of what it printed. when the step's provider keeps
 a transcript, the claim is held to it: `backed` when the command and every
 excerpt are there, `unbacked` when one of them is not (the missing one is
 named; an excerpt written as `a / b` is held to those output lines,
-consecutive), `ran` when the command is there and no excerpt was given,
+consecutive, one cut as `a ... b` to its pieces in that order in one call's
+output), `ran` when the command is there and no excerpt was given,
 `shortened` when the command is cut short with `...` and so cannot be held
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
 points at the command above ("same command as above") is read as the nearest
@@ -83,6 +84,7 @@ OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
 QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
 BREAK = re.compile(r"\s*[;\n][\s;]*")
+ELIDED = re.compile(r"\s\.\.\.\s")
 # the tools that read or search, held as a call the way a Bash command is
 TOOLS = ("Read", "Grep", "Glob")
 WORD = re.compile(r"[^\s\"'`()]+")
@@ -464,9 +466,24 @@ class Shown(object):
         """whether the output shows `excerpt`: as written, or, for an excerpt
         that writes lines as `a / b`, as those lines, consecutive: the first
         ends its line, the last starts its line, any between are whole
-        lines."""
+        lines; for one cut as `a ... b`, as its pieces, in that order."""
         if norm(excerpt) in self.text:
             return True
+        return self._consecutive(excerpt) or self._in_order(excerpt)
+
+    def _in_order(self, excerpt):
+        pieces = [norm(p) for p in ELIDED.split(excerpt)]
+        if len(pieces) < 2 or not all(pieces):
+            return False
+        at = 0
+        for piece in pieces:
+            at = self.text.find(piece, at)
+            if at < 0:
+                return False
+            at += len(piece)
+        return True
+
+    def _consecutive(self, excerpt):
         pieces = [norm(p) for p in excerpt.split(" / ")]
         if len(pieces) < 2 or not all(pieces):
             return False

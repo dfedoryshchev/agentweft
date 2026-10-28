@@ -466,6 +466,32 @@ def test_a_saw_whose_lines_are_not_consecutive_in_one_call_stays_unbacked(saw):
     assert item["why"].endswith("does not show " + saw)
 
 
+DIFFED = [("git diff", "@@ -41,6 +41,10 @@ x\n y\n+  With x\n"),
+          ("git log", "+  With z\n")]
+
+
+@pytest.mark.parametrize("saw", [
+    "@@ -41,6 +41,10 @@ ... +  With x",
+    "@@ -41,6 ... y ... With x"])
+def test_a_saw_cut_with_dots_is_backed_by_its_pieces_in_order(saw):
+    block = verified("- the diff only adds\n  cmd: git\n  saw: " + saw + "\n")
+    [item] = handoff.back(block, DIFFED)["verified"]
+    assert item["backed"] == "backed", item
+
+
+@pytest.mark.parametrize("saw", [
+    "+  With x ... @@ -41,6 +41,10 @@",
+    "@@ -41,6 +41,10 @@ ... +  With q",
+    "@@ -41,6 +41,10 @@ ... With z",
+    "y ... y",
+    "@@ -41,6 +41,10 @@ ...  ... With x"])
+def test_a_saw_cut_with_dots_whose_pieces_one_call_does_not_hold_in_order(saw):
+    block = verified("- the diff only adds\n  cmd: git\n  saw: " + saw + "\n")
+    [item] = handoff.back(block, DIFFED)["verified"]
+    assert item["backed"] == "unbacked", item
+    assert item["why"].endswith("does not show " + saw)
+
+
 RAN = [("cd /w && python -m pytest -q tests/test_calc.py",
         "5 passed in 0.1s\n0 warnings")]
 

@@ -420,8 +420,9 @@ and `continued`
   first; one that writes output lines as `a / b / c` is then held to those
   lines, consecutive in one call's output, `a` ending its line, `c` starting
   its line and every piece between a whole line, so a skipped line or a
-  piece cut inside a word leaves it unbacked.
-  a script fed on stdin (`<<EOF`) is
+  piece cut inside a word leaves it unbacked. one cut with ` ... ` is held
+  as its pieces, every one in the same call's output and in the order
+  written. a script fed on stdin (`<<EOF`) is
   held by its body: a claim that cites its statements, joined by `; ` or on
   lines of their own, with or without its `<<` line, is held to the command
   whose body holds every one of them; a claim that writes the `<<` line also
