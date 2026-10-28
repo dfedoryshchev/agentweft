@@ -141,6 +141,54 @@ def test_a_step_answered_after_the_fallback_says_which_model_answered(
     assert "reviewer.md was answered by" not in said
 
 
+def thought(text, thinking, session="s-1"):
+    code, out, err = answer(text, session=session)
+    said = json.loads(out.decode("utf-8"))
+    said["usage"]["output_tokens_details"] = {"thinking_tokens": thinking}
+    return code, json.dumps(said).encode("utf-8"), err
+
+
+def test_a_step_line_carries_the_thinking_its_calls_reported(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "thinks", ["worker", "reviewer", "checker"])
+    fake_cli(thought("did the thing\n", 3), thought("VERDICT: ok\n", 0,
+                                                    session="s-2"),
+             answer("VERDICT: ok\n", session="s-3"))
+    engine.main()
+    [folder] = folders(tmp_path)
+    worker, reviewer, checker = lines(folder)
+    assert (worker["thinking"], reviewer["thinking"]) == (3, 0)
+    assert "thinking" not in checker
+    said = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert ("- thinking tokens by role: worker 3, reviewer 0, not said on 1"
+            " pass") in said
+
+
+def ran_at(where, session, effort):
+    rows = [{"type": "assistant", "effort": effort,
+             "message": {"id": "a", "model": "m-small-1", "usage": {}}}]
+    path = where / "project" / (session + ".jsonl")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(json.dumps(r) for r in rows) + "\n",
+                    encoding="utf-8")
+
+
+def test_a_step_line_says_the_effort_its_transcript_ran_at(
+        tmp_path, monkeypatch, fake_cli):
+    from agentweft.runner import handoff
+
+    monkeypatch.setattr(handoff, "PROJECTS", str(tmp_path / "projects"))
+    ran_at(tmp_path / "projects", "s-1", "medium")
+    a_flow(tmp_path, monkeypatch, "effort", ["worker", "reviewer"])
+    fake_cli(answer("did the thing\n", session="s-1"),
+             answer("VERDICT: ok\n", session="s-2"))
+    engine.main()
+    worker, reviewer = lines(folders(tmp_path)[0])
+    assert worker["effort"]["asked"] == "provider default"
+    assert worker["effort"]["used"] == "medium"
+    assert "used" not in reviewer["effort"]
+
+
 def test_a_two_step_run_writes_one_line_per_step(tmp_path, monkeypatch,
                                                  fake_cli):
     a_flow(tmp_path, monkeypatch, "two",

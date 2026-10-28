@@ -421,7 +421,8 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
 
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
-         "shell_writes_denied", "shell_trap_recoveries", "won", "fallback")
+         "shell_writes_denied", "shell_trap_recoveries", "won", "fallback",
+         "thinking", "effort")
 
 
 def fallen(passes):
@@ -1199,7 +1200,35 @@ def bought(passes):
     if upkeep:
         out.append("- upkeep, not waste: the retro $%.4f"
                    % sum(_cost(p) for p in upkeep))
-    return out + ["- total: " + _tally(passes)]
+    return out + thought(passes) + ["- total: " + _tally(passes)]
+
+
+def thought(passes):
+    """-> the thinking tokens summed by role, each with the effort its
+    transcripts ran at, and the passes whose provider did not say; nothing
+    when no pass said."""
+    by, at, unsaid = {}, {}, 0
+    for p in passes:
+        f = p.get("facts") or {}
+        n = f.get("thinking")
+        if not isinstance(n, int) or isinstance(n, bool):
+            unsaid += 1
+            continue
+        role = p.get("role") or p["step"]
+        by[role] = by.get(role, 0) + n
+        used = (f.get("effort") or {}).get("used") \
+            if isinstance(f.get("effort"), dict) else None
+        if used:
+            at.setdefault(role, set()).add(used)
+    if not by:
+        return []
+    said = [role + " " + str(n) + (" at " + ", ".join(sorted(at[role]))
+                                   if role in at else "")
+            for role, n in by.items()]
+    if unsaid:
+        said.append("not said on " + str(unsaid) + " pass"
+                    + ("" if unsaid == 1 else "es"))
+    return ["- thinking tokens by role: " + ", ".join(said)]
 
 
 AFTER = " (after this handoff was written)"

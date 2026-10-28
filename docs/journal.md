@@ -148,8 +148,9 @@ instead of picking a finished run back up.
 the journal line is the run. `runs/<run-id>/steps.jsonl` is the steps: one
 json line every time a step runs, a redo's second pass included, written
 whatever happened next - the run went on, sent the work back, parked, stopped
-or crashed. the keys are always all there, in this order; `turns` comes
-after them on the line of a step whose provider said them, and `continued`
+or crashed. the keys are always all there, in this order; `turns` and
+`thinking` come after them on the line of a step whose provider said them,
+and `continued`
 (and `lapsed`) on the line of a step that carried its session on:
 
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
@@ -211,8 +212,11 @@ after them on the line of a step whose provider said them, and `continued`
   send-back, null for none; `raised` is how many times the step had been sent
   back when this go started (a gate, a verdict of redo, a wrong test), each
   one level up from the base to `xhigh` at most; `applies` is false when the
-  provider cannot act on a level, as for `model_choice`. null on a line closed
-  before the step was asked.
+  provider cannot act on a level, as for `model_choice`. `used` follows them
+  when the step's transcript names the level its model turns ran at (the
+  cli writes `effort` on each, its own default when nothing was asked): the
+  newest turn's of each session, joined when sessions differ. null on a line
+  closed before the step was asked.
 - `verbosity` is null for a step that is not terse. a `verbosity: terse` step
   has `{"asked": "terse", "limit": 8000, "applies": true}`: `limit` is the
   token cap its answer was held to, and `applies` is false, `limit` null, when
@@ -245,6 +249,13 @@ after them on the line of a step whose provider said them, and `continued`
   with the tool calls between them. a carried-on call's figure is not taken,
   since whether it counts the call or the whole session has not been seen,
   and a fanned task's own entry in `tasks` has its own.
+- `thinking` is only on the line of a step whose every go the provider said
+  the thinking tokens of (`output_tokens_details.thinking_tokens` in the
+  usage): their sum, a part of `tokens.output`, never added to it. a go that
+  said 0 is 0; a go that said nothing leaves the key off. the handoff's retro
+  section sums it by role, with the effort each ran at, beside the passes
+  that did not say: `- thinking tokens by role: worker 590 at medium,
+  planner 473 at medium, not said on 1 pass`.
 - `facts_attached` is only on the line of a step whose brief handed it some
   of the project's facts ("what is known about a file", below): their ids,
   the ones shown in full, in the order shown.

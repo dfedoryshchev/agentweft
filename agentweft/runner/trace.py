@@ -231,6 +231,16 @@ def turns(attempts):
     return sum(said)
 
 
+def thinking(attempts):
+    """-> the thinking tokens every reply says it spent, summed; None unless
+    each one said."""
+    said = [r.usage.reasoning_output_tokens if r.usage is not None else None
+            for a in attempts for r in a.replies]
+    if not said or any(t is None for t in said):
+        return None
+    return sum(said)
+
+
 def seconds(attempts):
     if not attempts:
         return 0.0
@@ -247,7 +257,7 @@ def facts(attempts, model=None):
             "cached": bool(attempts) and all(a.cached for a in attempts),
             "retries": retries(attempts),
             "background_killed": killed(attempts),
-            "turns": turns(attempts)}
+            "turns": turns(attempts), "thinking": thinking(attempts)}
 
 
 def last_seq(folder):
@@ -435,29 +445,53 @@ def sessions(attempts):
 FALLBACK = "model_refusal_fallback"
 
 
+def transcript(session):
+    """-> every record of `session`'s transcript, None when there is none
+    to read."""
+    from agentweft.runner.handoff import projects
+
+    try:
+        found = sorted(projects().glob("*/" + session + ".jsonl"))
+    except OSError:
+        return None
+    if not found:
+        return None
+    out = []
+    for raw in found[0].read_text(encoding="utf-8",
+                                  errors="replace").split("\n"):
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        if isinstance(data, dict):
+            out.append(data)
+    return out
+
+
+def effort_used(attempts):
+    """-> the level the step's sessions ran at, as the newest model turn of
+    each transcript names it; None when no transcript names one."""
+    used = set()
+    for s in sessions(attempts):
+        turns = [d.get("effort") for d in transcript(s) or ()
+                 if d.get("type") == "assistant"
+                 and isinstance(d.get("effort"), str) and d.get("effort")]
+        if turns:
+            used.add(turns[-1])
+    return ", ".join(sorted(used)) or None
+
+
 def fallback(attempts):
     """-> {"asked", "answered_by"} when a session of the step records the
     provider's fallback, the model it switched to answering in place of the
     one asked; None for a step answered by the model it asked, or with no
     transcript to tell."""
-    from agentweft.runner.handoff import projects
-
     for s in sorted(sessions(attempts)):
-        try:
-            found = sorted(projects().glob("*/" + s + ".jsonl"))
-        except OSError:
-            continue
-        if not found:
+        records = transcript(s)
+        if records is None:
             continue
         fell = switched = None
-        for raw in found[0].read_text(encoding="utf-8",
-                                      errors="replace").split("\n"):
-            try:
-                data = json.loads(raw)
-            except ValueError:
-                continue
-            if not isinstance(data, dict):
-                continue
+        for data in records:
             if data.get("type") == "system" and data.get("subtype") == FALLBACK:
                 fell = True
             message = data.get("message")
@@ -575,12 +609,17 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
         for a in attempts:
             task = {"task": a.task}
             task.update(facts([a], p.asks_for()))
-            if task["turns"] is None:
-                del task["turns"]
+            for key in ("turns", "thinking"):
+                if task[key] is None:
+                    del task[key]
             task["session"] = last(a, "session")
             task["model_reported"] = last(a, "model")
             tasks.append(task)
     gates = [gate_line(g) for g in entry.gates]
+    effort = first.effort if first else None
+    used = effort_used(attempts) if isinstance(effort, dict) else None
+    if used:
+        effort = dict(effort, used=used)
     out = {"seq": entry.seq,
            "time": (first.began if first else datetime.datetime.now())
            .isoformat(timespec="seconds"),
@@ -592,7 +631,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "model": p.asks_for(),
            "model_reported": last(one, "model") if one else None,
            "model_choice": getattr(p, "choice", None),
-           "effort": first.effort if first else None,
+           "effort": effort,
            "verbosity": first.verbosity if first else None,
            "grant": p.granted(),
            "tokens": said["tokens"],
@@ -622,6 +661,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "handoff": entry.handoff}
     if said["turns"] is not None:
         out["turns"] = said["turns"]
+    if said["thinking"] is not None:
+        out["thinking"] = said["thinking"]
     from .stops import OFF_TASK
 
     if cause == OFF_TASK and why:
