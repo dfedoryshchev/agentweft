@@ -480,6 +480,38 @@ def test_a_script_on_stdin_the_transcript_does_not_hold_stays_unbacked(cited):
     assert item["backed"] == "unbacked", item
 
 
+LOOPED = [("cd /w && L=1\nfor a in 1 2; do echo $a; done", "1\n2\n"),
+          ('python -c "\nimport sys\nprint(1)\n"', "1\n"),
+          ('python -c "\nfor a in [7]:\n    print(a)\n"', "7\n"),
+          ("grep -c ';' notes.md", "1\n")]
+
+
+@pytest.mark.parametrize("cited, saw", [
+    ("cd /w && L=1; for a in 1 2; do echo $a; done", "2"),
+    ("L=1;  for a in 1 2; do echo $a; done", "2"),
+    ('python -c "import sys; print(1)"', "1"),
+    ('python -c "for a in [7]:;     print(a)"', "7")])
+def test_a_command_cited_with_a_semicolon_for_each_line_break_is_backed(
+        cited, saw):
+    block = verified("- it prints\n  cmd: " + cited + "\n  saw: " + saw + "\n")
+    [item] = handoff.back(block, LOOPED)["verified"]
+    assert (item["backed"], item["by"]) == ("backed", "command"), item
+
+
+@pytest.mark.parametrize("cited", [
+    "cd /w && L=3; for a in 1 2; do echo $a; done",
+    "L=1; for a in 1 2; do echo $a; done; echo 3",
+    'python -c "import sys; print(2)"',
+    'python -c "import os; print(1)"',
+    'python -c "for a in [8]:;     print(a)"',
+    "grep -c '' notes.md"])
+def test_a_command_with_a_changed_token_beside_its_breaks_stays_unbacked(
+        cited):
+    block = verified("- it prints\n  cmd: " + cited + "\n  saw: 1\n")
+    [item] = handoff.back(block, LOOPED)["verified"]
+    assert item["backed"] == "unbacked", item
+
+
 def test_the_hand_runs_reviewer_is_asked_for_each_command_in_full():
     words = " ".join((Path(__file__).resolve().parents[1] / "flows"
                       / "build-feature" / "reviewer-runs.md").read_text(

@@ -24,13 +24,14 @@ named), `ran` when the command is there and no excerpt was given,
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
 points at the command above ("same command as above") is read as the nearest
 one above it. a script fed on stdin is held to its body: every statement
-the `cmd:` cites must be in one such command's body. a Read, Grep or Glob
-call backs a `cmd:` that names the tool, the pattern searched for and the
-file read or searched, whole or by its tail; a `Read <file>` with one path
-is also backed by a shell command that printed that file. the model's word
-for what it ran is never taken on its own. a
-claim that quotes a file instead, `<file>:<line> "<the line>"`, is held to
-that line as the run found it. each claim keeps `by`, what held it:
+the `cmd:` cites must be in one such command's body. a line break in a
+command and the `; ` a step writes for it are one statement break. a Read,
+Grep or Glob call backs a `cmd:` that names the tool, the pattern searched
+for and the file read or searched, whole or by its tail; a `Read <file>` with
+one path is also backed by a shell command that printed that file. the
+model's word for what it ran is never taken on its own. a claim that quotes
+a file instead, `<file>:<line> "<the line>"`, is held to that line as the
+run found it. each claim keeps `by`, what held it:
 `command`, `stdin`, `read` (a Read, Grep or Glob call, or the shell call
 that printed the file a `Read <file>` names) or `file`, None
 when nothing did, so a count of backed claims can be split by the kind that
@@ -80,6 +81,7 @@ CUT = re.compile(chr(0x2026) + r"""|(?:^|[\s"'(\[<])\.\.\.(?=$|[\s"')\]>])""")
 OLD_PART = re.compile(r"\s*\|\s*(cmd|command|ran|saw|output)\s*:\s*", re.I)
 QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+BREAK = re.compile(r"\s*[;\n][\s;]*")
 # the tools that read or search, held as a call the way a Bash command is
 TOOLS = ("Read", "Grep", "Glob")
 WORD = re.compile(r"[^\s\"'`()]+")
@@ -315,6 +317,45 @@ def norm(text):
                     .replace("`", "").split()).lower()
 
 
+def _quoted(text, quote):
+    """-> the quote `text` leaves open when it starts inside `quote`, None
+    when it leaves none open."""
+    escaped = False
+    for ch in text:
+        if escaped:
+            escaped = False
+        elif ch == "\\" and quote != "'":
+            escaped = True
+        elif quote is None and ch in "'\"":
+            quote = ch
+        elif ch == quote:
+            quote = None
+    return quote
+
+
+def breaks(text):
+    """-> `text` with every line break and `;` between two statements, and
+    the space around them, written as one `; `. a line break just inside a
+    quote, as in `python -c "<newline>import sys<newline>"`, is dropped."""
+    chunks = BREAK.split((text or "").strip())
+    seps = BREAK.findall((text or "").strip())
+    out, quote = chunks[0], _quoted(chunks[0], None)
+    for sep, chunk in zip(seps, chunks[1:]):
+        inside = (quote is not None and ";" not in sep
+                  and (out.endswith(quote) or chunk.startswith(quote)))
+        if chunk and not inside:
+            out = out + "; "
+        out = out + chunk
+        quote = _quoted(chunk, quote)
+    return out
+
+
+def by_breaks(cited, cmd):
+    """whether `cited` is `cmd` with a `; ` written for a line break: the
+    same words, the same statements, in the same order."""
+    return norm(breaks(cited)) in norm(breaks(cmd))
+
+
 def _stdin_script(cmd):
     """-> (what runs it, its terminator word, its body) for a command that
     feeds a script on stdin with `<<`, or None for any other."""
@@ -419,6 +460,7 @@ def back(block, calls):
         for cmd, out in calls:
             kind = (BY_COMMAND if want and want in norm(cmd) else
                     BY_STDIN if want and by_stdin(item["cmd"], cmd) else
+                    BY_COMMAND if want and by_breaks(item["cmd"], cmd) else
                     BY_READ if want and (by_tool(item["cmd"], cmd)
                                          or by_shell_read(item["cmd"], cmd))
                     else None)

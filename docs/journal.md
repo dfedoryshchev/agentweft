@@ -420,8 +420,12 @@ and `continued`
   held by its body: a claim that cites its statements, joined by `; ` or on
   lines of their own, with or without its `<<` line, is held to the command
   whose body holds every one of them; a claim that writes the `<<` line also
-  needs what runs the script to match. a Read, Grep or Glob call is held
-  the same way as a command: a `cmd:` that names the tool, the pattern a
+  needs what runs the script to match. a command is held with a line break
+  and a `;` read as one statement break, so `cd /w && L=1; for a in 1 2; do
+  echo $a; done` is the call that ran it over two lines; a line break just
+  inside a quote (`python -c "<newline>import sys<newline>"`) is dropped, and
+  every word must still be the one that ran. a Read, Grep or Glob call is
+  held the same way as a command: a `cmd:` that names the tool, the pattern a
   search looked for and the file it read or searched, whole or by its tail
   (`Grep "def mul" calc.py`, `Read TASK.md`), is held to that call's output.
   a `Read <file>` with one path after it is held the same way to a shell
