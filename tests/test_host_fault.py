@@ -413,3 +413,12 @@ def test_the_faults_are_read_off_a_test_runs_short_summary():
            " 87] The parameter is incorrect" + NL + "1 failed, 1 passed")
     assert hostfault.of_run(out) == ("OSError: [WinError 87] The parameter is"
                                      " incorrect")
+
+
+def test_an_error_a_running_process_raised_in_subprocess_is_the_code_s():
+    said = ("/usr/lib/python3/subprocess.py:1209: in communicate" + NL
+            + "E   OSError: [Errno 22] Invalid argument")
+    assert hostfault.key(said) == ""
+    started = ("/usr/lib/python3/subprocess.py:1955: in _execute_child" + NL
+               + "E   OSError: [Errno 22] Invalid argument")
+    assert hostfault.key(started) == "Errno 22"

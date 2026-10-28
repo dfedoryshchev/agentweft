@@ -28,8 +28,9 @@ RED = re.compile(r"^(?:FAILED|ERROR) \S+(?: - (.*))?$")
 # error, no memory
 SPAWN = ("WinError 87", "WinError 193", "WinError 2", "Errno 7", "Errno 8",
          "Errno 12")
-SPAWNED = re.compile(r"[\\/]subprocess\.py\b|\b_execute_child\b"
-                     r"|\bCreateProcess\b")
+# the spawn's own frame: a running process's pipe can raise from
+# subprocess.py too, and that error is the code's
+SPAWNED = re.compile(r"\b_execute_child\b|\bCreateProcess\b")
 SECTION = re.compile(r"^_{3,} .+ _{3,}$", re.M)
 
 

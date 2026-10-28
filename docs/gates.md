@@ -143,8 +143,9 @@ counts; its subclasses (`FileNotFoundError`, `PermissionError`) and every
 other exception are what wrong code raises too, and stay the change's red
 (`guardrails/hostfault.py`). and a bare `OSError` is the machine's only when
 it came from the spawn: its code is one a spawn raises (WinError 87, 193 or
-2; errno 7, 8 or 12), or its traceback shows the spawn (`subprocess.py`,
-`_execute_child`, `CreateProcess`). code that removes a full folder
+2; errno 7, 8 or 12), or its traceback shows the spawn (`_execute_child`,
+`CreateProcess`; another frame of `subprocess.py`, a running process's pipe,
+is not the spawn). code that removes a full folder
 (`[WinError 145]`, `[Errno 39]`), renames across drives (`[Errno 18]`) or
 passes a bad argument (`[Errno 22]`) raises a bare `OSError` too, and that
 red is the change's: the step goes back with it. red-first's run of each new test without the
