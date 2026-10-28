@@ -462,14 +462,13 @@ RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
 
 def fallen(passes):
     """-> a line for each pass another model answered after the provider's
-    fallback, so the price gap it leaves is not the only trace of it."""
+    fallback, and what the runner held back of it, if anything."""
     out = []
     for p in passes:
         fell = (p.get("facts") or {}).get("fallback")
         if isinstance(fell, dict) and fell.get("answered_by"):
-            out.append("- " + at(p) + " was answered by " + fell["answered_by"]
-                       + ", not " + str(fell.get("asked")) + ", after the"
-                       " provider's fallback")
+            out.append("- " + trace.switched_said(at(p), fell)
+                       + ("; " + fell["held"] if fell.get("held") else ""))
     return out
 
 
@@ -1400,10 +1399,13 @@ def after_retro(path, every, spend, police=None):
                                            + bought(every))
     found = section(lines, "run")
     if found:
-        for n in range(*found):
+        top = found[0]
+        while top < found[1] and trace.SWITCHED in lines[top]:
+            top += 1
+        lines[top:top] = fallen(every[-1:])
+        for n in range(*section(lines, "run")):
             if lines[n].startswith("- spend: "):
                 lines[n] = "- spend: " + spend + ", the retro's call included"
-                lines[n + 1:n + 1] = fallen(every[-1:])
                 break
     found = section(lines, "police")
     if found and police:
@@ -1851,6 +1853,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## run")
+    out.extend(fallen(every))
     if before:
         out.append("- picked up: " + " -> ".join(at(p) for p in before))
     out.append("- steps: " + " -> ".join(
@@ -1858,7 +1861,6 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         + (" (sent back)" if p["outcome"] == "redo" else "")
         for p in passes) if passes else "- steps: none ran")
     out.append("- spend: " + (spend or "0 calls, 0 tokens"))
-    out.extend(fallen(passes))
     out.append("- " + ("cause: " + stopped["cause"] + " at " + stopped["at"]
                        if stopped else outcome(None, unsure)))
     out.append("- record: runs/" + run_id + "/steps.jsonl, gates.jsonl,"

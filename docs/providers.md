@@ -27,8 +27,9 @@ a provider answers a prompt. that is the whole interface:
   so the checks that read a transcript (a VERIFIED claim's command, what a
   pass read, shell traps, a go that never answered) leave those rows out.
   it is also handed
-  `--settings` with the commit and pull request attribution off (below), and
-  a step with `tools` gets its grant as flags (below). any other command is
+  `--settings` with the cli's model switch off and the commit and pull
+  request attribution off (both below), and a step with `tools` gets its
+  grant as flags (below). any other command is
   called as `<command> -p <prompt>` and its stdout is the answer, as before,
   grant or none. output is read as UTF-8 either way.
 
@@ -396,9 +397,35 @@ block:
       co_author: true
 
 or every run takes it from `AGENTWEFT_CO_AUTHOR=true` in `.env`, which
-`agentweft init` asks about (off unless you say yes). either way `--settings`
-is then not passed at all, so the cli's own default answers. a provider block
-that says `co_author: false` wins over the `.env` line.
+`agentweft init` asks about (off unless you say yes). either way the
+attribution setting is then left out of `--settings`, so the cli's own default
+answers. a provider block that says `co_author: false` wins over the `.env`
+line.
+
+### the model switch
+
+when the cli's safeguards flag a message, its default is to answer it with
+another model in the same call: the transcript holds a `system` record with
+subtype `model_refusal_fallback`, the turns after it carry the other model in
+`message.model`, and the call ends as if nothing happened. the settings
+schema of `claude` 2.1.309 documents the key that decides it,
+`switchModelsOnFlag`: "When safeguards flag a message, automatically switch to
+a different model to keep chatting. When off, your session will pause
+instead." every `claude` call here is handed `"switchModelsOnFlag":false` in
+its `--settings`, so a step's answer is the model it asked for or none: a
+refused call ends on the refusal, which the step reads as its error
+(`stop_reason refusal` is `the model declined to answer`) and the run stops
+there like any other provider error. how a refused `-p` call prints with the
+key off was read from the cli's bundled code, not seen on a run.
+
+a subagent a step starts inside its own call is not held by the key in that
+code: its fallback is local to its own reply. so the runner still reads every
+step's transcript for the fallback (`journal.md`, `fallback`), and a step
+another model answered is never taken quietly: the console prints `<step> was
+answered by <model>, not <asked>: the provider switched models; its output is
+that model's` when the step ends, the handoff's run section opens with the
+same line, and a flow with `on_fallback: park` parks the run there for a
+person before a later step takes that output (`writing-a-flow.md`).
 
 ### the runaway guard
 

@@ -15,8 +15,8 @@ USAGE = {"input_tokens": 2, "cache_creation_input_tokens": 8124,
          "output_tokens_details": {"thinking_tokens": 0},
          "service_tier": "standard"}
 
-NO_TRAILER = ["--settings", '{"attribution":{"commit":"","pr":"",'
-                            '"sessionUrl":false}}']
+NO_TRAILER = ["--settings", '{"switchModelsOnFlag":false,"attribution":'
+                            '{"commit":"","pr":"","sessionUrl":false}}']
 
 
 def result(**over):

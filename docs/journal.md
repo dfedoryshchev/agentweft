@@ -197,8 +197,13 @@ and `continued`
   said answered. when the step's transcript records the cli's
   `model_refusal_fallback`, the line also carries `fallback`, `{"asked":
   <the model the turn asked for>, "answered_by": <the model that answered
-  it>}`, and the handoff's run section says `<step> was answered by <model>,
-  not <asked>, after the provider's fallback` under the spend.
+  it>}`; the console prints `<step> was answered by <model>, not <asked>: the
+  provider switched models; its output is that model's` when the step ends,
+  and the handoff's run section opens with the same line, before the steps.
+  under `on_fallback: park` the run parks after such a step, before the next
+  takes its output; on the retro's own line, `fallback` also carries `held`,
+  the note that its facts, doc edits and guards were not applied, and the
+  handoff's line says so too.
 - `model_choice` is what this step's role was asked to run on, null when
   nothing chose and the provider's own model answered:
   `{"role": "reviewer", "asked": "low", "from": "run", "applies": true}`.

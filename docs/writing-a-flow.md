@@ -351,6 +351,24 @@ steps whose answer is short by nature: a plan, a verdict, a list.
 
 any other word in either key is refused when the flow loads.
 
+a step is answered by the model it asked for or by none: every `claude` call
+runs with the cli's model switch off (`providers.md`, "the model switch").
+when a step's transcript still shows another model answered it, the run says
+so first, on the console as the step ends and at the top of the handoff's run
+section. what it does next is the flow's:
+
+    on_fallback: park
+
+`flag`, the default, says so and goes on. `park` stops the run after that
+step, before the next is handed its output, waiting for you the way a
+`pause: user` step does: read what the step produced, edit it if it needs
+it, and `--resume` carries on from there. a step whose verdict sends the work
+back, and the flow's last step, have nothing after them to hold and are only
+flagged. a retro another model answered under `park` has none of its FACTS
+block acted on: no fact, doc edit or guard is written, the handoff's line
+says they are held, and `retro.md` keeps what it proposed. any other word is
+refused when the flow loads.
+
 ## 10. say whether the run looks back
 
 every failed attempt already has a why on its line in `steps.jsonl`, and

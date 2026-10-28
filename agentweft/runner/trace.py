@@ -281,7 +281,7 @@ class Entry(object):
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
-                 "conformance", "case")
+                 "conformance", "case", "held")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -310,6 +310,9 @@ class Entry(object):
         # on the test writer's pass only: the case a reviewer named, as held
         # to the code (`wouldpass.held`)
         self.case = None
+        # what the runner held back of a pass another model answered, under
+        # `on_fallback: park`
+        self.held = None
 
 
 class Trail(object):
@@ -373,6 +376,8 @@ class Trail(object):
             entry.written["facts"] = entry.facts
         if entry.conformance:
             entry.written["conformance"] = entry.conformance
+        if entry.written.get("fallback"):
+            print(switched_said(entry.step, entry.written["fallback"]))
         self.held.append((entry, outcome))
         first = min(e.seq for e in self.unclosed) if self.unclosed else None
         ready = sorted((h for h in self.held
@@ -519,6 +524,15 @@ def fallback(attempts):
         if fell and switched:
             return switched
     return None
+
+
+SWITCHED = ": the provider switched models; its output is that model's"
+
+
+def switched_said(where, fell):
+    """-> the line that says another model answered `where`."""
+    return (where + " was answered by " + str(fell.get("answered_by"))
+            + ", not " + str(fell.get("asked")) + SWITCHED)
 
 
 def shell_writes_denied(p, attempts, folder):
@@ -699,5 +713,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
         out["case"] = entry.case
     fell = fallback(attempts)
     if fell:
+        if entry.held:
+            fell["held"] = entry.held
         out["fallback"] = fell
     return out

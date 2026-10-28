@@ -300,7 +300,8 @@ def test_init_answers_reach_the_run(place, monkeypatch, fake_cli):
     providers.build({"provider": "cli", "command": "claude"},
                     grant=["read"]).ask("x")
     argv = cli_.calls[0]["argv"]
-    assert "--settings" not in argv
+    assert argv[argv.index("--settings") + 1] == cli_provider.json.dumps(
+        cli_provider.NO_SWITCH, separators=(",", ":"))
     assert argv[argv.index("--permission-mode") + 1] == "acceptEdits"
     assert snapshot.is_spec("docs/rfc-1.md")
     assert not snapshot.is_spec("TASK.md")
@@ -314,5 +315,6 @@ def test_with_nothing_set_the_defaults_stand(place, fake_cli):
     argv = cli_.calls[0]["argv"]
     assert argv[argv.index("--permission-mode") + 1] == "dontAsk"
     assert argv[argv.index("--settings") + 1] == cli_provider.json.dumps(
-        cli_provider.NO_TRAILER, separators=(",", ":"))
+        dict(cli_provider.NO_SWITCH, **cli_provider.NO_TRAILER),
+        separators=(",", ":"))
     assert snapshot.is_spec("TASK.md")

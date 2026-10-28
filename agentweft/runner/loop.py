@@ -3,7 +3,7 @@ import sys
 import time
 import traceback
 
-from agentweft.flow.spec import REVIEWER
+from agentweft.flow.spec import REVIEWER, parks_on_fallback
 from agentweft.guardrails import (baseline, police, redorder, signoff, skips,
                                   snapshot)
 from agentweft.guardrails.budget import REACHING
@@ -731,7 +731,10 @@ def go(leg):
                 continue
             stuck = route.out_of_redos(out)
             nxt = route.next(step, out)
-            waiting = run.pause_for(step) or ("user" if stuck else None)
+            fell = trace.fallback(entry.attempts) \
+                if parks_on_fallback(fm) else None
+            waiting = run.pause_for(step) or ("user" if stuck or fell
+                                              else None)
             if out.verdict == "redo" and nxt and not stuck:
                 print("sent back to " + nxt)
             elif stuck or (waiting and nxt):
@@ -747,6 +750,9 @@ def go(leg):
                     why = (step + " still asks for a redo, and the work has gone"
                            " back " + times(route.cap) + " already (send_backs: "
                            + str(route.cap) + "),")
+                elif fell:
+                    why = (trace.switched_said(step, fell)
+                           + "; the flow parks on it (on_fallback: park),")
                 return stop(stops.PARKED,
                             why.rstrip(",") or "waiting for " + waiting,
                             "parked", entry,

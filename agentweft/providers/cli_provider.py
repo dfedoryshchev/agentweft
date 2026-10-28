@@ -38,6 +38,10 @@ FLOOR = (2, 1, 295)
 
 NO_TRAILER = {"attribution": {"commit": "", "pr": "", "sessionUrl": False}}
 
+# the cli's default answers a message its safeguards flag with another model
+# in the same call, and nothing fails; off, the call ends on the refusal
+NO_SWITCH = {"switchModelsOnFlag": False}
+
 
 def setting(key, flow=None):
     from agentweft.runner import settings
@@ -827,7 +831,7 @@ class CliProvider(Provider):
         if not is_claude(cmd):
             return [cmd, "-p", prompt], None
         argv = [cmd, "-p", "--output-format", "json"]
-        settings = {}
+        settings = dict(NO_SWITCH)
         if not setting("co_author", flow=self.opts):
             settings.update(NO_TRAILER)
         hooked = self.hooked()

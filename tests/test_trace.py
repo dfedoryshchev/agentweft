@@ -4,7 +4,7 @@ import sys
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.mcp import server
-from agentweft.runner import engine, prompts, trace
+from agentweft.runner import engine, prompts, stops, trace
 from agentweft.runner.handoff import Handoff
 
 
@@ -117,17 +117,25 @@ def fell_back(where, session, asked, answered):
                     encoding="utf-8")
 
 
+SWITCHED = ("worker.md was answered by m-big-1, not m-small-1: the provider"
+            " switched models; its output is that model's")
+
+
+def switched_answer(text, session="s-1"):
+    two = answer(text, session=session)
+    data = json.loads(two[1].decode("utf-8"))
+    data["modelUsage"] = {"m-big-1": {}, "m-small-1": {}}
+    return (0, json.dumps(data).encode("utf-8"), b"")
+
+
 def test_a_step_answered_after_the_fallback_says_which_model_answered(
-        tmp_path, monkeypatch, fake_cli):
+        tmp_path, monkeypatch, fake_cli, capsys):
     from agentweft.runner import handoff
 
     monkeypatch.setattr(handoff, "PROJECTS", str(tmp_path / "projects"))
     fell_back(tmp_path / "projects", "s-1", "m-small-1", "m-big-1")
     a_flow(tmp_path, monkeypatch, "two", ["worker", "reviewer"])
-    two = answer("did the thing\n", session="s-1")
-    data = json.loads(two[1].decode("utf-8"))
-    data["modelUsage"] = {"m-big-1": {}, "m-small-1": {}}
-    fake_cli((0, json.dumps(data).encode("utf-8"), b""),
+    fake_cli(switched_answer("did the thing\n"),
              answer("VERDICT: ok\n\nfine\n", session="s-2"))
     engine.main()
     [folder] = folders(tmp_path)
@@ -135,10 +143,99 @@ def test_a_step_answered_after_the_fallback_says_which_model_answered(
     assert worker["fallback"] == {"asked": "m-small-1",
                                   "answered_by": "m-big-1"}
     assert "fallback" not in reviewer
+    said = (folder / "handoff.md").read_text(encoding="utf-8").split("\n")
+    run = said[said.index("## run") + 1:]
+    assert run[0] == "- " + SWITCHED
+    assert run[1].startswith("- steps: ")
+    assert not [l for l in said if "reviewer.md was answered by" in l]
+    printed = capsys.readouterr().out.split("\n")
+    assert printed.index(SWITCHED) < printed.index("started reviewer.md")
+
+
+def test_a_flow_that_parks_on_a_fallback_waits_before_the_next_step(
+        tmp_path, monkeypatch, fake_cli):
+    from agentweft.runner import handoff
+
+    monkeypatch.setattr(handoff, "PROJECTS", str(tmp_path / "projects"))
+    fell_back(tmp_path / "projects", "s-1", "m-small-1", "m-big-1")
+    a_flow(tmp_path, monkeypatch, "held", ["worker", "reviewer"],
+           tail="on_fallback: park\n" + CLAUDE)
+    cli_ = fake_cli(switched_answer("did the thing\n"))
+    engine.main()
+    assert len(cli_.calls) == 1
+    [folder] = folders(tmp_path)
+    [worker] = lines(folder)
+    assert (worker["outcome"], worker["cause"]) == (stops.PARKED,
+                                                    stops.PARKED)
+    assert worker["why"] == SWITCHED + "; the flow parks on it" \
+        " (on_fallback: park)"
     said = (folder / "handoff.md").read_text(encoding="utf-8")
-    assert ("- worker.md was answered by m-big-1, not m-small-1, after the"
-            " provider's fallback") in said
-    assert "reviewer.md was answered by" not in said
+    assert "waiting for    user" in said
+    assert "stopped after  worker.md" in said
+    cli_ = fake_cli(answer("VERDICT: ok\n\nfine\n", session="s-2"))
+    monkeypatch.setattr(sys, "argv", ["run.py", "held", "--force",
+                                      "--resume", folder.name])
+    engine.main()
+    assert len(cli_.calls) == 1
+    assert "did the thing" in cli_.calls[0]["stdin"].decode("utf-8")
+    last = every_line(tmp_path)[-1]
+    assert (last["step"], last["outcome"]) == ("reviewer.md", "ok")
+
+
+def test_a_flow_that_parks_on_a_fallback_runs_through_a_clean_call(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    a_flow(tmp_path, monkeypatch, "held", ["worker", "reviewer"],
+           tail="on_fallback: park\n" + CLAUDE)
+    fake_cli(answer("did the thing\n"),
+             answer("VERDICT: ok\n\nfine\n", session="s-2"))
+    assert engine.main() == 0
+    [folder] = folders(tmp_path)
+    assert [l["outcome"] for l in lines(folder)] == ["ok", "ok"]
+    assert not [l for l in lines(folder) if "fallback" in l]
+    said = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert "the provider switched models" not in said
+    assert "the provider switched models" not in capsys.readouterr().out
+
+
+def test_on_fallback_is_flag_or_park():
+    from agentweft.flow import spec
+
+    raw = {"name": "x", "steps": [{"role": "worker", "prompt": "w.md"}]}
+    assert not [b for b in spec.check(dict(raw, on_fallback="park"))
+                if "on_fallback" in b]
+    assert "on_fallback should be one of flag, park" in spec.check(
+        dict(raw, on_fallback="stop"))
+    assert not spec.parks_on_fallback(raw)
+
+
+def test_every_claude_call_turns_the_cli_s_model_switch_off(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "two", ["worker", "reviewer"])
+    cli_ = fake_cli(answer("did the thing\n"),
+                    answer("VERDICT: ok\n\nfine\n", session="s-2"))
+    engine.main()
+    for call in cli_.calls:
+        argv = call["argv"]
+        said = json.loads(argv[argv.index("--settings") + 1])
+        assert said["switchModelsOnFlag"] is False
+
+
+def test_a_refused_answer_with_the_switch_off_is_the_step_s_error(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "two", ["worker", "reviewer"])
+    no_waiting(monkeypatch)
+    code, out, err = answer("")
+    data = json.loads(out.decode("utf-8"))
+    data["stop_reason"] = "refusal"
+    cli_ = fake_cli((0, json.dumps(data).encode("utf-8"), b""))
+    assert engine.main() == 2
+    assert len(cli_.calls) == 1
+    [line] = lines(folders(tmp_path)[0])
+    assert (line["step"], line["outcome"], line["cause"]) == \
+        ("worker.md", "crashed", "exception")
+    assert line["why"] == ("Fatal: the model declined to answer (stop_reason"
+                           " refusal)")
+    assert "fallback" not in line
 
 
 def thought(text, thinking, session="s-1"):

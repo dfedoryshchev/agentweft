@@ -44,6 +44,11 @@ class FlowSpec(object):
         return self.raw[key]
 
 
+def parks_on_fallback(fm):
+    """whether the flow says `on_fallback: park`."""
+    return fm is not None and fm.get("on_fallback") == PARK
+
+
 def step_id(step):
     """what a step is called outside flow.yaml: the file its words live in.
 
@@ -86,7 +91,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
          "reviewers", "police", "network", "facts_per_run", "edits_per_run",
-         "lane", "conformance", "small_reviewers")
+         "lane", "conformance", "small_reviewers", "on_fallback")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 # `retro: conditional` runs it only after a run that had something to look
@@ -107,6 +112,11 @@ BASELINE = ("auto", "on", "off")
 # what a stop does with the tests the run added or changed: leave them, or
 # put them back to their bytes at the start (`runner/leftred.py`)
 ON_STOP = ("keep", "revert-tests")
+# what a step another model answered does to the run: flag says so and goes
+# on, park waits for a person before anything takes its output
+FLAG = "flag"
+PARK = "park"
+ON_FALLBACK = (FLAG, PARK)
 # what a step may do to the spec files (`guardrails/specfiles.py`)
 SPEC_FILES = ("read-only", "additions")
 STEP_KNOWN = ("role", "prompt", "fanout", "on_redo", "must_produce", "workers",
@@ -566,6 +576,8 @@ def check(raw):
     bad.extend(check_lead(raw))
     if "on_stop" in raw and raw["on_stop"] not in ON_STOP:
         bad.append("on_stop should be one of " + ", ".join(ON_STOP))
+    if "on_fallback" in raw and raw["on_fallback"] not in ON_FALLBACK:
+        bad.append("on_fallback should be one of " + ", ".join(ON_FALLBACK))
     if "spec_files" in raw and raw["spec_files"] not in SPEC_FILES:
         bad.append("spec_files should be one of " + ", ".join(SPEC_FILES))
     if "baseline" in raw and raw["baseline"] not in BASELINE + (True, False):

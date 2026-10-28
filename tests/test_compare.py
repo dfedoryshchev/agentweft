@@ -136,8 +136,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `small_reviewers` is one more, one way: a phase seats the agents it
     # names whatever the change is, and has no size to read.
+    #
+    # `on_fallback` is one more, one way: a phase reads no transcript, so it
+    # never knows another model answered one of its agents.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 51
+    assert len(compare.flow_only()) == 52
     assert len(compare.phase_only()) == 7
 
 

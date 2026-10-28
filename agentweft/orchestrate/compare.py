@@ -218,6 +218,11 @@ FLOW_ONLY = (
          "how many reviewers run on a change the runner sizes small from its "
          "blast radius and how much of it is logic. a phase seats the agents "
          "it names whatever the change is."),
+    Pair("flow.on_fallback", "",
+         "what a step another model answered than the one it asked does to "
+         "the run: said first and gone on from, or held for a person before "
+         "the next step takes its output. a phase reads no transcript, so it "
+         "never knows which model answered."),
     Pair("step.writes_tests", "",
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),

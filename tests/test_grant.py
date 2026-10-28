@@ -159,14 +159,16 @@ def test_the_co_author_trailer_is_off_unless_the_run_opts_in(fake_cli):
     claude().ask("x")
     for call in cli_.calls:
         said = json.loads(flag(call["argv"], "--settings"))
-        assert said == {"attribution": {"commit": "", "pr": "",
+        assert said == {"switchModelsOnFlag": False,
+                        "attribution": {"commit": "", "pr": "",
                                         "sessionUrl": False}}
 
 
 def test_a_run_that_opts_in_keeps_the_cli_default_trailer(fake_cli):
     cli_ = fake_cli(answer("ok\n"))
     claude(co_author=True).ask("x")
-    assert "--settings" not in cli_.calls[0]["argv"]
+    said = json.loads(flag(cli_.calls[0]["argv"], "--settings"))
+    assert said == {"switchModelsOnFlag": False}
 
 
 def test_the_settings_never_switch_hooks_off(fake_cli):

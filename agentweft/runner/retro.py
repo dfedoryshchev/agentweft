@@ -23,7 +23,7 @@ import json
 import re
 from pathlib import Path
 
-from agentweft.flow.spec import CONDITIONAL, step_id
+from agentweft.flow.spec import CONDITIONAL, parks_on_fallback, step_id
 from agentweft.guardrails import factsguard, police, redorder, retroedits
 from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
@@ -50,6 +50,10 @@ HELD = (stops.OUTAGE, stops.BUDGET, stops.INTERRUPT, stops.PARKED,
 # here) refuses the retro the same way; the crashed attempt is still a failed
 # one for the leg that carries the run on
 HOLDS = HELD + (stops.EXCEPTION,)
+# what the handoff says of a retro another model answered under
+# `on_fallback: park`
+HELD_BACK = ("on_fallback: park holds its facts, doc edits and guards: none"
+             " was applied; what it proposed is in " + FILE)
 
 
 def on(fm):
@@ -524,12 +528,15 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         why = "nothing came out of " + STEP
     done = Maintained()
     touched = len(store.touched)
-    if not why:
+    held_back = HELD_BACK if not why and parks_on_fallback(
+        getattr(run, "fm", None)) and trace.fallback([tried]) else None
+    if not why and not held_back:
         done = kept_up(run, trail, earlier, store, said, run_id)
     files = upkeep.files_changed(done, store.touched[touched:], store.root)
     kept = committed(run, [p for p, _ in files], done) if files else None
     entry = trail.open(STEP, [tried], used, None, output=said or None)
     entry.police = seen
+    entry.held = held_back
     if done.present:
         entry.facts = done.record()
         if kept and kept[0]:
@@ -538,6 +545,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     if why:
         print("retro failed, the run's outcome stands: " + why)
         return
+    if held_back:
+        print(STEP + ": " + held_back)
     told = done.said()
     (folder / FILE).write_text(said if not told else said.rstrip("\n") + "\n"
                                + "\n" + upkeep.DONE_HEAD + "\n\n"

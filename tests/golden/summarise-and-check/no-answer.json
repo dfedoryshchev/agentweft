@@ -200,7 +200,7 @@
           "--output-format",
           "json",
           "--settings",
-          "{\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
           "--tools",
           "Read,Glob",
           "--allowedTools",

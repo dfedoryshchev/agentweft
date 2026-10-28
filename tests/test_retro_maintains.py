@@ -292,3 +292,50 @@ def test_the_flows_cap_holds_the_retros_new_facts(tmp_path, monkeypatch,
     data = json.loads((the_folder() / "facts.json").read_text(
         encoding="utf-8"))
     assert [w["id"] for w in data["written"]][:1] == ["F-0001"]
+
+
+def answered_by_another(tmp_path, monkeypatch, fake_cli, tail):
+    """a worker run, then a retro proposing GOOD that the provider switched
+    to another model for."""
+    from agentweft.runner import handoff
+    from test_trace import fell_back
+
+    monkeypatch.setattr(handoff, "PROJECTS", str(tmp_path / "projects"))
+    fell_back(tmp_path / "projects", "s-r", "m-small-1", "m-big-1")
+    a_flow(tmp_path, monkeypatch, "keeps", ["worker"],
+           tail="retro: true\n" + tail + CLAUDE)
+    put(tmp_path, "pkg/a.py", CODE)
+    fake_cli(answer("done\n"), answer(block(GOOD), session="s-r"))
+    return engine.main()
+
+
+HELD = ("- retro.md was answered by m-big-1, not m-small-1: the provider"
+        " switched models; its output is that model's")
+
+
+def test_a_retro_another_model_answered_under_park_writes_nothing(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    assert answered_by_another(tmp_path, monkeypatch, fake_cli,
+                               "on_fallback: park\n") == 0
+    assert facts.read(tmp_path) == []
+    assert not (tmp_path / "facts" / "PROPOSED.md").exists()
+    folder = the_folder()
+    last = steps_of(folder)[-1]
+    assert last["step"] == "retro.md" and "facts" not in last
+    assert last["fallback"]["held"] == retro.HELD_BACK
+    note = (folder / "handoff.md").read_text(encoding="utf-8").split(NL)
+    run = note[note.index("## run") + 1:]
+    assert run[0] == HELD + "; " + retro.HELD_BACK
+    assert "## the retro's proposals" not in note
+    assert "fact:" in (folder / "retro.md").read_text(encoding="utf-8")
+    printed = capsys.readouterr().out
+    assert HELD[2:] in printed
+    assert "retro.md: " + retro.HELD_BACK in printed
+
+
+def test_a_retro_another_model_answered_is_flagged_and_kept_by_default(
+        tmp_path, monkeypatch, fake_cli):
+    assert answered_by_another(tmp_path, monkeypatch, fake_cli, "") == 0
+    assert [f.id for f in facts.read(tmp_path)] == ["F-0001"]
+    note = (the_folder() / "handoff.md").read_text(encoding="utf-8").split(NL)
+    assert note[note.index("## run") + 1] == HELD
