@@ -506,12 +506,14 @@ is written; a refused one is not written and its reason is kept:
    (`WinError 87`, `Errno 22`) is refused: it is what the machine raised as
    the run went (`gates.md`, the fault a gate runs once more), not the
    project's, and a later run on a sound machine would be handed it. a
-   `convention` or `gate-issue` whose claim or why names the run's own shell
-   or host (Git Bash, PowerShell, `cmd.exe`, MSYS, Cygwin, `python -c`, a
-   heredoc, antivirus, an OS error code, or "this machine", "this shell",
-   "this Windows" and the like) is refused the same way. an OS or a shell
-   named for the product ("paths use forward slashes on every OS", "the CLI
-   never starts a shell") is not the host and is written.
+   `convention` or `gate-issue` whose claim or why names the run's own host
+   ("this machine", "this shell", "the step's shell", "this Windows" and the
+   like), antivirus or an OS error code is refused the same way, and so is a
+   `gate-issue` that names a shell or toolchain (Git Bash, PowerShell,
+   `cmd.exe`, MSYS, MinGW, Cygwin, `python -c`, a heredoc). a convention may
+   name those for the product ("the release scripts are PowerShell modules",
+   "paths use forward slashes on every OS", "the CLI never starts a shell"):
+   that is not the host, and it is written.
 3. every scope is in the place: the file, the folder, a file a glob matches,
    or `.`. a scope that is absolute, starts with a drive, names `..` or
    leads out of the place through a link is refused (`the scope ../ is

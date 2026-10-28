@@ -71,10 +71,13 @@ HOSTED = ("convention", GATE_ISSUE)
 # "shell" is left alone, since a product may support Windows or never start
 # a shell
 HOST = re.compile(
-    r"\b(?:git bash|powershell|cmd\.exe|msys2?|mingw(?:64)?|cygwin"
-    r"|python -c|here-?docs?|antivirus|WinError \d+|Errno \d+)\b"
-    r"|\b(?:this|the run's|the runner's|the step's|the step) (?:machine|host"
-    r"|box|computer|shell|terminal|windows|macos|mac|linux|os)\b", re.I)
+    r"\b(?:this|the run's|the runner's|the step's|the step) (?:machine|host"
+    r"|box|computer|shell|terminal|windows|macos|mac|linux|os)\b"
+    r"|\b(?:antivirus|WinError \d+|Errno \d+)\b", re.I)
+# shells and toolchains a product may use or ship as well: a gate-issue that
+# names one is the run's host, a convention only with HOST beside it
+SHELLS = re.compile(r"\b(?:git bash|powershell|cmd\.exe|msys2?|mingw(?:64)?"
+                    r"|cygwin|python -c|here-?docs?)\b", re.I)
 TOKEN = re.compile(
     r"(?:sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}"
     r"|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"
@@ -628,7 +631,9 @@ class Store(object):
                     " machine's state as the run went, not the project's: a"
                     " later run on a sound machine would be handed it")
         if kind in HOSTED:
-            host = next((m.group(0) for m in (HOST.search(p.get(key))
+            words = (HOST, SHELLS) if kind == GATE_ISSUE else (HOST,)
+            host = next((m.group(0) for m in (w.search(p.get(key))
+                                              for w in words
                                               for key in ("claim", "why"))
                          if m), "")
             if host:
