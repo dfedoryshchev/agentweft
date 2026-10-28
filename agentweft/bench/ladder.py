@@ -470,7 +470,9 @@ QUIET = frozenset("""a all also an and any are as at be both but by can do
 does each every for from given has have how if in into is it its more no not
 of on one only or other say says same should so than that the their them then
 there these this those to was what when where which who why will with would
+test file line code use run step
 """.split())
+SHARED = 3
 WORD = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)*")
 
 
@@ -498,7 +500,9 @@ def _question(c, item):
 def _settled(c, item, under):
     """-> the ruling on record that decided the question a done run shows
     open, "" for none. a ruling decided it when it cites a line the
-    question cites, or holds at least half of the question's words."""
+    question cites, or holds at least half of the question's words and at
+    least SHARED of them, the words every question of a run shares (test,
+    file, line) not counted."""
     if c["path"] != DONE:
         return ""
     question = _question(c, item)
@@ -512,7 +516,8 @@ def _settled(c, item, under):
         said = ruling.split(": ", 1)[-1]
         if cites & set(CITE.findall(said)):
             return ruling
-        if asked and 2 * len(asked & _words(said)) >= len(asked):
+        shared = len(asked & _words(said))
+        if shared >= SHARED and 2 * shared >= len(asked):
             return ruling
     return ""
 

@@ -138,6 +138,16 @@ def test_a_ruling_on_another_question_leaves_the_open_one_standing():
     assert marks["no_false"] == 1
 
 
+def test_a_ruling_that_shares_only_common_words_leaves_the_question_open():
+    marks = ruled_open("- Should the parse test use a temp file?\n"
+                       "  raised by tester; cites TASK.md:4\n"
+                       "  recommendation: a temp file",
+                       "- on record: 2026-01-05 21:40 planner.md decided for"
+                       " worker.md: the test file for parse stays where it is")
+    assert marks["decision"] == 1
+    assert marks["no_false"] == 1
+
+
 def test_a_ruling_citing_the_open_questions_line_decided_it():
     marks = ruled_open(NEWLINE_OPEN, "- on record: 2026-01-05 21:40 planner.md"
                        " decided for worker.md: print it raw, as TASK.md:11"

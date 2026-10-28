@@ -252,7 +252,8 @@ order:
 2. `the one decision first and right`: it is the first section and holds one
    item; `none` only on a done run; a done run never shows open a question a
    ruling on record decided (the ruling cites a line the question cites, or
-   holds at least half of the question's words, the question read whole
+   holds at least half of the question's words and at least three of them,
+   words such as test, file and line not counted, the question read whole
    from open questions when the one decision cuts it; a ruling on another
    question leaves it standing); when the flow's lead escalated, the
    recommendation shown is the lead's; never `none given` while the record
