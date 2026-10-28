@@ -30,8 +30,8 @@ from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
 from agentweft.guardrails import skips, specfiles
 
-from . import (front, handoff, investigate, leftred, manifest, ruling, stops,
-               trace, verbs)
+from . import (front, handoff, investigate, lead, leftred, manifest, ruling,
+               stops, trace, verbs, wouldpass)
 
 FILE = "handoff.md"
 
@@ -135,6 +135,31 @@ def _ranges(text):
     return dict((p, ", ".join(r)) for p, r in out.items())
 
 
+NAME = re.compile(r"[A-Za-z_]\w*")
+
+
+def _touched(text):
+    """-> {path: [name]} for a `git diff --unified=0`: the names on the lines
+    each file's change adds or takes out, and in the function git prints on
+    each hunk's header."""
+    out = {}
+    path = None
+    old = None
+    for line in (text or "").split("\n"):
+        if line.startswith("--- "):
+            old = _unquote(line[4:])
+            old = old[2:] if old.startswith("a/") else old
+        elif line.startswith("+++ "):
+            new = _unquote(line[4:])
+            path = new[2:] if new.startswith("b/") else old
+            out.setdefault(path, set())
+        elif path is not None and HUNK.match(line):
+            out[path].update(NAME.findall(line.split("@@", 2)[-1]))
+        elif path is not None and line[:1] in ("+", "-"):
+            out[path].update(NAME.findall(line[1:]))
+    return out
+
+
 def _lines(text):
     return [l.rstrip() for l in (text or "").split("\n") if l.strip()]
 
@@ -179,12 +204,14 @@ class Tree(object):
         """-> what is different now, from git: commits since the start, each
         file with its line counts and whether it is committed, uncommitted or
         untracked, and the test and spec files among them. `ranges` holds
-        the lines each file's change covers, by (path, how), and `status` and
-        `log` are what `git status --short` and `git log --oneline
-        <start>..HEAD` print, line for line."""
+        the lines each file's change covers, by (path, how), and `names` the
+        names the change touches in each file (`_touched`; every name in an
+        untracked one); `status` and `log` are what `git status --short` and
+        `git log --oneline <start>..HEAD` print, line for line."""
         out = {"git": self.git, "start": self.start, "commits": [],
                "files": [], "tests_changed": [], "spec_changed": [],
-               "ranges": {}, "status": [], "log": []}
+               "ranges": {}, "names": {}, "status": [], "log": []}
+        names = {}
         if not self.git:
             return out
         out["status"] = _lines(_git(self.place, "-c", "core.quotepath=false",
@@ -200,11 +227,13 @@ class Tree(object):
                     out["commits"].append((sha, subject))
             for kind, args in (("committed", (self.start, "HEAD")),
                                ("uncommitted", ("HEAD",))):
-                found = _ranges(_git(self.place, "-c", "core.quotepath=false",
-                                     "diff", "--unified=0", "--no-color",
-                                     "--no-ext-diff", *(args + ("--", "."))))
-                for path, span in found.items():
+                diff = _git(self.place, "-c", "core.quotepath=false",
+                            "diff", "--unified=0", "--no-color",
+                            "--no-ext-diff", *(args + ("--", ".")))
+                for path, span in _ranges(diff).items():
                     out["ranges"][(path, kind)] = span
+                for path, found in _touched(diff).items():
+                    names.setdefault(path, set()).update(found)
         committed = _numstat(_git(self.place, "diff", "--numstat",
                                   self.start, "HEAD", "--", ".")
                              if self.start else "")
@@ -215,9 +244,12 @@ class Tree(object):
             if code != "??":
                 continue
             try:
-                lines = (self.root / path).read_bytes().count(b"\n")
+                body = (self.root / path).read_bytes()
             except OSError:
-                lines = 0
+                body = b""
+            lines = body.count(b"\n")
+            names.setdefault(path, set()).update(
+                NAME.findall(body.decode("utf-8", "replace")))
             untracked.append((path, lines, 0))
             if lines:
                 out["ranges"][(path, "untracked")] = (
@@ -236,6 +268,7 @@ class Tree(object):
                     out["tests_changed"].append((path, a, d))
                 if is_spec(path, self.root, self.place):
                     out["spec_changed"].append((path, a, d))
+        out["names"] = dict((p, sorted(n)) for p, n in names.items())
         return out
 
 
@@ -411,11 +444,13 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
     """one pass of one step, the shape `build` reads. `facts` is what its
     steps.jsonl line holds for the retro and the files its transcript shows
     it read (`facts_of`); `writes` is what the flow says the step writes
-    (`writes_of`)."""
+    (`writes_of`). `ruled` is the step's own DECIDED line, "" for none, and
+    `would` its WOULD PASS and CATCH lines (`wouldpass.read`)."""
     return {"step": step, "role": role, "seconds": seconds, "writes": writes,
             "block": block if isinstance(block, dict) else handoff.empty(),
             "gates": gates, "ungated": ungated, "outcome": outcome,
-            "verbs": verbs.parse(said),
+            "verbs": verbs.parse(said), "ruled": lead.read(said)[0] or "",
+            "would": wouldpass.read(said),
             "redo_why": redo_why(said) if outcome == "redo" else "",
             "facts": facts or {}}
 
@@ -813,8 +848,9 @@ def _spans(text):
 
 def record_of(passes, changes, decided, proof):
     """-> what a reason's `led to:` is held to: the test ids the red proof and
-    the gates hold, the files the run changed with the lines each change
-    covers, and the rulings on record."""
+    the gates hold, the test files the red proof holds with no id listed, the
+    files the run changed with the lines each change covers and the names it
+    touches in each, and the rulings on record."""
     ids, commands = [], []
     for p in passes:
         for g in p["gates"]:
@@ -822,28 +858,41 @@ def record_of(passes, changes, decided, proof):
                        if isinstance(t, dict) and t.get("test"))
             if g.get("command"):
                 commands.append(g["command"])
+    proved = []
     if proof:
-        ids.extend(i for i in proof.get("ids") or [] if isinstance(i, str))
-    files = {}
+        listed = [i for i in proof.get("ids") or [] if isinstance(i, str)]
+        ids.extend(listed)
+        proved = [f for f in proof.get("tests") or {}
+                  if not any(_tail(i.split("::")[0], f) for i in listed)]
+    files, names = {}, {}
     if changes.get("git"):
         spans = changes.get("ranges") or {}
         for path, _, _, how in changes.get("files") or []:
             files.setdefault(path, []).extend(
                 _spans(spans.get((path, how.split(",")[0]), "")))
-    return {"ids": ids, "commands": commands, "files": files,
-            "decided": list(decided)}
+        names = dict((p, set(n)) for p, n in
+                     (changes.get("names") or {}).items())
+    return {"ids": ids, "proved": proved, "commands": commands,
+            "files": files, "names": names, "decided": list(decided)}
+
+
+CODE = re.compile(r"`([^`]+)`")
 
 
 def _among(said, items):
-    """whether `said` names one of `items`, by its words: bare, it names any
-    there is. an item read inside `said` counts only when it says enough to
-    name one."""
+    """whether `said` names one of `items`, by its words, or by the names it
+    quotes in backticks when every one is in the item: bare, it names any
+    there is. an item read inside `said`, or the names it quotes, count only
+    when they say enough to name one."""
     want = handoff.norm(said).strip(" .:;<>")
     if not want:
         return bool(items)
+    quoted = CODE.findall(said)
     for i in items:
         head = handoff.norm(i.split("\n")[0]).split(" - ")[0].strip()
         if want in handoff.norm(i) or (_names_one(head) and head in want):
+            return True
+        if _names_one(" ".join(quoted)) and all(q in i for q in quoted):
             return True
     return False
 
@@ -855,14 +904,28 @@ def _names_one(text):
     return len(words.split()) >= 3 or len(words) >= 12
 
 
-def led(said, block, record):
+OWN = re.compile(r"\b(WOULD PASS|CATCH)\b")
+NOTE = re.compile(r"\s+\(|\s*[;,]\s+")
+LINES = re.compile(r"^(?:(?:new|changed|added)\s+)?lines?\s+(\d+)"
+                   r"(?:\s*-\s*(\d+))?$", re.I)
+CALLED = re.compile(r"^`([A-Za-z_][\w.]*)(?:\(\))?`$"
+                    r"|^([A-Za-z_]*_[\w.]*|[A-Za-z_][\w.]*\(\))$")
+
+
+def led(said, block, record, step=None):
     """whether the record holds what one `led to:` names: `nothing` always;
     a TRIED or ASSUMED item among the block's own, by its words; a QUESTION
     the block asks, bare or by its words; a DECIDED one among the rulings on
-    record, by its words; a `<file>:<lines>` in the diff, its lines
-    among the lines the change covers; a test id the red proof or a gate
-    holds."""
-    said = (said or "").strip().strip("`")
+    record or the step's own DECIDED lines, by its words, or the one such
+    line the step gave; the step's own WOULD PASS and CATCH lines, by name;
+    a `<file>:<lines>` in the diff, its lines among the lines the change
+    covers; a test id the red proof or a gate holds, or one in a test file
+    the red proof holds with no id listed. a line that leads with a file
+    or a test id and goes on with a note is held to what it leads with: a
+    function the change touches in that file, its lines, each further file
+    or test id it lists."""
+    said = _unquoted(said or "")
+    step = step or {}
     if not said:
         return False
     if said.lower().rstrip(".") in NOTHING:
@@ -880,8 +943,69 @@ def led(said, block, record):
             return _among(rest, [q["question"] for q in
                                  block.get("questions") or []]
                           + (block.get("other") or {}).get("NEEDS", []))
-        return _among(rest, [d.decided + " - " + d.why
-                             for d in record["decided"]])
+        own = []
+        for d in [step.get("ruled")] + (block.get("other") or {}).get(
+                "DECIDED", []):
+            if d and handoff.norm(d) not in [handoff.norm(o) for o in own]:
+                own.append(d)
+        return len(own) == 1 or _among(
+            rest, [d.decided + " - " + d.why for d in record["decided"]]
+            + own)
+    named = OWN.findall(said)
+    if named:
+        would = step.get("would")
+        return bool(would) and ("CATCH" not in named or bool(would[1]))
+    if _held(said, record):
+        return True
+    pieces = []
+    for p in NOTE.split(said):
+        p = p.rstrip(")") if p.count(")") > p.count("(") else p
+        if _unquoted(p):
+            pieces.append(_unquoted(p))
+    if not pieces or pieces[0].lower().rstrip(".") in NOTHING:
+        return bool(pieces)
+    return _shaped(pieces[0]) and all(_noted(p, record) for p in pieces
+                                      if _shaped(p))
+
+
+def _unquoted(text):
+    """-> `text` stripped, and the backticks round it taken off when no other
+    is inside."""
+    text = text.strip()
+    inner = text.strip("`")
+    return text if "`" in inner else inner.strip()
+
+
+def _shaped(piece):
+    """whether a piece of a `led to:` leads with a file or a test id rather
+    than prose."""
+    word = _path(piece.split()[0])
+    return "::" in word or "/" in word or bool(SPOT.match(word)) \
+        or bool(re.search(r"\w\.\w+$", word))
+
+
+def _noted(piece, record):
+    """whether the record holds a file or a test id with what follows it:
+    its lines (`new lines 4-6`), a function quoted after it, or a note."""
+    head, _, rest = piece.partition(" ")
+    rest = rest.strip()
+    if not rest:
+        return _held(head, record)
+    lines = LINES.match(rest)
+    if lines:
+        return _held(head + ":" + lines.group(1)
+                     + ("-" + lines.group(2) if lines.group(2) else ""),
+                     record)
+    called = CALLED.match(rest)
+    if not called:
+        return not rest.startswith("`") and _held(head, record)
+    name = (called.group(1) or called.group(2)).rstrip("()").split(".")
+    return any(_tail(head, have) and all(n in names for n in name)
+               for have, names in record.get("names", {}).items())
+
+
+def _held(said, record):
+    """whether the record holds one file, `<file>:<lines>` or test id."""
     if "::" not in said:
         spot = SPOT.match(said)
         path = spot.group(1) if spot else said
@@ -895,6 +1019,9 @@ def led(said, block, record):
             if any(a <= last and first <= b for a, b in spans):
                 return True
     if any(_tail(said, i) for i in record["ids"]):
+        return True
+    if "::" in said and any(_tail(said.split("::")[0], f)
+                            for f in record.get("proved", ())):
         return True
     return "::" in said and any(said in c for c in record["commands"])
 
@@ -917,7 +1044,7 @@ def reasons(passes, record):
             out.append(mine)
         for item in b.get("because") or []:
             r = handoff.reason(item)
-            held = led(r["led_to"], b, record)
+            held = led(r["led_to"], b, record, p)
             line = ("because " + r["reason"] + " (" + (r["from"] or "own read")
                     + ") -> " + (r["led_to"] if held else UNHELD))
             if line not in mine[1]:

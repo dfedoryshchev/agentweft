@@ -10,6 +10,7 @@ why section, what it does not is `(not in the record)` and counted as
 `why_unbacked`.
 """
 import datetime
+import subprocess
 import sys
 from pathlib import Path
 
@@ -295,6 +296,135 @@ def test_the_retro_is_handed_the_reasons_first(tmp_path):
     text = retro.prompt("r1", "flow", "done", Path(tmp_path),
                         ["- seq 1 worker.md, failed: red"], reasons=said)
     assert text.index(said[0]) < text.index("why each failed attempt failed")
+
+
+def held_as(said, block=BLOCK, decided=(), proof=PROOF, changes=GIT,
+            output=""):
+    """-> what the reasons section prints for the log-format reason led to
+    `said`, the block handed over in `output` when there is one."""
+    text = block.replace("led to: nothing", "led to: " + said)
+    lines = summary.build("r1", "flow", "t", [summary.a_pass(
+        "worker.md", "worker", 1.0, handoff.parse(text), [], False, "ok",
+        output.replace("{block}", text), writes="product")], changes,
+        list(decided), "", proof=proof)
+    full = section(lines, "## reasons")
+    return [l for l in full if "the log format looked odd" in l][0].split(
+        " -> ", 1)[1]
+
+
+def git(where, *args):
+    return subprocess.run(["git", "-C", str(where)] + list(args),
+                          capture_output=True, text=True, check=True).stdout
+
+
+def test_a_changed_file_and_a_function_its_diff_touches_are_in_the_record(
+        tmp_path):
+    place = tmp_path / "repo"
+    place.mkdir()
+    git(place, "init", "-q")
+    git(place, "config", "user.email", "t@t")
+    git(place, "config", "user.name", "t")
+    (place / "calc.py").write_text(
+        "def add(a, b):\n    return a - b\n\n\ndef mul(a, b):\n"
+        "    return a * b\n", encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "start")
+    start = summary.tree(place)
+    (place / "calc.py").write_text(
+        "def add(a, b):\n    return a + b\n\n\ndef mul(a, b):\n"
+        "    return a * b\n", encoding="utf-8")
+    (place / "rounding.py").write_text("def half_up(x):\n    return x\n",
+                                       encoding="utf-8")
+    changes = start.changes()
+    for said in ("calc.py `add`",
+                 "calc.py `add`, placed before the sign check (see ASSUMED)",
+                 "calc.py `add` (only the adder changes)",
+                 "rounding.py `half_up`"):
+        assert held_as(said, changes=changes) == said, said
+    for said in ("calc.py `mul`", "calc.py `subtract`",
+                 "parse.py `add`"):
+        assert held_as(said, changes=changes) == summary.UNHELD, said
+
+
+def test_changed_lines_with_a_note_after_them_are_in_the_record():
+    for said in ("calc.py:4-6 (additions only)",
+                 "calc.py new lines 4-6, indented as a continuation of the"
+                 " bullet",
+                 "calc.py lines 5"):
+        assert held_as(said) == said, said
+    for said in ("calc.py:40-41 (additions only)",
+                 "calc.py new lines 40-41, indented as before"):
+        assert held_as(said) == summary.UNHELD, said
+
+
+def test_a_list_of_test_ids_is_in_the_record_when_each_one_is():
+    proof = dict(PROOF, ids=PROOF["ids"] + ["tests/test_calc.py::test_half"])
+    said = "tests/test_calc.py::test_add_rounds, tests/test_calc.py::test_half"
+    assert held_as(said, proof=proof) == said
+    gone = "tests/test_calc.py::test_add_rounds, tests/test_calc.py::test_gone"
+    assert held_as(gone, proof=proof) == summary.UNHELD
+
+
+def test_nothing_with_a_note_after_it_led_to_nothing():
+    said = "nothing; output code untouched (calc.py:4)"
+    assert held_as(said) == said
+
+
+def test_a_test_in_a_file_the_red_proof_holds_without_ids_is_in_the_record():
+    supplied = {"how": "gate", "step": "worker.md", "gate": "red-test",
+                "source": "supplied", "ids": [],
+                "tests": {"tests/test_bug_report.py": "0" * 64}}
+    said = "tests/test_bug_report.py::test_halves_round_up"
+    assert held_as(said, proof=supplied) == said
+    assert held_as("tests/test_other.py::test_halves_round_up",
+                   proof=supplied) == summary.UNHELD
+
+
+OWN = ("DECIDED: Leave the order between option errors unspecified. Keep"
+       " the code's current order.\nwhy: TASK.md:3 does not order them\n\n"
+       "{block}")
+
+
+def test_a_decided_reason_is_held_to_the_steps_own_decided_line():
+    for said in ("DECIDED leave the order within option values unspecified",
+                 "DECIDED add no spec line or test for it"):
+        assert held_as(said, output=OWN) == said, said
+        assert held_as(said) == summary.UNHELD, said
+    assert held_as("DECIDED", output=OWN) == summary.UNHELD
+    assert held_as("DECIDED a", output=OWN) == summary.UNHELD
+
+
+def test_a_decided_reason_is_held_to_a_ruling_by_the_names_it_quotes():
+    ruled = decisions.Decision(
+        "worker.md decided for tester.md: keep the code's current order"
+        " (`--places`, then `--mode`)", "the spec leaves it open",
+        datetime.datetime(2026, 1, 5, 21, 40))
+    said = "DECIDED keep `--places`, `--mode` order; no test pins it"
+    assert held_as(said, decided=[ruled]) == said
+    assert held_as(said) == summary.UNHELD
+    assert held_as("DECIDED keep `--places`, `--strict` order",
+                   decided=[ruled]) == summary.UNHELD
+
+
+def test_the_steps_own_would_pass_and_catch_lines_are_in_the_record():
+    output = ("WOULD PASS: an add that rounds only positive amounts\n"
+              "CATCH: add(-1, -2) must be -3\n\n{block}")
+    for said in ("the WOULD PASS / CATCH lines",
+                 "the WOULD PASS/CATCH lines (negative amounts)"):
+        assert held_as(said, output=output) == said, said
+        assert held_as(said) == summary.UNHELD, said
+
+
+def test_a_reason_that_names_nothing_on_record_stays_out_of_it():
+    ruled = decisions.Decision("keep the spec order", "the spec lists it",
+                               datetime.datetime(2026, 1, 5, 21, 40))
+    for said in ("DECIDED the plan has no CONFLICT",
+                 "DECIDED no test for those two",
+                 "ASSUMED ints only, never floats",
+                 "TRIED a decimal context run in a temp dir",
+                 "the review lines", "DOUBTS"):
+        assert held_as(said, decided=[ruled], output=OWN.replace(
+            "DECIDED: Leave", "Leave")) == summary.UNHELD, said
 
 
 def test_every_role_is_asked_for_its_reasons_and_what_each_led_to():
