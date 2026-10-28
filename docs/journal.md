@@ -733,7 +733,8 @@ five sections are written by the runner alone:
   among them; `prevented: k refusals (<gate>: n, ...)` when a gate or police
   refused anything; `USD on steps that won nothing and checked nothing: $x of
   $y` (the waste) and `USD on steps that won nothing and checked n: $z` (a
-  price, not waste); `upkeep, not waste:` the retro's spend, never counted
+  price, not waste), each ending `, cost not stated on k` when k of its passes
+  did not state one; `upkeep, not waste:` the retro's spend, never counted
   in the waste (police makes no model call, so it costs nothing here); and
   the total, which is the sum
   of the steps. a pass that won `none` reads `won none, checked n`, and the

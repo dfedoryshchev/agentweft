@@ -1162,6 +1162,15 @@ def _cost(p):
     return c if isinstance(c, (int, float)) and not isinstance(c, bool) else 0
 
 
+def _unstated(passes):
+    """-> ", cost not stated on n" for the passes whose cost is not known,
+    so a sum of the rest never reads as their price."""
+    n = sum(1 for p in passes if not isinstance(
+        (p.get("facts") or {}).get("cost"), (int, float))
+        or isinstance(p["facts"]["cost"], bool))
+    return ", cost not stated on " + str(n) if n else ""
+
+
 def bought(passes):
     """the spend and seconds of every pass summed by what it won, `none`
     always among them; what the gates and police refused; the spend on
@@ -1193,10 +1202,10 @@ def bought(passes):
     price = [p for p in idle if p["facts"]["checked"]]
     out.append("- USD on steps that won nothing and checked nothing: $%.4f of"
                " $%.4f" % (sum(_cost(p) for p in waste),
-                          sum(_cost(p) for p in passes)))
+                          sum(_cost(p) for p in passes)) + _unstated(waste))
     out.append("- USD on steps that won nothing and checked "
                + str(sum(p["facts"]["checked"] for p in price))
-               + ": $%.4f" % sum(_cost(p) for p in price))
+               + ": $%.4f" % sum(_cost(p) for p in price) + _unstated(price))
     if upkeep:
         out.append("- upkeep, not waste: the retro $%.4f"
                    % sum(_cost(p) for p in upkeep))

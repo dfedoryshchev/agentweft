@@ -396,3 +396,14 @@ def test_the_spend_on_passes_that_won_nothing_is_split_by_what_they_checked():
     assert "- USD on steps that won nothing and checked 5: $0.2000" in said
     assert "- upkeep, not waste: the retro $0.0500" in said
     assert said[-1].startswith("- total: 5 passes")
+
+
+def test_a_pass_whose_cost_was_not_stated_is_named_on_the_waste_lines():
+    passes = [a_pass_of("worker.md", 0.5, "delivered", 2),
+              a_pass_of("reviewer.md", None, "none", 0),
+              a_pass_of("reviewer-runs.md", None, "none", 4)]
+    said = summary.bought(passes)
+    assert ("- USD on steps that won nothing and checked nothing: $0.0000 of"
+            " $0.5000, cost not stated on 1") in said
+    assert ("- USD on steps that won nothing and checked 4: $0.0000, cost not"
+            " stated on 1") in said

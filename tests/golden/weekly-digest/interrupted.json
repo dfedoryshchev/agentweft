@@ -62,7 +62,7 @@
     "## retro",
     "- planner.md <secs>s (cost not stated), won none, checked 0: crashed",
     "- won none: 1 pass, <secs>s, $0.0000, cost not stated on 1",
-    "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0000",
+    "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0000, cost not stated on 1",
     "- USD on steps that won nothing and checked 0: $0.0000",
     "- total: 1 pass, <secs>s, $0.0000, cost not stated on 1",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",

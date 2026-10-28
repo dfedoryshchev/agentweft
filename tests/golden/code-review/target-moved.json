@@ -67,7 +67,7 @@
     "- reviewer.md <secs>s (cost not stated), won none, checked 0: stopped",
     "- retro.md <secs>s ($0.0100), won facts 0, docs 0, guards 0 (0 refused): no events (after this handoff was written)",
     "- won none: 3 passes, <secs>s, $0.0200, cost not stated on 1",
-    "- USD on steps that won nothing and checked nothing: $0.0100 of $0.0200",
+    "- USD on steps that won nothing and checked nothing: $0.0100 of $0.0200, cost not stated on 1",
     "- USD on steps that won nothing and checked 0: $0.0000",
     "- upkeep, not waste: the retro $0.0100",
     "- total: 3 passes, <secs>s, $0.0200, cost not stated on 1",
