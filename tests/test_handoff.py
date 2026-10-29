@@ -714,6 +714,49 @@ def test_a_missing_block_is_said_so_to_the_next_step():
     assert "handed over no HANDOFF block" in Handoff("worker", "x\n").as_prompt()
 
 
+ASKS = ("HANDOFF\nDID:\n- x\nQUESTION: does LF print raw? TASK.md:11\n"
+        "RECOMMEND: escape\nSIZE: one line\nEND HANDOFF")
+ASKED = "does LF print raw? TASK.md:11"
+
+
+def test_the_next_step_is_handed_the_question_the_step_before_asked():
+    text = Handoff("planner", ASKS).as_brief()
+    assert "- " + ASKED + " (from planner)" in text, text
+    assert "questions already asked" in text
+
+
+def test_a_question_reaches_a_step_two_away_once_with_every_role_that_asked():
+    text = Handoff("tester", ASKS, asked=[("planner", ASKED)]).as_prompt()
+    assert text.count(ASKED) == 1, text
+    assert "- " + ASKED + " (from planner, tester)" in text
+    later = Handoff("worker", "x\n", asked=[("planner", ASKED)]).as_prompt()
+    assert "- " + ASKED + " (from planner)" in later, later
+
+
+def test_a_question_of_none_is_not_handed_on():
+    text = Handoff("planner", ASKS.replace(
+        "does LF print raw? TASK.md:11", "none")).as_brief()
+    assert "questions already asked" not in text
+
+
+def test_a_question_travels_through_the_runner_to_the_step_two_away(
+        tmp_path, monkeypatch):
+    seen = []
+    real = engine.call
+
+    def spy(prompt, timeout=None, cap=3, step="?", provider=None):
+        seen.append((step, prompt))
+        return real(prompt, timeout, cap, step, provider)
+
+    monkeypatch.setattr(engine, "call", spy)
+    a_fake_flow(tmp_path, monkeypatch, "asks-on",
+                [("planner", "planned\n\n" + ASKS + "\n"),
+                 ("worker", WORKER), ("reviewer", REVIEWER)])
+    engine.main()
+    prompts_of = dict(seen)
+    assert ASKED + " (from planner)" in prompts_of["reviewer.md"]
+
+
 # --- through the runner ---------------------------------------------------
 
 

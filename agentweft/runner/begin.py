@@ -467,7 +467,8 @@ def begin(unrecorded):
             out = Handoff(run.role_for(given_by),
                           resume.step_output(source, given_by),
                           meta={"rulings": run.rulings()},
-                          carried=list(run.constraints))
+                          carried=list(run.constraints),
+                          asked=list(run.questions))
             if entry and entry.get("digest") and \
                     manifest.of_text(out.output) != entry["digest"]:
                 print(given_by + " was edited after " + source

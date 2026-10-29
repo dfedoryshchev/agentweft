@@ -549,7 +549,9 @@ next step is handed as "what <role> produced" see the answer without it.
 the next step gets the block first, before the raw answer, as "what <role>
 handed over": the MUST NOT MISS lines of every step so far (a constraint the
 first step read binds the last), each line once with the roles that kept
-it, the rulings in `decisions.md`, what the step assumed and doubts, what it
+it, the QUESTION lines of every step so far the same way ("questions
+already asked in this run; do not ask one again"), the rulings in
+`decisions.md`, what the step assumed and doubts, what it
 found beside the change, what it verified and how it stood up, and what it
 read ("re-open only what you
 change or doubt"). it is told the block is that step's account of its work,

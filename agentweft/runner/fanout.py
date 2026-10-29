@@ -105,7 +105,8 @@ def run_fanout(run, plan):
                         "rulings": run.rulings(),
                         "overlap": overlap},
                   block=merge(p.block for p in parts),
-                  carried=list(run.constraints))
+                  carried=list(run.constraints),
+                  asked=list(run.questions))
     # every task went through Run.step, so what it recorded is whichever one
     # finished last. the joined output is what the step actually produced.
     run.produced[run.fan] = out.output

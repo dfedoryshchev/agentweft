@@ -766,19 +766,23 @@ class Handoff(object):
 
     `carried` is every MUST NOT MISS line of every step so far, as (role,
     line): a constraint the first step read in the spec binds the last one
-    too, and the last one was not there when it was read.
+    too, and the last one was not there when it was read. `asked` is every
+    QUESTION line of every step so far, as (role, question), the same way: a
+    step that never saw a question asked would ask it again.
     """
 
-    __slots__ = ("role", "output", "verdict", "meta", "block", "carried")
+    __slots__ = ("role", "output", "verdict", "meta", "block", "carried",
+                 "asked")
 
     def __init__(self, role, output, verdict="ok", meta=None, block=None,
-                 carried=None):
+                 carried=None, asked=None):
         self.role = role
         self.output = output
         self.verdict = verdict
         self.meta = meta or {}
         self.block = block if block is not None else parse(output)
         self.carried = list(carried or [])
+        self.asked = list(asked or [])
 
     def __bool__(self):
         return bool(self.output)
@@ -824,6 +828,14 @@ def brief(h):
         out.append("constraints in force, keep every one:")
         out.extend("- " + line + " (from " + ", ".join(roles) + ")"
                    for line, roles in kept)
+    asked = keeps(list(h.asked) + [(h.role, q["question"])
+                                   for q in h.block.get("questions", [])])
+    if asked:
+        out.append("")
+        out.append("questions already asked in this run; do not ask one"
+                   " again:")
+        out.extend("- " + question + " (from " + ", ".join(roles) + ")"
+                   for question, roles in asked)
     rulings = h.meta.get("rulings") or []
     if rulings:
         out.append("")

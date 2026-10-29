@@ -177,6 +177,8 @@ class Run(object):
         # every MUST NOT MISS line any step handed over, as (role, line): a
         # constraint read from the spec by the first step binds the last
         self.constraints = []
+        # every QUESTION line any step asked, as (role, question)
+        self.questions = []
         self.brief = kept.Brief(self.workdir, [step_id(s) for s in fm.steps])
         # the step that first wrote each test file, by path from the place
         self.authors = {}
@@ -541,6 +543,9 @@ class Run(object):
         for line in block.get("must_not_miss", []):
             if (role, line) not in self.constraints:
                 self.constraints.append((role, line))
+        for q in block.get("questions", []):
+            if (role, q["question"]) not in self.questions:
+                self.questions.append((role, q["question"]))
 
     def fenced(self, step):
         """what is gone or changed that git cannot give back, or "" for none.
@@ -1065,4 +1070,5 @@ class Run(object):
                              "asked": asked,
                              "allowed": declared(prompt) if asked else (),
                              "rulings": self.rulings()},
-                       block=block, carried=list(self.constraints))
+                       block=block, carried=list(self.constraints),
+                       asked=list(self.questions))
