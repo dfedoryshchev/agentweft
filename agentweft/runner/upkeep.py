@@ -190,9 +190,12 @@ def execute(store, record, items, done, run_id, today=None, keep=None):
                 refuse(done, what, why)
             elif store.new > before:
                 done.written.append(fact.id)
+                unchecked = fact.get("unchecked")
                 done.lines.append("- wrote " + fact.id + " ("
                                   + ", ".join(fact.scopes) + ", " + fact.kind
-                                  + "): " + fact.claim)
+                                  + "): " + fact.claim
+                                  + (" (kept without its check; " + unchecked
+                                     + ")" if unchecked else ""))
             else:
                 if fact.id not in done.counted:
                     done.counted.append(fact.id)

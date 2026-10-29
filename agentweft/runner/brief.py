@@ -277,6 +277,8 @@ class Brief(object):
         out = [head + ": " + fact.claim, "  why: " + fact.why]
         if fact.get("source"):
             out.append("  source: " + fact.get("source"))
+        if fact.get("unchecked"):
+            out.append("  unchecked: " + fact.get("unchecked"))
         at = facts.anchor_of(fact)
         if at is not None and fact.status == facts.LIVE:
             out.extend(self.quote(at.path, at.first, at.last))

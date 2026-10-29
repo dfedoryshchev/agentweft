@@ -32,8 +32,10 @@ the runner can check (a quoted line that is at that line, its escapes read
 (`quote_of`), a command a gate
 of this run ran with that exit code, a ruling on record), an anchor whose
 hash the runner takes itself, a check that reads only its scope and holds
-on the place now, a convention that says every or never only with a check
-a line against it breaks (`exits 1`), at most `cap` new facts a run, and
+on the place now (a fact refused for its check's form alone is written
+without it, `unchecked:` saying why), a convention that says every or
+never only with a check a line against it breaks (`exits 1`), at most `cap`
+new facts a run, and
 the same claim on the same scope counted on the fact already there instead.
 
 a fact's check runs again after every step that changed a file in its scope
@@ -69,6 +71,10 @@ OS_ERROR = re.compile(r"\[?\b(?:WinError|Errno) \d+\b")
 # the kinds a later run takes as the project's rule
 CONVENTION = "convention"
 HOSTED = (CONVENTION, GATE_ISSUE)
+# what a fact kept without its refused check says of it
+UNCHECKED = "unchecked"
+REFUSED_CHECK = "its check was refused: "
+PIPED = "the check holds a pipe character, which no taught format carries"
 # a claim about every place in its scope, which one matching line never shows
 EVERY = re.compile(r"\b(?:every|each|all|always|never|none|nowhere)\b", re.I)
 # the run's own shell and host, never the product's: a bare OS name or
@@ -610,7 +616,10 @@ class Store(object):
                     pass
 
     def refusal(self, p, record):
-        """-> why proposal `p` is not written, "" when it may be."""
+        """-> why proposal `p` is not written, "" when it may be. a fact
+        refused for the form of its check alone is written without it:
+        `p.unchecked` says why the check was refused."""
+        p.unchecked = ""
         for key, text in p.texts():
             what = secret_in(text)
             if what:
@@ -623,7 +632,7 @@ class Store(object):
         if not why:
             return "it has no why"
         for key, text in p.texts():
-            if "|" in text:
+            if "|" in text and key != "check":
                 return key + " holds a |, which no taught format carries"
         kind = p.get("kind").strip()
         if kind not in facts.KINDS:
@@ -668,9 +677,15 @@ class Store(object):
             return "the anchor " + said.split()[0] + " is not lines of the file"
         said = p.get("check").strip()
         if said:
-            why = self.check_refusal(said, scopes)
-            if why:
+            if "|" in said:
+                why, form = "check holds a |, which no taught format carries", \
+                    PIPED
+            else:
+                why, form = self.check_refusal(said, scopes)
+            if why and (not form or every_of(p)):
                 return why
+            if why:
+                p.unchecked, said = form, ""
         why = every_refusal(p, said)
         if why:
             return why
@@ -682,21 +697,25 @@ class Store(object):
         return ""
 
     def check_refusal(self, said, scopes):
-        """-> why a fact with check `said` is not written: the check cannot
-        run, reads a file outside the fact's scopes, or does not hold on the
-        place as it is now."""
+        """-> (why a fact with check `said` is not written, "" when it may
+        be; the same why when it is the check's form alone, "" when it is the
+        tree): the check cannot run or reads a file outside the fact's
+        scopes, or it does not hold on the place as it is now, which says
+        the claim may not be true."""
         check, why = facts.parse_check(said)
         if check is None:
-            return "the check cannot run: " + why
+            why = "the check cannot run: " + why
+            return why, why
         why = beyond(check, scopes)
         if why:
-            return why
+            return why, why
         held, why = facts.run_check(self.root, said, self.own)
         if held is None:
-            return "the check cannot run: " + why[len("could not run: "):]
+            why = "the check cannot run: " + why[len("could not run: "):]
+            return why, why
         if not held:
-            return "the check does not hold on the tree as it is: " + why
-        return ""
+            return "the check does not hold on the tree as it is: " + why, ""
+        return "", ""
 
     def conform(self, again=False):
         """-> a line per live fact with a check whose scope changed since it
@@ -840,9 +859,12 @@ class Store(object):
         said = p.get("anchor").strip()
         if said:
             fact.fields.append(("anchor", str(self.anchor_for(said))))
+        unchecked = getattr(p, "unchecked", "")
         for key in ("check", "supersedes"):
-            if p.get(key).strip():
+            if p.get(key).strip() and not (key == "check" and unchecked):
                 fact.fields.append((key, p.get(key).strip()))
+        if unchecked:
+            fact.fields.append((UNCHECKED, REFUSED_CHECK + unchecked))
         stamp = today or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         fact.fields.append(("written", stamp + " by runner"
                             + (" from " + origin if origin else "")))

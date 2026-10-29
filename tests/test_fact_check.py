@@ -222,6 +222,60 @@ def test_a_fact_that_claims_no_every_or_never_or_holds_it_is_written(
     assert why == "" and fact is not None
 
 
+DECIDED = "parse must raise on an empty line, so the caller prints it once"
+
+
+@pytest.mark.parametrize("check, refused", [
+    ('grep -n "print(" pkg/cli.py exits 1',
+     "the check reads pkg/cli.py, which is not in the fact's scope"),
+    ("pytest -q tests", "the check cannot run: only a grep runs as a fact's"
+                        " check, never pytest"),
+    ('grep -n -E "print(|echo" pkg/parse.py exits 1',
+     "the check holds a pipe character, which no taught format carries")])
+def test_a_true_fact_refused_only_for_its_check_is_kept_without_it(
+        tmp_path, check, refused):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed(DECIDED, check, "decision"), record)
+    assert why == "" and fact is not None
+    assert fact.get("check") == ""
+    assert fact.get("unchecked") == "its check was refused: " + refused
+    [kept] = facts.read(tmp_path)
+    assert kept.get("unchecked") == fact.get("unchecked")
+    assert "|" not in (tmp_path / "facts" / "pkg" / "parse.py.md").read_text(
+        encoding="utf-8")
+
+
+@pytest.mark.parametrize("claim, check, kind, refused", [
+    (DECIDED, CHECK, "decision", "the check does not hold on the tree"),
+    ("parse raises, it never prints", 'grep -n "x" pkg/cli.py exits 1',
+     "convention", "the check reads pkg/cli.py"),
+    ("parse raises, it never prints", 'grep -E "a|b" pkg/parse.py exits 1',
+     "convention", "check holds a |, which no taught format carries"),
+    (DECIDED, 'grep -n "sk-' + "a1B2" * 6 + '" pkg/parse.py exits 1',
+     "decision", "it looks like a secret")])
+def test_a_check_that_breaks_a_secret_or_an_every_claim_still_refuses_it(
+        tmp_path, claim, check, kind, refused):
+    store, record = a_store(tmp_path, PRINTS)
+    fact, why = store.add(claimed(claim, check, kind), record)
+    assert fact is None and why.startswith(refused), why
+
+
+def test_the_retro_and_a_later_step_are_told_the_check_was_refused(tmp_path):
+    from agentweft.runner import brief, upkeep
+
+    store, record = a_store(tmp_path)
+    done = upkeep.Maintained()
+    upkeep.execute(store, record, [("fact", "", dict(claimed(
+        DECIDED, 'grep -n "print(" pkg/cli.py exits 1', "decision").fields))],
+        done, "r-1")
+    said = ("its check was refused: the check reads pkg/cli.py, which is not"
+            " in the fact's scope")
+    assert done.lines == ["- wrote F-0001 (pkg/parse.py, decision): " + DECIDED
+                          + " (kept without its check; " + said + ")"]
+    [fact] = facts.read(tmp_path)
+    assert "  unchecked: " + said in brief.Brief(tmp_path).fact_chunk(fact)
+
+
 # --- run after a step that changes the scope ------------------------------
 
 

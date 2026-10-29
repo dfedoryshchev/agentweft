@@ -534,9 +534,15 @@ is written; a refused one is not written and its reason is kept:
    (`seen: proposed 2, ...`) instead of written again.
 7. at most three new facts a run (`per-run cap`); a supersession is a new
    fact, and marks the one it replaces `superseded`.
-8. a `check:`, when it has one, runs and holds on the place as it is (`the
-   check cannot run: ...`, `the check reads <path>, which is not in the
-   fact's scope`, `the check does not hold on the tree as it is: ...`).
+8. a `check:`, when it has one, runs and holds on the place as it is. one
+   that does not hold (`the check does not hold on the tree as it is: ...`)
+   says the claim may not be true, and the fact is refused. one refused for
+   its form alone (`the check cannot run: ...`, `the check reads <path>,
+   which is not in the fact's scope`, a `|` in it) leaves a fact that held
+   every other test: it is written without the check, with `unchecked: its
+   check was refused: <why>`, which the retro's line, the handoff and every
+   step handed the fact read too. a convention under 9 is not: its check is
+   what holds it.
 9. a `convention` whose claim says every, each, all, always, never, none or
    nowhere is written only with a check that holds on the tree, and one a
    line against the claim breaks: `exits 1`, a pattern no line may match.
