@@ -102,6 +102,40 @@ def test_a_retro_skill_is_not_fed_to_every_role():
     assert resolver.skill("no-guessing") in resolver.skill_rules("retro")
 
 
+def test_the_retro_is_taught_to_keep_an_open_question_and_a_pinning_test():
+    skill = " ".join(resolver.skill("retro").split())
+    assert ("an open question two or more steps raised, that no ruling"
+            " settled, is a `why` fact labelled `investigation`") in skill
+    assert ("a test a step said passes on the code before the change as well"
+            " pins what the code does and does not prove the change: a `why`"
+            " fact labelled `investigation`") in skill
+
+
+@pytest.mark.parametrize("scope, claim, evidence", [
+    ("pkg/parse.py", "whether a time outside the years 0001 to 9999 is valid is"
+     " open: parse accepts it", 'TASK.md:2 "a time is YYYY-MM-DD"'),
+    ("tests/test_parse.py", "test_edge passes on the code before the change"
+     " too: it pins the output, it does not prove the fix",
+     'tests/test_parse.py:1 "def test_edge():"')])
+def test_an_investigation_fact_of_the_taught_shape_is_written(
+        tmp_path, scope, claim, evidence):
+    from agentweft.guardrails import factsguard
+
+    for rel, text in (("TASK.md", "# spec\na time is YYYY-MM-DD\n"),
+                      ("pkg/parse.py", "def parse(line):\n    return line\n"),
+                      ("tests/test_parse.py", "def test_edge():\n    pass\n")):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text, encoding="utf-8", newline="\n")
+    store = factsguard.Store(tmp_path)
+    fact, why = store.add(factsguard.Proposal({
+        "scope": [scope], "kind": "why", "label": "investigation",
+        "claim": claim, "why": "two steps raised it and no ruling settled it",
+        "source": "seq 3 reviewer.md; evidence: " + evidence}),
+        factsguard.Record(tmp_path))
+    assert why == "" and fact is not None
+    assert (fact.get("kind"), fact.get("label")) == ("why", "investigation")
+
+
 def test_retro_on_a_flow_is_true_false_or_conditional():
     from agentweft.flow import spec
 
