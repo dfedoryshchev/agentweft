@@ -9,6 +9,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.flow import spec
+from agentweft.guardrails.budget import CHARS_PER_TOKEN
 from agentweft.runner import engine, prompts, stops
 
 NL = chr(10)
@@ -88,7 +89,7 @@ def asking(monkeypatch, answer=None):
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         asked.append(step)
         if answer is not None:
-            return answer(step), False
+            return answer(step, prompt), False
         return "VERDICT: ok" + NL + NL + "done by " + step + NL, False
 
     monkeypatch.setattr(engine, "call", fake_call)
@@ -161,10 +162,17 @@ def test_a_list_that_cannot_make_it_fit_cuts_nothing_and_still_says_risky(
 FIVE = [(n, n + ".md") for n in ("a", "b", "c", "d", "e")]
 
 
-def big_first(step):
-    # ~80500 tokens on a cap of 100000: past the 80% the cap warns at, with
-    # room for b.md once the shared prompt fragments are counted too
-    return ("x" * 322000 if step == "a.md" else "ok") + NL
+# what a.md spends, prompt and answer, on a cap of 100000: past the 80000 the
+# cap warns at, and the 18000 three 6000 blocks need fit what it leaves while
+# the 24000 of four do not. the answer is sized from the prompt it is sent,
+# so a longer or shorter prompt never moves the spend out of that window
+SPENT = 81000
+
+
+def big_first(step, prompt):
+    if step != "a.md":
+        return "ok" + NL
+    return "x" * (SPENT * CHARS_PER_TOKEN - len(prompt) - len(NL)) + NL
 
 
 def ran_before(tmp_path, flow, tokens):
@@ -195,7 +203,8 @@ def test_near_the_cap_the_rest_is_cut_in_order_until_it_fits(
     skipped = json.loads((the_runs(tmp_path)[-1] / "skips.json")
                          .read_text(encoding="utf-8"))
     assert sorted(skipped) == ["e"]
-    assert skipped["e"].startswith("budget: token cap")
+    assert skipped["e"].startswith("budget: token cap: " + str(SPENT)
+                                   + " of 100000 spent")
 
 
 def test_near_the_cap_a_list_that_cannot_make_it_fit_parks_and_cuts_nothing(
@@ -214,7 +223,7 @@ def test_a_run_picked_up_later_cuts_again_what_still_does_not_fit(
         tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch, "again", FOUR, "max_calls: 3" + NL
            + listed("verify"))
-    asked = asking(monkeypatch, lambda step: "" if not asked[:-1] else
+    asked = asking(monkeypatch, lambda step, _: "" if not asked[:-1] else
                    "VERDICT: ok" + NL + NL + "done" + NL)
     run(monkeypatch, "again", "--force")
     assert asked == ["a.md"]
@@ -248,7 +257,7 @@ def test_a_resume_with_room_runs_what_the_first_leg_cut(tmp_path, monkeypatch):
 def test_a_resume_plans_the_cuts_again_against_its_cap(tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch, "replan", FOUR, "max_calls: 3" + NL
            + listed("verify"))
-    asked = asking(monkeypatch, lambda step: "" if not asked[:-1] else
+    asked = asking(monkeypatch, lambda step, _: "" if not asked[:-1] else
                    "VERDICT: ok" + NL + NL + "done" + NL)
     run(monkeypatch, "replan", "--force")
     [first] = [p for p in (tmp_path / "runs").iterdir() if p.is_dir()]
@@ -287,7 +296,7 @@ def test_a_cut_lead_is_not_called_to_decide_and_the_person_gets_the_question(
              ("verify", "verify.md")]
     a_flow(tmp_path, monkeypatch, "led", three, "lead: a" + NL
            + "max_calls: 2" + NL + listed("a"))
-    asked = asking(monkeypatch, lambda step: NEEDS if step == "reviewer.md"
+    asked = asking(monkeypatch, lambda step, _: NEEDS if step == "reviewer.md"
                    else "VERDICT: ok" + NL + NL + "done" + NL)
     code = run(monkeypatch, "led", "--force")
     out = capsys.readouterr().out
@@ -316,6 +325,10 @@ def test_near_the_cap_the_step_about_to_run_can_be_the_one_cut(
     asked = asking(monkeypatch, big_first)
     run(monkeypatch, "next", "--force")
     assert asked[:2] == ["a.md", "c.md"] and "b.md" not in asked
+    skipped = json.loads((the_runs(tmp_path)[-1] / "skips.json")
+                         .read_text(encoding="utf-8"))
+    assert skipped["b"].startswith("budget: token cap: " + str(SPENT)
+                                   + " of 100000 spent")
 
 
 def test_a_run_with_cut_steps_says_they_were_not_done(tmp_path, monkeypatch):

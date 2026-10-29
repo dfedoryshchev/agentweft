@@ -565,6 +565,34 @@ def test_a_stand_in_for_the_file_a_call_wrote_stays_unbacked(cited):
     assert item["backed"] == "unbacked", item
 
 
+def test_a_saw_is_asked_for_as_printed_text_and_a_silent_check_to_print():
+    words = " ".join(resolver.shared_rules().split())
+    assert "a `saw:` is text the call printed, copied" in words
+    assert "`git diff --quiet -- <file>; echo $?`" in words
+
+
+QUIET = [("git diff --quiet -- calc.py", ""),
+         ("git diff --quiet -- calc.py; echo $?", "0\n")]
+
+
+@pytest.mark.parametrize("cited, saw", [
+    ("git diff --quiet -- calc.py", "(empty output)"),
+    ("git diff --quiet -- calc.py", "(no diff output for calc.py)")])
+def test_a_saw_that_describes_an_empty_answer_stays_unbacked(cited, saw):
+    block = verified("- calc.py is unchanged\n  cmd: " + cited + "\n  saw: "
+                     + saw + "\n")
+    [item] = handoff.back(block, QUIET[:1])["verified"]
+    assert item["backed"] == "unbacked", item
+
+
+def test_a_silent_check_made_to_print_its_answer_is_backed():
+    block = verified("- calc.py is unchanged\n"
+                     "  cmd: git diff --quiet -- calc.py; echo $?\n"
+                     "  saw: 0\n")
+    [item] = handoff.back(block, QUIET)["verified"]
+    assert (item["backed"], item["by"]) == ("backed", "command"), item
+
+
 LOOPED = [("cd /w && L=1\nfor a in 1 2; do echo $a; done", "1\n2\n"),
           ('python -c "\nimport sys\nprint(1)\n"', "1\n"),
           ('python -c "\nfor a in [7]:\n    print(a)\n"', "7\n"),
