@@ -539,6 +539,36 @@ def test_a_reason_that_names_nothing_on_record_stays_out_of_it():
             "DECIDED: Leave", "Leave")) == summary.UNHELD, said
 
 
+CHOSEN = {"assumed": [
+    "the month is checked before the store is loaded\n"
+    "why: TASK.md:4\nif wrong: the error order flips",
+    '"exactly one character" means one Unicode code point\n'
+    "why: TASK.md:11 says one character\nif wrong: a surrogate pair is two"],
+    "tried": ["running `top` on a gzip file with `--output` in a temp dir"
+              " - it wrote outside the place"]}
+NOTHING_HELD = summary.record_of([], {}, [], None)
+
+
+def test_a_reason_names_its_assumed_or_tried_item_by_its_own_first_words():
+    shared = " ".join(resolver.shared_rules().split())
+    assert "TRIED <the item>" not in shared and "ASSUMED <the item>" not in shared
+    assert ("TRIED <its first words, copied>, ASSUMED <its first words,"
+            " copied>") in shared
+    assert ("a TRIED or ASSUMED one by its own first words, three or more,"
+            " copied from it, never a label of your own for it") in shared
+
+
+def test_an_item_named_by_its_own_first_words_is_held_and_a_label_is_not():
+    held = summary.held_at
+    assert held('ASSUMED "exactly one character" means one Unicode code point',
+                CHOSEN, NOTHING_HELD) == "ASSUMED item 2 of its handoff"
+    assert held("TRIED running `top` on a gzip file", CHOSEN,
+                NOTHING_HELD) == "TRIED item 1 of its handoff"
+    for label in ("ASSUMED len(C) == 1", "ASSUMED month error before store"
+                  " error", "TRIED gzip and --output run in a temp dir"):
+        assert held(label, CHOSEN, NOTHING_HELD) == "", label
+
+
 def test_every_role_is_asked_for_its_reasons_and_what_each_led_to():
     shared = resolver.shared_rules()
     assert "    BECAUSE:\n" in shared
