@@ -495,7 +495,7 @@ with a block, after the work:
     BECAUSE:
     - <a reason that shaped the work>
       from: <file>:<line>, a test id, a gate, or own read
-      led to: a test id, <file>:<lines>, TRIED <its first words>, ASSUMED <its first words>, QUESTION, DECIDED <ruling>, or nothing
+      led to: a test id, <file>:<lines>, TRIED <its first words>, ASSUMED <its first words>, QUESTION, DECIDED <a ruling it was handed or its own DECIDED: line>, or nothing
     VERIFIED:
     - <claim>
       cmd: <the command it ran>

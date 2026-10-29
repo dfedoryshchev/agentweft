@@ -569,6 +569,29 @@ def test_an_item_named_by_its_own_first_words_is_held_and_a_label_is_not():
         assert held(label, CHOSEN, NOTHING_HELD) == "", label
 
 
+def test_decided_is_asked_for_only_for_a_ruling_and_a_choice_is_assumed():
+    shared = " ".join(resolver.shared_rules().split())
+    assert "DECIDED <the ruling>" not in shared
+    assert ("DECIDED <a ruling you were handed, or your own `DECIDED:` line>"
+            in shared)
+    assert ("DECIDED only for a ruling you were handed or your own `DECIDED:`"
+            " line: a choice of your own is an ASSUMED item, and a reason that"
+            " led you to leave a thing alone or out led to `nothing`") in shared
+
+
+def test_a_decided_reason_with_no_ruling_and_no_decided_line_is_held_nowhere():
+    ruled = decisions.Decision("keep the spec order", "the spec lists it",
+                               datetime.datetime(2026, 1, 5, 21, 40))
+    for said in ("DECIDED no test for those two",
+                 "DECIDED the plan has no CONFLICT",
+                 "DECIDED TASK.md gets new lines under line 43 only"):
+        assert summary.held_at(said, CHOSEN, NOTHING_HELD) == "", said
+        assert summary.held_at(said, CHOSEN, dict(
+            NOTHING_HELD, decided=[ruled])) == "", said
+    assert summary.held_at("DECIDED keep the spec order", CHOSEN, dict(
+        NOTHING_HELD, decided=[ruled])) == "decisions.md " + summary.stamp(ruled)
+
+
 def test_every_role_is_asked_for_its_reasons_and_what_each_led_to():
     shared = resolver.shared_rules()
     assert "    BECAUSE:\n" in shared
