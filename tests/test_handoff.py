@@ -6,6 +6,7 @@ written on every end: finished, parked, gate failed, budget, crash.
 """
 import datetime
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -578,6 +579,33 @@ def test_the_hand_runs_reviewer_is_asked_for_each_command_in_full():
         encoding="utf-8").split())
     assert "each command you ran by hand" in words
     assert "never a name for it" in words
+
+
+def prompt_words(*parts):
+    return " ".join((Path(__file__).resolve().parents[1].joinpath(*parts))
+                    .read_text(encoding="utf-8").split())
+
+
+def test_the_same_command_again_is_asked_for_in_the_words_the_runner_reads():
+    shared = prompt_words("agentweft", "fragments", "handoff.md")
+    by_hand = prompt_words("flows", "build-feature", "reviewer-runs.md")
+    for words in (shared, by_hand):
+        assert "the same command again included" not in words
+        [asked] = re.findall(r"`cmd: (same[^`]*)`", words)
+        assert handoff.ABOVE.match(asked), asked
+    assert "write every `cmd:` out in full" in shared
+
+
+def test_a_pointer_with_a_note_after_it_is_not_read_as_the_command_above():
+    block = verified("- the suite is green\n"
+                     "  cmd: python -m pytest -q tests/test_calc.py\n"
+                     "  saw: 5 passed\n"
+                     "- nothing warns\n"
+                     "  cmd: same heredoc command as above, run once\n"
+                     "  saw: 0 warnings\n")
+    first, second = handoff.back(block, RAN)["verified"]
+    assert second["cmd"] == "same heredoc command as above, run once"
+    assert (first["backed"], second["backed"]) == ("backed", "unbacked")
 
 
 def test_a_pointer_with_no_command_above_it_stays_unbacked():

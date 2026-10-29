@@ -12,10 +12,12 @@ what those tests do not run is yours:
   spec line it goes against
 - a case you could not run stays in, marked unsure, and is not a redo on its
   own
-- each command you ran by hand is its own VERIFIED line, its `cmd:` the
-  command in full as you typed it: a script fed on stdin is its `<<` line,
-  then its body with its lines joined by `; `, never a name for it such as
-  "a harness that ..."
+- each command you ran by hand is cited in full, as you typed it, on the
+  first VERIFIED line its output shows: a script fed on stdin is its `<<`
+  line, then its body with its lines joined by `; `, never a name for it
+  such as "a harness that ...". each further claim that run's output shows
+  is a VERIFIED line of its own after it, before another command is cited,
+  with `cmd: same command as above`
 - change no file in the place. a run that would write one runs from a copy
   outside it
 

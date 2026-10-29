@@ -1,658 +1,658 @@
 {
   "build-feature/capped-resume": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "reviewer-runs.md go 1 365d1928c530de61f3bac2f1bfdc1d3c2f1e964798e69596765653c29f43484b",
-    "reviewer.md go 1 fe15cfa8cd21361d0e387a7f1519131c3eea616a9d782538b6299c375c4c0c8a",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 89fd992450461525a9800ab99c1dffc224e6edd7f8a38fffd0f6151022a7ea95"
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "reviewer-runs.md go 1 ddde9bb7df2ffc2aa7d22820e0c4d0ccd590cfd5d0e56ebacb363498172bf442",
+    "reviewer.md go 1 4788a9e0eee27b59b33b647de805b3ff96976b59aead7024b1efde4d08b6e7ea",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 2a0aea9479bdb9f78414bc8cd2d4caee332f76e70b1c9f76737f294f5a110e51"
   ],
   "build-feature/conflict": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "planner.md go 2 92427ff2160bb96972b184385cce33074cf9f3498b981dcf0799aba8c1d2ba42",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "planner.md go 2 59bd247e199afa2c740fd367ce2f3d8b3a93dd2aa930a3b486cc0a88fa91fc0f",
     "retro.md go 1 e5c9607117aaa76728380466abee0404b6330627f1235a7d85b0ce85563d2eaf",
-    "reviewer-runs.md go 1 5dbd62b6e53d62fe0a04e2082994b957f900c8ff43dbe0fc24c32de3a98eaf02",
-    "reviewer.md go 1 6f77a8689b18665a3d94c1caa504e18c3c5f94a0c0254859c23dbe87ba5cb176",
-    "tester.md go 1 ef16a08a643206c2f29ea37ca8f144a567ad0fa90940bcea9ed8326ef656e437",
-    "worker.md go 1 c7437e99fda7d12fcdc5d9180c818ad47137649a236990b011597b3b29cc0993"
+    "reviewer-runs.md go 1 156147e04d74a616619b0e556548df7f36e84af445bf1dc02f0f98c60edfbd17",
+    "reviewer.md go 1 3d49ffea9a458424b9cfcddcc6427ac1b1c2fb706e2105c2435bfe440fdcc5e8",
+    "tester.md go 1 85c9abc3ed869d97d5855b790658e055de832dc50a0ed36fed070f9677515052",
+    "worker.md go 1 bfb7e9a26847243ebae4f604ccbcdd956c0b8afe932e9c97adfe92285fced676"
   ],
   "build-feature/escalated-resume": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "planner.md go 2 17866d68f2e1f6fb0ec93d1249941288888d814414fd1857258b409c51e388ff",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "planner.md go 2 83a8f1bd8095166b71b2df7706d52d4ef4c03a3d19e04bc53a329966826a020d",
     "retro.md go 1 1d362a2ffd6d42d86eb73c937292f0431b61bf5226a688fa5483ae840f14fcc7",
-    "reviewer-runs.md go 1 8391c68769ff45464aa2235affc2fde2ab41abbedb81dc836e94a87cfae7e079",
-    "reviewer.md go 1 8aa314646e6eaa331937c015be31a3add57dc82f05c976f2c8a7d6951f541be5",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f",
-    "worker.md go 2 5dcdd40eadd907540289e4ba04e8062711fa8c80722c843071d083e038ca52ae"
+    "reviewer-runs.md go 1 268d74d97c806a7e3f7d3b02c7ba1e90d1b9b1c36c6ebfd7f30710555ccd5369",
+    "reviewer.md go 1 f114fea8b089a7801afd7b4d65c23685ad888c5950ec95810a5445a7a83f9418",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f",
+    "worker.md go 2 f8468b705c1f82585548ebd080d808bffd1b3c860e14106749984ab5bc42979f"
   ],
   "build-feature/gate-fail": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 69f98639c00dad34acb7bcf77a6a0a7d7d52f765855091e03fda50ad97fa2e45",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "tester.md go 2 eb8ea36572d319d37c3e89c1f9c112f74c306645d75549737475379d8e2c7af6"
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "tester.md go 2 e560d3bbd69cd7768e8b6e790a77cc94f9a5bba2e38fee1341fdf01b9d6ec81b"
   ],
   "build-feature/guard-refused": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62"
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f"
   ],
   "build-feature/interrupted": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62"
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f"
   ],
   "build-feature/lead-decides": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "planner.md go 2 17866d68f2e1f6fb0ec93d1249941288888d814414fd1857258b409c51e388ff",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "planner.md go 2 83a8f1bd8095166b71b2df7706d52d4ef4c03a3d19e04bc53a329966826a020d",
     "retro.md go 1 21e150493bd7f2f1901b985bca0e0eca620c42baf19860b4cd661e8ee449eb7f",
-    "reviewer-runs.md go 1 7b56ea771ef0068bbb841143f631fbf342c4c06ad9ca413b9138b425ac83c23d",
-    "reviewer.md go 1 69d8894a5c28ae5ca5932bcc4bf85e0529922065a6e0fad903761f54168de6df",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f",
-    "worker.md go 2 b91f79d90998ce96a73894e90d3fc7f0ec42cb12fb9dcae2742433563d40def1"
+    "reviewer-runs.md go 1 1451ac7146bee97e7a0e099520aa4e0b43f446163a1f03469632e26855fbc636",
+    "reviewer.md go 1 8118dbd4bcd5471b9f1142c20ec9940e1c301c61f1b269d30d4fe3b2671a5c4c",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f",
+    "worker.md go 2 2f7e7be7e7e7e615c5d370b8ba60e353ed593ce4d804a609ade7b86c78c134a6"
   ],
   "build-feature/no-answer": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "planner.md go 2 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "planner.md go 2 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 fd236c2071c15de6f0ccf8b59649053bda90ed22832b1071c77124410dcbe5e7"
   ],
   "build-feature/outage-resume": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "planner.md go 2 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "planner.md go 2 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 180d3742152c1e35e684be95fd47d959256f58a2394dc5fcc92ee5de44242957",
-    "reviewer-runs.md go 1 7746cc44ce38314bcd62c5270b1956f37262adf60735f97ad837c6e2c93c7834",
-    "reviewer.md go 1 c8b9d500a66bf8b784904e1b0853edd070b3bfc924ac5e6e400e35b61de322c3",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f"
+    "reviewer-runs.md go 1 d2424127c27348cfb85ebfd31f4dfbb8fc8ff1b90c8fbb8c0c8e600fb9c08768",
+    "reviewer.md go 1 e54e48fef70a5b9e17385f23307c5cbf5b104ea12f43aab5d0326a4277784966",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f"
   ],
   "build-feature/pass": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 8bcb82586e4789668aeeb61bc14b805b115589cddb88f63a8d77f839e9975c1f",
-    "reviewer-runs.md go 1 7746cc44ce38314bcd62c5270b1956f37262adf60735f97ad837c6e2c93c7834",
-    "reviewer.md go 1 c8b9d500a66bf8b784904e1b0853edd070b3bfc924ac5e6e400e35b61de322c3",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f"
+    "reviewer-runs.md go 1 d2424127c27348cfb85ebfd31f4dfbb8fc8ff1b90c8fbb8c0c8e600fb9c08768",
+    "reviewer.md go 1 e54e48fef70a5b9e17385f23307c5cbf5b104ea12f43aab5d0326a4277784966",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f"
   ],
   "build-feature/product-before-red": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 ca07ad56356e32efc1aae423f53608ffbd5102c8417a9d12fb1e196eb1ee71ef",
-    "reviewer-runs.md go 1 7746cc44ce38314bcd62c5270b1956f37262adf60735f97ad837c6e2c93c7834",
-    "reviewer.md go 1 c8b9d500a66bf8b784904e1b0853edd070b3bfc924ac5e6e400e35b61de322c3",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "tester.md go 2 0d234af17c73f032fb3a8f0f0c30777da6b73e9a1a7915352377a4bcd8090f8b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f"
+    "reviewer-runs.md go 1 d2424127c27348cfb85ebfd31f4dfbb8fc8ff1b90c8fbb8c0c8e600fb9c08768",
+    "reviewer.md go 1 e54e48fef70a5b9e17385f23307c5cbf5b104ea12f43aab5d0326a4277784966",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "tester.md go 2 2ef71ecb9d7bb7e8636e29d09d42d20e59dc228ec1b51e04507d1506e53ea026",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f"
   ],
   "build-feature/redo": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 a311a03f41b03fc0dbe944eeb811571d7afe8a57f14d3c0cbb67a5e0651c7c64",
-    "reviewer-runs.md go 1 1b2d7589ea85b0ac152b91cc4f983aa05a045141aa1160e3dcfbd6e608e83fc1",
-    "reviewer.md go 1 c8b9d500a66bf8b784904e1b0853edd070b3bfc924ac5e6e400e35b61de322c3",
-    "reviewer.md go 2 5934e548a3cb488ef9760318bb6f5b81f7ecb138b0ca95a9a0584a1a3fda763d",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f",
-    "worker.md go 2 f5ceb61178f1f82a244fc03ee251737bd9454051f9843cf8419e03079898be2b"
+    "reviewer-runs.md go 1 8868107a0c8057542332117ff7844c259302c41365d60932c6e573f3fd82e288",
+    "reviewer.md go 1 e54e48fef70a5b9e17385f23307c5cbf5b104ea12f43aab5d0326a4277784966",
+    "reviewer.md go 2 e03b73a459a6786a7a0a8f66f66a341ae3fe913a9750d678ca07177645a217cc",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f",
+    "worker.md go 2 1e834a5e85decc9bea04e68f42fec9068acfe1228277261108fc31113b03487e"
   ],
   "build-feature/redo-stuck": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "reviewer.md go 1 c8b9d500a66bf8b784904e1b0853edd070b3bfc924ac5e6e400e35b61de322c3",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f",
-    "worker.md go 2 f5ceb61178f1f82a244fc03ee251737bd9454051f9843cf8419e03079898be2b"
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "reviewer.md go 1 e54e48fef70a5b9e17385f23307c5cbf5b104ea12f43aab5d0326a4277784966",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f",
+    "worker.md go 2 1e834a5e85decc9bea04e68f42fec9068acfe1228277261108fc31113b03487e"
   ],
   "build-feature/refused": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 8d55744df84e04a0379a7fff6a5839d4f9a13af993779f3ced45325f06130bf6"
   ],
   "build-feature/resume-carried": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 4efa301fc8e39aaa48c6c9cd68663c79077f31b61ca4818fddd046854207a1a5",
-    "reviewer-runs.md go 1 1b2d7589ea85b0ac152b91cc4f983aa05a045141aa1160e3dcfbd6e608e83fc1",
-    "reviewer.md go 1 c8b9d500a66bf8b784904e1b0853edd070b3bfc924ac5e6e400e35b61de322c3",
+    "reviewer-runs.md go 1 8868107a0c8057542332117ff7844c259302c41365d60932c6e573f3fd82e288",
+    "reviewer.md go 1 e54e48fef70a5b9e17385f23307c5cbf5b104ea12f43aab5d0326a4277784966",
     "reviewer.md go 2 921dac619fdf7f5d5efa05be3080fd8824c78fecb2366cabf22d6b713d2ea9be",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f",
     "worker.md go 2 e857de9a5d4318571d73fbad0b201b0fe9a880bfb58fc7ad17bc1fc05b7954c1"
   ],
   "build-feature/spec-rewrite": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f"
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f"
   ],
   "build-feature/suite-red": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 1f077c74ffb681d097de642feb9aad965839cf1e1cf85bbcf2f9f4bd8a50292c",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f",
-    "worker.md go 2 ef77e7ad0bb2a8946f4e4ffdfb2a0456faff7140a7437d9ffb4b6d0b1845caaa"
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f",
+    "worker.md go 2 314982c3ae751629b96b92312907bba935a321463ead9ac405733f81f4bd7a5a"
   ],
   "build-feature/terse-readers": [
-    "planner.md go 1 b47c665bce31e62be658829a31ba6a38f1877cfec18ec8e2c9400f61f1c719fa",
+    "planner.md go 1 d70be5c921f221349b5a901247d2670fcbe226eb38a825b8272488be22db2b37",
     "retro.md go 1 8bcb82586e4789668aeeb61bc14b805b115589cddb88f63a8d77f839e9975c1f",
-    "reviewer-runs.md go 1 c8eaae24724c1ebbb13a359abb72f6d19eb2b6db7d597b24faf0174ab9e53320",
-    "reviewer.md go 1 ff9ed88eb3f08fce38b814d7ef103e02130201713d13116190d89d479823025c",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "worker.md go 1 cf7a5100f9f082dba8df5f9dcd4329c5c45f7f0d669567fb0d8d290f5caece9f"
+    "reviewer-runs.md go 1 da34af53bdae208540da7163ce5a8ca20f025877334f2fe3aed92cc3e51358df",
+    "reviewer.md go 1 e76c277d83ed415a97f3bb8b8d5d9b2ca405fa9a7afd40221d6228d914b33e86",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "worker.md go 1 9f1462e7b12f791db3445d23018dd424df98917464311b014fd8c433ac41629f"
   ],
   "build-feature/tool-fault": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62"
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f"
   ],
   "build-feature/wrong-test": [
-    "planner.md go 1 5b211518c1643d3a89a4b1376ee263fe70867909c73bbc4853a4d54a9d883a62",
+    "planner.md go 1 28a34e6e86d013d66e4c6498d9c02ef02bbef1bcbb73a33c0a6fa5bd538bfb5f",
     "retro.md go 1 ca2291d46a174c07f543c12331ea7d69347c96683ad3dde4d98b2fe4efe5f05c",
-    "reviewer-runs.md go 1 7bf3527f1eec3875b725b7d10fe4d2935ca80710933668d39b994032a47d1b2c",
-    "reviewer.md go 1 b551d8c65c15aee02bb46fe070d0a78728002a0b54e9e026a42a9fddc9cad96e",
-    "tester.md go 1 a40beda797b605777c1e450437c643f2a15295e508842f40c546679c3029198b",
-    "tester.md go 2 4f4ed0de6986c4c73e5d2efba9300c71fecb4a71c1bc6ba7bfdf84e674365133",
-    "worker.md go 1 589a6b3394738e730b14bcb0b6caad12b4351635f28e12e30fd4ef8554deccf4",
-    "worker.md go 2 6cb837d3d4b40d97a4b21dc690e8da0fb22bb31d3796d2b453f7761535417289"
+    "reviewer-runs.md go 1 2bd243cece7473f6cabbc9640fad38cc79b75e22b7895f326fa9b94160316e57",
+    "reviewer.md go 1 62920399170dece750b9cab1fcd9ad224a139b2bcf59f64703c7db1c14793223",
+    "tester.md go 1 6d7af88a0ac328ecae4adba90c5778c55058d87b56b34e5b935795c4f0156775",
+    "tester.md go 2 6432d1a87caea0977aa0b9fbfdc620cf64016483bd013cd103f0e5b95f147533",
+    "worker.md go 1 f36863d8ee0892f738bd59aa4cc34c0e29d1516e5236e74a900fbb25e8426c1f",
+    "worker.md go 2 519cf46b6fa7589d238bf5a753540d815540051c40181bfb7f66d5fc62a509ca"
   ],
   "capped/budget-resume": [
-    "reviewer.md go 1 af3d6f462838bb32666b1cc6357001bb67a34143b1f2e2e60908da2138b5e22e",
-    "worker.md go 1 7386ef8777637b32465f1d34035deb9f94ad79ef0f6a90310dd7c4b7024df786"
+    "reviewer.md go 1 43e680422832bc436969b75ac972826fb17e67225f44f3cf63a0b7574141efde",
+    "worker.md go 1 061154d8118380db9a580ca76f67f87e27f410252ec04d3688b111634433b6c5"
   ],
   "code-review/capped": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/conflict": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/guard-refused": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/interrupted": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/merge-unchecked": [
     "retro.md go 1 33b9cb9b021f6ad4b8c7701cc5c6609592906706be2b24a6ec46e188a6a5956a",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/model-map": [
     "retro.md go 1 8f0b56f94178c3459ab52a85c1f42ae78adfe38fa78770cc9de52ce57ff449ff",
-    "reviewer.md go 1 8b75c56e2c1976c1661db80decf1e3a819d639307ba596f9761455203c6afe84",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "reviewer.md go 1 636ce4ed940f9f51d221edd5ba82d94cfbcae8eaa43bdef7f8bc0b07c221acf4",
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/no-answer": [
     "retro.md go 1 2632496076af0b35693d5d0802e45a0f44931254d4aa714e460dd248ee445e27",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433",
-    "worker.md go 2 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f",
+    "worker.md go 2 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/no-verdict": [
     "retro.md go 1 c1f831cacca5608ca6c1cf97fd736104f1d9aabb3b77467d3d178ba39ac0f695",
-    "reviewer.md go 1 8b75c56e2c1976c1661db80decf1e3a819d639307ba596f9761455203c6afe84",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "reviewer.md go 1 636ce4ed940f9f51d221edd5ba82d94cfbcae8eaa43bdef7f8bc0b07c221acf4",
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/outage": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/pass": [
     "retro.md go 1 8f0b56f94178c3459ab52a85c1f42ae78adfe38fa78770cc9de52ce57ff449ff",
-    "reviewer.md go 1 8b75c56e2c1976c1661db80decf1e3a819d639307ba596f9761455203c6afe84",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "reviewer.md go 1 636ce4ed940f9f51d221edd5ba82d94cfbcae8eaa43bdef7f8bc0b07c221acf4",
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/redo": [
     "retro.md go 1 29fb6f0d149071961295f51ee0aa28e03e11ab73794a60ccbac6fa9452a50c1d",
-    "reviewer.md go 1 fbeffea5959293027da46daa9eb28d8617770005662fa096645cf56e4c5e427b",
-    "reviewer.md go 2 8b75c56e2c1976c1661db80decf1e3a819d639307ba596f9761455203c6afe84",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433",
-    "worker.md go 2 416ea68a86f1960147b6555f9ea6dbee2b58ced3d6b0af729ad804c3bef2e88d"
+    "reviewer.md go 1 cecd08dab5b8bf933d584d17d9a6a2489f4032cf166aaf2b44c6803bab68ac45",
+    "reviewer.md go 2 636ce4ed940f9f51d221edd5ba82d94cfbcae8eaa43bdef7f8bc0b07c221acf4",
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f",
+    "worker.md go 2 62c988d7017ad67f08a034279f0cb4f6db33c9fed34e68bc14a8c5e1e517ed31"
   ],
   "code-review/refused": [
     "retro.md go 1 845c3fbe4cdba210c46011e2be5f9b91e9246849dcd79ffd145363b87957f9b9",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/ruling": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/target-moved": [
     "retro.md go 1 c36efbdfbe9787e300b21bdafa20bb738f80bd28f0bde77d2960640e9cc0c647",
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "code-review/task-refused": [],
   "code-review/tool-fault": [
-    "worker.md go 1 314273a9fc4587ab4dd9074be7c3dc2b6ccd5e90a9e6e4e8bfe8d854ef3f7433"
+    "worker.md go 1 60fc782b148ff7ece15e333599606c31d4bfd5358a6f710e7bcd29fc31e7214f"
   ],
   "fix-with-test/capped-resume": [
-    "patcher.md go 1 e2467aa9c40510c4b34f8faa2997af7feeedf65ad3a7b034da113fd5597dd657",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "patcher.md go 1 92e26729fb9ea641d291687b886bdf6603dbab49861faf60763df5565f608f9e",
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/chained-resume": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
-    "patcher.md go 2 e2467aa9c40510c4b34f8faa2997af7feeedf65ad3a7b034da113fd5597dd657",
-    "patcher.md go 3 e2467aa9c40510c4b34f8faa2997af7feeedf65ad3a7b034da113fd5597dd657",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
+    "patcher.md go 2 92e26729fb9ea641d291687b886bdf6603dbab49861faf60763df5565f608f9e",
+    "patcher.md go 3 92e26729fb9ea641d291687b886bdf6603dbab49861faf60763df5565f608f9e",
     "retro.md go 1 b7101cf548c1b11af8ff7bc37ed96e91dfe5f19602bbc0033cc7994a608453d1",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/conflict": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/fixed-then-wrong-start-test": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/gate-fail": [
     "retro.md go 1 5c094ba173661c2ff30f1a9f670007349c39350c33484893cba9028c3dd67a6f",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
-    "worker.md go 2 1a70b4a083181a6201b2cfbb000ccef0ad7fbcd380ffa72d8d2116104448057c"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
+    "worker.md go 2 c82b24fa5f3467805f6ed35417defd7695b5fac4c0505eb9c2244568f8c958ae"
   ],
   "fix-with-test/guard-refused": [
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/interrupted": [
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/no-answer": [
     "retro.md go 1 c9f21f30831742568b0ac38aadec3d908b4141a970aadc4ac2a5181cc2fb0d04",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
-    "worker.md go 2 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
+    "worker.md go 2 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/no-red-proof": [
     "retro.md go 1 e54c0811015b23ee7aaff5f848316b912dac37758a0f84788a8c6b50fede9fd8",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/pass": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
     "retro.md go 1 0374898d95b45d55f88263588dbb6e0676e80e190acb77256e961c589246ae68",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/product-before-red": [
     "retro.md go 1 944c49bbe58a97d493351b87a4f8ded0d80087fc3321c95e62079b71df1dc3f0",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
-    "worker.md go 2 38ace5bb2b1124f37fc501f97b26a0969519f0dc800cc48d3e03d1248dba6715"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
+    "worker.md go 2 4b36adfbcc172e67caf4113ffc050e2c8a9b7c21956cdeaa9ec8df2223cfd6d2"
   ],
   "fix-with-test/question-rides": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
     "retro.md go 1 6ad6f1eb45d6de04637b9e14c3c416a910cca9ec959d6cd416344d1ec888ae4f",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/refused": [
     "retro.md go 1 180a783a655fcde117b769c2f4f1e5b3bd6b656f25d75ed7a5f103189901fa14",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/resume-carried": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
     "patcher.md go 2 57bfd893ac6fb43e15c94ec9635cb374c5d4ac9b99793004b046bac3b9d5ba53",
     "retro.md go 1 6470e2498f151062b345e24077be65f02ccaf8fe7b1ced562bc7b790ca98cd76",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
     "worker.md go 2 ff054c2530584ec5a968af2f2c077da8aea951c9a98957bd32925b98ef738af6"
   ],
   "fix-with-test/ruling-resume": [
-    "patcher.md go 1 3ae6cbbf446344e98598151fbec7b1279e3a372e51ecd914f90874b997df600c",
+    "patcher.md go 1 07bc0ee40c09abb93779dea677f98d43544cad8c7aaa9c1e1b71138c2ac2c2b3",
     "retro.md go 1 b710903ab6076afc6a16ef5d411d5ad552534b8d2af792284a39e6f2ba75e281",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
-    "worker.md go 2 b2200a8f2a76171092d331910482f80ad6215476eaacc081656bb7c09fe6ee91"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
+    "worker.md go 2 38ce2162865dce2e6dd50b11f57de577dba361061f12261699d9d42052d88783"
   ],
   "fix-with-test/start-test-edited": [
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
-    "worker.md go 2 b3f16701613f65e3090e361331c85176e1f047bec72b0e4916954df45b5ddb7e"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
+    "worker.md go 2 8ad659fee544513d5002a6c1962034cd8b2936a059d384cef28661b6e7ef0530"
   ],
   "fix-with-test/suite-red": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
-    "patcher.md go 2 349770c17fd987c29d05a031e485ebbfeac898a9e9ae502d2ad9300998bab3bf",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
+    "patcher.md go 2 d8ebd110b1c227859d935cea8f41439240e147378d347aa726f0e90965601733",
     "retro.md go 1 abfe24a9eb1580b637d112ef841a53a0e5b0fae57a0ffb2f96daefb4588eed0b",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/task-file": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
     "retro.md go 1 4212a04d35262cf2f34f7bd0cf0c2124f93206d28e6c8e2a67f763aefa7e2756",
-    "worker.md go 1 f120827e5a8078a0c65cd5c0deaee728c6a692e13267879939d19e54d353b694"
+    "worker.md go 1 43627924767e8a995b7dd3a8955e529570c29ed2fb4427a86c343a71609ed06a"
   ],
   "fix-with-test/tool-fault": [
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/wrong-start-test": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115"
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578"
   ],
   "fix-with-test/wrong-test": [
-    "patcher.md go 1 06ed03fd4c935bd8e14cbf9b80403c36a5f3dcf0568288f3aed05287f70e777c",
-    "patcher.md go 2 cb5faac44cb4837a749757c4d1eb0cb321cb6faa1556e3298afd4ffc8679de7a",
+    "patcher.md go 1 b1cc75b2587239061190fc308725898263331f0a2050692209b9731f92c6a7b0",
+    "patcher.md go 2 d2dc5d3d24ea8355ece17800bd385db04c9c83463d44f634a2ea91567e5fa58e",
     "retro.md go 1 24a109cfc5b48d394e97ca8d4a8d64b081ea051d5f394f8e8b880cefb2aa01d4",
-    "worker.md go 1 d02b84058b369a6eeb74216693fd0571d035d5db0ceee3446aef49600d516115",
-    "worker.md go 2 64909ade9846fe347135c70acf27efe6f960d8fbacb56271760a7a5126f6d4c0"
+    "worker.md go 1 21d9b9ff2537774e14c6c96071371f9013f4479f625849bd2139916067d90578",
+    "worker.md go 2 a5d8a8abefdef940408edbd5365d58054d706a33a1349ac081e5ce619aeb98a9"
   ],
   "ops-check/capped-resume": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
-    "reviewer.md go 1 8d61312c090155a29cacf68693c60e7d8fe6301daa78c1cc88cf5275812a022e",
-    "worker.md go 1 bc18005f858268de0179898f2c846d831000381bd8cc263583c79754fc8e0a2c"
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
+    "reviewer.md go 1 d65725a672db2737440b1803775f11af9f278dd949d9358b3d202bcde21eb0f3",
+    "worker.md go 1 18c71b3218be74c0dcd46d7c4ae6e28e7cb9afb855b89c9416b60d6a1987a4ad"
   ],
   "ops-check/conflict": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b"
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed"
   ],
   "ops-check/guard-refused": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b"
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed"
   ],
   "ops-check/interrupted": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b"
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed"
   ],
   "ops-check/no-answer": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
-    "planner.md go 2 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
+    "planner.md go 2 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
     "retro.md go 1 7e0196f6f08e203b606572793d28e227d514ce5ca5748476a05412a63edb31d2"
   ],
   "ops-check/no-verdict": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
     "retro.md go 1 13604e4c695ac40f4bc60005037a50da23bce4a31dc17fb78814948e5c11854f",
-    "reviewer.md go 1 22e39e4e07253a96c1b575fcc322e3486b8886fafb26f0c275b31f5c244d8806",
-    "worker.md go 1 bc18005f858268de0179898f2c846d831000381bd8cc263583c79754fc8e0a2c"
+    "reviewer.md go 1 122a743e4c8d76a353696f8b2a5374db76676d34b964f33a3fee678a50bbc9a4",
+    "worker.md go 1 18c71b3218be74c0dcd46d7c4ae6e28e7cb9afb855b89c9416b60d6a1987a4ad"
   ],
   "ops-check/outage-resume": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
-    "planner.md go 2 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
+    "planner.md go 2 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
     "retro.md go 1 8f420a164d78c3ba4e664df1904169d1786f6dd748995b670e5876fdfe3c423d",
-    "reviewer.md go 1 22e39e4e07253a96c1b575fcc322e3486b8886fafb26f0c275b31f5c244d8806",
-    "worker.md go 1 bc18005f858268de0179898f2c846d831000381bd8cc263583c79754fc8e0a2c"
+    "reviewer.md go 1 122a743e4c8d76a353696f8b2a5374db76676d34b964f33a3fee678a50bbc9a4",
+    "worker.md go 1 18c71b3218be74c0dcd46d7c4ae6e28e7cb9afb855b89c9416b60d6a1987a4ad"
   ],
   "ops-check/pass": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
     "retro.md go 1 9974b239ab8773ae00f32d1e655c1134590b5120924bb4b4d6a731438d30ecf0",
-    "reviewer.md go 1 22e39e4e07253a96c1b575fcc322e3486b8886fafb26f0c275b31f5c244d8806",
-    "worker.md go 1 bc18005f858268de0179898f2c846d831000381bd8cc263583c79754fc8e0a2c"
+    "reviewer.md go 1 122a743e4c8d76a353696f8b2a5374db76676d34b964f33a3fee678a50bbc9a4",
+    "worker.md go 1 18c71b3218be74c0dcd46d7c4ae6e28e7cb9afb855b89c9416b60d6a1987a4ad"
   ],
   "ops-check/redo": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
     "retro.md go 1 10ab958bb42c3f6379c6c454a7d502eba0e1966494340942f84a52b0f3a4a4c9",
-    "reviewer.md go 1 0c75acd6dae5f469125bab7294082ae414f926aa4f9ec6f446a484240ed295b2",
-    "reviewer.md go 2 22e39e4e07253a96c1b575fcc322e3486b8886fafb26f0c275b31f5c244d8806",
-    "worker.md go 1 bc18005f858268de0179898f2c846d831000381bd8cc263583c79754fc8e0a2c",
-    "worker.md go 2 a9963637eefbf4ef20d83a1329ebf506a446627859ac9e227a3d5f84d50cd8cb"
+    "reviewer.md go 1 dc5b9a6c9ed98936ab26e528bf87b32c618339fd973360392b55c350c1ebc3f8",
+    "reviewer.md go 2 122a743e4c8d76a353696f8b2a5374db76676d34b964f33a3fee678a50bbc9a4",
+    "worker.md go 1 18c71b3218be74c0dcd46d7c4ae6e28e7cb9afb855b89c9416b60d6a1987a4ad",
+    "worker.md go 2 18607ee5b454ff51475b057f0a3728df4ba64c0aaea545f3ef98780a0b3856d5"
   ],
   "ops-check/refused": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
     "retro.md go 1 fe48288a1ebef5c0586789c6403e4c96bafd1fe3fa72fed81373654b45c6eb2a"
   ],
   "ops-check/ruling-resume": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b",
-    "planner.md go 2 edfbfdad10b4b387c97a5fd1aa21981e4ad81bd901ad5030b8a8d087aa7496d2",
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed",
+    "planner.md go 2 23699ff45314fd930d4a8d57cbbdfa46531e71fe6d9c187a17c2815c65e5ec04",
     "retro.md go 1 59db4546494039226dd0fef4d97f7c915f061bb732f3d5882f9eb47a71e3869c",
-    "reviewer.md go 1 36b43ec7f0520c5c1f29ecb14a79eb4934f008ca566b77a3ec54137186e595b0",
-    "worker.md go 1 fefcaf6e3afea7219d547314d1d1a4bd7f574099c2cf609bbd1e13dda930b91b"
+    "reviewer.md go 1 68354dec3c3aff3aed8e3c9757d198a0d21db5b42bd555bc1e7188abc9e35db4",
+    "worker.md go 1 40718aeb069990fe8e55721425a2e50423dba0e87ec55c13847f1bd07758683e"
   ],
   "ops-check/tool-fault": [
-    "planner.md go 1 0eba8e6f1f9a5817b74dd9099d77eb3f95ca6c1cbc1744e617982d6535735a8b"
+    "planner.md go 1 28ee6785739b72046cd4b0bf04a0c1f80cde050230e26e24c52209fbbbda43ed"
   ],
   "release-notes/capped-resume": [
-    "reviewer.md go 1 9f3efa2c21f9f3e75af423c148793f62ac9d0fa3f40296360538918b9e684139",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "reviewer.md go 1 b5722b3d6d432aec4c12c4f7e3854e549470fde4bef2931931bcd15b403720d0",
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/conflict": [
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/guard-refused": [
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/interrupted": [
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/no-answer": [
     "retro.md go 1 37888928efd57b4f06f1f8f72b16dd02fc3c0e7fe2faf31c0ba74105d075dc57",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596",
-    "worker.md go 2 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596",
-    "worker.md go 3 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8",
+    "worker.md go 2 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8",
+    "worker.md go 3 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/no-verdict": [
     "retro.md go 1 141b9c2ace485c25b67513d77675f965b1e29353cc3d45c09eb21704ff73fe10",
-    "reviewer.md go 1 9f3efa2c21f9f3e75af423c148793f62ac9d0fa3f40296360538918b9e684139",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "reviewer.md go 1 b5722b3d6d432aec4c12c4f7e3854e549470fde4bef2931931bcd15b403720d0",
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/outage-resume": [
     "retro.md go 1 65c1760129187aa8af13a70b4290307d6c184fb15082f08071e4881234d847f4",
-    "reviewer.md go 1 9f3efa2c21f9f3e75af423c148793f62ac9d0fa3f40296360538918b9e684139",
-    "reviewer.md go 2 9f3efa2c21f9f3e75af423c148793f62ac9d0fa3f40296360538918b9e684139",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "reviewer.md go 1 b5722b3d6d432aec4c12c4f7e3854e549470fde4bef2931931bcd15b403720d0",
+    "reviewer.md go 2 b5722b3d6d432aec4c12c4f7e3854e549470fde4bef2931931bcd15b403720d0",
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/pass": [
     "retro.md go 1 854ca0d05d1595b822a76f9055eb320b43163745f58a251e8954bddfb691fb2a",
-    "reviewer.md go 1 9f3efa2c21f9f3e75af423c148793f62ac9d0fa3f40296360538918b9e684139",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "reviewer.md go 1 b5722b3d6d432aec4c12c4f7e3854e549470fde4bef2931931bcd15b403720d0",
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/redo": [
     "retro.md go 1 76e9e8259be16ecff77c457238f20369d13be7340060c164b127aa091e54591d",
-    "reviewer.md go 1 6a6b5d5a1eed8a257b79b9d124dbf14258c3d8afa4c8c580d595abc781d128f7",
-    "reviewer.md go 2 9f3efa2c21f9f3e75af423c148793f62ac9d0fa3f40296360538918b9e684139",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596",
-    "worker.md go 2 634d8f757e2c61700b5fd14dbb09e0d720aa9fee96efa286d70e3f236318494c"
+    "reviewer.md go 1 a14719a4dee57bd17bafca5e73cb7469ef7b12eaf014bd0ee43ba21a740948fe",
+    "reviewer.md go 2 b5722b3d6d432aec4c12c4f7e3854e549470fde4bef2931931bcd15b403720d0",
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8",
+    "worker.md go 2 902d1affe6e5cf98532378c23b752b45217455f8f6d3d29725cc3ae79d0d7276"
   ],
   "release-notes/refused": [
     "retro.md go 1 e26b01bef08ce95ce7dd5e846bc031e1f0babf6087c073796867a8e616ff9dcf",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "release-notes/ruling-resume": [
     "retro.md go 1 4adeb48c4c8bc20c78379b01931c3dc194255d954d4ee1dbb62b50bc68b286bf",
-    "reviewer.md go 1 78239da2c97c7aa97c3006ea8d28c7d770f383224e4fb9d8714f36bca4cae3f4",
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596",
-    "worker.md go 2 eedf23fe3229f0bc86454ca9ec064dcf03308c7b17631c880c180c65a6de4586"
+    "reviewer.md go 1 d8ff7de88523bebe743ec9a1194a202d66a2d4ee43649d7993dfb7ee058de3a1",
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8",
+    "worker.md go 2 84832b7e8819df8627df8489a630048ac35e6e343dc06c69d15dee60f2b28832"
   ],
   "release-notes/tool-fault": [
-    "worker.md go 1 1c3f0232656c091387afba419bc37a65d63d03b4f512f3f640769cf8e5309596"
+    "worker.md go 1 a3d4a79040403e371aab2efc686a4544c1c802eb57e97134d993a9f440c97ff8"
   ],
   "repo-audit/capped-resume": [
-    "merge.md go 1 b88839cbb5f13cf419ffe4caa30ddc1687746aba669212ce4c0485940ce40150",
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
-    "reviewer.md go 1 63e794867f8c14cfe6ef062e7eabd9e61b166212eab74fd48a8a72c63fc594a6",
-    "worker.md task 1 go 1 6f7dbcbc135caaf766f652672909977ac91cea002210b68b2103d160a8d5909c",
-    "worker.md task 2 go 1 79810e202c21fb6120e5a10c15bfcee0cd8c410b989623940c023d13a51a492d"
+    "merge.md go 1 7fd22985e4dde9d94f70985b8186a668c0eb89b5ecac7af8935f5dc554fa7d1e",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
+    "reviewer.md go 1 0e207ab26ae2a77654e2f767928342ef75f9a7356cf2c80917bd850f43c49610",
+    "worker.md task 1 go 1 6e2267874bc3a1f6911ceee4a8a81be83eedd6fb7d5bd211bf2f34caa59949d7",
+    "worker.md task 2 go 1 89af285e1c386d991c79ba19add004b35c3c3f78e19744f6d1a0045f0c6da708"
   ],
   "repo-audit/conflict": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82"
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1"
   ],
   "repo-audit/guard-refused": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82"
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1"
   ],
   "repo-audit/interrupted": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82"
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1"
   ],
   "repo-audit/no-answer": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
-    "planner.md go 2 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
-    "planner.md go 3 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
+    "planner.md go 2 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
+    "planner.md go 3 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 6e919ea23920d38c23f3a446888a0c6a5499b5bca37383cce61d1babef33b370"
   ],
   "repo-audit/no-verdict": [
-    "merge.md go 1 4771fd005db974f1a36f2ec469a025ec01b7a13ac185866d9f15a2f8cfec252a",
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "merge.md go 1 1c6c77af6e4efee4dcfcee048dd52439a16a6794f51b00be73bc52c43122a5b0",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 45cdd49f49b279241ade7b31a1134157b28306c0dffb1cbd568960cb2a690d41",
-    "reviewer.md go 1 37210e570e5df45eeca5f972a0f0b5447e2fe8960a89a45e052611a63074c531",
-    "worker.md task 1 go 1 6f7dbcbc135caaf766f652672909977ac91cea002210b68b2103d160a8d5909c",
-    "worker.md task 2 go 1 79810e202c21fb6120e5a10c15bfcee0cd8c410b989623940c023d13a51a492d"
+    "reviewer.md go 1 97ae7ff74fd581f97b4133525da29d902485e3b860a9ddc9a9aaed62ae8cf3d8",
+    "worker.md task 1 go 1 6e2267874bc3a1f6911ceee4a8a81be83eedd6fb7d5bd211bf2f34caa59949d7",
+    "worker.md task 2 go 1 89af285e1c386d991c79ba19add004b35c3c3f78e19744f6d1a0045f0c6da708"
   ],
   "repo-audit/outage-resume": [
-    "merge.md go 1 4771fd005db974f1a36f2ec469a025ec01b7a13ac185866d9f15a2f8cfec252a",
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
-    "planner.md go 2 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "merge.md go 1 1c6c77af6e4efee4dcfcee048dd52439a16a6794f51b00be73bc52c43122a5b0",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
+    "planner.md go 2 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 b36a7959c0a13513e2d5c19d97cb9fcc7df81bbe53cd9841f6e6fd27b9d11a73",
-    "reviewer.md go 1 37210e570e5df45eeca5f972a0f0b5447e2fe8960a89a45e052611a63074c531",
-    "worker.md task 1 go 1 6f7dbcbc135caaf766f652672909977ac91cea002210b68b2103d160a8d5909c",
-    "worker.md task 2 go 1 79810e202c21fb6120e5a10c15bfcee0cd8c410b989623940c023d13a51a492d"
+    "reviewer.md go 1 97ae7ff74fd581f97b4133525da29d902485e3b860a9ddc9a9aaed62ae8cf3d8",
+    "worker.md task 1 go 1 6e2267874bc3a1f6911ceee4a8a81be83eedd6fb7d5bd211bf2f34caa59949d7",
+    "worker.md task 2 go 1 89af285e1c386d991c79ba19add004b35c3c3f78e19744f6d1a0045f0c6da708"
   ],
   "repo-audit/overlap": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 879058882acd010c4bd5432f9f38aafc8744b8145c1151862ff30f9c027749a6",
-    "worker.md task 1 go 1 672cebd8ca1f8ddb9718225b7c25b6ec10f8d5e66be50d5785f8002e064a2424",
-    "worker.md task 2 go 1 3dd0558faf423c290a2c99b69245d2d99cd93c674ec4af355f1d7c2f14247d1d"
+    "worker.md task 1 go 1 89b0972a4c6697f7b35d7e0d394f470ee196f939b0744a15a64781e0907ce0f3",
+    "worker.md task 2 go 1 2f2fdc7d2e2abf376d86b70a6c674c9f07d12af5831df47682d5f34a39036f43"
   ],
   "repo-audit/pass": [
-    "merge.md go 1 4771fd005db974f1a36f2ec469a025ec01b7a13ac185866d9f15a2f8cfec252a",
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "merge.md go 1 1c6c77af6e4efee4dcfcee048dd52439a16a6794f51b00be73bc52c43122a5b0",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 46a7df5bbe3f7cd4c4755804f1cce4000c169ffc30bdbce9e14bee6572d75de4",
-    "reviewer.md go 1 37210e570e5df45eeca5f972a0f0b5447e2fe8960a89a45e052611a63074c531",
-    "worker.md task 1 go 1 6f7dbcbc135caaf766f652672909977ac91cea002210b68b2103d160a8d5909c",
-    "worker.md task 2 go 1 79810e202c21fb6120e5a10c15bfcee0cd8c410b989623940c023d13a51a492d"
+    "reviewer.md go 1 97ae7ff74fd581f97b4133525da29d902485e3b860a9ddc9a9aaed62ae8cf3d8",
+    "worker.md task 1 go 1 6e2267874bc3a1f6911ceee4a8a81be83eedd6fb7d5bd211bf2f34caa59949d7",
+    "worker.md task 2 go 1 89af285e1c386d991c79ba19add004b35c3c3f78e19744f6d1a0045f0c6da708"
   ],
   "repo-audit/redo": [
-    "merge.md go 1 4771fd005db974f1a36f2ec469a025ec01b7a13ac185866d9f15a2f8cfec252a",
-    "merge.md go 2 5f7ee80bc1e52fa30ee801c7203b5c1708f058439cd32c9c1f5fd8d1be9c1979",
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "merge.md go 1 1c6c77af6e4efee4dcfcee048dd52439a16a6794f51b00be73bc52c43122a5b0",
+    "merge.md go 2 4494b0834fcaa8633abcf5c47e852d47f67f21bf1f5f542cf7393a6cba02cbdb",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 7f7670abeec301f4b361f3fd55d93cc3ecd3ce2db225ba215d0c023d7198e573",
-    "reviewer.md go 1 aa7d5930be4c65bebe310479fda4c43101b7d2e6f18a64bda87fbeda7dc7f5b6",
-    "reviewer.md go 2 37210e570e5df45eeca5f972a0f0b5447e2fe8960a89a45e052611a63074c531",
-    "worker.md task 1 go 1 6f7dbcbc135caaf766f652672909977ac91cea002210b68b2103d160a8d5909c",
-    "worker.md task 1 go 2 fa2d18a8b1eeaeb2c771ade68457c612349d86c42cb9a72c5db96eadeaf43914",
-    "worker.md task 2 go 1 79810e202c21fb6120e5a10c15bfcee0cd8c410b989623940c023d13a51a492d",
-    "worker.md task 2 go 2 5b7b1b9c02fda4513033bf7b3365cc0e645dbf3659604a4404b786052e847433"
+    "reviewer.md go 1 61bfdacb3508aa12f25b7a8d87c109138617368f796bbf0a726c171f627e87e7",
+    "reviewer.md go 2 97ae7ff74fd581f97b4133525da29d902485e3b860a9ddc9a9aaed62ae8cf3d8",
+    "worker.md task 1 go 1 6e2267874bc3a1f6911ceee4a8a81be83eedd6fb7d5bd211bf2f34caa59949d7",
+    "worker.md task 1 go 2 7da3840f7c485a8d2140ad633d7613f4aea65d9806553547504b3ee3b1a31bf4",
+    "worker.md task 2 go 1 89af285e1c386d991c79ba19add004b35c3c3f78e19744f6d1a0045f0c6da708",
+    "worker.md task 2 go 2 60d1884b8c9770a3d110602319050c6ed8aea85f5cdad970c5be154b76b5968f"
   ],
   "repo-audit/refused": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
     "retro.md go 1 5682c8a18f1cdff46f4dce6d9b9ac2586226aaf6275439aa7a077842e9be400d"
   ],
   "repo-audit/ruling-resume": [
-    "merge.md go 1 602a243d6e7c51ed24e8a0587d21f1820c6802d9a286331d1dd9af1e0624cff3",
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82",
-    "planner.md go 2 d9815ad8ecd1a0d0f9cdeff381d42e5371fc0ea49c273ae6dc13a26b9ab6cccc",
+    "merge.md go 1 45ba0da2fe089a063110f5e62c333d241a571d243a2ba156453ff8e6b145ce1e",
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1",
+    "planner.md go 2 722a898ac30394a4917b1eea6a83b083131b0f2bfe5bc8cc2ac688646638a8e3",
     "retro.md go 1 bbd7a4bf91d314eecefa2db127f07959f517666969e0690c99ef6bcb47240bc2",
-    "reviewer.md go 1 18068cdbfa4644ffd1e157ed02ba03440f7968c828e7cec6c983e4d23967408a",
-    "worker.md task 1 go 1 6f7dbcbc135caaf766f652672909977ac91cea002210b68b2103d160a8d5909c",
-    "worker.md task 2 go 1 79810e202c21fb6120e5a10c15bfcee0cd8c410b989623940c023d13a51a492d"
+    "reviewer.md go 1 468c785e1247b14bcf1462a6e49c6a9b601c9c536180cad9a1a92ec8154bba2b",
+    "worker.md task 1 go 1 6e2267874bc3a1f6911ceee4a8a81be83eedd6fb7d5bd211bf2f34caa59949d7",
+    "worker.md task 2 go 1 89af285e1c386d991c79ba19add004b35c3c3f78e19744f6d1a0045f0c6da708"
   ],
   "repo-audit/tool-fault": [
-    "planner.md go 1 31449282d0ff88fae91fa566be0530c2309d9cdf0cff187574378fa9a8085a82"
+    "planner.md go 1 6f01657066683693069d92776bfbc1c43ef0d33a771b930bdf4f91b73d9607e1"
   ],
   "retro/two-fails": [
     "retro.md go 1 576b4487ef373e1c4a4baf5284fc936160abd974ef1f306c2275df356b038a5e",
-    "reviewer.md go 1 58224ce28edc169c99cda4044caf593f47f7410c3c7d2ba2c7f9bcdce44708d8",
-    "reviewer.md go 2 c117a6675bcad50407bdf1b2e776a8b048e59c4d9f6a992f81f598f83a69b31e",
-    "worker.md go 1 719420c44af534741affa5988705888297ca9d657376eac8814eab4ca7635dad",
-    "worker.md go 2 536be3d778bfc31685c7e459fda8e953487ea295d32a42ddfa3b8f7c429a6e14",
-    "worker.md go 3 4dfb89ac4f250171946f26ccc2902c3dc72b9259f4e31b5152b36c7bc730ad88"
+    "reviewer.md go 1 56d1f1ededc6c07020540d628dbd068ddb2de7fd7184d79c5896c463ee525e3f",
+    "reviewer.md go 2 70400ae607fda9b94d6138091d9d4ca811c1b4d8c39543f2c88cde2cb5576865",
+    "worker.md go 1 e3b9e631b3f2a804ab7734ae7ab0e3dffb7857e086249d5eac793e0466656b7c",
+    "worker.md go 2 6e488d99b5931df1d258b86499fbd511275c51fab039154740a1cb411279cc9e",
+    "worker.md go 3 5e49c56e23ad18d16864e9e9e6c9863d07c57e1a6eb1dd4c9e39545c14f97ef6"
   ],
   "risky-edit/hot-park": [
-    "planner.md go 1 a3b1f66aa9ddf6068418be70fa884bf6d1b0497554b5c1d3b81e34d5986b4a08",
-    "worker.md go 1 4ce118a8521d71e1eda7d5ce599d29573bb07407533d94df87acbfee5db19196"
+    "planner.md go 1 32d3dc9f991a519a6b8820a27e540821d544dd0fc3450ede75e385626760ee4e",
+    "worker.md go 1 eabbb9a0b71a547a54cbc28363e2fd098ec9d3c9dbf95ab75d1bbeae0ee897da"
   ],
   "risky-edit/hot-plan": [
-    "planner.md go 1 a3b1f66aa9ddf6068418be70fa884bf6d1b0497554b5c1d3b81e34d5986b4a08"
+    "planner.md go 1 32d3dc9f991a519a6b8820a27e540821d544dd0fc3450ede75e385626760ee4e"
   ],
   "summarise-and-check/capped-resume": [
-    "reviewer.md go 1 43753ccfd28d7d0304776dd262c0997c53220d7024a95cde7c8dc3efa1392c20",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "reviewer.md go 1 f953431cb3be959382f6926eb5da516014e6f8ca9e421758286e9729469d7d44",
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/conflict": [
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/guard-refused": [
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/interrupted": [
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/no-answer": [
     "retro.md go 1 45ea820eb181440e1dd160b1bc45f56ebe2d44d42215f9a88f7bb56a2fbb7c73",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5",
-    "worker.md go 2 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5",
-    "worker.md go 3 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c",
+    "worker.md go 2 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c",
+    "worker.md go 3 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/no-verdict": [
     "retro.md go 1 87d758bedb3391832726cf593b9b4cbbcafa9b017b41c07b1bd71291c147f46a",
-    "reviewer.md go 1 43753ccfd28d7d0304776dd262c0997c53220d7024a95cde7c8dc3efa1392c20",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "reviewer.md go 1 f953431cb3be959382f6926eb5da516014e6f8ca9e421758286e9729469d7d44",
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/outage-resume": [
     "retro.md go 1 6b587b31568998cb760abac013e86f8f7d2cb60e5a12607d20577b58ce46b533",
-    "reviewer.md go 1 43753ccfd28d7d0304776dd262c0997c53220d7024a95cde7c8dc3efa1392c20",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5",
-    "worker.md go 2 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "reviewer.md go 1 f953431cb3be959382f6926eb5da516014e6f8ca9e421758286e9729469d7d44",
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c",
+    "worker.md go 2 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/pass": [
     "retro.md go 1 7f73b99190391f0f1abd462e10b9bb4e18191de28bf5c41f93dab3994f8eb75e",
-    "reviewer.md go 1 43753ccfd28d7d0304776dd262c0997c53220d7024a95cde7c8dc3efa1392c20",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "reviewer.md go 1 f953431cb3be959382f6926eb5da516014e6f8ca9e421758286e9729469d7d44",
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/redo": [
     "retro.md go 1 55157e72635714621ec6d61e33f2e4f130f5886a5748db1366cefe8faa86b478",
-    "reviewer.md go 1 07cfb96865eabeee7271f44d89734645d56e0e1e7d8a4336f757f1b7496b23a5",
-    "reviewer.md go 2 43753ccfd28d7d0304776dd262c0997c53220d7024a95cde7c8dc3efa1392c20",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5",
-    "worker.md go 2 8b460093d2ab9935956e0ffd44ea897f481928bd76305a8a502f1dc08340ee6b"
+    "reviewer.md go 1 1e45a13e372ca8c9ce23e9b8ff9ef8fa40bee121a0cb0c8519b962b44d03d5ef",
+    "reviewer.md go 2 f953431cb3be959382f6926eb5da516014e6f8ca9e421758286e9729469d7d44",
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c",
+    "worker.md go 2 5ebc29eb1d9f7da0f0a1915a8895b452135b04da059531b57d4037c1ed422222"
   ],
   "summarise-and-check/refused": [
     "retro.md go 1 3125fc252047d58d7b3cc85457c2440c012e64b86fd784e6e58ac8bcfbf95456",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "summarise-and-check/ruling-resume": [
     "retro.md go 1 2df110a75338eb384fb5ebf0a13fd002eecab398d3de5aebe37177165666d902",
-    "reviewer.md go 1 e6d6ff808fe3456324047d3dc473b434632b7830b28d3e531ea424c205b81fd3",
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5",
-    "worker.md go 2 e2a88e53a4bc9d5238421b5e56962806db50843b5ed54ca8922aa5a5f2bf92d4"
+    "reviewer.md go 1 419d611a94594bedfe5e1625eca4d0bab9aa49d27098abd632d3bbdd695dffcb",
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c",
+    "worker.md go 2 892bf49f67c0c8175d896ce33a262dcac9d060aa2441a8a6bec4117f1c3a4d83"
   ],
   "summarise-and-check/tool-fault": [
-    "worker.md go 1 dc817e13842938e2a05f5a810667c2ad2d4668be6f7adb6d5b2611aa6317f3b5"
+    "worker.md go 1 5c90ef5cccba7730f84bd93c0526aaa349ea70bba4216ac618999b49275a696c"
   ],
   "weekly-digest/capped-resume": [
-    "merge.md go 1 9ea30b2c278330854fe33e79894191276d042716118aaf43e1975aa76229e107",
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
-    "reviewer.md go 1 b3f3e8879bb4eff28949e30c04fcd4f4f2eadd7f645b27e54dcfecf106ddc3d6",
-    "worker.md task 1 go 1 b031cfeda482a94cfd585864eff495cd73017bb43467ed4f27f2257296f6e301",
-    "worker.md task 2 go 1 f9edf73b7d250874a1bf4532c830333faec7ca75a2a7a2fbebb668ce104c8525"
+    "merge.md go 1 c1da32df37e7b86e13d9422e2858376a8060a1cf1caf245b1f01b75327f1e35a",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
+    "reviewer.md go 1 6c02f3d69540483a74689a23e197ffe04d347c771ae7bb6f5a931e69c5e3619a",
+    "worker.md task 1 go 1 f98dc794e3016b7d9897d8041d7fcddbde3a2989981e5c7938c0281af2665f18",
+    "worker.md task 2 go 1 61aba7b84fa6e823eb9e7d5c444d2a8262be8d691695bfd209124e0c10dbd4e9"
   ],
   "weekly-digest/conflict": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b"
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68"
   ],
   "weekly-digest/gate-fail": [
-    "merge.md go 1 22178b8c25a8373810d2f7827a4b0a65b7f4b8cd395e9bcfe739dfc0414deff9",
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "merge.md go 1 dbbe43b4a253b3e49d8f17a122ec99d210c773c79f0831ab0a0537757a192cd2",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 2b311a99e954fe55f9386cc3e174d8cb6f2620a3ac7ae543986d8eaceec72002",
-    "reviewer.md go 1 e9cf76fa45466806f75a5fd3ce54c3fb6982844f0b906ee7b4a484dc2c80a703",
-    "reviewer.md go 2 75c2ada42dbb41392acb068af3d55a78d0854ec375809d96ba6f8daebafd4db6",
-    "worker.md task 1 go 1 b031cfeda482a94cfd585864eff495cd73017bb43467ed4f27f2257296f6e301",
-    "worker.md task 2 go 1 f9edf73b7d250874a1bf4532c830333faec7ca75a2a7a2fbebb668ce104c8525"
+    "reviewer.md go 1 0eb7ed8173b86a5c2bc6086065c9546a5cd5b45f2735ae215310ce737ae56296",
+    "reviewer.md go 2 2de2309f4e7cc4e20cbfdc5d0c55f78efc917a73ee609ef3ab4792734ce0aed9",
+    "worker.md task 1 go 1 f98dc794e3016b7d9897d8041d7fcddbde3a2989981e5c7938c0281af2665f18",
+    "worker.md task 2 go 1 61aba7b84fa6e823eb9e7d5c444d2a8262be8d691695bfd209124e0c10dbd4e9"
   ],
   "weekly-digest/guard-refused": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b"
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68"
   ],
   "weekly-digest/interrupted": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b"
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68"
   ],
   "weekly-digest/no-answer": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
-    "planner.md go 2 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
-    "planner.md go 3 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
+    "planner.md go 2 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
+    "planner.md go 3 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 3e541f8eb011da69e666fc1a808214dafdb1846c383a9d5acb3eb6848f8c59bb"
   ],
   "weekly-digest/outage-resume": [
-    "merge.md go 1 22178b8c25a8373810d2f7827a4b0a65b7f4b8cd395e9bcfe739dfc0414deff9",
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
-    "planner.md go 2 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "merge.md go 1 dbbe43b4a253b3e49d8f17a122ec99d210c773c79f0831ab0a0537757a192cd2",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
+    "planner.md go 2 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 8f14c38ec570c5672c971d6436a29b42dbce954bffb6e8120e66827f2c4b8872",
-    "reviewer.md go 1 e9cf76fa45466806f75a5fd3ce54c3fb6982844f0b906ee7b4a484dc2c80a703",
-    "worker.md task 1 go 1 b031cfeda482a94cfd585864eff495cd73017bb43467ed4f27f2257296f6e301",
-    "worker.md task 2 go 1 f9edf73b7d250874a1bf4532c830333faec7ca75a2a7a2fbebb668ce104c8525"
+    "reviewer.md go 1 0eb7ed8173b86a5c2bc6086065c9546a5cd5b45f2735ae215310ce737ae56296",
+    "worker.md task 1 go 1 f98dc794e3016b7d9897d8041d7fcddbde3a2989981e5c7938c0281af2665f18",
+    "worker.md task 2 go 1 61aba7b84fa6e823eb9e7d5c444d2a8262be8d691695bfd209124e0c10dbd4e9"
   ],
   "weekly-digest/overlap": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 4399dc73252593a17328aa79dcbc041456db534dadfd0c458f59352fa7c0a1b0",
-    "worker.md task 1 go 1 f54b377f37ee77bb460dad68b78c22e8624fde704b3d5e034de054eced9bc7d4",
-    "worker.md task 2 go 1 9cf23bd9fd28a3b86d07c12023fa9dca2e5189525094724f698919b62292beb7"
+    "worker.md task 1 go 1 103bcc2815cd543f986dbabf951719744ef019dc6477b945379c5cb3b668dd31",
+    "worker.md task 2 go 1 6c58bd4b407849ca696ef19f111506bdd9e1ad236f7255c7411dcb875e84fecb"
   ],
   "weekly-digest/pass": [
-    "merge.md go 1 22178b8c25a8373810d2f7827a4b0a65b7f4b8cd395e9bcfe739dfc0414deff9",
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "merge.md go 1 dbbe43b4a253b3e49d8f17a122ec99d210c773c79f0831ab0a0537757a192cd2",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 a421583f62b8cc2466d1fbbff69c3fcede5f9bfcb046c8b564ae59b9d23a93dd",
-    "reviewer.md go 1 e9cf76fa45466806f75a5fd3ce54c3fb6982844f0b906ee7b4a484dc2c80a703",
-    "worker.md task 1 go 1 b031cfeda482a94cfd585864eff495cd73017bb43467ed4f27f2257296f6e301",
-    "worker.md task 2 go 1 f9edf73b7d250874a1bf4532c830333faec7ca75a2a7a2fbebb668ce104c8525"
+    "reviewer.md go 1 0eb7ed8173b86a5c2bc6086065c9546a5cd5b45f2735ae215310ce737ae56296",
+    "worker.md task 1 go 1 f98dc794e3016b7d9897d8041d7fcddbde3a2989981e5c7938c0281af2665f18",
+    "worker.md task 2 go 1 61aba7b84fa6e823eb9e7d5c444d2a8262be8d691695bfd209124e0c10dbd4e9"
   ],
   "weekly-digest/redo": [
-    "merge.md go 1 22178b8c25a8373810d2f7827a4b0a65b7f4b8cd395e9bcfe739dfc0414deff9",
-    "merge.md go 2 e9f7428bc9fc68daaa3c4d401f1cf6475ce4066afa171090018bcfbe1cecd7eb",
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "merge.md go 1 dbbe43b4a253b3e49d8f17a122ec99d210c773c79f0831ab0a0537757a192cd2",
+    "merge.md go 2 b8b06056fc195a54ca0f71325a549aea26905ae281ff906fe9a109b3116fd801",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 370e79928b9ffaed445a4e6cd7dca44d658e868571eb8b985f66a7e1b99866ff",
-    "reviewer.md go 1 d22e8f611c61967b8417c0d64b6591ec0b26df5b002aa16b5d8a5f46e7255892",
-    "reviewer.md go 2 e9cf76fa45466806f75a5fd3ce54c3fb6982844f0b906ee7b4a484dc2c80a703",
-    "worker.md task 1 go 1 b031cfeda482a94cfd585864eff495cd73017bb43467ed4f27f2257296f6e301",
-    "worker.md task 1 go 2 2d7e6711343edd5b34c58e59a812f38401d8299c2eb42ce4b62e793dc751afce",
-    "worker.md task 2 go 1 f9edf73b7d250874a1bf4532c830333faec7ca75a2a7a2fbebb668ce104c8525",
-    "worker.md task 2 go 2 cc2f594e909d72cf05f5c13d06b078a5ebb37767601e03a426f0cd4cb0835b64"
+    "reviewer.md go 1 da6a47fe6469db7ad43e70c89e39d324ad273871c8cfb89228105e2ee5e92451",
+    "reviewer.md go 2 0eb7ed8173b86a5c2bc6086065c9546a5cd5b45f2735ae215310ce737ae56296",
+    "worker.md task 1 go 1 f98dc794e3016b7d9897d8041d7fcddbde3a2989981e5c7938c0281af2665f18",
+    "worker.md task 1 go 2 cd6179e6155c71564c7d9872dfdad05fc6807fe59b0faaedb71fc10564f61bbb",
+    "worker.md task 2 go 1 61aba7b84fa6e823eb9e7d5c444d2a8262be8d691695bfd209124e0c10dbd4e9",
+    "worker.md task 2 go 2 3ef191ad8c5f5fd67450ea25d48d7dd14cba25b57abe76ceda39b77024198b6f"
   ],
   "weekly-digest/refused": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
     "retro.md go 1 e5a6facab1a7bb9baa77cea1480d1271df6cb7195e0473b556e80e71084e7052"
   ],
   "weekly-digest/ruling-resume": [
-    "merge.md go 1 30a7fea197fb1ac43e8def6f52efe3cc5dc8eae672bc2dfa0845eb869c2f5e17",
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b",
-    "planner.md go 2 f82382d7c037bc6bc6edd725b5e8ffafba07252672832634e51004587c5afc49",
+    "merge.md go 1 37592edb7fb986216c9fdbd1ee896e56519b6d86ddb4a5b0dec2c69e0521db7d",
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68",
+    "planner.md go 2 03c7304ebd6c0de5c5cce4714b24d1170ae7231147848086754e6599d618de11",
     "retro.md go 1 fe1d6f70e3e21a38aa3be53eb5bcf1dfd880a65f577893acf0c598e0e27c64f7",
-    "reviewer.md go 1 1815e6a9b21aff4ee28f020dbb0d9a210e7ca807b411aa67730e5d73e04bb6cf",
-    "worker.md task 1 go 1 b031cfeda482a94cfd585864eff495cd73017bb43467ed4f27f2257296f6e301",
-    "worker.md task 2 go 1 f9edf73b7d250874a1bf4532c830333faec7ca75a2a7a2fbebb668ce104c8525"
+    "reviewer.md go 1 e8b28a2bb49a9c1ba0005179916eac030d4db2be5e8e1daaace28fb998e41453",
+    "worker.md task 1 go 1 f98dc794e3016b7d9897d8041d7fcddbde3a2989981e5c7938c0281af2665f18",
+    "worker.md task 2 go 1 61aba7b84fa6e823eb9e7d5c444d2a8262be8d691695bfd209124e0c10dbd4e9"
   ],
   "weekly-digest/tool-fault": [
-    "planner.md go 1 c9cfa011ab3c8e46112f029ea9c26e4ab64934751a18e511429d35e2b0d7716b"
+    "planner.md go 1 baa5a41e2c7bf8c3348c55cf40f114ad7e1095842dffbe11b27053f476c56b68"
   ]
 }
