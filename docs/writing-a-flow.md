@@ -440,9 +440,13 @@ starts, and the runner writes after the last. a test `guard` with `code`
 lines (one per line of the file, its indent kept) is written as a new python
 test module only when it passes on the tree as left, run with the flow's own
 pytest; one that fails, runs no test or cannot run is taken out again. a
-gate or `flow.yaml` key guard is a line for a person. what fails a check is
-a line with its reason and goes to `facts/PROPOSED.md`, which keeps nothing
-else but the guards a recurring fact is owed. the runner renders
+test guard for a defect the run left in place is never written: one whose
+`guard:` names a `defect` fact on record by its id, or the `seq <n> <step>`
+a `defect` fact of the same block cites as its source, passes on the tree
+only by holding the defect, so it goes to `facts/PROPOSED.md` with that
+reason. a gate or `flow.yaml` key guard is a line for a person. what fails
+a check is a line with its reason and goes to `facts/PROPOSED.md`, which
+keeps nothing else but the guards a recurring fact is owed. the runner renders
 `facts/INDEX.md`, a line per live fact and the stale ones apart.
 
 none of it is staged. under `commits: none` the handoff ends on "the

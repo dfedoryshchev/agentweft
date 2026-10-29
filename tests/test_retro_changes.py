@@ -175,6 +175,60 @@ def test_a_gate_guard_stays_a_line_for_a_person(tmp_path, monkeypatch,
     assert not (tmp_path / "facts" / "PROPOSED.md").exists()
 
 
+def defect(seq="seq 1 worker.md"):
+    return NL.join(["fact:", "  scope: pkg/a.py", "  kind: defect",
+                    "  claim: an empty line raises where the spec says it"
+                    " is skipped",
+                    "  why: the run left it, the spec asks for a skip",
+                    "  source: " + seq + '; evidence: pkg/a.py:5 "raise'
+                    ' ValueError"'])
+
+
+def named_guard(head, where="tests/test_a_guard.py"):
+    return guard(where, *PASSES).replace("guard: seq 1", "guard: " + head, 1)
+
+
+PINS = ("it guards a defect the run left in place ({}): a test that passes on"
+        " the tree as left holds the defect, not its fix")
+
+
+@pytest.mark.parametrize("head", ["seq 1 worker.md", "seq 1"])
+def test_a_guard_for_a_defect_the_block_files_is_a_proposal_never_a_test(
+        tmp_path, monkeypatch, fake_cli, head):
+    clean(tmp_path, monkeypatch, fake_cli, block(defect(), named_guard(head)))
+    assert engine.main() == 0
+    assert not (tmp_path / "tests" / "test_a_guard.py").exists()
+    why = PINS.format("the defect fact from seq 1 worker.md")
+    assert "- refused a guard for " + head + ": " + why in handoff()
+    proposed = (tmp_path / "facts" / "PROPOSED.md").read_text(
+        encoding="utf-8")
+    assert "refused: " + why in proposed
+    assert "code:" in proposed
+    assert [f.kind for f in factsguard.Store(tmp_path).read()] == ["defect"]
+
+
+def test_a_guard_for_a_defect_on_record_is_a_proposal_never_a_test(
+        tmp_path, monkeypatch, fake_cli):
+    put(tmp_path, "facts/pkg/a.py.md",
+        "## F-0001 live\nscope: pkg/a.py\nkind: defect\nclaim: an empty line"
+        " raises\nwhy: the spec asks for a skip\n")
+    clean(tmp_path, monkeypatch, fake_cli, block(named_guard("F-0001")))
+    assert engine.main() == 0
+    assert not (tmp_path / "tests" / "test_a_guard.py").exists()
+    assert ("- refused a guard for F-0001: "
+            + PINS.format("F-0001, a defect on record")) in handoff()
+
+
+@pytest.mark.parametrize("seq, head", [("seq 2 tester.md", "seq 1"),
+                                       ("seq 1 tester.md", "seq 1 worker.md")])
+def test_a_guard_for_another_step_than_the_defect_is_still_written(
+        tmp_path, monkeypatch, fake_cli, seq, head):
+    clean(tmp_path, monkeypatch, fake_cli, block(defect(seq),
+                                                 named_guard(head)))
+    assert engine.main() == 0
+    assert (tmp_path / "tests" / "test_a_guard.py").is_file()
+
+
 def test_the_retros_inputs_name_a_doc_that_names_a_changed_file(
         tmp_path, monkeypatch):
     place = a_place(tmp_path / "repo")

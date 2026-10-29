@@ -34,9 +34,11 @@ written, its indent with it) is written as a new test file, each only once
 it holds against the tree as left (`guardrails/retroedits.py`), and neither
 is staged. what fails a check is a proposal line with the reason and goes
 to facts/PROPOSED.md, which keeps nothing else; a gate or flow-key guard is
-a proposal line. a block that does not parse writes nothing and says so in
-one line; no block at all is nothing to do. what happened to each item is
-put in retro.md, on the retro's steps.jsonl line and at the end of
+a proposal line, and so is a test guard for a defect the run left in place:
+a defect fact on record it names by id, or the `seq <n>` a defect fact of
+the block cites as its source. a block that does not parse writes nothing
+and says so in one line; no block at all is nothing to do. what happened to
+each item is put in retro.md, on the retro's steps.jsonl line and at the end of
 handoff.md, the files changed under a section of their own.
 
 a gate-issue or defect fact proposed again climbs a ladder: in two runs it
@@ -58,6 +60,8 @@ HEAD = re.compile(r"^(fact|supersede|re-anchor|retire|guard|edit|doc)\s*:"
 SUB = re.compile(r"^\s+(?:-\s+)?([a-z][a-z-]*)\s*:\s*(.*?)\s*$")
 CODE = re.compile(r"^\s+(?:-\s+)?code:(?: (.*)|)$")
 EDITS = ("edit", "doc")
+DEFECT = "defect"
+SEQ = re.compile(r"^\s*seq\s+(\d+)(?:\s+([^\s;]+))?", re.I)
 # the classes of trouble a ladder counts runs of
 CLIMBS = ("gate-issue", "defect")
 SECTION = "## the retro's proposals"
@@ -172,6 +176,9 @@ def execute(store, record, items, done, run_id, today=None, keep=None):
     store's place when None."""
     if keep is None:
         keep = retroedits.Keeper(store.root, own=store.own)
+    found = [steps_of(fields.get("source")) for verb, _, fields in items
+             if verb in ("fact", "supersede")
+             and fields.get("kind", "").strip() == DEFECT]
     for verb, value, fields in items:
         what = what_of(verb, value, fields)
         if verb in ("fact", "supersede"):
@@ -213,8 +220,36 @@ def execute(store, record, items, done, run_id, today=None, keep=None):
         elif verb in EDITS:
             edit(store, record, keep, value, fields, done, what, run_id)
         else:
-            guard(store, keep, value, fields, done, what, run_id)
+            guard(store, keep, value, fields, done, what, run_id,
+                  pinned(store, value, found))
     done.owed = owed(store)
+
+
+def steps_of(said):
+    """-> (seq, step or "") a `seq <n> <step>` names at its start, None for
+    anything else."""
+    m = SEQ.match(said or "")
+    return (m.group(1), m.group(2) or "") if m else None
+
+
+def pinned(store, value, found):
+    """-> the defect left in place a guard named `value` is for, "" when it
+    names none: a defect fact on record by its id, or the step of this
+    block's defect fact (`found`, the (seq, step) of each source)."""
+    value = (value or "").strip()
+    if re.match(r"^F-\d+$", value):
+        fact = store.held(value)
+        return value + ", a defect on record" \
+            if fact is not None and fact.kind == DEFECT else ""
+    said = steps_of(value)
+    if said is None:
+        return ""
+    for seq in found:
+        if seq is not None and seq[0] == said[0] \
+                and (not said[1] or not seq[1] or seq[1] == said[1]):
+            return ("the defect fact from seq " + seq[0]
+                    + (" " + seq[1] if seq[1] else ""))
+    return ""
 
 
 def refuse(done, what, why):
@@ -246,9 +281,10 @@ def edit(store, record, keep, value, fields, done, what, run_id):
                                            else "") + ": " + because)
 
 
-def guard(store, keep, value, fields, done, what, run_id):
+def guard(store, keep, value, fields, done, what, run_id, defect=""):
     """write a test guard that passes on the tree as left; a gate or
-    flow-key guard, or a test with no code, is a line for a person."""
+    flow-key guard, a test with no code, or one for `defect`, a defect the
+    run left in place, is a line for a person."""
     kind = fields.get("kind", "").strip()
     where = facts.norm(fields.get("where", ""))
     said = ("guard (" + kind + ", " + fields.get("where", "") + "): "
@@ -264,6 +300,11 @@ def guard(store, keep, value, fields, done, what, run_id):
         done.proposed = done.proposed + 1
         done.lines.append("- " + said + " (proposed: a " + kind
                           + " guard is the flow's to change)")
+        return
+    if defect:
+        failed(store, done, what, "it guards a defect the run left in place ("
+               + defect + "): a test that passes on the tree as left holds"
+               " the defect, not its fix", head, fields, keys)
         return
     why = keep.guard(where, fields)
     if why:
