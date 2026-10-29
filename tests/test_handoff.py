@@ -541,6 +541,30 @@ def test_a_script_on_stdin_the_transcript_does_not_hold_stays_unbacked(cited):
     assert item["backed"] == "unbacked", item
 
 
+def test_a_check_is_asked_for_as_a_call_of_its_own_and_a_stand_in_is_a_cut():
+    words = " ".join(resolver.shared_rules().split())
+    assert ("run a check as a call of its own, not at the end of a call that"
+            " writes or edits a file") in words
+    assert "`(test body)`" in words and "a cut like `...`" in words
+
+
+WROTE = [("cat >> tests/test_x.py <<'EOF'\ndef test_x():\n"
+          "    assert mul(2, 3) == 6\nEOF\npython -m pytest -q tests/test_x.py",
+          "1 passed in 0.1s")]
+
+
+@pytest.mark.parametrize("cited", [
+    "cat >> tests/test_x.py <<'EOF' (test body) EOF; python -m pytest -q"
+    " tests/test_x.py",
+    "cat >> tests/test_x.py <<'EOF'; (three new tests); EOF; python -m pytest"
+    " -q tests/test_x.py"])
+def test_a_stand_in_for_the_file_a_call_wrote_stays_unbacked(cited):
+    block = verified("- the new test passes\n  cmd: " + cited
+                     + "\n  saw: 1 passed\n")
+    [item] = handoff.back(block, WROTE)["verified"]
+    assert item["backed"] == "unbacked", item
+
+
 LOOPED = [("cd /w && L=1\nfor a in 1 2; do echo $a; done", "1\n2\n"),
           ('python -c "\nimport sys\nprint(1)\n"', "1\n"),
           ('python -c "\nfor a in [7]:\n    print(a)\n"', "7\n"),
