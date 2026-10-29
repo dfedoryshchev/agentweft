@@ -427,6 +427,27 @@ def test_the_retro_is_taught_the_check_a_fact_can_carry():
     assert "refuses a fact whose check does not hold now" in skill
 
 
+def test_the_retro_is_told_what_the_store_keeps_and_refuses():
+    import re
+
+    from agentweft.roles import resolver
+
+    skill = " ".join(resolver.skill("retro").split())
+    assert ("a guard for a defect the run left in place, named by its `F-` id"
+            " or by the `seq <n>` its `defect` fact cites, is never written"
+            " but proposed") in skill
+    said = re.search(r"a convention whose claim says ([a-z, ]+) is kept only"
+                     r" with a check a line against it breaks, `exits 1`",
+                     skill)
+    assert said, skill
+    words = set(re.findall(r"[a-z]+", said.group(1))) - {"or"}
+    assert words == set(re.findall(r"[a-z]+", factsguard.EVERY.pattern)) \
+        - {"b"}
+    assert ("a fact whose check is refused for its form alone (it cannot run,"
+            " reads a file outside the fact's scope, or holds a `|`) is kept"
+            " without it, marked `unchecked:`") in skill
+
+
 def test_the_retro_is_handed_each_check_a_step_broke(tmp_path):
     from agentweft.runner import retro
 
