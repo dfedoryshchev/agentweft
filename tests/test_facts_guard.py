@@ -190,16 +190,16 @@ def test_a_gate_issue_about_the_runs_own_host_is_refused(tmp_path):
 def test_a_convention_that_names_an_os_for_the_product_is_written(tmp_path):
     store, record = a_store(tmp_path, cap=9)
     for n, (claim, why) in enumerate((
-            ("paths are written with forward slashes on every OS",
+            ("paths are written with forward slashes on Windows and Linux",
              "the CLI supports Windows, macOS and Linux alike"),
-            ("parse never starts a shell: subprocess runs with shell=False",
+            ("parse starts no shell: subprocess runs with shell=False",
              "a line of input must never reach a shell"),
             ("rounding boundary tests use decimal boundaries, not whole"
              " numbers", "at whole-number boundaries half-even also rounds"
              " up, so those tests passed without the fix"),
             ("the release scripts are PowerShell modules, one per target",
              "the release job on the build agents loads them by name"),
-            ("the windows build links with MinGW, never MSVC",
+            ("the windows build links with MinGW, not MSVC",
              "the C extension is built the same way on every agent"),
             ("install.sh writes its config with a heredoc",
              "the installer has to run where only sh is"))):

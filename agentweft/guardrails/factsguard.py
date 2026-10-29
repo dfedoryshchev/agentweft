@@ -32,8 +32,9 @@ the runner can check (a quoted line that is at that line, its escapes read
 (`quote_of`), a command a gate
 of this run ran with that exit code, a ruling on record), an anchor whose
 hash the runner takes itself, a check that reads only its scope and holds
-on the place now, at most `cap` new facts a run, and the same claim on the
-same scope counted on the fact already there instead.
+on the place now, a convention that says every or never only with a check
+a line against it breaks (`exits 1`), at most `cap` new facts a run, and
+the same claim on the same scope counted on the fact already there instead.
 
 a fact's check runs again after every step that changed a file in its scope
 (`Store.conform`), and the end of the leg counts each step whose change held
@@ -66,7 +67,10 @@ COUNTERS = ("proposed", "attached", "honoured", "contradicted")
 GATE_ISSUE = "gate-issue"
 OS_ERROR = re.compile(r"\[?\b(?:WinError|Errno) \d+\b")
 # the kinds a later run takes as the project's rule
-HOSTED = ("convention", GATE_ISSUE)
+CONVENTION = "convention"
+HOSTED = (CONVENTION, GATE_ISSUE)
+# a claim about every place in its scope, which one matching line never shows
+EVERY = re.compile(r"\b(?:every|each|all|always|never|none|nowhere)\b", re.I)
 # the run's own shell and host, never the product's: a bare OS name or
 # "shell" is left alone, since a product may support Windows or never start
 # a shell
@@ -667,6 +671,9 @@ class Store(object):
             why = self.check_refusal(said, scopes)
             if why:
                 return why
+        why = every_refusal(p, said)
+        if why:
+            return why
         old = p.get("supersedes").strip()
         if old and not [f for f in self.read() if f.id == old
                         and f.status in (facts.LIVE, facts.STALE)]:
@@ -1040,6 +1047,34 @@ def applied_in(folders):
             if isinstance(w, dict) and w.get("path") and w.get("sha256"):
                 out[w["path"]] = w["sha256"]
     return out
+
+
+def every_of(p):
+    """-> the word a convention's claim says every or never with, "" for
+    any other fact."""
+    if p.get("kind").strip() != CONVENTION:
+        return ""
+    m = EVERY.search(p.get("claim"))
+    return m.group(0).lower() if m else ""
+
+
+def every_refusal(p, said):
+    """-> why a convention that says every or never is not written with
+    check `said`, "" when it may be: it needs a check, and one that a line
+    against the claim breaks."""
+    word = every_of(p)
+    if not word:
+        return ""
+    head = ("a convention that says " + word + " is kept only with a check"
+            " that holds on the tree")
+    if not said:
+        return head + ", and it has none"
+    check, _ = facts.parse_check(said)
+    if check is not None and check.want != 1:
+        return (head + ": an exits " + str(check.want) + " grep holds by one"
+                " line, never by every one; it needs a pattern no line may"
+                " match, exits 1")
+    return ""
 
 
 def beyond(check, scopes):

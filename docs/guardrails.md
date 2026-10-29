@@ -512,8 +512,8 @@ is written; a refused one is not written and its reason is kept:
    `gate-issue` that names a shell or toolchain (Git Bash, PowerShell,
    `cmd.exe`, MSYS, MinGW, Cygwin, `python -c`, a heredoc). a convention may
    name those for the product ("the release scripts are PowerShell modules",
-   "paths use forward slashes on every OS", "the CLI never starts a shell"):
-   that is not the host, and it is written.
+   "paths use forward slashes on Windows and Linux", "the CLI starts no
+   shell"): that is not the host, and it is written.
 3. every scope is in the place: the file, the folder, a file a glob matches,
    or `.`. a scope that is absolute, starts with a drive, names `..` or
    leads out of the place through a link is refused (`the scope ../ is
@@ -537,6 +537,12 @@ is written; a refused one is not written and its reason is kept:
 8. a `check:`, when it has one, runs and holds on the place as it is (`the
    check cannot run: ...`, `the check reads <path>, which is not in the
    fact's scope`, `the check does not hold on the tree as it is: ...`).
+9. a `convention` whose claim says every, each, all, always, never, none or
+   nowhere is written only with a check that holds on the tree, and one a
+   line against the claim breaks: `exits 1`, a pattern no line may match.
+   one with no check, or with an `exits 0` grep, which holds by one line and
+   never by every one, is refused (`a convention that says every is kept
+   only with a check that holds on the tree ...`).
 
 ### a fact's check
 

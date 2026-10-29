@@ -15,6 +15,7 @@ fact:
   why: TASK.md section 4; round() broke p50 of five values in this run
   source: seq 2 worker.md; evidence: TASK.md:14 "rank = ceil(N / 100 x count), 1-based"
   anchor: logcount/stats.py:5-8
+  check: grep -n "round(" logcount/stats.py exits 1
 guard: seq 2
   kind: test
   where: tests/test_stats.py

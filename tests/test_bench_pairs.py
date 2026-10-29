@@ -20,8 +20,8 @@ CODE = NL.join(["def parse(line):", "    if not line:",
                 ""])
 KEEP = NL.join(["## change first", "- none", "", "FACTS", "fact:",
                 "  scope: pkg/", "  kind: convention",
-                "  claim: a module under pkg/ raises on bad input, never"
-                " prints", "  why: one error path for the caller",
+                "  claim: a module under pkg/ raises on bad input rather"
+                " than print", "  why: one error path for the caller",
                 '  source: seq 1 worker.md; evidence: pkg/a.py:3 "raise'
                 " ValueError('empty')" + '"', "END FACTS", ""])
 NOTHING = "## change first" + NL + "- none" + NL
@@ -185,7 +185,7 @@ def test_a_retro_that_proposes_four_new_facts_is_spam_though_the_cap_wrote_three
         a_set, tmp_path):
     block = KEEP.split("FACTS" + NL, 1)[1].split("END FACTS")[0]
     Pairing.first = (KEEP.split("FACTS" + NL, 1)[0] + "FACTS" + NL
-                     + "".join(block.replace("never prints", "never prints ("
+                     + "".join(block.replace("than print", "than print ("
                                              + str(n) + ")")
                                for n in range(4))
                      + "END FACTS" + NL)

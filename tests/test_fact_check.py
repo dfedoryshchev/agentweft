@@ -175,6 +175,53 @@ def test_a_check_that_reads_outside_the_facts_scope_is_refused(tmp_path):
                    " scope")
 
 
+FOUND = 'grep -n -F "raise ValueError" pkg/parse.py exits 0'
+
+
+def claimed(claim, check=None, kind="convention"):
+    p = proposal(check or "")
+    p.fields.update(claim=claim, kind=kind)
+    return p
+
+
+@pytest.mark.parametrize("claim, word", [
+    ("every caller of parse gets a ValueError on an empty line", "every"),
+    ("parse never prints", "never"),
+    ("Each command checks its options before it reads a file", "each")])
+def test_a_convention_that_says_every_or_never_with_no_check_is_refused(
+        tmp_path, claim, word):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed(claim), record)
+    assert fact is None
+    assert why == ("a convention that says " + word + " is kept only with a"
+                   " check that holds on the tree, and it has none")
+
+
+def test_a_convention_that_says_every_held_by_one_matching_line_is_refused(
+        tmp_path):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed("every empty line raises ValueError",
+                                  FOUND), record)
+    assert fact is None
+    assert why == ("a convention that says every is kept only with a check"
+                   " that holds on the tree: an exits 0 grep holds by one"
+                   " line, never by every one; it needs a pattern no line"
+                   " may match, exits 1")
+
+
+@pytest.mark.parametrize("claim, check, kind", [
+    ("parse never prints", CHECK, "convention"),
+    ("parse raises ValueError on an empty line", None, "convention"),
+    ("parse allocates its words with split", None, "convention"),
+    ("every caller counts on the raise", None, "why"),
+    ("parse raises ValueError on an empty line", FOUND, "convention")])
+def test_a_fact_that_claims_no_every_or_never_or_holds_it_is_written(
+        tmp_path, claim, check, kind):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed(claim, check, kind), record)
+    assert why == "" and fact is not None
+
+
 # --- run after a step that changes the scope ------------------------------
 
 
