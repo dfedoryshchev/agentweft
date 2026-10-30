@@ -52,7 +52,8 @@ PROJECT = "."
 LIVE, STALE, SUPERSEDED, RETIRED = "live", "stale", "superseded", "retired"
 STATUSES = (LIVE, STALE, SUPERSEDED, RETIRED)
 KINDS = ("decision", "convention", "why", "defect", "gate-issue")
-LABELS = ("important", "wip", "investigation")
+PINS = "pins"
+LABELS = ("important", "wip", "investigation", PINS)
 
 HEADING = re.compile(r"^## (F-\d+) (" + "|".join(STATUSES) + r")\s*$")
 FIELD = re.compile(r"^([a-z][a-z-]*):\s?(.*)$")

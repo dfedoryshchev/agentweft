@@ -161,7 +161,9 @@ def test_a_pin_ok_from_the_step_that_wrote_the_case_exempts_nothing(tmp_path):
     assert "allowed by" not in r.detail
 
 
-def test_the_handoff_and_steps_record_list_the_pin(tmp_path, monkeypatch):
+def a_pinned_run(tmp_path, monkeypatch):
+    """-> (the place, the run folder) of a fix-with-test run whose patcher
+    added a test that passes without the fix."""
     place = a_repo(tmp_path / "repo")
     flows = tmp_path / "flows"
     shutil.copytree(FLOWS / "fix-with-test", flows / "fix-with-test")
@@ -188,6 +190,11 @@ def test_the_handoff_and_steps_record_list_the_pin(tmp_path, monkeypatch):
                                       "--task", "add(1, 2) returns -1"])
     engine.main()
     [folder] = [p for p in state.RUNS.iterdir() if p.is_dir()]
+    return place, folder
+
+
+def test_the_handoff_and_steps_record_list_the_pin(tmp_path, monkeypatch):
+    place, folder = a_pinned_run(tmp_path, monkeypatch)
     lines = [json.loads(l) for l in (folder / "steps.jsonl").read_text(
         encoding="utf-8").split(NL) if l.strip()]
     patcher = [l for l in lines if l["step"] == "patcher.md"][0]
@@ -201,3 +208,22 @@ def test_the_handoff_and_steps_record_list_the_pin(tmp_path, monkeypatch):
     assert ("- tests/test_cases.py::test_add_two: red without the fix"
             " (assertion), green with it; added after green, coverage") in tests
     assert replays_left(place) == []
+
+
+def test_the_runner_keeps_the_pin_as_a_fact_of_its_own(tmp_path, monkeypatch):
+    from agentweft.orchestrate import facts
+
+    place, folder = a_pinned_run(tmp_path, monkeypatch)
+    [fact] = facts.read(place)
+    assert (fact.scopes, fact.kind, fact.label) == (
+        ["tests/test_cases.py"], "why", "pins")
+    assert PIN in fact.claim
+    lines = [json.loads(l) for l in (folder / "steps.jsonl").read_text(
+        encoding="utf-8").split(NL) if l.strip()]
+    kept = lines[-1]
+    assert kept["step"] == "retro.md"
+    assert kept["facts"]["pins"] == fact.id
+    assert kept["facts"]["written"] == []
+    handoff = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert ("- the runner wrote " + fact.id + " (tests/test_cases.py, why,"
+            " pins) from the red-first gate: " + PIN) in handoff

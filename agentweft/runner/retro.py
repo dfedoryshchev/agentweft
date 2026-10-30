@@ -342,6 +342,22 @@ def gate_runs(lines, fm):
     return out
 
 
+def pins_of(lines):
+    """-> (the tests the last red-first gate that passed in `lines` ran green
+    without the change, in its order, the seq and step of its pass); no
+    tests when no such gate passed or it ran none green."""
+    out = ([], None, None)
+    for line, _ in lines:
+        for g in line.get("gates") or []:
+            if isinstance(g, dict) and g.get("gate") == "red-first" \
+                    and g.get("ok") and isinstance(g.get("tests"), list):
+                out = ([t["test"] for t in g["tests"] if isinstance(t, dict)
+                        and t.get("before") == "green"
+                        and isinstance(t.get("test"), str)],
+                       line.get("seq"), line.get("step"))
+    return out
+
+
 def record_of(run, trail, earlier):
     """-> the factsguard.Record a FACTS block is held to."""
     try:
@@ -528,6 +544,10 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
             print("retro not run: " + skip)
             return
     store = store_of(run)
+    touched = len(store.touched)
+    pinned, pin_line = upkeep.pins(store, record_of(run, trail, earlier),
+                                   pins_of(recorded(trail, earlier, False)),
+                                   run_id)
     stale, live = kept_facts(store, changed)
     text = prompt(run_id, flow, outcome, folder, lines, issued, worked,
                   parts(looked, ruled(run), changed, stale, live,
@@ -558,11 +578,14 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     if not said and not why:
         why = "nothing came out of " + STEP
     done = Maintained()
-    touched = len(store.touched)
     held_back = HELD_BACK if not why and parks_on_fallback(
         getattr(run, "fm", None)) and trace.fallback([tried]) else None
     if not why and not held_back:
         done = kept_up(run, trail, earlier, store, said, run_id)
+    if pin_line:
+        done.present = True
+        done.lines.insert(0, pin_line)
+        done.pins = pinned.id if pinned is not None else ""
     files = upkeep.files_changed(done, store.touched[touched:], store.root)
     kept = committed(run, [p for p, _ in files], done) if files else None
     entry = trail.open(STEP, [tried], used, None, output=said or None)
@@ -575,13 +598,16 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     trail.close(entry, "failed" if why else "ok", why=why, planned=False)
     if why:
         print("retro failed, the run's outcome stands: " + why)
-        return
+        if not pin_line:
+            return
     if held_back:
         print(STEP + ": " + held_back)
     told = done.said()
-    (folder / FILE).write_text(said if not told else said.rstrip("\n") + "\n"
-                               + "\n" + upkeep.DONE_HEAD + "\n\n"
-                               + "\n".join(told) + "\n", encoding="utf-8")
+    if not why:
+        (folder / FILE).write_text(
+            said if not told else said.rstrip("\n") + "\n" + "\n"
+            + upkeep.DONE_HEAD + "\n\n" + "\n".join(told) + "\n",
+            encoding="utf-8")
     for line in told:
         print("facts: " + line[2:])
     changes = []
@@ -598,7 +624,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
             if told:
                 f.write("\n" + upkeep.SECTION + "\n\n" + "\n".join(told)
                         + "\n")
-    print("retro: " + str(folder / FILE))
+    if not why:
+        print("retro: " + str(folder / FILE))
 
 
 def committed(run, paths, done):

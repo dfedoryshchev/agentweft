@@ -446,6 +446,7 @@ class Store(object):
         # facts/ it changed for the retro (`runner/upkeep.py`)
         self.touched = []
         self.applied = []
+        self.pinned = None
         self.taken()
         self.watch()
 
@@ -834,19 +835,21 @@ class Store(object):
         return facts.anchored(self.root, m.group(1), int(m.group(2)),
                               int(m.group(3)))
 
-    def add(self, p, record, today=None, origin=None):
+    def add(self, p, record, today=None, origin=None, capped=True):
         """-> (the fact written or counted, "") or (None, why it was
-        refused). a refusal is kept on `refused` with its reason."""
+        refused). a refusal is kept on `refused` with its reason. a fact
+        the runner writes from its own record, `capped` False, is held to
+        every check but the per-run cap and does not count toward it."""
         with self.lock, self.shared(force=True):
             why = self.refusal(p, record)
             if not why:
-                fact, why = self.written_from(p, today, origin)
+                fact, why = self.written_from(p, today, origin, capped)
                 if fact is not None:
                     return fact, ""
             self.refused.append((p, why))
             return None, why
 
-    def written_from(self, p, today, origin):
+    def written_from(self, p, today, origin, capped=True):
         scopes = [facts.norm(s) for s in p.get("scope")]
         claim = norm_claim(p.get("claim"))
         for f in self.read():
@@ -856,7 +859,7 @@ class Store(object):
                     self.counted.add(f.id)
                     self.count(f, "proposed")
                 return f, ""
-        if self.new >= self.cap:
+        if capped and self.new >= self.cap:
             return None, ("per-run cap: " + str(self.cap) + " new facts are"
                           " already written this run")
         every = facts.read(self.root)
@@ -888,7 +891,7 @@ class Store(object):
             self.status(old, facts.SUPERSEDED, "superseded",
                         stamp + " by " + fact.id)
         self.put(fact, facts.file_for(scopes[0]))
-        self.new = self.new + 1
+        self.new = self.new + (1 if capped else 0)
         self.counted.add(fact.id)
         return fact, ""
 

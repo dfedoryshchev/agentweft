@@ -106,9 +106,13 @@ def test_the_retro_is_taught_to_keep_an_open_question_and_a_pinning_test():
     skill = " ".join(resolver.skill("retro").split())
     assert ("an open question two or more steps raised, that no ruling"
             " settled, is a `why` fact labelled `investigation`") in skill
-    assert ("a test a step said passes on the code before the change as well"
-            " pins what the code does and does not prove the change: a `why`"
-            " fact labelled `investigation`") in skill
+    assert "pins what the code does and does not prove the change: a `why`" \
+        not in skill
+    assert ("the tests the red-first gate ran green without the change are the"
+            " runner's to keep: it writes them as one `why` fact labelled"
+            " `pins` on their test files, outside the number the record"
+            " allows, and refuses a fact of yours on those files that names"
+            " one of them") in skill
 
 
 @pytest.mark.parametrize("scope, claim, evidence", [

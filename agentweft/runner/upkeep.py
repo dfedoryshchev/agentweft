@@ -41,6 +41,10 @@ and says so in one line; no block at all is nothing to do. what happened to
 each item is put in retro.md, on the retro's steps.jsonl line and at the end of
 handoff.md, the files changed under a section of their own.
 
+before the retro is asked, the runner writes one fact of its own (`pins`):
+the tests the red-first gate ran green without the change, outside the
+per-run cap, and a fact of the block that is that note again is refused.
+
 a gate-issue or defect fact proposed again climbs a ladder: in two runs it
 is `important`, in three a guard is proposed for it marked `recurring`, and
 from four on the handoff lists it as hardening owed, every run, until it is
@@ -87,6 +91,7 @@ class Maintained(object):
         self.owed = []
         self.note = ""
         self.fault = ""
+        self.pins = ""
 
     def kinds(self, *kinds):
         return [a for a in self.applied if a["kind"] in kinds]
@@ -100,6 +105,8 @@ class Maintained(object):
                "proposed": self.proposed, "owed": list(self.owed)}
         if self.applied:
             out["applied"] = [dict(a) for a in self.applied]
+        if self.pins:
+            out["pins"] = self.pins
         if self.note:
             out["block"] = self.note
         if self.fault:
@@ -170,12 +177,92 @@ def what_of(verb, value, fields):
             "doc": "doc change to " + (value or "no file")}[verb]
 
 
-def execute(store, record, items, done, run_id, today=None, keep=None):
+def pins(store, record, found, run_id, today=None):
+    """-> (the fact, the line for it) once the runner has written one `why`
+    fact labelled `pins` on the test files of `found`, (tests, seq, step):
+    the tests the red-first gate ran green without the change. it is held
+    to every check a fact is, its evidence the first of those tests' own
+    `def` line, and is outside the per-run cap; the store keeps it as
+    `pinned`. (None, "") when there are none; (None, why) when refused."""
+    tests, seq, step = found
+    if not tests or store.off:
+        return None, ""
+    scopes = sorted(set(t.split("::")[0] for t in tests))
+    cite = next((c for c in (def_line(store.root, t) for t in tests) if c),
+                None)
+    if cite is None:
+        return None, ("- the runner kept no note of the tests that pass"
+                      " without the change: no `def` line of "
+                      + ", ".join(tests) + " was found to cite")
+    fields = {"scope": scopes, "kind": "why", "label": facts.PINS,
+              "claim": ", ".join(tests) + " pass without the change as well:"
+              " they pin what the code did before it and do not prove it",
+              "why": "the red-first gate on " + step + " ran each without the"
+              " change, and each passed",
+              "source": "seq " + str(seq) + " " + step + "; evidence: "
+              + cite[0] + ":" + str(cite[1]) + ' "' + cite[2] + '"',
+              "anchor": cite[0] + ":" + str(cite[1]) + "-" + str(cite[1])}
+    fact, why = store.add(Proposal(fields), record, today,
+                          origin="the red-first gate", capped=False)
+    if fact is None:
+        return None, ("- the runner's note of the tests that pass without the"
+                      " change was refused: " + why)
+    store.pinned = {"id": fact.id, "scopes": scopes, "tests": list(tests)}
+    return fact, ("- the runner wrote " + fact.id + " (" + ", ".join(scopes)
+                  + ", why, " + facts.PINS + ") from the red-first gate: "
+                  + fact.claim)
+
+
+def def_line(root, test):
+    """-> (file, line number, the line) of the `def` of the test `test`, a
+    pytest id, in its file under `root`; None when it is not there."""
+    rel, _, rest = test.partition("::")
+    name = rest.split("::")[-1].split("[")[0]
+    if not name:
+        return None
+    try:
+        lines = (root / rel).read_text(encoding="utf-8").split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+    head = re.compile(r"^\s*(?:async\s+)?def\s+" + re.escape(name) + r"\s*\(")
+    for n, line in enumerate(lines, 1):
+        if head.match(line):
+            return rel, n, line.strip()
+    return None
+
+
+def restates(pinned, fields):
+    """-> why a fact the retro proposes is the runner's note of the pinning
+    tests again, "" when it is not: it is labelled `pins`, or it is on one
+    of that note's test files and its claim names one of its tests."""
+    if fields.get("label", "").strip() == facts.PINS:
+        return ("a pins fact is the runner's own, written from the red-first"
+                " gate's record")
+    if not pinned:
+        return ""
+    scopes = [facts.norm(s) for s in fields.get("scope") or []]
+    if not set(scopes) & set(pinned["scopes"]):
+        return ""
+    claim = fields.get("claim", "")
+    for test in pinned["tests"]:
+        name = test.split("::")[-1].split("[")[0]
+        if name and re.search(r"(?<![\w])" + re.escape(name) + r"(?![\w])",
+                              claim):
+            return ("it restates " + pinned["id"] + ", the runner's note of"
+                    " the tests that pass without the change (" + name + ")")
+    return ""
+
+
+def execute(store, record, items, done, run_id, today=None, keep=None,
+            pins=None):
     """do each item against `store`, noting on `done` what came of it.
     `keep` makes the edits and guards (`retroedits.Keeper`), one on the
-    store's place when None."""
+    store's place when None. `pins` is the runner's note of the pinning
+    tests (`Store.pinned`), the store's when None."""
     if keep is None:
         keep = retroedits.Keeper(store.root, own=store.own)
+    if pins is None:
+        pins = getattr(store, "pinned", None)
     found = [steps_of(fields.get("source")) for verb, _, fields in items
              if verb in ("fact", "supersede")
              and fields.get("kind", "").strip() == DEFECT]
@@ -184,6 +271,10 @@ def execute(store, record, items, done, run_id, today=None, keep=None):
         if verb in ("fact", "supersede"):
             if verb == "supersede":
                 fields = dict(fields, supersedes=value)
+            why = restates(pins, fields)
+            if why:
+                refuse(done, what, why)
+                continue
             before = store.new
             fact, why = store.add(Proposal(fields), record, origin="retro")
             if fact is None:

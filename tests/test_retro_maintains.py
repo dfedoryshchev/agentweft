@@ -6,6 +6,8 @@ only proposed (`test_retro_changes.py` holds the ones that are made)."""
 import json
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.guardrails import factsguard
 from agentweft.orchestrate import facts
@@ -292,6 +294,116 @@ def test_the_flows_cap_holds_the_retros_new_facts(tmp_path, monkeypatch,
     data = json.loads((the_folder() / "facts.json").read_text(
         encoding="utf-8"))
     assert [w["id"] for w in data["written"]][:1] == ["F-0001"]
+
+
+PINNED_FILE = NL.join(["from calc import add", "", "", "def test_add():",
+                       "    assert add(1, 2) == 3", "", "",
+                       "def test_zero():", "    assert add(0, 0) == 0", ""])
+MORE_FILE = NL.join(["import pytest", "", "",
+                     "@pytest.mark.parametrize('n', [1])",
+                     "def test_one(n):", "    assert n", ""])
+
+
+def red_first(*tests, ok=True, seq=2, step="patcher.md"):
+    return ({"seq": seq, "step": step, "gates": [
+        {"gate": "red-first", "ok": ok, "tests": [
+            {"test": t, "before": before, "after": "green"}
+            for t, before in tests]}]}, None)
+
+
+GREEN_TWO = red_first(("tests/test_cases.py::test_add", "red"),
+                      ("tests/test_cases.py::test_zero", "green"),
+                      ("tests/test_more.py::test_one[1]", "green"))
+
+
+def pinned_place(tmp_path):
+    put(tmp_path, "tests/test_cases.py", PINNED_FILE)
+    put(tmp_path, "tests/test_more.py", MORE_FILE)
+    put(tmp_path, "pkg/a.py", CODE)
+    return factsguard.Store(tmp_path), factsguard.Record(tmp_path)
+
+
+def test_the_tests_the_red_first_gate_found_green_without_the_change_are_one_runner_fact(
+        tmp_path):
+    store, record = pinned_place(tmp_path)
+    found = retro.pins_of([GREEN_TWO])
+    assert found == (["tests/test_cases.py::test_zero",
+                      "tests/test_more.py::test_one[1]"], 2, "patcher.md")
+    fact, line = retro.upkeep.pins(store, record, found, "run-1")
+    assert fact is not None, line
+    assert (fact.kind, fact.label) == ("why", "pins")
+    assert fact.scopes == ["tests/test_cases.py", "tests/test_more.py"]
+    assert "tests/test_cases.py::test_zero" in fact.claim
+    assert "tests/test_more.py::test_one[1]" in fact.claim
+    assert fact.get("source") == ('seq 2 patcher.md; evidence:'
+                                  ' tests/test_cases.py:8 "def test_zero():"')
+    assert fact.get("written").endswith(" by runner from the red-first gate")
+    assert line.startswith("- the runner wrote " + fact.id
+                           + " (tests/test_cases.py, tests/test_more.py, why,"
+                           " pins) from the red-first gate: ")
+    assert store.new == 0
+
+
+def test_the_runners_pins_fact_leaves_the_retro_its_whole_cap(tmp_path):
+    store, record = pinned_place(tmp_path)
+    retro.upkeep.pins(store, record, retro.pins_of([GREEN_TWO]), "run-1")
+    items = [("fact", "", {"scope": ["pkg/a.py"], "kind": "why",
+                           "claim": "claim " + str(n), "why": "a why",
+                           "source": 'seq 1 w.md; evidence: pkg/a.py:5'
+                                     ' "raise ValueError"'})
+             for n in range(3)]
+    done = retro.Maintained()
+    retro.execute(store, record, items, done, "run-1")
+    assert len(done.written) == 3 and done.refused == []
+
+
+@pytest.mark.parametrize("fields, why", [
+    ({"scope": ["tests/test_cases.py"], "label": "investigation",
+      "claim": "test_zero passes on the old code too, so it pins what the code"
+               " does"}, "it restates F-0001"),
+    ({"scope": ["tests/test_cases.py"], "label": "pins",
+      "claim": "the case of zero is held"}, "a pins fact is the runner's"),
+])
+def test_a_retro_fact_that_restates_the_runners_pins_is_refused(
+        tmp_path, fields, why):
+    store, record = pinned_place(tmp_path)
+    retro.upkeep.pins(store, record, retro.pins_of([GREEN_TWO]), "run-1")
+    item = dict({"kind": "why", "why": "the gate said so",
+                 "source": 'seq 2 patcher.md; evidence: tests/test_cases.py:8'
+                           ' "def test_zero():"'}, **fields)
+    done = retro.Maintained()
+    retro.execute(store, record, [("fact", "", item)], done, "run-1",
+                  pins=store.pinned)
+    assert done.written == []
+    assert done.refused[0][1].startswith(why), done.refused
+
+
+def test_a_retro_fact_on_a_pinned_file_about_another_test_is_written(tmp_path):
+    store, record = pinned_place(tmp_path)
+    retro.upkeep.pins(store, record, retro.pins_of([GREEN_TWO]), "run-1")
+    item = {"scope": ["tests/test_cases.py"], "kind": "why",
+            "label": "investigation",
+            "claim": "test_add encodes a reading of the spec no ruling made",
+            "why": "two steps doubted it",
+            "source": 'seq 2 patcher.md; evidence: tests/test_cases.py:4'
+                      ' "def test_add():"'}
+    done = retro.Maintained()
+    retro.execute(store, record, [("fact", "", item)], done, "run-1",
+                  pins=store.pinned)
+    assert len(done.written) == 1 and done.refused == []
+
+
+@pytest.mark.parametrize("lines", [
+    [],
+    [red_first(("tests/test_cases.py::test_zero", "green"), ok=False)],
+    [GREEN_TWO, red_first(("tests/test_cases.py::test_add", "red"), seq=4)],
+], ids=["no gate", "the gate failed", "the last proof has none green"])
+def test_no_pins_fact_without_a_passing_proof_that_found_one(tmp_path, lines):
+    store, record = pinned_place(tmp_path)
+    found = retro.pins_of(lines)
+    assert found[0] == []
+    assert retro.upkeep.pins(store, record, found, "run-1") == (None, "")
+    assert facts.read(tmp_path) == []
 
 
 def answered_by_another(tmp_path, monkeypatch, fake_cli, tail):

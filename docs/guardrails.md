@@ -502,7 +502,7 @@ is written; a refused one is not written and its reason is kept:
    reason names the field and the kind, never the value.
 2. a one-line claim and a why, no `|` in any field, a kind from `decision`,
    `convention`, `why`, `defect`, `gate-issue`, a label from `important`,
-   `wip`, `investigation` or none. a `gate-issue` that names an OS error code
+   `wip`, `investigation`, `pins` or none. a `gate-issue` that names an OS error code
    (`WinError 87`, `Errno 22`) is refused: it is what the machine raised as
    the run went (`gates.md`, the fault a gate runs once more), not the
    project's, and a later run on a sound machine would be handed it. a
@@ -533,7 +533,14 @@ is written; a refused one is not written and its reason is kept:
 6. the same claim on the same scopes as a live fact is counted on that fact
    (`seen: proposed 2, ...`) instead of written again.
 7. at most three new facts a run (`per-run cap`); a supersession is a new
-   fact, and marks the one it replaces `superseded`.
+   fact, and marks the one it replaces `superseded`. the one fact the
+   runner writes from its own record is outside the cap and held to every
+   other rule here: the tests the last red-first gate that passed ran green
+   without the change, as one `why` fact labelled `pins` on their test
+   files, its evidence the first one's `def` line (`written: ... by runner
+   from the red-first gate`). a fact the retro proposes that is labelled
+   `pins`, or that sits on one of those test files and names one of those
+   tests, is refused as that note again.
 8. a `check:`, when it has one, runs and holds on the place as it is. one
    that does not hold (`the check does not hold on the tree as it is: ...`)
    says the claim may not be true, and the fact is refused. one refused for
