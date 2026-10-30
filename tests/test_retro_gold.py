@@ -33,16 +33,21 @@ def test_the_six_cases_are_there_each_with_its_record_and_gold():
         assert (case / "record" / "steps.jsonl").is_file(), case.name
 
 
-def test_a_ruled_decision_with_an_open_clause_scores_only_as_why_important():
+def test_a_ruled_decision_with_an_open_clause_scores_only_as_important():
     gold = retrogold.gold_of(RULED)
-    assert gold["fact"] == {"scope": ["logcount/filters.py"], "kind": "why",
-                            "label": "important"}
+    assert gold["fact"] == {"scope": ["logcount/filters.py"],
+                            "kind": ["why", "decision"], "label": "important"}
     answer = retrogold.answer_of(RULED)
     assert "is open" in answer
     assert retrogold.score(answer, gold, RULED)["fact"] == 1
-    relabelled = answer.replace("label: important", "label: investigation")
-    assert relabelled != answer
-    assert retrogold.score(relabelled, gold, RULED)["fact"] == 0
+    decided = answer.replace("kind: why", "kind: decision")
+    assert decided != answer
+    assert retrogold.score(decided, gold, RULED)["fact"] == 1
+    for was, now in (("label: important", "label: investigation"),
+                     ("kind: why", "kind: convention")):
+        changed = answer.replace(was, now)
+        assert changed != answer
+        assert retrogold.score(changed, gold, RULED)["fact"] == 0, now
 
 
 def test_the_gold_itself_gets_full_marks():

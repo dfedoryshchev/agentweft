@@ -344,7 +344,8 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
 - `cause`: that section's `why:` line holds every word `cause` lists
 - `change`: that section's `change:` line names the `change` file
 - `fact`: the FACTS block parses and has a fact or supersession of the gold's
-  kind with one of the gold's scopes, and its label when the gold names one,
+  kind (one of them, when the gold lists several) with one of the gold's
+  scopes, and its label when the gold names one,
   one the runner would write: held to a
   copy of the case's `place/` and a record read from `record/steps.jsonl`
   (`docs/guardrails.md`, "the facts only the runner writes"), so a fact with
@@ -356,8 +357,8 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
   flag the tree does not have scores nothing
 
 the four cases with a failed attempt are scored on the first four,
-`renamed-flag` on the edit, and `ruled-open` on the fact, a `why` labelled
-`important`: the open clause does not make it an `investigation`. a change sent to the wrong file scores 0
+`renamed-flag` on the edit, and `ruled-open` on the fact, a `why` or
+`decision` labelled `important`, as the retro skill asks: the open clause does not make it an `investigation`. a change sent to the wrong file scores 0
 whatever else it got right. a case passes when every one of the k repeats
 scores all its items; the gold itself does on every case, and a test holds
 it there. each row keeps `reader`, None until a

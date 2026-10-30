@@ -10,7 +10,7 @@ program checks it on:
     change: pkg/reader.py         the file the section's change line names
     fact:
       scope: [pkg/]               one of these among the fact's scopes
-      kind: convention
+      kind: convention            or a list, any one of them
       label: important            when given, the fact's label (optional)
     edit:
       file: README.md             the doc the edit names
@@ -211,11 +211,13 @@ def score(answer, gold, case):
     items, _ = upkeep.parse(answer)
     if "fact" in gold:
         wanted = {path_form(s).rstrip("/") for s in gold["fact"]["scope"]}
+        kinds = gold["fact"]["kind"]
+        kinds = [kinds] if isinstance(kinds, str) else list(kinds)
         for verb, value, fields in items or []:
             scopes = {path_form(s).rstrip("/")
                       for s in fields.get("scope") or []}
             if verb in ("fact", "supersede") and scopes & wanted \
-                    and fields.get("kind") == gold["fact"]["kind"] \
+                    and fields.get("kind") in kinds \
                     and ("label" not in gold["fact"]
                          or fields.get("label") == gold["fact"]["label"]) \
                     and not refusal(case, verb, value, fields):

@@ -3,5 +3,5 @@ flow: build-feature
 outcome: done
 fact:
   scope: [logcount/filters.py]
-  kind: why
+  kind: [why, decision]
   label: important
