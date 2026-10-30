@@ -444,12 +444,14 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
     """one pass of one step, the shape `build` reads. `facts` is what its
     steps.jsonl line holds for the retro and the files its transcript shows
     it read (`facts_of`); `writes` is what the flow says the step writes
-    (`writes_of`). `ruled` is the step's own DECIDED line, "" for none, and
-    `would` its WOULD PASS and CATCH lines (`wouldpass.read`)."""
+    (`writes_of`). `ruled` is the DECIDED line of a lead's pass whose
+    decision the runner put on record (outcome `decided`), "" for any other
+    pass, and `would` its WOULD PASS and CATCH lines (`wouldpass.read`)."""
+    ruled = lead.read(said)[0] if outcome == "decided" else None
     return {"step": step, "role": role, "seconds": seconds, "writes": writes,
             "block": block if isinstance(block, dict) else handoff.empty(),
             "gates": gates, "ungated": ungated, "outcome": outcome,
-            "verbs": verbs.parse(said), "ruled": lead.read(said)[0] or "",
+            "verbs": verbs.parse(said), "ruled": ruled or "",
             "would": wouldpass.read(said),
             "redo_why": redo_why(said) if outcome == "redo" else "",
             "facts": facts or {}}
@@ -946,7 +948,8 @@ def held_at(said, block, record, step=None):
     not: `nothing` always (LED_NOWHERE); a TRIED or ASSUMED item among the
     block's own, by its words; a QUESTION the block asks, bare or by its
     words; a DECIDED one among the rulings on record or the `DECIDED:` line
-    the step answered with (a lead's answer), by its words, never a DECIDED
+    a lead answered with when its decision went on record (`ruled`), by its
+    words, never another step's `DECIDED:` line, nor a DECIDED
     section a step wrote into its own block, which is its own choice; the
     step's own WOULD PASS and CATCH lines, by name; a `<file>:<lines>` in
     the diff, its lines among the lines the change covers; a test id the red

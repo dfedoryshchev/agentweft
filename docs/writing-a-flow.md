@@ -399,8 +399,9 @@ ADJACENT items, `docs/journal.md`, "what each step hands over") with whether
 it was fixed and by which test, a defect left not fixed being the retro's
 `defect` fact; for each reason a step gave (its BECAUSE items) whose `led
 to:` the record holds, by seq and step, only where the runner found it: a
-test id, the diff of a file and its lines, `decisions.md <stamp>`, or the
-step's own TRIED, ASSUMED, QUESTION, DECIDED, WOULD PASS or CATCH lines; never
+test id, the diff of a file and its lines, `decisions.md <stamp>`, the
+step's own TRIED, ASSUMED, QUESTION, WOULD PASS or CATCH lines, or the
+`DECIDED:` line a lead answered with when its decision went on record; never
 the reason's own words, and a reason that led to nothing or to what the
 record does not hold is not handed at all, so a fact's `why` rests on
 evidence the retro can cite (a file line, a test, a ruling); the rulings

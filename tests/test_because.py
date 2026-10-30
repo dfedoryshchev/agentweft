@@ -14,6 +14,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.bench import ladder
 from agentweft.orchestrate import decisions
@@ -482,12 +484,12 @@ def test_no_retro_prompt_names_the_steps_reasons_any_more():
 
 
 def held_as(said, block=BLOCK, decided=(), proof=PROOF, changes=GIT,
-            output=""):
+            output="", outcome="ok"):
     """-> what the reasons section prints for the log-format reason led to
     `said`, the block handed over in `output` when there is one."""
     text = block.replace("led to: nothing", "led to: " + said)
     lines = summary.build("r1", "flow", "t", [summary.a_pass(
-        "worker.md", "worker", 1.0, handoff.parse(text), [], False, "ok",
+        "worker.md", "worker", 1.0, handoff.parse(text), [], False, outcome,
         output.replace("{block}", text), writes="product")], changes,
         list(decided), "", proof=proof)
     full = section(lines, "## reasons")
@@ -568,15 +570,22 @@ OWN = ("DECIDED: Leave the order between option errors unspecified. Keep"
        "{block}")
 
 
-def test_a_decided_reason_is_held_to_the_steps_own_decided_line_by_its_words():
+def test_a_decided_reason_is_held_to_the_leads_own_decided_line_by_its_words():
     said = "DECIDED Leave the order between option errors unspecified"
-    assert held_as(said, output=OWN) == said
-    assert held_as(said) == summary.UNHELD
+    assert held_as(said, output=OWN, outcome="decided") == said
+    assert held_as(said, outcome="decided") == summary.UNHELD
     for said in ("DECIDED leave the order within option values unspecified",
                  "DECIDED add no spec line or test for it",
                  "DECIDED skip every integration test entirely",
                  "DECIDED", "DECIDED a"):
-        assert held_as(said, output=OWN) == summary.UNHELD, said
+        assert held_as(said, output=OWN, outcome="decided") == \
+            summary.UNHELD, said
+
+
+@pytest.mark.parametrize("outcome", ["ok", "redo", "overruled", "escalated"])
+def test_a_decided_line_no_decision_on_record_came_of_is_no_ruling(outcome):
+    said = "DECIDED Leave the order between option errors unspecified"
+    assert held_as(said, output=OWN, outcome=outcome) == summary.UNHELD
 
 
 def test_a_decided_section_a_step_writes_in_its_own_block_is_no_ruling():
