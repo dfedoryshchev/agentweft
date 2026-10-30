@@ -249,6 +249,16 @@ def quote_of(said):
     return rel, first, last, cite, rest[:shut]
 
 
+def evidence_lines(source):
+    """-> `<file>:<first>-<last>` of the lines a source's evidence quotes,
+    "" when it quotes none."""
+    m = EVIDENCE.search(source or "")
+    quoted = quote_of(m.group(1).strip()) if m else None
+    if quoted is None:
+        return ""
+    return quoted[0] + ":" + str(quoted[1]) + "-" + str(quoted[2])
+
+
 def closing(text, at=0):
     """-> where the first `"` from `at` on that is not written `\\"` is in
     `text`, or -1."""
@@ -737,11 +747,13 @@ class Store(object):
             if not why and "|" in said:
                 why, form = "check holds a |, which no taught format carries", \
                     PIPED
-            hit = "" if why else facts.anchored_hit(self.root, said,
-                                                    p.get("anchor"))
+            anchor = p.get("anchor").strip()
+            hit = "" if why else facts.anchored_hit(
+                self.root, said, anchor or evidence_lines(p.get("source")))
             if hit:
-                why = form = ("the check only finds the fact's own anchored"
-                              " line, " + hit + ", so it holds the code's"
+                why = form = ("the check only finds the fact's own "
+                              + ("anchored" if anchor else "evidence")
+                              + " line, " + hit + ", so it holds the code's"
                               " text, not the claim")
             if why and (not form or every_of(p)):
                 return why

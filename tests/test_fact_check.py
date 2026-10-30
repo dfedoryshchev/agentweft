@@ -411,6 +411,19 @@ def test_a_check_that_finds_more_than_the_anchored_line_is_kept(
     assert fact.get("unchecked") == ""
 
 
+def test_with_no_anchor_a_check_that_only_greps_its_evidence_line_is_refused(
+        tmp_path):
+    store, record = a_store(tmp_path)
+    p = claimed("parse raises ValueError on an empty line", FOUND, "decision")
+    p.fields["source"] = ('seq 2 worker.md; evidence: pkg/parse.py:5 "raise'
+                          ' ValueError"')
+    fact, why = store.add(p, record)
+    assert why == "" and fact.get("check") == ""
+    assert fact.get("unchecked") == (
+        "its check was refused: the check only finds the fact's own evidence"
+        " line, pkg/parse.py:5, so it holds the code's text, not the claim")
+
+
 def test_the_retro_and_a_later_step_are_told_the_check_was_refused(tmp_path):
     from agentweft.runner import brief, upkeep
 

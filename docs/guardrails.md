@@ -568,9 +568,11 @@ is written; a refused one is not written and its reason is kept:
    which is not in the fact's scope`, a `|` in it) is still run wherever the
    runner can run it (a `|` in an `-E` pattern, a path outside the scope but
    inside the place), and one that does not hold refuses the fact the same
-   way. an `exits 0` check that finds one of the fact's own anchored lines is
-   refused for its form too (`the check only finds the fact's own anchored
-   line, <file>:<line>, so it holds the code's text, not the claim`): one
+   way. an `exits 0` check that finds one of the fact's own anchored lines,
+   or with no anchor one of the lines its evidence quotes, is refused for its
+   form too (`the check only finds the fact's own anchored line,
+   <file>:<line>, so it holds the code's text, not the claim`, `evidence
+   line` for the second): one
    matching line holds it, so it never fails on a wrong change and fails on
    every harmless edit of that line. one that cannot run, or runs and
    holds, leaves a fact that held every other test: it is written without the check, with `unchecked: its
