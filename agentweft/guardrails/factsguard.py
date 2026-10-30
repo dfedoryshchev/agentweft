@@ -862,6 +862,16 @@ class Store(object):
         if capped and self.new >= self.cap:
             return None, ("per-run cap: " + str(self.cap) + " new facts are"
                           " already written this run")
+        if scopes and all(s == facts.PROJECT for s in scopes):
+            wide = [f.id for f in self.read() if f.status == facts.LIVE
+                    and facts.project_wide(f)]
+            if len(wide) >= facts.PROJECT_CAP \
+                    and p.get("supersedes").strip() not in wide:
+                return None, ("the project already has "
+                              + str(facts.PROJECT_CAP) + " live project-wide"
+                              " facts, handed to every step on every file:"
+                              " scope it to the files it is about, or"
+                              " supersede or retire one of them")
         every = facts.read(self.root)
         n = max([int(f.id[2:]) for f in every] + [0]) + 1
         fact = facts.Fact("F-%04d" % n, facts.LIVE)

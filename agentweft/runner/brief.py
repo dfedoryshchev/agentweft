@@ -34,6 +34,7 @@ RESERVE = 400
 # about 500 tokens of the brief's cap: a fact is the non-obvious way of one
 # place, and more of them than this reads as an overview
 FACTS_CAP = 2000
+PROJECT_HANDED = 2
 FACTS_HEAD = ("facts for the files you are handed, kept by the runner across"
               " runs: what this project decided about them and why. hold to"
               " them; a change that departs from one says so and why on a"
@@ -254,27 +255,39 @@ class Brief(object):
         [] for none: the facts to hold to under FACTS_HEAD, the open
         questions and pinning notes under OPEN_HEAD, the defects and gate
         issues under TROUBLE_HEAD, each in the order handed. what does not
-        fit is named with the file it is in."""
-        shown, left = self.fit(handed)
-        if not shown and not left:
+        fit is named with the file it is in, and so is each project-wide
+        fact past PROJECT_HANDED."""
+        shown, left, project = self.fit(handed)
+        if not shown and not left and not project:
             return []
         out = []
         for head in HEADS:
             pieces = [piece for fact, piece in shown if head_of(fact) == head]
             if pieces:
                 out.extend(([""] if out else []) + [head] + pieces)
-        if left:
-            out.append(str(len(left)) + " more left out at the size cap; open"
-                       " them yourself if you need them: " + ", ".join(
-                           f.id + " (" + self.facts_file(f) + ")"
-                           for f in left))
+        for said, kept in (("project-wide facts left out", project),
+                           ("left out at the size cap", left)):
+            if kept:
+                out.append(str(len(kept)) + " more " + said + "; open them"
+                           " yourself if you need them: " + ", ".join(
+                               f.id + " (" + self.facts_file(f) + ")"
+                               for f in kept))
         return out
 
     def fit(self, handed):
         """-> ([(fact, its text)] that fit under FACTS_CAP, [the facts that
-        do not]), each header counted once it is used."""
-        shown, left, size, heads = [], [], 0, set()
+        do not], [the project-wide facts past PROJECT_HANDED]), each header
+        counted once it is used."""
+        from agentweft.orchestrate import facts
+
+        shown, left, project, size, heads = [], [], [], 0, set()
+        wide = 0
         for fact in handed or ():
+            if facts.project_wide(fact):
+                wide = wide + 1
+                if wide > PROJECT_HANDED:
+                    project.append(fact)
+                    continue
             piece = self.fact_chunk(fact)
             head = head_of(fact)
             extra = len(piece) + 1 + (0 if head in heads else len(head) + 2)
@@ -284,7 +297,7 @@ class Brief(object):
             shown.append((fact, piece))
             heads.add(head)
             size = size + extra
-        return shown, left
+        return shown, left, project
 
     def facts_file(self, fact):
         if fact.file is None or self.where is None:

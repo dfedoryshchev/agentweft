@@ -128,8 +128,11 @@ sent to `pkg/cli.py` is handed the facts of `pkg/cli.py`, of `pkg/` and of
 the project. each comes with its id, scope, kind and label, its claim, why
 and source, and, when it is live, its anchored lines quoted from the place
 as it is now (the same rules for what may be quoted). live ones come first,
-`important` ones first among them, then the most honoured, then the nearest;
-a stale one comes after them marked `possibly stale` with why and the day.
+nearest first among them: a file's own, then each folder up from it, then
+the globs, then the project's; within one of those `important` ones come
+first, then the most honoured. at most two project-wide facts are handed to
+one step, the rest named by id and file for the step to open. a stale one
+comes after them marked `possibly stale` with why and the day.
 they are handed under three headers, by what they are: the project's way to
 hold to (a decision, a convention, a why), what is open on those files (a
 fact labelled `investigation`, an open question no ruling settled, or

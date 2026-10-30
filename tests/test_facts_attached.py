@@ -251,6 +251,62 @@ def test_with_only_open_facts_nothing_says_hold_to_them(tmp_path):
     assert text.startswith(brief.OPEN_HEAD)
 
 
+def test_a_files_own_facts_come_before_its_folders_and_the_projects(
+        tmp_path):
+    put(tmp_path, "pkg/parse.py", CODE)
+    put(tmp_path, "facts/_project.md", entry(
+        "F-0001", ".", "the project raises, never prints", "said once",
+        label="important"))
+    put(tmp_path, "facts/pkg/_folder.md", entry(
+        "F-0002", "pkg/", "pkg raises ParseError", "said once",
+        label="important"))
+    put(tmp_path, "facts/pkg/parse.py.md", entry(
+        "F-0003", "pkg/parse.py", "parse splits on whitespace", "said once")
+        + NL + entry("F-0004", "pkg/parse.py", "parse keeps tabs", "said once",
+                     status="stale"))
+    order = [f.id for f in facts.handed(tmp_path, ["pkg/parse.py"])]
+    assert order == ["F-0003", "F-0002", "F-0001", "F-0004"]
+
+
+def test_the_projects_facts_are_handed_two_at_most_and_the_rest_named(
+        tmp_path):
+    put(tmp_path, "pkg/parse.py", CODE)
+    put(tmp_path, "facts/_project.md", NL.join(
+        entry("F-%04d" % n, ".", "project rule %d" % n, "said once")
+        for n in range(1, 5)))
+    handed = facts.handed(tmp_path, ["pkg/parse.py"])
+    notes = brief.Brief(tmp_path, ["planner.md"])
+    shown, _, project = notes.fit(handed)
+    assert [f.id for f, _ in shown] == ["F-0001", "F-0002"]
+    assert [f.id for f in project] == ["F-0003", "F-0004"]
+    text = "\n".join(notes.kept_facts(handed))
+    assert ("2 more project-wide facts left out; open them yourself if you"
+            " need them: F-0003 (facts/_project.md), F-0004"
+            " (facts/_project.md)") in text
+
+
+def test_a_ninth_live_project_wide_fact_is_refused(tmp_path):
+    from agentweft.guardrails import factsguard
+
+    put(tmp_path, "TASK.md", "# task" + NL + NL + "errors are raised." + NL)
+    put(tmp_path, "pkg/parse.py", CODE)
+    store, record = factsguard.Store(tmp_path, cap=20), \
+        factsguard.Record(tmp_path)
+
+    def one(scope, n):
+        return factsguard.Proposal({
+            "scope": [scope], "kind": "why", "claim": "claim %d" % n,
+            "why": "a why", "source": 'seq 1 w.md; evidence: TASK.md:3'
+            ' "errors are raised."'})
+
+    for n in range(facts.PROJECT_CAP):
+        assert store.add(one(".", n), record)[1] == ""
+    fact, why = store.add(one(".", 99), record)
+    assert fact is None
+    assert why.startswith("the project already has 8 live project-wide facts")
+    assert store.add(one("pkg/parse.py", 99), record)[1] == ""
+
+
 def test_a_place_with_no_facts_gets_the_brief_it_got_before(tmp_path):
     notes = brief.Brief(tmp_path, ["planner.md", "worker.md"])
     assert notes.text("planner.md") == ""

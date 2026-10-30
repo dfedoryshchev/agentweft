@@ -540,7 +540,11 @@ is written; a refused one is not written and its reason is kept:
    files, its evidence the first one's `def` line (`written: ... by runner
    from the red-first gate`). a fact the retro proposes that is labelled
    `pins`, or that sits on one of those test files and names one of those
-   tests, is refused as that note again.
+   tests, is refused as that note again. a new fact whose only scope is `.`,
+   the whole project, is refused once the project has eight live ones (`the
+   project already has 8 live project-wide facts, ...`): each is handed to
+   every step on every file, so it is scoped to its files, or one of the
+   eight is superseded or retired first.
 8. a `check:`, when it has one, runs and holds on the place as it is. one
    that does not hold (`the check does not hold on the tree as it is: ...`)
    says the claim may not be true, and the fact is refused. one refused for

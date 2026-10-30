@@ -54,6 +54,9 @@ STATUSES = (LIVE, STALE, SUPERSEDED, RETIRED)
 KINDS = ("decision", "convention", "why", "defect", "gate-issue")
 PINS = "pins"
 LABELS = ("important", "wip", "investigation", PINS)
+# live facts on the whole project the store keeps: they are handed to every
+# step on every file, and past this many they read as an overview
+PROJECT_CAP = 8
 
 HEADING = re.compile(r"^## (F-\d+) (" + "|".join(STATUSES) + r")\s*$")
 FIELD = re.compile(r"^([a-z][a-z-]*):\s?(.*)$")
@@ -324,12 +327,17 @@ HONOURED = re.compile(r"\bhonoured (\d+)")
 
 def handed(root, paths, found=None):
     """-> the facts that hold for any of `paths`, each once: live before
-    stale, `important` before the rest, the most honoured first, and
-    otherwise nearest first, path by path in the order given."""
+    stale, then nearest first (a file's own, each folder up from it, the
+    globs, the project's), and within one of those `important` before the
+    rest and the most honoured first, path by path in the order given."""
     found = read(root) if found is None else found
-    seen, order = set(), []
+    seen, order, near = set(), [], {}
     for path in paths:
+        rel = relative(root, path)
         for fact in lookup(root, path, found=found):
+            ranks = [r for r in (rank(s, rel) for s in fact.scopes)
+                     if r is not None]
+            near[fact.id] = min(ranks + [near.get(fact.id, 10 ** 7)])
             if fact.id not in seen:
                 seen.add(fact.id)
                 order.append(fact)
@@ -338,8 +346,13 @@ def handed(root, paths, found=None):
         m = HONOURED.search(f.get("seen"))
         return int(m.group(1)) if m else 0
 
-    return sorted(order, key=lambda f: (f.status != LIVE,
+    return sorted(order, key=lambda f: (f.status != LIVE, near[f.id],
                                         f.label != "important", -honoured(f)))
+
+
+def project_wide(fact):
+    """whether every scope of `fact` is the whole project."""
+    return bool(fact.scopes) and all(s == PROJECT for s in fact.scopes)
 
 
 def text_lines(path):
