@@ -844,6 +844,12 @@ NO_PATCH = {"--stat", "--numstat", "--shortstat", "--name-only",
 DIFF_HEAD = re.compile(r"^diff --git a/(\S+) b/(\S+)$")
 NAMED = (re.compile(r"^((?:[A-Za-z]:[\\/])?[^\s:]+):"),
          re.compile(r"^((?:[A-Za-z]:[\\/])?\S+?)-\d+-"))
+NUMBERED = re.compile(r"^\d+[:-]")
+# what a search prints when it found nothing, or of its own trouble
+NO_MATCH = re.compile(r"^(?:No matches found|No files found|Found 0\b"
+                      r"|(?:[ef]?grep|rg): )")
+# statements that print nothing of their own
+SILENT = ("cd", "pushd", "popd", "export", "set", "unset", "true", ":")
 
 
 def _stages(command):
@@ -872,10 +878,12 @@ def _stages(command):
 
 
 def _search_targets(tool, args):
-    """-> the paths a grep or rg stage searches, None when it prints no
-    matching line (a count, a file name, nothing)."""
+    """-> (the paths a grep or rg stage searches, whether it numbers its
+    lines, whether it searches folders), None when it prints no matching line
+    (a count, a file name, nothing). a long option is read by any start of
+    its name, as grep reads one."""
     valued = set("efABCmdD") | (set("gtT") if tool == "rg" else set())
-    given, rest, recursive, i = False, [], tool == "rg", 0
+    given, rest, recursive, numbered, i = False, [], tool == "rg", False, 0
     while i < len(args):
         a = args[i]
         i += 1
@@ -884,26 +892,39 @@ def _search_targets(tool, args):
             break
         if a.startswith("--"):
             name = a.split("=", 1)[0]
-            if name in QUIET_LONG:
+            if name in QUIET_LONG or name not in LONG_VALUED and any(
+                    q.startswith(name) for q in QUIET_LONG):
+                return None
+            value = a.split("=", 1)[1] if "=" in a else None
+            if value is None and name in LONG_VALUED:
+                value = args[i] if i < len(args) else ""
+                i += 1
+            if name == "--max-count" and (value or "").strip() == "0":
                 return None
             given = given or name in ("--regexp", "--file")
             recursive = recursive or name in ("--recursive",
                                               "--dereference-recursive")
-            i += 1 if "=" not in a and name in LONG_VALUED else 0
+            numbered = numbered or name == "--line-number"
             continue
         if a.startswith("-") and len(a) > 1:
             for n, ch in enumerate(a[1:], 1):
                 if ch in QUIET_SHORT:
                     return None
                 recursive = recursive or ch in "rR"
+                numbered = numbered or ch == "n"
                 if ch in valued:
                     given = given or ch in "ef"
-                    i += 1 if n == len(a) - 1 else 0
+                    value = a[n + 1:]
+                    if n == len(a) - 1:
+                        value = args[i] if i < len(args) else ""
+                        i += 1
+                    if ch == "m" and value.strip() == "0":
+                        return None
                     break
             continue
         rest.append(a)
     files = rest if given else rest[1:]
-    return files or (["."] if recursive else [])
+    return files or (["."] if recursive else []), numbered, recursive
 
 
 def _git_patch(args):
@@ -918,13 +939,25 @@ def _git_patch(args):
 
 
 def _shell_searches(command):
-    """-> (the paths its grep and rg stages search, whether a git stage of it
-    prints a patch), for the stages whose output reaches the call's output:
-    none written to a file, none piped into anything but a reader."""
+    """-> (each search whose output reaches the call's output, as
+    `_search_targets` gives it; how many statements print to the call's
+    output; how many of those are such a search; whether a git stage of it
+    prints a patch). a stage written to a file or piped into anything but a
+    reader reaches nothing, and a `cd` or an `export` prints nothing."""
     import shlex
 
-    targets, patch = [], False
+    searches, printing, searching, patch = [], 0, 0, False
     for stages in _stages(_unbodied(command or "")):
+        if TO_FILE.search(stages[-1]):
+            continue
+        try:
+            first = [shlex.split(REDIRECT.sub(" ", s)) for s in stages]
+        except ValueError:
+            first = [["?"]]
+        if all(w and w[0] in SILENT for w in first):
+            continue
+        printing += 1
+        found = []
         for n, stage in enumerate(stages):
             after = stages[n:]
             if any(TO_FILE.search(s) for s in after):
@@ -940,10 +973,14 @@ def _shell_searches(command):
             if not all(t in PASS_ON for t in tools[1:]):
                 continue
             if tools[0] in SEARCHERS:
-                targets.extend(_search_targets(tools[0], words[0][1:]) or [])
+                one = _search_targets(tools[0], words[0][1:])
+                if one is not None and one[0]:
+                    found.append(one)
             elif tools[0] == "git":
                 patch = patch or _git_patch(words[0][1:])
-    return targets, patch
+        searches.extend(found)
+        searching += 1 if found else 0
+    return searches, printing, searching, patch
 
 
 def _clean(path, root):
@@ -953,7 +990,7 @@ def _clean(path, root):
 
 def _under(path, folder):
     """whether `path` is `folder` or inside it, or matches it as a glob."""
-    if folder == ".":
+    if folder in (".", path):
         return True
     if any(c in folder for c in "*?["):
         import fnmatch
@@ -962,33 +999,66 @@ def _under(path, folder):
     return path.startswith(folder + "/")
 
 
+def _a_file(path, recursive, root):
+    """whether a search target `path` is one file, not a folder or a glob:
+    as the place has it, else by its name."""
+    if path == "." or any(c in path for c in "*?["):
+        return False
+    if root is not None:
+        at = Path(root) / path
+        if at.is_dir():
+            return False
+        if at.is_file():
+            return True
+    return not recursive or "." in path.rsplit("/", 1)[-1]
+
+
 def _searched(name, given, out, root):
-    """-> the files one call searched or printed a patch of: each path a
-    search names, and each file its output names inside a folder or glob it
-    searched; each file a patch it printed starts with."""
+    """-> the files one call printed lines of or a patch of. a search clears
+    a file only by what it printed: one search of one file, alone in its
+    call, by any line it printed; otherwise by a line its output names the
+    file on, when every statement that printed was a search, or by a
+    numbered line when it is the call's one numbered search of one file.
+    an empty answer, `No matches found` or grep's own complaint prints
+    nothing of a file."""
     if name == "Grep":
         if given.get("output_mode") != "content":
             return []
-        targets, patch = [given.get("path") or "."], False
-        if not all(isinstance(t, str) for t in targets):
+        path = given.get("path") or "."
+        if not isinstance(path, str):
             return []
+        searches, printing, searching, patch = [([path], False, True)], 1, \
+            1, False
     elif name == "Bash" and isinstance(given.get("command"), str):
-        targets, patch = _shell_searches(given["command"])
+        searches, printing, searching, patch = _shell_searches(
+            given["command"])
     else:
         return []
-    targets = [_clean(t, root) for t in targets]
-    found = list(targets)
-    for line in (out or "").split("\n"):
+    lines = [l for l in (out or "").split("\n")
+             if l.strip() and not NO_MATCH.match(l.strip())]
+    searches = [([_clean(t, root) for t in paths], numbered,
+                 [_a_file(_clean(t, root), recursive, root) for t in paths])
+                for paths, numbered, recursive in searches]
+    targets = [t for paths, _, _ in searches for t in paths]
+    files = [(t, numbered) for paths, numbered, one in searches
+             for t, is_file in zip(paths, one) if is_file]
+    found = []
+    pure = printing == searching
+    for line in lines:
         m = DIFF_HEAD.match(line.strip()) if patch else None
         if m:
             found.extend(m.groups())
             continue
-        for named in NAMED if targets else ():
+        for named in NAMED if pure and targets else ():
             m = named.match(line)
             path = _clean(m.group(1), root) if m else None
             if path and any(_under(path, t) for t in targets):
                 found.append(path)
                 break
+    if len(targets) == 1 and len(files) == 1 and (
+            lines and printing == 1
+            or files[0][1] and any(NUMBERED.match(l) for l in lines)):
+        found.append(files[0][0])
     return found
 
 

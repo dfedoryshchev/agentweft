@@ -232,6 +232,9 @@ SEARCHED = [
      "calc.py."),
     (lambda t: [("Read", {"file_path": str(t / "w" / "calc.py")}, "1\tx")],
      "`calc.py`, the module"),
+    (lambda t: [bash("grep -rn x src; grep -rn y tests",
+                     "src/a.py:3:x\ntests/test_a.py:9:y")], "src/a.py - x"),
+    (lambda t: [bash("grep x a.py", "x = 1")], "a.py - x"),
 ]
 
 
@@ -264,6 +267,24 @@ NOT_SEARCHED = [
     (lambda t: [("Write", {"file_path": str(t / "w" / "t.py"),
                            "content": "x"}, "ok")],
      "t.py:1-170 - the order the new test was placed in"),
+    (lambda t: [bash("grep -n zzz a.py", "")], "a.py - x"),
+    (lambda t: [grep(t, "a.py", "No matches found")], "a.py - x"),
+    (lambda t: [grep(t, "a.py", "")], "a.py - x"),
+    (lambda t: [bash("python -m pytest -q; grep -rn zzz .",
+                     "tests/test_a.py:12: AssertionError\n1 failed")],
+     "tests/test_a.py - x"),
+    (lambda t: [bash("python -m pytest -q; grep -n zzz tests/test_a.py",
+                     "tests/test_a.py:12: AssertionError\n1 failed")],
+     "tests/test_a.py - x"),
+    (lambda t: [bash("grep -m 0 -n x a.py", "")], "a.py - x"),
+    (lambda t: [bash("grep -n --max-count=0 x a.py; echo 3:x", "3:x")],
+     "a.py - x"),
+    (lambda t: [bash("grep --coun x a.py", "3")], "a.py - x"),
+    (lambda t: [bash("grep --files-with x a.py", "a.py")], "a.py - x"),
+    (lambda t: [bash("grep -c x b.py; grep -n zzz a.py", "3")], "a.py - x"),
+    (lambda t: [bash("grep -n x a.py", "grep: a.py: No such file or"
+                     " directory")], "a.py - x"),
+    (lambda t: [bash("ls; grep zzz a.py", "a.py\nb.py")], "a.py - x"),
 ]
 
 

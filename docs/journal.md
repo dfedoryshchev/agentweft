@@ -753,11 +753,16 @@ five sections are written by the runner alone:
   target in a shell call), with the step's own READ lines under it as `said:`.
   a READ line is held to every file it names at its head (`a.py, b.py - why`,
   the lines and closing punctuation left off): each must be one the pass
-  read, one a search named (a `grep` or `rg` in a shell call, or a Grep call
-  that shows content, whose matching lines reach the output; inside a folder
-  or glob, a file its output names), or one whose patch a `git diff`, `show`
-  or `log` printed. a search that prints only counts or names, or whose
-  output goes to a file or into anything but a reader, holds nothing. a READ
+  read, one a search printed lines of (a `grep` or `rg` in a shell call, or a
+  Grep call that shows content: one search of one file alone in its call by
+  any line it printed; otherwise a file its output names, when every
+  statement that printed was a search, or a numbered line of the call's one
+  `-n` search of one file), or one whose patch a `git diff`, `show` or `log`
+  printed. a search that printed nothing (`No matches found`, `-m 0`, grep's
+  own complaint), prints only counts or names (an option by any start of its
+  name, `--coun` too), or whose output goes to a file or into anything but a
+  reader, holds nothing; nor does another program's line in the call that
+  names the file. a READ
   line that names a file none of those calls covered is `said, not in its
   transcript:`. a pass with no transcript says so.
 - **tests and checks**: each new test's red-first record, ending `- encodes
