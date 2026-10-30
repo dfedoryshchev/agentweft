@@ -702,7 +702,8 @@ class Store(object):
         scopes, or it does not hold on the place as it is now, which says
         the claim may not be true. one that reads outside the scopes is run
         all the same wherever it reads inside the place, and refuses the
-        fact when it does not hold."""
+        fact when it does not hold. one that reads no file shows nothing of
+        the claim, whatever exit code it names, and refuses the fact too."""
         check, why = facts.parse_check(said)
         if check is None:
             why = "the check cannot run: " + why
@@ -711,6 +712,9 @@ class Store(object):
         held, why = facts.run_check(self.root, said, self.own)
         if held is False:
             return "the check does not hold on the tree as it is: " + why, ""
+        if held is None and why.startswith("could not run: " + facts.NO_FILE):
+            return ("the check reads no file, so it shows nothing of the"
+                    " claim: " + why[len("could not run: "):]), ""
         if wide:
             return wide, wide
         if held is None:

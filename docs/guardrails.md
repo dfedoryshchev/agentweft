@@ -574,7 +574,12 @@ in the place and in the fact's scope; a recursive read never looks in
 `.git`, caches, installed packages (`node_modules`, `venv`, `.venv`), the store's `.md` files (which quote the very lines its checks look for)
 or the runner's own folder. anything else, a path outside the place, a file
 that is not there, a flag it does not take, a pattern that does not read,
-another command, `;` or `|` in a path, cannot run.
+another command, `;` or `|` in a path, cannot run. so does a check whose
+paths and `--include` globs leave no file to read (`it read no file`): no
+line matched, but nothing was looked at, so an `exits 1` would hold on
+nothing. when a fact is written such a check refuses it, `exits 0` or
+`exits 1` alike (`the check reads no file, so it shows nothing of the
+claim`), and after a step it is `could not run`, never `held`.
 
 after every step, with its gates, the runner hashes the files in the scope
 of each live fact with a check; when they changed since the last step, the

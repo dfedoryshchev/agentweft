@@ -69,7 +69,7 @@ def test_a_grep_check_holds_on_clean_lines_and_breaks_where_it_matches(
     ('grep -w "pars" pkg/parse.py exits 1', True),
     ('grep -rn "print(" pkg --include=*.py exits 1', True),
     ('grep -rn "print(" pkg exits 1', False),
-    ('grep -rn "print(" . --include=*.md exits 1', True),
+    ('grep -rn "print(" pkg --include=*.txt exits 0', True),
     ("grep -n 'line\\.split' pkg/parse.py", True),
     ('grep "\\<parse\\>" pkg/parse.py', True),
     ('grep -E "\\<line\\>" pkg/parse.py', True),
@@ -100,12 +100,38 @@ def test_a_check_reads_its_pattern_and_paths_the_way_grep_does(tmp_path,
     ('grep -E "raise \\d" pkg/parse.py', "\\d"),
     ('grep "line\\d" pkg/parse.py exits 1', "\\d"),
     ('grep "\\Aimport" pkg/parse.py', "\\A"),
+    ('grep -rn "print(" . --include=*.md exits 1', "it read no file"),
+    ('grep -rn "print(" pkg --include=*.nomatch exits 1', "it read no file"),
+    ('grep -rn "print(" pkg --include=*.nomatch exits 0', "it read no file"),
+    ('grep -rn "print(" empty exits 1', "it read no file"),
+    ('grep -rn "print(" empty exits 0', "it read no file"),
 ])
 def test_a_check_that_cannot_run_is_never_a_pass(tmp_path, check, why):
     put(tmp_path, "pkg/parse.py", CODE)
+    put(tmp_path, "facts/pkg/parse.py.md", entry("F-0001", "pkg/", CHECK))
+    (tmp_path / "empty").mkdir()
     held, said = facts.run_check(tmp_path, check)
     assert held is None, check
     assert said.startswith("could not run: ") and why in said, said
+
+
+@pytest.mark.parametrize("claim, check, kind", [
+    ("every line of parse raises rather than prints",
+     'grep -rn "print(" pkg --include=*.nomatch exits 1', "convention"),
+    ("parse raises ValueError on an empty line",
+     'grep -rn "raise" pkg --include=*.nomatch exits 0', "decision"),
+    ("parse never prints", 'grep -rn "print(" pkg/empty/ exits 1',
+     "convention")])
+def test_a_check_that_reads_no_file_refuses_its_fact(tmp_path, claim, check,
+                                                     kind):
+    store, record = a_store(tmp_path)
+    (tmp_path / "pkg" / "empty").mkdir()
+    p = claimed(claim, check, kind)
+    p.fields["scope"] = ["pkg/"]
+    fact, why = store.add(p, record)
+    assert fact is None, fact.get("unchecked")
+    assert why.startswith("the check reads no file, so it shows nothing of"
+                          " the claim"), why
 
 
 def test_an_absolute_path_is_not_in_the_place(tmp_path):

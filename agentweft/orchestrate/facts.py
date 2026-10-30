@@ -445,6 +445,9 @@ EXITS = re.compile(r"^(.*?)\s+exits?\s+(\S+)\s*$")
 NOT_READ = (".git", "__pycache__", ".pytest_cache", "node_modules", ".venv",
             "venv")
 HELD, BROKEN, UNRUN = "held", "broken", "could not run"
+# a check whose paths and include filters leave no file to read: no line
+# matched, yet nothing was looked at, so an `exits 1` would hold on nothing
+NO_FILE = "it read no file"
 
 
 class Check(object):
@@ -691,10 +694,12 @@ def run_check(root, text, own=None):
         else:
             return None, "could not run: " + rel + " is not a file"
     first = None
+    read = False
     for path in files:
         if check.include and not any(fnmatch.fnmatch(path.name, g)
                                      for g in check.include):
             continue
+        read = True
         try:
             lines = text_lines(path)
         except OSError as e:
@@ -705,6 +710,10 @@ def run_check(root, text, own=None):
                 break
         if first:
             break
+    if not read:
+        return None, ("could not run: " + NO_FILE + " (" + ", ".join(
+            check.paths) + (" --include=" + ",".join(check.include)
+                            if check.include else "") + ")")
     code = 0 if first else 1
     if code == check.want:
         return True, ""
