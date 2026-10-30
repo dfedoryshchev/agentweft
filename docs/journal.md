@@ -564,7 +564,9 @@ the next step gets the block first, before the raw answer, as "what <role>
 handed over": the MUST NOT MISS lines of every step so far (a constraint the
 first step read binds the last), each line once with the roles that kept
 it, the QUESTION lines of every step so far the same way ("questions
-already asked in this run; do not ask one again"), the rulings in
+already asked in this run; do not ask one again", and the block's rules say
+a step that would answer one otherwise writes a DOUBTS line that names the
+question by its first words, never the question again), the rulings in
 `decisions.md`, what the step assumed and doubts, what it
 found beside the change, what it verified and how it stood up, and what it
 read ("re-open only what you

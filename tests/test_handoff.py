@@ -621,6 +621,15 @@ def test_a_stand_in_for_the_file_a_call_wrote_stays_unbacked(cited):
     assert item["backed"] == "unbacked", item
 
 
+def test_a_question_already_asked_is_not_asked_again_and_another_answer_is_a_doubt():
+    words = " ".join(resolver.shared_rules().split())
+    assert ("a question already asked in this run, one you are handed among"
+            " the questions already asked, is not asked again: if you would"
+            " answer it otherwise, that is a DOUBTS line that names the"
+            " question by its first words, copied, and gives your answer")\
+        in words
+
+
 def test_a_saw_is_asked_for_as_printed_text_and_a_silent_check_to_print():
     words = " ".join(resolver.shared_rules().split())
     assert "a `saw:` is text the call printed, copied" in words

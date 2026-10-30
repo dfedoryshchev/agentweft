@@ -22,7 +22,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "5beecb47285db33681d59c6ef9f0649592acdde2e48318a819daf6c9b34881da",
+      "prompt": "ef5f2a4a09ac66bebc7898ea7a4af5e038d4dc13a597bef762bc9e2268d682bc",
       "say": "REFUSED: SPEC.md:3 \"add(a, b) returns a minus b, the ledger import depends on it\" is what the report calls the bug\n",
       "detail": "",
       "retryable": null,
