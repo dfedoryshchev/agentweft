@@ -76,7 +76,16 @@ UNCHECKED = "unchecked"
 REFUSED_CHECK = "its check was refused: "
 PIPED = "the check holds a pipe character, which no taught format carries"
 # a claim about every place in its scope, which one matching line never shows
-EVERY = re.compile(r"\b(?:every|each|all|always|never|none|nowhere)\b", re.I)
+UNIVERSAL = ("every", "each", "all", "always", "never", "none", "nowhere",
+             "only", "single", "sole", "any", "no")
+# `None` is python's value and `--no-x` a flag, not the word; "no longer" and
+# its kin say when, not where
+EVERY = re.compile(r"\b(?:every|each|all|always|never|nowhere|only|single"
+                   r"|sole|any)\b"
+                   r"|(?<![-\w])no\b(?![-_])(?!\s+(?:longer|more|less"
+                   r"|matter|sooner|later)\b)", re.I)
+NONE = re.compile(r"\bnone\b|\bNone\s+of\b")
+CODE_SPAN = re.compile(r"`[^`]*`")
 # the run's own shell and host, never the product's: a bare OS name or
 # "shell" is left alone, since a product may support Windows or never start
 # a shell
@@ -1077,12 +1086,17 @@ def applied_in(folders):
 
 
 def every_of(p):
-    """-> the word a convention's claim says every or never with, "" for
-    any other fact."""
+    """-> the word a convention's claim says every or never with, read
+    outside its code spans, "" for any other fact. a why, decision or
+    defect is an account of one place, kept by its evidence, and is not
+    taken as the project's rule."""
     if p.get("kind").strip() != CONVENTION:
         return ""
-    m = EVERY.search(p.get("claim"))
-    return m.group(0).lower() if m else ""
+    claim = CODE_SPAN.sub(" ", p.get("claim"))
+    found = [m for m in (EVERY.search(claim), NONE.search(claim)) if m]
+    if not found:
+        return ""
+    return min(found, key=lambda m: m.start()).group(0).split()[0].lower()
 
 
 def every_refusal(p, said):

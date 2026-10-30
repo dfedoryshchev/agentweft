@@ -235,11 +235,47 @@ def test_a_convention_that_says_every_held_by_one_matching_line_is_refused(
                    " may match, exits 1")
 
 
+@pytest.mark.parametrize("claim, word", [
+    ("parse is the only place an empty line is refused", "only"),
+    ("a single function, parse, refuses an empty line", "single"),
+    ("parse is the sole caller of split", "sole"),
+    ("parse raises on any empty line", "any"),
+    ("no caller of parse prints the error", "no"),
+    ("No command reads a file before parse", "no"),
+    ("none of the callers print", "none"),
+    ("None of the callers print", "none")])
+def test_a_convention_that_says_only_any_or_no_is_universal_too(
+        tmp_path, claim, word):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed(claim, FOUND), record)
+    assert fact is None
+    assert why.startswith("a convention that says " + word + " is kept only"
+                          " with a check that holds on the tree: an exits 0"
+                          " grep holds by one line"), why
+
+
+@pytest.mark.parametrize("claim", [
+    "parse returns None for an empty line",
+    "parse returns `None` for a blank line, and `--no-strict` keeps it",
+    "parse raises ValueError, and a caller no longer checks the line first",
+    "parse is a no-op on a line it already split",
+    "parse raises ValueError (see `all_lines`)"])
+def test_python_none_a_flag_and_a_word_part_are_not_universal_words(
+        tmp_path, claim):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed(claim, FOUND), record)
+    assert why == "" and fact is not None
+
+
 @pytest.mark.parametrize("claim, check, kind", [
     ("parse never prints", CHECK, "convention"),
     ("parse raises ValueError on an empty line", None, "convention"),
     ("parse allocates its words with split", None, "convention"),
     ("every caller counts on the raise", None, "why"),
+    ("parse raises only because the caller prints", None, "why"),
+    ("no test pins which of two errors wins", None, "decision"),
+    ("parse checks the line only per call, so any caller can skip it", None,
+     "defect"),
     ("parse raises ValueError on an empty line", FOUND, "convention")])
 def test_a_fact_that_claims_no_every_or_never_or_holds_it_is_written(
         tmp_path, claim, check, kind):
@@ -479,16 +515,19 @@ def test_the_retro_is_told_what_the_store_keeps_and_refuses():
     assert ("a guard for a defect the run left in place, named by its `F-` id"
             " or by the `seq <n>` its `defect` fact cites, is never written"
             " but proposed") in skill
-    said = re.search(r"a convention whose claim says ([a-z, ]+) is kept only"
-                     r" with a check a line against it breaks, `exits 1`",
+    said = re.search(r"a convention whose claim says ([a-z, ]+) \(as a word",
                      skill)
     assert said, skill
     words = set(re.findall(r"[a-z]+", said.group(1))) - {"or"}
-    assert words == set(re.findall(r"[a-z]+", factsguard.EVERY.pattern)) \
-        - {"b"}
-    assert ("a fact whose check is refused for its form alone (it cannot run,"
-            " reads a file outside the fact's scope, or holds a `|`) is kept"
-            " without it, marked `unchecked:`") in skill
+    assert words == set(factsguard.UNIVERSAL)
+    assert ("is kept only with a check a line against it breaks, `exits 1`"
+            in skill)
+    assert ("a check refused for its form (a `|` in an `-E` pattern, a path"
+            " outside the fact's scope) is still run: one that does not hold"
+            " refuses the fact, and so does one that reads no file") in skill
+    assert ("a fact whose check cannot run, or runs and holds but is refused"
+            " for its form, is kept without it, marked `unchecked:`") in skill
+    assert "never a `|` outside a check" in skill
 
 
 def test_the_retro_is_handed_each_check_a_step_broke(tmp_path):

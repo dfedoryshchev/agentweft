@@ -192,7 +192,7 @@ def test_a_convention_that_names_an_os_for_the_product_is_written(tmp_path):
     for n, (claim, why) in enumerate((
             ("paths are written with forward slashes on Windows and Linux",
              "the CLI supports Windows, macOS and Linux alike"),
-            ("parse starts no shell: subprocess runs with shell=False",
+            ("parse runs its subprocess with shell=False",
              "a line of input must never reach a shell"),
             ("rounding boundary tests use decimal boundaries, not whole"
              " numbers", "at whole-number boundaries half-even also rounds"

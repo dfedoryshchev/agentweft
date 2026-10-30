@@ -546,12 +546,19 @@ is written; a refused one is not written and its reason is kept:
    check was refused: <why>`, which the retro's line, the handoff and every
    step handed the fact read too. a convention under 9 is not: its check is
    what holds it.
-9. a `convention` whose claim says every, each, all, always, never, none or
-   nowhere is written only with a check that holds on the tree, and one a
-   line against the claim breaks: `exits 1`, a pattern no line may match.
-   one with no check, or with an `exits 0` grep, which holds by one line and
-   never by every one, is refused (`a convention that says every is kept
-   only with a check that holds on the tree ...`).
+9. a `convention` whose claim says every, each, all, always, never, none,
+   nowhere, only, single, sole, any or no is written only with a check that
+   holds on the tree, and one a line against the claim breaks: `exits 1`, a
+   pattern no line may match. the words are read outside the claim's code
+   spans and as words: python's `None`, a `--no-` flag, a `no-op` and "no
+   longer" (or more, less, matter, sooner, later) are not one. one with no
+   check, or with an `exits 0` grep, which holds by one line and never by
+   every one, is refused (`a convention that says every is kept only with a
+   check that holds on the tree ...`). a why, decision or defect saying the
+   same words is not held to it: it explains one place and is kept by its
+   evidence, and a true one of those kinds (a premise such as "correct
+   only for values of 0 or more", "no test pins it") often has no grep that
+   could hold it.
 
 ### a fact's check
 
