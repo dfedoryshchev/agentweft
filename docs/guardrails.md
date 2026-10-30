@@ -502,8 +502,9 @@ is written; a refused one is not written and its reason is kept:
    reason names the field and the kind, never the value. a claim, why or
    source that names a path on the machine the run ran on is refused the
    same way (`it names a path on the machine it ran on (<path>) in <field>`):
-   one that starts at a drive letter, at a share's two backslashes, at a
-   home folder's tilde, or at a file-system root such as home, Users, tmp
+   one that starts at a drive letter (or Git Bash's `/c/` for it), at a
+   share's two backslashes or two slashes (by name or address), at a home
+   folder's tilde, or at a file-system root such as home, Users, tmp
    or var, never a URL or a request path such as `/index.html`. the store lives in
    the repo, read on every other machine; so does a doc edit's `after:` and a
    guard's `code:`, `what:` and `where:`, held to the same rule, and no line

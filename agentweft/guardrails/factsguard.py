@@ -104,14 +104,17 @@ TOKEN = re.compile(
     r"|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\."
     r"|-----BEGIN [A-Z ]*PRIVATE KEY-----)")
 RANDOM = re.compile(r"[A-Za-z0-9+=_-]{32,}")
-# a path on the machine a run ran on: a drive, a share, a home folder or one of
-# the roots a file system has and a URL or a request path does not start at
+# a path on the machine a run ran on: a drive (or Git Bash's `/c/` for one),
+# a share by name or address, a home folder or one of the roots a file
+# system has and a URL or a request path does not start at
 MACHINE_PATH = re.compile(
     r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/][^\s`'\"()]*"
     r"|(?<![\w.~/-])/(?:home|Users|tmp|var|etc|opt|usr|root|mnt|srv|private"
     r"|Volumes|media|run)/[^\s`'\"()]*"
+    r"|(?<![\w.~/:-])/[A-Za-z]/[^\s`'\"()/][^\s`'\"()]*"
     r"|(?<![\w])~[\\/][^\s`'\"()]*"
-    r"|(?<![\w\\])\\\\[A-Za-z][\w.$-]+\\[\w.$-]+[^\s`'\"()]*")
+    r"|(?<![\w\\])\\\\[A-Za-z0-9][\w.$-]*\\[\w.$-]+[^\s`'\"()]*"
+    r"|(?<![\w.~/:-])//[A-Za-z0-9][\w.$-]*/[\w.$-]+[^\s`'\"()]*")
 WORD = re.compile(r"[^\s`'\"(),;<>]+")
 # the fields a proposal may carry, in the order an entry is written
 FIELDS = ("scope", "kind", "label", "claim", "why", "source", "anchor",

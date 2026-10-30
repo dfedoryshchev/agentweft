@@ -177,6 +177,23 @@ def test_a_url_a_request_path_or_a_relative_one_is_no_machine_path(
     assert why == "" and fact is not None
 
 
+@pytest.mark.parametrize("path", [
+    "/c/" + "Users/me/pkg/a.py",
+    "/d/" + "work/place/pkg/a.py",
+    "\\" + "\\" + "10.0.0.5\\drops\\pkg\\a.py",
+    "/" + "/build01/drops/pkg/a.py"])
+def test_a_machine_path_as_another_shell_prints_it_is_found(path):
+    assert factsguard.machine_path("the file is " + path) == path
+
+
+@pytest.mark.parametrize("text", [
+    "https://example.com/tmp/x", "see http://example.com/c/docs/x",
+    '"\\r\\n"', '"\\\\r\\\\n"', "/index.html", "a.py:12", "a/b/c/d.py",
+    "x = a //2"])
+def test_a_url_a_quote_or_a_relative_path_is_found_no_machine_path(text):
+    assert factsguard.machine_path(text) == ""
+
+
 def test_a_proposal_line_that_holds_an_absolute_path_is_never_kept(tmp_path):
     store, _ = a_store(tmp_path)
     assert store.propose(["## edit README.md (r)",
