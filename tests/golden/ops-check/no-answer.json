@@ -86,6 +86,8 @@
     "ops-check-<run>/handoff.md",
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
+    "ops-check-<run>/retro-view/steps.jsonl",
+    "ops-check-<run>/retro-view/steps/001-planner.md",
     "ops-check-<run>/retro.md",
     "ops-check-<run>/rulings.json",
     "ops-check-<run>/steps.jsonl",

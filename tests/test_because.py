@@ -364,6 +364,50 @@ def test_a_run_s_retro_prompt_holds_none_of_the_steps_reason_words(
         assert words in kept, words
 
 
+def test_an_answer_without_its_reasons_keeps_every_other_line():
+    said = "done\n\n" + BLOCK + "\nafter the block\n"
+    assert handoff.without_because(said) == ("done\n\n" + NO_REASONS
+                                             + "\nafter the block\n")
+    assert handoff.without_because("no block here\n") == "no block here\n"
+
+
+def test_the_record_the_retro_is_pointed_at_holds_no_reason_words(
+        tmp_path, monkeypatch, fake_cli):
+    import json
+    from pathlib import Path
+
+    from agentweft.runner import engine, trace
+    from test_stops import CLAUDE, a_flow, answer, the_folder
+
+    a_flow(tmp_path, monkeypatch, "says-why", ["worker"],
+           tail="retro: true\n" + CLAUDE)
+    cli_ = fake_cli(answer("done\n\n" + BLOCK),
+                    answer("## change first\n- none\n"))
+    assert engine.main() == 0
+    folder = the_folder()
+    text = cli_.calls[-1]["stdin"].decode("utf-8")
+    pointed = Path(text.split("every pass in full: ")[1].split("\n")[0])
+    assert pointed != folder / trace.FILE and pointed.is_file()
+    told = text.split("handoff.md:")[1]
+    assert "runs/" + folder.name + "/steps/" not in told
+    assert "runs/" + folder.name + "/retro-view/steps/" in told
+    shown = pointed.read_text(encoding="utf-8")
+    lines = [json.loads(l) for l in shown.split("\n") if l.strip()]
+    assert [l["step"] for l in lines] == ["worker.md"]
+    assert lines[0]["handoff"]["because"] == []
+    answer_kept = (pointed.parent / lines[0]["file"]).read_text(
+        encoding="utf-8")
+    for words in SAID:
+        assert words not in shown, words
+        assert words not in answer_kept, words
+    assert "calc.py: add rounds half up" in answer_kept
+    whole = (folder / trace.FILE).read_text(encoding="utf-8")
+    kept = (folder / lines[0]["file"]).read_text(encoding="utf-8")
+    for words in SAID[:4]:
+        assert words in whole, words
+        assert words in kept, words
+
+
 def test_a_reason_the_record_does_not_hold_is_not_handed_as_evidence(
         tmp_path):
     line = {"seq": 2, "step": "worker.md", "outcome": "ok",

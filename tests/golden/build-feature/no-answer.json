@@ -86,6 +86,8 @@
     "build-feature-<run>/manifest.json",
     "build-feature-<run>/planner.md",
     "build-feature-<run>/red-proof.json",
+    "build-feature-<run>/retro-view/steps.jsonl",
+    "build-feature-<run>/retro-view/steps/001-planner.md",
     "build-feature-<run>/retro.md",
     "build-feature-<run>/rulings.json",
     "build-feature-<run>/start-snapshot.json",

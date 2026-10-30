@@ -30,7 +30,7 @@ from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
 
-from . import investigate, manifest, stops, summary, trace, upkeep
+from . import handoff, investigate, manifest, stops, summary, trace, upkeep
 from .errors import Fatal, Outage
 from .upkeep import Maintained, execute  # noqa: F401
 
@@ -462,12 +462,53 @@ def unheld(lines):
             if c.get("result") != "held"]
 
 
+VIEW = "retro-view"
+
+
+def view(folder, into=None):
+    """-> the path of a copy of the run folder's steps.jsonl with no step's
+    own reasons in it, written under `into` (`<folder>/retro-view` when
+    None) with each answer file a line names beside it, its BECAUSE section
+    taken out (`handoff.without_because`), and the gate record as it is.
+    the run's own files keep the reasons."""
+    out = Path(into) if into is not None else Path(folder) / VIEW
+    out.mkdir(parents=True, exist_ok=True)
+    kept = []
+    path = Path(folder) / trace.FILE
+    raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+    for text in raw.split("\n"):
+        try:
+            line = json.loads(text)
+        except ValueError:
+            continue
+        if isinstance(line.get("handoff"), dict) \
+                and line["handoff"].get("because"):
+            line["handoff"] = dict(line["handoff"], because=[])
+        name = line.get("file")
+        if isinstance(name, str) and (Path(folder) / name).is_file():
+            copy = out / name
+            copy.parent.mkdir(parents=True, exist_ok=True)
+            copy.write_text(handoff.without_because(
+                (Path(folder) / name).read_text(encoding="utf-8")),
+                encoding="utf-8")
+        kept.append(json.dumps(line, ensure_ascii=False))
+    (out / trace.FILE).write_text("".join(k + "\n" for k in kept),
+                                  encoding="utf-8")
+    for name in (trace.GATES, "gates.md"):
+        if (Path(folder) / name).is_file():
+            (out / name).write_bytes((Path(folder) / name).read_bytes())
+    return out / trace.FILE
+
+
 def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
-           more=()):
+           more=(), record=None):
     """-> the role, the skill, then this run's record. `more` is
     (heading, lines) for each further part of it. the handoff is handed
     without the steps' own reasons (`summary.without_reasons`): what each
-    led to is in the record as the runner found it (`evidence`)."""
+    led to is in the record as the runner found it (`evidence`). `record`
+    is the copy of steps.jsonl the retro is pointed at for every pass in
+    full (`view`), `<folder>/retro-view/steps.jsonl` when None; the
+    handoff's pointers to the answers and the record name that copy."""
     text = (resolver.role_prompt(STEP).rstrip("\n") + "\n\n"
             + resolver.skill(ROLE).strip("\n") + "\n\n"
             + "this run:\n- run: " + run_id + "\n- flow: " + flow
@@ -488,8 +529,14 @@ def prompt(run_id, flow, outcome, folder, lines, issued=(), worked=(),
             said = (folder / name).read_text(encoding="utf-8")
             if name == summary.FILE:
                 said = summary.without_reasons(said)
+                if record is None or Path(record).parent == folder / VIEW:
+                    run = "runs/" + run_id + "/"
+                    said = said.replace(run + "steps/", run + VIEW
+                                        + "/steps/").replace(
+                        run + trace.FILE, run + VIEW + "/" + trace.FILE)
             text = text + "\n" + name + ":\n\n" + said.rstrip("\n") + "\n"
-    return text + "\nevery pass in full: " + str(folder / trace.FILE) + "\n"
+    return text + "\nevery pass in full: " + str(
+        record if record is not None else folder / VIEW / trace.FILE) + "\n"
 
 
 def held(run, stopped):
@@ -554,7 +601,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
                         0 if store.off else store.cap,
                         named_docs(run, changed, store),
                         retroedits.cap_of(getattr(run, "fm", None)),
-                        evidence(run, trail, earlier, looked)))
+                        evidence(run, trail, earlier, looked)),
+                  record=view(folder))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)

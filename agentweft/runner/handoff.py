@@ -317,6 +317,31 @@ def without(text):
     return "\n".join(kept) + "\n" if kept else ""
 
 
+def without_because(text):
+    """-> the answer with the BECAUSE section of its last HANDOFF block taken
+    out, its `from:` and `led to:` lines with it, every other line as it was.
+    a section ends where `parse` would start the next one."""
+    shown = verbs.visible(text)
+    found, _ = bounds(shown)
+    if found is None:
+        return text
+    drop, inside = set(), False
+    for n, line in shown[found[0] + 1:found[1]]:
+        if inside and _labelled(line, CITED):
+            drop.add(n)
+            continue
+        head = verbs.key_of(line)
+        if head is not None and (not head[2] or (
+                KEYS.get(head[0], head[0]) in KNOWN and head[3])):
+            inside = KEYS.get(head[0]) == "because"
+        if inside:
+            drop.add(n)
+    if not drop:
+        return text
+    return "\n".join(l for n, l in enumerate((text or "").split("\n"))
+                     if n not in drop)
+
+
 def norm(text):
     return " ".join((text or "").replace('"', "").replace("'", "")
                     .replace("`", "").split()).lower()

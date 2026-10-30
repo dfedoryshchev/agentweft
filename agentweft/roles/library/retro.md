@@ -14,5 +14,5 @@ record holds what each step's reasons led to, the rulings
 written, the files changed, the docs that name a changed file or a name the
 run took out or put in, the project's facts that are stale or hold for
 those files, why.md when the run stopped short, and the handoff.
-steps.jsonl, named under them, has every pass in full for what the lines
-leave out.
+a copy of steps.jsonl, named under them, has every pass in full for what
+the lines leave out, without the steps' own reasons.

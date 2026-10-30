@@ -88,9 +88,10 @@ def changed_in(record):
     return out
 
 
-def prompt_of(case):
+def prompt_of(case, view=None):
     """-> what a run hands the retro for this record: the same prompt, the
-    same parts, in the same order."""
+    same parts, in the same order. `view` is the record's copy without the
+    steps' reasons (`retro.view`) the prompt points at."""
     case = Path(case)
     record = case / "record"
     gold = gold_of(case)
@@ -107,7 +108,7 @@ def prompt_of(case):
                         retro.whys(trail), retro.issues(looked),
                         retro.workarounds(looked),
                         retro.parts(looked, ["- none"], changed, [], [],
-                                    factsguard.CAP, docs))
+                                    factsguard.CAP, docs), record=view)
 
 
 def diff_of(record):
@@ -237,9 +238,11 @@ def ask(provider, case):
     the seconds it took)."""
     provider.where = str(Path(case) / "place")
     provider.at(retro.STEP, None)
-    began = time.time()
-    reply = provider.ask(prompt_of(case))
-    seconds = round(time.time() - began, 3)
+    with tempfile.TemporaryDirectory(prefix="agentweft-retro-view-") as tmp:
+        text = prompt_of(case, retro.view(Path(case) / "record", tmp))
+        began = time.time()
+        reply = provider.ask(text)
+        seconds = round(time.time() - began, 3)
     return (reply.text or "", getattr(reply, "cost", None),
             trace.tokens([types.SimpleNamespace(replies=[reply])]), seconds)
 

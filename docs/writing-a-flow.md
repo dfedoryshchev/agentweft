@@ -412,7 +412,12 @@ project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many doc edits and guards, it may make; `why.md` when the run stopped
 short; and `handoff.md`, with the steps' reasons taken out of it (the
-person's copy keeps them in full). a clean run is
+person's copy keeps them in full). for every pass in full it is pointed at
+`runs/<run-id>/retro-view/steps.jsonl`, a copy of the run's steps.jsonl
+with no BECAUSE item on any line and each answer file a line names copied
+beside it with its BECAUSE section taken out, and the gate record as it is;
+the handoff it is handed names that copy, and the run's own steps.jsonl and
+answers keep the reasons. a clean run is
 handed `- none failed` and the rest, so the retro keeps the facts and the
 docs even when nothing went wrong. it writes `runs/<run-id>/retro.md`: per
 failed attempt what failed, why, and which gate, prompt or `flow.yaml` key
