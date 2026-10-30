@@ -301,10 +301,24 @@ def test_a_ninth_live_project_wide_fact_is_refused(tmp_path):
 
     for n in range(facts.PROJECT_CAP):
         assert store.add(one(".", n), record)[1] == ""
-    fact, why = store.add(one(".", 99), record)
-    assert fact is None
-    assert why.startswith("the project already has 8 live project-wide facts")
+    for scope in (".", "**", "./**"):
+        fact, why = store.add(one(scope, 99), record)
+        assert fact is None, scope
+        assert why.startswith("the project already has 8 live project-wide"
+                              " facts"), scope
     assert store.add(one("pkg/parse.py", 99), record)[1] == ""
+    assert store.add(one("**/*.py", 98), record)[1] == ""
+
+
+def test_a_glob_over_every_file_is_project_wide_and_held_to_the_cap(tmp_path):
+    put(tmp_path, "pkg/parse.py", CODE)
+    put(tmp_path, "facts/_project.md", NL.join(
+        entry("F-%04d" % n, scope, "project rule %d" % n, "said once")
+        for n, scope in ((1, "."), (2, "**"), (3, "**"))))
+    shown, _, project = brief.Brief(tmp_path, ["planner.md"]).fit(
+        facts.handed(tmp_path, ["pkg/parse.py"]))
+    assert [f.id for f, _ in shown] == ["F-0002", "F-0003"]
+    assert [f.id for f in project] == ["F-0001"]
 
 
 def test_a_place_with_no_facts_gets_the_brief_it_got_before(tmp_path):

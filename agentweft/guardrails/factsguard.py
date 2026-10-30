@@ -915,7 +915,7 @@ class Store(object):
         if capped and self.new >= self.cap:
             return None, ("per-run cap: " + str(self.cap) + " new facts are"
                           " already written this run")
-        if scopes and all(s == facts.PROJECT for s in scopes):
+        if scopes and all(facts.every_file(s) for s in scopes):
             wide = [f.id for f in self.read() if f.status == facts.LIVE
                     and facts.project_wide(f)]
             if len(wide) >= facts.PROJECT_CAP \

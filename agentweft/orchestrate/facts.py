@@ -350,9 +350,17 @@ def handed(root, paths, found=None):
                                         f.label != "important", -honoured(f)))
 
 
+def every_file(scope):
+    """whether `scope` holds for every file of the project: `.`, or a glob
+    such as `**` that matches any path."""
+    scope = norm(scope)
+    return scope == PROJECT or is_glob(scope) and all(
+        glob_re(scope).match(p) for p in ("a", ".a.b", "a/b/c.d"))
+
+
 def project_wide(fact):
     """whether every scope of `fact` is the whole project."""
-    return bool(fact.scopes) and all(s == PROJECT for s in fact.scopes)
+    return bool(fact.scopes) and all(every_file(s) for s in fact.scopes)
 
 
 def text_lines(path):

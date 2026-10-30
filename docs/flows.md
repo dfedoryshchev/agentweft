@@ -130,7 +130,8 @@ and source, and, when it is live, its anchored lines quoted from the place
 as it is now (the same rules for what may be quoted). live ones come first,
 nearest first among them: a file's own, then each folder up from it, then
 the globs, then the project's; within one of those `important` ones come
-first, then the most honoured. at most two project-wide facts are handed to
+first, then the most honoured. at most two project-wide facts (scoped `.`,
+or a glob such as `**` that matches every file) are handed to
 one step, the rest named by id and file for the step to open. a stale one
 comes after them marked `possibly stale` with why and the day.
 they are handed under three headers, by what they are: the project's way to
