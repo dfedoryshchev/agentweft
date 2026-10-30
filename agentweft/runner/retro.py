@@ -609,9 +609,10 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     tried.effort = run.effort_for(STEP, used)
     used.going = tried.effort["base"] and tried.effort["asked"]
     print("started " + STEP)
-    said, why, seen = "", None, None
+    said, why, seen, answered = "", None, None, False
     try:
         answer = tried.answered(ask(run, text, used))
+        answered = True
         said = answer[0]
         if not answer[1]:
             run.charge(text, answer, used.name, used.asks_for())
@@ -623,6 +624,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         why = type(e).__name__ + ": " + str(e)
     except (Exception, KeyboardInterrupt) as e:
         why = type(e).__name__ + ": " + str(e)
+    if not answered:
+        seen = unpoliced(run)
     if not said and not why:
         why = "nothing came out of " + STEP
     done = Maintained()
@@ -718,6 +721,22 @@ def message(done):
         said = ["the facts' proposals"]
     return "retro: kept " + (", ".join(said[:-1]) + " and " + said[-1]
                              if len(said) > 1 else said[0]) + " current"
+
+
+FAILED_CALL = "the call failed"
+
+
+def unpoliced(run):
+    """-> the police line of a retro whose call failed before it answered:
+    there is no answer to read, and the line says so rather than leave a
+    reader to count the call unpoliced. None with police off."""
+    mode = getattr(run, "policing", police.OFF)
+    if mode == police.OFF:
+        return None
+    line = {"seen": False, "why": FAILED_CALL}
+    if mode == police.SHADOW:
+        line["mode"] = police.SHADOW
+    return line
 
 
 def policed(run, used, tried, text, folder):

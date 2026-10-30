@@ -815,7 +815,10 @@ and its line carries the same `police` field. it comes after the handoff, so
 there is no run left to stop: a hit fails the retro instead, `off task:` and
 the tripwire as its why on its line, the hit in `police.md` under `##
 retro.md`, and nothing in its FACTS block is acted on, so a retro steered by
-what it read writes no fact.
+what it read writes no fact. a retro whose call failed before it answered (the
+provider refused it, the call raised) has no answer to read, and its line
+says so: `"police": {"seen": false, "why": "the call failed"}`, with
+`"mode": "shadow"` in shadow, so no reader counts it unpoliced.
 
 `police: shadow` reads every step the same way and stops nothing. each hit is
 written to `runs/<id>/police.md` as it is found, printed as `police (shadow):

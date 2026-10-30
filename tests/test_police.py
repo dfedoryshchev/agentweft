@@ -1195,6 +1195,52 @@ def test_police_in_shadow_reads_the_retro_and_changes_nothing(
         in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("mode", [police.ON, police.SHADOW])
+@pytest.mark.parametrize("raised", ["Fatal", "RuntimeError"])
+def test_a_retro_call_that_failed_says_police_saw_no_call(
+        tmp_path, monkeypatch, fake_cli, capsys, mode, raised):
+    from agentweft.runner import errors, retro
+
+    (tmp_path / "pkg").mkdir()
+    a_flow(tmp_path, monkeypatch, "looked", ["worker"],
+           tail="retro: true\npolice: " + mode + "\n" + CLAUDE)
+    fake_cli(answer("done\n"))
+    monkeypatch.setattr(police, "report", lambda step, *a: police.Report(
+        step, [], True, 0.0))
+
+    def refused(run, text, used):
+        if raised == "Fatal":
+            raise errors.Fatal("the provider refused the call")
+        raise RuntimeError("the cli fell over")
+
+    monkeypatch.setattr(retro, "ask", refused)
+    assert engine.main() == 0
+    [line] = [l for l in steps_of(the_folder()) if l["step"] == "retro.md"]
+    assert line["outcome"] == "failed"
+    want = {"seen": False, "why": "the call failed"}
+    if mode == police.SHADOW:
+        want["mode"] = police.SHADOW
+    assert line["police"] == want
+
+
+def test_a_retro_call_that_failed_with_police_off_has_no_police_line(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    from agentweft.runner import retro
+
+    (tmp_path / "pkg").mkdir()
+    a_flow(tmp_path, monkeypatch, "looked", ["worker"],
+           tail="retro: true\n" + CLAUDE)
+    fake_cli(answer("done\n"))
+
+    def refused(run, text, used):
+        raise RuntimeError("the cli fell over")
+
+    monkeypatch.setattr(retro, "ask", refused)
+    assert engine.main() == 0
+    [line] = [l for l in steps_of(the_folder()) if l["step"] == "retro.md"]
+    assert "police" not in line
+
+
 def test_police_json_counts_the_retro_it_read_after_the_handoff(
         tmp_path, monkeypatch, fake_cli, capsys):
     a_policed_retro(tmp_path, monkeypatch, fake_cli, police.SHADOW)
