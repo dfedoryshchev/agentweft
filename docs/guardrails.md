@@ -538,7 +538,10 @@ is written; a refused one is not written and its reason is kept:
    that does not hold (`the check does not hold on the tree as it is: ...`)
    says the claim may not be true, and the fact is refused. one refused for
    its form alone (`the check cannot run: ...`, `the check reads <path>,
-   which is not in the fact's scope`, a `|` in it) leaves a fact that held
+   which is not in the fact's scope`, a `|` in it) is still run wherever the
+   runner can run it (a `|` in an `-E` pattern, a path outside the scope but
+   inside the place), and one that does not hold refuses the fact the same
+   way. one that cannot run, or runs and holds, leaves a fact that held
    every other test: it is written without the check, with `unchecked: its
    check was refused: <why>`, which the retro's line, the handoff and every
    step handed the fact read too. a convention under 9 is not: its check is

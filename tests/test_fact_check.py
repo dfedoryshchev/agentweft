@@ -226,12 +226,15 @@ DECIDED = "parse must raise on an empty line, so the caller prints it once"
 
 
 @pytest.mark.parametrize("check, refused", [
-    ('grep -n "print(" pkg/cli.py exits 1',
+    ('grep -n "raise" pkg/cli.py exits 1',
      "the check reads pkg/cli.py, which is not in the fact's scope"),
     ("pytest -q tests", "the check cannot run: only a grep runs as a fact's"
                         " check, never pytest"),
+    ('grep -n -E "print\\(|echo" pkg/parse.py exits 1',
+     "the check holds a pipe character, which no taught format carries"),
     ('grep -n -E "print(|echo" pkg/parse.py exits 1',
-     "the check holds a pipe character, which no taught format carries")])
+     "the check cannot run: the pattern does not read: missing ), unterminated"
+     " subpattern at position 5")])
 def test_a_true_fact_refused_only_for_its_check_is_kept_without_it(
         tmp_path, check, refused):
     store, record = a_store(tmp_path)
@@ -247,9 +250,9 @@ def test_a_true_fact_refused_only_for_its_check_is_kept_without_it(
 
 @pytest.mark.parametrize("claim, check, kind, refused", [
     (DECIDED, CHECK, "decision", "the check does not hold on the tree"),
-    ("parse raises, it never prints", 'grep -n "x" pkg/cli.py exits 1',
+    ("parse raises, it never prints", 'grep -n "zzz" pkg/cli.py exits 1',
      "convention", "the check reads pkg/cli.py"),
-    ("parse raises, it never prints", 'grep -E "a|b" pkg/parse.py exits 1',
+    ("parse raises, it never prints", 'grep -E "zzz|yyy" pkg/parse.py exits 1',
      "convention", "check holds a |, which no taught format carries"),
     (DECIDED, 'grep -n "sk-' + "a1B2" * 6 + '" pkg/parse.py exits 1',
      "decision", "it looks like a secret")])
@@ -260,13 +263,27 @@ def test_a_check_that_breaks_a_secret_or_an_every_claim_still_refuses_it(
     assert fact is None and why.startswith(refused), why
 
 
+@pytest.mark.parametrize("check", [
+    'grep -n -E "raise|echo" pkg/parse.py exits 1',
+    'grep -rn "raise" pkg/ exits 1',
+    'grep -rn -E "raise|echo" pkg exits 1'])
+def test_a_check_refused_for_its_form_that_runs_and_breaks_refuses_the_fact(
+        tmp_path, check):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(claimed("parse prints its error and returns, it"
+                                  " does not raise", check, "decision"), record)
+    assert fact is None, fact.get("unchecked")
+    assert why.startswith("the check does not hold on the tree as it is: grep"
+                          " exits 0, the fact says 1: pkg/parse.py:5:"), why
+
+
 def test_the_retro_and_a_later_step_are_told_the_check_was_refused(tmp_path):
     from agentweft.runner import brief, upkeep
 
     store, record = a_store(tmp_path)
     done = upkeep.Maintained()
     upkeep.execute(store, record, [("fact", "", dict(claimed(
-        DECIDED, 'grep -n "print(" pkg/cli.py exits 1', "decision").fields))],
+        DECIDED, 'grep -n "raise" pkg/cli.py exits 1', "decision").fields))],
         done, "r-1")
     said = ("its check was refused: the check reads pkg/cli.py, which is not"
             " in the fact's scope")

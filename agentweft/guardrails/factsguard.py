@@ -677,11 +677,10 @@ class Store(object):
             return "the anchor " + said.split()[0] + " is not lines of the file"
         said = p.get("check").strip()
         if said:
-            if "|" in said:
+            why, form = self.check_refusal(said, scopes)
+            if not why and "|" in said:
                 why, form = "check holds a |, which no taught format carries", \
                     PIPED
-            else:
-                why, form = self.check_refusal(said, scopes)
             if why and (not form or every_of(p)):
                 return why
             if why:
@@ -701,20 +700,22 @@ class Store(object):
         be; the same why when it is the check's form alone, "" when it is the
         tree): the check cannot run or reads a file outside the fact's
         scopes, or it does not hold on the place as it is now, which says
-        the claim may not be true."""
+        the claim may not be true. one that reads outside the scopes is run
+        all the same wherever it reads inside the place, and refuses the
+        fact when it does not hold."""
         check, why = facts.parse_check(said)
         if check is None:
             why = "the check cannot run: " + why
             return why, why
-        why = beyond(check, scopes)
-        if why:
-            return why, why
+        wide = beyond(check, scopes)
         held, why = facts.run_check(self.root, said, self.own)
+        if held is False:
+            return "the check does not hold on the tree as it is: " + why, ""
+        if wide:
+            return wide, wide
         if held is None:
             why = "the check cannot run: " + why[len("could not run: "):]
             return why, why
-        if not held:
-            return "the check does not hold on the tree as it is: " + why, ""
         return "", ""
 
     def conform(self, again=False):
