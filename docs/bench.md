@@ -326,13 +326,15 @@ each case is a folder:
       gold.md             the answer a careful reader writes for the record
       gold.yaml           what the program checks the answer on
 
-the five cases cover the changes a retro has to see through: one convention
+the six cases cover the changes a retro has to see through: one convention
 unified across several files with one module missed (`cross-file`), a
 responsibility moved to a new module with one caller left behind (`shift`),
 an option carried through layers that stopped one short (`layered`), an
 extraction with no change in behaviour that changed one (`refactor`), and a
 clean run that renamed a command-line flag and left the README line naming
-the old one (`renamed-flag`).
+the old one (`renamed-flag`), and a clean run whose lead ruled on a question
+and whose change meets the ruling, one clause of it still open
+(`ruled-open`).
 
 the prompt is the one a run hands the retro, built by the same code from the
 record, the docs that name what the diff changed among it. a case names the
@@ -342,7 +344,8 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
 - `cause`: that section's `why:` line holds every word `cause` lists
 - `change`: that section's `change:` line names the `change` file
 - `fact`: the FACTS block parses and has a fact or supersession of the gold's
-  kind with one of the gold's scopes, one the runner would write: held to a
+  kind with one of the gold's scopes, and its label when the gold names one,
+  one the runner would write: held to a
   copy of the case's `place/` and a record read from `record/steps.jsonl`
   (`docs/guardrails.md`, "the facts only the runner writes"), so a fact with
   evidence the record does not back, or no why, scores nothing
@@ -352,8 +355,9 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
   `place/` (`docs/writing-a-flow.md`, section 10), so an edit that quotes a
   flag the tree does not have scores nothing
 
-the four cases with a failed attempt are scored on the first four, and
-`renamed-flag` on the edit. a change sent to the wrong file scores 0
+the four cases with a failed attempt are scored on the first four,
+`renamed-flag` on the edit, and `ruled-open` on the fact, a `why` labelled
+`important`: the open clause does not make it an `investigation`. a change sent to the wrong file scores 0
 whatever else it got right. a case passes when every one of the k repeats
 scores all its items; the gold itself does on every case, and a test holds
 it there. each row keeps `reader`, None until a

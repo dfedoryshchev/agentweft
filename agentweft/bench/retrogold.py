@@ -11,13 +11,15 @@ program checks it on:
     fact:
       scope: [pkg/]               one of these among the fact's scopes
       kind: convention
+      label: important            when given, the fact's label (optional)
     edit:
       file: README.md             the doc the edit names
       now: [--file]               words its now holds, all
       after: [--output]           words its after holds, all, and none of now's
 
 a case names the items it is scored on: a run with a failed attempt the
-first four, a run that left a doc stale the edit. an answer scores one for
+first four, a run that left a doc stale the edit, a run whose lead ruled the
+fact. an answer scores one for
 each; the fact only when the runner would write it, and the edit only when
 the runner would make it, on the case's record. a change sent to the wrong
 file is worth nothing whatever else it got right, so it scores 0. a blind
@@ -214,6 +216,8 @@ def score(answer, gold, case):
                       for s in fields.get("scope") or []}
             if verb in ("fact", "supersede") and scopes & wanted \
                     and fields.get("kind") == gold["fact"]["kind"] \
+                    and ("label" not in gold["fact"]
+                         or fields.get("label") == gold["fact"]["label"]) \
                     and not refusal(case, verb, value, fields):
                 got["fact"] = 1
     if "edit" in gold:

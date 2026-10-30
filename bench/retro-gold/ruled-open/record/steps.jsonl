@@ -1,0 +1,4 @@
+{"seq": 1, "step": "worker.md", "outcome": "asked", "to": "planner.md", "gates": [], "handoff": {"did": ["read TASK.md 1-3 and logcount/filters.py"]}}
+{"seq": 2, "step": "planner.md", "outcome": "decided", "to": "worker.md", "gates": [], "handoff": {"did": ["ruled: a T before year 1 in UTC is valid and compared as an instant, never converted to UTC first"]}}
+{"seq": 3, "step": "worker.md", "outcome": "ok", "gates": [{"gate": "command", "ok": true, "detail": "exit 0"}], "handoff": {"did": ["logcount/filters.py: since compares aware datetimes in their own offset"], "doubts": ["whether comparing aware datetimes across offsets holds outside CPython is open"]}}
+{"seq": 4, "step": "reviewer.md", "outcome": "ok", "gates": [{"gate": "verdict", "ok": true, "detail": "VERDICT: ok"}], "handoff": {"did": ["read logcount/filters.py against the ruling of 2026-10-28 10:15"]}}

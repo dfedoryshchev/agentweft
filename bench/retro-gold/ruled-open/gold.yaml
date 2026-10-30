@@ -1,0 +1,7 @@
+run: build-feature-2026-10-28-101200
+flow: build-feature
+outcome: done
+fact:
+  scope: [logcount/filters.py]
+  kind: why
+  label: important

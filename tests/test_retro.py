@@ -115,6 +115,14 @@ def test_the_retro_is_taught_to_keep_an_open_question_and_a_pinning_test():
             " one of them") in skill
 
 
+def test_the_retro_is_taught_that_a_decisions_why_keeps_its_kind():
+    skill = " ".join(resolver.skill("retro").split())
+    assert ("the why of a decision or a ruling, and how the code as left meets"
+            " it, is a `why` or `decision` fact labelled `important`; a clause"
+            " that says some part of it is still open does not make it an"
+            " `investigation` fact") in skill
+
+
 @pytest.mark.parametrize("scope, claim, evidence", [
     ("pkg/parse.py", "whether a time outside the years 0001 to 9999 is valid is"
      " open: parse accepts it", 'TASK.md:2 "a time is YYYY-MM-DD"'),

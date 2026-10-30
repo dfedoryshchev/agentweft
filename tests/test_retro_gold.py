@@ -1,6 +1,7 @@
 """the retro held to a gold: four recorded runs, each with one failed attempt
 whose cause is in the record, a fifth whose renamed flag left a README line
-stale, and the answer a careful reader writes for each. the scorer checks
+stale, a sixth whose lead ruled on a question with a clause still open, and
+the answer a careful reader writes for each. the scorer checks
 the attempt, the cause, the file to change, the fact and the doc edit by
 program, and step mode asks the retro role alone on a record."""
 import json
@@ -15,19 +16,33 @@ from agentweft.providers.base import Usage
 from agentweft.runner import upkeep
 
 CASES = Path(__file__).resolve().parent.parent / "bench" / "retro-gold"
-NAMES = ["cross-file", "layered", "refactor", "renamed-flag", "shift"]
-FAILED = [n for n in NAMES if n != "renamed-flag"]
+NAMES = ["cross-file", "layered", "refactor", "renamed-flag", "ruled-open",
+         "shift"]
+FAILED = [n for n in NAMES if n not in ("renamed-flag", "ruled-open")]
 STALE = CASES / "renamed-flag"
+RULED = CASES / "ruled-open"
+WANTED = {"renamed-flag": {"edit"}, "ruled-open": {"fact"}}
 
 
-def test_the_five_cases_are_there_each_with_its_record_and_gold():
+def test_the_six_cases_are_there_each_with_its_record_and_gold():
     assert [c.name for c in retrogold.cases(CASES)] == NAMES
     for case in retrogold.cases(CASES):
         gold = retrogold.gold_of(case)
-        wanted = {"failed", "cause", "change", "fact"} \
-            if case.name in FAILED else {"edit"}
+        wanted = WANTED.get(case.name, {"failed", "cause", "change", "fact"})
         assert set(gold) >= wanted, case.name
         assert (case / "record" / "steps.jsonl").is_file(), case.name
+
+
+def test_a_ruled_decision_with_an_open_clause_scores_only_as_why_important():
+    gold = retrogold.gold_of(RULED)
+    assert gold["fact"] == {"scope": ["logcount/filters.py"], "kind": "why",
+                            "label": "important"}
+    answer = retrogold.answer_of(RULED)
+    assert "is open" in answer
+    assert retrogold.score(answer, gold, RULED)["fact"] == 1
+    relabelled = answer.replace("label: important", "label: investigation")
+    assert relabelled != answer
+    assert retrogold.score(relabelled, gold, RULED)["fact"] == 0
 
 
 def test_the_gold_itself_gets_full_marks():
@@ -69,7 +84,7 @@ def test_an_edit_that_keeps_the_old_flag_or_quotes_a_new_one_scores_nothing():
 
 def test_every_gold_fact_is_one_the_runner_would_write():
     for case in retrogold.cases(CASES):
-        if case.name not in FAILED:
+        if "fact" not in WANTED.get(case.name, {"fact"}):
             continue
         items, _ = upkeep.parse(retrogold.answer_of(case))
         found = [(v, val, f) for v, val, f in items if v == "fact"]
@@ -169,9 +184,9 @@ def test_step_mode_asks_the_retro_alone_on_each_record_and_scores_it(
     kept = json.loads(out.read_text(encoding="utf-8"))
     assert [(r["case"], r["k"], r["score"]) for r in kept["runs"]] == [
         (n, k, 4 if n in FAILED else 1) for n in NAMES for k in (1, 2)]
-    assert kept["summary"] == {"cases": 5, "passed": 5, "k": 2}
+    assert kept["summary"] == {"cases": 6, "passed": 6, "k": 2}
     said = capsys.readouterr().out
-    assert "5 of 5 cases passed at 2 of 2" in said
+    assert "6 of 6 cases passed at 2 of 2" in said
     assert "renamed-flag k1: 1 of 1" in said
 
 
@@ -184,7 +199,7 @@ def test_a_case_passes_only_when_every_repeat_does(tmp_path, capsys):
     assert bench.main(["--retro", str(folder), "--k", "2", "--out",
                        str(out)]) == 0
     assert json.loads(out.read_text(encoding="utf-8"))["summary"][
-        "passed"] == 4
+        "passed"] == 5
 
 
 class Counted(Provider):
@@ -211,10 +226,10 @@ def test_step_mode_keeps_the_tokens_and_seconds_of_every_answer(
     runs = json.loads(out.read_text(encoding="utf-8"))["runs"]
     assert [r["tokens"] for r in runs] == [
         {"counted": True, "input": 1300, "output": 200, "cache_read": 300,
-         "cache_creation": 0}] * 5
+         "cache_creation": 0}] * 6
     assert all(isinstance(r["seconds"], float) and r["seconds"] >= 0
                for r in runs)
-    assert [r["cost"] for r in runs] == [0.02] * 5
+    assert [r["cost"] for r in runs] == [0.02] * 6
     (tmp_path / "fake").mkdir()
     fake = a_set(tmp_path / "fake", [retrogold.answer_of(CASES / "layered")])
     assert bench.main(["--retro", str(fake), "--out", str(out)]) == 0
