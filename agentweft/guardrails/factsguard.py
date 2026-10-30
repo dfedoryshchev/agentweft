@@ -97,9 +97,15 @@ HOST = re.compile(
     r"|box|computer|shell|terminal|windows|macos|mac|linux|os)\b"
     r"|\b(?:antivirus|WinError \d+|Errno \d+)\b", re.I)
 # shells and toolchains a product may use or ship as well: a gate-issue that
-# names one is the run's host, a convention only with HOST beside it
+# names one is the run's host, a convention only with HOST beside it, a
+# second one, its quoting or a word that it failed
 SHELLS = re.compile(r"\b(?:git bash|powershell|cmd\.exe|msys2?|mingw(?:64)?"
                     r"|cygwin|python -c|here-?docs?)\b", re.I)
+FAILED = re.compile(r"\b(?:quot(?:e|es|ed|ing)|escap(?:e|es|ed|ing)"
+                    r"|br(?:oke|oken|eaks?)|fail(?:s|ed|ing)?|refus(?:es|ed)"
+                    r"|error(?:s|ed)|crash(?:es|ed)|mangl(?:es|ed)"
+                    r"|chok(?:es|ed)|h(?:ung|angs)|lost|loses|drop(?:s|ped)"
+                    r"|strip(?:s|ped)|ate|eats)\b", re.I)
 TOKEN = re.compile(
     r"(?:sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}"
     r"|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"
@@ -693,6 +699,12 @@ class Store(object):
                                               for w in words
                                               for key in ("claim", "why"))
                          if m), "")
+            said = p.get("claim") + "\n" + p.get("why")
+            shells = SHELLS.findall(said)
+            if not host and shells and (
+                    len(set(s.lower() for s in shells)) > 1
+                    or FAILED.search(said)):
+                host = shells[0]
             if host:
                 return ("a " + kind + " that names the run's own machine or"
                         " shell (" + host + ") is how this host behaved, not"

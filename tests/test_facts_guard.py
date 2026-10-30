@@ -287,6 +287,25 @@ def test_a_convention_that_names_a_shell_tool_with_the_run_s_host_is_refused(
     assert "(the step's machine)" in why
 
 
+@pytest.mark.parametrize("claim, why, shell", [
+    ("write a script file instead of python -c with nested quotes",
+     "python -c with nested quotes broke under Git Bash", "python -c"),
+    ("files are written with the Write tool", "a heredoc lost the"
+     " backslashes on the way to the file", "heredoc"),
+    ("tests are run as a script file", "PowerShell failed to start the"
+     " suite", "PowerShell"),
+    ("strings in tests are built with chr()", "cmd.exe ate the quoting",
+     "cmd.exe")])
+def test_a_convention_that_says_a_shell_or_its_quoting_broke_is_refused(
+        tmp_path, claim, why, shell):
+    store, record = a_store(tmp_path)
+    fact, said = store.add(proposal(kind="convention", claim=claim, why=why),
+                           record)
+    assert fact is None
+    assert said == ("a convention that names the run's own machine or shell"
+                    " (" + shell + ") " + HOSTED)
+
+
 def test_a_gate_issue_of_the_project_is_held_like_any_fact(tmp_path):
     store, record = a_store(tmp_path)
     fact, why = store.add(proposal(kind="gate-issue", scope=["pkg/"],

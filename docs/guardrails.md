@@ -522,7 +522,10 @@ is written; a refused one is not written and its reason is kept:
    ("this machine", "this shell", "the step's shell", "this Windows" and the
    like), antivirus or an OS error code is refused the same way, and so is a
    `gate-issue` that names a shell or toolchain (Git Bash, PowerShell,
-   `cmd.exe`, MSYS, MinGW, Cygwin, `python -c`, a heredoc). a convention may
+   `cmd.exe`, MSYS, MinGW, Cygwin, `python -c`, a heredoc), or a convention
+   that names one beside a second one, its quoting or escaping, or a word
+   that it failed (broke, failed, mangled, lost and the like: "`python -c`
+   with nested quotes broke under Git Bash"). a convention may otherwise
    name those for the product ("the release scripts are PowerShell modules",
    "paths use forward slashes on Windows and Linux", "the CLI starts no
    shell"): that is not the host, and it is written.
