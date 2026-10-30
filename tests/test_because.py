@@ -257,6 +257,19 @@ def test_the_ladder_takes_the_why_point_when_every_reason_led_to_nothing():
     assert "worker gave no reason that led to anything" in point["line"]
 
 
+def test_nothing_with_a_note_after_it_counts_as_nothing_on_the_ladder():
+    nothing = ("BECAUSE:\n"
+               "- the log format looked odd\n"
+               "  from: log.py:2\n"
+               "  led to: nothing (left the parser alone)\n"
+               "- the names looked long\n"
+               "  led to: none, they stay\n")
+    point = why_point("\n".join(built(handoff.parse(BLOCK.replace(
+        REASONS, nothing)))))
+    assert point["got"] == 0
+    assert "worker gave no reason that led to anything" in point["line"]
+
+
 def test_the_ladder_takes_the_why_point_for_a_reason_not_in_the_record():
     block = handoff.parse(BLOCK.replace(
         "led to: calc.py:4-6", "led to: calc.py:40-41"))

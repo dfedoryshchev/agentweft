@@ -512,7 +512,7 @@ DIFFED = [("git diff", "@@ -41,6 +41,10 @@ x\n y\n+  With x\n"),
 
 @pytest.mark.parametrize("saw", [
     "@@ -41,6 +41,10 @@ ... +  With x",
-    "@@ -41,6 ... y ... With x"])
+    "@@ -41,6 ... +41,10 @@ ... With x"])
 def test_a_saw_cut_with_dots_is_backed_by_its_pieces_in_order(saw):
     block = verified("- the diff only adds\n  cmd: git\n  saw: " + saw + "\n")
     [item] = handoff.back(block, DIFFED)["verified"]
@@ -679,6 +679,42 @@ def test_a_command_with_a_changed_token_beside_its_breaks_stays_unbacked(
     block = verified("- it prints\n  cmd: " + cited + "\n  saw: 1\n")
     [item] = handoff.back(block, LOOPED)["verified"]
     assert item["backed"] == "unbacked", item
+
+
+QUOTED_SEMI = [("grep -c 'a;b' notes.md", "3\n"),
+               ('python -c "import sys;print(1)"', "1\n")]
+
+
+@pytest.mark.parametrize("cited, state", [
+    ("grep -c 'a;b' notes.md", "backed"),
+    ("grep -c 'a; b' notes.md", "unbacked"),
+    ("grep -c 'a\nb' notes.md", "unbacked"),
+    ('python -c "import sys;print(1)"', "backed"),
+    ('python -c "import sys; print(1)"', "unbacked")])
+def test_a_semicolon_inside_a_quote_is_a_character_not_a_statement_break(
+        cited, state):
+    saw = "3" if "grep" in cited else "1"
+    block = verified("- it prints\n  cmd: " + cited.replace("\n", "\\n")
+                     + "\n  saw: " + saw + "\n")
+    block["verified"][0]["cmd"] = cited
+    [item] = handoff.back(block, QUOTED_SEMI)["verified"]
+    assert item["backed"] == state, item
+
+
+SPARSE = [("sh x", "rate: 10\nerror at line 7\nexit 2\n")]
+
+
+@pytest.mark.parametrize("saw, state", [
+    ("rate: 10 ... exit 2", "backed"),
+    ("error at ... exit 2", "backed"),
+    ("e ... 0", "unbacked"),
+    ("rate ... 7", "unbacked"),
+    ("rat ... exit 2", "unbacked"),
+    ("rate: 10 ... xit 2", "unbacked")])
+def test_a_saw_cut_with_dots_holds_whole_words_of_three_or_more(saw, state):
+    block = verified("- it ran\n  cmd: sh x\n  saw: " + saw + "\n")
+    [item] = handoff.back(block, SPARSE)["verified"]
+    assert item["backed"] == state, item
 
 
 def test_the_hand_runs_reviewer_is_asked_for_each_command_in_full():

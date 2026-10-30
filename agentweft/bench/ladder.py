@@ -20,7 +20,7 @@ import re
 from pathlib import Path
 
 from agentweft.runner import front, stops
-from agentweft.runner.summary import NOTHING as LED_NOWHERE, UNHELD
+from agentweft.runner.summary import NOTE, NOTHING as LED_NOWHERE, UNHELD
 
 FILE = "handoff.md"
 DONE, STOPPED, PARKED, FAILED = "done", "stopped", "parked", "failed"
@@ -361,8 +361,8 @@ def reasons(secs):
             held = out.setdefault(m.group(1), [])
             if not m.group(2):
                 led = m.group(3).strip()
-                held.append(NOTHING if led.lower().rstrip(".") in LED_NOWHERE
-                            else led != UNHELD)
+                held.append(NOTHING if NOTE.split(led)[0].lower().rstrip(".")
+                            in LED_NOWHERE else led != UNHELD)
     return out
 
 

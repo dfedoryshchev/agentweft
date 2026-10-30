@@ -20,8 +20,8 @@ and a `saw:` line per piece of what it printed. when the step's provider keeps
 a transcript, the claim is held to it: `backed` when the command and every
 excerpt are there, `unbacked` when one of them is not (the missing one is
 named; an excerpt written as `a / b` is held to those output lines,
-consecutive, one cut as `a ... b` to its pieces in that order in one call's
-output), `ran` when the command is there and no excerpt was given,
+consecutive, one cut as `a ... b` to its pieces, whole words of three
+characters or more, in that order in one call's output), `ran` when the command is there and no excerpt was given,
 `shortened` when the command is cut short with `...` and so cannot be held
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
 points at the command above in the words the prompt asks for, "same command
@@ -84,6 +84,9 @@ QUOTED = re.compile(r'"([^"]+)"|`([^`]+)`')
 HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
 BREAK = re.compile(r"\s*[;\n][\s;]*")
 ELIDED = re.compile(r"\s\.\.\.\s")
+# the least a piece of a saw cut with ` ... ` holds: shorter ones are found
+# in almost any output
+PIECE = 3
 # the tools that read or search, held as a call the way a Bash command is
 TOOLS = ("Read", "Grep", "Glob")
 WORD = re.compile(r"[^\s\"'`()]+")
@@ -338,14 +341,17 @@ def _quoted(text, quote):
 def breaks(text):
     """-> `text` with every line break and `;` between two statements, and
     the space around them, written as one `; `. a line break just inside a
-    quote, as in `python -c "<newline>import sys<newline>"`, is dropped."""
+    quote, as in `python -c "<newline>import sys<newline>"`, is dropped, and
+    a `;` inside a quote is a character of the quoted text, kept as it is."""
     chunks = BREAK.split((text or "").strip())
     seps = BREAK.findall((text or "").strip())
     out, quote = chunks[0], _quoted(chunks[0], None)
     for sep, chunk in zip(seps, chunks[1:]):
         inside = (quote is not None and ";" not in sep
                   and (out.endswith(quote) or chunk.startswith(quote)))
-        if chunk and not inside:
+        if quote is not None and ";" in sep:
+            out = out + sep
+        elif chunk and not inside:
             out = out + "; "
         out = out + chunk
         quote = _quoted(chunk, quote)
@@ -519,11 +525,13 @@ class Shown(object):
 
     def _in_order(self, excerpt):
         pieces = [norm(p) for p in ELIDED.split(excerpt)]
-        if len(pieces) < 2 or not all(pieces):
+        if len(pieces) < 2 or any(len(p) < PIECE for p in pieces):
             return False
         at = 0
         for piece in pieces:
             at = self.text.find(piece, at)
+            while at >= 0 and not _joins(self.text, piece, at):
+                at = self.text.find(piece, at + 1)
             if at < 0:
                 return False
             at += len(piece)
