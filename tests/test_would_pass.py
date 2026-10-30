@@ -164,6 +164,20 @@ def test_the_case_is_run_alone_and_only_a_failure_of_its_own_is_red(
     assert wouldpass.alone(run, []) is None
 
 
+def test_a_parametrized_case_with_a_failing_value_is_red_alone(tmp_path):
+    run = types.SimpleNamespace(fm=None, workdir=str(tmp_path))
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_a.py").write_text(NL.join([
+        "import pytest", "", "@pytest.mark.parametrize('v', [1, 2])",
+        "def test_x(v):", "    assert v == 1", "",
+        "@pytest.mark.parametrize('v', [1, 2])",
+        "def test_xy(v):", "    assert v > 0", ""]), encoding="utf-8")
+    assert wouldpass.alone(run, ["tests/test_a.py::test_x"]) is True
+    assert wouldpass.alone(run, ["tests/test_a.py::test_x[2]"]) is True
+    assert wouldpass.alone(run, ["tests/test_a.py::test_x[1]"]) is False
+    assert wouldpass.alone(run, ["tests/test_a.py::test_xy"]) is False
+
+
 def test_a_case_added_inside_a_test_the_writer_wrote_first_is_a_case(
         tmp_path):
     import subprocess

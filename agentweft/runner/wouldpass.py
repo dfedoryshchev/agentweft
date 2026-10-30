@@ -148,10 +148,10 @@ def held(case_for, results, alone=None):
 
 def alone(run, new, timeout=120):
     """-> whether a test in `new`, the ids the test writer added, fails when
-    they run on their own with the flow's pytest: True when one FAILED,
-    False when none did (a file that does not collect is an error, not the
-    case failing), None when they are not python test ids or could not
-    run."""
+    they run on their own with the flow's pytest: True when one FAILED, a
+    parametrized one by any of its values (`<id>[<value>]`), False when none
+    did (a file that does not collect is an error, not the case failing),
+    None when they are not python test ids or could not run."""
     from agentweft.guardrails import redorder, starttests
 
     if not new or not all(".py::" in i for i in new):
@@ -162,7 +162,8 @@ def alone(run, new, timeout=120):
                                     run.workdir, timeout)
     if found is None:
         return None
-    return any(found.get(i, ("",))[0] == "FAILED" for i in new)
+    return any(state[0] == "FAILED" for key, state in found.items()
+               for i in new if key == i or key.startswith(i + "["))
 
 
 def passes_already(coder, results):
