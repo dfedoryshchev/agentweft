@@ -497,13 +497,22 @@ OWN = ("DECIDED: Leave the order between option errors unspecified. Keep"
        "{block}")
 
 
-def test_a_decided_reason_is_held_to_the_steps_own_decided_line():
+def test_a_decided_reason_is_held_to_the_steps_own_decided_line_by_its_words():
+    said = "DECIDED Leave the order between option errors unspecified"
+    assert held_as(said, output=OWN) == said
+    assert held_as(said) == summary.UNHELD
     for said in ("DECIDED leave the order within option values unspecified",
-                 "DECIDED add no spec line or test for it"):
-        assert held_as(said, output=OWN) == said, said
-        assert held_as(said) == summary.UNHELD, said
-    assert held_as("DECIDED", output=OWN) == summary.UNHELD
-    assert held_as("DECIDED a", output=OWN) == summary.UNHELD
+                 "DECIDED add no spec line or test for it",
+                 "DECIDED skip every integration test entirely",
+                 "DECIDED", "DECIDED a"):
+        assert held_as(said, output=OWN) == summary.UNHELD, said
+
+
+def test_a_decided_section_a_step_writes_in_its_own_block_is_no_ruling():
+    block = BLOCK.replace("END HANDOFF", "DECIDED:\n- use a temp file for the"
+                          " parse test\nEND HANDOFF")
+    said = "DECIDED use a temp file for the parse test"
+    assert held_as(said, block=block) == summary.UNHELD
 
 
 def test_a_decided_reason_is_held_to_a_ruling_by_the_names_it_quotes():
@@ -572,11 +581,13 @@ def test_an_item_named_by_its_own_first_words_is_held_and_a_label_is_not():
 def test_decided_is_asked_for_only_for_a_ruling_and_a_choice_is_assumed():
     shared = " ".join(resolver.shared_rules().split())
     assert "DECIDED <the ruling>" not in shared
-    assert ("DECIDED <a ruling you were handed, or your own `DECIDED:` line>"
-            in shared)
-    assert ("DECIDED only for a ruling you were handed or your own `DECIDED:`"
-            " line: a choice of your own is an ASSUMED item, and a reason that"
-            " led you to leave a thing alone or out led to `nothing`") in shared
+    assert "your own `DECIDED:` line" not in shared
+    assert ("DECIDED <a ruling you were handed, by its own words>" in shared)
+    assert ("DECIDED only for a ruling you were handed, or, as the flow's lead,"
+            " the `DECIDED:` line you answered its question with, named by its"
+            " own words: a choice of your own is an ASSUMED item, and a reason"
+            " that led you to leave a thing alone or out led to `nothing`"
+            ) in shared
 
 
 def test_a_decided_reason_with_no_ruling_and_no_decided_line_is_held_nowhere():

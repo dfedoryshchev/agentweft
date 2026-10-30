@@ -499,7 +499,7 @@ with a block, after the work:
     BECAUSE:
     - <a reason that shaped the work>
       from: <file>:<line>, a test id, a gate, or own read
-      led to: a test id, <file>:<lines>, TRIED <its first words>, ASSUMED <its first words>, QUESTION, DECIDED <a ruling it was handed or its own DECIDED: line>, or nothing
+      led to: a test id, <file>:<lines>, TRIED <its first words>, ASSUMED <its first words>, QUESTION, DECIDED <a ruling it was handed, by its own words>, or nothing
     VERIFIED:
     - <claim>
       cmd: <the command it ran>
@@ -533,9 +533,11 @@ the claim above them, so a command keeps any pipe in it; a block written in
 the older one-line form, `<claim> | cmd: <command> | saw: <excerpt>`, is
 still read, split on the `cmd:` and `saw:` labels only, and a `saw:` that
 quotes two or more pieces matches each piece on its own. a `cmd:` that
-points at the command above it (`(same command as above)`, `(same
-command)`) is read as the nearest command above it in the section and
-matched as that; one cut short with `...` is marked `shortened` rather than
+points at the command above it with the words the prompt asks for, `same
+command as above` (in brackets or with a full stop or not), is read as the
+nearest command above it in the section and matched as that; any other
+short form (`same as above`, `(same command)`, `see above`) names nothing
+and is held as written; one cut short with `...` is marked `shortened` rather than
 `unbacked`, printed under "not verified" as "shortened, so not held to the
 record", and the prompt asks for every command in full, and for `same
 command as above`, those words alone, on a further claim the same call

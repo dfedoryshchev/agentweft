@@ -24,8 +24,8 @@ consecutive, one cut as `a ... b` to its pieces in that order in one call's
 output), `ran` when the command is there and no excerpt was given,
 `shortened` when the command is cut short with `...` and so cannot be held
 to anything, `unchecked` when there is no transcript to read. a `cmd:` that
-points at the command above ("same command as above") is read as the nearest
-one above it. a script fed on stdin is held to its body: every statement
+points at the command above in the words the prompt asks for, "same command
+as above" and no others, is read as the nearest one above it. a script fed on stdin is held to its body: every statement
 the `cmd:` cites must be in one such command's body. a line break in a
 command and the `; ` a step writes for it are one statement break. a Read,
 Grep or Glob call backs a `cmd:` that names the tool, the pattern searched
@@ -75,9 +75,7 @@ ASSUMING = re.compile(r"^(why|if wrong)\s*:\s*(.*)$", re.I)
 CITED = re.compile(r"^(from|led to)\s*:\s*(.*)$", re.I)
 OLD_CITED = re.compile(r"\s*\|\s*(from|led to)\s*:\s*", re.I)
 FOUND = re.compile(r"^(fixed|test)\s*:\s*(.*)$", re.I)
-ABOVE = re.compile(r"^\(?\s*(?:the\s+)?(?:same(?:\s+(?:command|cmd))?"
-                   r"(?:\s+as\s+(?:above|before|the\s+one\s+above))?"
-                   r"|as\s+above|see\s+above)\s*\.?\s*\)?$", re.I)
+ABOVE = re.compile(r"^\(?\s*same\s+command\s+as\s+above\s*\.?\s*\)?$", re.I)
 # `./...` and `a...b` are whole commands (go packages, git ranges); dots that
 # stand alone or close a quote are a command cut short
 CUT = re.compile(chr(0x2026) + r"""|(?:^|[\s"'(\[<])\.\.\.(?=$|[\s"')\]>])""")

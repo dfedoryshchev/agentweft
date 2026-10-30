@@ -536,8 +536,25 @@ RAN = [("cd /w && python -m pytest -q tests/test_calc.py",
         "5 passed in 0.1s\n0 warnings")]
 
 
+@pytest.mark.parametrize("pointer", ["(same command)", "same as above",
+                                     "(same as above)", "as above",
+                                     "see above", "same cmd as above",
+                                     "the same command as before"])
+def test_a_pointer_in_other_words_than_the_prompt_asks_for_names_nothing(
+        pointer):
+    block = verified("- the suite is green\n"
+                     "  cmd: python -m pytest -q tests/test_calc.py\n"
+                     "  saw: 5 passed\n"
+                     "- nothing warns\n"
+                     "  cmd: " + pointer + "\n"
+                     "  saw: 0 warnings\n")
+    first, second = handoff.back(block, RAN)["verified"]
+    assert second["cmd"] == pointer
+    assert (first["backed"], second["backed"]) == ("backed", "unbacked")
+
+
 @pytest.mark.parametrize("pointer", ["(same command as above)",
-                                     "(same command)", "same as above",
+                                     "same command as above",
                                      "Same command as above."])
 def test_a_verified_line_pointing_at_the_command_above_is_matched_as_it(
         pointer):

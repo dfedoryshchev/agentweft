@@ -932,8 +932,9 @@ def held_at(said, block, record, step=None):
     """-> where the record holds what one `led to:` names, "" when it does
     not: `nothing` always (LED_NOWHERE); a TRIED or ASSUMED item among the
     block's own, by its words; a QUESTION the block asks, bare or by its
-    words; a DECIDED one among the rulings on record or the step's own
-    DECIDED lines, by its words, or the one such line the step gave; the
+    words; a DECIDED one among the rulings on record or the `DECIDED:` line
+    the step answered with (a lead's answer), by its words, never a DECIDED
+    section a step wrote into its own block, which is its own choice; the
     step's own WOULD PASS and CATCH lines, by name; a `<file>:<lines>` in
     the diff, its lines among the lines the change covers; a test id the red
     proof or a gate holds, or one in a test file the red proof holds with no
@@ -959,13 +960,7 @@ def held_at(said, block, record, step=None):
             return "a QUESTION of its handoff" if _among(
                 rest, [q["question"] for q in block.get("questions") or []]
                 + (block.get("other") or {}).get("NEEDS", [])) else ""
-        own = []
-        for d in [step.get("ruled")] + (block.get("other") or {}).get(
-                "DECIDED", []):
-            if d and handoff.norm(d) not in [handoff.norm(o) for o in own]:
-                own.append(d)
-        if len(own) == 1:
-            return "its DECIDED line"
+        own = [step["ruled"]] if step.get("ruled") else []
         n = _which(rest, [d.decided + " - " + d.why for d in record["decided"]]
                    + own)
         if n is None:
