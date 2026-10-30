@@ -130,7 +130,12 @@ and source, and, when it is live, its anchored lines quoted from the place
 as it is now (the same rules for what may be quoted). live ones come first,
 `important` ones first among them, then the most honoured, then the nearest;
 a stale one comes after them marked `possibly stale` with why and the day.
-they are capped at 2000 characters inside the brief's 8000; the ones that do
+they are handed under three headers, by what they are: the project's way to
+hold to (a decision, a convention, a why), what is open on those files (a
+fact labelled `investigation`, an open question no ruling settled, or
+`pins`, tests that pass without the change they came with), handed as open
+and never as a rule, and known trouble (a defect left as it was, a gate that
+could not do its job), each in that order. they are capped at 2000 characters inside the brief's 8000; the ones that do
 not fit are named by id and the file they are in, for the step to open. a
 place with no facts gets the brief it got before.
 

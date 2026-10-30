@@ -38,6 +38,14 @@ FACTS_HEAD = ("facts for the files you are handed, kept by the runner across"
               " runs: what this project decided about them and why. hold to"
               " them; a change that departs from one says so and why on a"
               " DECIDED or DOUBTS line.")
+OPEN_HEAD = ("open on these files, kept by the runner across runs: questions no"
+             " ruling has settled and tests that pass without the change they"
+             " came with. not a rule to hold to: do not settle one quietly; an"
+             " answer of yours is a DOUBTS line that names it.")
+TROUBLE_HEAD = ("known trouble on these files, kept by the runner across runs:"
+                " defects found beside a change and left as they were, and"
+                " gates that could not do their job here. not a rule to hold"
+                " to.")
 NONE_YET = "(the brief is empty: no step before you handed one over in this run)"
 
 CREDENTIAL = re.compile(r"^(\.env(\..*)?|\.netrc|\.pypirc|id_[^.]+"
@@ -58,6 +66,22 @@ def where_of(item):
     if last < first:
         first, last = last, first
     return m.group("path"), first, last, m.group("note").strip()
+
+
+HEADS = (FACTS_HEAD, OPEN_HEAD, TROUBLE_HEAD)
+
+
+def head_of(fact):
+    """-> the header a fact is handed under: an open question or a pinning
+    note is open, a defect or a gate issue is known trouble, the rest is
+    the project's way to hold to."""
+    from agentweft.orchestrate import facts
+
+    if fact.label in ("investigation", facts.PINS):
+        return OPEN_HEAD
+    if fact.kind in ("defect", "gate-issue"):
+        return TROUBLE_HEAD
+    return FACTS_HEAD
 
 
 def named_in(items):
@@ -227,11 +251,18 @@ class Brief(object):
 
     def kept_facts(self, handed):
         """-> the lines of the facts section for `handed`, under FACTS_CAP,
-        [] for none. what does not fit is named with the file it is in."""
+        [] for none: the facts to hold to under FACTS_HEAD, the open
+        questions and pinning notes under OPEN_HEAD, the defects and gate
+        issues under TROUBLE_HEAD, each in the order handed. what does not
+        fit is named with the file it is in."""
         shown, left = self.fit(handed)
         if not shown and not left:
             return []
-        out = [FACTS_HEAD] + [piece for _, piece in shown]
+        out = []
+        for head in HEADS:
+            pieces = [piece for fact, piece in shown if head_of(fact) == head]
+            if pieces:
+                out.extend(([""] if out else []) + [head] + pieces)
         if left:
             out.append(str(len(left)) + " more left out at the size cap; open"
                        " them yourself if you need them: " + ", ".join(
@@ -241,15 +272,18 @@ class Brief(object):
 
     def fit(self, handed):
         """-> ([(fact, its text)] that fit under FACTS_CAP, [the facts that
-        do not])."""
-        shown, left, size = [], [], len(FACTS_HEAD)
+        do not]), each header counted once it is used."""
+        shown, left, size, heads = [], [], 0, set()
         for fact in handed or ():
             piece = self.fact_chunk(fact)
-            if size + len(piece) + 1 > FACTS_CAP:
+            head = head_of(fact)
+            extra = len(piece) + 1 + (0 if head in heads else len(head) + 2)
+            if size + extra > FACTS_CAP:
                 left.append(fact)
                 continue
             shown.append((fact, piece))
-            size = size + len(piece) + 1
+            heads.add(head)
+            size = size + extra
         return shown, left
 
     def facts_file(self, fact):

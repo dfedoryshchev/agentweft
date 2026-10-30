@@ -200,6 +200,57 @@ def test_a_resumed_leg_does_not_take_the_runners_counts_for_the_work(
     assert "the place holds its change to" not in page
 
 
+def a_fact(id, kind, label, claim):
+    lines = ["## " + id + " live", "scope: pkg/parse.py", "kind: " + kind]
+    if label:
+        lines.append("label: " + label)
+    lines.extend(["claim: " + claim, "why: a run showed it"])
+    _, [fact] = facts.parse(NL.join(lines) + NL)
+    return fact
+
+
+KINDS_HANDED = [
+    a_fact("F-0001", "decision", "important", "parse raises, never prints"),
+    a_fact("F-0002", "why", "investigation",
+           "whether a blank line is an error is open"),
+    a_fact("F-0003", "why", "pins", "test_blank passes without the change"),
+    a_fact("F-0004", "defect", "", "parse drops a trailing tab"),
+    a_fact("F-0005", "convention", "", "errors are raised as ParseError"),
+    a_fact("F-0006", "gate-issue", "", "the suite times out on pkg"),
+]
+
+
+def headed(lines):
+    """-> {header line: [the fact ids under it]} of a facts section."""
+    out, now = {}, None
+    for line in lines:
+        if line.startswith("- F-"):
+            out[now].append(line.split(" ")[1])
+        elif line and not line.startswith(" "):
+            now = line
+            out[now] = []
+    return out
+
+
+def test_an_open_question_and_a_pin_are_handed_as_open_never_as_rules(
+        tmp_path):
+    notes = brief.Brief(tmp_path, ["planner.md"])
+    said = headed(notes.kept_facts(KINDS_HANDED))
+    assert said == {brief.FACTS_HEAD: ["F-0001", "F-0005"],
+                    brief.OPEN_HEAD: ["F-0002", "F-0003"],
+                    brief.TROUBLE_HEAD: ["F-0004", "F-0006"]}
+    assert "hold to them" in brief.FACTS_HEAD
+    for head in (brief.OPEN_HEAD, brief.TROUBLE_HEAD):
+        assert "hold to them" not in head and "not a rule" in head
+
+
+def test_with_only_open_facts_nothing_says_hold_to_them(tmp_path):
+    notes = brief.Brief(tmp_path, ["planner.md"])
+    text = "\n".join(notes.kept_facts(KINDS_HANDED[1:3]))
+    assert "hold to them" not in text
+    assert text.startswith(brief.OPEN_HEAD)
+
+
 def test_a_place_with_no_facts_gets_the_brief_it_got_before(tmp_path):
     notes = brief.Brief(tmp_path, ["planner.md", "worker.md"])
     assert notes.text("planner.md") == ""
