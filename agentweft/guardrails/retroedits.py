@@ -16,7 +16,10 @@ runner writes it into the working tree, unstaged, only when:
 - every name the `after:` words quote, a `code span` or a `--flag`, is in a
   file of the tree as left that is not a doc, or is a command a gate of this
   run ran; an `evidence:`, when one is given, holds as a fact's does;
-- no field looks like a secret (`factsguard.secret_in`);
+- no field looks like a secret (`factsguard.secret_in`), and the `after:`
+  words name no path on the machine the run ran on (`factsguard.machine_path`:
+  a drive, a share, a home folder or a file-system root): they go into the
+  repo, read on every other machine;
 - the run has not made `edits_per_run` of them and of guards already.
 
 `CLAUDE.md`, `AGENTS.md`, `.claude/` and `rules/` may be edited, and are
@@ -220,6 +223,9 @@ def edit_refusal(root, rel, fields, record, tree, own=None, loose=()):
         what = factsguard.secret_in(fields.get(key) or "")
         if what:
             return "it looks like a secret: " + what + " in " + key, None
+    said = factsguard.on_machine(fields.get("after") or "", "after")
+    if said:
+        return said, None
     now, after = fields.get("now") or "", fields.get("after") or ""
     if not now.strip():
         return "it has no now", None
@@ -273,6 +279,12 @@ def guard_refusal(root, rel, fields, own=None):
     what = factsguard.secret_in("\n".join(fields.get("code") or []))
     if what:
         return "it looks like a secret: " + what + " in code"
+    for key, text in (("what", fields.get("what")),
+                      ("where", fields.get("where")),
+                      ("code", "\n".join(fields.get("code") or []))):
+        said = factsguard.on_machine(text or "", key)
+        if said:
+            return said
     if not is_test(rel) or not rel.endswith(".py") \
             or not TEST_MODULE.search(PurePosixPath(rel).name):
         return (rel + " is not a python test module (test_*.py or *_test.py"

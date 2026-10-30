@@ -467,6 +467,25 @@ def test_an_edit_is_refused_on_a_spec_a_test_a_secret_and_the_store(
     assert said["pkg/a.py"].startswith("pkg/a.py is not a doc")
 
 
+def test_an_edit_or_a_guard_that_holds_an_absolute_path_is_refused(tmp_path):
+    from agentweft.guardrails import retroedits
+
+    # built from parts: the repo's own leak gate refuses a machine path
+    # written out whole
+    tool, home = "D" + ":\\work\\tool.exe", "/" + "home/me/pkg/a.py"
+    put(tmp_path, "README.md", "# pkg" + NL + "run the tool." + NL)
+    why = retroedits.edit_refusal(
+        tmp_path, "README.md", {"now": "run the tool.",
+                                "after": "run " + tool, "because": "z"},
+        factsguard.Record(tmp_path), retroedits.Tree(tmp_path))[0]
+    assert why == ("it names a path on the machine it ran on (" + tool
+                   + ") in after")
+    assert retroedits.guard_refusal(tmp_path, "tests/test_g.py", {
+        "what": "x", "where": "tests/test_g.py",
+        "code": ["def test_g():", "    open('" + home + "')"]}) == (
+        "it names a path on the machine it ran on (" + home + ") in code")
+
+
 def refusal_of(tmp_path, rel, now, after):
     from agentweft.guardrails import retroedits
 

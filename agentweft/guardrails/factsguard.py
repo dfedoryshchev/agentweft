@@ -104,6 +104,14 @@ TOKEN = re.compile(
     r"|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\."
     r"|-----BEGIN [A-Z ]*PRIVATE KEY-----)")
 RANDOM = re.compile(r"[A-Za-z0-9+=_-]{32,}")
+# a path on the machine a run ran on: a drive, a share, a home folder or one of
+# the roots a file system has and a URL or a request path does not start at
+MACHINE_PATH = re.compile(
+    r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/][^\s`'\"()]*"
+    r"|(?<![\w.~/-])/(?:home|Users|tmp|var|etc|opt|usr|root|mnt|srv|private"
+    r"|Volumes|media|run)/[^\s`'\"()]*"
+    r"|(?<![\w])~[\\/][^\s`'\"()]*"
+    r"|(?<![\w\\])\\\\[A-Za-z][\w.$-]+\\[\w.$-]+[^\s`'\"()]*")
 WORD = re.compile(r"[^\s`'\"(),;<>]+")
 # the fields a proposal may carry, in the order an entry is written
 FIELDS = ("scope", "kind", "label", "claim", "why", "source", "anchor",
@@ -281,6 +289,22 @@ def secret_in(text):
                 and re.search(r"\d", run) and entropy(run) >= 4.0:
             return "a long random string"
     return ""
+
+
+def machine_path(text):
+    """-> the first path in `text` that is on the machine a run ran on, ""
+    for none: what a fact, a doc edit or a guard would carry into the repo
+    from one machine to every other."""
+    m = MACHINE_PATH.search(text or "")
+    return m.group(0) if m else ""
+
+
+def on_machine(text, key):
+    """-> why a field `key` holding `text` is refused for a path on the
+    machine, "" when it holds none."""
+    path = machine_path(text)
+    return ("it names a path on the machine it ran on (" + path + ") in "
+            + key) if path else ""
 
 
 def norm_claim(text):
@@ -634,6 +658,10 @@ class Store(object):
             what = secret_in(text)
             if what:
                 return "it looks like a secret: " + what + " in " + key
+        for key in ("claim", "why", "source"):
+            said = on_machine(p.get(key), key)
+            if said:
+                return said
         claim, why = p.get("claim").strip(), p.get("why").strip()
         if not claim:
             return "it has no claim"
@@ -1015,6 +1043,9 @@ class Store(object):
                 what = secret_in(text)
                 if what:
                     return "it looks like a secret: " + what
+                if machine_path(text):
+                    return ("it names a path on the machine it ran on ("
+                            + machine_path(text) + ")")
             path = facts.folder(self.root) / facts.PROPOSED
             path.parent.mkdir(parents=True, exist_ok=True)
             head = [] if path.is_file() else [

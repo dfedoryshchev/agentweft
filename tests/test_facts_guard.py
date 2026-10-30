@@ -8,6 +8,8 @@ no secret, and a run writes at most a few new ones."""
 import json
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft import providers
 from agentweft.guardrails import shellwrite
@@ -132,6 +134,56 @@ def test_a_proposal_naming_a_credential_file_is_refused(tmp_path):
                                        " start"), record)
     assert fact is None
     assert why == "it looks like a secret: a credential file in why"
+
+
+# built from parts: the repo's own leak gate refuses a machine path written
+# out whole, and these are the shapes the store must refuse
+DRIVE_D, DRIVE_C, HOME, TMP = "D" + ":", "C" + ":", "/" + "home", "/" + "tmp"
+
+
+@pytest.mark.parametrize("key, said, path", [
+    ("claim", "parse reads " + DRIVE_D + "/work/place/pkg/a.py line by line",
+     DRIVE_D + "/work"),
+    ("why", "the run's copy at " + DRIVE_C + "\\" + "Users\\me\\pkg broke it",
+     DRIVE_C + "\\" + "Users"),
+    ("why", "the cache under " + HOME + "/me/.cache/pkg went stale",
+     HOME + "/me"),
+    ("claim", "the config at ~/pkg/settings.toml is read first", "~/pkg"),
+    ("why", "the share \\\\build01\\drops\\pkg held the old copy",
+     "\\\\build01"),
+    ("source", 'seq 2 worker.md; evidence: pkg/a.py:5 "raise ValueError"'
+     " in " + TMP + "/run/pkg/a.py", TMP + "/run")])
+def test_a_fact_field_that_holds_an_absolute_path_is_refused(
+        tmp_path, key, said, path):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(proposal(**{key: said}), record)
+    assert fact is None
+    assert why.startswith("it names a path on the machine it ran on ("
+                          + path), why
+    assert why.endswith(" in " + key)
+    assert facts.read(tmp_path) == []
+
+
+@pytest.mark.parametrize("claim", [
+    "parse reads the request path /index.html as given",
+    "see https://example.com/docs/a for the format",
+    "TASK.md:3 / TASK.md:9 both say it",
+    'a line split on "\\\\r\\\\n" keeps its last field',
+    "a path like pkg/a.py:5 is relative"])
+def test_a_url_a_request_path_or_a_relative_one_is_no_machine_path(
+        tmp_path, claim):
+    store, record = a_store(tmp_path)
+    fact, why = store.add(proposal(claim=claim), record)
+    assert why == "" and fact is not None
+
+
+def test_a_proposal_line_that_holds_an_absolute_path_is_never_kept(tmp_path):
+    store, _ = a_store(tmp_path)
+    assert store.propose(["## edit README.md (r)",
+                          "after: run " + DRIVE_D + "/work/tool.exe"]
+                         ).startswith(
+        "it names a path on the machine it ran on")
+    assert not (tmp_path / "facts" / "PROPOSED.md").exists()
 
 
 MACHINE = ("the machine's state as the run went, not the project's: a later"

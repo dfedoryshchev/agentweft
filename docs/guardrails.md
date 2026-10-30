@@ -499,7 +499,15 @@ is written; a refused one is not written and its reason is kept:
    `AKIA...`, a private key block, a JWT), a file that holds one by its name
    (the brief's credential names and the police check's), or a string of 32
    or more letters and digits that mixes cases and reads as random. the
-   reason names the field and the kind, never the value.
+   reason names the field and the kind, never the value. a claim, why or
+   source that names a path on the machine the run ran on is refused the
+   same way (`it names a path on the machine it ran on (<path>) in <field>`):
+   one that starts at a drive letter, at a share's two backslashes, at a
+   home folder's tilde, or at a file-system root such as home, Users, tmp
+   or var, never a URL or a request path such as `/index.html`. the store lives in
+   the repo, read on every other machine; so does a doc edit's `after:` and a
+   guard's `code:`, `what:` and `where:`, held to the same rule, and no line
+   of `facts/PROPOSED.md` is written that holds one.
 2. a one-line claim and a why, no `|` in any field, a kind from `decision`,
    `convention`, `why`, `defect`, `gate-issue`, a label from `important`,
    `wip`, `investigation`, `pins` or none. a `gate-issue` that names an OS error code
