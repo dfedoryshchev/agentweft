@@ -30,7 +30,8 @@ the `cmd:` cites must be in one such command's body. a line break in a
 command and the `; ` a step writes for it are one statement break. a Read,
 Grep or Glob call backs a `cmd:` that names the tool, the pattern searched
 for and the file read or searched, whole or by its tail; a `Read <file>` with
-one path is also backed by a shell command that printed that file. the
+one path is also backed by a shell command that printed that file, each
+excerpt held to that call's output and to the file itself. the
 model's word for what it ran is never taken on its own. a claim that quotes
 a file instead, `<file>:<line> "<the line>"`, is held to that line as the
 run found it. each claim keeps `by`, what held it:
@@ -431,16 +432,63 @@ def by_tool(cited, call):
     return not parts[2] or _names(cited, parts[2])
 
 
-def by_shell_read(cited, cmd):
-    """whether `cited`, `Read <file>` with one path, names a file the shell
-    command `cmd` printed with cat, head, tail or `sed -n`, whole or by its
-    tail. a read whose output goes to a file printed nothing."""
+def shell_read(cited, cmd):
+    """-> the paths of the files the shell command `cmd` printed with cat,
+    head, tail or `sed -n` that `cited`, `Read <file>` with one path, names
+    whole or by its tail, each from the folder a `cd` before it went to; []
+    for none. a read whose output goes to a file printed nothing, and a
+    heredoc's body is text the call wrote, not a command it ran."""
     m = READ_ONE.match((cited or "").strip())
     if not m or cmd.split("\t")[0] in TOOLS:
+        return []
+    out, base = [], ""
+    for part in SEGMENT.split(_unbodied(cmd or "")):
+        words = part.split()
+        if len(words) == 2 and words[0] == "cd":
+            base = _joined(base, words[1].strip("\"'"))
+            continue
+        if TO_FILE.search(part):
+            continue
+        out.extend(p for p in (_joined(base, path)
+                               for path, _ in _shell_reads(part))
+                   if _names(m.group(1), p))
+    return out
+
+
+def _joined(base, path):
+    path = path.replace("\\", "/")
+    if not base or path.startswith("/") or re.match(r"^[A-Za-z]:/", path):
+        return path
+    return base.rstrip("/") + "/" + path
+
+
+def _unbodied(cmd):
+    """-> `cmd` without the body lines of each heredoc in it."""
+    out, word = [], None
+    for line in cmd.split("\n"):
+        if word is not None:
+            if line.strip() == word:
+                word = None
+            continue
+        out.append(line)
+        m = HEREDOC.search(line)
+        if m:
+            word = m.group(2)
+    return "\n".join(out)
+
+
+def in_file(excerpt, paths, workdir, start=None):
+    """whether one of the files at `paths` shows `excerpt`, as the run found
+    it or as it is now. with no place to read them from, none does."""
+    if workdir is None:
         return False
-    return any(_names(m.group(1), path)
-               for part in SEGMENT.split(cmd or "") if not TO_FILE.search(part)
-               for path, _ in _shell_reads(part))
+    from .ruling import as_found
+
+    for path in paths:
+        for text in (as_found(workdir, path, start), as_found(workdir, path)):
+            if text is not None and Shown(text).shows(excerpt):
+                return True
+    return False
 
 
 def _joins(text, piece, at):
@@ -499,9 +547,13 @@ class Shown(object):
         return False
 
 
-def back(block, calls):
+def back(block, calls, workdir=None, start=None):
     """mark every VERIFIED claim against the (command, output) pairs the
-    step's transcript holds. `calls` None means there is no transcript."""
+    step's transcript holds. `calls` None means there is no transcript. a
+    `Read <file>` held by a shell call is held to that file too: each excerpt
+    is in the call's output and in the file under `workdir` as the run found
+    it (`start`) or as it is now, so a line another file, an echo or a pipe
+    printed in the same call never backs it."""
     for item in block.get("verified", []):
         if calls is None:
             item["backed"], item["why"] = "unchecked", "no transcript for this step"
@@ -520,11 +572,13 @@ def back(block, calls):
             kind = (BY_COMMAND if want and want in norm(cmd) else
                     BY_STDIN if want and by_stdin(item["cmd"], cmd) else
                     BY_COMMAND if want and by_breaks(item["cmd"], cmd) else
-                    BY_READ if want and (by_tool(item["cmd"], cmd)
-                                         or by_shell_read(item["cmd"], cmd))
-                    else None)
+                    BY_READ if want and by_tool(item["cmd"], cmd) else None)
+            files = None
+            if kind is None and want:
+                files = shell_read(item["cmd"], cmd) or None
+                kind = BY_READ if files else None
             if kind:
-                ran.append(out)
+                ran.append((Shown(out), files))
                 kinds.append(kind)
         if not ran:
             item["backed"] = "unbacked"
@@ -534,11 +588,16 @@ def back(block, calls):
         if not item["saw"]:
             item["backed"], item["why"] = "ran", "nothing of its output quoted"
             continue
-        shown = [Shown(out) for out in ran]
         missing = [e for e in item.get("excerpts") or excerpts(item["saw"])
-                   if not any(out.shows(e) for out in shown)]
+                   if not any(out.shows(e) and (files is None or in_file(
+                       e, files, workdir, start)) for out, files in ran)]
+        printed = [e for e in missing if any(out.shows(e) for out, _ in ran)]
         if not missing:
             item["backed"], item["why"] = "backed", ""
+        elif printed == missing:
+            item["backed"] = "unbacked"
+            item["why"] = ("the call printed it, but the file it read does not"
+                           " show " + "; ".join(missing))
         else:
             item["backed"] = "unbacked"
             item["why"] = ("the command ran, but its output does not show "

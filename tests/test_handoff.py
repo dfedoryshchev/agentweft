@@ -238,19 +238,58 @@ def test_a_claim_no_read_or_search_call_holds_stays_unbacked(
 
 
 PRINTED = "  14\t    if not m or int(m.group(1)) < 1:\n  15\t        raise\n"
+DATES = "def parse_month(s):\n    if not m or int(m.group(1)) < 1:\n        raise\n"
+
+
+def a_place(tmp_path):
+    for rel, text in (("place/dates.py", DATES),
+                      ("place/cli.py", "LIMIT = 10\nSECRET_MODE = True\n")):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text(text, encoding="utf-8", newline="\n")
+    return tmp_path
 
 
 @pytest.mark.parametrize("command, cited", [
     ("cat -n place/dates.py place/cli.py", "Read place/dates.py"),
     ("cat -n place/dates.py place/cli.py", "Read dates.py"),
-    ("cd /w && cat /w/place/dates.py | head -40", "Read place/dates.py"),
+    ("cd {w} && cat {w}/place/dates.py | head -40", "Read place/dates.py"),
+    ("cd {w}/place && cat -n dates.py", "Read place/dates.py"),
     ("sed -n 10,20p place/dates.py", "Read `place/dates.py`")])
 def test_a_read_line_is_backed_by_the_shell_call_that_printed_that_file(
-        command, cited):
+        tmp_path, command, cited):
+    place = a_place(tmp_path)
+    command = command.format(w=str(place).replace("\\", "/"))
     block = verified("- the month is checked\n  cmd: " + cited
                      + "\n  saw: if not m or int(m.group(1)) < 1\n")
-    [item] = handoff.back(block, [(command, PRINTED)])["verified"]
+    [item] = handoff.back(block, [(command, PRINTED)], place)["verified"]
     assert (item["backed"], item["by"]) == ("backed", "read"), item
+
+
+@pytest.mark.parametrize("command, printed, saw", [
+    ("cat -n place/dates.py place/cli.py", PRINTED + "SECRET_MODE = True\n",
+     "SECRET_MODE = True"),
+    ("cat place/dates.py; echo 'LIMIT = 99'", PRINTED + "LIMIT = 99\n",
+     "LIMIT = 99"),
+    ("cat place/dates.py | sed 's/< 1/< 0/'", PRINTED.replace("< 1", "< 0"),
+     "int(m.group(1)) < 0"),
+    ("cat > t.sh <<'EOF'\ncat place/dates.py\nEOF\necho 'LIMIT = 99'",
+     "LIMIT = 99\n", "LIMIT = 99")])
+def test_a_read_line_is_held_to_the_file_it_names_not_the_rest_of_the_call(
+        tmp_path, command, printed, saw):
+    place = a_place(tmp_path)
+    block = verified("- the month is checked\n  cmd: Read place/dates.py\n"
+                     "  saw: " + saw + "\n")
+    for where in (place, None):
+        [item] = handoff.back(block, [(command, printed)], where)["verified"]
+        assert item["backed"] == "unbacked", (where, item)
+
+
+def test_a_read_line_with_no_place_to_hold_its_file_to_stays_unbacked():
+    block = verified("- the month is checked\n  cmd: Read place/dates.py\n"
+                     "  saw: if not m or int(m.group(1)) < 1\n")
+    [item] = handoff.back(block, [("cat -n place/dates.py", PRINTED)])[
+        "verified"]
+    assert item["backed"] == "unbacked", item
 
 
 @pytest.mark.parametrize("command, cited", [

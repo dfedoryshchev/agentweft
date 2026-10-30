@@ -1052,10 +1052,12 @@ class Run(object):
                     + "\n\n" + (rest[1].strip() if len(rest) > 1 else "")
                     ).rstrip() + "\n"
             self.produced[step] = text
+        start = getattr(self, "start", None)
         block = to_files(back(parse(text),
                               transcript(trace.last(tried, "session"),
-                                         tried.continued)),
-                         self.workdir, getattr(self, "start", None))
+                                         tried.continued),
+                              self.workdir, start),
+                         self.workdir, start)
         self.keep(role, block)
         if notes is not None:
             notes.add(step, task, role, block)
