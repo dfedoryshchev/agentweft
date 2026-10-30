@@ -494,6 +494,33 @@ def refusal_of(tmp_path, rel, now, after):
         factsguard.Record(tmp_path), retroedits.Tree(tmp_path))[0]
 
 
+@pytest.mark.parametrize("repo", ["none", "no commit", "committed"])
+def test_an_edit_is_refused_where_no_start_commit_holds_a_copy(tmp_path,
+                                                               repo):
+    from agentweft.guardrails import retroedits
+
+    if repo != "none":
+        git(tmp_path, "init", "-q")
+    put(tmp_path, "NOTES.md", "the limit is 10" + NL)
+    put(tmp_path, "pkg/a.py", "LIMIT = 10" + NL)
+    if repo == "committed":
+        git(tmp_path, "add", ".")
+        git(tmp_path, "-c", "user.email=t@t", "-c", "user.name=t", "-c",
+            "commit.gpgsign=false", "commit", "-qm", "x")
+    loose = retroedits.uncommitted(snapshot.Snapshot(tmp_path))
+    why, _ = retroedits.edit_refusal(
+        tmp_path, "NOTES.md", {"now": "the limit is 10",
+                               "after": "the limit is `LIMIT`",
+                               "because": "z"},
+        factsguard.Record(tmp_path), retroedits.Tree(tmp_path), loose=loose)
+    if repo == "committed":
+        assert why == ""
+    else:
+        assert why == ("NOTES.md is not known to be committed as it stood"
+                       " when the run started (the run has no start commit),"
+                       " so its only copy may be yours")
+
+
 def test_an_edit_is_refused_on_a_dependency_manifest(tmp_path):
     put(tmp_path, "requirements.txt", "requests==2.31.0" + NL)
     assert refusal_of(tmp_path, "requirements.txt", "requests==2.31.0",

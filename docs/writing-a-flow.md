@@ -438,7 +438,8 @@ reStructuredText, asciidoc or a README), not a dependency or build manifest
 (`requirements.txt` and the rest), not a file inside a python package but
 its README, not a spec, a test or a credential file, and committed as it
 stood when the run started (an untracked or uncommitted file's only copy is
-yours); `now` is in it once as written; every code span and `--flag` the
+yours, and so is every file of a place git does not track or a repo with no
+commit); `now` is in it once as written; every code span and `--flag` the
 `after` quotes is in a file of the tree that is not a doc, or is a command
 a gate of the run ran; no field looks like a secret. `CLAUDE.md`, `AGENTS.md`, `.claude/`
 and `rules/` files may be edited and are listed first, `instruction file

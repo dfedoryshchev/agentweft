@@ -11,7 +11,8 @@ runner writes it into the working tree, unstaged, only when:
   not a test (a test comes in as a guard), not a file that holds a
   credential, and not under facts/ or the runner's own folder;
 - the file was committed as it stood when the run started: one untracked
-  or changed and not committed then has no copy but the person's;
+  or changed and not committed then has no copy but the person's, and so
+  has every file of a place with no start commit;
 - the `now:` words are in it as written, once;
 - every name the `after:` words quote, a `code span` or a `--flag`, is in a
   file of the tree as left that is not a doc, or is a command a gate of this
@@ -182,10 +183,14 @@ def place_refusal(root, rel, own):
 def uncommitted(start):
     """-> the paths from the place that were not committed as they stood
     when the run started (`start`, its snapshot): untracked, or changed and
-    not committed. their only copy is the person's."""
+    not committed. their only copy is the person's. None when the place has
+    no start commit to tell them by (git does not track it, or the repo had
+    no commit), so that no file is known to be committed."""
     out = set()
-    if start is None or not getattr(start, "start", None):
+    if start is None:
         return out
+    if not getattr(start, "start", None):
+        return None
     for rel, data in (getattr(start, "loose", None) or {}).items():
         if data is None:
             continue
@@ -199,11 +204,16 @@ def uncommitted(start):
 def edit_refusal(root, rel, fields, record, tree, own=None, loose=()):
     """-> (why the edit is not made, "" when it is, the file's text after
     it). `fields` is the item's: now, after, because, evidence. `loose` is
-    the files not committed when the run started (`uncommitted`)."""
+    the files not committed when the run started (`uncommitted`), None when
+    no file is known to be committed."""
     rel = facts.norm(rel)
     why = place_refusal(root, rel, own)
     if why:
         return why, None
+    if loose is None:
+        return (rel + " is not known to be committed as it stood when the run"
+                " started (the run has no start commit), so its only copy may"
+                " be yours"), None
     if rel in loose:
         return (rel + " was not committed when the run started, so its only"
                 " copy is yours"), None
@@ -339,7 +349,7 @@ class Keeper(object):
                  loose=()):
         self.root = Path(root)
         self.own = own
-        self.loose = set(loose)
+        self.loose = None if loose is None else set(loose)
         self.cap = cap
         self.base = starttests.base_of(tests)
         self.timeout = timeout
