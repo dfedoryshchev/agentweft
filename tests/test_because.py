@@ -371,6 +371,20 @@ def test_an_answer_without_its_reasons_keeps_every_other_line():
     assert handoff.without_because("no block here\n") == "no block here\n"
 
 
+def test_an_answer_without_its_reasons_holds_none_of_any_blocks_reasons():
+    first = ("HANDOFF\nDID:\n- a draft\nBECAUSE:\n- an early reason\n"
+             "  from: own read\n  led to: nothing\nEND HANDOFF\n")
+    unclosed = "HANDOFF\nDID:\n- c\nBECAUSE:\n- an unclosed reason\n"
+    for said in ("draft\n" + first + "final\n" + BLOCK,
+                 "draft\n" + first + "final\n" + BLOCK + unclosed,
+                 unclosed + BLOCK + "final\n"):
+        out = handoff.without_because(said)
+        for words in SAID + ("an early reason", "own read",
+                             "an unclosed reason"):
+            assert words not in out, (words, out)
+        assert "final" in out and ("a draft" in out) == ("a draft" in said)
+
+
 def test_the_record_the_retro_is_pointed_at_holds_no_reason_words(
         tmp_path, monkeypatch, fake_cli):
     import json

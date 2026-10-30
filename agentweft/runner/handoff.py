@@ -318,15 +318,18 @@ def without(text):
 
 
 def without_because(text):
-    """-> the answer with the BECAUSE section of its last HANDOFF block taken
+    """-> the answer with the BECAUSE section of every HANDOFF block taken
     out, its `from:` and `led to:` lines with it, every other line as it was.
-    a section ends where `parse` would start the next one."""
+    a section ends where `parse` would start the next one, and a block at
+    its END HANDOFF, the next HANDOFF or the end of the answer."""
     shown = verbs.visible(text)
-    found, _ = bounds(shown)
-    if found is None:
-        return text
-    drop, inside = set(), False
-    for n, line in shown[found[0] + 1:found[1]]:
+    drop, inside, block = set(), False, False
+    for n, line in shown:
+        if OPEN.match(line) or CLOSE.match(line):
+            block, inside = bool(OPEN.match(line)), False
+            continue
+        if not block:
+            continue
         if inside and _labelled(line, CITED):
             drop.add(n)
             continue

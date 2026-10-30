@@ -468,8 +468,9 @@ VIEW = "retro-view"
 def view(folder, into=None):
     """-> the path of a copy of the run folder's steps.jsonl with no step's
     own reasons in it, written under `into` (`<folder>/retro-view` when
-    None) with each answer file a line names beside it, its BECAUSE section
-    taken out (`handoff.without_because`), and the gate record as it is.
+    None) with each answer file a line names beside it, the BECAUSE section
+    of every block in it taken out (`handoff.without_because`), and the gate
+    record as it is.
     the run's own files keep the reasons."""
     out = Path(into) if into is not None else Path(folder) / VIEW
     out.mkdir(parents=True, exist_ok=True)

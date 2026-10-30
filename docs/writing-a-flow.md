@@ -415,7 +415,8 @@ short; and `handoff.md`, with the steps' reasons taken out of it (the
 person's copy keeps them in full). for every pass in full it is pointed at
 `runs/<run-id>/retro-view/steps.jsonl`, a copy of the run's steps.jsonl
 with no BECAUSE item on any line and each answer file a line names copied
-beside it with its BECAUSE section taken out, and the gate record as it is;
+beside it with the BECAUSE section of every block in it taken out, and the
+gate record as it is;
 the handoff it is handed names that copy, and the run's own steps.jsonl and
 answers keep the reasons. a clean run is
 handed `- none failed` and the rest, so the retro keeps the facts and the
