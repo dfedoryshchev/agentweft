@@ -240,7 +240,9 @@ def pinned(store, value, found):
     names none: a defect fact on record by its id, or the step of this
     block's defect fact (`found`, the (seq, step) of each source)."""
     value = (value or "").strip()
-    if re.match(r"^F-\d+$", value):
+    named = re.match(r"^F-(\d+)$", value, re.I)
+    if named:
+        value = "F-%04d" % int(named.group(1))
         fact = store.held(value)
         return value + ", a defect on record" \
             if fact is not None and fact.kind == DEFECT else ""
@@ -248,11 +250,21 @@ def pinned(store, value, found):
     if said is None:
         return ""
     for seq in found:
-        if seq is not None and seq[0] == said[0] \
-                and (not said[1] or not seq[1] or seq[1] == said[1]):
+        if seq is not None and _same(seq, said):
             return ("the defect fact from seq " + seq[0]
                     + (" " + seq[1] if seq[1] else ""))
     return ""
+
+
+def _same(one, other):
+    """whether two (seq, step) pairs name one pass: the same number, and the
+    same step when both name one, by its name with case and `.md` dropped."""
+    def step(name):
+        name = name.lower()
+        return name[:-3] if name.endswith(".md") else name
+
+    return int(one[0]) == int(other[0]) and (
+        not one[1] or not other[1] or step(one[1]) == step(other[1]))
 
 
 def refuse(done, what, why):

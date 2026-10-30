@@ -192,7 +192,8 @@ PINS = ("it guards a defect the run left in place ({}): a test that passes on"
         " the tree as left holds the defect, not its fix")
 
 
-@pytest.mark.parametrize("head", ["seq 1 worker.md", "seq 1"])
+@pytest.mark.parametrize("head", ["seq 1 worker.md", "seq 1", "seq 1 worker",
+                                  "seq 01 worker.md", "Seq 1 Worker.md"])
 def test_a_guard_for_a_defect_the_block_files_is_a_proposal_never_a_test(
         tmp_path, monkeypatch, fake_cli, head):
     clean(tmp_path, monkeypatch, fake_cli, block(defect(), named_guard(head)))
@@ -207,15 +208,16 @@ def test_a_guard_for_a_defect_the_block_files_is_a_proposal_never_a_test(
     assert [f.kind for f in factsguard.Store(tmp_path).read()] == ["defect"]
 
 
+@pytest.mark.parametrize("head", ["F-0001", "F-1", "f-0001"])
 def test_a_guard_for_a_defect_on_record_is_a_proposal_never_a_test(
-        tmp_path, monkeypatch, fake_cli):
+        tmp_path, monkeypatch, fake_cli, head):
     put(tmp_path, "facts/pkg/a.py.md",
         "## F-0001 live\nscope: pkg/a.py\nkind: defect\nclaim: an empty line"
         " raises\nwhy: the spec asks for a skip\n")
-    clean(tmp_path, monkeypatch, fake_cli, block(named_guard("F-0001")))
+    clean(tmp_path, monkeypatch, fake_cli, block(named_guard(head)))
     assert engine.main() == 0
     assert not (tmp_path / "tests" / "test_a_guard.py").exists()
-    assert ("- refused a guard for F-0001: "
+    assert ("- refused a guard for " + head + ": "
             + PINS.format("F-0001, a defect on record")) in handoff()
 
 

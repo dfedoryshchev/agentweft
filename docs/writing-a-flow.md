@@ -442,8 +442,10 @@ test module only when it passes on the tree as left, run with the flow's own
 pytest; one that fails, runs no test or cannot run is taken out again. a
 test guard for a defect the run left in place is never written: one whose
 `guard:` names a `defect` fact on record by its id, or the `seq <n> <step>`
-a `defect` fact of the same block cites as its source, passes on the tree
-only by holding the defect, so it goes to `facts/PROPOSED.md` with that
+a `defect` fact of the same block cites as its source (read with case,
+leading zeros and a step's `.md` set aside: `seq 08 Reviewer-runs` is
+`seq 8 reviewer-runs.md`, `F-2` is `F-0002`), passes on the tree only by
+holding the defect, so it goes to `facts/PROPOSED.md` with that
 reason. a gate or `flow.yaml` key guard is a line for a person. what fails
 a check is a line with its reason and goes to `facts/PROPOSED.md`, which
 keeps nothing else but the guards a recurring fact is owed. the runner renders
