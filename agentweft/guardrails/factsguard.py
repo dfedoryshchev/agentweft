@@ -691,6 +691,12 @@ class Store(object):
             if not why and "|" in said:
                 why, form = "check holds a |, which no taught format carries", \
                     PIPED
+            hit = "" if why else facts.anchored_hit(self.root, said,
+                                                    p.get("anchor"))
+            if hit:
+                why = form = ("the check only finds the fact's own anchored"
+                              " line, " + hit + ", so it holds the code's"
+                              " text, not the claim")
             if why and (not form or every_of(p)):
                 return why
             if why:

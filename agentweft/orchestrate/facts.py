@@ -669,15 +669,9 @@ def rel_of(root, path):
         Path(os.path.abspath(str(root)))).as_posix()
 
 
-def run_check(root, text, own=None):
-    """-> (True, "") when the check holds on the place now, (False, what
-    grep found against what the fact says) when it does not, (None, "could
-    not run: <why>") when it cannot say. it is read and run here, never
-    handed to a shell or a process. `own` is the runner's folder."""
-    check, why = parse_check(text)
-    if check is None:
-        return None, "could not run: " + why
-    root = Path(root)
+def compiled(check):
+    """-> ([the check's patterns as python reads them], "") or (None, why
+    they do not read as grep reads them)."""
     flags = re.I if "i" in check.flags else 0
     try:
         found = []
@@ -690,10 +684,53 @@ def run_check(root, text, own=None):
                 p = r"(?<!\w)(?:" + p + r")(?!\w)"
             found.append(re.compile(p, flags))
     except Unread as e:
-        return None, ("could not run: the pattern is not read here as grep"
-                      " reads it: " + str(e))
+        return None, ("the pattern is not read here as grep reads it: "
+                      + str(e))
     except re.error as e:
-        return None, "could not run: the pattern does not read: " + str(e)
+        return None, "the pattern does not read: " + str(e)
+    return found, ""
+
+
+def anchored_hit(root, text, anchor):
+    """-> `<file>:<line>` of the first of `anchor`'s lines, as the place has
+    them now, that the `exits 0` check `text` finds, when the check reads
+    that file; "" for none, an `exits 1` check or one that does not read. an
+    `exits 0` grep holds by one line, so one that finds the anchored lines
+    holds whatever the claim says."""
+    check, _ = parse_check(text)
+    at = anchor_of(Fact("", LIVE, [("anchor", anchor or "")]))
+    if check is None or check.want != 0 or at is None:
+        return ""
+    reads = any(at.path == p or (p == PROJECT or at.path.startswith(
+        p.rstrip("/") + "/")) and check.flags & set("rR")
+        for p in check.paths)
+    found, _ = compiled(check)
+    target = Path(root) / at.path
+    if not reads or found is None or escapes(root, at.path) \
+            or not target.is_file():
+        return ""
+    if check.include and not any(fnmatch.fnmatch(target.name, g)
+                                 for g in check.include):
+        return ""
+    lines = text_lines(target)
+    for n in range(at.first, min(at.last, len(lines)) + 1):
+        if any(f.search(lines[n - 1]) for f in found):
+            return at.path + ":" + str(n)
+    return ""
+
+
+def run_check(root, text, own=None):
+    """-> (True, "") when the check holds on the place now, (False, what
+    grep found against what the fact says) when it does not, (None, "could
+    not run: <why>") when it cannot say. it is read and run here, never
+    handed to a shell or a process. `own` is the runner's folder."""
+    check, why = parse_check(text)
+    if check is None:
+        return None, "could not run: " + why
+    root = Path(root)
+    found, why = compiled(check)
+    if found is None:
+        return None, "could not run: " + why
     files = []
     for rel in check.paths:
         if outside(root, rel):

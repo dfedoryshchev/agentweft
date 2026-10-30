@@ -339,6 +339,41 @@ def test_a_check_refused_for_its_form_that_runs_and_breaks_refuses_the_fact(
                           " exits 0, the fact says 1: pkg/parse.py:5:"), why
 
 
+PINNED = ("the check only finds the fact's own anchored line, pkg/parse.py:5,"
+          " so it holds the code's text, not the claim")
+
+
+@pytest.mark.parametrize("kind, check", [
+    ("decision", FOUND),
+    ("convention", FOUND),
+    ("why", 'grep -n -w "ValueError" pkg/parse.py exits 0'),
+    ("why", 'grep -n "raise ValueError(.empty.)" pkg/parse.py exits 0')])
+def test_a_check_that_only_greps_the_facts_own_anchored_line_is_refused(
+        tmp_path, kind, check):
+    store, record = a_store(tmp_path)
+    p = claimed("parse raises ValueError on an empty line", check, kind)
+    p.fields["anchor"] = "pkg/parse.py:3-6"
+    fact, why = store.add(p, record)
+    assert why == "" and fact is not None
+    assert fact.get("check") == ""
+    assert fact.get("unchecked") == "its check was refused: " + PINNED
+
+
+@pytest.mark.parametrize("anchor, check", [
+    ("pkg/parse.py:1-2", FOUND),
+    ("pkg/parse.py:3-6", 'grep -n "print(" pkg/parse.py exits 1'),
+    ("", FOUND)])
+def test_a_check_that_finds_more_than_the_anchored_line_is_kept(
+        tmp_path, anchor, check):
+    store, record = a_store(tmp_path)
+    p = claimed("parse raises ValueError on an empty line", check, "decision")
+    if anchor:
+        p.fields["anchor"] = anchor
+    fact, why = store.add(p, record)
+    assert why == "" and fact.get("check") == check
+    assert fact.get("unchecked") == ""
+
+
 def test_the_retro_and_a_later_step_are_told_the_check_was_refused(tmp_path):
     from agentweft.runner import brief, upkeep
 
