@@ -782,6 +782,10 @@ def go(leg):
                 wrong = case_for["missed"][0]
                 ran = run.suite_of(coder) \
                     if nxt == coder and not sent_back and new else []
+                for r in ran:
+                    trail.timed(r.gate, step, getattr(r, "seconds", None),
+                                r.ok, entry.seq, trace.issue_of(r),
+                                getattr(r, "began", None))
                 entry.case = wouldpass.held(
                     case_for, ran, wouldpass.alone(run, new)
                     if ran and not wouldpass.green(ran) else None)

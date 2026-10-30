@@ -318,6 +318,9 @@ and `continued`
       {"seq": 3, "step": "worker.md", "gate": "command", "ok": true,
        "seconds": 4.212}
 
+  the suite gates of the step that wrote the code, run again once a test
+  writer has added the case a reviewer named, have their lines too, under
+  the test writer's seq and step: the time is a gate's, never the runner's.
   a gate that could not do its job carries `issue` on this line and on its
   entry in `steps.jsonl`, whatever it decided:
 

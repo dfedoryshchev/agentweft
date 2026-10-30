@@ -218,6 +218,47 @@ def test_a_case_that_already_passes_does_not_send_the_worker_round_again(
     assert '"to": "reviewer-runs.md"' in steps
 
 
+def test_the_suite_run_that_checks_the_case_is_timed_as_a_gate(
+        tmp_path, monkeypatch):
+    import time
+
+    from agentweft.runner import manifest, run
+
+    real = run.Run.suite_of
+
+    def slow(self, step):
+        began = time.time()
+        time.sleep(SLOW)
+        out = real(self, step)
+        for r in out:
+            r.began, r.seconds = began, round(time.time() - began, 3)
+        return out
+
+    monkeypatch.setattr(run.Run, "suite_of", slow)
+    answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],
+               "worker.md": [WORKER], "reviewer.md": [NAMED],
+               "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", MORE)],
+              "worker.md": [("calc.py", AFTER)]}
+    folder = run_it(tmp_path, monkeypatch, answers, writes)[3]
+    case = [l for l in lines(folder) if l.get("case")][0]
+    timed = [json.loads(l) for l in (folder / "gates.jsonl").read_text(
+        encoding="utf-8").split(NL) if l.strip()]
+    mine = [g for g in timed if g["seq"] == case["seq"]
+            and g["gate"] == "command"]
+    assert len(mine) == 1 and mine[0]["ok"] is True
+    assert mine[0]["step"] == "tester.md" and mine[0]["seconds"] >= SLOW
+    runner = manifest.load(folder).data["runner"]
+    assert runner["phases"]["after"] < SLOW, runner
+    assert runner["gates"] >= SLOW
+
+
+# longer than the rest of a fake run's `after` phase takes, so the suite run
+# counted there would show
+SLOW = 5.0
+
+
 def no_case_added(tmp_path, monkeypatch, scored=False, then=RIGHT):
     """the tester's next go writes the tests it had, and adds no case; the
     go after it writes `then`."""
