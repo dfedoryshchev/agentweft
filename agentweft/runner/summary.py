@@ -484,9 +484,21 @@ def read_of(sessions, root=None, earlier=None):
     return out
 
 
+def searched_of(sessions, root=None, earlier=None):
+    """-> the files the sessions' searches covered or whose patch they printed
+    (`handoff.searches`), None when not one of them has a transcript."""
+    out = None
+    for session in sessions:
+        found = handoff.searches(session, root, earlier)
+        if found is not None:
+            out = (out or []) + [p for p in found if p not in (out or [])]
+    return out
+
+
 def facts_of(line, root=None):
     """-> a pass's facts from its steps.jsonl line: the retro's fields, and
-    what its sessions read, from `root` when the path is under it."""
+    what its sessions read and searched, from `root` when the path is under
+    it."""
     out = dict((k, line.get(k)) for k in RETRO)
     if out["won"] is None:
         out["won"] = trace.won(line.get("outcome"), line.get("cause"),
@@ -495,6 +507,7 @@ def facts_of(line, root=None):
     sessions.extend(t["session"] for t in (line.get("tasks") or [])
                     if isinstance(t, dict) and t.get("session"))
     out["read"] = read_of(sessions, root, line.get("continued"))
+    out["searched"] = searched_of(sessions, root, line.get("continued"))
     out["conformance"] = line.get("conformance") or []
     out["checked"] = line.get("checked")
     out["prevented"] = [g.get("gate") or "a gate" for g in line.get("gates")
@@ -1221,23 +1234,43 @@ def _grouped(found):
                      for path in order)
 
 
-ITEM_PATH = re.compile(r"^[`\"']?([^\s:`\"']+)")
+ITEM_PATH = re.compile(r"[`\"']?([^\s:,;`\"'()]+)[`\"']?(?::\d+(?:[,\-]\d+)*)?")
+ITEM_JOIN = re.compile(r"\s*(?:,|\band\b)\s*")
+
+
+def item_paths(item):
+    """-> the files a READ line names at its head: the first word, and each
+    word after a comma or an `and` that looks like a path, without the
+    lines, quotes or the punctuation that closes it."""
+    out, text = [], item.strip()
+    while True:
+        m = ITEM_PATH.match(text)
+        if not m:
+            break
+        path = m.group(1).rstrip(".").replace("\\", "/")
+        if not path or out and "/" not in path and "." not in path:
+            break
+        out.append(path)
+        text = text[m.end():]
+        join = ITEM_JOIN.match(text)
+        if not join:
+            break
+        text = text[join.end():]
+    return out
 
 
 def _named(item, paths):
-    """whether a READ line a step wrote names one of the files read."""
-    m = ITEM_PATH.match(item.strip())
-    if not m:
-        return False
-    said = m.group(1).replace("\\", "/")
-    return any(said == p or p.endswith("/" + said) or said.endswith("/" + p)
-               for p in paths)
+    """whether every file a READ line a step wrote names is one of `paths`."""
+    said = item_paths(item)
+    return bool(said) and all(
+        any(s == p or p.endswith("/" + s) or s.endswith("/" + p)
+            for p in paths) for s in said)
 
 
 def read_lines(passes):
     """the files and ranges each pass read, from its transcript, and the
-    READ lines the step wrote beside them; a READ line its transcript does not
-    show is marked so."""
+    READ lines the step wrote beside them; a READ line naming a file no call
+    of its transcript printed or searched is marked so."""
     out = []
     for p in passes:
         found = p.get("facts", {}).get("read")
@@ -1251,6 +1284,7 @@ def read_lines(passes):
         else:
             out.append("- " + at(p) + " read no file, by its transcript")
         paths = [path for path, _ in found or []]
+        paths.extend(p.get("facts", {}).get("searched") or [])
         for item in said:
             shown = found is None or _named(item, paths)
             out.append(("  said: " if shown else

@@ -804,6 +804,196 @@ def reads(session, root=None, earlier=None):
     return out
 
 
+SEARCHERS = ("grep", "egrep", "fgrep", "rg")
+PASS_ON = ("head", "tail") + READERS
+QUIET_SHORT = set("clLq")
+QUIET_LONG = {"--count", "--count-matches", "--files", "--files-with-matches",
+              "--files-without-match", "--quiet", "--silent"}
+LONG_VALUED = {"--regexp", "--file", "--after-context", "--before-context",
+               "--context", "--max-count", "--include", "--exclude",
+               "--exclude-dir", "--glob", "--type", "--type-not",
+               "--directories", "--devices"}
+NO_PATCH = {"--stat", "--numstat", "--shortstat", "--name-only",
+            "--name-status", "--summary", "--dirstat", "--quiet", "--no-patch",
+            "-s"}
+DIFF_HEAD = re.compile(r"^diff --git a/(\S+) b/(\S+)$")
+NAMED = (re.compile(r"^((?:[A-Za-z]:[\\/])?[^\s:]+):"),
+         re.compile(r"^((?:[A-Za-z]:[\\/])?\S+?)-\d+-"))
+
+
+def _stages(command):
+    """-> each statement of a shell command as the stages of its pipe, split
+    where no quote holds the `;`, `&&`, `||`, `|` or line break."""
+    out, stages, stage, quote, i = [], [], "", None, 0
+    text = command or ""
+    while i < len(text):
+        ch, two = text[i], text[i:i + 2]
+        if ch == "\\" and quote != "'" and i + 1 < len(text):
+            stage, i = stage + two, i + 2
+        elif quote is not None:
+            quote = None if ch == quote else quote
+            stage, i = stage + ch, i + 1
+        elif ch in "'\"":
+            quote, stage, i = ch, stage + ch, i + 1
+        elif two in ("&&", "||") or ch in ";\n":
+            out.append(stages + [stage])
+            stages, stage, i = [], "", i + (2 if two in ("&&", "||") else 1)
+        elif ch == "|":
+            stages, stage, i = stages + [stage], "", i + 1
+        else:
+            stage, i = stage + ch, i + 1
+    out.append(stages + [stage])
+    return [[s.strip() for s in st] for st in out if any(s.strip() for s in st)]
+
+
+def _search_targets(tool, args):
+    """-> the paths a grep or rg stage searches, None when it prints no
+    matching line (a count, a file name, nothing)."""
+    valued = set("efABCmdD") | (set("gtT") if tool == "rg" else set())
+    given, rest, recursive, i = False, [], tool == "rg", 0
+    while i < len(args):
+        a = args[i]
+        i += 1
+        if a == "--":
+            rest.extend(args[i:])
+            break
+        if a.startswith("--"):
+            name = a.split("=", 1)[0]
+            if name in QUIET_LONG:
+                return None
+            given = given or name in ("--regexp", "--file")
+            recursive = recursive or name in ("--recursive",
+                                              "--dereference-recursive")
+            i += 1 if "=" not in a and name in LONG_VALUED else 0
+            continue
+        if a.startswith("-") and len(a) > 1:
+            for n, ch in enumerate(a[1:], 1):
+                if ch in QUIET_SHORT:
+                    return None
+                recursive = recursive or ch in "rR"
+                if ch in valued:
+                    given = given or ch in "ef"
+                    i += 1 if n == len(a) - 1 else 0
+                    break
+            continue
+        rest.append(a)
+    files = rest if given else rest[1:]
+    return files or (["."] if recursive else [])
+
+
+def _git_patch(args):
+    """whether a git stage prints a patch: diff, show or log, with no option
+    that prints only names, counts or nothing."""
+    i = 0
+    while i < len(args) and args[i].startswith("-"):
+        i += 2 if args[i] in ("-C", "-c") else 1
+    if i >= len(args) or args[i] not in ("diff", "show", "log"):
+        return False
+    return not any(a.split("=", 1)[0] in NO_PATCH for a in args[i + 1:])
+
+
+def _shell_searches(command):
+    """-> (the paths its grep and rg stages search, whether a git stage of it
+    prints a patch), for the stages whose output reaches the call's output:
+    none written to a file, none piped into anything but a reader."""
+    import shlex
+
+    targets, patch = [], False
+    for stages in _stages(_unbodied(command or "")):
+        for n, stage in enumerate(stages):
+            after = stages[n:]
+            if any(TO_FILE.search(s) for s in after):
+                break
+            try:
+                words = [shlex.split(REDIRECT.sub(" ", s)) for s in after]
+            except ValueError:
+                break
+            if not words[0]:
+                continue
+            tools = [w[0].replace("\\", "/").rsplit("/", 1)[-1] if w else ""
+                     for w in words]
+            if not all(t in PASS_ON for t in tools[1:]):
+                continue
+            if tools[0] in SEARCHERS:
+                targets.extend(_search_targets(tools[0], words[0][1:]) or [])
+            elif tools[0] == "git":
+                patch = patch or _git_patch(words[0][1:])
+    return targets, patch
+
+
+def _clean(path, root):
+    path = _relative(path, root).rstrip("/")
+    return path[2:] if path.startswith("./") else path or "."
+
+
+def _under(path, folder):
+    """whether `path` is `folder` or inside it, or matches it as a glob."""
+    if folder == ".":
+        return True
+    if any(c in folder for c in "*?["):
+        import fnmatch
+
+        return fnmatch.fnmatchcase(path, folder)
+    return path.startswith(folder + "/")
+
+
+def _searched(name, given, out, root):
+    """-> the files one call searched or printed a patch of: each path a
+    search names, and each file its output names inside a folder or glob it
+    searched; each file a patch it printed starts with."""
+    if name == "Grep":
+        if given.get("output_mode") != "content":
+            return []
+        targets, patch = [given.get("path") or "."], False
+        if not all(isinstance(t, str) for t in targets):
+            return []
+    elif name == "Bash" and isinstance(given.get("command"), str):
+        targets, patch = _shell_searches(given["command"])
+    else:
+        return []
+    targets = [_clean(t, root) for t in targets]
+    found = list(targets)
+    for line in (out or "").split("\n"):
+        m = DIFF_HEAD.match(line.strip()) if patch else None
+        if m:
+            found.extend(m.groups())
+            continue
+        for named in NAMED if targets else ():
+            m = named.match(line)
+            path = _clean(m.group(1), root) if m else None
+            if path and any(_under(path, t) for t in targets):
+                found.append(path)
+                break
+    return found
+
+
+def searches(session, root=None, earlier=None):
+    """-> the files the session's searches covered, in order, once each: a
+    grep or rg in a Bash call, or a Grep call that shows content, by the file
+    it names or by a file its output names inside the folder or glob it
+    searched, and a file whose patch a git diff, show or log printed. a
+    search that prints only counts or names, or whose output goes to a file
+    or into anything but a reader, searched nothing here. None when there is
+    no transcript to read."""
+    pieces = _pieces(session, earlier)
+    if pieces is None:
+        return None
+    asked, out = {}, []
+    for piece in pieces:
+        if piece.get("type") == "tool_use":
+            asked[piece.get("id")] = (piece.get("name"),
+                                      piece.get("input") or {})
+        elif piece.get("type") == "tool_result":
+            call = asked.pop(piece.get("tool_use_id"), None)
+            if call is None:
+                continue
+            for path in _searched(call[0], call[1],
+                                  _text(piece.get("content")), root):
+                if path not in out:
+                    out.append(path)
+    return out
+
+
 def merge(blocks):
     """-> one block for a fanned-out step, its tasks' sections joined in
     task order. all present is present, all missing is missing, and a mix is

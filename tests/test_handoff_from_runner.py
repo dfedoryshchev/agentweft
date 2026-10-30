@@ -5,6 +5,8 @@ import json
 import subprocess
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.runner import engine, handoff, summary
 from test_stops import CLAUDE, a_flow, answer, the_folder
@@ -158,6 +160,118 @@ def test_a_read_call_and_shell_reads_are_files_and_ranges(tmp_path,
     assert got == [("a.py", ""), ("b.py", "10-14"), ("c.py", ""),
                    ("d.py", "1-20")]
     assert handoff.reads("s-none") is None
+
+
+def said_of(tmp_path, monkeypatch, calls, item):
+    """-> the read section's `said` lines for a READ line `item` of a pass
+    whose session made `calls`, each (tool name, input, what it printed)."""
+    folder = tmp_path / "projects" / "D--w"
+    folder.mkdir(parents=True)
+    lines = []
+    for i, (name, given, out) in enumerate(calls):
+        lines.append(json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "id": "t" + str(i), "name": name,
+             "input": given}]}}))
+        lines.append(json.dumps({"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": "t" + str(i),
+             "content": out}]}}))
+    (folder / "s-1.jsonl").write_text("\n".join(lines) + "\n",
+                                      encoding="utf-8")
+    monkeypatch.setattr(handoff, "PROJECTS", tmp_path / "projects")
+    block = handoff.parse("HANDOFF\nDID:\n- looked\nREAD:\n- " + item
+                          + "\nEND HANDOFF\n")
+    p = summary.a_pass("worker.md", "worker", 1.0, block, [], False, "ok", "",
+                       facts=summary.facts_of({"session": "s-1"},
+                                              str(tmp_path / "w")))
+    return [l for l in summary.read_lines([p]) if l.startswith("  said")]
+
+
+def bash(command, out="ok"):
+    return ("Bash", {"command": command}, out)
+
+
+def grep(tmp_path, path, out, mode="content"):
+    given = {"pattern": "x", "path": str(tmp_path / "w" / path)}
+    if mode:
+        given["output_mode"] = mode
+    return ("Grep", given, out)
+
+
+SEARCHED = [
+    (lambda t: [bash('cd "' + str(t / "w") + '" && grep -n "def test_\\|'
+                     'parametrize" tests/test_delimiter.py',
+                     "3:def test_a\n9:@pytest.mark.parametrize")],
+     "tests/test_delimiter.py - list of test names and parametrize lines"),
+    (lambda t: [bash("python -m pytest -q 2>&1 | tail -2 && grep -n "
+                     '"def test" tests/test_report.py | head -20',
+                     "1 passed\n6:def test_report")],
+     "tests/test_report.py:6-56 - the report lines"),
+    (lambda t: [bash('grep -n -A8 -e "def test_any" tests/test_cases.py',
+                     "20:def test_any")],
+     "tests/test_cases.py:20-24 - the case"),
+    (lambda t: [grep(t, "tests/test_export.py", "7:def test_json")],
+     'tests/test_export.py:7-14 - the existing JSON test expects "-25.00".'),
+    (lambda t: [grep(t, "ledgerlite", "ledgerlite\\budgets.py:12:    if amount <= 0:\n"
+                     "ledgerlite\\money.py:25:def pct(part, whole):")],
+     "ledgerlite/budgets.py:12-13,32 - the zero check, seen through Grep"),
+    (lambda t: [bash('grep -n "def count_option" -A12 logsift/*.py',
+                     "logsift/cli.py:10:def count_option(text):\n"
+                     "logsift/cli.py-11-    return int(text)")],
+     "logsift/cli.py:10-22 - count_option"),
+    (lambda t: [bash("git diff 693232e -- logsift/ TASK.md",
+                     "diff --git a/TASK.md b/TASK.md\n+one\n"
+                     "diff --git a/logsift/cli.py b/logsift/cli.py\n+two\n"
+                     "diff --git a/logsift/filters.py b/logsift/filters.py\n"
+                     "+three")],
+     "logsift/filters.py, logsift/cli.py, TASK.md: the diff since 693232e"),
+    (lambda t: [bash("cat tests/conftest.py tests/test_commands.py && "
+                     "sed -n 1,70p tests/test_report.py")],
+     ("tests/conftest.py, tests/test_commands.py, tests/test_report.py - the"
+      " existing cases and the `make` fixture")),
+    (lambda t: [("Read", {"file_path": str(t / "w" / "calc.py")}, "1\tx")],
+     "calc.py."),
+    (lambda t: [("Read", {"file_path": str(t / "w" / "calc.py")}, "1\tx")],
+     "`calc.py`, the module"),
+]
+
+
+@pytest.mark.parametrize("calls, item", SEARCHED)
+def test_a_read_line_is_held_to_the_call_that_printed_or_searched_its_file(
+        tmp_path, monkeypatch, calls, item):
+    assert said_of(tmp_path, monkeypatch, calls(tmp_path), item) == [
+        "  said: " + item]
+
+
+NOT_SEARCHED = [
+    (lambda t: [bash("grep -n x a.py", "3:x")], "b.py - the other module"),
+    (lambda t: [bash('grep -n "a.py" b.py', "3:a.py")], "a.py - x"),
+    (lambda t: [bash("grep -c x a.py", "3")], "a.py - x"),
+    (lambda t: [bash("grep -nl x a.py", "a.py")], "a.py - x"),
+    (lambda t: [bash("grep -q x a.py", "")], "a.py - x"),
+    (lambda t: [bash("grep --count x a.py", "3")], "a.py - x"),
+    (lambda t: [bash("rg -l x src", "src/a.py")], "src/a.py - x"),
+    (lambda t: [bash("grep -n x a.py | wc -l", "3")], "a.py - x"),
+    (lambda t: [bash("grep -n x a.py > hits.txt", "")], "a.py - x"),
+    (lambda t: [grep(t, "a.py", "a.py", mode=None)], "a.py - x"),
+    (lambda t: [grep(t, "pkg", "pkg\\b.py:3:x")], "pkg/a.py - x"),
+    (lambda t: [bash("grep see TASK.md", "logsift/parse.py: the parser")],
+     "logsift/parse.py - the parser"),
+    (lambda t: [bash("git diff 693232e --stat", " logsift/cli.py | 3 +-")],
+     "logsift/cli.py - the diff"),
+    (lambda t: [bash("git diff -U0 TASK.md | grep -c '^-'",
+                     "diff --git a/TASK.md b/TASK.md\n0")], "TASK.md - x"),
+    (lambda t: [bash("cat a.py")], "a.py, b.py - both modules"),
+    (lambda t: [("Write", {"file_path": str(t / "w" / "t.py"),
+                           "content": "x"}, "ok")],
+     "t.py:1-170 - the order the new test was placed in"),
+]
+
+
+@pytest.mark.parametrize("calls, item", NOT_SEARCHED)
+def test_a_read_line_no_call_printed_or_searched_its_file_for_stays_flagged(
+        tmp_path, monkeypatch, calls, item):
+    assert said_of(tmp_path, monkeypatch, calls(tmp_path), item) == [
+        "  said, not in its transcript: " + item]
 
 
 def test_each_gate_s_command_sits_beside_its_own_result_after_a_runner_check(

@@ -745,9 +745,16 @@ five sections are written by the runner alone:
   one, so what is named is a floor.
 - **read**: per pass, the files and ranges its session's transcript shows it
   read (a Read call by offset and limit, a `cat`, `head`, `tail` or `sed -n`
-  target in a shell call), with the step's own READ lines under it as `said:`;
-  a READ line its transcript does not show is `said, not in its transcript:`.
-  a pass with no transcript says so.
+  target in a shell call), with the step's own READ lines under it as `said:`.
+  a READ line is held to every file it names at its head (`a.py, b.py - why`,
+  the lines and closing punctuation left off): each must be one the pass
+  read, one a search named (a `grep` or `rg` in a shell call, or a Grep call
+  that shows content, whose matching lines reach the output; inside a folder
+  or glob, a file its output names), or one whose patch a `git diff`, `show`
+  or `log` printed. a search that prints only counts or names, or whose
+  output goes to a file or into anything but a reader, holds nothing. a READ
+  line that names a file none of those calls covered is `said, not in its
+  transcript:`. a pass with no transcript says so.
 - **tests and checks**: each new test's red-first record, ending `- encodes
   TASK.md:12 (patcher)` when a step's line names the test and a spec line.
 - **see the fix by hand**: on a run that finished holding a red proof shown
