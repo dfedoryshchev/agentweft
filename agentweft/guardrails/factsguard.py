@@ -75,6 +75,9 @@ HOSTED = (CONVENTION, GATE_ISSUE)
 UNCHECKED = "unchecked"
 REFUSED_CHECK = "its check was refused: "
 PIPED = "the check holds a pipe character, which no taught format carries"
+# a refused check's reason as stored when it names a path on the machine: the
+# path itself would go into the repo with it
+ON_MACHINE = "it names a path on the machine it ran on"
 # a claim about every place in its scope, which one matching line never shows
 UNIVERSAL = ("every", "each", "all", "always", "never", "none", "nowhere",
              "only", "single", "sole", "any", "no")
@@ -661,7 +664,7 @@ class Store(object):
             what = secret_in(text)
             if what:
                 return "it looks like a secret: " + what + " in " + key
-        for key in ("claim", "why", "source"):
+        for key in ("claim", "why", "source", "check"):
             said = on_machine(p.get(key), key)
             if said:
                 return said
@@ -731,7 +734,8 @@ class Store(object):
             if why and (not form or every_of(p)):
                 return why
             if why:
-                p.unchecked, said = form, ""
+                p.unchecked, said = ON_MACHINE if machine_path(form) \
+                    else form, ""
         why = every_refusal(p, said)
         if why:
             return why

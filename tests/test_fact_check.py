@@ -325,6 +325,43 @@ def test_a_check_that_breaks_a_secret_or_an_every_claim_still_refuses_it(
     assert fact is None and why.startswith(refused), why
 
 
+def stored(root):
+    folder = root / "facts"
+    return "".join(f.read_text(encoding="utf-8")
+                   for f in folder.rglob("*.md")) if folder.is_dir() else ""
+
+
+# built from parts: the repo's own leak gate refuses a machine path written
+# out whole
+DRIVE = "D" + ":"
+
+
+@pytest.mark.parametrize("where", ["drive", "place"])
+def test_a_check_that_names_a_path_on_the_machine_refuses_the_fact(
+        tmp_path, where):
+    store, record = a_store(tmp_path)
+    path = DRIVE + "/x/y.py" if where == "drive" else \
+        (tmp_path / "pkg" / "parse.py").as_posix()
+    fact, why = store.add(claimed(DECIDED, 'grep -n "print(" ' + path
+                                  + " exits 1", "decision"), record)
+    assert fact is None
+    assert why.startswith("it names a path on the machine it ran on ("), why
+    assert why.endswith(" in check")
+    assert path not in stored(tmp_path)
+
+
+def test_a_refused_checks_reason_never_carries_a_machine_path_into_the_fact(
+        tmp_path, monkeypatch):
+    store, record = a_store(tmp_path)
+    said = "the check cannot run: pkg/parse.py: denied: " + DRIVE + "/x/y.py"
+    monkeypatch.setattr(store, "check_refusal", lambda *a: (said, said))
+    fact, why = store.add(claimed(DECIDED, CHECK, "decision"), record)
+    assert why == "" and fact is not None
+    assert fact.get("unchecked") == ("its check was refused: it names a path"
+                                     " on the machine it ran on")
+    assert DRIVE not in stored(tmp_path)
+
+
 @pytest.mark.parametrize("check", [
     'grep -n -E "raise|echo" pkg/parse.py exits 1',
     'grep -rn "raise" pkg/ exits 1',

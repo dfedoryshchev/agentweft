@@ -499,9 +499,12 @@ is written; a refused one is not written and its reason is kept:
    `AKIA...`, a private key block, a JWT), a file that holds one by its name
    (the brief's credential names and the police check's), or a string of 32
    or more letters and digits that mixes cases and reads as random. the
-   reason names the field and the kind, never the value. a claim, why or
-   source that names a path on the machine the run ran on is refused the
-   same way (`it names a path on the machine it ran on (<path>) in <field>`):
+   reason names the field and the kind, never the value. a claim, why,
+   source or check that names a path on the machine the run ran on is
+   refused the same way (`it names a path on the machine it ran on (<path>)
+   in <field>`), and a check refused for its form whose reason names one is
+   kept as `unchecked: its check was refused: it names a path on the machine
+   it ran on`, never the reason's own words:
    one that starts at a drive letter (or Git Bash's `/c/` for it), at a
    share's two backslashes or two slashes (by name or address), at a home
    folder's tilde, or at a file-system root such as home, Users, tmp
