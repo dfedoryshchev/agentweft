@@ -710,6 +710,26 @@ def test_a_semicolon_inside_a_quote_is_a_character_not_a_statement_break(
     assert item["backed"] == state, item
 
 
+BLANK = [("T='a\n\nb'\nprintf '%s\\n' \"$T\"", "a\n\nb\n"),
+         ('python -c "print(1); print(2)"', "1\n2\n")]
+
+
+@pytest.mark.parametrize("cited, state", [
+    ("T='a; ; b'; printf '%s\\n' \"$T\"", "backed"),
+    ("T='a; b'; printf '%s\\n' \"$T\"", "backed"),
+    ("T='a; c'; printf '%s\\n' \"$T\"", "unbacked"),
+    ("T='a; ; c'; printf '%s\\n' \"$T\"", "unbacked"),
+    ("T='a; ; ; b'; printf '%s\\n' \"$T\"", "unbacked"),
+    ('python -c "print(1); print(2)"', "backed"),
+    ('python -c "print(1); ; print(2)"', "unbacked")])
+def test_a_blank_line_inside_a_quote_is_one_semicolon_per_line_break(
+        cited, state):
+    saw = "2" if "python" in cited else "b"
+    block = verified("- it prints\n  cmd: " + cited + "\n  saw: " + saw + "\n")
+    [item] = handoff.back(block, BLANK)["verified"]
+    assert item["backed"] == state, item
+
+
 SPARSE = [("sh x", "rate: 10\nerror at line 7\nexit 2\n")]
 
 

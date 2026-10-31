@@ -435,7 +435,10 @@ and `continued`
   echo $a; done` is the call that ran it over two lines; a line break just
   inside a quote (`python -c "<newline>import sys<newline>"`) is dropped, a
   `;` inside a quote is a character of the quoted text and stays as it is
-  (`grep -c 'a; b'` is not the call `grep -c 'a;b'` that ran), and every
+  (`grep -c 'a; b'` is not the call `grep -c 'a;b'` that ran), a blank
+  line inside a quote may be written as one `; ` for each of its line
+  breaks (`T='a; ; b'` is the call that ran `T='a`, an empty line, `b'`),
+  and every
   word must still be the one that ran. a Read, Grep or Glob call is
   held the same way as a command: a `cmd:` that names the tool, the pattern a
   search looked for and the file it read or searched, whole or by its tail

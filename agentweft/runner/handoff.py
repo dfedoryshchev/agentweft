@@ -366,11 +366,13 @@ def _quoted(text, quote):
     return quote
 
 
-def breaks(text):
+def breaks(text, each=False):
     """-> `text` with every line break and `;` between two statements, and
     the space around them, written as one `; `. a line break just inside a
     quote, as in `python -c "<newline>import sys<newline>"`, is dropped, and
-    a `;` inside a quote is a character of the quoted text, kept as it is."""
+    a `;` inside a quote is a character of the quoted text, kept as it is.
+    with `each`, the line breaks inside a quote are written one `; ` each,
+    so a blank line in quoted text is `; ; `."""
     chunks = BREAK.split((text or "").strip())
     seps = BREAK.findall((text or "").strip())
     out, quote = chunks[0], _quoted(chunks[0], None)
@@ -380,16 +382,19 @@ def breaks(text):
         if quote is not None and ";" in sep:
             out = out + sep
         elif chunk and not inside:
-            out = out + "; "
+            out = out + "; " * (max(1, sep.count("\n"))
+                                if each and quote is not None else 1)
         out = out + chunk
         quote = _quoted(chunk, quote)
     return out
 
 
 def by_breaks(cited, cmd):
-    """whether `cited` is `cmd` with a `; ` written for a line break: the
-    same words, the same statements, in the same order."""
-    return norm(breaks(cited)) in norm(breaks(cmd))
+    """whether `cited` is `cmd` with a `; ` written for a line break, or for
+    each line break of a blank line inside a quote: the same words, the same
+    statements, in the same order."""
+    said = norm(breaks(cited))
+    return said in norm(breaks(cmd)) or said in norm(breaks(cmd, each=True))
 
 
 def _stdin_script(cmd):
