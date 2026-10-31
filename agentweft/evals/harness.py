@@ -132,7 +132,10 @@ def run_flow_for(flow, case, record=False):
 
     a case with a `place` runs in a copy of it, made fresh for the run, so
     what its steps write and its gates run never reach the case's own
-    folder or the tree the command was started in.
+    folder or the tree the command was started in. a case with none runs in
+    a folder of its own holding only a copy of its inputs, at the path the
+    prompt names them by, so the docs, facts and rulings of the tree the
+    command was started in never reach its steps.
     """
     from agentweft import providers
     from agentweft.runner import engine, task
@@ -171,15 +174,19 @@ def run_flow_for(flow, case, record=False):
     for kept in (recorder, replay):
         if kept is not None:
             kept.trail = trail
-    workdir = None
     old = {k: os.environ.get(k) for k in ("INBOX", "LOGS", "WATCH")}
     try:
+        workdir = folder / "place"
         if place is not None:
-            workdir = folder / "place"
             shutil.copytree(place, workdir)
             why = committed(workdir)
             if why:
                 return Ran("", None, case["name"] + ": " + why)
+        else:
+            workdir.mkdir()
+            inbox = Path(case["inbox"])
+            if not inbox.is_absolute() and inbox.is_dir():
+                shutil.copytree(inbox, workdir / inbox)
         for k in old:
             # the path is in the prompt, and a recording made on Windows has
             # to hash the same on Linux

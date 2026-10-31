@@ -8,6 +8,7 @@ import yaml
 sys.path.insert(0, ".")
 from agentweft import runner
 from agentweft.evals import harness, recording
+from agentweft.orchestrate import facts
 from agentweft.providers import fake_provider
 from agentweft.runner import prompts
 
@@ -190,3 +191,22 @@ def test_a_replayed_case_with_writes_and_no_place_does_not_run(
     assert "writes" in out[2] and "place" in out[2], out[2]
     assert out.steps == []
     assert list(started.iterdir()) == []
+
+
+def test_a_case_with_no_place_is_handed_no_doc_of_the_tree_it_runs_from(
+        monkeypatch):
+    real = facts.text_lines
+
+    def shifted(path):
+        lines = real(path)
+        if Path(path).as_posix().endswith("docs/journal.md"):
+            return ["a line added above"] + list(lines)
+        return lines
+
+    monkeypatch.setattr(facts, "text_lines", shifted)
+    [path] = [p for p in harness.cases_for("weekly-digest")
+              if p.name == "quiet-week"]
+    case = harness.load_case(path)
+    assert case["recording"] is not None and case.get("place") is None
+    out = harness.run_flow_for("weekly-digest", case)
+    assert out[2] == "", out[2]

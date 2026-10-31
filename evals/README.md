@@ -31,7 +31,10 @@ needs somewhere to do it that is not this repo. a case says so with
 should find it. every run of the case works in a fresh copy of it, made a git
 work tree with those files as one commit so the red-first gate can replay the
 start, and thrown away after. the case's own folder and the tree the command
-was started in are never written to.
+was started in are never written to. a case with no place runs in a folder of
+its own holding only a copy of its inbox, so no doc, fact or ruling of this
+repo reaches its steps and a recording does not go stale when this repo's
+docs move.
 
 the fake provider answers each step from a list of its own, and an answer can
 leave files in the place before the step's gates look at it:
