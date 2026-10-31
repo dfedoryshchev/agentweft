@@ -235,6 +235,15 @@ SEARCHED = [
     (lambda t: [bash("grep -rn x src; grep -rn y tests",
                      "src/a.py:3:x\ntests/test_a.py:9:y")], "src/a.py - x"),
     (lambda t: [bash("grep x a.py", "x = 1")], "a.py - x"),
+    (lambda t: [bash("git diff 25b87c6 -- gradebook TASK.md",
+                     "diff --git a/TASK.md b/TASK.md\n+one\n"
+                     "diff --git a/gradebook/inputs.py b/gradebook/inputs.py\n"
+                     "+two")],
+     "git diff 25b87c6 of gradebook/ and TASK.md - the whole code change"),
+    (lambda t: [bash("git diff 25b87c6 -- calc.py",
+                     "diff --git a/calc.py b/calc.py\n+one")],
+     "git diff 25b87c6 -- calc.py - the change"),
+    (lambda t: [bash("cat calc.py", "x = 1")], "cat calc.py - the module"),
 ]
 
 
@@ -285,6 +294,20 @@ NOT_SEARCHED = [
     (lambda t: [bash("grep -n x a.py", "grep: a.py: No such file or"
                      " directory")], "a.py - x"),
     (lambda t: [bash("ls; grep zzz a.py", "a.py\nb.py")], "a.py - x"),
+    (lambda t: [bash("git diff 25b87c6 -- TASK.md",
+                     "diff --git a/TASK.md b/TASK.md\n+one")],
+     "git diff 25b87c6 of gradebook/ and TASK.md - the whole code change"),
+    (lambda t: [bash("git diff 25b87c6 -- gradebook",
+                     "diff --git a/gradebook/inputs.py b/gradebook/inputs.py\n"
+                     "+two")],
+     "git diff 25b87c6 of gradebook/ and TASK.md - the whole code change"),
+    (lambda t: [bash("git diff 25b87c6 --stat", " calc.py | 3 +-")],
+     "git diff 25b87c6 -- calc.py - the change"),
+    (lambda t: [bash("git log -3", "abc fix")], "git log -3 - the history"),
+    (lambda t: [bash("cat gradebook/inputs.py", "x = 1")],
+     "gradebook/ - the package"),
+    (lambda t: [bash("git diff -- calc.py", "diff --git a/calc.py b/calc.py")],
+     "git - the change"),
 ]
 
 

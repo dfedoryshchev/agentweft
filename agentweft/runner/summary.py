@@ -1257,10 +1257,32 @@ ITEM_PATH = re.compile(r"[`\"']?([^\s:,;`\"'()]+)[`\"']?(?::\d+(?:[,\-]\d+)*)?")
 ITEM_JOIN = re.compile(r"\s*(?:,|\band\b)\s*")
 
 
+COMMAND_WORDS = frozenset((
+    "git", "grep", "egrep", "fgrep", "rg", "cat", "head", "tail", "sed", "awk",
+    "nl", "less", "more", "bat", "find", "ls", "wc", "diff", "python",
+    "python3", "py", "pytest"))
+
+
+def _led_by_command(item):
+    words = item.strip().split()
+    return bool(words) and words[0].strip("`\"'") in COMMAND_WORDS
+
+
 def item_paths(item):
     """-> the files a READ line names at its head: the first word, and each
     word after a comma or an `and` that looks like a path, without the
-    lines, quotes or the punctuation that closes it."""
+    lines, quotes or the punctuation that closes it. a line that starts
+    with a command (`git diff <sha> -- <file>`) names the path-like words
+    before its ` - `, never the command word."""
+    if _led_by_command(item):
+        out = []
+        for word in item.strip().split(" - ")[0].split()[1:]:
+            m = ITEM_PATH.match(word.strip("()[]"))
+            path = m.group(1).rstrip(".").replace("\\", "/") if m else ""
+            if path and not path.startswith("-") and (
+                    "/" in path or "." in path) and path not in out:
+                out.append(path)
+        return out
     out, text = [], item.strip()
     while True:
         m = ITEM_PATH.match(text)
@@ -1279,10 +1301,15 @@ def item_paths(item):
 
 
 def _named(item, paths):
-    """whether every file a READ line a step wrote names is one of `paths`."""
+    """whether every file a READ line a step wrote names is one of `paths`;
+    a folder the command of a line led by one named, `<folder>/`, is named
+    by a file of `paths` inside it."""
     said = item_paths(item)
+    led = _led_by_command(item)
     return bool(said) and all(
         any(s == p or p.endswith("/" + s) or s.endswith("/" + p)
+            or led and s.endswith("/") and (p.startswith(s)
+                                            or ("/" + s) in p)
             for p in paths) for s in said)
 
 

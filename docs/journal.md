@@ -755,7 +755,10 @@ five sections are written by the runner alone:
   read (a Read call by offset and limit, a `cat`, `head`, `tail` or `sed -n`
   target in a shell call), with the step's own READ lines under it as `said:`.
   a READ line is held to every file it names at its head (`a.py, b.py - why`,
-  the lines and closing punctuation left off): each must be one the pass
+  the lines and closing punctuation left off; a line that starts with a
+  command, `git diff <sha> of src/ and TASK.md - why`, names the words
+  before its ` - ` that hold a `/` or a `.`, never the command word, and a
+  `<folder>/` among them is covered by a file inside it): each must be one the pass
   read, one a search printed lines of (a `grep` or `rg` in a shell call, or a
   Grep call that shows content: one search of one file alone in its call by
   any line it printed; otherwise a file its output names, when every
