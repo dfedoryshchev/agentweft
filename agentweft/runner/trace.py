@@ -50,7 +50,7 @@ class Attempt(object):
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
                  "retries", "effort", "verbosity", "continued", "lapsed",
-                 "facts", "docs")
+                 "facts", "docs", "folded", "fold_why")
 
     def __init__(self, task=None):
         self.task = task
@@ -59,6 +59,9 @@ class Attempt(object):
         self.facts = None
         # the project's docs this go was handed in its brief, by path
         self.docs = None
+        # the tickets its `fold:` line took in, and the why of a `none`
+        self.folded = None
+        self.fold_why = ""
         self.verbosity = None
         # the session this go carried on, None for one started fresh
         self.continued = None
@@ -716,6 +719,11 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
         docs.extend(d for d in getattr(a, "docs", None) or [] if d not in docs)
     if docs:
         out["docs_handed"] = docs
+    folds = [a for a in attempts if getattr(a, "folded", None) is not None]
+    if folds:
+        out["folded"] = list(folds[-1].folded)
+        if folds[-1].fold_why:
+            out["fold_why"] = folds[-1].fold_why
     if entry.case:
         out["case"] = entry.case
     fell = fallback(attempts)

@@ -49,8 +49,20 @@ TROUBLE_HEAD = ("known trouble on these files, kept by the runner across runs:"
                 " defects found beside a change and left as they were, and"
                 " gates that could not do their job here. not a rule to hold"
                 " to.")
+TICKETS_HEAD = ("nice to do when you touch these files, kept by the runner"
+                " across runs: tickets of a few lines each, not a rule to hold"
+                " to. the planner ends its plan with one line naming the ones"
+                " this run takes in, `fold: <ids>`, or `fold: none - <why>`. a"
+                " step after it does each folded one with its change, keeps"
+                " the task's tests green and names its id on a DID line, and"
+                " the run's review holds a folded one like any planned"
+                " behaviour: one not done is a redo. one not folded is done"
+                " only when it is cheap, and named on a DID line too.")
 DOCS_HEAD = ("the project's docs for the files you are handed, quoted from the"
              " place as it is now:")
+FOLDED = "(folded into this run's plan)"
+FOLD = re.compile(r"^\s*fold\s*:\s*(.*?)\s*$", re.I)
+TICKET_ID = re.compile(r"\bF-(\d+)\b", re.I)
 NONE_YET = "(the brief is empty: no step before you handed one over in this run)"
 
 CREDENTIAL = re.compile(r"^(\.env(\..*)?|\.netrc|\.pypirc|id_[^.]+"
@@ -73,20 +85,42 @@ def where_of(item):
     return m.group("path"), first, last, m.group("note").strip()
 
 
-HEADS = (FACTS_HEAD, OPEN_HEAD, TROUBLE_HEAD)
+HEADS = (FACTS_HEAD, OPEN_HEAD, TROUBLE_HEAD, TICKETS_HEAD)
 
 
 def head_of(fact):
-    """-> the header a fact is handed under: an open question or a pinning
-    note is open, a defect or a gate issue is known trouble, the rest is
-    the project's way to hold to."""
+    """-> the header a fact is handed under: a nice-to-do is a ticket, an
+    open question or a pinning note is open, a defect or a gate issue is
+    known trouble, the rest is the project's way to hold to."""
     from agentweft.orchestrate import facts
 
+    if fact.kind == facts.NICE:
+        return TICKETS_HEAD
     if fact.label in ("investigation", facts.PINS):
         return OPEN_HEAD
     if fact.kind in ("defect", "gate-issue"):
         return TROUBLE_HEAD
     return FACTS_HEAD
+
+
+def fold_of(text):
+    """-> None when `text` has no `fold:` line, else (the ticket ids its
+    last one names, the why after a `none`, "" for ids). a line inside a
+    code fence or a `>` quote is not read."""
+    from . import verbs
+
+    said = None
+    for _, line in verbs.visible(text or ""):
+        m = FOLD.match(line)
+        if m:
+            said = m.group(1)
+    if said is None:
+        return None
+    head = said.split()[0].lower().rstrip(":-,.") if said.split() else ""
+    if head == "none" or not said:
+        return [], said[len(said.split()[0]) if said.split() else 0:].strip(
+            " -:,.")
+    return ["F-%04d" % int(n) for n in TICKET_ID.findall(said)], ""
 
 
 def named_in(items):
@@ -136,6 +170,12 @@ class Brief(object):
         self.goes = {}
         self.lock = threading.RLock()
         self.loose = untracked(self.where)
+        # the tickets a step's `fold:` line took into this run's plan
+        self.folded = set()
+
+    def fold(self, ids):
+        with self.lock:
+            self.folded.update(ids)
 
     def quotable(self, target):
         """whether the brief may quote `target`: a file git tracks or one
@@ -220,7 +260,8 @@ class Brief(object):
         """-> what the brief for `before` holds, without the lines it quotes
         from the place: the facts handed are keyed by id and status, the
         docs by path."""
-        said = [(f.id, f.status) for f in handed]
+        said = [(f.id, f.status) + ((FOLDED,) if f.id in self.folded else ())
+                for f in handed]
         return repr(self.entries(before)) + (repr(said) if said else "") \
             + (repr(list(docs)) if docs else "")
 
@@ -321,7 +362,9 @@ class Brief(object):
 
         what = ", ".join([fact.kind or "fact"] + ([fact.label]
                          if fact.label and fact.label != "none" else []))
-        head = "- " + fact.id + " " + ", ".join(fact.scopes) + " (" + what + ")"
+        head = "- " + fact.id + (" " + FOLDED if fact.id in self.folded
+                                 else "") + " " + ", ".join(fact.scopes) \
+            + " (" + what + ")"
         if fact.status == facts.STALE:
             said = fact.get("stale").split(" ", 1)
             head = (head + ", possibly stale" + (", " + said[1] if len(said) > 1

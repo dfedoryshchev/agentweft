@@ -134,12 +134,20 @@ first, then the most honoured. at most two project-wide facts (scoped `.`,
 or a glob such as `**` that matches every file) are handed to
 one step, the rest named by id and file for the step to open. a stale one
 comes after them marked `possibly stale` with why and the day.
-they are handed under three headers, by what they are: the project's way to
+they are handed under four headers, by what they are: the project's way to
 hold to (a decision, a convention, a why), what is open on those files (a
 fact labelled `investigation`, an open question no ruling settled, or
 `pins`, tests that pass without the change they came with), handed as open
-and never as a rule, and known trouble (a defect left as it was, a gate that
-could not do its job), each in that order. they are capped at 2000 characters inside the brief's 8000; the ones that do
+and never as a rule, known trouble (a defect left as it was, a gate that
+could not do its job), and the runway: nice-to-do tickets, a few lines of
+one file each (`guardrails.md`, "a nice-to-do"), each in that order. the
+planner names the tickets the run takes in on one line, `fold: F-0003,
+F-0007`, or `fold: none - <why>`; the line goes on its line in `steps.jsonl`
+as `folded` (only ids it was handed) and `fold_why`, and every step after it
+is handed those tickets marked `(folded into this run's plan)`: the step
+that changes the file does each with its change and names its id on a DID
+line, and the run's reviewers hold a folded one like any planned behaviour.
+they are capped at 2000 characters inside the brief's 8000; the ones that do
 not fit are named by id and the file they are in, for the step to open. a
 place with no facts gets the brief it got before.
 

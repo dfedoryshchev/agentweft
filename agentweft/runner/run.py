@@ -1188,7 +1188,12 @@ class Run(object):
                               self.workdir, start),
                          self.workdir, start)
         self.keep(role, block)
+        fold = kept.fold_of(text) if tried.facts else None
+        if fold is not None:
+            tried.folded = [i for i in fold[0] if i in tried.facts]
+            tried.fold_why = fold[1]
         if notes is not None:
+            notes.fold(getattr(tried, "folded", None) or ())
             notes.add(step, task, role, block)
             if getattr(self, "folder", None) is not None:
                 notes.save(self.folder)

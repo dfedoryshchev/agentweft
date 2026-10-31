@@ -621,6 +621,15 @@ is put to the flow's lead before the run is left, and only its recorded
 decision moves it (`docs/writing-a-flow.md`, section 10); `critical` on any
 other kind is refused.
 
+a ticket is handed to a step on its file under its own header, never as a
+rule, and the planner folds it into the run or says why not (`docs/flows.md`,
+"the brief the run keeps"). once the leg has ended the runner retires each
+live ticket the run was handed that is done, `retired: <day> done in run
+<id>`: a step's DID line names its id and its file changed in the run, or
+its check no longer holds. each other one it was handed gains one on
+`untaken: <n>`, and at 5 it is marked stale, `stale: <day> not taken in 5
+runs it was handed to`, for the retro to argue again or retire.
+
 ### a fact's check
 
 a fact can carry a program the runner holds the place to:

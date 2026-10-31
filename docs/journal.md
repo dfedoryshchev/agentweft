@@ -269,6 +269,10 @@ and `continued`
 - `docs_handed` is only on the line of a step whose brief handed it some of
   the project's docs: the `read_first` files of its role, then the docs that
   name a file it was handed, by path, in the order shown.
+- `folded` is only on the line of a step handed nice-to-do tickets whose
+  answer had a `fold:` line: the ids of those tickets it took into the run's
+  plan, `[]` for `fold: none`, with `fold_why` the why it gave
+  (`docs/flows.md`, "the brief the run keeps").
 - `conformance` is only on the line of a step that changed a file in the
   scope of a fact with a `check:`: per fact, its id, scope, claim and check,
   the `result` (`held`, `broken` or `could not run`) and what it `said`
@@ -1486,7 +1490,9 @@ were handed it: a count written while steps run would be a change to the
 place under them. a fact with a `check:` is held to it after every step
 that changes its scope (`docs/guardrails.md`, "a fact's check"), and the
 same end of the leg adds `honoured` for each step whose change kept it and
-`contradicted` for each that broke it.
+`contradicted` for each that broke it, and retires a nice-to-do the leg did
+or counts one it was handed and did not take (`docs/guardrails.md`, "a
+nice-to-do").
 
 in the shipped build-feature flow the second reviewer reads the facts it is
 handed as the project's documented way: a change that departs from one, or

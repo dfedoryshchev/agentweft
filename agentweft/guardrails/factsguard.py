@@ -132,6 +132,8 @@ MACHINE_PATH = re.compile(
 WORD = re.compile(r"[^\s`'\"(),;<>]+")
 # the tickets for a later run one run may write, beside its facts
 TICKETS = 3
+# the runs a nice-to-do is handed to and not taken in before it goes stale
+DECAY = 5
 # a nice-to-do's claim: the change, a few lines of one file
 TIDY = 200
 WIDE = re.compile(r"\b(?:refactor\w*|rewrit\w*|restructur\w*|redesign\w*"
@@ -509,6 +511,8 @@ class Store(object):
         # every store file the runner wrote, in order
         self.touched = []
         self.pinned = None
+        # each live nice-to-do's file as the run found it
+        self.tidies = {}
         self.taken()
         self.watch()
 
@@ -872,7 +876,8 @@ class Store(object):
                     self.pending.add(f.id)
 
     def watch(self):
-        """note the scope of every live fact with a check as it is now."""
+        """note the scope of every live fact with a check as it is now, and
+        of every live nice-to-do the first time it is seen."""
         self.watched, self.pending = {}, set()
         if self.off:
             return
@@ -880,6 +885,49 @@ class Store(object):
             if held_as_rule(f):
                 self.watched[f.id] = facts.scope_digest(self.root, f.scopes,
                                                         self.own)
+            elif f.kind == facts.NICE and f.status == facts.LIVE \
+                    and f.id not in self.tidies:
+                self.tidies[f.id] = facts.scope_digest(self.root, f.scopes,
+                                                       self.own)
+
+    def runway(self, lines, run_id, today=None):
+        """retire each live nice-to-do handed in the run's steps.jsonl
+        `lines` once it is done: a step's DID line names its id and its file
+        changed in the run, or its check no longer holds. count on each other
+        one handed a run it was not taken in (`untaken`), and at DECAY mark
+        it stale. -> (the ids retired, the ids gone stale)."""
+        handed, did = set(), set()
+        for line in lines if not self.off else ():
+            handed.update((line or {}).get("facts_attached") or [])
+            for item in ((line or {}).get("handoff") or {}).get("did") or []:
+                did.update("F-%04d" % int(n)
+                           for n in re.findall(r"\bF-(\d+)\b", str(item)))
+        if not handed:
+            return [], []
+        stamp = today or datetime.date.today().isoformat()
+        retired, decayed = [], []
+        with self.lock, self.shared():
+            for f in self.read():
+                if f.id not in handed or f.kind != facts.NICE \
+                        or f.status != facts.LIVE:
+                    continue
+                moved = f.id in self.tidies and self.tidies[f.id] \
+                    != facts.scope_digest(self.root, f.scopes, self.own)
+                flipped = bool(f.get("check").strip()) \
+                    and self.run(f)[0] is False
+                if f.id in did and moved or flipped:
+                    self.status(f.id, facts.RETIRED, "retired",
+                                stamp + " done in run " + run_id)
+                    retired.append(f.id)
+                    continue
+                n = int(f.get("untaken") or 0) + 1
+                self.change(f.id, lambda g, n=n: g.put("untaken", str(n)))
+                if n >= DECAY:
+                    self.status(f.id, facts.STALE, "stale", stamp
+                                + " not taken in " + str(n) + " runs it was"
+                                " handed to")
+                    decayed.append(f.id)
+        return retired, decayed
 
     def held_to(self, lines, folder=None):
         """add one to a fact's `honoured` for each check it held after a

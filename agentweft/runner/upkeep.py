@@ -54,7 +54,7 @@ retired.
 import re
 from pathlib import Path
 
-from agentweft.guardrails.factsguard import Proposal, seen_of
+from agentweft.guardrails.factsguard import DECAY, Proposal, seen_of
 from agentweft.orchestrate import facts
 
 PASSES = re.compile(r"\b(?:pass(?:es|ed|ing)?|green|pin(?:s|ned|ning)?"
@@ -568,9 +568,10 @@ def files_changed(done, touched, root):
 
 def tally(run, trail):
     """count on each fact the steps of this leg it was handed, and the steps
-    whose change held or broke its check, once the leg has ended: a count
-    written while steps run would be a change to the place under them. a
-    store that cannot be written is said, never raised."""
+    whose change held or broke its check, and retire or decay the
+    nice-to-dos it was handed (`Store.runway`), once the leg has ended: a
+    count written while steps run would be a change to the place under
+    them. a store that cannot be written is said, never raised."""
     store = getattr(run, "facts", None)
     if store is None or trail is None:
         return []
@@ -581,7 +582,15 @@ def tally(run, trail):
                    if hasattr(store, "held_to") else []):
             if id not in out:
                 out.append(id)
-        return out
+        folder = getattr(trail, "folder", None)
+        done, gone = store.runway(lines, folder.name if folder else "") \
+            if hasattr(store, "runway") else ([], [])
+        for id in done:
+            print("facts: retired " + id + ", the nice-to-do this run did")
+        for id in gone:
+            print("facts: " + id + " is stale, a nice-to-do not taken in "
+                  + str(DECAY) + " runs it was handed to")
+        return out + [i for i in done + gone if i not in out]
     except (OSError, ValueError, KeyError) as e:
         print("facts: attached not counted: " + type(e).__name__ + ": "
               + str(e))
