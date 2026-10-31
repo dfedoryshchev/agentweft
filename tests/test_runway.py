@@ -2,9 +2,12 @@
 header of its own, never as a rule; the planner names the ones the run takes
 in on a `fold:` line, or none and why; the steps after it are told which
 were folded, so the run's own review holds them; the runner retires a ticket
-once a step's DID line names it and its file changed, and one handed in five
+once a step's DID line says it did it and its own lines changed, and one
+handed in five
 runs and never taken goes stale."""
 import sys
+
+import pytest
 
 sys.path.insert(0, ".")
 from agentweft.guardrails import factsguard
@@ -96,6 +99,45 @@ def test_a_ticket_a_step_did_on_its_changed_file_is_retired(tmp_path):
     [fact] = facts.read(tmp_path)
     assert fact.status == facts.RETIRED
     assert fact.get("retired") == "2026-11-01 done in run run-9"
+
+
+@pytest.mark.parametrize("did, change", [
+    ("F-0001: not done, left for a later run",
+     ("raise ValueError('empty')", "raise ValueError('empty line')")),
+    ("F-0001 was not taken in", ("import os", "import sys")),
+    ("F-0001: the raise names the line", ("import os", "import sys")),
+    ("F-0001: the raise names the line", ("import os", "import os" + NL)),
+])
+def test_a_ticket_not_done_on_its_own_lines_is_not_retired(tmp_path, did,
+                                                           change):
+    a_place(tmp_path)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "pkg/a.py", CODE.replace(*change))
+    lines = [{"facts_attached": ["F-0001"], "handoff": {"did": [did]}}]
+    assert store.runway(lines, "run-9", today="2026-11-01") == ([], [])
+    [fact] = facts.read(tmp_path)
+    assert fact.status == facts.LIVE and fact.get("untaken") == "1"
+
+
+def test_a_ticket_done_on_its_own_line_after_a_shift_is_retired(tmp_path):
+    a_place(tmp_path)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "pkg/a.py", "import sys" + NL + CODE.replace(
+        "raise ValueError('empty')", "raise ValueError('empty line')"))
+    lines = [{"facts_attached": ["F-0001"],
+              "handoff": {"did": ["F-0001: the raise names the line"]}}]
+    assert store.runway(lines, "run-9") == (["F-0001"], [])
+
+
+def test_a_ticket_whose_check_stops_holding_is_retired_on_no_did(tmp_path):
+    put(tmp_path, "pkg/a.py", CODE)
+    put(tmp_path, "facts/pkg/a.py.md", ticket().replace(
+        "source:", "check: grep -n \"ValueError('empty')\" pkg/a.py" + NL
+        + "source:"))
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "pkg/a.py", CODE.replace("('empty')", "('empty line')"))
+    assert store.runway([{"facts_attached": ["F-0001"]}], "run-9") == (
+        ["F-0001"], [])
 
 
 def test_a_did_line_with_its_file_unchanged_retires_nothing(tmp_path):

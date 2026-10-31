@@ -134,6 +134,10 @@ WORD = re.compile(r"[^\s`'\"(),;<>]+")
 TICKETS = 3
 # the runs a nice-to-do is handed to and not taken in before it goes stale
 DECAY = 5
+# a DID item that names a ticket to say it was not done
+UNDONE = re.compile(r"\b(?:not|no|never|none|nothing|cannot|undone|skip\w*"
+                    r"|left|leav\w*|defer\w*|postpon\w*|untouched|unchanged"
+                    r"|later|instead|unable|without)\b|n't\b", re.I)
 # a nice-to-do's claim: the change, a few lines of one file
 TIDY = 200
 WIDE = re.compile(r"\b(?:refactor\w*|rewrit\w*|restructur\w*|redesign\w*"
@@ -282,6 +286,36 @@ def evidence_lines(source):
     if quoted is None:
         return ""
     return quoted[0] + ":" + str(quoted[1]) + "-" + str(quoted[2])
+
+
+def cited_lines(root, source, rel):
+    """-> the lines of the file `rel` a source's evidence cites, as they are
+    now: a tuple, None when it cites none of that file that are there."""
+    m = EVIDENCE.search(source or "")
+    quoted = quote_of(m.group(1).strip()) if m else None
+    if quoted is None or facts.norm(quoted[0]) != rel:
+        return None
+    path = Path(root) / rel
+    try:
+        lines = facts.text_lines(path) if path.is_file() else []
+    except (OSError, ValueError):
+        return None
+    if not 1 <= quoted[1] <= quoted[2] <= len(lines):
+        return None
+    return tuple(lines[quoted[1] - 1:quoted[2]])
+
+
+def still_there(root, rel, block):
+    """whether the lines `block` stand together, as they were, anywhere in
+    the file `rel` of the place."""
+    path = Path(root) / rel
+    try:
+        lines = facts.text_lines(path) if path.is_file() else []
+    except (OSError, ValueError):
+        return True
+    n = len(block)
+    return any(tuple(lines[i:i + n]) == block
+               for i in range(len(lines) - n + 1))
 
 
 def closing(text, at=0):
@@ -895,21 +929,25 @@ class Store(object):
                                                         self.own)
             elif f.kind == facts.NICE and f.status == facts.LIVE \
                     and f.id not in self.tidies:
-                self.tidies[f.id] = facts.scope_digest(self.root, f.scopes,
-                                                       self.own)
+                cited = cited_lines(self.root, f.get("source"), f.scopes[0])
+                self.tidies[f.id] = cited if cited is not None else \
+                    facts.scope_digest(self.root, f.scopes, self.own)
 
     def runway(self, lines, run_id, today=None):
         """retire each live nice-to-do handed in the run's steps.jsonl
-        `lines` once it is done: a step's DID line names its id and its file
-        changed in the run, or its check no longer holds. count on each other
-        one handed a run it was not taken in (`untaken`), and at DECAY mark
-        it stale. -> (the ids retired, the ids gone stale)."""
+        `lines` once it is done: a step's DID item names its id and says
+        nothing of it not being done, and the lines its evidence cites in its
+        file are no longer there as the run found them (its file changed, for
+        evidence cited elsewhere); or its check no longer holds. count on each other one handed a run it was not taken in
+        (`untaken`), and at DECAY mark it stale. -> (the ids retired, the
+        ids gone stale)."""
         handed, did = set(), set()
         for line in lines if not self.off else ():
             handed.update((line or {}).get("facts_attached") or [])
             for item in ((line or {}).get("handoff") or {}).get("did") or []:
-                did.update("F-%04d" % int(n)
-                           for n in re.findall(r"\bF-(\d+)\b", str(item)))
+                if not UNDONE.search(str(item)):
+                    did.update("F-%04d" % int(n) for n
+                               in re.findall(r"\bF-(\d+)\b", str(item)))
         if not handed:
             return [], []
         stamp = today or datetime.date.today().isoformat()
@@ -919,8 +957,11 @@ class Store(object):
                 if f.id not in handed or f.kind != facts.NICE \
                         or f.status != facts.LIVE:
                     continue
-                moved = f.id in self.tidies and self.tidies[f.id] \
-                    != facts.scope_digest(self.root, f.scopes, self.own)
+                was = self.tidies.get(f.id)
+                moved = not still_there(self.root, f.scopes[0], was) \
+                    if isinstance(was, tuple) else was is not None \
+                    and was != facts.scope_digest(self.root, f.scopes,
+                                                  self.own)
                 flipped = bool(f.get("check").strip()) \
                     and self.run(f)[0] is False
                 if f.id in did and moved or flipped:
