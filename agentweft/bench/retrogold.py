@@ -12,16 +12,15 @@ program checks it on:
       scope: [pkg/]               one of these among the fact's scopes
       kind: convention            or a list, any one of them
       label: important            when given, the fact's label (optional)
-    edit:
-      file: README.md             the doc the edit names
-      now: [--file]               words its now holds, all
-      after: [--output]           words its after holds, all, and none of now's
+    ticket:
+      file: README.md             the one file the nice-to-do ticket is on
+      claim: [--output]           words its claim holds, all
 
 a case names the items it is scored on: a run with a failed attempt the
-first four, a run that left a doc stale the edit, a run whose lead ruled the
-fact. an answer scores one for
-each; the fact only when the runner would write it, and the edit only when
-the runner would make it, on the case's record. a change sent to the wrong
+first four, a run that left a doc stale the ticket, a run whose lead ruled
+the fact. an answer scores one for each; the fact and the ticket only when
+the runner would write them on the case's record (an edit or a test guard
+counts as the ticket the runner would keep it as). a change sent to the wrong
 file is worth nothing whatever else it got right, so it scores 0. a blind
 reader gives the change text and the fact's why 0 to 2 apart (`reader`, None
 until then). a case passes a cell when every repeat scores all its items.
@@ -43,12 +42,12 @@ from pathlib import Path
 import yaml
 
 from agentweft.guardrails import factsguard, retroedits
-from agentweft.orchestrate import decisions
+from agentweft.orchestrate import decisions, facts
 from agentweft.runner import retro, trace, upkeep
 
 GOLD = "gold.yaml"
 ANSWER = "gold.md"
-ITEMS = ("failed", "cause", "change", "fact", "edit")
+ITEMS = ("failed", "cause", "change", "fact", "ticket")
 # the items a case with a failed attempt is scored on
 FAILED = ("failed", "cause", "change")
 SECTION = re.compile(r"^##\s+seq\s+(\d+)\s+(\S+)\s*$")
@@ -174,16 +173,16 @@ def refusal(case, verb, value, fields):
                                                record_of(case, place))
 
 
-def edit_refusal(case, value, fields):
-    """-> why the runner would not make the proposed edit on the case's
-    record, "" when it would: held to a copy of place/, as a fact is."""
-    with tempfile.TemporaryDirectory(prefix="retro-gold-",
-                                     ignore_cleanup_errors=True) as tmp:
-        place = Path(tmp) / "place"
-        shutil.copytree(str(Path(case) / "place"), str(place))
-        return retroedits.edit_refusal(
-            place, value or fields.get("file") or "", fields,
-            record_of(case, place), retroedits.Tree(place))[0]
+def ticket_of(case, verb, value, fields):
+    """-> the fields of the nice-to-do ticket an item is, or None: a
+    nice-to-do fact as it stands, an edit or a test guard as the runner
+    would keep it (`upkeep.ticket_of`), anything else none."""
+    if verb == "fact":
+        return fields if fields.get("kind") == facts.NICE else None
+    if verb in upkeep.EDITS or verb == "guard" \
+            and fields.get("kind", "").strip() == "test":
+        return upkeep.ticket_of(Path(case) / "place", verb, value, fields)[0]
+    return None
 
 
 def items_of(gold):
@@ -195,8 +194,8 @@ def items_of(gold):
 def score(answer, gold, case):
     """-> one per item the case names (0 or 1), `score` out of them,
     `passed`, and `reader` left for the blind reader. the fact point needs a
-    fact the runner would write, and the edit point an edit it would make,
-    on the case's record, `case` its folder."""
+    fact the runner would write, and the ticket point a nice-to-do ticket it
+    would keep, on the case's record, `case` its folder."""
     names = items_of(gold)
     got = dict.fromkeys(names, 0)
     if "failed" in gold:
@@ -222,18 +221,17 @@ def score(answer, gold, case):
                          or fields.get("label") == gold["fact"]["label"]) \
                     and not refusal(case, verb, value, fields):
                 got["fact"] = 1
-    if "edit" in gold:
-        want = gold["edit"]
+    if "ticket" in gold:
+        want = gold["ticket"]
         for verb, value, fields in items or []:
-            now, after = fields.get("now") or "", fields.get("after") or ""
-            if verb in upkeep.EDITS \
-                    and path_form(value or fields.get("file")) \
-                    == path_form(want["file"]) \
-                    and all(w in now for w in want["now"]) \
-                    and all(w in after for w in want["after"]) \
-                    and not any(w in after for w in want["now"]) \
-                    and not edit_refusal(case, value, fields):
-                got["edit"] = 1
+            ticket = ticket_of(case, verb, value, fields)
+            if ticket is not None \
+                    and [path_form(s) for s in ticket.get("scope") or []] \
+                    == [path_form(want["file"])] \
+                    and all(w in (ticket.get("claim") or "")
+                            for w in want["claim"]) \
+                    and not refusal(case, "fact", None, ticket):
+                got["ticket"] = 1
     total = sum(got.values()) if got.get("change", 1) else 0
     return dict(got, score=total, passed=total == len(names), reader=None)
 

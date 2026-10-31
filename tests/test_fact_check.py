@@ -595,9 +595,10 @@ def test_the_retro_is_told_what_the_store_keeps_and_refuses():
     from agentweft.roles import resolver
 
     skill = " ".join(resolver.skill("retro").split())
-    assert ("a guard for a defect the run left in place, named by its `F-` id"
-            " or by the `seq <n>` its `defect` fact cites, is never written"
-            " but proposed") in skill
+    assert ("you change no file of the tree, and the runner makes no change"
+            " for you") in skill
+    assert ("a test for a defect the run left in place says so in its claim:"
+            " it fails until the defect is fixed") in skill
     said = re.search(r"a convention whose claim says ([a-z, ]+) \(as a word",
                      skill)
     assert said, skill

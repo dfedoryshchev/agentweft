@@ -336,6 +336,7 @@ def begin(unrecorded):
         if pick_up:
             applied = factsguard.applied_in(
                 manifest.legs(state.RUNS / pick_up)[0])
+            applied.update(factsguard.store_files(run.facts.root))
             if run.start is not None:
                 run.start.kept_out(applied)
             if run.fence is not None:

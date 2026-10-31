@@ -1,6 +1,8 @@
-"""the retro's doc, rules and guard changes land in the tree, unstaged, or as
-one `retro:` commit after the task's under `commits: wip` or `squash`, each
-held to the code as the run left it before the runner writes it."""
+"""the retro's changes are the store's files alone: unstaged, or one `retro:`
+commit after the task's under `commits: wip` or `squash`. a doc edit or a
+test guard it still asks for is kept as a nice-to-do ticket on its one file,
+or refused with why into facts/PROPOSED.md; no other file of the tree is
+written for it."""
 import hashlib
 import json
 import sys
@@ -9,11 +11,12 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.guardrails import factsguard, fence, snapshot
-from agentweft.runner import engine, prompts, resume, retro, state, stops
+from agentweft.runner import engine, prompts, resume, retro, state, stops, \
+    upkeep
 from test_commit_modes import (CASES, COUNT, COUNT_SAID, COUNTED, TESTER,
                                WORKER, WORKER_SAID, a_place, git, head)
 from test_red_order import a_flow as a_repo_flow
-from test_retro_maintains import CODE, asked, block, clean, put
+from test_retro_maintains import CODE, block, clean, put
 from test_stops import the_folder
 
 NL = chr(10)
@@ -40,8 +43,6 @@ def guard(where, *code):
 PASSES = ("import pytest", "from pkg.a import parse", "",
           "def test_an_empty_line_raises():",
           "    with pytest.raises(ValueError):", "        parse('')")
-FAILS = ("from pkg.a import parse", "", "def test_an_empty_line_is_empty():",
-         "    assert parse('') == []")
 
 
 def handoff():
@@ -54,29 +55,22 @@ def changes_of(note):
     return [l for l in part.split("\n## ")[0].split(NL) if l.startswith("- ")]
 
 
-def test_an_edit_whose_now_is_in_the_readme_rewrites_it_unstaged(
+def test_an_edit_kept_as_a_ticket_lists_only_the_store_as_changed(
         tmp_path, monkeypatch, fake_cli):
     put(tmp_path, "README.md", README)
     clean(tmp_path, monkeypatch, fake_cli, block(edit(
         "README.md", "parse returns a list of words.",
         "`parse` returns a list of words and raises on an empty line.")))
     assert engine.main() == 0
-    assert (tmp_path / "README.md").read_text(encoding="utf-8") == README \
-        .replace("parse returns a list of words.",
-                 "`parse` returns a list of words and raises on an empty"
-                 " line.")
-    assert changes_of(handoff()) == [
-        "- README.md: the run found the raise undocumented"]
+    assert (tmp_path / "README.md").read_text(encoding="utf-8") == README
+    changed = changes_of(handoff())
+    assert changed and all(l.startswith("- facts/") for l in changed), changed
     last = json.loads((the_folder() / "steps.jsonl").read_text(
         encoding="utf-8").strip().split(NL)[-1])
-    assert last["facts"]["applied"] == [
-        {"path": "README.md", "kind": "doc",
-         "because": "the run found the raise undocumented"}]
-    account = json.loads((the_folder() / "facts.json").read_text(
-        encoding="utf-8"))
-    assert [(a["path"], a["kind"]) for a in account["applied"]] == [
-        ("README.md", "doc")]
-    assert "won facts 0, docs 1, guards 0 (0 refused)" in handoff()
+    assert "applied" not in last["facts"]
+    assert "applied" not in json.loads((the_folder() / "facts.json")
+                                       .read_text(encoding="utf-8"))
+    assert "won facts 0, tickets 1 (0 refused)" in handoff()
 
 
 def test_an_edit_whose_now_is_not_in_the_file_is_a_proposal_line(
@@ -88,77 +82,26 @@ def test_an_edit_whose_now_is_not_in_the_file_is_a_proposal_line(
     assert (tmp_path / "README.md").read_text(encoding="utf-8") == README
     note = handoff()
     assert changes_of(note) == [
-        "- facts/PROPOSED.md: what failed a check, kept for you"]
-    assert ('- refused a doc change to README.md: "parse returns a dict" is'
-            ' not in README.md') in note
+        "- facts/PROPOSED.md: what could not be kept, kept for you"]
+    why = upkeep.NO_WRITE + '"parse returns a dict" is not in README.md'
+    assert "- refused a doc change to README.md: " + why in note
     proposed = (tmp_path / "facts" / "PROPOSED.md").read_text(
         encoding="utf-8")
     assert "## edit README.md" in proposed
-    assert 'refused: "parse returns a dict" is not in README.md' in proposed
+    assert "refused: " + why in proposed
 
 
-def test_an_edit_whose_after_quotes_a_flag_not_in_the_tree_is_refused(
+def test_an_edit_to_claude_md_is_a_ticket_and_the_file_stays_as_written(
         tmp_path, monkeypatch, fake_cli):
-    put(tmp_path, "README.md", README)
-    put(tmp_path, "docs/old.md", "run it with --tokens." + NL)
+    notes = "# notes" + NL + NL + "parse is in a.py." + NL
+    put(tmp_path, "CLAUDE.md", notes)
     clean(tmp_path, monkeypatch, fake_cli, block(
-        edit("README.md", "run it with --words.", "run it with --tokens."),
-        edit("README.md", "parse returns a list of words.",
-             "parse returns a list: `return line.split(',')`.")))
-    assert engine.main() == 0
-    assert (tmp_path / "README.md").read_text(encoding="utf-8") == README
-    note = handoff()
-    assert ("- refused a doc change to README.md: the after quotes --tokens,"
-            " which is not in the code as left (a doc does not count) or a"
-            " command of this run" in note)
-    assert ("the after quotes return line.split(','), which is not in the"
-            " code as left") in note
-
-
-def test_an_edit_to_claude_md_is_applied_and_flagged_first(
-        tmp_path, monkeypatch, fake_cli):
-    put(tmp_path, "README.md", README)
-    put(tmp_path, "CLAUDE.md", "# notes" + NL + NL + "parse is in a.py." + NL)
-    clean(tmp_path, monkeypatch, fake_cli, block(
-        edit("README.md", "parse returns a list of words.",
-             "`parse` raises on an empty line."),
         edit("CLAUDE.md", "parse is in a.py.", "parse is in pkg/a.py.",
              "the run read pkg/a.py, not a.py")))
     assert engine.main() == 0
-    assert "parse is in pkg/a.py." in (tmp_path / "CLAUDE.md").read_text(
-        encoding="utf-8")
-    assert changes_of(handoff()) == [
-        "- CLAUDE.md (instruction file touched): the run read pkg/a.py,"
-        " not a.py",
-        "- README.md: the run found the raise undocumented"]
-
-
-def test_a_guard_that_fails_on_the_tree_is_not_written(
-        tmp_path, monkeypatch, fake_cli):
-    clean(tmp_path, monkeypatch, fake_cli, block(guard(
-        "tests/test_a_guard.py", *FAILS)))
-    assert engine.main() == 0
-    assert not (tmp_path / "tests" / "test_a_guard.py").exists()
-    note = handoff()
-    assert ("- refused a guard for seq 1: it does not pass on the tree as"
-            " left: tests/test_a_guard.py::test_an_empty_line_is_empty"
-            " FAILED") in note
-    assert "refused: it does not pass" in (
-        tmp_path / "facts" / "PROPOSED.md").read_text(encoding="utf-8")
-
-
-def test_a_guard_that_passes_is_written_unstaged(tmp_path, monkeypatch,
-                                                 fake_cli):
-    clean(tmp_path, monkeypatch, fake_cli, block(guard(
-        "tests/test_a_guard.py", *PASSES)))
-    assert engine.main() == 0
-    written = (tmp_path / "tests" / "test_a_guard.py").read_text(
-        encoding="utf-8")
-    assert written == NL.join(PASSES) + NL
-    assert changes_of(handoff()) == [
-        "- tests/test_a_guard.py: guard for seq 1, passes on the tree as"
-        " left: an empty line raises ValueError"]
-    assert "won facts 0, docs 0, guards 1 (0 refused)" in handoff()
+    assert (tmp_path / "CLAUDE.md").read_text(encoding="utf-8") == notes
+    [fact] = factsguard.Store(tmp_path).read()
+    assert (fact.kind, fact.scopes) == ("nice-to-do", ["CLAUDE.md"])
 
 
 def test_a_gate_guard_stays_a_line_for_a_person(tmp_path, monkeypatch,
@@ -223,12 +166,15 @@ def test_a_guard_for_a_defect_on_record_is_a_proposal_never_a_test(
 
 @pytest.mark.parametrize("seq, head", [("seq 2 tester.md", "seq 1"),
                                        ("seq 1 tester.md", "seq 1 worker.md")])
-def test_a_guard_for_another_step_than_the_defect_is_still_written(
+def test_a_guard_for_another_step_than_the_defect_is_held_as_a_ticket(
         tmp_path, monkeypatch, fake_cli, seq, head):
     clean(tmp_path, monkeypatch, fake_cli, block(defect(seq),
                                                  named_guard(head)))
     assert engine.main() == 0
-    assert (tmp_path / "tests" / "test_a_guard.py").is_file()
+    note = handoff()
+    assert "it guards a defect the run left in place" not in note
+    assert "- refused a guard for " + head + ": " + upkeep.NO_WRITE in note
+    assert not (tmp_path / "tests" / "test_a_guard.py").exists()
 
 
 def test_the_retros_inputs_name_a_doc_that_names_a_changed_file(
@@ -247,12 +193,13 @@ def test_the_retros_inputs_name_a_doc_that_names_a_changed_file(
     assert code == stops.EXIT_OK
     prompt = seen["retro.md"]
     part = prompt.split("docs that name a file or a name this run changed,"
-                        " each to confirm current or edit:" + NL)[1]
+                        " each to confirm current or keep a ticket on:"
+                        + NL)[1]
     part = part.split(NL + NL)[0]
     assert part.split(NL) == [
         "- README.md names report.py:",
         "  README.md:3: report.py sorts the names."]
-    assert "doc edits and guards this run may make:\n- 3\n" in prompt
+    assert "nice-to-do tickets this run may write:\n- 3\n" in prompt
 
 
 def run_build(tmp_path, monkeypatch, place, steps, does, seen=None, *args):
@@ -309,6 +256,7 @@ def test_under_wip_the_retros_changes_are_one_retro_commit_after_the_tasks(
         tmp_path, monkeypatch):
     place = a_documented_place(tmp_path)
     start = head(place)
+    readme = (place / "README.md").read_text(encoding="utf-8")
     steps = TESTER + WORKER + "commits: wip" + NL + "retro: true" + NL
     does = dict(CASES["red first, then the fix"][1])
     does["retro.md"] = ({}, block(DOC_REPORT, GUARD_REPORT))
@@ -317,16 +265,18 @@ def test_under_wip_the_retros_changes_are_one_retro_commit_after_the_tasks(
     subjects = git(place, "log", "--reverse", "--format=%s",
                    start + "..HEAD").splitlines()
     assert subjects == ["wip(build): tester.md", "wip(build): worker.md",
-                        "retro: kept README.md and tests/test_order_guard.py"
-                        " current"]
+                        "retro: kept 1 fact current"]
     last = git(place, "diff-tree", "--no-commit-id", "--name-only", "-r",
                "HEAD").split()
-    assert sorted(last) == ["README.md", "tests/test_order_guard.py"]
+    assert "facts/README.md.md" in last
+    assert all(rel.startswith("facts/") for rel in last), last
+    assert (place / "README.md").read_text(encoding="utf-8") == readme
+    assert not (place / "tests" / "test_order_guard.py").exists()
     assert git(place, "status", "--porcelain") == ""
     note = (folders()[-1] / "handoff.md").read_text(encoding="utf-8")
     assert ("## the retro's changes (in their own commit, yours to review)"
             in note)
-    assert "- " + head(place)[:12] + " retro: kept README.md" in note
+    assert "- " + head(place)[:12] + " retro: kept 1 fact current" in note
 
 
 def test_a_resumed_leg_leaves_the_retros_files_out_of_its_step_commits(
@@ -343,7 +293,7 @@ def test_a_resumed_leg_leaves_the_retros_files_out_of_its_step_commits(
     note = (first / "handoff.md").read_text(encoding="utf-8")
     assert CHANGES in note
     assert "- not committed: the run stopped before every step passed" in note
-    assert (place / "tests" / "test_order_guard.py").is_file()
+    assert (place / "facts" / "README.md.md").is_file()
     code = run_build(tmp_path, monkeypatch, place, steps, {
         "worker.md": ({"report.py": COUNTED}, WORKER_SAID)},
         None, "--resume", first.name)
@@ -353,7 +303,7 @@ def test_a_resumed_leg_leaves_the_retros_files_out_of_its_step_commits(
     assert git(place, "diff-tree", "--no-commit-id", "--name-only", "-r",
                "HEAD").split() == ["report.py"]
     left = git(place, "status", "--porcelain")
-    assert " M README.md" in left and "?? tests/test_order_guard.py" in left
+    assert "?? facts/" in left and "README.md" not in left
     assert git(place, "rev-list", "--count", start + "..HEAD").strip() == "2"
 
 
@@ -392,7 +342,8 @@ def test_the_fence_takes_a_guard_the_runner_wrote_as_the_runs_own(tmp_path):
     assert held.crossed() == []
 
 
-def test_the_account_lists_the_runners_writes_for_the_legs_after(tmp_path):
+def test_the_account_lists_no_write_outside_the_store_for_the_legs_after(
+        tmp_path):
     put(tmp_path, "pkg/a.py", CODE)
     put(tmp_path, "README.md", README)
     store = factsguard.Store(tmp_path)
@@ -402,15 +353,12 @@ def test_the_account_lists_the_runners_writes_for_the_legs_after(tmp_path):
         ("edit", "README.md", {"scope": [], "now": "run it with --words.",
                                "after": "run it with `parse`.",
                                "because": "the flag is gone"})], done, "r")
-    assert done.refused == []
-    found = factsguard.applied_in([tmp_path / "runs" / "leg-1"])
-    assert found == {"README.md": sha(
-        (tmp_path / "README.md").read_bytes())}
+    assert done.refused == [] and len(done.tickets) == 1
+    assert (tmp_path / "README.md").read_text(encoding="utf-8") == README
+    assert factsguard.applied_in([tmp_path / "runs" / "leg-1"]) == {}
 
 
 def test_an_old_doc_item_reads_as_an_edit():
-    from agentweft.runner import upkeep
-
     items, why = upkeep.parse(block(NL.join([
         "doc: README.md", "  now: a", "  after: b", "  because: c"])))
     assert why == "" and items[0][0] == "doc"
@@ -419,133 +367,65 @@ def test_an_old_doc_item_reads_as_an_edit():
     assert items[0][2]["code"] == ["def test_g():", "    assert True"]
 
 
-def test_edits_per_run_is_a_count_and_caps_the_edits(tmp_path):
+def test_tickets_per_run_is_a_count_the_store_takes():
     from agentweft.flow import spec
 
     base = {"name": "f", "steps": [{"role": "worker"}]}
-    assert spec.check(dict(base, edits_per_run=1)) == []
-    assert spec.check(dict(base, edits_per_run="lots")) == [
-        "edits_per_run should be a whole number, 0 or more"]
-    put(tmp_path, "pkg/a.py", CODE)
-    put(tmp_path, "README.md", README)
+    assert spec.check(dict(base, tickets_per_run=1)) == []
+    assert spec.check(dict(base, tickets_per_run="lots")) == [
+        "tickets_per_run should be a whole number, 0 or more"]
+    assert spec.check(dict(base, edits_per_run=1)) != []
+    assert factsguard.tickets_of({"tickets_per_run": 1}) == 1
+    assert factsguard.tickets_of({}) == factsguard.TICKETS
+
+
+def kept_as(tmp_path, rel, now="x", after="y"):
+    """-> why an edit of `rel` is not kept as a ticket, "" when it is."""
     store = factsguard.Store(tmp_path)
     done = retro.Maintained()
-    from agentweft.guardrails import retroedits
-
-    keep = retroedits.Keeper(tmp_path, cap=1)
     retro.execute(store, factsguard.Record(tmp_path), [
-        ("edit", "README.md", {"now": "# pkg", "after": "# the pkg",
-                               "because": "a"}),
-        ("edit", "README.md", {"now": "--words", "after": "`parse`",
-                               "because": "b"})], done, "r", keep=keep)
-    assert [a["path"] for a in done.applied] == ["README.md"]
-    assert done.refused == [("doc change to README.md",
-                             "per-run cap: 1 doc edits and guards are"
-                             " already made this run")]
+        ("edit", rel, {"scope": [], "now": now, "after": after,
+                       "because": "z"})], done, "r")
+    return done.refused[0][1] if done.refused else ""
 
 
-def test_an_edit_is_refused_on_a_spec_a_test_a_secret_and_the_store(
+def test_an_edit_is_no_ticket_on_a_spec_a_secret_the_store_or_outside(
         tmp_path):
-    from agentweft.guardrails import retroedits
-
-    put(tmp_path, "pkg/a.py", CODE)
-    put(tmp_path, "TASK.md", "parse raises." + NL)
-    put(tmp_path, "tests/test_a.py", "def test_a():" + NL + "    pass" + NL)
-    put(tmp_path, ".env.md", "KEY=1" + NL)
-    put(tmp_path, "facts/INDEX.md", "# facts" + NL)
-    tree = retroedits.Tree(tmp_path)
-    record = factsguard.Record(tmp_path)
-    said = dict((rel, retroedits.edit_refusal(
-        tmp_path, rel, {"now": "x", "after": "y", "because": "z"}, record,
-        tree)[0]) for rel in ("TASK.md", "tests/test_a.py", ".env.md",
-                              "facts/INDEX.md", "../out.md", "pkg/a.py"))
-    assert said["TASK.md"].startswith("TASK.md is a spec file")
-    assert said["tests/test_a.py"].startswith("tests/test_a.py is a test")
-    assert said[".env.md"].startswith("it looks like a secret")
-    assert said["facts/INDEX.md"].startswith("facts/INDEX.md is under facts/")
-    assert said["../out.md"] == "../out.md is outside the place"
-    assert said["pkg/a.py"].startswith("pkg/a.py is not a doc")
+    put(tmp_path, "pkg/a.py", "x = 1" + NL)
+    put(tmp_path, "TASK.md", "x is one." + NL)
+    put(tmp_path, "tests/test_a.py", "x = 1" + NL)
+    put(tmp_path, ".env.md", "x KEY=1" + NL)
+    put(tmp_path, "facts/INDEX.md", "# facts x" + NL)
+    said = dict((rel, kept_as(tmp_path, rel)) for rel in (
+        "TASK.md", ".env.md", "facts/INDEX.md", "../out.md",
+        "tests/test_a.py", "pkg/a.py"))
+    assert "TASK.md is a spec file" in said["TASK.md"]
+    assert "it looks like a secret" in said[".env.md"]
+    assert "facts/INDEX.md is the runner's to write" in said["facts/INDEX.md"]
+    assert "names the one file it is done in" in said["../out.md"]
+    assert said["tests/test_a.py"] == said["pkg/a.py"] == ""
 
 
 def test_an_edit_or_a_guard_that_holds_an_absolute_path_is_refused(tmp_path):
-    from agentweft.guardrails import retroedits
-
     tool, home = "D" + ":\\work\\tool.exe", "/" + "home/me/pkg/a.py"
     put(tmp_path, "README.md", "# pkg" + NL + "run the tool." + NL)
-    why = retroedits.edit_refusal(
-        tmp_path, "README.md", {"now": "run the tool.",
-                                "after": "run " + tool, "because": "z"},
-        factsguard.Record(tmp_path), retroedits.Tree(tmp_path))[0]
-    assert why == ("it names a path on the machine it ran on (" + tool
-                   + ") in after")
-    assert retroedits.guard_refusal(tmp_path, "tests/test_g.py", {
-        "what": "x", "where": "tests/test_g.py",
-        "code": ["def test_g():", "    open('" + home + "')"]}) == (
-        "it names a path on the machine it ran on (" + home + ") in code")
-
-
-def refusal_of(tmp_path, rel, now, after):
-    from agentweft.guardrails import retroedits
-
-    return retroedits.edit_refusal(
-        tmp_path, rel, {"now": now, "after": after, "because": "z"},
-        factsguard.Record(tmp_path), retroedits.Tree(tmp_path))[0]
-
-
-@pytest.mark.parametrize("repo", ["none", "no commit", "committed"])
-def test_an_edit_is_refused_where_no_start_commit_holds_a_copy(tmp_path,
-                                                               repo):
-    from agentweft.guardrails import retroedits
-
-    if repo != "none":
-        git(tmp_path, "init", "-q")
-    put(tmp_path, "NOTES.md", "the limit is 10" + NL)
-    put(tmp_path, "pkg/a.py", "LIMIT = 10" + NL)
-    if repo == "committed":
-        git(tmp_path, "add", ".")
-        git(tmp_path, "-c", "user.email=t@t", "-c", "user.name=t", "-c",
-            "commit.gpgsign=false", "commit", "-qm", "x")
-    loose = retroedits.uncommitted(snapshot.Snapshot(tmp_path))
-    why, _ = retroedits.edit_refusal(
-        tmp_path, "NOTES.md", {"now": "the limit is 10",
-                               "after": "the limit is `LIMIT`",
-                               "because": "z"},
-        factsguard.Record(tmp_path), retroedits.Tree(tmp_path), loose=loose)
-    if repo == "committed":
-        assert why == ""
-    else:
-        assert why == ("NOTES.md is not known to be committed as it stood"
-                       " when the run started (the run has no start commit),"
-                       " so its only copy may be yours")
-
-
-def test_an_edit_is_refused_on_a_dependency_manifest(tmp_path):
-    put(tmp_path, "requirements.txt", "requests==2.31.0" + NL)
-    assert refusal_of(tmp_path, "requirements.txt", "requests==2.31.0",
-                      "requests==2.32.0").startswith(
-        "requirements.txt is not a doc")
-
-
-def test_an_edit_is_refused_on_code_named_like_a_readme(tmp_path):
-    put(tmp_path, "pkg/readme_render.py", "LIMIT = 10" + NL)
-    assert refusal_of(tmp_path, "pkg/readme_render.py", "LIMIT = 10",
-                      "LIMIT = 99").startswith(
-        "pkg/readme_render.py is not a doc")
-
-
-def test_an_edit_is_refused_on_a_text_file_a_package_ships(tmp_path):
-    put(tmp_path, "pkg/__init__.py", "")
-    put(tmp_path, "pkg/prompts/ask.md", "answer in one line." + NL)
-    put(tmp_path, "pkg/README.md", "# pkg" + NL + "parse lists." + NL)
-    assert refusal_of(tmp_path, "pkg/prompts/ask.md", "one line",
-                      "two lines").startswith(
-        "pkg/prompts/ask.md is in a python package")
-    assert refusal_of(tmp_path, "pkg/README.md", "parse lists.",
-                      "parse lists words.") == ""
+    assert ("it names a path on the machine it ran on (" + tool + ")"
+            in kept_as(tmp_path, "README.md", "run the tool.", "run " + tool))
+    put(tmp_path, "tests/test_g.py", "x = 1" + NL)
+    store = factsguard.Store(tmp_path)
+    done = retro.Maintained()
+    retro.execute(store, factsguard.Record(tmp_path), [
+        ("guard", "seq 1", {"scope": [], "kind": "test",
+                            "where": "tests/test_g.py",
+                            "what": "open('" + home + "') fails",
+                            "source": 'evidence: tests/test_g.py:1 "x = 1"'})],
+        done, "r")
+    [(_, why)] = done.refused
+    assert "it names a path on the machine it ran on (" + home + ")" in why
 
 
 @pytest.mark.parametrize("tracked", [False, True])
-def test_an_edit_is_refused_on_a_doc_not_committed_when_the_run_began(
+def test_a_doc_not_committed_when_the_run_began_is_never_changed(
         tmp_path, monkeypatch, tracked):
     place = a_documented_place(tmp_path)
     notes = "# notes" + NL + NL + "report.py sorts the names." + NL
@@ -562,9 +442,6 @@ def test_an_edit_is_refused_on_a_doc_not_committed_when_the_run_began(
     assert run_build(tmp_path, monkeypatch, place, steps, does) \
         == stops.EXIT_OK
     assert (place / rel).read_text(encoding="utf-8") == notes
-    note = (folders()[-1] / "handoff.md").read_text(encoding="utf-8")
-    assert ("- refused a doc change to " + rel + ": " + rel + " was not"
-            " committed when the run started") in note
     named = git(place, "log", "--format=", "--name-only",
                 start + "..HEAD").split()
     assert rel not in named

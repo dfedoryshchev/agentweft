@@ -129,7 +129,7 @@ def test_the_sides_are_not_the_same_size():
     # its reviewers as agents and says what each looks for in their prose.
     #
     # `facts_per_run` is one more, one way: a phase keeps no facts to cap,
-    # `edits_per_run` another: it has no retro to make edits, and `lane`
+    # `tickets_per_run` another: it keeps no tickets, and `lane`
     # another: it has none to turn off. `conformance` too: it has
     # no fact whose check a change could break. a step's `on_missed` one
     # more: a phase's review sends work back by verdict only.

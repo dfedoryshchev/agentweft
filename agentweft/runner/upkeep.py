@@ -12,34 +12,34 @@ the retro ends its answer with one typed block, newline sections, never a
       why: the caller counts on the raise
       source: seq 2 worker.md; evidence: pkg/a.py:5 "raise ValueError"
       anchor: pkg/a.py:3-6
+    fact:
+      scope: README.md
+      kind: nice-to-do
+      claim: say that `parse` raises on an empty line
+      why: the run found the raise undocumented
+      source: seq 2 worker.md; evidence: README.md:3 "parse returns a list"
     retire: F-0002
       why: parse no longer has that path
-    edit: README.md
-      now: parse returns a list
-      after: `parse` returns a list and raises on an empty line
-      because: the run found the raise undocumented
     guard: F-0001
-      kind: test
-      where: tests/test_a_guard.py
-      what: an empty line raises ValueError
-      code: from pkg.a import parse
-      code: ...
+      kind: gate
+      where: suite
+      what: the suite runs on an empty file too
     END FACTS
 
 `fact`, `supersede: <id>`, `re-anchor: <id>` and `retire: <id>` are done by
 the runner, each only once it holds against the record
-(`guardrails/factsguard.py`). an `edit: <file>` (`doc:` reads the same) is
-made in the working tree and a test `guard` with `code:` lines (each kept as
-written, its indent with it) is written as a new test file, each only once
-it holds against the tree as left (`guardrails/retroedits.py`), and neither
-is staged. what fails a check is a proposal line with the reason and goes
-to facts/PROPOSED.md, which keeps nothing else; a gate or flow-key guard is
-a proposal line, and so is a test guard for a defect the run left in place:
+(`guardrails/factsguard.py`). a `nice-to-do` fact is a ticket for a later
+run that touches its one file: the runner changes no file of the tree for
+the retro. an `edit: <file>` (`doc:` reads the same; now, after, because)
+or a test `guard` (where, what) an older answer still gives is kept as a
+ticket on that one file when it can be one, else refused with why into
+facts/PROPOSED.md, which keeps nothing else; a gate or flow-key guard is a
+proposal line, and so is a test guard for a defect the run left in place:
 a defect fact on record it names by id, or the `seq <n>` a defect fact of
 the block cites as its source. a block that does not parse writes nothing
 and says so in one line; no block at all is nothing to do. what happened to
 each item is put in retro.md, on the retro's steps.jsonl line and at the end of
-handoff.md, the files changed under a section of their own.
+handoff.md, the store files written under a section of their own.
 
 before the retro is asked, the runner writes one fact of its own (`pins`):
 the tests the red-first gate ran green without the change, outside the
@@ -52,8 +52,8 @@ from four on the handoff lists it as hardening owed, every run, until it is
 retired.
 """
 import re
+from pathlib import Path
 
-from agentweft.guardrails import retroedits
 from agentweft.guardrails.factsguard import Proposal, seen_of
 from agentweft.orchestrate import facts
 
@@ -72,32 +72,31 @@ SEQ = re.compile(r"^\s*seq\s+(\d+)(?:\s+([^\s;]+))?", re.I)
 # the classes of trouble a ladder counts runs of
 CLIMBS = ("gate-issue", "defect")
 SECTION = "## the retro's proposals"
+NO_WRITE = ("the retro changes no file in the tree, and this cannot be a"
+            " nice-to-do ticket on one file: ")
 CHANGES = "## the retro's changes (unstaged, yours to stage)"
 COMMITTED = "## the retro's changes (in their own commit, yours to review)"
 DONE_HEAD = "## what the runner did with the FACTS block"
 
 
 class Maintained(object):
-    """what came of one block: facts written and counted, the files changed
-    for it outside facts/, each refusal with why, the lines proposed, the
-    hardening owed and any note on the block."""
+    """what came of one block: facts and tickets written, facts counted and
+    changed, each refusal with why, the lines proposed, the hardening owed
+    and any note on the block."""
 
     def __init__(self):
         self.present = False
         self.lines = []
         self.written = []
+        self.tickets = []
         self.counted = []
         self.changed = []
-        self.applied = []
         self.refused = []
         self.proposed = 0
         self.owed = []
         self.note = ""
         self.fault = ""
         self.pins = ""
-
-    def kinds(self, *kinds):
-        return [a for a in self.applied if a["kind"] in kinds]
 
     def record(self):
         """-> the `facts` field of the retro's steps.jsonl line."""
@@ -106,8 +105,8 @@ class Maintained(object):
                "refused": [{"item": what, "why": why}
                            for what, why in self.refused],
                "proposed": self.proposed, "owed": list(self.owed)}
-        if self.applied:
-            out["applied"] = [dict(a) for a in self.applied]
+        if self.tickets:
+            out["tickets"] = list(self.tickets)
         if self.pins:
             out["pins"] = self.pins
         if self.note:
@@ -261,14 +260,10 @@ def restates(pinned, fields):
     return ""
 
 
-def execute(store, record, items, done, run_id, today=None, keep=None,
-            pins=None):
+def execute(store, record, items, done, run_id, today=None, pins=None):
     """do each item against `store`, noting on `done` what came of it.
-    `keep` makes the edits and guards (`retroedits.Keeper`), one on the
-    store's place when None. `pins` is the runner's note of the pinning
-    tests (`Store.pinned`), the store's when None."""
-    if keep is None:
-        keep = retroedits.Keeper(store.root, own=store.own)
+    `pins` is the runner's note of the pinning tests (`Store.pinned`), the
+    store's when None."""
     if pins is None:
         pins = getattr(store, "pinned", None)
     found = [steps_of(fields.get("source")) for verb, _, fields in items
@@ -283,25 +278,12 @@ def execute(store, record, items, done, run_id, today=None, keep=None,
             if why:
                 refuse(done, what, why)
                 continue
-            before = store.new
+            before = store.new + store.tickets_new
             fact, why = store.add(Proposal(fields), record, origin="retro")
             if fact is None:
                 refuse(done, what, why)
-            elif store.new > before:
-                done.written.append(fact.id)
-                unchecked = fact.get("unchecked")
-                done.lines.append("- wrote " + fact.id + " ("
-                                  + ", ".join(fact.scopes) + ", " + fact.kind
-                                  + "): " + fact.claim
-                                  + (" (kept without its check; " + unchecked
-                                     + ")" if unchecked else ""))
             else:
-                if fact.id not in done.counted:
-                    done.counted.append(fact.id)
-                    climb(store, fact, done, run_id)
-                done.lines.append("- counted " + fact.id + " again ("
-                                  + "proposed "
-                                  + str(seen_of(fact)["proposed"]) + ")")
+                kept(store, done, fact, before, run_id)
         elif verb == "re-anchor":
             why = store.reanchor(value, fields.get("anchor"),
                                  fields.get("evidence"), record, today)
@@ -320,9 +302,9 @@ def execute(store, record, items, done, run_id, today=None, keep=None,
                 done.lines.append("- retired " + value + ": "
                                   + " ".join(fields.get("why", "").split()))
         elif verb in EDITS:
-            edit(store, record, keep, value, fields, done, what, run_id)
+            edit(store, record, value, fields, done, what, run_id)
         else:
-            guard(store, keep, value, fields, done, what, run_id,
+            guard(store, record, value, fields, done, what, run_id,
                   pinned(store, value, found))
     done.owed = owed(store)
 
@@ -375,32 +357,98 @@ def one_line(text):
     return " ".join((text or "").split())
 
 
-def edit(store, record, keep, value, fields, done, what, run_id):
-    """make the doc change in the working tree once it holds, else propose
-    it with why not."""
+def ticket_of(root, verb, value, fields, held=None):
+    """-> (the fields of the nice-to-do an edit or a test guard becomes, "")
+    or (None, why it cannot be one). an edit's claim is its now and after
+    words, its why its because, its evidence the line its now words are on;
+    a test guard's claim is the test it asks for, its evidence its own
+    `source:` or the source of the fact on record it names (`held`, a fact
+    by id). the store holds the rest to a ticket's checks."""
+    if verb == "guard":
+        rel = facts.norm(fields.get("where") or "")
+        source = fields.get("source") or ""
+        named = re.match(r"^F-(\d+)$", (value or "").strip(), re.I)
+        fact = held("F-%04d" % int(named.group(1))) \
+            if named and held is not None and not source else None
+        if fact is not None:
+            source = fact.get("source")
+        return ({"scope": [rel], "kind": facts.NICE,
+                 "claim": "add a test: " + one_line(fields.get("what")),
+                 "why": one_line(fields.get("why")) or "the test that would"
+                 " have caught " + (value or "the run's trouble"),
+                 "source": source}, "")
     rel = facts.norm(value or fields.get("file") or "")
-    because = one_line(fields.get("because"))
-    why = keep.edit(rel, fields, record) if rel != facts.PROJECT \
-        else "it names no file"
-    if why:
-        failed(store, done, what, why, "## edit " + (value or "no file")
-               + " (" + run_id + ")", fields, ("now", "after", "because"))
+    now, after = one_line(fields.get("now")), one_line(fields.get("after"))
+    for key, text in (("now", now), ("after", after),
+                      ("because", one_line(fields.get("because")))):
+        if not text:
+            return None, "it has no " + key
+    path = Path(root) / rel
+    if rel == facts.PROJECT or not path.is_file():
+        return None, "a nice-to-do names the one file it is done in"
+    lines = facts.text_lines(path)
+    bare = now[1:-1] if len(now) > 1 and now[0] == now[-1] \
+        and now[0] in "\"'`" else now
+    found = next(((n, w) for w in (now, bare)
+                  for n, line in enumerate(lines, 1) if w and w in line),
+                 None)
+    if found is None:
+        return None, '"' + now + '" is not in ' + rel
+    return ({"scope": [rel], "kind": facts.NICE,
+             "claim": 'replace "' + found[1] + '" with "' + after + '"',
+             "why": one_line(fields.get("because")),
+             "source": "evidence: " + rel + ":" + str(found[0]) + ' "'
+             + found[1] + '"'}, "")
+
+
+def as_ticket(store, record, verb, value, fields, done, what, head, keys,
+              run_id):
+    """keep an edit or a test guard as a nice-to-do ticket once it can be
+    one, else refuse it with why and keep it in facts/PROPOSED.md."""
+    ticket, why = ticket_of(store.root, verb, value, fields, store.held)
+    fact = None
+    if ticket is not None:
+        before = store.new + store.tickets_new
+        fact, why = store.add(Proposal(ticket), record, origin="retro")
+    if fact is None:
+        failed(store, done, what, NO_WRITE + why, head, fields, keys)
         return
-    kind = retroedits.INSTRUCTION if retroedits.is_instruction(rel) \
-        else retroedits.DOC
-    store.applied_write(rel, kind, because)
-    done.applied.append({"path": rel, "kind": kind, "because": because})
-    done.lines.append("- edited " + rel + (" (instruction file touched)"
-                                           if kind == retroedits.INSTRUCTION
-                                           else "") + ": " + because)
+    kept(store, done, fact, before, run_id)
 
 
-def guard(store, keep, value, fields, done, what, run_id, defect=""):
-    """write a test guard that passes on the tree as left; a gate or
-    flow-key guard, a test with no code, or one for `defect`, a defect the
-    run left in place, is a line for a person."""
+def kept(store, done, fact, before, run_id):
+    """note a fact `store.add` gave back: written new, or counted again."""
+    if store.new + store.tickets_new > before:
+        done.written.append(fact.id)
+        if fact.kind == facts.NICE:
+            done.tickets.append(fact.id)
+        unchecked = fact.get("unchecked")
+        done.lines.append("- wrote " + fact.id + " ("
+                          + ", ".join(fact.scopes) + ", " + fact.kind
+                          + "): " + fact.claim
+                          + (" (kept without its check; " + unchecked + ")"
+                             if unchecked else ""))
+        return
+    if fact.id not in done.counted:
+        done.counted.append(fact.id)
+        climb(store, fact, done, run_id)
+    done.lines.append("- counted " + fact.id + " again (proposed "
+                      + str(seen_of(fact)["proposed"]) + ")")
+
+
+def edit(store, record, value, fields, done, what, run_id):
+    """a doc change is never made: it is kept as a nice-to-do ticket on its
+    doc, or refused with why into facts/PROPOSED.md."""
+    as_ticket(store, record, "edit", value, fields, done, what,
+              "## edit " + (value or "no file") + " (" + run_id + ")",
+              ("now", "after", "because"), run_id)
+
+
+def guard(store, record, value, fields, done, what, run_id, defect=""):
+    """a test guard is never written: it is kept as a nice-to-do ticket on
+    its test file, or refused with why into facts/PROPOSED.md. a gate or
+    flow-key guard is a line for a person."""
     kind = fields.get("kind", "").strip()
-    where = facts.norm(fields.get("where", ""))
     said = ("guard (" + kind + ", " + fields.get("where", "") + "): "
             + one_line(fields.get("what")))
     head = "## guard for " + (value or "the run") + " (" + run_id + ")"
@@ -420,16 +468,8 @@ def guard(store, keep, value, fields, done, what, run_id, defect=""):
                + defect + "): a test that passes on the tree as left holds"
                " the defect, not its fix", head, fields, keys)
         return
-    why = keep.guard(where, fields)
-    if why:
-        failed(store, done, what, why, head, fields, keys)
-        return
-    because = "guard for " + (value or "the run") + ", passes on the tree" \
-        " as left: " + one_line(fields.get("what"))
-    store.applied_write(where, retroedits.GUARD, because)
-    done.applied.append({"path": where, "kind": retroedits.GUARD,
-                         "because": because})
-    done.lines.append("- wrote the guard " + where + ": " + because)
+    as_ticket(store, record, "guard", value, fields, done, what, head, keys,
+              run_id)
 
 
 def failed(store, done, what, why, head, fields, keys):
@@ -481,7 +521,7 @@ def owed(store):
     return out
 
 
-def maintain(store, record, said, run_id, today=None, keep=None):
+def maintain(store, record, said, run_id, today=None):
     """-> Maintained for the retro's answer `said`."""
     done = Maintained()
     items, why = parse(said)
@@ -492,25 +532,24 @@ def maintain(store, record, said, run_id, today=None, keep=None):
         done.note = why
         return done
     try:
-        execute(store, record, items, done, run_id, today, keep)
+        execute(store, record, items, done, run_id, today)
     except (OSError, ValueError, KeyError, TypeError) as e:
         done.fault = type(e).__name__ + ": " + str(e)
     return done
 
 
 def files_changed(done, touched, root):
-    """-> (path from the place, the line for it) for every file the retro
-    had the runner change: instruction files first, then the facts, the
-    docs and the guards. `touched` is the store files written for it."""
-    out = [(a["path"], "- " + a["path"] + " (instruction file touched): "
-            + a["because"]) for a in done.kinds(retroedits.INSTRUCTION)]
+    """-> (path from the place, the line for it) for every store file the
+    retro had the runner write, `touched`: no other file is ever changed for
+    it."""
+    out = []
     ids = set(done.written + done.changed + done.counted)
     for rel in touched:
         name = rel.rsplit("/", 1)[-1]
         if name == facts.INDEX:
             why = "the live facts, listed again"
         elif name == facts.PROPOSED:
-            why = "what failed a check, kept for you"
+            why = "what could not be kept, kept for you"
         else:
             try:
                 found = facts.parse((root / rel).read_text(
@@ -520,9 +559,6 @@ def files_changed(done, touched, root):
             named = [f.id + " " + f.status for f in found if f.id in ids]
             why = ", ".join(named) or "a fact's counts"
         out.append((rel, "- " + rel + ": " + why))
-    out.extend((a["path"], "- " + a["path"] + ": " + a["because"])
-               for a in done.kinds(retroedits.DOC)
-               + done.kinds(retroedits.GUARD))
     return out
 
 

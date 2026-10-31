@@ -1,7 +1,9 @@
 run: build-feature-2026-10-27-101500
 flow: build-feature
 outcome: done
-edit:
+# re-registered 2026-10-31: the retro changes no file of the tree any more,
+# so the stale README line is a nice-to-do ticket on README.md naming the
+# new flag, where it was an edit the runner made
+ticket:
   file: README.md
-  now: [--file]
-  after: [--output]
+  claim: [--output]

@@ -145,6 +145,7 @@ class Run(object):
         # runner's, not a change any step made
         self.facts = factsguard.Store(self.workdir,
                                       cap=factsguard.cap_of(fm),
+                                      tickets=factsguard.tickets_of(fm),
                                       off=factsguard.lane_off(fm),
                                       own=state.RUNS)
         self.healed = self.heal_facts()

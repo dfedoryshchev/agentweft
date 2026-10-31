@@ -350,14 +350,18 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
   copy of the case's `place/` and a record read from `record/steps.jsonl`
   (`docs/guardrails.md`, "the facts only the runner writes"), so a fact with
   evidence the record does not back, or no why, scores nothing
-- `edit`: the FACTS block has an `edit` of the gold's file whose `now` holds
-  every word of the gold's `now` and whose `after` holds every word of its
-  `after` and none of its `now`, one the runner would make on a copy of
-  `place/` (`docs/writing-a-flow.md`, section 10), so an edit that quotes a
-  flag the tree does not have scores nothing
+- `ticket`: the FACTS block has a `nice-to-do` on the gold's one file whose
+  claim holds every word of the gold's `claim`, one the runner would keep on
+  a copy of `place/` (`docs/guardrails.md`, "a nice-to-do"); an `edit` or a
+  test `guard` counts as the ticket the runner would keep it as
+  (`docs/writing-a-flow.md`, section 10), so one on another file, one
+  without the new flag, or one the size of a task scores nothing.
+  `renamed-flag` scored an `edit` the runner made until 2026-10-31, when
+  the retro stopped changing files of the tree; its gold was registered
+  again as the ticket
 
 the four cases with a failed attempt are scored on the first four,
-`renamed-flag` on the edit, and `ruled-open` on the fact, a `why` or
+`renamed-flag` on the ticket, and `ruled-open` on the fact, a `why` or
 `decision` labelled `important`, as the retro skill asks: the open clause does not make it an `investigation`. a change sent to the wrong file scores 0
 whatever else it got right. a case passes when every one of the k repeats
 scores all its items; the gold itself does on every case, and a test holds

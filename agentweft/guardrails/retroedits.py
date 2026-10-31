@@ -1,58 +1,29 @@
-"""the doc, rules and test files the retro asks the runner to change, each
-held to the tree as the run left it before anything is written.
-
-an `edit:` names a file, the words in it `now:` and the words `after:`. the
-runner writes it into the working tree, unstaged, only when:
-
-- the file is a doc in the place: markdown, text, reStructuredText or
-  asciidoc, or a README. not a dependency or build manifest (requirements.txt
-  and the rest, `preflight.manifest`), not a file inside a python package
-  but its README (it ships with the code), not a spec (the person's word),
-  not a test (a test comes in as a guard), not a file that holds a
-  credential, and not under facts/ or the runner's own folder;
-- the file was committed as it stood when the run started: one untracked
-  or changed and not committed then has no copy but the person's, and so
-  has every file of a place with no start commit;
-- the `now:` words are in it as written, once;
-- every name the `after:` words quote, a `code span` or a `--flag`, is in a
-  file of the tree as left that is not a doc, or is a command a gate of this
-  run ran; an `evidence:`, when one is given, holds as a fact's does;
-- no field looks like a secret (`factsguard.secret_in`), and the `after:`
-  words name no path on the machine the run ran on (`factsguard.machine_path`:
-  a drive, a share, a home folder or a file-system root): they go into the
-  repo, read on every other machine;
-- the run has not made `edits_per_run` of them and of guards already.
-
-`CLAUDE.md`, `AGENTS.md`, `.claude/` and `rules/` may be edited, and are
-named first wherever the changes are listed. a step that writes one is still
-refused before the next step starts (`briefing.py`); the runner writes these
-after the last step.
-
-a `guard:` of kind test with `code:` lines is written as a new python test
-file only when it passes on the tree as left: it runs with the flow's own
-pytest, the way the start tests run, and one that fails, runs no test or
-cannot run is taken out again. a gate or flow-key guard is a line for a
-person.
+"""the project's docs that name what a run changed, handed to the retro and
+to a step.
 
 the retro is handed the docs that name a file the run changed or a name its
 diff added or removed (`named`), at most `DOCS` of them and `CHARS`
-characters, so that each is confirmed current or edited. a step is handed the
-same lines for the files it is handed, at most `DOCS_HANDED` docs and
-`CHARS_HANDED` characters, the nearest doc first.
+characters, so that each is confirmed current or kept as a nice-to-do ticket
+on that doc: neither the retro nor the runner changes a doc for it. a step is
+handed the same lines for the files it is handed, at most `DOCS_HANDED` docs
+and `CHARS_HANDED` characters, the nearest doc first.
+
+a doc is markdown, text, reStructuredText or asciidoc, or a README, in the
+place: not a dependency or build manifest (requirements.txt and the rest,
+`preflight.manifest`), not a file inside a python package but its README (it
+ships with the code), not a spec, not a test, and not under facts/ or the
+runner's own folder. `CLAUDE.md`, `AGENTS.md`, `.claude/` and `rules/` are
+named first.
 """
 import re
 from pathlib import Path, PurePosixPath
 
-from agentweft.guardrails import briefing, factsguard, starttests
-from agentweft.guardrails.snapshot import TEST_MODULE, is_spec, is_test
+from agentweft.guardrails import briefing, factsguard
+from agentweft.guardrails.snapshot import is_spec, is_test
 from agentweft.mcp import preflight
 from agentweft.orchestrate import facts
 
-# files a run's retro may have the runner change beyond facts/: doc edits
-# and guards together
-CAP = 3
 SUFFIXES = (".md", ".markdown", ".rst", ".txt", ".adoc")
-SPAN = re.compile(r"`([^`\n]+)`")
 FLAG = re.compile(r"(?<![\w-])--[A-Za-z][\w-]*")
 NAMED = re.compile(r"\b(?:def|class|function|interface|type)\s+([A-Za-z_]\w*)"
                    r"|\b(?:const|let|var)\s+([A-Za-z_]\w*)\s*=")
@@ -66,16 +37,6 @@ CHARS_HANDED = 1500
 LEFT_LINE = 300
 ON_MACHINE = "(a line that names a path on the machine, not quoted)"
 LINE = 200
-# a file larger than this is not read for a name
-BIG = 512 * 1024
-TIMEOUT = 120
-DOC, INSTRUCTION, GUARD = "doc", "instruction", "guard"
-
-
-def cap_of(fm):
-    """-> the flow's `edits_per_run`, CAP when it names none."""
-    said = fm.get("edits_per_run") if hasattr(fm, "get") else None
-    return CAP if said is None else int(said)
 
 
 def is_doc(rel):
@@ -107,66 +68,9 @@ def is_instruction(rel):
     return briefing.watched(rel) or rel.split("/")[0] == "rules"
 
 
-def quoted(text):
-    """-> each name `text` quotes: its code spans and its --flags, in order,
-    each once."""
-    out = []
-    for name in SPAN.findall(text or "") + FLAG.findall(
-            SPAN.sub(" ", text or "")):
-        name = name.strip()
-        if name and name not in out:
-            out.append(name)
-    return out
-
-
-def unquoted(text):
-    """-> `text` without one pair of quotes around all of it."""
-    text = (text or "").strip()
-    if len(text) > 1 and text[0] == text[-1] and text[0] in "\"'`":
-        return text[1:-1]
-    return text
-
-
-class Tree(object):
-    """the text files of the place as the run left it that are not docs,
-    read once: what a check never reads (`facts.walk`) left out. a doc is
-    no witness for another, since it can be as stale as the one edited."""
-
-    def __init__(self, root, own=None):
-        self.root = Path(root)
-        self.own = own
-        self.read = None
-
-    def texts(self):
-        if self.read is None:
-            self.read = []
-            for path in facts.walk(self.root, self.root, self.own):
-                if is_doc(path.name):
-                    continue
-                try:
-                    if path.stat().st_size > BIG:
-                        continue
-                    data = path.read_bytes()
-                except OSError:
-                    continue
-                if b"\0" in data:
-                    continue
-                self.read.append((facts.rel_of(self.root, path),
-                                  data.decode("utf-8", "replace")))
-        return self.read
-
-    def holds(self, name, but=()):
-        """whether `name` is in a file of the tree other than `but`."""
-        return any(name in text for rel, text in self.texts()
-                   if rel not in but)
-
-    def changed(self, rel):
-        self.read = None
-
-
 def place_refusal(root, rel, own):
-    """-> why the runner may not write `rel`, a path from the place, "" when
-    it may."""
+    """-> why `rel`, a path from the place, is not the project's own file to
+    hand as a doc, "" when it is."""
     if not rel:
         return "it names no file"
     what = factsguard.secret_in(rel)
@@ -186,217 +90,6 @@ def place_refusal(root, rel, own):
         except ValueError:
             pass
     return ""
-
-
-def uncommitted(start):
-    """-> the paths from the place that were not committed as they stood
-    when the run started (`start`, its snapshot): untracked, or changed and
-    not committed. their only copy is the person's. None when the place has
-    no start commit to tell them by (git does not track it, or the repo had
-    no commit), so that no file is known to be committed."""
-    out = set()
-    if start is None:
-        return out
-    if not getattr(start, "start", None):
-        return None
-    for rel, data in (getattr(start, "loose", None) or {}).items():
-        if data is None:
-            continue
-        try:
-            out.add(start.from_place(rel))
-        except ValueError:
-            continue
-    return out
-
-
-def edit_refusal(root, rel, fields, record, tree, own=None, loose=()):
-    """-> (why the edit is not made, "" when it is, the file's text after
-    it). `fields` is the item's: now, after, because, evidence. `loose` is
-    the files not committed when the run started (`uncommitted`), None when
-    no file is known to be committed."""
-    rel = facts.norm(rel)
-    why = place_refusal(root, rel, own)
-    if why:
-        return why, None
-    if loose is None:
-        return (rel + " is not known to be committed as it stood when the run"
-                " started (the run has no start commit), so its only copy may"
-                " be yours"), None
-    if rel in loose:
-        return (rel + " was not committed when the run started, so its only"
-                " copy is yours"), None
-    if is_spec(rel):
-        return (rel + " is a spec file, the person's word: a change to it is"
-                " theirs to make"), None
-    if is_test(rel):
-        return rel + " is a test file: a test comes in as a guard", None
-    if not is_doc(rel):
-        return (rel + " is not a doc (markdown, text, reStructuredText,"
-                " asciidoc or a README)"), None
-    folder = packaged(root, rel)
-    if folder:
-        return (rel + " is in a python package (" + folder + "), so it ships"
-                " with the code"), None
-    for key in ("now", "after", "because", "evidence"):
-        what = factsguard.secret_in(fields.get(key) or "")
-        if what:
-            return "it looks like a secret: " + what + " in " + key, None
-    said = factsguard.on_machine(fields.get("after") or "", "after")
-    if said:
-        return said, None
-    now, after = fields.get("now") or "", fields.get("after") or ""
-    if not now.strip():
-        return "it has no now", None
-    if not after.strip():
-        return "it has no after", None
-    if not (fields.get("because") or "").strip():
-        return "it has no because", None
-    path = Path(root) / rel
-    if not path.is_file():
-        return rel + " is not a file in the place", None
-    try:
-        text = path.read_bytes().decode("utf-8")
-    except (OSError, UnicodeDecodeError):
-        return rel + " is not utf-8 text", None
-    found = now if now in text else unquoted(now)
-    count = text.count(found) if found else 0
-    if not count:
-        return '"' + now + '" is not in ' + rel, None
-    if count > 1:
-        return ('"' + found + '" is in ' + rel + " " + str(count)
-                + " times, so which one is not said"), None
-    if found != now:
-        after = unquoted(after)
-    if after == found:
-        return "after is what is there now", None
-    ran = set(c for c, _ in getattr(record, "ran", ()) or ())
-    for name in quoted(after):
-        if factsguard.squash(name) in ran or tree.holds(name, but=(rel,)):
-            continue
-        return ("the after quotes " + name + ", which is not in the code as"
-                " left (a doc does not count) or a command of this run"), None
-    said = (fields.get("evidence") or "").strip()
-    if said:
-        held = record.holds("evidence: " + said)
-        if held:
-            return "the evidence does not hold: " + held, None
-    return "", text.replace(found, after, 1)
-
-
-def guard_refusal(root, rel, fields, own=None):
-    """-> why a test guard is not written, before it runs, "" when it may
-    be."""
-    rel = facts.norm(rel)
-    why = place_refusal(root, rel, own)
-    if why:
-        return why
-    for key in ("what", "where"):
-        what = factsguard.secret_in(fields.get(key) or "")
-        if what:
-            return "it looks like a secret: " + what + " in " + key
-    what = factsguard.secret_in("\n".join(fields.get("code") or []))
-    if what:
-        return "it looks like a secret: " + what + " in code"
-    for key, text in (("what", fields.get("what")),
-                      ("where", fields.get("where")),
-                      ("code", "\n".join(fields.get("code") or []))):
-        said = factsguard.on_machine(text or "", key)
-        if said:
-            return said
-    if not is_test(rel) or not rel.endswith(".py") \
-            or not TEST_MODULE.search(PurePosixPath(rel).name):
-        return (rel + " is not a python test module (test_*.py or *_test.py"
-                " under the tests), the one kind the runner can run")
-    if (Path(root) / rel).exists():
-        return rel + " is there already: a guard is a test file of its own"
-    if not any(line.strip() for line in fields.get("code") or []):
-        return "it has no code"
-    return ""
-
-
-def write_guard(root, rel, code, base, timeout=TIMEOUT):
-    """-> "" once the test file `rel` is written and passes on the tree as
-    left, else why not, with nothing left behind."""
-    root = Path(root)
-    path = root / rel
-    made = [p for p in reversed(path.parents) if not p.exists()
-            and root in p.parents]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(("\n".join(code).rstrip("\n") + "\n").encode("utf-8"))
-    found, why = starttests.run_tests(base, [rel], root, timeout)
-    if found is None:
-        why = "it could not run: " + why
-    elif not found:
-        why = "no test in it ran"
-    else:
-        red = [(t, s) for t, s in sorted(found.items())
-               if s[0] != "PASSED"]
-        if red:
-            t, (state, said) = red[0]
-            why = ("it does not pass on the tree as left: " + t + " "
-                   + state + (" - " + said if said else ""))
-    if why:
-        try:
-            path.unlink()
-        except OSError:
-            pass
-        for p in reversed(made):
-            try:
-                p.rmdir()
-            except OSError:
-                pass
-    return why
-
-
-class Keeper(object):
-    """the edits and guards of one retro: the place, the runner's folder,
-    the cap they share, how the flow starts pytest and the files not
-    committed when the run started (`uncommitted`)."""
-
-    def __init__(self, root, own=None, cap=CAP, tests=None, timeout=TIMEOUT,
-                 loose=()):
-        self.root = Path(root)
-        self.own = own
-        self.loose = None if loose is None else set(loose)
-        self.cap = cap
-        self.base = starttests.base_of(tests)
-        self.timeout = timeout
-        self.made = 0
-        self.tree = Tree(self.root, own)
-
-    def full(self):
-        if self.made >= self.cap:
-            return ("per-run cap: " + str(self.cap) + " doc edits and guards"
-                    " are already made this run")
-        return ""
-
-    def edit(self, rel, fields, record):
-        """-> why the edit is refused, "" once it is in the file."""
-        why = self.full()
-        if why:
-            return why
-        why, text = edit_refusal(self.root, rel, fields, record, self.tree,
-                                 self.own, self.loose)
-        if why:
-            return why
-        (self.root / facts.norm(rel)).write_bytes(text.encode("utf-8"))
-        self.tree.changed(rel)
-        self.made = self.made + 1
-        return ""
-
-    def guard(self, rel, fields):
-        """-> why the test guard is refused, "" once it is written and
-        passes."""
-        why = self.full() or guard_refusal(self.root, rel, fields, self.own)
-        if why:
-            return why
-        why = write_guard(self.root, facts.norm(rel), fields.get("code") or [],
-                          self.base, self.timeout)
-        if why:
-            return why
-        self.tree.changed(rel)
-        self.made = self.made + 1
-        return ""
 
 
 def names_of(diff):
@@ -422,8 +115,7 @@ def names_in(text):
 
 
 def docs_in(root, own=None):
-    """-> the docs of the place a retro may edit, instruction files first,
-    then by path."""
+    """-> the docs of the place, instruction files first, then by path."""
     found = []
     for path in facts.walk(root, root, own):
         rel = facts.rel_of(root, path)

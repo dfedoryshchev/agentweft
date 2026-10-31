@@ -370,13 +370,10 @@ def test_the_retro_reads_what_it_wrote():
         "written": ["F-0001", "F-0002"], "refused": [{"item": "fact on a",
                                                      "why": "no evidence"}]})
     assert summary.won_words(retro) == \
-        ", won facts 2, docs 0, guards 0 (1 refused)"
-    retro["facts"]["kept_facts"]["applied"] = [
-        {"path": "README.md", "kind": "doc"},
-        {"path": "CLAUDE.md", "kind": "instruction"},
-        {"path": "tests/test_g.py", "kind": "guard"}]
+        ", won facts 2, tickets 0 (1 refused)"
+    retro["facts"]["kept_facts"]["tickets"] = ["F-0002"]
     assert summary.won_words(retro) == \
-        ", won facts 2, docs 2, guards 1 (1 refused)"
+        ", won facts 1, tickets 1 (1 refused)"
     assert summary.won_words(a_pass_of("reviewer.md", 0.2, "none", 9)) == \
         ", won none, checked 9"
     assert summary.won_words(a_pass_of("worker.md", 0.1, "delivered", 3)) == \

@@ -467,12 +467,12 @@ it, a check reads it, and a change to it is a change to the product.
   entry under `facts/` when the run started (after the start's heal, which is
   the runner's) and of every entry the runner writes, and the reason for
   every fact it refused. a place with no `facts/` and nothing proposed leaves
-  no file. an entry written by hand between runs counts. it also lists under
-  `applied` each file outside `facts/` the runner changed for the retro, a
-  doc edit or a test guard (`docs/writing-a-flow.md`, section 10), with the
-  sha256 of its bytes: a leg that carries the run on reads it, so a file
-  that still holds those bytes is no product change, no new test of the
-  run's, nothing the fence guards and nothing a step commit takes.
+  no file. an entry written by hand between runs counts. a leg that carries
+  the run on takes the store files as it finds them as the runner's, so what
+  an earlier leg's retro wrote there is nothing a step commit takes; an
+  account an older run wrote may list under `applied` files outside `facts/`
+  it changed for its retro, and those are taken the same way while they hold
+  the bytes it lists.
 - after every step, and again after its gates and after a stop's test run,
   the store is compared with what the runner last wrote, in the same check as
   `decisions.md`. a step that added, edited or removed a store file fails
@@ -509,11 +509,10 @@ is written; a refused one is not written and its reason is kept:
    share's two backslashes or two slashes (by name or address), at a home
    folder's tilde, or at a file-system root such as home, Users, tmp
    or var, never a URL or a request path such as `/index.html`. the store lives in
-   the repo, read on every other machine; so does a doc edit's `after:` and a
-   guard's `code:`, `what:` and `where:`, held to the same rule, and no line
-   of `facts/PROPOSED.md` is written that holds one.
+   the repo, read on every other machine, and no line of
+   `facts/PROPOSED.md` is written that holds one.
 2. a one-line claim and a why, no `|` in any field, a kind from `decision`,
-   `convention`, `why`, `defect`, `gate-issue`, a label from `important`,
+   `convention`, `why`, `defect`, `gate-issue`, `nice-to-do` (below), a label from `important`,
    `wip`, `investigation`, `pins` or none. a `gate-issue` that names an OS error code
    (`WinError 87`, `Errno 22`) is refused: it is what the machine raised as
    the run went (`gates.md`, the fault a gate runs once more), not the
@@ -595,6 +594,29 @@ is written; a refused one is not written and its reason is kept:
    evidence, and a true one of those kinds (a premise such as "correct
    only for values of 0 or more", "no test pins it") often has no grep that
    could hold it.
+
+### a nice-to-do
+
+the retro changes no file of the tree, and the runner changes none for it.
+a doc a run left stale, a test that would have caught what went wrong, or
+a few lines of code worth tidying is a `nice-to-do` fact: a ticket for the
+planner of a later run that touches that file, whose own gates and suite
+then hold the change. on top of the rules above it is refused unless:
+
+- its scope is exactly one file of the place: no folder, glob, `.` or
+  second scope (`a nice-to-do names the one file it is done in`), and not
+  `decisions.md`, a store file or a spec file;
+- its claim is a change of a few lines in that file: at most 200
+  characters, no refactor, rewrite, restructure, redesign, move, split or
+  extract, and no other file named outside the words it quotes "like
+  this" (a path, a folder ending in `/`, or a bare name that is a file of
+  the place): `... that is a task, not a tidy`;
+- the run has not written `tickets_per_run` of them already (3 when
+  unsaid), a cap of their own beside the facts'.
+
+its check, when it has one, finds what the tidy takes away, so it stops
+holding once the tidy is made; it is never run after a step as the
+project's rule, never a conformance line.
 
 ### a fact's check
 

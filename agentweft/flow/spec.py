@@ -90,7 +90,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "tiers", "investigate", "tests_e2e", "tests_integration", "verify",
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
-         "reviewers", "police", "network", "facts_per_run", "edits_per_run",
+         "reviewers", "police", "network", "facts_per_run", "tickets_per_run",
          "lane", "conformance", "small_reviewers", "on_fallback")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
@@ -564,8 +564,8 @@ def check(raw):
         bad.append("send_backs should be a whole number, 0 or more")
     if "facts_per_run" in raw and not counts(raw["facts_per_run"]):
         bad.append("facts_per_run should be a whole number, 0 or more")
-    if "edits_per_run" in raw and not counts(raw["edits_per_run"]):
-        bad.append("edits_per_run should be a whole number, 0 or more")
+    if "tickets_per_run" in raw and not counts(raw["tickets_per_run"]):
+        bad.append("tickets_per_run should be a whole number, 0 or more")
     if "retro" in raw and not isinstance(raw["retro"], bool) \
             and raw["retro"] != CONDITIONAL:
         bad.append("retro should be true, false or " + CONDITIONAL)

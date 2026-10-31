@@ -2,7 +2,7 @@
 whose cause is in the record, a fifth whose renamed flag left a README line
 stale, a sixth whose lead ruled on a question with a clause still open, and
 the answer a careful reader writes for each. the scorer checks
-the attempt, the cause, the file to change, the fact and the doc edit by
+the attempt, the cause, the file to change, the fact and the doc's ticket by
 program, and step mode asks the retro role alone on a record."""
 import json
 import sys
@@ -21,7 +21,7 @@ NAMES = ["cross-file", "layered", "refactor", "renamed-flag", "ruled-open",
 FAILED = [n for n in NAMES if n not in ("renamed-flag", "ruled-open")]
 STALE = CASES / "renamed-flag"
 RULED = CASES / "ruled-open"
-WANTED = {"renamed-flag": {"edit"}, "ruled-open": {"fact"}}
+WANTED = {"renamed-flag": {"ticket"}, "ruled-open": {"fact"}}
 
 
 def test_the_six_cases_are_there_each_with_its_record_and_gold():
@@ -58,33 +58,49 @@ def test_the_gold_itself_gets_full_marks():
         assert (got["score"], got["passed"]) == (full, True), (case.name, got)
 
 
-def test_the_stale_readme_is_handed_to_the_retro_and_its_edit_is_made():
+def test_the_stale_readme_is_handed_to_the_retro_and_kept_as_a_ticket():
     prompt = retrogold.prompt_of(STALE)
     part = prompt.split("docs that name a file or a name this run changed,"
-                        " each to confirm current or edit:\n")[1]
+                        " each to confirm current or keep a ticket on:\n")[1]
     assert part.split("\n\n")[0].split("\n") == [
         "- README.md names --file:",
         "  README.md:7: pass --file out.txt to write the counts to a file"
         " instead of stdout."]
     items, _ = upkeep.parse(retrogold.answer_of(STALE))
     [(verb, value, fields)] = items
-    assert (verb, value) == ("edit", "README.md")
-    assert retrogold.edit_refusal(STALE, value, fields) == ""
+    assert (verb, fields["scope"], fields["kind"]) == (
+        "fact", ["README.md"], "nice-to-do")
+    assert retrogold.refusal(STALE, verb, value, fields) == ""
 
 
-def test_an_edit_that_keeps_the_old_flag_or_quotes_a_new_one_scores_nothing():
+def test_a_ticket_off_the_doc_without_the_new_flag_or_too_wide_scores_nothing():
     gold = retrogold.gold_of(STALE)
     answer = retrogold.answer_of(STALE)
-    kept = answer.replace("after: pass --output out.txt",
-                          "after: pass --file or --output out.txt")
-    assert retrogold.score(kept, gold, STALE)["edit"] == 0
-    made_up = answer.replace("after: pass --output out.txt",
-                             "after: pass --output out.txt or --to")
-    assert retrogold.score(made_up, gold, STALE)["edit"] == 0
-    elsewhere = answer.replace("edit: README.md", "edit: TASK.md")
+    assert retrogold.score(answer, gold, STALE)["ticket"] == 1
+    no_flag = answer.replace("the flag is --output now", "the flag changed")
+    assert no_flag != answer
+    assert retrogold.score(no_flag, gold, STALE)["ticket"] == 0
+    wide = answer.replace("the flag is --output now",
+                          "rewrite the README around --output")
+    assert retrogold.score(wide, gold, STALE)["ticket"] == 0
+    elsewhere = answer.replace("scope: README.md", "scope: TASK.md")
     assert retrogold.score(elsewhere, gold, STALE) == dict(
-        edit=0, score=0, passed=False, reader=None)
-    assert retrogold.score(answer, gold, STALE)["edit"] == 1
+        ticket=0, score=0, passed=False, reader=None)
+
+
+def test_an_old_edit_of_the_readme_scores_as_the_ticket_it_is_kept_as():
+    gold = retrogold.gold_of(STALE)
+    old = "\n".join([
+        "FACTS", "edit: README.md",
+        "  now: pass --file out.txt to write the counts to a file instead of"
+        " stdout.",
+        "  after: pass --output out.txt to write the counts to a file instead"
+        " of stdout.",
+        "  because: seq 1 worker.md renamed the flag in logcount/cli.py",
+        "END FACTS"])
+    assert retrogold.score(old, gold, STALE)["ticket"] == 1
+    assert retrogold.score(old.replace("pass --output", "pass --to"), gold,
+                           STALE)["ticket"] == 0
 
 
 def test_every_gold_fact_is_one_the_runner_would_write():

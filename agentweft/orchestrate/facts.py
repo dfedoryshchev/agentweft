@@ -51,7 +51,9 @@ PROJECT = "."
 
 LIVE, STALE, SUPERSEDED, RETIRED = "live", "stale", "superseded", "retired"
 STATUSES = (LIVE, STALE, SUPERSEDED, RETIRED)
-KINDS = ("decision", "convention", "why", "defect", "gate-issue")
+# a change of a few lines in one file, for a later run that touches it
+NICE = "nice-to-do"
+KINDS = ("decision", "convention", "why", "defect", "gate-issue", NICE)
 PINS = "pins"
 LABELS = ("important", "wip", "investigation", PINS)
 # live facts on the whole project the store keeps: they are handed to every

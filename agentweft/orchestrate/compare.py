@@ -180,10 +180,10 @@ FLOW_ONLY = (
     Pair("flow.facts_per_run", "",
          "how many new facts one run's retro may have the runner write. a "
          "phase keeps no facts of its own, so it has nothing to cap."),
-    Pair("flow.edits_per_run", "",
-         "how many doc edits and test guards one run's retro may have the "
-         "runner make in the tree, unstaged. a phase has no step after its "
-         "last to make them."),
+    Pair("flow.tickets_per_run", "",
+         "how many nice-to-do tickets one run's retro may have the runner "
+         "keep for a later run. a phase keeps no facts of its own, so it has "
+         "nothing to cap."),
     Pair("flow.lane", "",
          "whether a run reads and keeps the project's facts at all. a phase "
          "keeps no facts of its own, so it has nothing to turn off."),

@@ -8,10 +8,10 @@ write a ruling, so facts get the same walls rulings have
 
 - the runner keeps its own account, runs/<id>/facts.json, outside the place:
   a sha256 of every entry there when the run started and of every entry it
-  writes, and of every file outside facts/ it changes for the retro
-  (`applied`), which a leg that carries the run on takes as the runner's.
-  between runs the store is the person's, and an entry written by hand
-  counts.
+  writes. a leg that carries the run on takes the store files as it finds
+  them as the runner's (`store_files`), and so the files an older run's
+  account lists as changed for its retro (`applied_in`). between runs the
+  store is the person's, and an entry written by hand counts.
 - after each step the store is compared with what the runner last wrote; a
   step that added, edited or removed anything under facts/ fails like a gate
   and the store is put back. `rulings.Kept.check` runs this check with its
@@ -37,6 +37,10 @@ without it, `unchecked:` saying why), a convention that says every or
 never only with a check a line against it breaks (`exits 1`), at most `cap`
 new facts a run, and
 the same claim on the same scope counted on the fact already there instead.
+a `nice-to-do` is a ticket for a later run: one file of the place, a change
+of a few lines in it (`tidy_refusal`), at most `tickets` of them a run
+beside the facts; its check says whether the tidy is still to do and is
+never run as the project's rule (`held_as_rule`).
 
 a fact's check runs again after every step that changed a file in its scope
 (`Store.conform`), and the end of the leg counts each step whose change held
@@ -54,6 +58,7 @@ import threading
 import time
 from pathlib import Path
 
+from agentweft.guardrails import snapshot
 from agentweft.orchestrate import facts
 
 FILE = "facts.json"
@@ -125,6 +130,16 @@ MACHINE_PATH = re.compile(
     r"|(?<![\w\\])\\\\[A-Za-z0-9][\w.$-]*\\[\w.$-]+[^\s`'\"()]*"
     r"|(?<![\w.~/:-])//[A-Za-z0-9][\w.$-]*/[\w.$-]+[^\s`'\"()]*")
 WORD = re.compile(r"[^\s`'\"(),;<>]+")
+# the tickets for a later run one run may write, beside its facts
+TICKETS = 3
+# a nice-to-do's claim: the change, a few lines of one file
+TIDY = 200
+WIDE = re.compile(r"\b(?:refactor\w*|rewrit\w*|restructur\w*|redesign\w*"
+                  r"|mov(?:e|es|ed|ing)|split\w*|extract\w*)\b", re.I)
+FILE_NAME = re.compile(r"^[\w.-]+\.(?:pyi?|[cm]?js|tsx?|jsx|md|rst|txt|go|rs"
+                       r"|java|kt|cs|rb|php|json|ya?ml|toml|cfg|ini|sh|html"
+                       r"|css|c|h|cc|cpp|hpp|sql)$")
+QUOTED = re.compile(r'"[^"\n]*"')
 # the fields a proposal may carry, in the order an entry is written
 FIELDS = ("scope", "kind", "label", "claim", "why", "source", "anchor",
           "check", "supersedes")
@@ -472,9 +487,12 @@ class Store(object):
     store as it found it. with `own`, the runner's folder, it keeps a Ledger
     there that other runs on the same place share."""
 
-    def __init__(self, workdir, cap=CAP, off=False, own=None):
+    def __init__(self, workdir, cap=CAP, off=False, own=None,
+                 tickets=TICKETS):
         self.root = Path(workdir)
         self.cap = cap
+        self.tickets = tickets
+        self.tickets_new = 0
         self.off = off
         # the runner's own folder, which no check reads
         self.own = own
@@ -488,10 +506,8 @@ class Store(object):
         self.adopted = set()
         # the facts this run has counted a proposal on: a run counts once
         self.counted = set()
-        # every store file the runner wrote, in order, and the files outside
-        # facts/ it changed for the retro (`runner/upkeep.py`)
+        # every store file the runner wrote, in order
         self.touched = []
-        self.applied = []
         self.pinned = None
         self.taken()
         self.watch()
@@ -698,6 +714,10 @@ class Store(object):
         if kind not in facts.KINDS:
             return ("kind " + (kind or "(none)") + " is not one of "
                     + ", ".join(facts.KINDS))
+        if kind == facts.NICE:
+            why = tidy_refusal(self.root, p)
+            if why:
+                return why
         if kind == GATE_ISSUE and any(OS_ERROR.search(text)
                                       for _, text in p.texts()):
             return ("a gate-issue that names an OS error code is the"
@@ -808,7 +828,7 @@ class Store(object):
         with self.lock, self.shared():
             for f in self.read():
                 said = f.get("check").strip()
-                if f.status != facts.LIVE or not said:
+                if not held_as_rule(f):
                     continue
                 now = facts.scope_digest(self.root, f.scopes, self.own)
                 was = self.watched.setdefault(f.id, now)
@@ -845,8 +865,7 @@ class Store(object):
             return
         with self.lock, self.shared():
             for f in self.read():
-                if f.status == facts.LIVE and f.get("check").strip() \
-                        and self.run(f)[0] is False:
+                if held_as_rule(f) and self.run(f)[0] is False:
                     self.pending.add(f.id)
 
     def watch(self):
@@ -855,7 +874,7 @@ class Store(object):
         if self.off:
             return
         for f in self.read():
-            if f.status == facts.LIVE and f.get("check").strip():
+            if held_as_rule(f):
                 self.watched[f.id] = facts.scope_digest(self.root, f.scopes,
                                                         self.own)
 
@@ -924,7 +943,11 @@ class Store(object):
                     self.counted.add(f.id)
                     self.count(f, "proposed")
                 return f, ""
-        if capped and self.new >= self.cap:
+        tidy = p.get("kind").strip() == facts.NICE
+        if capped and tidy and self.tickets_new >= self.tickets:
+            return None, ("per-run cap: " + str(self.tickets) + " new"
+                          " nice-to-do tickets are already written this run")
+        if capped and not tidy and self.new >= self.cap:
             return None, ("per-run cap: " + str(self.cap) + " new facts are"
                           " already written this run")
         if scopes and all(facts.every_file(s) for s in scopes):
@@ -966,7 +989,10 @@ class Store(object):
             self.status(old, facts.SUPERSEDED, "superseded",
                         stamp + " by " + fact.id)
         self.put(fact, facts.file_for(scopes[0]))
-        self.new = self.new + (1 if capped else 0)
+        if capped and tidy:
+            self.tickets_new = self.tickets_new + 1
+        elif capped:
+            self.new = self.new + 1
         self.counted.add(fact.id)
         return fact, ""
 
@@ -1068,7 +1094,7 @@ class Store(object):
     def propose(self, lines):
         """-> "" once `lines` are at the end of facts/PROPOSED.md, else why
         not. what is there is for a person: the retro's guards and doc
-        changes that failed a check, and the guards its ladder owes."""
+        changes that could not be tickets, and the guards its ladder owes."""
         with self.lock, self.shared(force=True):
             for text in lines:
                 what = secret_in(text)
@@ -1081,8 +1107,9 @@ class Store(object):
             path.parent.mkdir(parents=True, exist_ok=True)
             head = [] if path.is_file() else [
                 "# proposed", "", "the retro's guards and doc changes that"
-                " failed a check, each with why, and the guards a recurring"
-                " fact is owed. the runner made none of them.", ""]
+                " could not be kept as a nice-to-do ticket, each with why,"
+                " and the guards a recurring fact is owed. the runner made"
+                " none of them.", ""]
             with open(path, "a", encoding="utf-8", newline="\n") as f:
                 f.write("\n".join(head + list(lines) + [""]) + "\n")
             self.wrote([self.rel(path)])
@@ -1117,15 +1144,6 @@ class Store(object):
                     out.append(fact.id)
         return out
 
-    def applied_write(self, rel, kind, because):
-        """note `rel`, a file outside facts/ the runner just changed for the
-        retro, as the runner's write: its bytes now, what it is and why."""
-        data = (self.root / rel).read_bytes()
-        self.applied.append({"path": rel, "kind": kind,
-                             "sha256": hashlib.sha256(data).hexdigest(),
-                             "because": because})
-        self.save()
-
     def keep_in(self, folder):
         self.folder = Path(folder)
         self.save()
@@ -1134,7 +1152,7 @@ class Store(object):
         """write the account, once there is a store or a proposal to keep
         one of: a place with no facts/ leaves no file."""
         if self.folder is None or not (self.data or self.found or self.written
-                                       or self.refused or self.applied):
+                                       or self.refused):
             return
         self.folder.mkdir(parents=True, exist_ok=True)
         # a refusal keeps its scope and reason only: the claim may be the
@@ -1142,10 +1160,24 @@ class Store(object):
         account = {"found": self.found, "written": self.written,
                    "refused": [{"scope": p.get("scope"), "why": why}
                                for p, why in self.refused]}
-        if self.applied:
-            account["applied"] = self.applied
         (self.folder / FILE).write_text(json.dumps(account, indent=2) + "\n",
                                         encoding="utf-8")
+
+
+def store_files(root):
+    """-> {path from the place: sha256} of every store file under `root`
+    now. on a leg that carries a run on, what an earlier leg's retro wrote
+    there is the runner's, never a change a step commit takes."""
+    out = {}
+    base = facts.folder(root)
+    for path in sorted(base.rglob("*.md")) if base.is_dir() else []:
+        rel = facts.rel_of(Path(root), path)
+        if facts.is_store(rel):
+            try:
+                out[rel] = hashlib.sha256(path.read_bytes()).hexdigest()
+            except OSError:
+                continue
+    return out
 
 
 def applied_in(folders):
@@ -1212,6 +1244,45 @@ def beyond(check, scopes):
     return ""
 
 
+def held_as_rule(f):
+    """whether a fact's check is run after a step as the project's rule: a
+    live fact with one that is not a nice-to-do, whose check says only
+    whether the tidy is still to do."""
+    return f.status == facts.LIVE and bool(f.get("check").strip()) \
+        and f.kind != facts.NICE
+
+
+def tidy_refusal(root, p):
+    """-> why a nice-to-do is not written, "" when it may be: it names one
+    file of the place and nothing wider, not decisions.md, the store or a
+    spec, and
+    its claim is a change of a few lines in it that names no other file (a
+    path, a folder, or a bare name that is a file of the place) outside the
+    words it quotes "like this", the text a doc is to hold."""
+    scopes = [facts.norm(s) for s in p.get("scope")]
+    if len(scopes) != 1 or scopes[0] == facts.PROJECT \
+            or scopes[0].endswith("/") or facts.is_glob(scopes[0]) \
+            or not (Path(root) / scopes[0]).is_file():
+        return "a nice-to-do names the one file it is done in"
+    if snapshot.is_runners(scopes[0]):
+        return scopes[0] + " is the runner's to write, never a nice-to-do's"
+    if snapshot.is_spec(scopes[0]):
+        return (scopes[0] + " is a spec file, the person's word: a change to"
+                " it is theirs to make")
+    claim = p.get("claim")
+    words = [w.rstrip(".:,;!?") for w in WORD.findall(QUOTED.sub(" ", claim))]
+    named = [w for w in words if len(w) > 1 and w.endswith("/")
+             or FILE_NAME.match(w.rsplit("/", 1)[-1])
+             and ("/" in w or (Path(root) / w).is_file())]
+    others = [w for w in named if facts.norm(w) != scopes[0]
+              and w != scopes[0].rsplit("/", 1)[-1]]
+    if len(claim) > TIDY or WIDE.search(claim) or others:
+        return ("a nice-to-do is a change of a few lines in " + scopes[0]
+                + " (at most " + str(TIDY) + " characters, no other file, no"
+                " refactor, rewrite or move): that is a task, not a tidy")
+    return ""
+
+
 def seen_line(said):
     return ", ".join(k + " " + str(said.get(k, 0)) for k in COUNTERS)
 
@@ -1227,6 +1298,12 @@ def cap_of(fm):
     """-> the flow's `facts_per_run`, CAP when it names none."""
     said = fm.get("facts_per_run") if hasattr(fm, "get") else None
     return CAP if said is None else int(said)
+
+
+def tickets_of(fm):
+    """-> the flow's `tickets_per_run`, TICKETS when it names none."""
+    said = fm.get("tickets_per_run") if hasattr(fm, "get") else None
+    return TICKETS if said is None else int(said)
 
 
 def lane_off(fm):

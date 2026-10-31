@@ -365,7 +365,7 @@ step, before the next is handed its output, waiting for you the way a
 it, and `--resume` carries on from there. a step whose verdict sends the work
 back, and the flow's last step, have nothing after them to hold and are only
 flagged. a retro another model answered under `park` has none of its FACTS
-block acted on: no fact, doc edit or guard is written, the handoff's line
+block acted on: no fact or ticket is written, the handoff's line
 says they are held, and `retro.md` keeps what it proposed. any other word is
 refused when the flow loads.
 
@@ -412,7 +412,7 @@ at most 6 docs and 4000 characters, the ones left out at the cap named on
 one line of at most 300 characters, the ones past it counted; the
 project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
-how many doc edits and guards, it may make; `why.md` when the run stopped
+how many nice-to-do tickets, it may write; `why.md` when the run stopped
 short; and `handoff.md`, with the steps' reasons taken out of it (the
 person's copy keeps them in full). for every pass in full it is pointed at
 `runs/<run-id>/retro-view/steps.jsonl`, a copy of the run's steps.jsonl
@@ -425,59 +425,51 @@ handed `- none failed` and the rest, so the retro keeps the facts and the
 docs even when nothing went wrong. it writes `runs/<run-id>/retro.md`: per
 failed attempt what failed, why, and which gate, prompt or `flow.yaml` key
 to change, the one change to make first, a `## docs` line per named doc,
-`current` or `edit`, and one FACTS block. it is granted `read` and nothing
+`current` or `ticket`, and one FACTS block. it is granted `read` and nothing
 else, whatever the flow's steps are granted.
 
 the FACTS block is the one part the runner acts on (`runner/upkeep.py`):
 a `fact`, a `supersede`, a `re-anchor` and a `retire` are done once each
 holds against the record (`docs/guardrails.md`, "the facts only the runner
-writes"), a new fact written as `by runner from retro`. an `edit` (file,
-`now`, `after`, `because`; an older `doc` item reads the same) is made in
-the working tree once it holds against the tree as the run left it
-(`guardrails/retroedits.py`): the file is a doc (markdown, text,
-reStructuredText, asciidoc or a README), not a dependency or build manifest
-(`requirements.txt` and the rest), not a file inside a python package but
-its README, not a spec, a test or a credential file, and committed as it
-stood when the run started (an untracked or uncommitted file's only copy is
-yours, and so is every file of a place git does not track or a repo with no
-commit); `now` is in it once as written; every code span and `--flag` the
-`after` quotes is in a file of the tree that is not a doc, or is a command
-a gate of the run ran; no field looks like a secret. `CLAUDE.md`, `AGENTS.md`, `.claude/`
-and `rules/` files may be edited and are listed first, `instruction file
-touched`; a step that writes one is still refused before the next step
-starts, and the runner writes after the last. a test `guard` with `code`
-lines (one per line of the file, its indent kept) is written as a new python
-test module only when it passes on the tree as left, run with the flow's own
-pytest; one that fails, runs no test or cannot run is taken out again. a
-test guard for a defect the run left in place is never written: one whose
-`guard:` names a `defect` fact on record by its id, or the `seq <n> <step>`
-a `defect` fact of the same block cites as its source (read with case,
+writes"), a new fact written as `by runner from retro`. neither the retro
+nor the runner changes any other file of the tree for it: a doc, rules or
+instruction file the run showed wrong, and a test that would have caught
+what went wrong, is a `nice-to-do` fact, a ticket on its one file for the
+planner of a later run that touches that file, whose own gates then hold
+the change (`docs/guardrails.md`, "a nice-to-do"). an `edit` (file, `now`,
+`after`, `because`; an older `doc` item reads the same) an answer still
+gives is kept as that ticket once it can be one: its file is in the place,
+`now` is on one of its lines, and the claim `replace "<now>" with "<after>"`
+passes a ticket's size rule; its why is the `because`, its evidence the line
+`now` is on. a test `guard` (`where`, `what`) is kept as the ticket `add a
+test: <what>` on its `where` file once that file is in the place, its
+evidence its own `source:` or the source of the fact it names by id. one
+that cannot be a ticket (no file, a file not there, a claim the size of a
+task, no evidence) goes to `facts/PROPOSED.md` with the reason. a test guard
+for a defect the run left in place is never a ticket: one whose `guard:`
+names a `defect` fact on record by its id, or the `seq <n> <step>` a
+`defect` fact of the same block cites as its source (read with case,
 leading zeros and a step's `.md` set aside: `seq 08 Reviewer-runs` is
 `seq 8 reviewer-runs.md`, `F-2` is `F-0002`), passes on the tree only by
-holding the defect, so it goes to `facts/PROPOSED.md` with that
-reason. a gate or `flow.yaml` key guard is a line for a person. what fails
-a check is a line with its reason and goes to `facts/PROPOSED.md`, which
-keeps nothing else but the guards a recurring fact is owed. the runner renders
-`facts/INDEX.md`, a line per live fact and the stale ones apart.
+holding the defect, so it goes to `facts/PROPOSED.md` with that reason. a
+gate or `flow.yaml` key guard is a line for a person. `facts/PROPOSED.md`
+keeps nothing else but the guards a recurring fact is owed. the runner
+renders `facts/INDEX.md`, a line per live fact and the stale ones apart.
 
 none of it is staged. under `commits: none` the handoff ends on "the
-retro's changes (unstaged, yours to stage)": a line per file with why,
-instruction files first, then the facts, the docs and the guards. under
-`commits: wip` or `squash`, on a run whose steps all passed, they are one
-commit of their own after the task's, `retro: kept <files> current`, and the
-section says "in their own commit, yours to review" with its sha; a run that
-stopped short leaves them unstaged and says so, since the leg that carries
-it on commits after it. they are never the run's change: each is listed in
-`runs/<run-id>/facts.json` under `applied` with its bytes' sha256, and a leg
-that carries the run on takes a file that still holds those bytes as no
-product change, no test it wrote, nothing for the fence and nothing for a
-step commit.
+retro's changes (unstaged, yours to stage)": a line per store file with
+why. under `commits: wip` or `squash`, on a run whose steps all passed, they
+are one commit of their own after the task's, `retro: kept <n> facts
+current`, and the section says "in their own commit, yours to review" with
+its sha; a run that stopped short leaves them unstaged and says so, since
+the leg that carries it on commits after it, and that leg takes the store
+files as it finds them as the runner's, nothing for a step commit.
 
 what the runner did with each item, each refusal with its reason, goes at
 the end of `retro.md` under "what the runner did with the FACTS block", at
 the end of `handoff.md` under "the retro's proposals", and on the retro's
-line in `steps.jsonl` as `facts` (`written`, `counted`, `changed`,
-`applied`, `refused`, `proposed`, `owed`). a block that does not parse
+line in `steps.jsonl` as `facts` (`written`, `tickets`, `counted`,
+`changed`, `refused`, `proposed`, `owed`). a block that does not parse
 writes nothing and says so in one line; an answer with no block changes no
 fact and no file.
 
@@ -490,10 +482,10 @@ run. a `gate-issue` or `defect` fact counted again climbs: in two runs it is
 four on the handoff lists it as hardening owed every run until it is
 retired.
 
-    edits_per_run: 3
+    tickets_per_run: 3
 
-caps the doc edits and test guards one run's retro has the runner make,
-together (3 when unsaid); one past the cap is refused with the reason.
+caps the nice-to-do tickets one run's retro has the runner write, beside
+the facts (3 when unsaid); one past the cap is refused with the reason.
 
     lane: off
 

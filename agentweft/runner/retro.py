@@ -7,14 +7,15 @@ written, the files changed, the project's facts that are stale or hold for
 those files, and the docs that name a changed file or a name the diff took
 out or put in - and writes runs/<run id>/retro.md: what failed, why, which gate or
 prompt to change, whether each named doc is current, and a FACTS block of
-what the project's facts and docs should become.
+what the project's facts should become, a doc or test that should change
+among them as a nice-to-do ticket on its one file.
 
 the role (`roles/library/retro.md`) is handed this run's facts; the skill
 (`skills/retro/`) is the procedure. the FACTS block is the one part the
-runner acts on (`runner/upkeep.py`): it writes each fact that holds against
-the record, makes each doc edit and writes each test guard that holds
-against the tree as left, and proposes the rest; the retro itself writes
-nothing. none of it is staged: under `commits: wip` or `squash`, on a run
+runner acts on (`runner/upkeep.py`): it writes each fact and ticket that
+holds against the record into facts/ and proposes the rest; neither the
+retro nor the runner changes any other file of the tree for it. none of it
+is staged: under `commits: wip` or `squash`, on a run
 whose steps all passed, it is one commit of its own, `retro: ...`, after
 the task's. a retro that fails is its own line in steps.jsonl, never a
 different outcome for the run.
@@ -25,7 +26,7 @@ import types
 from pathlib import Path
 
 from agentweft.flow.spec import CONDITIONAL, parks_on_fallback, step_id
-from agentweft.guardrails import factsguard, police, redorder, retroedits
+from agentweft.guardrails import factsguard, police, retroedits
 from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
@@ -53,8 +54,8 @@ HELD = (stops.OUTAGE, stops.BUDGET, stops.INTERRUPT, stops.PARKED,
 HOLDS = HELD + (stops.EXCEPTION,)
 # what the handoff says of a retro another model answered under
 # `on_fallback: park`
-HELD_BACK = ("on_fallback: park holds its facts, doc edits and guards: none"
-             " was applied; what it proposed is in " + FILE)
+HELD_BACK = ("on_fallback: park holds its facts and tickets: none was kept;"
+             " what it proposed is in " + FILE)
 
 
 def on(fm):
@@ -371,7 +372,7 @@ def record_of(run, trail, earlier):
 
 
 def parts(looked, rulings, changed, stale, live, cap, docs=(),
-          edits=retroedits.CAP, led=()):
+          tickets=factsguard.TICKETS, led=()):
     """-> (heading, lines) for each part of the record after the failed
     attempts, gate issues and refused writes. `changed` is None outside
     git; `docs` is the docs that name what changed (`retroedits.named`);
@@ -386,14 +387,14 @@ def parts(looked, rulings, changed, stale, live, cap, docs=(),
              ["- nothing changed in the tree" if changed is not None
               else "- not a git checkout, so what changed is not recorded"]),
             ("docs that name a file or a name this run changed, each to"
-             " confirm current or edit:", list(docs)),
+             " confirm current or keep a ticket on:", list(docs)),
             ("facts marked stale, to re-anchor, retire or supersede:", stale),
             ("facts on record for the files this run changed:", live),
             ("fact checks a step's change broke or that could not run,"
              " from steps.jsonl:", unheld(looked)),
             ("new facts this run may write:", ["- " + str(cap)]),
-            ("doc edits and guards this run may make:",
-             ["- " + str(edits if cap else 0)])]
+            ("nice-to-do tickets this run may write:",
+             ["- " + str(tickets)])]
 
 
 def diff_of(run, changed):
@@ -601,7 +602,7 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
                   parts(looked, ruled(run), changed, stale, live,
                         0 if store.off else store.cap,
                         named_docs(run, changed, store),
-                        retroedits.cap_of(getattr(run, "fm", None)),
+                        0 if store.off else store.tickets,
                         evidence(run, trail, earlier, looked)),
                   record=view(folder))
     used = run.by_step.get(STEP, run.provider)
@@ -712,16 +713,10 @@ def store_root(run):
 
 def message(done):
     """-> the retro commit's subject: what it kept current."""
-    said = [a["path"] for a in done.kinds(retroedits.INSTRUCTION,
-                                          retroedits.DOC, retroedits.GUARD)]
     n = len(done.written) + len(done.changed) + len(done.counted)
-    if n:
-        said.append("the facts" if said else str(n) + " fact"
-                    + ("" if n == 1 else "s"))
-    if not said:
-        said = ["the facts' proposals"]
-    return "retro: kept " + (", ".join(said[:-1]) + " and " + said[-1]
-                             if len(said) > 1 else said[0]) + " current"
+    said = str(n) + " fact" + ("" if n == 1 else "s") if n \
+        else "the facts' proposals"
+    return "retro: kept " + said + " current"
 
 
 FAILED_CALL = "the call failed"
@@ -781,17 +776,9 @@ def kept_up(run, trail, earlier, store, said, run_id):
             done.lines.append("- the flow's lane is off, so the FACTS block"
                               " was not acted on")
         return done
-    fm = getattr(run, "fm", None)
-    keep = retroedits.Keeper(store.root, own=store.own,
-                             cap=retroedits.cap_of(fm),
-                             tests=redorder.test_command(fm)
-                             if fm is not None and hasattr(fm, "steps")
-                             else None,
-                             loose=retroedits.uncommitted(
-                                 getattr(run, "start", None)))
     try:
         return upkeep.maintain(store, record_of(run, trail, earlier), said,
-                               run_id, keep=keep)
+                               run_id)
     except (OSError, ValueError, KeyError, TypeError) as e:
         done = Maintained()
         done.present = True
