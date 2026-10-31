@@ -136,8 +136,6 @@ def test_a_proposal_naming_a_credential_file_is_refused(tmp_path):
     assert why == "it looks like a secret: a credential file in why"
 
 
-# built from parts: the repo's own leak gate refuses a machine path written
-# out whole, and these are the shapes the store must refuse
 DRIVE_D, DRIVE_C, HOME, TMP = "D" + ":", "C" + ":", "/" + "home", "/" + "tmp"
 
 

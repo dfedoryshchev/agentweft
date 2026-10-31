@@ -470,8 +470,6 @@ def test_an_edit_is_refused_on_a_spec_a_test_a_secret_and_the_store(
 def test_an_edit_or_a_guard_that_holds_an_absolute_path_is_refused(tmp_path):
     from agentweft.guardrails import retroedits
 
-    # built from parts: the repo's own leak gate refuses a machine path
-    # written out whole
     tool, home = "D" + ":\\work\\tool.exe", "/" + "home/me/pkg/a.py"
     put(tmp_path, "README.md", "# pkg" + NL + "run the tool." + NL)
     why = retroedits.edit_refusal(

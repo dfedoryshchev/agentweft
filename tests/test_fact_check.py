@@ -331,8 +331,6 @@ def stored(root):
                    for f in folder.rglob("*.md")) if folder.is_dir() else ""
 
 
-# built from parts: the repo's own leak gate refuses a machine path written
-# out whole
 DRIVE = "D" + ":"
 
 

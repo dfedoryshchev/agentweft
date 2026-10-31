@@ -80,8 +80,6 @@ def test_the_files_its_role_reads_first_reach_the_step(
 def test_a_doc_line_or_a_read_first_entry_on_the_machine_is_never_handed(
         tmp_path, monkeypatch, fake_cli):
     a_place(tmp_path)
-    # built from parts: the repo's own leak gate refuses such a path written
-    # whole
     far = "C" + ":/" + "work/notes/parse.md"
     put(tmp_path, "docs/arch.md", "# arch" + NL + NL
         + "pkg/parse.py splits a line into words." + NL
