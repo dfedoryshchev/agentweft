@@ -18,7 +18,7 @@ from agentweft.guardrails import (baseline, boundary, briefing, defaults,
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails import factsguard, factsread
-from agentweft.orchestrate import decisions, project, synthesise
+from agentweft.orchestrate import decisions, facts, project, synthesise
 from agentweft.guardrails.budget import Budget
 from agentweft.guardrails import police, sacrifice
 
@@ -40,6 +40,8 @@ from . import wrongtest
 # seconds after which a kept session is not carried on: the place and the
 # files its earlier reads saw have had time to move on
 STALE = 24 * 3600
+# the step whose `fold:` line takes tickets into the run's plan
+PLANNER = "planner.md"
 
 
 def spec_paths(workdir):
@@ -384,8 +386,6 @@ class Run(object):
         the place has none, or the store cannot be read. a fact is written as
         the brief hands it, without its anchored lines: the step that opened
         the file has them in front of it."""
-        from agentweft.orchestrate import facts
-
         store = getattr(self, "facts", None)
         if store is None or store.off:
             return None
@@ -1114,8 +1114,11 @@ class Run(object):
         prompt = prompt + self.gate_said.get(step, "")
         prompt = prompt + getattr(self, "ruled", {}).get(step, "") + last
         tried = trace.Attempt(task)
+        tickets = []
         if handed:
-            tried.facts = [f.id for f, _ in notes.fit(handed)[0]]
+            fitted = [f for f, _ in notes.fit(handed)[0]]
+            tried.facts = [f.id for f in fitted]
+            tickets = [f.id for f in fitted if f.kind == facts.NICE]
         if docs_named:
             tried.docs = docs_named
         self.attempts.append(tried)
@@ -1191,9 +1194,9 @@ class Run(object):
                               self.workdir, start),
                          self.workdir, start)
         self.keep(role, block)
-        fold = kept.fold_of(text) if tried.facts else None
+        fold = kept.fold_of(text) if step == PLANNER and tickets else None
         if fold is not None:
-            tried.folded = [i for i in fold[0] if i in tried.facts]
+            tried.folded = [i for i in fold[0] if i in tickets]
             tried.fold_why = fold[1]
         named = kept.coverage_of(text) if self.writes_for(step) != "tests" \
             else []

@@ -269,9 +269,9 @@ and `continued`
 - `docs_handed` is only on the line of a step whose brief handed it some of
   the project's docs: the `read_first` files of its role, then the docs that
   name a file it was handed, by path, in the order shown.
-- `folded` is only on the line of a step handed nice-to-do tickets whose
-  answer had a `fold:` line: the ids of those tickets it took into the run's
-  plan, `[]` for `fold: none`, with `fold_why` the why it gave
+- `folded` is only on `planner.md`'s line, handed nice-to-do tickets, when
+  its answer had a `fold:` line: the ids of those tickets it took into the
+  run's plan, `[]` for `fold: none`, with `fold_why` the why it gave
   (`docs/flows.md`, "the brief the run keeps").
 - `coverage` is only on the line of a step that writes no tests whose answer
   named test coverage missing, one `coverage: <file> - <what>` line each:

@@ -71,6 +71,37 @@ def test_the_plans_fold_line_is_kept_and_the_steps_after_are_told(
     assert "F-0001 (folded into this run's plan)" in later
 
 
+def test_only_the_planners_fold_line_folds(tmp_path, monkeypatch, fake_cli):
+    a_place(tmp_path)
+    done = "done" + NL + NL + "fold: F-0001" + NL
+    fake = a_run(tmp_path, monkeypatch, fake_cli,
+                 ["planner", "worker", "reviewer"], answer("a plan" + NL),
+                 answer(done), answer("VERDICT: ok" + NL),
+                 task="make pkg/a.py stricter")
+    assert engine.main() == 0
+    assert [l.get("folded") for l in steps_of(the_folder())] == [None] * 3
+    assert all(brief.FOLDED not in p for p in asked(fake))
+
+
+def test_a_fold_keeps_only_the_tickets_it_was_handed(tmp_path, monkeypatch,
+                                                     fake_cli):
+    a_place(tmp_path)
+    put(tmp_path, "facts/pkg/a.py.md", ticket() + NL + NL.join([
+        "## F-0002 live", "scope: pkg/a.py", "kind: why",
+        "claim: parse raises on an empty line",
+        "why: the caller counts on it",
+        'source: run r-1 step worker.md seq 2; evidence: pkg/a.py:5'
+        ' "raise ValueError"']) + NL)
+    plan = "- behaviour: an empty line raises" + NL + NL + "fold: F-0001, F-0002"
+    a_run(tmp_path, monkeypatch, fake_cli, ["planner", "worker"],
+          answer(plan + NL), answer("done" + NL),
+          task="make pkg/a.py stricter")
+    assert engine.main() == 0
+    planner = steps_of(the_folder())[0]
+    assert sorted(planner["facts_attached"]) == ["F-0001", "F-0002"]
+    assert planner["folded"] == ["F-0001"]
+
+
 def test_a_fold_of_none_says_why_and_folds_nothing(tmp_path, monkeypatch,
                                                    fake_cli):
     a_place(tmp_path)

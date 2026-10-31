@@ -141,12 +141,12 @@ fact labelled `investigation`, an open question no ruling settled, or
 and never as a rule, known trouble (a defect left as it was, a gate that
 could not do its job), and the runway: nice-to-do tickets, a few lines of
 one file each (`guardrails.md`, "a nice-to-do"), each in that order. the
-planner names the tickets the run takes in on one line, `fold: F-0003,
-F-0007`, or `fold: none - <why>`; the line goes on its line in `steps.jsonl`
-as `folded` (only ids it was handed) and `fold_why`, and every step after it
-is handed those tickets marked `(folded into this run's plan)`: the step
-that changes the file does each with its change and names its id on a DID
-line, and the run's reviewers hold a folded one like any planned behaviour.
+planner, `planner.md`, names the tickets the run takes in on one line (no
+other step's is read), `fold: F-0003` or `fold: none - <why>`; the line goes
+in `steps.jsonl` as `folded` (only tickets it was handed) and `fold_why`, and
+every step after it is handed those marked `(folded into this run's plan)`:
+the step that changes the file does each with its change and names its id
+on a DID line; the run's reviewers hold one like any planned behaviour.
 a step that writes no tests may also name test coverage it sees missing, one
 line each, `coverage: <file> - <what no test checks>` (the build-feature
 planner is told it may): the line goes on its line in `steps.jsonl` as
