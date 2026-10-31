@@ -368,6 +368,30 @@ lets its own change stand ("the rulings only the runner writes" in
 `guardrails.md`); every other path goes through. a step granted neither
 `shell` nor `write` nor `edit` gets no hook.
 
+a `claude` step in a place with facts (`journal.md`, "what is known about a
+file") is also handed a PostToolUse hook on Read, Edit and Grep, beside the
+other hooks in the same `--settings`:
+
+    {"hooks": {"PostToolUse": [{"matcher": "Read|Edit|Grep",
+      "hooks": [{"type": "command", "command": "<python>",
+                 "args": ["-I", "<agentweft>/guardrails/factsread.py",
+                          "<place>", "runs/<run-id>/facts-index.json",
+                          "runs/<run-id>/facts-read.jsonl",
+                          "--handed", "F-0001,F-0002"]}]}]}}
+
+the runner writes the place's live and stale facts to `facts-index.json` when
+the run's folder is made. after a call on one file of the place, the hook
+prints the facts that hold for it as the call's `additionalContext`, which
+the cli hands the model with the result: nearest first, at most 1500
+characters, once a file a session, never one the step's brief handed
+(`--handed`) or one handed on an earlier file, never a project-wide one, each
+without its anchored lines (the step has the file open). each lookup is a
+line in `facts-read.jsonl` (session, file, ids), and the ids handed join the
+brief's on the step's `facts_attached`. a call the hook cannot read hands
+nothing and stops nothing. a `--restricted` call loads `--settings` too
+(`claude --help`), so a step that only looks gets the hook as well; a call
+that keeps a cache warm, and the retro, get none.
+
 the step is told both halves in its prompt: that a shell write is refused, and
 for a step granted `write` or `edit`, one known trap of those tools: they
 store the characters they are given, so a U+2028 or U+2029 meant as an escape

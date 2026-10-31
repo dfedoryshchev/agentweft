@@ -94,6 +94,24 @@ def shell_hook(denials, kept=(), tools=None):
                                        "args": args}]}]}
 
 
+def facts_hook(read, handed):
+    """-> the `hooks` setting that hands the step a file's facts the first
+    time a Read, Edit or Grep call opens it (`guardrails/factsread.py`):
+    `read` is where the run's facts index and its log are, `handed` the ids
+    the step's brief handed already."""
+    from agentweft.guardrails import factsread
+
+    args = ["-I", Path(factsread.__file__).as_posix(), str(read["place"]),
+            str(read["index"]), str(read["log"])]
+    if handed:
+        args = args + [factsread.HANDED, ",".join(handed)]
+    return {"PostToolUse": [{"matcher": "|".join(factsread.TOOLS),
+                             "hooks": [{"type": "command",
+                                        "command": Path(sys.executable)
+                                        .as_posix(),
+                                        "args": args}]}]}
+
+
 def version_of(text):
     """-> (major, minor, patch) from what `claude --version` prints, or None."""
     m = re.search(r"(\d+)\.(\d+)\.(\d+)", text or "")
@@ -840,6 +858,10 @@ class CliProvider(Provider):
         elif hooked:
             kept = self.kept_files() if "Write" in hooked else []
             settings["hooks"] = shell_hook(self.denials, kept, hooked)
+        if tools_used and self.facts_read and self.facts_handed is not None:
+            settings["hooks"] = dict(settings.get("hooks") or {},
+                                     **facts_hook(self.facts_read,
+                                                  self.facts_handed))
         if settings:
             argv = argv + ["--settings",
                            json.dumps(settings, separators=(",", ":"))]

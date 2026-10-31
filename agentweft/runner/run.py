@@ -1,4 +1,5 @@
 """everything a step needs for one run, and the step itself."""
+import json
 import threading
 import time
 from pathlib import Path
@@ -16,7 +17,7 @@ from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   testedits, worktree)
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
-from agentweft.guardrails import factsguard
+from agentweft.guardrails import factsguard, factsread
 from agentweft.orchestrate import decisions, project, synthesise
 from agentweft.guardrails.budget import Budget
 from agentweft.guardrails import police, sacrifice
@@ -353,9 +354,59 @@ class Run(object):
             self.order.proof = None
 
     def keep_in(self, folder):
-        """every provider of this run notes a refused shell write in folder."""
+        """every provider of this run notes a refused shell write in folder,
+        and hands a file's facts on a read from the index written there."""
+        index = self.facts_index(folder)
+        read = {"place": Path(self.workdir).resolve().as_posix(),
+                "index": index.as_posix(),
+                "log": (Path(folder) / factsread.FILE).as_posix()} \
+            if index is not None else None
         for p in list(self.by_step.values()) + [self.provider]:
             p.denials = folder / shellwrite.FILE
+            p.facts_read = read
+
+    def read_facts(self, tried, used):
+        """the facts the on-read hook handed in `tried`'s sessions join the
+        ones its brief handed, on its line's `facts_attached`."""
+        read = getattr(used, "facts_read", None)
+        if not read:
+            return
+        found = factsread.attached(Path(read["log"]).parent,
+                                   trace.sessions([tried]))
+        if found:
+            tried.facts = list(tried.facts or []) + [
+                i for i in found if i not in (tried.facts or [])]
+
+    def facts_index(self, folder):
+        """-> the index of the place's live and stale facts the on-read hook
+        looks a file up in, written in `folder`; None when the lane is off,
+        the place has none, or the store cannot be read. a fact is written as
+        the brief hands it, without its anchored lines: the step that opened
+        the file has them in front of it."""
+        from agentweft.orchestrate import facts
+
+        store = getattr(self, "facts", None)
+        if store is None or store.off:
+            return None
+        try:
+            found = [f for f in store.read() or []
+                     if f.status in (facts.LIVE, facts.STALE)]
+        except (OSError, ValueError) as e:
+            print("facts: no index for a read: " + type(e).__name__ + ": "
+                  + str(e))
+            return None
+        if not found:
+            return None
+        plain = kept.Brief(None)
+        entries = [{"id": f.id, "scopes": list(f.scopes),
+                    "live": f.status == facts.LIVE,
+                    "important": f.label == "important",
+                    "project_wide": facts.project_wide(f),
+                    "text": plain.fact_chunk(f)} for f in found]
+        path = Path(folder) / factsread.INDEX
+        path.write_text(json.dumps({"facts": entries}, indent=1) + "\n",
+                        encoding="utf-8")
+        return path
 
     def rulings(self):
         """-> the decisions on record in the place, as lines."""
@@ -1087,6 +1138,7 @@ class Run(object):
         if carry:
             with self.lock:
                 self.busy.add(step)
+        used.facts_handed = list(tried.facts or [])
         try:
             answer = tried.answered(self.ask(sent, step, used))
         except (Outage, Fatal) as e:
@@ -1099,12 +1151,14 @@ class Run(object):
             tried.replies[:0] = warm.taken(self, step)
             raise
         finally:
+            used.facts_handed = None
             if carry:
                 with self.lock:
                     self.busy.discard(step)
             self.held_rulings(step)
         if carry:
             self.keep_session(step, used, held, answer, carry)
+        self.read_facts(tried, used)
         text, cached = answer
         self.produced[step] = text
         if getattr(self, "policing", police.OFF) != police.OFF and not cached:

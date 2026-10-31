@@ -263,7 +263,9 @@ and `continued`
   planner 473 at medium, not said on 1 pass`.
 - `facts_attached` is only on the line of a step whose brief handed it some
   of the project's facts ("what is known about a file", below): their ids,
-  the ones shown in full, in the order shown.
+  the ones shown in full, in the order shown, then the ones the on-read hook
+  handed when the step opened a file (`providers.md`), from
+  `runs/<run-id>/facts-read.jsonl` by the step's sessions.
 - `docs_handed` is only on the line of a step whose brief handed it some of
   the project's docs: the `read_first` files of its role, then the docs that
   name a file it was handed, by path, in the order shown.

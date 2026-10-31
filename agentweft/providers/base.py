@@ -254,6 +254,12 @@ class Provider(object):
     command = None
     grant = None
     denials = None
+    # where the run's facts index and its on-read log are, {"place",
+    # "index", "log"}, None when the place has no facts to hand on a read
+    facts_read = None
+    # the ids of the facts the go about to be made was handed in its brief,
+    # None for a call that is no go of a step
+    facts_handed = None
     # the level the runner settled on for the call about to be made
     going = None
     # whether the step about to ask said `verbosity: terse`
