@@ -152,7 +152,8 @@ doc nearest the file comes first: beside it, then each folder up, then the
 rest, instruction files first within one of those. at most 3 docs and 1500
 characters of them; the rest are named on one line of at most 300
 characters, the ones past it counted. a quoted line that names a path on the
-machine is not quoted. with `lane: off` no doc is searched; `read_first`
+machine is not quoted. `decisions.md` is not one of those docs: its rulings
+reach the step under their own header. with `lane: off` no doc is searched; `read_first`
 still reaches the step. the docs handed go on the step's line as
 `docs_handed`.
 

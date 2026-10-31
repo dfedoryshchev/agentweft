@@ -11,15 +11,15 @@ and `CHARS_HANDED` characters, the nearest doc first.
 a doc is markdown, text, reStructuredText or asciidoc, or a README, in the
 place: not a dependency or build manifest (requirements.txt and the rest,
 `preflight.manifest`), not a file inside a python package but its README (it
-ships with the code), not a spec, not a test, and not under facts/ or the
-runner's own folder. `CLAUDE.md`, `AGENTS.md`, `.claude/` and `rules/` are
-named first.
+ships with the code), not a spec, not a test, not decisions.md (its rulings
+reach a step as rulings already), and not under facts/ or the runner's own
+folder. `CLAUDE.md`, `AGENTS.md`, `.claude/` and `rules/` are named first.
 """
 import re
 from pathlib import Path, PurePosixPath
 
 from agentweft.guardrails import briefing, factsguard
-from agentweft.guardrails.snapshot import is_spec, is_test
+from agentweft.guardrails.snapshot import is_runners, is_spec, is_test
 from agentweft.mcp import preflight
 from agentweft.orchestrate import facts
 
@@ -120,7 +120,7 @@ def docs_in(root, own=None):
     for path in facts.walk(root, root, own):
         rel = facts.rel_of(root, path)
         if is_doc(rel) and not is_spec(rel) and not is_test(rel) \
-                and not packaged(root, rel) \
+                and not is_runners(rel) and not packaged(root, rel) \
                 and not place_refusal(root, rel, own):
             found.append(rel)
     return sorted(found, key=lambda r: (not is_instruction(r), r))

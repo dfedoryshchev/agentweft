@@ -160,6 +160,21 @@ def test_a_longer_name_or_a_path_that_is_no_file_of_the_place_names_nothing(
     assert "docs_handed" not in steps_of(the_folder())[0]
 
 
+def test_the_ruling_record_is_not_handed_again_as_one_of_the_docs(
+        tmp_path, monkeypatch, fake_cli):
+    put(tmp_path, "pkg/parse.py", CODE)
+    put(tmp_path, "decisions.md", "# decisions" + NL + NL + "- 2026-10-30"
+        " 10:00:00 worker.md: pkg/parse.py raises - the spec says so" + NL)
+    assert retroedits.named(tmp_path, ["pkg/parse.py"], docs=3, chars=1500,
+                            near=True) == []
+    assert retroedits.named(tmp_path, ["pkg/parse.py"]) == []
+    fake = a_run(tmp_path, monkeypatch, fake_cli, ["planner"],
+                 answer("done" + NL), task="make pkg/parse.py stricter")
+    assert engine.main() == 0
+    assert HEAD not in asked(fake)[0]
+    assert "docs_handed" not in steps_of(the_folder())[0]
+
+
 def test_a_place_with_no_doc_naming_a_handed_file_gets_no_docs_section(
         tmp_path, monkeypatch, fake_cli):
     put(tmp_path, "pkg/parse.py", CODE)
