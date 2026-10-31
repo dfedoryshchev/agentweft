@@ -36,7 +36,9 @@ person.
 
 the retro is handed the docs that name a file the run changed or a name its
 diff added or removed (`named`), at most `DOCS` of them and `CHARS`
-characters, so that each is confirmed current or edited.
+characters, so that each is confirmed current or edited. a step is handed the
+same lines for the files it is handed, at most `DOCS_HANDED` docs and
+`CHARS_HANDED` characters, the nearest doc first.
 """
 import re
 from pathlib import Path, PurePosixPath
@@ -57,6 +59,10 @@ NAMED = re.compile(r"\b(?:def|class|function|interface|type)\s+([A-Za-z_]\w*)"
 # the docs and characters of them the retro is handed
 DOCS = 6
 CHARS = 4000
+# the docs and characters of them a step is handed for its files
+DOCS_HANDED = 3
+CHARS_HANDED = 1500
+ON_MACHINE = "(a line that names a path on the machine, not quoted)"
 LINE = 200
 # a file larger than this is not read for a name
 BIG = 512 * 1024
@@ -426,10 +432,34 @@ def docs_in(root, own=None):
     return sorted(found, key=lambda r: (not is_instruction(r), r))
 
 
-def named(root, changed, names=(), own=None, docs=DOCS, chars=CHARS):
+def nearness(rel, files):
+    """-> how near the doc `rel` sits to the nearest of `files`: the depth of
+    its folder when that folder holds one of them, at any depth below, -1
+    when it holds none."""
+    folder = PurePosixPath(rel).parent.parts
+    best = -1
+    for f in files or ():
+        if PurePosixPath(f).parent.parts[:len(folder)] == folder:
+            best = max(best, len(folder))
+    return best
+
+
+def handed_docs(lines):
+    """-> the docs `named` lines quote, in their order."""
+    return [l[2:].split(" ", 1)[0] for l in lines
+            if l.startswith("- ") and not l.startswith("- left out at the cap")]
+
+
+def named(root, changed, names=(), own=None, docs=DOCS, chars=CHARS,
+          near=False):
     """-> a line per doc of the place that names a file in `changed` or one
     of `names`, with the lines that name them, at most `docs` docs and
-    `chars` characters; the docs left out at the cap are named."""
+    `chars` characters; the docs left out at the cap are named. with `near`,
+    what a step is handed: the doc nearest a file of `changed` first, beside
+    it, then each folder up, then the rest, a doc that is one of `changed`
+    left out (the step is handed it already), a file named only inside a
+    longer name (`plan.md` in `budget-plan.md`) not taken for it, and a line
+    that names a path on the machine is not quoted."""
     root = Path(root)
     terms = []
     for rel in changed or []:
@@ -439,11 +469,18 @@ def named(root, changed, names=(), own=None, docs=DOCS, chars=CHARS):
     words = [n for n in names or () if n not in terms]
     if not terms and not words:
         return []
+    edge = (r"(?<![\w-])", r"(?![\w-])") if near else ("", "")
     pattern = re.compile("|".join(
-        [re.escape(t) for t in terms]
+        [edge[0] + re.escape(t) + edge[1] for t in terms]
         + [r"(?<![\w-])" + re.escape(w) + r"(?![\w-])" for w in words]))
+    found = docs_in(root, own)
+    if near:
+        found.sort(key=lambda r: (-nearness(r, changed), not is_instruction(r),
+                                  r))
     out, left, used, kept = [], [], 0, 0
-    for rel in docs_in(root, own):
+    for rel in found:
+        if near and rel in changed:
+            continue
         try:
             lines = facts.text_lines(root / rel)
         except OSError:
@@ -455,8 +492,9 @@ def named(root, changed, names=(), own=None, docs=DOCS, chars=CHARS):
                           for m in pattern.finditer(l)))
         block = ["- " + rel + (" (instruction file)" if is_instruction(rel)
                                else "") + " names " + ", ".join(said) + ":"]
-        block.extend("  " + rel + ":" + str(n) + ": " + l.strip()[:LINE]
-                     for n, l in hits)
+        block.extend("  " + rel + ":" + str(n) + ": " + (
+            ON_MACHINE if near and factsguard.machine_path(l)
+            else l.strip()[:LINE]) for n, l in hits)
         size = sum(len(b) + 1 for b in block)
         if kept >= docs or used + size > chars:
             left.append(rel)

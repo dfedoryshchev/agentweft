@@ -82,7 +82,7 @@
       "step": "worker.md",
       "task": 2,
       "go": 1,
-      "prompt": "96d2ecc7bd6b8c15cf1b96bead927fb66e670699335f8f3a4853e1e6af2f2a66",
+      "prompt": "5f9f6605694c1f84382de006d101f02966f203c539cc1d55b9b27c9ccb6f3118",
       "say": "VERDICT: ok\n\n## needs me\n- budget.md | needs-me | sign the renewal by friday\n\n## can wait\n- notes.md | can-wait | nothing much happened\n- empty.md | can-wait | the file is empty\n",
       "detail": "",
       "retryable": null,

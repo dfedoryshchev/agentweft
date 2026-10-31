@@ -17,7 +17,9 @@ the run keeps the whole of it as `brief.md` in its folder.
 a step is also handed the project's facts (`orchestrate/facts.py`) for the
 files it is handed, first in its brief and under a cap of their own: each
 with its why, its source and its anchored lines as the place has them now,
-the live ones first and the stale ones marked.
+the live ones first and the stale ones marked. after them come the
+project's docs that name those files and the files project.yml says the
+step's role reads first, under a cap of their own (`retroedits.named`).
 """
 import re
 import subprocess
@@ -47,6 +49,8 @@ TROUBLE_HEAD = ("known trouble on these files, kept by the runner across runs:"
                 " defects found beside a change and left as they were, and"
                 " gates that could not do their job here. not a rule to hold"
                 " to.")
+DOCS_HEAD = ("the project's docs for the files you are handed, quoted from the"
+             " place as it is now:")
 NONE_YET = "(the brief is empty: no step before you handed one over in this run)"
 
 CREDENTIAL = re.compile(r"^(\.env(\..*)?|\.netrc|\.pypirc|id_[^.]+"
@@ -212,11 +216,13 @@ class Brief(object):
             out.extend(p for p in found.get("paths", []) if p not in out)
         return out
 
-    def key(self, before=None, handed=()):
+    def key(self, before=None, handed=(), docs=()):
         """-> what the brief for `before` holds, without the lines it quotes
-        from the place: the facts handed are keyed by id and status."""
+        from the place: the facts handed are keyed by id and status, the
+        docs by path."""
         said = [(f.id, f.status) for f in handed]
-        return repr(self.entries(before)) + (repr(said) if said else "")
+        return repr(self.entries(before)) + (repr(said) if said else "") \
+            + (repr(list(docs)) if docs else "")
 
     def quote(self, path, first, last):
         """-> the lines as the place has them now, numbered, or [] for a
@@ -331,12 +337,15 @@ class Brief(object):
             out.extend(self.quote(at.path, at.first, at.last))
         return "\n".join(out)
 
-    def text(self, before=None, handed=()):
+    def text(self, before=None, handed=(), docs=()):
         """-> the brief for the step `before`, or the whole of it, under
         CAP characters; "" when there is nothing in it. `handed` is the
-        project's facts for the files the step is handed, nearest first."""
+        project's facts for the files the step is handed, nearest first, and
+        `docs` the lines on the project's docs for them, already capped."""
         rules, facts, read = self.entries(before)
         kept = self.kept_facts(handed)
+        if docs:
+            kept = kept + ([""] if kept else []) + [DOCS_HEAD] + list(docs)
         if not (rules or facts or read):
             return "\n".join(kept)[:CAP]
         out = ["what the steps before you found. the lines are quoted from"

@@ -828,6 +828,75 @@ class Run(object):
                   + ": " + str(e))
             return []
 
+    def read_first(self, step):
+        """-> (the line on the files project.yml says `step`'s role reads
+        first, "" for none, the ones in the place). an entry outside the
+        place, a path on the machine above all, is counted and never
+        named."""
+        from agentweft.guardrails import factsguard
+
+        held = getattr(self, "project", None)
+        if held is None or held.text is None:
+            return "", []
+        role = self.role_for(step)
+        try:
+            said = held.read().read_first(role)
+        except ValueError:
+            return "", []
+        if not said:
+            return "", []
+        root = Path(self.workdir).resolve()
+        there, missing, outside = [], [], 0
+        for entry in said:
+            rel = entry.replace("\\", "/")
+            try:
+                inside = not factsguard.machine_path(entry) \
+                    and not Path(rel).is_absolute() and not rel.startswith("/")
+                target = (root / rel).resolve()
+                target.relative_to(root)
+            except (ValueError, OSError):
+                inside = False
+            if not inside:
+                outside = outside + 1
+            elif target.is_file():
+                there.append(rel)
+            else:
+                missing.append(rel)
+        named = there + [m + " (not in the place)" for m in missing]
+        line = ("read these first, as the project names them for the " + role
+                + ": " + (", ".join(named) if named else "none"))
+        if outside:
+            line = line + "; " + str(outside) + (" entry" if outside == 1
+                                                  else " entries") \
+                + " outside the place left out"
+        return line, there
+
+    def docs_handed(self, step, task=None, extra=""):
+        """-> (the lines on the project's docs for `step`, the docs they
+        name): the files its role reads first, then the docs that name a
+        file of the place it is handed, the nearest first, under their own
+        cap; a handed path that is no file of the place names nothing. with
+        the lane off no doc is searched."""
+        from agentweft.guardrails import retroedits
+
+        line, first = self.read_first(step)
+        lines = [line] if line else []
+        store = getattr(self, "facts", None)
+        if store is not None and not store.off:
+            try:
+                files = [f for f in self.files_handed(step, task, extra)
+                         if (Path(store.root) / f).is_file()]
+                lines.extend(retroedits.named(
+                    store.root, files,
+                    own=store.own, docs=retroedits.DOCS_HANDED,
+                    chars=retroedits.CHARS_HANDED, near=True))
+            except OSError as e:
+                print("docs: not handed to " + step + ": " + str(e))
+        names = list(first)
+        names.extend(d for d in retroedits.handed_docs(lines)
+                     if d not in names)
+        return lines, names
+
     def lens_for(self, step):
         """-> what this reviewer reads for and what the others in the run
         read for, or "" when it is not one of two or more with a lens."""
@@ -937,11 +1006,14 @@ class Run(object):
         notes = getattr(self, "brief", None)
         briefed = ""
         handed = []
+        docs, docs_named = [], []
         if not self.briefs(step):
             prompt = prompts.drop_brief(prompt, resolver.fragment("brief"))
         else:
             handed = self.facts_handed(step, task, extra) if notes else []
-            briefed = notes.text(step, handed) if notes else ""
+            if notes:
+                docs, docs_named = self.docs_handed(step, task, extra)
+            briefed = notes.text(step, handed, docs) if notes else ""
             values.update(prompts.brief_of(briefed))
         if self.task_text is not None:
             values[prompts.MARK] = self.task_text
@@ -963,8 +1035,8 @@ class Run(object):
         head = prompt
         # the brief quotes files as they are now, so a step's own edit between
         # its goes would move a head that holds nothing new for it
-        held = head.replace(briefed, notes.key(step, handed), 1) if briefed \
-            else head
+        held = head.replace(briefed, notes.key(step, handed, docs_named),
+                            1) if briefed else head
         if extra:
             prompt = prompt + extra
         ran = [line for k, lines in getattr(self, "proven", {}).items()
@@ -989,6 +1061,8 @@ class Run(object):
         tried = trace.Attempt(task)
         if handed:
             tried.facts = [f.id for f, _ in notes.fit(handed)[0]]
+        if docs_named:
+            tried.docs = docs_named
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
         used.at(step, task)

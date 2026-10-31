@@ -143,6 +143,18 @@ could not do its job), each in that order. they are capped at 2000 characters in
 not fit are named by id and the file they are in, for the step to open. a
 place with no facts gets the brief it got before.
 
+after the facts come the project's own docs for those files: first the files
+`project.yml` lists under `read_first` for the step's role, by path (one not
+in the place marked so; one outside it, or a path on the machine, counted and
+never named), then each doc of the place that names a file the step is
+handed, with the lines that name it quoted from the place as it is now. the
+doc nearest the file comes first: beside it, then each folder up, then the
+rest, instruction files first within one of those. at most 3 docs and 1500
+characters of them; the rest are named. a quoted line that names a path on
+the machine is not quoted. with `lane: off` no doc is searched; `read_first`
+still reaches the step. the docs handed go on the step's line as
+`docs_handed`.
+
 `brief: false` on the flow, or on one step, sends no brief and no facts: the
 step starts from the handoff of the step before it, and opens the files
 itself. a step's

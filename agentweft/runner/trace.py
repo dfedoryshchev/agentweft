@@ -50,13 +50,15 @@ class Attempt(object):
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
                  "retries", "effort", "verbosity", "continued", "lapsed",
-                 "facts")
+                 "facts", "docs")
 
     def __init__(self, task=None):
         self.task = task
         self.effort = None
         # the ids of the project's facts this go was handed in its brief
         self.facts = None
+        # the project's docs this go was handed in its brief, by path
+        self.docs = None
         self.verbosity = None
         # the session this go carried on, None for one started fresh
         self.continued = None
@@ -709,6 +711,11 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
                       if i not in handed)
     if handed:
         out["facts_attached"] = handed
+    docs = []
+    for a in attempts:
+        docs.extend(d for d in getattr(a, "docs", None) or [] if d not in docs)
+    if docs:
+        out["docs_handed"] = docs
     if entry.case:
         out["case"] = entry.case
     fell = fallback(attempts)

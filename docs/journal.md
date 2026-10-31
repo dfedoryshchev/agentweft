@@ -264,6 +264,9 @@ and `continued`
 - `facts_attached` is only on the line of a step whose brief handed it some
   of the project's facts ("what is known about a file", below): their ids,
   the ones shown in full, in the order shown.
+- `docs_handed` is only on the line of a step whose brief handed it some of
+  the project's docs: the `read_first` files of its role, then the docs that
+  name a file it was handed, by path, in the order shown.
 - `conformance` is only on the line of a step that changed a file in the
   scope of a fact with a `check:`: per fact, its id, scope, claim and check,
   the `result` (`held`, `broken` or `could not run`) and what it `said`
