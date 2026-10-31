@@ -147,18 +147,23 @@ def ticket_question(fact):
             + "\nOPTIONS:\n- " + NOW + ": the change is needed before this"
             " work is taken as done; the ticket goes first to the planner of"
             " the next run on its file\n- " + LATER + ": the work stands as it"
-            " is; the ticket stays a nice-to-do for a later run\n")
+            " is; the ticket stays a nice-to-do for a later run\n"
+            "start DECIDED: with the exact words of one option, `" + NOW
+            + "` or `" + LATER + "`; a decision that opens any other way"
+            " decides nothing, and the ticket stays the operator's\n")
 
 
 def ticket_pick(head):
-    """-> how the lead `head`'s DECIDED is read for a critical ticket: one
-    of the two options, by its words, or why it is neither."""
+    """-> how the lead `head`'s DECIDED is read for a critical ticket: the
+    option its line opens on, word for word, or why it is neither. a line
+    that opens any other way, or names the other option after, is neither."""
     def pick(decided):
-        said = " ".join(decided.lower().split())
-        hits = [o for o in (NOW, LATER) if o in said
-                or o.split()[0] in said.split()]
-        if len(hits) == 1:
-            return hits[0], ""
+        said = " ".join(decided.lower().split()).lstrip("`'\"*- ")
+        for option, other in ((NOW, LATER), (LATER, NOW)):
+            rest = said[len(option):]
+            if (said.startswith(option) and not rest[:1].isalnum()
+                    and rest[:1] != "-" and other not in rest):
+                return option, ""
         return None, (head + " decided " + decided + ", neither " + NOW
                       + " nor " + LATER)
     return pick

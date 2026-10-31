@@ -462,12 +462,14 @@ renders `facts/INDEX.md`, a line per live fact and the stale ones apart.
 a nice-to-do labelled `critical` (one without which the run's work should
 not be taken as done) goes to the flow's lead (section 8) once the block is
 acted on, as a question with two options, `re-iterate now` and `accept as
-later`. the lead's `DECIDED:` with a `why:` is recorded in `decisions.md` as
-its decision, and the ticket becomes `important`, first for the planner of
-the next run on its file, or loses its label. the handoff lists each under
-"critical tickets, for the lead" with what was decided. a flow with no lead,
-a lead that escalates, gives no why or picks neither option, leaves the
-ticket `critical` and the decision yours. the runner changes nothing in the
+later`. the lead's `DECIDED:` opens on one option's exact words; with a
+`why:` it is recorded in `decisions.md` as its decision, and the ticket
+becomes `important`, first for the planner of the next run on its file, or
+loses its label. the handoff lists each under "critical tickets, for the
+lead" with what was decided. a flow with no lead, a lead that escalates,
+gives no why, or whose `DECIDED:` opens any other way ("no need to re-iterate
+now") or names both options, leaves the ticket `critical` and the decision
+yours. the runner changes nothing in the
 tree for it either way; the lead's go is its own line after the retro's.
 
 none of it is staged. under `commits: none` the handoff ends on "the

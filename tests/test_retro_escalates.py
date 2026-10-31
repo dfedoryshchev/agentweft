@@ -4,10 +4,12 @@ as the lead's, the handoff says it, and nothing in the tree changes for it;
 a flow with no lead, or a lead that does not decide, leaves it yours."""
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.guardrails import factsguard
 from agentweft.orchestrate import decisions, facts
-from agentweft.runner import engine
+from agentweft.runner import engine, lead
 from test_retro_maintains import CODE, block, put
 from test_stops import CLAUDE, a_flow, answer, steps_of, the_folder
 
@@ -103,6 +105,55 @@ def test_a_lead_that_picks_neither_option_does_not_decide_it(
         tmp_path, monkeypatch, fake_cli):
     a_led_run(tmp_path, monkeypatch, fake_cli, block(CRITICAL),
               "DECIDED: rewrite parse" + NL + "why: it is ugly")
+    assert engine.main() == 0
+    assert decisions.read(tmp_path) == []
+    assert ticket(tmp_path).label == "critical"
+    assert "neither re-iterate now nor accept as later" in handoff()
+
+
+@pytest.mark.parametrize("decided", [
+    "there is no need to re-iterate now, the work stands",
+    "I do not accept this as it is",
+    "not re-iterate now",
+    "accept as later? no, re-iterate now",
+    "re-iterate nowhere near this file",
+    "reiterate now",
+])
+def test_a_decision_that_does_not_open_on_one_option_decides_nothing(decided):
+    picked, why = lead.ticket_pick("planner.md")(decided)
+    assert picked is None, picked
+    assert "neither re-iterate now nor accept as later" in why
+
+
+@pytest.mark.parametrize("decided, want", [
+    ("re-iterate now", lead.NOW),
+    ("re-iterate now - the empty line must name itself", lead.NOW),
+    ("`accept as later`: cosmetic", lead.LATER),
+    ("Accept as later.", lead.LATER),
+])
+def test_a_decision_that_opens_on_one_option_is_that_option(decided, want):
+    assert lead.ticket_pick("planner.md")(decided) == (want, "")
+
+
+def test_the_lead_is_asked_for_an_options_exact_words_first(tmp_path):
+    put(tmp_path, "pkg/a.py", CODE)
+    fields = {"scope": "pkg/a.py", "kind": "nice-to-do", "label": "critical",
+              "claim": "name the line in the raise",
+              "why": "the caller prints it",
+              "source": 'seq 1 worker.md; evidence: pkg/a.py:5 "raise'
+                        ' ValueError"'}
+    fact, why = factsguard.Store(tmp_path).add(factsguard.Proposal(fields),
+                                               factsguard.Record(tmp_path))
+    asked = lead.ticket_question(fact)
+    assert ("start DECIDED: with the exact words of one option, `re-iterate"
+            " now` or `accept as later`") in asked
+
+
+def test_a_lead_that_refuses_an_option_does_not_decide_it(
+        tmp_path, monkeypatch, fake_cli):
+    a_led_run(tmp_path, monkeypatch, fake_cli, block(CRITICAL),
+              "DECIDED: there is no need to re-iterate now" + NL
+              + "why: the work stands")
     assert engine.main() == 0
     assert decisions.read(tmp_path) == []
     assert ticket(tmp_path).label == "critical"
