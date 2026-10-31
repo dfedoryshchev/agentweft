@@ -150,8 +150,9 @@ never named), then each doc of the place that names a file the step is
 handed, with the lines that name it quoted from the place as it is now. the
 doc nearest the file comes first: beside it, then each folder up, then the
 rest, instruction files first within one of those. at most 3 docs and 1500
-characters of them; the rest are named. a quoted line that names a path on
-the machine is not quoted. with `lane: off` no doc is searched; `read_first`
+characters of them; the rest are named on one line of at most 300
+characters, the ones past it counted. a quoted line that names a path on the
+machine is not quoted. with `lane: off` no doc is searched; `read_first`
 still reaches the step. the docs handed go on the step's line as
 `docs_handed`.
 

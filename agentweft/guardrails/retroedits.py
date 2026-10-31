@@ -62,6 +62,8 @@ CHARS = 4000
 # the docs and characters of them a step is handed for its files
 DOCS_HANDED = 3
 CHARS_HANDED = 1500
+# the line naming the docs left out at the cap
+LEFT_LINE = 300
 ON_MACHINE = "(a line that names a path on the machine, not quoted)"
 LINE = 200
 # a file larger than this is not read for a name
@@ -454,7 +456,8 @@ def named(root, changed, names=(), own=None, docs=DOCS, chars=CHARS,
           near=False):
     """-> a line per doc of the place that names a file in `changed` or one
     of `names`, with the lines that name them, at most `docs` docs and
-    `chars` characters; the docs left out at the cap are named. with `near`,
+    `chars` characters; the docs left out at the cap are named on one line
+    of at most `LEFT_LINE` characters, the rest counted. with `near`,
     what a step is handed: the doc nearest a file of `changed` first, beside
     it, then each folder up, then the rest, a doc that is one of `changed`
     left out (the step is handed it already), a file named only inside a
@@ -502,6 +505,25 @@ def named(root, changed, names=(), own=None, docs=DOCS, chars=CHARS,
         out.extend(block)
         used, kept = used + size, kept + 1
     if left:
-        out.append("- left out at the cap of " + str(docs) + " docs and "
-                   + str(chars) + " characters: " + ", ".join(left))
+        out.append(left_out(docs, chars, left))
     return out
+
+
+def left_out(docs, chars, left):
+    """-> the line naming the docs left out at the cap: as many as fit in
+    `LEFT_LINE` characters, the rest counted."""
+    head = ("- left out at the cap of " + str(docs) + " docs and "
+            + str(chars) + " characters: ")
+    shown = []
+    for rel in left:
+        rest = len(left) - len(shown) - 1
+        line = head + ", ".join(shown + [rel]) + (
+            " and " + str(rest) + " more" if rest else "")
+        if len(line) > LEFT_LINE:
+            break
+        shown.append(rel)
+    rest = len(left) - len(shown)
+    if not shown:
+        return head + str(rest) + " docs"
+    return head + ", ".join(shown) + (" and " + str(rest) + " more"
+                                      if rest else "")

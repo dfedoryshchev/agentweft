@@ -408,7 +408,8 @@ evidence the retro can cite (a file line, a test, a ruling); the rulings
 written in the run; the files git says
 it changed; the docs that name one of those files or a name the diff took
 out or put in (a flag, a function, a class), with the lines that name them,
-at most 6 docs and 4000 characters, the ones left out at the cap named; the
+at most 6 docs and 4000 characters, the ones left out at the cap named on
+one line of at most 300 characters, the ones past it counted; the
 project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many doc edits and guards, it may make; `why.md` when the run stopped

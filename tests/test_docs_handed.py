@@ -118,6 +118,23 @@ def test_past_the_docs_cap_the_rest_are_named(tmp_path, monkeypatch,
     assert len(line["docs_handed"]) == retroedits.DOCS_HANDED
 
 
+def test_the_docs_left_out_at_the_cap_are_named_in_a_bounded_line(
+        tmp_path, monkeypatch, fake_cli):
+    a_place(tmp_path)
+    for n in range(150):
+        put(tmp_path, "docs/guides/working-on-the-parser-%03d.md" % n,
+            "# guide" + NL + NL + "pkg/parse.py, note %d." % n + NL)
+    fake = a_run(tmp_path, monkeypatch, fake_cli, ["planner"],
+                 answer("done" + NL), task="make pkg/parse.py stricter")
+    assert engine.main() == 0
+    words = asked(fake)[0].split(HEAD)[1]
+    [left] = [l for l in words.split(NL) if l.startswith("- left out at")]
+    assert len(left) <= 300, len(left)
+    shown, more = left.split(": ", 1)[1].rsplit(" and ", 1)
+    assert more.endswith(" more"), left
+    assert len(shown.split(", ")) + int(more.split()[0]) == 152 - 3
+
+
 def test_with_the_lane_off_no_doc_is_searched_and_read_first_still_reaches(
         tmp_path, monkeypatch, fake_cli):
     a_place(tmp_path)
