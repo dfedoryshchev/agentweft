@@ -34,3 +34,9 @@ only a behaviour marked `contradicts` may end the plan: answer the
 anything the spec leaves open, say so on its own line rather than picking an
 answer. the step after you writes the tests from this list, so a behaviour
 missing here is a behaviour nobody tests.
+
+a path of a file you plan in that its tests already leave unchecked, seen in
+the code or the tests, may be named for that step on its own line,
+`coverage: <file> - <what no test checks>`. it steers that step and is kept
+for later runs; you write no test, and it never replaces the cases that step
+picks.

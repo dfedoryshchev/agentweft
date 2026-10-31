@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "25c1112fe8f776436022a574b8875d4ca89953a6452a70bd9a5d1639f9d45b9e",
+      "prompt": "9632f93b1f94552f6455113db43f2bf5747d419e78e667bf0b27a904fb115961",
       "say": "- behaviour: mul(2, 3) is 6\n  file: calc.py\n  spec: allows TASK.md:3\n",
       "detail": "",
       "retryable": null,

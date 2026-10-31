@@ -1074,6 +1074,9 @@ class Run(object):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
         if self.writes_for(step) == "spec":
             prompt = prompt + bounds.as_prompt(snapshot.spec_globs())
+        if self.writes_for(step) == "tests" and getattr(self, "coverage",
+                                                        None):
+            prompt = prompt + kept.steer(self.coverage)
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its
@@ -1192,6 +1195,13 @@ class Run(object):
         if fold is not None:
             tried.folded = [i for i in fold[0] if i in tried.facts]
             tried.fold_why = fold[1]
+        named = kept.coverage_of(text) if self.writes_for(step) != "tests" \
+            else []
+        if named:
+            tried.coverage = named
+            with self.lock:
+                self.coverage = [n for n in getattr(self, "coverage", [])
+                                 if n not in named] + named
         if notes is not None:
             notes.fold(getattr(tried, "folded", None) or ())
             notes.add(step, task, role, block)

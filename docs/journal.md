@@ -273,6 +273,9 @@ and `continued`
   answer had a `fold:` line: the ids of those tickets it took into the run's
   plan, `[]` for `fold: none`, with `fold_why` the why it gave
   (`docs/flows.md`, "the brief the run keeps").
+- `coverage` is only on the line of a step that writes no tests whose answer
+  named test coverage missing, one `coverage: <file> - <what>` line each:
+  `[{"file", "what"}]`, handed to the test-writing steps after it.
 - `conformance` is only on the line of a step that changed a file in the
   scope of a fact with a `check:`: per fact, its id, scope, claim and check,
   the `result` (`held`, `broken` or `could not run`) and what it `said`

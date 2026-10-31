@@ -63,6 +63,12 @@ DOCS_HEAD = ("the project's docs for the files you are handed, quoted from the"
 FOLDED = "(folded into this run's plan)"
 FOLD = re.compile(r"^\s*fold\s*:\s*(.*?)\s*$", re.I)
 TICKET_ID = re.compile(r"\bF-(\d+)\b", re.I)
+COVERAGE = re.compile(r"^\s*coverage\s*:\s*(\S+?)\s*(?:\s-\s|:\s)\s*(.+?)\s*$",
+                      re.I)
+STEER_HEAD = ("test coverage the planner names as missing, to steer your"
+              " cases. your own cases stand: write one for a line below only"
+              " where the spec asks for that behaviour, never in place of a"
+              " case you would write; the planner writes no test.")
 NONE_YET = "(the brief is empty: no step before you handed one over in this run)"
 
 CREDENTIAL = re.compile(r"^(\.env(\..*)?|\.netrc|\.pypirc|id_[^.]+"
@@ -121,6 +127,28 @@ def fold_of(text):
         return [], said[len(said.split()[0]) if said.split() else 0:].strip(
             " -:,.")
     return ["F-%04d" % int(n) for n in TICKET_ID.findall(said)], ""
+
+
+def coverage_of(text):
+    """-> [{"file", "what"}] for each visible `coverage: <file> - <what>`
+    line of `text`, each once, in order."""
+    from . import verbs
+
+    out = []
+    for _, line in verbs.visible(text or ""):
+        m = COVERAGE.match(line)
+        if m:
+            item = {"file": m.group(1).strip("`").replace("\\", "/"),
+                    "what": " ".join(m.group(2).split())}
+            if item not in out:
+                out.append(item)
+    return out
+
+
+def steer(named):
+    """-> the end of a test-writing step's prompt for the coverage named."""
+    return ("\n\n" + STEER_HEAD + "\n" + "\n".join(
+        "- " + n["file"] + ": " + n["what"] for n in named) + "\n")
 
 
 def named_in(items):

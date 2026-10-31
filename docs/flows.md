@@ -147,6 +147,13 @@ as `folded` (only ids it was handed) and `fold_why`, and every step after it
 is handed those tickets marked `(folded into this run's plan)`: the step
 that changes the file does each with its change and names its id on a DID
 line, and the run's reviewers hold a folded one like any planned behaviour.
+a step that writes no tests may also name test coverage it sees missing, one
+line each, `coverage: <file> - <what no test checks>` (the build-feature
+planner is told it may): the line goes on its line in `steps.jsonl` as
+`coverage`, every step whose grant is `writes: tests` after it is handed the
+list at the end of its prompt to steer its cases, its own cases standing,
+and the retro is handed it to keep a nice-to-do for what the run's tests
+left uncovered.
 they are capped at 2000 characters inside the brief's 8000; the ones that do
 not fit are named by id and the file they are in, for the step to open. a
 place with no facts gets the brief it got before.

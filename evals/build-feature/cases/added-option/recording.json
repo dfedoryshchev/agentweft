@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "eb48e11b9f8d3110c56e91cc1b8e01054cd3f6471b7cd654d0644d3a52a155d6",
+      "prompt": "c44de133af027f669a74d2cdfcc81cfc135be81c08b373cc6dfbd9ad003dd208",
       "say": "- behaviour: fields(\"a;b\", delimiter=\";\") is [\"a\", \"b\"]\n  file: roster.py\n  spec: adds to TASK.md:3\n- behaviour: fields(\"a,b\") with no delimiter is still [\"a\", \"b\"]\n  file: roster.py\n  spec: allows TASK.md:3\n",
       "detail": "",
       "retryable": null,

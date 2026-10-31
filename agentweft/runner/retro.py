@@ -391,6 +391,10 @@ def parts(looked, rulings, changed, stale, live, cap, docs=(),
               else "- not a git checkout, so what changed is not recorded"]),
             ("docs that name a file or a name this run changed, each to"
              " confirm current or keep a ticket on:", list(docs)),
+            ("test coverage a step named as missing, from steps.jsonl: each"
+             " the run's tests left uncovered is a nice-to-do on its test"
+             " file, or on the code it tests when there is none yet; one"
+             " they cover needs nothing:", coverage_named(looked)),
             ("facts marked stale, to re-anchor, retire or supersede:", stale),
             ("facts on record for the files this run changed:", live),
             ("fact checks a step's change broke or that could not run,"
@@ -453,6 +457,16 @@ def relative(run, changed):
         except ValueError:
             continue
     return out
+
+
+def coverage_named(lines):
+    """-> one line per test coverage a pass not yet looked at named as
+    missing, with its seq and step."""
+    return ["- seq " + str(line.get("seq")) + " " + str(line.get("step"))
+            + ": " + stops.flat(str(n.get("file"))) + " - "
+            + stops.flat(str(n.get("what")))
+            for line, _ in lines for n in line.get("coverage") or []
+            if isinstance(n, dict)]
 
 
 def unheld(lines):

@@ -50,7 +50,7 @@ class Attempt(object):
 
     __slots__ = ("task", "began", "started", "seconds", "cached", "replies",
                  "retries", "effort", "verbosity", "continued", "lapsed",
-                 "facts", "docs", "folded", "fold_why")
+                 "facts", "docs", "folded", "fold_why", "coverage")
 
     def __init__(self, task=None):
         self.task = task
@@ -62,6 +62,9 @@ class Attempt(object):
         # the tickets its `fold:` line took in, and the why of a `none`
         self.folded = None
         self.fold_why = ""
+        # the test coverage it named as missing, for the step that writes
+        # the tests
+        self.coverage = None
         self.verbosity = None
         # the session this go carried on, None for one started fresh
         self.continued = None
@@ -724,6 +727,9 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
         out["folded"] = list(folds[-1].folded)
         if folds[-1].fold_why:
             out["fold_why"] = folds[-1].fold_why
+    named = [a.coverage for a in attempts if getattr(a, "coverage", None)]
+    if named:
+        out["coverage"] = [dict(n) for n in named[-1]]
     if entry.case:
         out["case"] = entry.case
     fell = fallback(attempts)
