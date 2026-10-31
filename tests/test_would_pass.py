@@ -232,6 +232,42 @@ def test_a_case_that_already_passes_does_not_send_the_worker_round_again(
     assert '"to": "reviewer-runs.md"' in steps
 
 
+def did(line):
+    return NL + "HANDOFF" + NL + "DID:" + NL + "- " + line + NL \
+        + "END HANDOFF" + NL
+
+
+def test_a_routed_run_leads_with_the_work_not_the_one_case_added_after(
+        tmp_path, monkeypatch):
+    answers = {"planner.md": [PLAN],
+               "tester.md": [TESTER + did("one failing test for mul"),
+                             TESTER + did("Added the one test the reviewer"
+                                          " asked for")],
+               "worker.md": [WORKER + did("calc.py: mul(a, b) added")],
+               "reviewer.md": [NAMED], "reviewer-runs.md": [OK]}
+    writes = {"tester.md": [("tests/test_mul.py", RIGHT),
+                            ("tests/test_mul.py", MORE)],
+              "worker.md": [("calc.py", AFTER)]}
+    folder = run_it(tmp_path, monkeypatch, answers, writes)[3]
+    assert lines(folder)[4]["case"]["step"] == "reviewer.md"
+    top = (folder / "handoff.md").read_text(encoding="utf-8").split(NL)[0]
+    assert top.endswith(": done - calc.py: mul(a, b) added"), top
+    passes = summary.passes_of(folder, {}, types.SimpleNamespace(steps=[]))
+    assert [bool(p["case"]) for p in passes][:6] == [False, False, False,
+                                                     False, True, False]
+
+
+def test_a_run_whose_only_working_pass_added_a_case_still_leads_with_it():
+    said = "HANDOFF" + NL + "DID:" + NL + "- added the case" + NL \
+        + "END HANDOFF" + NL
+    from agentweft.runner import handoff
+    one = summary.a_pass("tester.md", "tester", 1.0, handoff.parse(said), [],
+                         False, "ok", said, case={"seq": 1, "red": False})
+    lines_ = summary.build("f-1", "f", "t", [one], {"git": False}, [],
+                           "1 call")
+    assert lines_[0] == "# f f-1: done - added the case"
+
+
 def test_the_suite_run_that_checks_the_case_is_timed_as_a_gate(
         tmp_path, monkeypatch):
     import time

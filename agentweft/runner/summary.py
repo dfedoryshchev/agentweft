@@ -440,13 +440,15 @@ def redo_why(said):
 
 
 def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
-           facts=None, writes=""):
+           facts=None, writes="", case=None):
     """one pass of one step, the shape `build` reads. `facts` is what its
     steps.jsonl line holds for the retro and the files its transcript shows
     it read (`facts_of`); `writes` is what the flow says the step writes
-    (`writes_of`). `ruled` is the DECIDED line of a lead's pass whose
-    decision the runner put on record (outcome `decided`), "" for any other
-    pass, and `would` its WOULD PASS and CATCH lines (`wouldpass.read`)."""
+    (`writes_of`); `case` is the case a reviewer routed to it, as its line
+    keeps it (`wouldpass.held`), None for a pass that added none. `ruled` is
+    the DECIDED line of a lead's pass whose decision the runner put on
+    record (outcome `decided`), "" for any other pass, and `would` its
+    WOULD PASS and CATCH lines (`wouldpass.read`)."""
     ruled = lead.read(said)[0] if outcome == "decided" else None
     return {"step": step, "role": role, "seconds": seconds, "writes": writes,
             "block": block if isinstance(block, dict) else handoff.empty(),
@@ -454,7 +456,7 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
             "verbs": verbs.parse(said), "ruled": ruled or "",
             "would": wouldpass.read(said),
             "redo_why": redo_why(said) if outcome == "redo" else "",
-            "facts": facts or {}}
+            "facts": facts or {}, "case": case}
 
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
@@ -607,7 +609,9 @@ def line_pass(line, folder, roles, fm, root=None):
                   _gates(line.get("gates"), gate_commands(fm, step, said),
                          gate_names(fm, step)),
                   line.get("ungated"), line.get("outcome") or "", said,
-                  facts=facts_of(line, root), writes=writes_of(fm, step))
+                  facts=facts_of(line, root), writes=writes_of(fm, step),
+                  case=line.get("case")
+                  if isinstance(line.get("case"), dict) else None)
 
 
 def cases(path):
@@ -626,6 +630,18 @@ def cases(path):
 
 def _present(block):
     return block.get("state") in (handoff.PRESENT, handoff.PARTIAL)
+
+
+def headed(passes):
+    """-> the pass whose first DID heads the handoff: the last working pass
+    that is not a test writer adding the one case a reviewer routed back,
+    since that case is not what the run was for; `working` when every
+    working pass is one."""
+    for p in reversed(passes):
+        if p["role"] not in JUDGING and _present(p["block"]) \
+                and not p.get("case"):
+            return p
+    return working(passes)
 
 
 def working(passes):
@@ -1637,8 +1653,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     first_line = (task or "").strip().split("\n")[0] if task else ""
     unsure = unproven(every)
     out = ["# " + flow_name + " " + run_id + ": " + ended(stopped, unsure)]
-    if last and last["block"]["did"] and not stopped:
-        out[0] = out[0] + " - " + last["block"]["did"][0]
+    head = headed(every)
+    if head and head["block"]["did"] and not stopped:
+        out[0] = out[0] + " - " + head["block"]["did"][0]
     out.append("")
 
     ran = " -> ".join(p["step"] + (" (sent back)" if p["outcome"] == "redo"
