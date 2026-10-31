@@ -200,6 +200,67 @@ def test_a_nice_to_do_wider_than_a_tidy_is_refused(tmp_path, scope, claim,
     assert fact is None and why in said, said
 
 
+def a_sized_place(tmp_path):
+    put(tmp_path, "pkg/a.py", NL.join(["import os", "", "def parse(line):",
+                                       "    if not line:",
+                                       "        raise ValueError('empty')",
+                                       "    return line.split()", ""]))
+    put(tmp_path, "pkg/b.py", "x = 1" + NL)
+    put(tmp_path, "pkg/c.py", "y = 1" + NL)
+    put(tmp_path, "pkg/cli/main.py", "z = 1" + NL)
+    put(tmp_path, "README.md", README)
+    return factsguard.Store(tmp_path)
+
+
+def sized(tmp_path, claim, why="the caller prints it", scope="pkg/a.py",
+          source='seq 1 worker.md; evidence: pkg/a.py:5 "raise ValueError"'):
+    fields = {"scope": scope, "kind": "nice-to-do", "claim": claim,
+              "why": why, "source": source}
+    return a_sized_place(tmp_path).add(factsguard.Proposal(fields),
+                                       factsguard.Record(tmp_path))
+
+
+@pytest.mark.parametrize("claim, why", [
+    ('name the line in the raise, and the same in "pkg/b.py" and "pkg/c.py"',
+     "the caller prints it"),
+    ("name the line in the raise here and in pkg/cli", "the caller prints it"),
+    ("name the line in the raise here and in pkg/cli/", "the caller prints it"),
+    ("rename parse to tokenize at every caller", "the caller prints it"),
+    ("name the line in the raise at every call site", "the caller prints it"),
+    ("name the line in the raise across the package", "the caller prints it"),
+    ("name the line in the raise, for all uses of parse",
+     "the caller prints it"),
+    ("name the line in the raise", "and do the same across pkg/b.py, pkg/c.py"
+     " and pkg/cli, every module that raises"),
+    ("name the line in the raise", "and the same in pkg/b.py"),
+    ('replace "raise" with "raise", and the same in pkg/b.py',
+     "the caller prints it"),
+])
+def test_a_ticket_the_size_of_a_task_is_refused_however_it_is_worded(
+        tmp_path, claim, why):
+    fact, said = sized(tmp_path, claim, why)
+    assert fact is None and "a task, not a tidy" in said, said
+
+
+@pytest.mark.parametrize("why", [
+    "the caller prints it",
+    "seq 1 worker.md renamed the flag in pkg/b.py and pkg/cli, and the raise"
+    " still names the old one",
+])
+def test_a_one_file_tidy_whose_why_names_the_cause_is_written(tmp_path, why):
+    fact, said = sized(tmp_path, "name the line in the raise", why)
+    assert fact is not None, said
+
+
+def test_a_doc_edit_ticket_may_quote_doc_text_that_names_files(tmp_path):
+    fact, said = sized(
+        tmp_path, 'replace "parse returns a list of words." with "`parse` in'
+        ' pkg/a.py returns a list of words; pkg/cli calls it."',
+        why="the run found the raise undocumented", scope="README.md",
+        source='evidence: README.md:3 "parse returns a list of words."')
+    assert fact is not None, said
+
+
 def test_tickets_have_a_cap_of_their_own_beside_the_facts(tmp_path):
     put(tmp_path, "pkg/a.py", NL.join(["import os", "", "def parse(line):",
                                        "    if not line:",

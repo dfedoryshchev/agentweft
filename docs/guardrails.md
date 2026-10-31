@@ -607,10 +607,14 @@ then hold the change. on top of the rules above it is refused unless:
   second scope (`a nice-to-do names the one file it is done in`), and not
   `decisions.md`, a store file or a spec file;
 - its claim is a change of a few lines in that file: at most 200
-  characters, no refactor, rewrite, restructure, redesign, move, split or
-  extract, and no other file named outside the words it quotes "like
-  this" (a path, a folder ending in `/`, or a bare name that is a file of
-  the place): `... that is a task, not a tidy`;
+  characters, no refactor, rewrite, restructure, redesign, move, split,
+  extract or rename, and no other file or folder named (a path with or
+  without a suffix, a folder ending in `/`, or a bare name that is a file
+  of the place), quoted or not, save the text a doc edit's `replace
+  "<now>" with "<after>"` quotes; and neither the claim nor its why carries
+  the change past that file ("across", "every caller", "all uses", "the
+  same in"): `... that is a task, not a tidy`. the why may name the files
+  the run changed, as the cause;
 - the run has not written `tickets_per_run` of them already (3 when
   unsaid), a cap of their own beside the facts'.
 

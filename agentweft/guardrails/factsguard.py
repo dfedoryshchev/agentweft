@@ -137,11 +137,19 @@ DECAY = 5
 # a nice-to-do's claim: the change, a few lines of one file
 TIDY = 200
 WIDE = re.compile(r"\b(?:refactor\w*|rewrit\w*|restructur\w*|redesign\w*"
-                  r"|mov(?:e|es|ed|ing)|split\w*|extract\w*)\b", re.I)
+                  r"|mov(?:e|es|ed|ing)|split\w*|extract\w*|renam\w*)\b",
+                  re.I)
+# words that carry a nice-to-do past its one file, in its claim or its why
+SPREAD = re.compile(r"\b(?:across|(?:every|each|all)\s+(?:the\s+|other\s+)?"
+                    r"(?:callers?|call\s+sites?|uses?|usages?|modules?|files?"
+                    r"|places?)|(?:do|does|make|the)\s+same\s+(?:in|at|for|to"
+                    r"|across|with)|same\s+change|as\s+well\s+as\s+in"
+                    r"|also\s+in)\b", re.I)
 FILE_NAME = re.compile(r"^[\w.-]+\.(?:pyi?|[cm]?js|tsx?|jsx|md|rst|txt|go|rs"
                        r"|java|kt|cs|rb|php|json|ya?ml|toml|cfg|ini|sh|html"
                        r"|css|c|h|cc|cpp|hpp|sql)$")
 QUOTED = re.compile(r'"[^"\n]*"')
+DOC_EDIT = re.compile(r'^replace "[^\n]*" with "[^\n]*"$')
 # the fields a proposal may carry, in the order an entry is written
 FIELDS = ("scope", "kind", "label", "claim", "why", "source", "anchor",
           "check", "supersedes")
@@ -1307,9 +1315,13 @@ def tidy_refusal(root, p):
     """-> why a nice-to-do is not written, "" when it may be: it names one
     file of the place and nothing wider, not decisions.md, the store or a
     spec, and
-    its claim is a change of a few lines in it that names no other file (a
-    path, a folder, or a bare name that is a file of the place) outside the
-    words it quotes "like this", the text a doc is to hold."""
+    its claim is a change of a few lines in it, no refactor or rename, that
+    names no other file or folder (a path with or without a suffix, or a
+    bare name that is a file of the place), and neither it nor its why
+    carries the change past it (across, every caller, the same in). only a
+    doc edit's `replace "<now>" with "<after>"` claim keeps what it quotes
+    out of that, the text the doc is to hold. the why may name other files:
+    it says what the run did that makes the ticket worth it."""
     scopes = [facts.norm(s) for s in p.get("scope")]
     if len(scopes) != 1 or scopes[0] == facts.PROJECT \
             or scopes[0].endswith("/") or facts.is_glob(scopes[0]) \
@@ -1321,16 +1333,23 @@ def tidy_refusal(root, p):
         return (scopes[0] + " is a spec file, the person's word: a change to"
                 " it is theirs to make")
     claim = p.get("claim")
-    words = [w.rstrip(".:,;!?") for w in WORD.findall(QUOTED.sub(" ", claim))]
+    said = QUOTED.sub(" ", claim) if DOC_EDIT.match(claim) else claim
+    why = p.get("why")
+    words = [w.rstrip(".:,;!?") for w in WORD.findall(said)]
     named = [w for w in words if len(w) > 1 and w.endswith("/")
              or FILE_NAME.match(w.rsplit("/", 1)[-1])
-             and ("/" in w or (Path(root) / w).is_file())]
+             and ("/" in w or (Path(root) / w).is_file())
+             or "/" in w.strip("/") and "://" not in w
+             and (Path(root) / w).exists()]
     others = [w for w in named if facts.norm(w) != scopes[0]
               and w != scopes[0].rsplit("/", 1)[-1]]
-    if len(claim) > TIDY or WIDE.search(claim) or others:
+    if len(claim) > TIDY or WIDE.search(said) or SPREAD.search(said) \
+            or SPREAD.search(why) or others:
         return ("a nice-to-do is a change of a few lines in " + scopes[0]
-                + " (at most " + str(TIDY) + " characters, no other file, no"
-                " refactor, rewrite or move): that is a task, not a tidy")
+                + " (at most " + str(TIDY) + " characters, no other file or"
+                " folder, no refactor, rewrite, move or rename, and nothing"
+                " across its callers or the same elsewhere, in it or its"
+                " why): that is a task, not a tidy")
     return ""
 
 
