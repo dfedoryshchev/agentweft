@@ -6,11 +6,13 @@ from .gating import and_forged, check_step, gate_why, off_task, police_line
 from .handoff import EMPTY, PARTIAL, PRESENT
 
 
-def to_lead(run, step, question, given, where, folder=None):
+def to_lead(run, step, question, given, where, folder=None, pick=None):
     """-> (the lead's Handoff or None, the end of `step`'s next prompt when
     the lead decided or "", the question as the operator gets it when it
     did not). a flow with no lead, and the lead's own question, go to the
-    operator as they were asked.
+    operator as they were asked. `pick` reads the decision as one of fixed
+    options, -> (the option, "") or (None, why it is none), before anything
+    is recorded.
 
     the lead's go is read by the off task check as soon as it answers, like
     any step's: what it found goes on the lead's own line (`meta["police"]`),
@@ -54,6 +56,8 @@ def to_lead(run, step, question, given, where, folder=None):
         return out, "", lead.passed(question, forged)
     decided, why, wrong = lead.judged(out.output, head, run.workdir,
                                       run.start)
+    if not wrong and pick is not None:
+        decided, wrong = pick(decided)
     if wrong:
         out.meta["passed"] = wrong
         return out, "", lead.passed(question, wrong)

@@ -134,6 +134,36 @@ def decided_of(why):
     return rest.rpartition(LEAD_BY)[0].strip()
 
 
+NOW, LATER = "re-iterate now", "accept as later"
+
+
+def ticket_question(fact):
+    """-> the question a critical nice-to-do puts to the lead once the run
+    has ended, its two options last."""
+    return ("NEEDS: the retro marks a nice-to-do critical, " + fact.id
+            + " on " + ", ".join(fact.scopes) + ": " + fact.claim
+            + "\nwhy: " + " ".join(fact.get("why").split())
+            + "\nsource: " + " ".join(fact.get("source").split())
+            + "\nOPTIONS:\n- " + NOW + ": the change is needed before this"
+            " work is taken as done; the ticket goes first to the planner of"
+            " the next run on its file\n- " + LATER + ": the work stands as it"
+            " is; the ticket stays a nice-to-do for a later run\n")
+
+
+def ticket_pick(head):
+    """-> how the lead `head`'s DECIDED is read for a critical ticket: one
+    of the two options, by its words, or why it is neither."""
+    def pick(decided):
+        said = " ".join(decided.lower().split())
+        hits = [o for o in (NOW, LATER) if o in said
+                or o.split()[0] in said.split()]
+        if len(hits) == 1:
+            return hits[0], ""
+        return None, (head + " decided " + decided + ", neither " + NOW
+                      + " nor " + LATER)
+    return pick
+
+
 def passed(question, why):
     """-> the question as the operator gets it once the lead did not decide
     it."""

@@ -31,7 +31,8 @@ from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
 
-from . import handoff, investigate, manifest, stops, summary, trace, upkeep
+from . import (asking, handoff, investigate, lead, manifest, stops, summary,
+               trace, upkeep)
 from .errors import Fatal, Outage
 from .upkeep import Maintained, execute  # noqa: F401
 
@@ -56,6 +57,8 @@ HOLDS = HELD + (stops.EXCEPTION,)
 # `on_fallback: park`
 HELD_BACK = ("on_fallback: park holds its facts and tickets: none was kept;"
              " what it proposed is in " + FILE)
+CRITICAL_HEAD = "## critical tickets, for the lead"
+LATER_WORDS = "accept it as later"
 
 
 def on(fm):
@@ -639,6 +642,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         done.present = True
         done.lines.insert(0, pin_line)
         done.pins = pinned.id if pinned is not None else ""
+    led, passes = escalated(run, folder, store, done, run_id) \
+        if not why and not held_back else ([], [])
     files = upkeep.files_changed(done, store.touched[touched:], store.root)
     kept = committed(run, [p for p, _ in files], done) if files else None
     entry = trail.open(STEP, [tried], used, None, output=said or None)
@@ -649,6 +654,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         if kept and kept[0]:
             entry.facts["commit"] = kept[0]
     trail.close(entry, "failed" if why else "ok", why=why, planned=False)
+    for out, decided in passes:
+        asking.lead_pass(trail, run, out, STEP, decided)
     if why:
         print("retro failed, the run's outcome stands: " + why)
         if not pin_line:
@@ -670,13 +677,17 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
                    + [line for _, line in files])
         for line in changes[2:]:
             print("retro changed: " + line[2:])
-    if (told or changes) and (folder / summary.FILE).is_file():
+    for line in led:
+        print("critical: " + line.strip().lstrip("- "))
+    if (told or changes or led) and (folder / summary.FILE).is_file():
         with open(folder / summary.FILE, "a", encoding="utf-8") as f:
             if changes:
                 f.write("\n" + "\n".join(changes) + "\n")
             if told:
                 f.write("\n" + upkeep.SECTION + "\n\n" + "\n".join(told)
                         + "\n")
+            if led:
+                f.write("\n" + CRITICAL_HEAD + "\n\n" + "\n".join(led) + "\n")
     if not why:
         print("retro: " + str(folder / FILE))
 
@@ -763,6 +774,49 @@ def policed(run, used, tried, text, folder):
             print("police (shadow): " + hit)
         return line, None
     return line, "off task: " + police.why(seen.hits)
+
+
+def escalated(run, folder, store, done, run_id):
+    """-> (the handoff's lines for each critical nice-to-do the retro wrote,
+    the lead's (Handoff, decided) for each go it took). each goes to the
+    flow's lead, who re-iterates now or accepts it as later; its decision
+    is recorded in decisions.md as the lead's, and the ticket is then
+    `important` (first for the next planner on its file) or unlabelled. a
+    flow with no lead, or a lead that does not decide, leaves it critical
+    and the person's. nothing in the tree changes for it either way."""
+    lines, passes = [], []
+    head = getattr(run, "lead", None)
+    for id in done.tickets:
+        fact = store.held(id)
+        if fact is None or fact.label != facts.CRITICAL:
+            continue
+        lines.append("- " + id + " (" + ", ".join(fact.scopes) + "): "
+                     + fact.claim)
+        if head is None:
+            lines.append("  the flow has no lead, so it is yours: "
+                         + lead.NOW + " or " + LATER_WORDS)
+            done.escalated.append({"id": id, "decided": None})
+            continue
+        out, _, passed = asking.to_lead(
+            run, STEP, lead.ticket_question(fact), {}, "the retro of run "
+            + run_id, folder, pick=lead.ticket_pick(head))
+        decided = None if passed else run.led.get(lead.key(
+            lead.ticket_question(fact)))
+        if out is not None:
+            passes.append((out, decided))
+        done.escalated.append({"id": id, "decided": decided})
+        if decided is None:
+            why = (out.meta.get("passed") if out is not None else "") \
+                or passed.split("\n\n")[-1]
+            lines.append("  not decided by the lead (" + why + "), so it is"
+                         " yours: " + lead.NOW + " or " + LATER_WORDS)
+            continue
+        store.change(id, (lambda f: f.put("label", "important"))
+                     if decided == lead.NOW else (lambda f: f.drop("label")))
+        lines.append("  the lead, " + head + ", decided: " + decided + " - "
+                     + lead.read(out.output)[1] + " (on record in "
+                     + decisions.FILE + ")")
+    return lines, passes
 
 
 def kept_up(run, trail, earlier, store, said, run_id):

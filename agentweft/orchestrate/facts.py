@@ -55,7 +55,9 @@ STATUSES = (LIVE, STALE, SUPERSEDED, RETIRED)
 NICE = "nice-to-do"
 KINDS = ("decision", "convention", "why", "defect", "gate-issue", NICE)
 PINS = "pins"
-LABELS = ("important", "wip", "investigation", PINS)
+# a nice-to-do the flow's lead is asked about before the run is left
+CRITICAL = "critical"
+LABELS = ("important", "wip", "investigation", PINS, CRITICAL)
 # live facts on the whole project the store keeps: they are handed to every
 # step on every file, and past this many they read as an overview
 PROJECT_CAP = 8

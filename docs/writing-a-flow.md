@@ -312,7 +312,8 @@ second ask of the same question comes to you, and so does what the step
 acting on a decision does to a spec line or a test the run started with: a
 decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:
 build-feature leads with its planner, and fix-with-test, whose first step
-writes the test, has `lead: none`. how it reads in a run is in
+writes the test, has `lead: none`. the lead also decides a ticket the retro
+marks critical (section 10). how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says
@@ -456,6 +457,17 @@ gate or `flow.yaml` key guard is a line for a person. `facts/PROPOSED.md`
 keeps nothing else but the guards a recurring fact is owed. the runner
 renders `facts/INDEX.md`, a line per live fact and the stale ones apart.
 
+a nice-to-do labelled `critical` (one without which the run's work should
+not be taken as done) goes to the flow's lead (section 8) once the block is
+acted on, as a question with two options, `re-iterate now` and `accept as
+later`. the lead's `DECIDED:` with a `why:` is recorded in `decisions.md` as
+its decision, and the ticket becomes `important`, first for the planner of
+the next run on its file, or loses its label. the handoff lists each under
+"critical tickets, for the lead" with what was decided. a flow with no lead,
+a lead that escalates, gives no why or picks neither option, leaves the
+ticket `critical` and the decision yours. the runner changes nothing in the
+tree for it either way; the lead's go is its own line after the retro's.
+
 none of it is staged. under `commits: none` the handoff ends on "the
 retro's changes (unstaged, yours to stage)": a line per store file with
 why. under `commits: wip` or `squash`, on a run whose steps all passed, they
@@ -469,7 +481,8 @@ what the runner did with each item, each refusal with its reason, goes at
 the end of `retro.md` under "what the runner did with the FACTS block", at
 the end of `handoff.md` under "the retro's proposals", and on the retro's
 line in `steps.jsonl` as `facts` (`written`, `tickets`, `counted`,
-`changed`, `refused`, `proposed`, `owed`). a block that does not parse
+`changed`, `refused`, `proposed`, `owed`, and `escalated`, each critical
+ticket with what the lead decided, null when it did not). a block that does not parse
 writes nothing and says so in one line; an answer with no block changes no
 fact and no file.
 

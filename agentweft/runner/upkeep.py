@@ -97,6 +97,8 @@ class Maintained(object):
         self.note = ""
         self.fault = ""
         self.pins = ""
+        # each critical ticket put to the lead, and what it decided
+        self.escalated = []
 
     def record(self):
         """-> the `facts` field of the retro's steps.jsonl line."""
@@ -107,6 +109,8 @@ class Maintained(object):
                "proposed": self.proposed, "owed": list(self.owed)}
         if self.tickets:
             out["tickets"] = list(self.tickets)
+        if self.escalated:
+            out["escalated"] = [dict(e) for e in self.escalated]
         if self.pins:
             out["pins"] = self.pins
         if self.note:

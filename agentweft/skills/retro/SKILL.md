@@ -24,7 +24,7 @@ role: retro
     fact:
       scope: <a file, a folder ending in /, a glob, or . for the project; one line each>
       kind: <decision, convention, why, defect, gate-issue or nice-to-do>
-      label: <important, wip, investigation or none>
+      label: <important, wip, investigation, critical (a nice-to-do only) or none>
       claim: <one line: what holds there>
       why: <the reason, from this run>
       source: seq <n> <step>; evidence: <file>:<line> "<the words at that line>"
@@ -49,6 +49,7 @@ role: retro
 - every stale fact gets a re-anchor with evidence, a supersede or a retire; one you cannot judge is left as it is
 - a failed attempt, a gate issue or a refused write that a program could have caught gets a guard; a guard is a test, a gate or a key, never a sentence for a prompt. a gate or key guard is a `guard` item, for a person to make
 - you change no file of the tree, and the runner makes no change for you. a test that would have caught it, and a doc, rules or instruction file (CLAUDE.md, AGENTS.md, .claude/, rules/) this run showed wrong, is a `nice-to-do` fact: one file in its one `scope`, the file the change is made in (the test file it goes in, or the code it tests when there is none yet, or the doc); a claim that says the change in one line, at most 200 characters, of one function, one passage or a few lines, naming no other file and never a refactor, rewrite, move or split; a `why` from this run; evidence as for any fact. the planner of a later run that touches that file is handed it and plans it in, and that run's gates hold it. a test for a defect the run left in place says so in its claim: it fails until the defect is fixed. a `check`, when given, finds what the tidy takes away, so it stops holding once the tidy is made. at most the number of tickets the record allows
+- a nice-to-do without which this run's work should not be taken as done (the change is wrong or unsafe as left, on the record's evidence) is labelled `critical`: the runner puts it to the flow's lead, who re-iterates now or accepts it as later, and records the decision; nothing changes before that. anything less is not critical
 - a defect a step found beside the change and did not fix is a `defect` fact on its file, its evidence the line it is at, with a `nice-to-do` for the test that would show it. one fixed by a test needs neither. a place a step names as maybe sharing the defect, one it did not read, you read: when the same gap is there, the `defect` fact's claim names it by file and line and its scope takes that file too; when it is not, retro.md says so in one line and no fact is written for it
 - an open question two or more steps raised, that no ruling settled, is a `why` fact labelled `investigation` on the file whose code as left answers it: the claim says the question is open and what the code does now, the why says which steps raised it, its evidence the spec or code line it turns on, so a later run sees it open instead of settling it another way. the handoff's open questions and doubts name every role that raised each
 - the why of a decision or a ruling, and how the code as left meets it, is a `why` or `decision` fact labelled `important`; a clause that says some part of it is still open does not make it an `investigation` fact

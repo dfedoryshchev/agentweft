@@ -744,6 +744,9 @@ class Store(object):
         if label not in facts.LABELS + ("", "none"):
             return ("label " + label + " is not one of "
                     + ", ".join(facts.LABELS + ("none",)))
+        if label == facts.CRITICAL and kind != facts.NICE:
+            return ("critical marks a nice-to-do for the flow's lead, never a"
+                    " fact of kind " + kind)
         scopes = [facts.norm(s) for s in p.get("scope")]
         if not scopes:
             return "it names no scope"

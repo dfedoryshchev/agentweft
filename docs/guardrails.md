@@ -513,7 +513,7 @@ is written; a refused one is not written and its reason is kept:
    `facts/PROPOSED.md` is written that holds one.
 2. a one-line claim and a why, no `|` in any field, a kind from `decision`,
    `convention`, `why`, `defect`, `gate-issue`, `nice-to-do` (below), a label from `important`,
-   `wip`, `investigation`, `pins` or none. a `gate-issue` that names an OS error code
+   `wip`, `investigation`, `pins`, `critical` (on a nice-to-do only) or none. a `gate-issue` that names an OS error code
    (`WinError 87`, `Errno 22`) is refused: it is what the machine raised as
    the run went (`gates.md`, the fault a gate runs once more), not the
    project's, and a later run on a sound machine would be handed it. a
@@ -616,7 +616,10 @@ then hold the change. on top of the rules above it is refused unless:
 
 its check, when it has one, finds what the tidy takes away, so it stops
 holding once the tidy is made; it is never run after a step as the
-project's rule, never a conformance line.
+project's rule, never a conformance line. a nice-to-do labelled `critical`
+is put to the flow's lead before the run is left, and only its recorded
+decision moves it (`docs/writing-a-flow.md`, section 10); `critical` on any
+other kind is refused.
 
 ### a fact's check
 

@@ -395,6 +395,10 @@ and `continued`
   is `runs/<run-id>/retro.md`; the facts the runner wrote for it are its
   `facts.written`, the nice-to-do tickets among them `facts.tickets`, with
   `facts.commit` the sha when the store files went into a `retro:` commit.
+  a critical ticket the retro wrote is `facts.escalated` (its id and what
+  the lead decided, null when it did not), and the lead's go at it is one
+  more line after the retro's, `outcome` `decided`, `escalated` or
+  `overruled`, as for a step's question.
 - a run with `--keep-warm` charges each warm call to the step it kept warm:
   its tokens and cost are on that step's next line. a step not asked again
   after one gets a line of its own when the run ends, `outcome` `warm`, `won`
