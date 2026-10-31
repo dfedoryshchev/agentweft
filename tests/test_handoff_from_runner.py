@@ -186,6 +186,9 @@ def said_of(tmp_path, monkeypatch, calls, item):
     return [l for l in summary.read_lines([p]) if l.startswith("  said")]
 
 
+EMPTY = "(Bash completed with no output)"
+
+
 def bash(command, out="ok"):
     return ("Bash", {"command": command}, out)
 
@@ -235,6 +238,8 @@ SEARCHED = [
     (lambda t: [bash("grep -rn x src; grep -rn y tests",
                      "src/a.py:3:x\ntests/test_a.py:9:y")], "src/a.py - x"),
     (lambda t: [bash("grep x a.py", "x = 1")], "a.py - x"),
+    (lambda t: [bash("grep -n x a.py | head -3; false", "Exit code 1\n3:x")],
+     "a.py - x"),
     (lambda t: [bash("git diff 25b87c6 -- gradebook TASK.md",
                      "diff --git a/TASK.md b/TASK.md\n+one\n"
                      "diff --git a/gradebook/inputs.py b/gradebook/inputs.py\n"
@@ -277,6 +282,11 @@ NOT_SEARCHED = [
                            "content": "x"}, "ok")],
      "t.py:1-170 - the order the new test was placed in"),
     (lambda t: [bash("grep -n zzz a.py", "")], "a.py - x"),
+    (lambda t: [bash("grep -n zzz a.py | head -20", EMPTY)], "a.py - x"),
+    (lambda t: [bash("grep -n zzz a.py || true", EMPTY)], "a.py - x"),
+    (lambda t: [bash("grep zzz a.py | head", EMPTY)], "a.py - x"),
+    (lambda t: [bash("grep -n zzz a.py", "Exit code 1")], "a.py - x"),
+    (lambda t: [bash("grep -n zzz a.py", "Error: Exit code 1")], "a.py - x"),
     (lambda t: [grep(t, "a.py", "No matches found")], "a.py - x"),
     (lambda t: [grep(t, "a.py", "")], "a.py - x"),
     (lambda t: [bash("python -m pytest -q; grep -rn zzz .",

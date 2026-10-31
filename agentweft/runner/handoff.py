@@ -856,6 +856,10 @@ NUMBERED = re.compile(r"^\d+[:-]")
 # what a search prints when it found nothing, or of its own trouble
 NO_MATCH = re.compile(r"^(?:No matches found|No files found|Found 0\b"
                       r"|(?:[ef]?grep|rg): )")
+# what the cli itself writes for a Bash call that printed nothing, or before
+# what a failed call printed
+CLI_SAYS = re.compile(r"^(?:\(Bash completed with no output\)"
+                      r"|(?:Error: )?Exit code \d+)$")
 # statements that print nothing of their own
 SILENT = ("cd", "pushd", "popd", "export", "set", "unset", "true", ":")
 
@@ -1027,8 +1031,9 @@ def _searched(name, given, out, root):
     call, by any line it printed; otherwise by a line its output names the
     file on, when every statement that printed was a search, or by a
     numbered line when it is the call's one numbered search of one file.
-    an empty answer, `No matches found` or grep's own complaint prints
-    nothing of a file."""
+    an empty answer, `No matches found`, grep's own complaint, the cli's
+    `(Bash completed with no output)` or a bare `Exit code N` prints nothing
+    of a file."""
     if name == "Grep":
         if given.get("output_mode") != "content":
             return []
@@ -1043,7 +1048,8 @@ def _searched(name, given, out, root):
     else:
         return []
     lines = [l for l in (out or "").split("\n")
-             if l.strip() and not NO_MATCH.match(l.strip())]
+             if l.strip() and not NO_MATCH.match(l.strip())
+             and not CLI_SAYS.match(l.strip())]
     searches = [([_clean(t, root) for t in paths], numbered,
                  [_a_file(_clean(t, root), recursive, root) for t in paths])
                 for paths, numbered, recursive in searches]
