@@ -112,7 +112,18 @@ def test_the_retro_is_taught_to_keep_an_open_question_and_a_pinning_test():
             " runner's to keep: it writes them as one `why` fact labelled"
             " `pins` on their test files, outside the number the record"
             " allows, and refuses a fact of yours on those files that names"
-            " one of them") in skill
+            " one of them and says it passes, is green or pins, or holds"
+            " without the change: that is its note again. another point about"
+            " one of them is yours to write") in skill
+
+
+def test_the_retro_is_taught_to_read_the_sibling_a_step_says_may_share_a_defect():
+    skill = " ".join(resolver.skill("retro").split())
+    assert ("a place a step names as maybe sharing the defect, one it did not"
+            " read, you read: when the same gap is there, the `defect` fact's"
+            " claim names it by file and line and its scope takes that file"
+            " too; when it is not, retro.md says so in one line and no fact is"
+            " written for it") in skill
 
 
 def test_the_retro_is_taught_that_a_decisions_why_keeps_its_kind():

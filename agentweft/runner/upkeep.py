@@ -43,7 +43,8 @@ handoff.md, the files changed under a section of their own.
 
 before the retro is asked, the runner writes one fact of its own (`pins`):
 the tests the red-first gate ran green without the change, outside the
-per-run cap, and a fact of the block that is that note again is refused.
+per-run cap, and a fact of the block that is that note again (one of those
+tests named as passing, green or pinning) is refused.
 
 a gate-issue or defect fact proposed again climbs a ladder: in two runs it
 is `important`, in three a guard is proposed for it marked `recurring`, and
@@ -56,6 +57,8 @@ from agentweft.guardrails import retroedits
 from agentweft.guardrails.factsguard import Proposal, seen_of
 from agentweft.orchestrate import facts
 
+PASSES = re.compile(r"\b(?:pass(?:es|ed|ing)?|green|pin(?:s|ned|ning)?"
+                    r"|without (?:the|this|a|any) (?:change|fix))\b", re.I)
 OPEN = re.compile(r"^\s*(?:#+\s*)?FACTS\s*:?\s*$")
 CLOSE = re.compile(r"^\s*(?:#+\s*)?END FACTS\s*$")
 FENCE = re.compile(r"^\s*(```|~~~)")
@@ -234,7 +237,10 @@ def def_line(root, test):
 def restates(pinned, fields):
     """-> why a fact the retro proposes is the runner's note of the pinning
     tests again, "" when it is not: it is labelled `pins`, or it is on one
-    of that note's test files and its claim names one of its tests."""
+    of that note's test files and its claim names one of its tests and says
+    it passes, is green or pins, or holds without the change. another point
+    about such a test, a reading of the spec it encodes say, is the
+    retro's."""
     if fields.get("label", "").strip() == facts.PINS:
         return ("a pins fact is the runner's own, written from the red-first"
                 " gate's record")
@@ -244,6 +250,8 @@ def restates(pinned, fields):
     if not set(scopes) & set(pinned["scopes"]):
         return ""
     claim = fields.get("claim", "")
+    if not PASSES.search(claim):
+        return ""
     for test in pinned["tests"]:
         name = test.split("::")[-1].split("[")[0]
         if name and re.search(r"(?<![\w])" + re.escape(name) + r"(?![\w])",

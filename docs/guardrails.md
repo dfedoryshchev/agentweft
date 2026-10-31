@@ -554,8 +554,11 @@ is written; a refused one is not written and its reason is kept:
    without the change, as one `why` fact labelled `pins` on their test
    files, its evidence the first one's `def` line (`written: ... by runner
    from the red-first gate`). a fact the retro proposes that is labelled
-   `pins`, or that sits on one of those test files and names one of those
-   tests, is refused as that note again. a new fact whose only scope is `.`,
+   `pins`, or that sits on one of those test files, names one of those
+   tests and says it passes, is green or pins, or holds without the change,
+   is refused as that note again; another point about such a test (a
+   reading of the spec it encodes, a defect it holds) is written as any
+   other fact. a new fact whose only scope is `.`,
    the whole project, or a glob such as `**` that matches every file, is
    refused once the project has eight live ones (`the
    project already has 8 live project-wide facts, ...`): each is handed to

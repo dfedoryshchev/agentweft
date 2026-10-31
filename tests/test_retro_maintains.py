@@ -378,6 +378,45 @@ def test_a_retro_fact_that_restates_the_runners_pins_is_refused(
     assert done.refused[0][1].startswith(why), done.refused
 
 
+@pytest.mark.parametrize("kind, claim", [
+    ("why", "test_zero holds without the change as well"),
+    ("why", "test_zero is green on the code before the change"),
+    ("decision", "test_zero passed before the fix and pins the old output"),
+])
+def test_a_retro_fact_that_says_a_pinned_test_passes_without_the_change_is_refused(
+        tmp_path, kind, claim):
+    store, record = pinned_place(tmp_path)
+    retro.upkeep.pins(store, record, retro.pins_of([GREEN_TWO]), "run-1")
+    item = {"scope": ["tests/test_cases.py"], "kind": kind, "claim": claim,
+            "why": "the gate said so",
+            "source": 'seq 2 patcher.md; evidence: tests/test_cases.py:8'
+                      ' "def test_zero():"'}
+    done = retro.Maintained()
+    retro.execute(store, record, [("fact", "", item)], done, "run-1",
+                  pins=store.pinned)
+    assert done.written == []
+    assert done.refused[0][1].startswith("it restates F-0001"), done.refused
+
+
+@pytest.mark.parametrize("kind, label, claim", [
+    ("defect", "none", "test_zero encodes a reading TASK.md never ruled"),
+    ("why", "investigation",
+     "test_zero encodes a reading of the spec no ruling made"),
+])
+def test_another_point_about_a_pinned_test_is_written(tmp_path, kind, label,
+                                                      claim):
+    store, record = pinned_place(tmp_path)
+    retro.upkeep.pins(store, record, retro.pins_of([GREEN_TWO]), "run-1")
+    item = {"scope": ["tests/test_cases.py"], "kind": kind, "label": label,
+            "claim": claim, "why": "two steps doubted it",
+            "source": 'seq 2 patcher.md; evidence: tests/test_cases.py:8'
+                      ' "def test_zero():"'}
+    done = retro.Maintained()
+    retro.execute(store, record, [("fact", "", item)], done, "run-1",
+                  pins=store.pinned)
+    assert done.refused == [] and len(done.written) == 1, done.refused
+
+
 def test_a_retro_fact_on_a_pinned_file_about_another_test_is_written(tmp_path):
     store, record = pinned_place(tmp_path)
     retro.upkeep.pins(store, record, retro.pins_of([GREEN_TWO]), "run-1")
