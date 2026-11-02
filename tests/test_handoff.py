@@ -1209,6 +1209,97 @@ def test_an_edited_pre_existing_test_is_unruled_unless_a_decision_names_it(
     assert not any("UNRULED" in l for l in lines)
 
 
+STARTED = ("from calc import add\n\n\ndef two():\n    return 2\n\n\n"
+           "def test_add():\n    assert add(1, two()) == 3\n")
+NO_RULING = (", no test it started with or the code its tests share changed,"
+             " no ruling needed")
+
+
+def a_test_file_run(tmp_path, now, before=STARTED, loose=None):
+    """-> the rulings lines of a run whose test file went from `before` to
+    `now`; `loose` is what the file held, uncommitted, when the run began."""
+    place = a_repo(tmp_path / "repo")
+    path = place / "tests" / "test_calc.py"
+    path.write_text(before, encoding="utf-8")
+    git(place, "commit", "-qam", "tests")
+    if loose is not None:
+        path.write_text(loose, encoding="utf-8")
+    start = summary.tree(place)
+    if now is None:
+        path.unlink()
+    else:
+        path.write_bytes(now.encode("utf-8"))
+    return summary.rulings(start.changes(), decisions.read(place))
+
+
+def test_a_test_file_that_gained_a_test_and_an_import_name_needs_no_ruling(
+        tmp_path):
+    now = STARTED.replace("import add\n", "import add, sub\n") + (
+        "\n\ndef test_sub():\n    assert sub(3, 1) == 2, \"caf" + chr(0xe9)
+        + "\"\n")
+    assert a_test_file_run(tmp_path, now) == [
+        "- pre-existing test tests/test_calc.py +5 -1" + NO_RULING]
+
+
+def test_a_test_file_written_back_with_windows_line_ends_needs_no_ruling(
+        tmp_path):
+    now = STARTED.replace("import add\n", "import add, sub\n").replace(
+        "\n", "\r\n")
+    [line] = a_test_file_run(tmp_path, now)
+    assert line.endswith(NO_RULING) and "UNRULED" not in line, line
+
+
+@pytest.mark.parametrize("now", [
+    STARTED.replace("assert add(1, two()) == 3", "assert add(1, two())"),
+    STARTED.replace("return 2", "return 3"),
+    STARTED.replace("import add\n", "import sub\n"),
+    STARTED.replace("def test_add():", "def test_add(:"),
+    STARTED.replace("def two():\n    return 2\n\n\n", ""),
+    None,
+], ids=["an assert", "a helper", "an import name dropped", "unparseable",
+        "a helper removed", "the file deleted"])
+def test_a_test_file_whose_tests_or_their_code_changed_is_still_unruled(
+        tmp_path, now):
+    [line] = a_test_file_run(tmp_path, now)
+    assert "UNRULED" in line, line
+
+
+def test_a_test_file_the_rule_cannot_read_is_still_unruled(tmp_path):
+    now = STARTED.replace("import add\n", "import add, sub\n")
+    [line] = a_test_file_run(tmp_path, now, before=STARTED + "def (:\n")
+    assert "UNRULED" in line, line
+    loose = STARTED + "\n\ndef test_loose():\n    assert add(1, 1) == 2\n"
+    now = loose.replace("import add\n", "import add, sub\n").replace(
+        "assert add(1, 1) == 2", "pass")
+    [line] = a_test_file_run(tmp_path / "loose", now, loose=loose)
+    assert "UNRULED" in line, line
+    hand = {"tests_changed": [("tests/test_calc.py", 64, 1)]}
+    assert "UNRULED" in summary.rulings(hand, [])[0]
+
+
+def test_a_handoff_asks_no_ruling_on_a_test_file_the_test_edits_gate_passed(
+        tmp_path):
+    from agentweft.bench import ladder
+
+    place = a_repo(tmp_path / "repo")
+    start = summary.tree(place)
+    (place / "tests" / "test_calc.py").write_text(
+        "from calc import add, sub\n\n\ndef test_add():\n"
+        "    assert add(1, 2) == -1\n\n\ndef test_sub():\n"
+        "    assert sub(3, 1) == 2\n", encoding="utf-8")
+    gate = {"gate": "test-edits", "ok": True, "command": "", "tests": None,
+            "skipped": False, "detail": "tests/test_calc.py: 1 test added,"
+            " none the run started with changed"}
+    lines = summary.build("demo-1", "demo", "t", [summary.a_pass(
+        "worker.md", "worker", 1.0, handoff.parse(WORKER), [gate], False,
+        "ok", "")], start.changes(), [], "")
+    assert not [l for l in decision_of(lines) if "rule on" in l]
+    assert not [l for l in lines if "UNRULED" in l]
+    point = [p for p in ladder.score("\n".join(lines))["points"]
+             if p["point"] == "no_false"][0]
+    assert point["got"] == 1, point["line"]
+
+
 def test_a_pyc_under_tests_is_not_a_test_and_the_cause_line_reads_as_prose():
     assert summary.is_test("tests/test_x.py")
     assert not summary.is_test("tests/__pycache__/test_x.cpython-314.pyc")

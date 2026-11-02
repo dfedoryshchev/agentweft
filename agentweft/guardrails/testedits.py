@@ -176,6 +176,15 @@ def _python(name, was, now):
     return Edit(name, items, len(set(new) - set(old)))
 
 
+def added_only(name, was, now):
+    """whether python test source `now` holds every test of `was` and the
+    code they share as they were, read as the check reads a test file: what
+    it gained is tests, names on an import line, formatting or comments.
+    False when either does not parse or the file is gone (`now` None)."""
+    found = _python(name, was, now)
+    return found is not None and not found.items
+
+
 def _lines(name, was, now):
     if now is None:
         return Edit(name, [(name, DELETED)])

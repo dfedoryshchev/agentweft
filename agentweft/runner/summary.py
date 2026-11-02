@@ -28,7 +28,7 @@ from pathlib import Path
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
-from agentweft.guardrails import skips, specfiles
+from agentweft.guardrails import skips, specfiles, testedits
 
 from . import (front, handoff, investigate, lead, leftred, manifest, ruling,
                stops, trace, verbs, wouldpass)
@@ -207,10 +207,13 @@ class Tree(object):
         the lines each file's change covers, by (path, how), and `names` the
         names the change touches in each file (`_touched`; every name in an
         untracked one); `status` and `log` are what `git status --short` and
-        `git log --oneline <start>..HEAD` print, line for line."""
+        `git log --oneline <start>..HEAD` print, line for line.
+        `tests_added` holds the changed test files with lines removed that
+        the test-edits check reads as gaining only (`added_only`)."""
         out = {"git": self.git, "start": self.start, "commits": [],
                "files": [], "tests_changed": [], "spec_changed": [],
-               "ranges": {}, "names": {}, "status": [], "log": []}
+               "tests_added": [], "ranges": {}, "names": {}, "status": [],
+               "log": []}
         names = {}
         if not self.git:
             return out
@@ -268,8 +271,27 @@ class Tree(object):
                     out["tests_changed"].append((path, a, d))
                 if is_spec(path, self.root, self.place):
                     out["spec_changed"].append((path, a, d))
+        out["tests_added"] = sorted(set(
+            path for path, a, d in out["tests_changed"]
+            if d and self.added_only(path)))
         out["names"] = dict((p, sorted(n)) for p, n in names.items())
         return out
+
+    def added_only(self, path):
+        """whether a python test file the run started with holds every test
+        and the code they share as the start commit had them. a file already
+        modified before the run is not read: the run found it as it was on
+        disk, not as committed."""
+        if not self.start or not path.endswith(".py") or path in self.dirty:
+            return False
+        was = _git(self.place, "show", self.start + ":" + path)
+        if was is None:
+            return False
+        try:
+            now = (self.root / path).read_bytes().decode("utf-8", "replace")
+        except OSError:
+            now = None
+        return testedits.added_only(path, was, now)
 
 
 def tree(place):
@@ -300,15 +322,22 @@ def rulings(changes, decided, spec_files=None):
     (`TASK.md`, `SPEC*.md` or under `docs/spec*`, from the top of the
     place) changed at all, each name
     the decisions.md entry behind them or say UNRULED. an add-only test
-    change needs none and says so, and so does a spec file with lines added
-    and none removed when `spec_files` is `additions`, the flow's rule that
-    allows exactly that.
+    change needs none and says so, and so does a test file whose lines
+    removed leave every test it started with and the code they share as they
+    were (`tests_added`, as the test-edits check reads it), and a spec file
+    with lines added and none removed when `spec_files` is `additions`, the
+    flow's rule that allows exactly that.
     """
     out = []
+    added = changes.get("tests_added") or ()
     for path, a, d in changes.get("tests_changed", []):
         line = "- pre-existing test " + path + " +" + str(a) + " -" + str(d)
         if d == 0:
             out.append(line + ", add-only, no ruling needed")
+            continue
+        if path in added:
+            out.append(line + ", no test it started with or the code its"
+                       " tests share changed, no ruling needed")
             continue
         found = _ruling_for(path, decided)
         out.append(line + (" <- ruling " + stamp(found) if found else

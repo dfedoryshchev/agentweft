@@ -742,9 +742,9 @@ skipped: <reason> (--skip)`, also on the suite line), the rulings on record
 there when the run started),
 the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
-`docs/spec*` there; a `*` never crosses a `/`) changed at all, each
-name the `decisions.md` entry behind them or print `UNRULED`; an add-only
-test change says so, and so does a spec file with lines added and none
+`docs/spec*` there; a `*` never crosses a `/`) changed at all, each name the
+`decisions.md` entry behind them or print `UNRULED`; an add-only test change
+says so, and so does a python test file whose removed lines leave every test it started with and the code they share as they were (the test-edits check's reading: a name added to an import line, formatting), and a spec file with lines added and none
 removed in a flow with `spec_files: additions`, which allows exactly that:
 it is not owed a ruling and is not in the one decision. a step that claims a person agreed, approved or
 ruled ("the user approved", "as agreed") with none on record is printed under "rulings" as "authority

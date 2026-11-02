@@ -639,7 +639,11 @@ in `gates.md`:
   files under a test folder are not read.
 - a test added to a file the run found is the run's own and passes, as
   `<file>: 1 test added, none the run started with changed`; red-first
-  proves it.
+  proves it. handoff.md's rulings section reads the file the same way at the
+  end of the run, so a python test file whose removed lines leave every test
+  it started with and the code they share as they were (an import line that
+  gained a name) needs no ruling; a file already loose when the run began is
+  not read that way and still does.
 - a change fails the step like a gate, naming each test, and the step goes
   again with that at the end of its prompt. on its last go (the flow's
   `send_backs`, once by default) the run parks for a ruling instead, cause
