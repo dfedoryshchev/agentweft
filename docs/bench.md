@@ -337,7 +337,11 @@ and whose change meets the ruling, one clause of it still open
 (`ruled-open`).
 
 the prompt is the one a run hands the retro, built by the same code from the
-record, the docs that name what the diff changed among it. a case names the
+record, the docs that name what the diff changed among it. the record's copy
+without the steps' reasons it points at is written in a new
+`agentweft-retro-view-*` folder inside the case's `place/`, the retro's
+working folder, so a retro held to that folder can open it, and removed once
+the answer is back, the call failed or not. a case names the
 items it is scored on in `gold.yaml`, and an answer scores one for each of:
 
 - `failed`: a `## seq <n> <step>` section for the attempt `gold.yaml` names

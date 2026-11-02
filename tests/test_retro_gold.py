@@ -258,6 +258,64 @@ def test_step_mode_keeps_the_tokens_and_seconds_of_every_answer(
     assert all(r["tokens"] == {"counted": False} for r in runs)
 
 
+class Looked(Provider):
+    """records where it was asked from, what it was handed, and what the
+    file the prompt points at held at that moment."""
+
+    name = "looked"
+    seen = []
+
+    def ask(self, prompt, timeout=None):
+        pointer = prompt.rstrip("\n").rsplit("every pass in full: ", 1)[1]
+        held = Path(pointer).read_text(encoding="utf-8") \
+            if Path(pointer).is_file() else None
+        Looked.seen.append((self.where, prompt, pointer, held))
+        return Reply("", cost=0.0)
+
+
+def listing(folder):
+    return sorted((p.relative_to(folder).as_posix(), p.is_file())
+                  for p in folder.rglob("*"))
+
+
+def test_the_record_the_gold_prompt_points_at_is_inside_the_place(
+        tmp_path, monkeypatch):
+    base = tmp_path / ("caf" + chr(0xE9))
+    base.mkdir()
+    folder = a_set(base, [])
+    case = folder / "cross-file"
+    (case / "place" / "retro-view").write_text("a file of the place\n",
+                                               encoding="utf-8")
+    before = listing(case)
+    Looked.seen = []
+    retrogold.ask(Looked(), case)
+    [(where, prompt, pointer, held)] = Looked.seen
+    assert Path(where) == case / "place"
+    inside = Path(pointer).resolve().relative_to(Path(where).resolve())
+    assert inside.parts[0] != "retro-view" and inside.name == "steps.jsonl"
+    assert held is not None and held.strip()
+    assert listing(case) == before
+    assert prompt == retrogold.prompt_of(case, pointer)
+
+
+def test_a_failed_call_leaves_no_view_in_the_place(tmp_path):
+    folder = a_set(tmp_path, [])
+    case = folder / "layered"
+    before = listing(case)
+
+    class Broken(Provider):
+        name = "broken"
+
+        def ask(self, prompt, timeout=None):
+            raise RuntimeError("the call failed")
+
+    try:
+        retrogold.ask(Broken(), case)
+    except RuntimeError:
+        pass
+    assert listing(case) == before
+
+
 def test_step_mode_on_a_real_model_runs_only_with_live(tmp_path, capsys):
     folder = a_set(tmp_path, [], live=True)
     assert bench.main(["--retro", str(folder)]) == 1

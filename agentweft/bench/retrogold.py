@@ -239,14 +239,21 @@ def score(answer, gold, case):
 def ask(provider, case):
     """-> (the retro role's answer on the case's record, asked alone in the
     case's place, what it cost, its tokens as a step's line counts them,
-    the seconds it took)."""
-    provider.where = str(Path(case) / "place")
+    the seconds it took). the record's view without the steps' reasons is
+    written in a new folder inside the place, where a retro held to the
+    place can read it, and removed once the call is back."""
+    place = Path(case) / "place"
+    provider.where = str(place)
     provider.at(retro.STEP, None)
-    with tempfile.TemporaryDirectory(prefix="agentweft-retro-view-") as tmp:
-        text = prompt_of(case, retro.view(Path(case) / "record", tmp))
+    tmp = Path(tempfile.mkdtemp(prefix="agentweft-retro-view-", dir=str(place)))
+    try:
+        text = prompt_of(case, tmp / trace.FILE)
+        retro.view(Path(case) / "record", tmp)
         began = time.time()
         reply = provider.ask(text)
         seconds = round(time.time() - began, 3)
+    finally:
+        shutil.rmtree(str(tmp), ignore_errors=True)
     return (reply.text or "", getattr(reply, "cost", None),
             trace.tokens([types.SimpleNamespace(replies=[reply])]), seconds)
 
