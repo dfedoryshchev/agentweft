@@ -6,7 +6,7 @@ them looks at the calls a step made. this does, for the `claude` cli, whose
 transcript the run already reads back: every tool call, its input and what
 came back from it, in order.
 
-four tripwires, all mechanical, no model asked:
+five tripwires, all mechanical, no model asked:
 
 - grant: a call to a tool the step was not granted, or a grant declared on a
   provider that does not hold the step to it.
@@ -15,6 +15,7 @@ four tripwires, all mechanical, no model asked:
 - credentials: a read of a file that holds a secret by its name.
 - instructions: text the step read, addressed to an agent, naming an action
   the step then took, and not one its own prompt asked for.
+- outside: a Write or Edit of a file outside the place the step ran in.
 
 it is off unless a flow says `police: on` or `police: shadow`. on, a hit
 stops the run, and the stop says what was seen. shadow reads the same and
@@ -39,6 +40,7 @@ GRANT = "grant"
 NET = "network"
 SECRETS = "credentials"
 TOLD = "instructions"
+OUTSIDE = "outside"
 
 SHELLS = ("Bash", "PowerShell")
 EDITORS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
@@ -754,14 +756,51 @@ def read_lines(entries, place):
             for k in order]
 
 
+DRIVE = re.compile(r"^[A-Za-z]:/")
+
+
+def outside(path, place):
+    """whether a path a tool wrote is outside the place. a relative one is
+    read from the place, where the step ran; either separator splits it."""
+    import posixpath
+    from pathlib import Path
+
+    said = path.replace("\\", "/")
+    if not said.startswith("/") and not DRIVE.match(said):
+        said = str(place).replace("\\", "/").rstrip("/") + "/" + said
+    full = posixpath.normpath(said)
+    for root in dict.fromkeys([str(place), str(Path(place).resolve())]):
+        base = posixpath.normpath(root.replace("\\", "/"))
+        got = full
+        if DRIVE.match(base) or DRIVE.match(got):
+            base, got = base.casefold(), got.casefold()
+        if got == base or got.startswith(base.rstrip("/") + "/"):
+            return False
+    return True
+
+
+def outside_hits(found, place):
+    if not place:
+        return []
+    out = []
+    for c in found:
+        if c.name not in EDITORS:
+            continue
+        path = c.given.get("file_path") or c.given.get("notebook_path")
+        if isinstance(path, str) and path.strip() and outside(path, place):
+            out.append(Hit(OUTSIDE, c.said() + " writes outside the place"))
+    return out
+
+
 def check(pieces, grant=None, granted=None, reads_place=True, allow=(),
-          prompt=""):
-    """-> [Hit] for one transcript's pieces, every tripwire, in order."""
+          prompt="", place=None):
+    """-> [Hit] for one transcript's pieces, every tripwire, in order.
+    `place` is where the step ran; with none, no write is judged outside."""
     found = calls(pieces)
     allow = [str(a).lower() for a in allow or ()]
     return (grant_hits(found, grant, granted, reads_place)
             + network_hits(found, allow) + credential_hits(found)
-            + told_hits(found, prompt or ""))
+            + told_hits(found, prompt or "") + outside_hits(found, place))
 
 
 class Report(object):
@@ -797,7 +836,7 @@ def report(step, provider, grant, sessions, allow, prompt):
     read = [piece for p in found for piece in p]
     hits = check(read, grant=grant, granted=provider.granted(),
                  reads_place=provider.reads_place, allow=allow,
-                 prompt=prompt)
+                 prompt=prompt, place=getattr(provider, "where", None))
     told = read_told(read, prompt)
     seen = bool(found) or not provider.reads_place
     return Report(step, hits, seen, round(time.time() - began, 3), told)

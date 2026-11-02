@@ -830,7 +830,7 @@ git that may write where it likes), or a git without `merge-tree
 
 off unless a flow says `police: on` (or `shadow`, below). after every step on the `claude` cli the
 run reads the step's transcript, the one the handoff takes its read lines
-from, and holds each tool call to four tripwires. no model is asked, so it
+from, and holds each tool call to five tripwires. no model is asked, so it
 costs no tokens; what it found and the seconds it took go on the step's line
 in `steps.jsonl`:
 
@@ -865,6 +865,13 @@ in `steps.jsonl`:
   and the action alone is not one: it is the read naming the call that came
   after it. an action the step's own prompt names is its task and does not
   count.
+- `outside`: a Write, Edit, MultiEdit or NotebookEdit of a file outside the
+  place the step ran in: `../../x.py`, read from the place, or a whole path
+  that is not under it (either separator; a drive letter in any case). a
+  read outside the place is not one, and a shell command that writes a
+  file is not read for it:
+
+      police (shadow): worker.md outside: Write "../../x.py" writes outside the place
 
 a hit stops the run: `parked at <step>` with the cause `off task` in the
 journal, the outcome `stopped: off task`, the tripwire and the quoted evidence

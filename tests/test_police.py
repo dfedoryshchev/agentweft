@@ -365,6 +365,96 @@ def test_a_file_named_to_be_written_and_then_written_is_a_hit():
     assert wires(hits) == ["instructions"]
 
 
+# a write outside the place
+
+
+def write(path, tool="Write"):
+    key = "notebook_path" if tool == "NotebookEdit" else "file_path"
+    return (tool, {key: path, "content": "x = 1\n"}, "")
+
+
+CAFE = "caf" + chr(0xE9) + ".py"
+
+
+@pytest.mark.parametrize("path", [
+    "../../x.py", "..\\..\\x.py", "../" + CAFE, "pkg/../../x.py",
+    "/elsewhere/x.py",
+])
+def test_a_write_outside_the_place_is_a_hit(tmp_path, path):
+    place = tmp_path / "arm" / "place"
+    hits = police.check(pieces(write(path)), place=str(place))
+    assert wires(hits) == ["outside"]
+    assert hits[0].evidence == ('Write "' + path + '" writes outside the'
+                                ' place')
+
+
+@pytest.mark.parametrize("tool", ["Edit", "MultiEdit", "NotebookEdit"])
+def test_an_edit_outside_the_place_is_a_hit(tmp_path, tool):
+    hits = police.check(pieces(write("../x.py", tool)),
+                        place=str(tmp_path / "place"))
+    assert wires(hits) == ["outside"]
+
+
+def test_a_whole_path_outside_the_place_is_a_hit(tmp_path):
+    place = tmp_path / "arm" / "place"
+    hits = police.check(pieces(write(str(tmp_path / "arm" / "fix.py"))),
+                        place=str(place))
+    assert wires(hits) == ["outside"]
+
+
+def test_a_sibling_folder_that_starts_like_the_place_is_outside(tmp_path):
+    hits = police.check(pieces(write(str(tmp_path / "place2" / "a.py"))),
+                        place=str(tmp_path / "place"))
+    assert wires(hits) == ["outside"]
+
+
+@pytest.mark.parametrize("path", [
+    "pkg/a.py", "pkg\\a.py", "./pkg/" + CAFE, "pkg/../a.py", "a.py",
+])
+def test_a_write_inside_the_place_is_no_hit(tmp_path, path):
+    hits = police.check(pieces(write(path), write(path, "Edit")),
+                        place=str(tmp_path / "place"))
+    assert hits == []
+
+
+def test_a_whole_path_inside_the_place_is_no_hit(tmp_path):
+    place = tmp_path / "place"
+    hits = police.check(pieces(write(str(place / "pkg" / CAFE)),
+                               write(str(place / "a.py")
+                                     .replace("/", "\\"), "Edit")),
+                        place=str(place))
+    assert hits == []
+
+
+def test_a_whole_path_in_another_case_on_a_drive_is_inside(tmp_path):
+    place = str(tmp_path / "Place")
+    if not police.DRIVE.match(place.replace("\\", "/")):
+        pytest.skip("no drive letter in this folder")
+    hits = police.check(pieces(write(place.swapcase() + "\\a.py")),
+                        place=place)
+    assert hits == []
+
+
+def test_a_read_outside_the_place_is_not_a_write(tmp_path):
+    hits = police.check(pieces(read("../../x.py"),
+                               ("Grep", {"pattern": "x", "path": "../.."}, "")),
+                        place=str(tmp_path / "place"))
+    assert hits == []
+
+
+@pytest.mark.parametrize("given", [{}, {"file_path": ""}, {"file_path": 7},
+                                   "not a dict"])
+def test_a_write_with_no_path_names_nothing_outside(tmp_path, given):
+    hits = police.check(pieces(("Write", given, "")),
+                        place=str(tmp_path / "place"))
+    assert hits == []
+
+
+def test_with_no_place_known_a_write_is_not_judged():
+    assert police.check(pieces(write("../../x.py"))) == []
+    assert police.check(pieces(write("../../x.py")), place="") == []
+
+
 def numbered(text, first=1):
     """-> text as the Read tool returns it, a number and a tab per line."""
     return "".join(str(first + i) + "\t" + line + "\n"
@@ -797,6 +887,49 @@ def test_police_on_still_stops_on_the_same_credential_read(
     assert end.cause == "off task" and "credentials" in end.why
     [line] = steps_of(the_folder())
     assert "mode" not in line["police"]
+
+
+OUT = [write("../../x.py"), bash("python ../../x.py", "done"),
+       write("pkg/a.py")]
+
+
+def test_shadow_records_a_write_outside_the_place_and_the_run_goes_on(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=SHADOW)
+    transcript(tmp_path, monkeypatch, "s-1", OUT)
+    fake_cli(answer("done\n", session="s-1"),
+             answer("VERDICT: ok\n\nfine\n", session="s-2"))
+    assert engine.main() == 0
+    folder = the_folder()
+    lines = steps_of(folder)
+    assert [l["step"] for l in lines] == ["worker.md", "reviewer.md"]
+    assert lines[0]["police"]["hits"] == 1
+    want = 'worker.md outside: Write "../../x.py" writes outside the place'
+    assert want in (folder / "police.md").read_text(encoding="utf-8")
+    page = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert want in page.split("## full record")[0]
+    assert want in page.split("## police")[1].split("\n## ")[0]
+    assert "police (shadow): " + want in capsys.readouterr().out
+
+
+def test_police_on_stops_on_a_write_outside_the_place(tmp_path, monkeypatch,
+                                                      fake_cli):
+    a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=ON)
+    transcript(tmp_path, monkeypatch, "s-1", OUT)
+    fake_cli(answer("done\n", session="s-1"))
+    assert engine.main() == 2
+    [end] = ends()
+    assert end.cause == "off task" and "outside" in end.why
+    assert '"../../x.py"' in end.why
+
+
+def test_police_off_says_nothing_of_a_write_outside_the_place(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "f", ["worker"])
+    transcript(tmp_path, monkeypatch, "s-1", OUT)
+    fake_cli(answer("done\n", session="s-1"))
+    assert engine.main() == 0
+    assert not (the_folder() / "police.md").exists()
 
 
 def test_police_off_records_nothing_on_the_same_read(tmp_path, monkeypatch,
