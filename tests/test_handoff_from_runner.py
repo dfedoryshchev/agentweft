@@ -249,6 +249,22 @@ SEARCHED = [
                      "diff --git a/calc.py b/calc.py\n+one")],
      "git diff 25b87c6 -- calc.py - the change"),
     (lambda t: [bash("cat calc.py", "x = 1")], "cat calc.py - the module"),
+    (lambda t: [bash("git show HEAD:a/b.py | grep -n x", "4:x")],
+     "git HEAD a/b.py (grep) - the x line"),
+    (lambda t: [bash('cd "' + str(t / "w") + '" && git show HEAD:pkg/rules'
+                     '.py | grep -n "def check\\|opts\\." ; grep -rn "check"'
+                     " tests/ | grep -i error | head",
+                     "37:def check(opts):\n48:    return found\n"
+                     "tests/test_a.py:3:    check error")],
+     "git HEAD pkg/rules.py (grep) - check reads its opts in order"),
+    (lambda t: [bash("git show HEAD:a.py", "x = 1")],
+     "a.py - the module as committed"),
+    (lambda t: [bash("git --no-pager show abc123:pkg/a.py | head -40",
+                     "x = 1")], "pkg/a.py:1-40 - the top"),
+    (lambda t: [bash("git show HEAD:pkg/caf" + chr(0xe9) + ".py | grep -n x",
+                     "4:x")], "pkg/caf" + chr(0xe9) + ".py - x"),
+    (lambda t: [bash("git show HEAD~1:pkg/b.py | cat | grep -n x", "4:x")],
+     "pkg\\b.py - x"),
 ]
 
 
@@ -318,6 +334,23 @@ NOT_SEARCHED = [
      "gradebook/ - the package"),
     (lambda t: [bash("git diff -- calc.py", "diff --git a/calc.py b/calc.py")],
      "git - the change"),
+    (lambda t: [bash("git show HEAD:a/b.py | grep -c x", "3")],
+     "git HEAD a/b.py (grep) - x"),
+    (lambda t: [bash("git show HEAD --stat", " a/b.py | 3 +-")],
+     "a/b.py - the change"),
+    (lambda t: [bash("git show HEAD:a/b.py | grep -n zzz", EMPTY)],
+     "a/b.py - x"),
+    (lambda t: [bash("git show HEAD:a/b.py", "fatal: path 'a/b.py' does not"
+                     " exist in 'HEAD'")], "a/b.py - x"),
+    (lambda t: [bash("git show HEAD:a/b.py | grep -n \"x", "4:x")],
+     "a/b.py - x"),
+    (lambda t: [bash("git show HEAD:a/b.py | wc -l", "50")], "a/b.py - x"),
+    (lambda t: [bash("git show HEAD:a/b.py > b.txt", "")], "a/b.py - x"),
+    (lambda t: [bash("git show HEAD:a/b.py | grep -n x c.py", "4:x")],
+     "a/b.py - x"),
+    (lambda t: [bash("git show HEAD:a/b.py | head -5 c.py | grep -n x",
+                     "4:x")], "a/b.py - x"),
+    (lambda t: [bash("git show HEAD: | grep -n x", "4:x")], "a/b.py - x"),
 ]
 
 

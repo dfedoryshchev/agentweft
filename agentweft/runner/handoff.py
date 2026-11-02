@@ -855,7 +855,10 @@ NAMED = (re.compile(r"^((?:[A-Za-z]:[\\/])?[^\s:]+):"),
 NUMBERED = re.compile(r"^\d+[:-]")
 # what a search prints when it found nothing, or of its own trouble
 NO_MATCH = re.compile(r"^(?:No matches found|No files found|Found 0\b"
-                      r"|(?:[ef]?grep|rg): )")
+                      r"|(?:[ef]?grep|rg): |fatal: (?:path '|invalid object"
+                      r" name|[Nn]ot a valid object name|ambiguous argument"
+                      r"|bad revision|not a git repository))")
+BLOB = re.compile(r"^[^-:\s][^:\s]*:(?![\\/])([^:\s]*[^/:\s])$")
 # what the cli itself writes for a Bash call that printed nothing, or before
 # what a failed call printed
 CLI_SAYS = re.compile(r"^(?:\(Bash completed with no output\)"
@@ -950,12 +953,36 @@ def _git_patch(args):
     return not any(a.split("=", 1)[0] in NO_PATCH for a in args[i + 1:])
 
 
+def _git_blobs(args):
+    """-> the files a `git show <rev>:<file>` stage prints, [] for any other
+    git stage, or one that also shows a commit or takes an option that
+    prints only names, counts or nothing."""
+    i = 0
+    while i < len(args) and args[i].startswith("-"):
+        i += 2 if args[i] in ("-C", "-c") else 1
+    if i >= len(args) or args[i] != "show":
+        return []
+    out = []
+    for a in args[i + 1:]:
+        if a.startswith("-"):
+            if a.split("=", 1)[0] in NO_PATCH:
+                return []
+            continue
+        m = BLOB.match(a)
+        if not m:
+            return []
+        out.append(m.group(1))
+    return out
+
+
 def _shell_searches(command):
     """-> (each search whose output reaches the call's output, as
     `_search_targets` gives it; how many statements print to the call's
     output; how many of those are such a search; whether a git stage of it
     prints a patch). a stage written to a file or piped into anything but a
-    reader reaches nothing, and a `cd` or an `export` prints nothing."""
+    reader reaches nothing, and a `cd` or an `export` prints nothing. a
+    `git show <rev>:<file>` that reaches the output prints that file, and a
+    search that reads what it pipes in, through readers alone, searches it."""
     import shlex
 
     searches, printing, searching, patch = [], 0, 0, False
@@ -969,7 +996,7 @@ def _shell_searches(command):
         if all(w and w[0] in SILENT for w in first):
             continue
         printing += 1
-        found = []
+        found, fed = [], []
         for n, stage in enumerate(stages):
             after = stages[n:]
             if any(TO_FILE.search(s) for s in after):
@@ -982,12 +1009,21 @@ def _shell_searches(command):
                 continue
             tools = [w[0].replace("\\", "/").rsplit("/", 1)[-1] if w else ""
                      for w in words]
+            came = fed
+            if n == 0 and tools[0] == "git":
+                fed = _git_blobs(words[0][1:])
+            elif not (n and tools[0] in PASS_ON and not _shell_reads(stage)):
+                fed = []
             if not all(t in PASS_ON for t in tools[1:]):
                 continue
             if tools[0] in SEARCHERS:
                 one = _search_targets(tools[0], words[0][1:])
+                if one is not None and not one[0] and came:
+                    one = (list(came), one[1], False)
                 if one is not None and one[0]:
                     found.append(one)
+            elif tools[0] == "git" and fed:
+                found.append((list(fed), False, False))
             elif tools[0] == "git":
                 patch = patch or _git_patch(words[0][1:])
         searches.extend(found)
@@ -1080,10 +1116,11 @@ def searches(session, root=None, earlier=None):
     """-> the files the session's searches covered, in order, once each: a
     grep or rg in a Bash call, or a Grep call that shows content, by the file
     it names or by a file its output names inside the folder or glob it
-    searched, and a file whose patch a git diff, show or log printed. a
-    search that prints only counts or names, or whose output goes to a file
-    or into anything but a reader, searched nothing here. None when there is
-    no transcript to read."""
+    searched, a file whose patch a git diff, show or log printed, and a file
+    a `git show <rev>:<file>` printed or piped into a search through readers
+    alone. a search that prints only counts or names, or whose output goes
+    to a file or into anything but a reader, searched nothing here. None
+    when there is no transcript to read."""
     pieces = _pieces(session, earlier)
     if pieces is None:
         return None

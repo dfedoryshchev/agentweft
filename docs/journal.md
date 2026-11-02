@@ -779,14 +779,14 @@ five sections are written by the runner alone:
   Grep call that shows content: one search of one file alone in its call by
   any line it printed; otherwise a file its output names, when every
   statement that printed was a search, or a numbered line of the call's one
-  `-n` search of one file), or one whose patch a `git diff`, `show` or `log`
-  printed. a search that printed nothing (`No matches found`, `-m 0`, grep's
-  own complaint, the cli's `(Bash completed with no output)` or a bare
-  `Exit code N`), prints only counts or names (an option by any start of its
-  name, `--coun` too), or whose output goes to a file or into anything but a
-  reader, holds nothing; nor does another program's line in the call that
-  names the file. a READ line that names a file none of those calls covered
-  is `said, not in its transcript:`. a pass with no transcript says so.
+  `-n` search of one file), one whose patch a `git diff`, `show` or `log`
+  printed, or one a `git show <rev>:<file>` printed, alone, into a reader or into a search that reads its pipe
+  (`git show HEAD:a.py | grep -n x`). a search that printed nothing (`No matches found`, `-m 0`, grep's
+  own complaint or git's, the cli's `(Bash completed with no output)` or a bare `Exit code N`), prints only
+  counts or names (an option by any start of its name, `--coun` too), or whose output goes to a file or
+  into anything but a reader, holds nothing; nor does another program's line in the call that names the
+  file. a READ line that names a file none of those calls covered is `said, not in its transcript:`. a pass
+  with no transcript says so.
 - **tests and checks**: each new test's red-first record, ending `- encodes
   TASK.md:12 (patcher)` when a step's line names the test and a spec line.
 - **see the fix by hand**: on a run that finished holding a red proof shown
