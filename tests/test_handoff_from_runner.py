@@ -382,3 +382,171 @@ def test_each_gate_s_command_sits_beside_its_own_result_after_a_runner_check(
     assert [(g["gate"], g["command"]) for g in p["gates"]] == [
         ("quote", ""), ("length", ""), ("command", "python -m pytest -q"),
         ("command", "ruff check")]
+
+
+FIFTY = "".join("line " + str(n) + "\n" for n in range(1, 51))
+NAMED = "pkg/caf" + chr(0xe9) + ".py"
+
+
+def a_place(tmp_path):
+    place = tmp_path / "place"
+    (place / "pkg").mkdir(parents=True)
+    (place / "pkg" / "lines.py").write_text(FIFTY, encoding="utf-8")
+    (place / NAMED).write_bytes(b"a\r\nb\r\nc")
+    (place / "pkg" / "empty.py").write_text("", encoding="utf-8")
+    return place
+
+
+def past_of(said, place, changed=None):
+    block = handoff.parse("HANDOFF\n" + said + "\nEND HANDOFF\n")
+    return [(f["cite"], f["lines"], f["changed"])
+            for f in summary.past_end(block, place, changed)]
+
+
+def test_a_cite_past_a_file_s_last_line_is_found_with_the_file_s_length(
+        tmp_path):
+    place = a_place(tmp_path)
+    said = ("DID:\n- pkg/lines.py:98: cause 1, also `pkg/lines.py:40-60`\n"
+            "- pkg/lines.py:50 - the last line, and pkg/lines.py:1-50\n"
+            "READ:\n- pkg\\lines.py:51 - one past it\n"
+            "- " + NAMED + ":3 - its last line, with no line break after it\n"
+            "- " + NAMED + ":4 - past it\n"
+            "- pkg/empty.py:1 - an empty file\n"
+            "- pkg/gone.py:9 - not in the place\n"
+            "- " + str(place / "pkg" / "lines.py") + ":70 - by its path\n"
+            "BECAUSE:\n- it splits there\n  from: pkg/lines.py:99\n"
+            "  led to: nothing\n")
+    assert past_of(said, place) == [
+        ("pkg/lines.py:98", 50, None), ("pkg/lines.py:40-60", 50, None),
+        ("pkg/lines.py:99", 50, None), ("pkg/lines.py:51", 50, None),
+        (NAMED + ":4", 3, None), ("pkg/empty.py:1", 0, None),
+        ("pkg/lines.py:70", 50, None)]
+
+
+def test_a_command_or_output_a_step_quotes_or_a_file_elsewhere_is_no_cite(
+        tmp_path):
+    place = a_place(tmp_path)
+    (tmp_path / "out.py").write_text("x\n", encoding="utf-8")
+    said = ("VERIFIED:\n- the code splits lines\n"
+            "  cmd: grep -n x pkg/lines.py:95\n  saw: pkg/lines.py:97: x\n"
+            "DID:\n- ../out.py:7 - outside the place\n"
+            "- " + str(tmp_path / "out.py") + ":7 - outside, by its path\n"
+            "- python 3.10:5 and 12:30 name no file\n")
+    assert past_of(said, place) == []
+    for block in (handoff.parse("no block"), handoff.empty(), {},
+                  handoff.parse("HANDOFF\nDID:\nEND HANDOFF\n")):
+        assert summary.past_end(block, place) == []
+    assert summary.past_end(handoff.parse(
+        "HANDOFF\nDID:\n- pkg/lines.py:98\nEND HANDOFF\n"), None) == []
+
+
+def test_a_cite_past_the_end_says_whether_the_step_changed_the_file(tmp_path):
+    place = a_place(tmp_path)
+    seen = []
+
+    def told(want):
+        def changed(rel, data):
+            seen.append((rel, len(data)))
+            return want
+        return changed
+
+    for want in (False, True, None):
+        assert past_of("DID:\n- pkg/lines.py:98\n", place, told(want)) == [
+            ("pkg/lines.py:98", 50, want)]
+    assert seen[0] == ("pkg/lines.py",
+                       len((place / "pkg" / "lines.py").read_bytes()))
+
+
+def test_whether_the_step_changed_a_cited_file_comes_from_its_snapshot_or_git(
+        tmp_path):
+    from types import SimpleNamespace
+
+    from agentweft.guardrails import snapshot
+
+    place = a_repo(tmp_path / "repo")
+    was = (place / "calc.py").read_bytes()
+    run = SimpleNamespace(workdir=place, start=None, looked=None,
+                          tree=summary.tree(place))
+    changed = engine.Run.changed_in_step
+    assert changed(run, "calc.py", was) is False
+    lf = was.replace(b"\r\n", b"\n")
+    assert changed(run, "calc.py", lf) is False
+    assert changed(run, "calc.py", lf.replace(b"\n", b"\r\n")) is False
+    assert changed(run, "calc.py", b"x\n") is None
+    (place / "new.py").write_text("x\n", encoding="utf-8")
+    assert changed(run, "new.py", b"x\n") is None
+    run.start = SimpleNamespace(root=place)
+    run.looked = ({}, {}, {"calc.py": snapshot._sha(b"x\n")})
+    assert changed(run, "calc.py", b"x\n") is False
+    assert changed(run, "calc.py", was) is True
+    assert changed(run, "new.py", b"x\n") is None
+    elsewhere = tmp_path / "loose"
+    elsewhere.mkdir()
+    assert changed(SimpleNamespace(workdir=elsewhere, start=None,
+                                   looked=None,
+                                   tree=summary.tree(elsewhere)),
+                   "calc.py", was) is None
+
+
+def test_the_read_section_flags_a_cite_past_a_file_s_end_on_its_step():
+    p = summary.a_pass("worker.md", "worker", 1.0, handoff.parse(WORKER), [],
+                       False, "ok", "", facts={"read": None, "past_end": [
+                           {"cite": "pkg/lines.py:98", "lines": 50,
+                            "changed": False},
+                           {"cite": "pkg/a.py:95", "lines": 80,
+                            "changed": True},
+                           {"cite": "pkg/b.py:9", "lines": 3,
+                            "changed": None}]})
+    assert summary.read_lines([p])[-1] == (
+        "  cites past a file's last line: pkg/lines.py:98 (50 lines);"
+        " pkg/a.py:95 (80 lines after this step, which changed the file);"
+        " pkg/b.py:9 (3 lines after this step, which may have changed the"
+        " file)")
+    alone = summary.a_pass("worker.md", "worker", 1.0, handoff.empty(), [],
+                           False, "ok", "", facts={"read": None, "past_end": [
+                               {"cite": "pkg/lines.py:98", "lines": 50,
+                                "changed": False}]})
+    assert summary.read_lines([alone]) == [
+        "- worker.md: no transcript to read it from",
+        "  cites past a file's last line: pkg/lines.py:98 (50 lines)"]
+
+
+def test_a_cite_past_a_file_s_end_is_flagged_on_its_step_as_the_file_stood(
+        tmp_path, monkeypatch, fake_cli):
+    from test_stops import steps_of
+
+    place = a_repo(tmp_path / "repo")
+    (place / "pkg").mkdir()
+    (place / "pkg" / "lines.py").write_text(FIFTY, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "more")
+    monkeypatch.setattr(handoff, "PROJECTS", tmp_path / "projects")
+    a_flow(tmp_path, monkeypatch, "two", ["worker", "patcher"],
+           tail="workdir: " + place.as_posix() + "\n" + CLAUDE)
+    cited = ("done\n\nHANDOFF\nDID:\n- pkg/lines.py:98: splits on every"
+             " line break\nEND HANDOFF\n")
+    fake_cli(answer(cited.replace("\nEND", "\n- pkg/new.py:5 - to be made"
+                                  "\nEND"), session="w-1"),
+             answer(cited.replace("done", "fixed"), session="p-1"))
+    real = engine.Run.step
+
+    def step(self, name, *a, **kw):
+        if name == "patcher.md":
+            (place / "pkg" / "lines.py").write_text(FIFTY * 3,
+                                                     encoding="utf-8")
+            (place / "pkg" / "new.py").write_text("a\nb\nc\n",
+                                                  encoding="utf-8")
+        return real(self, name, *a, **kw)
+
+    monkeypatch.setattr(engine.Run, "step", step)
+    assert engine.main() == 0
+    folder = the_folder()
+    read = section((folder / summary.FILE).read_text(encoding="utf-8"),
+                   "read")
+    assert read.split("\n")[:2] == [
+        "- worker.md: no transcript to read it from",
+        "  cites past a file's last line: pkg/lines.py:98 (50 lines)"], read
+    assert read.count("cites past") == 1
+    assert [(s["step"], s.get("past_end")) for s in steps_of(folder)][:2] == [
+        ("worker.md", [{"cite": "pkg/lines.py:98", "lines": 50,
+                        "changed": False}]), ("patcher.md", None)]

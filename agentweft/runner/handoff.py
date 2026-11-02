@@ -209,6 +209,37 @@ def parse(text):
     return out
 
 
+CITE = re.compile(r"(?<![\w./\\:-])((?:[A-Za-z]:[\\/])?(?:[\w.\\/-]*\w\.\w+"
+                  r"|[\w.-]+[\\/][\w.\\/-]*\w)):(\d+)(?:-(\d+))?(?!\w)")
+
+
+def cites(block):
+    """-> [(path, first line, last line)] for each `<file>:<line>` or
+    `<file>:<a>-<b>` the block's own words name, once each, in the order of
+    its sections: a VERIFIED item by its claim, never the command it ran or
+    what that printed, and an open question by its words."""
+    if not isinstance(block, dict):
+        return []
+    texts = []
+    for _, key in SECTIONS:
+        for item in block.get(key) or []:
+            texts.append(item.get("claim", "") if isinstance(item, dict)
+                         else item)
+    texts.extend(q.get("question", "") for q in block.get("questions") or []
+                 if isinstance(q, dict))
+    for items in (block.get("other") or {}).values():
+        texts.extend(items)
+    out = []
+    for text in texts:
+        for m in CITE.finditer(text if isinstance(text, str) else ""):
+            first = int(m.group(2))
+            found = (m.group(1).replace("\\", "/"), first,
+                     max(first, int(m.group(3) or first)))
+            if found not in out:
+                out.append(found)
+    return out
+
+
 def _labelled(line, labels=PART):
     """-> a `cmd:` / `saw:` line under a VERIFIED claim, or with `labels`
     ASSUMING a `why:` / `if wrong:` line under an ASSUMED one, bullet taken

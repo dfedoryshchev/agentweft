@@ -170,7 +170,20 @@ def check_step(run, route, step, out, run_dir=None):
     the check of each fact whose scope the step changed runs here too, its
     lines put on `out.meta["conformance"]`; with `conformance: fail` a
     broken one is a failed gate.
+
+    each `<file>:<lines>` the step's block names past the end of the file
+    as the step left it goes on `out.meta["past_end"]` (`summary.past_end`),
+    read before any gate runs code in the place.
     """
+    from .handoff import parse
+    from .summary import past_end
+
+    block = getattr(out, "block", None)
+    found = past_end(block if isinstance(block, dict) else parse(
+        out.output or ""), getattr(run, "workdir", None),
+        getattr(run, "changed_in_step", None))
+    if found:
+        out.meta["past_end"] = found
     held = getattr(run, "held", lambda g, s: g.run)
     results = [clocked(held(g, step), without(out.output))
                for g in run.gates_for(step)]

@@ -289,7 +289,7 @@ class Entry(object):
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
-                 "conformance", "case", "held")
+                 "conformance", "past_end", "case", "held")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -315,6 +315,7 @@ class Entry(object):
         self.facts = None
         # what each fact's check said after this pass changed its scope
         self.conformance = None
+        self.past_end = None
         # on the test writer's pass only: the case a reviewer named, as held
         # to the code (`wouldpass.held`)
         self.case = None
@@ -384,6 +385,8 @@ class Trail(object):
             entry.written["facts"] = entry.facts
         if entry.conformance:
             entry.written["conformance"] = entry.conformance
+        if entry.past_end:
+            entry.written["past_end"] = entry.past_end
         if entry.written.get("fallback"):
             print(switched_said(entry.step, entry.written["fallback"]))
         self.held.append((entry, outcome))

@@ -85,6 +85,8 @@ def scored(flow, fm, provider, task, trail, workdir):
         entry.proved = output is not None and bool(out.meta.get("proved"))
         entry.conformance = out.meta.pop("conformance", None) \
             if output is not None else None
+        entry.past_end = out.meta.pop("past_end", None) \
+            if output is not None else None
         entry.case = case
         kept.close(entry, outcome, why=why, to=to, cause=cause)
         return entry

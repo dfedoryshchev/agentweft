@@ -600,6 +600,7 @@ def go(leg):
             entry.gates = out.meta.get("gates", [])
             entry.ungated = out.meta.get("ungated")
             entry.conformance = out.meta.pop("conformance", None)
+            entry.past_end = out.meta.pop("past_end", None)
             spec_asks = out.meta.pop("spec_ruling", None)
             if spec_asks:
                 print(step + " removed or rewrote a line of the spec")

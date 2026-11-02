@@ -565,6 +565,7 @@ def facts_of(line, root=None):
     out["read"] = read_of(sessions, root, line.get("continued"))
     out["searched"] = searched_of(sessions, root, line.get("continued"))
     out["conformance"] = line.get("conformance") or []
+    out["past_end"] = line.get("past_end") or []
     out["checked"] = line.get("checked")
     out["prevented"] = [g.get("gate") or "a gate" for g in line.get("gates")
                         or [] if isinstance(g, dict) and g.get("prevented")]
@@ -1375,15 +1376,64 @@ def _named(item, paths):
             for p in paths) for s in said)
 
 
+def line_count(data):
+    """-> how many lines `data`, a file's bytes, holds: a last line with no
+    line break after it is one."""
+    return data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+
+
+def past_end(block, place, changed=None):
+    """-> {"cite", "lines", "changed"} for each `<file>:<lines>` the block
+    names (`handoff.cites`) whose last line is past the end of that file as
+    the place holds it now: the cite from the top of the place, the file's
+    line count, and what `changed(path, bytes)` says of whether the step
+    changed the file (True, False, None for not known; None with no
+    `changed`). a file not in the place, or not there, is not read."""
+    if place is None:
+        return []
+    root = Path(place).resolve()
+    out = []
+    for path, first, last in handoff.cites(block):
+        try:
+            target = (root / path).resolve()
+            rel = target.relative_to(root).as_posix()
+        except (ValueError, OSError):
+            continue
+        try:
+            data = target.read_bytes() if target.is_file() else None
+        except OSError:
+            data = None
+        if data is None or last <= line_count(data):
+            continue
+        cite = rel + ":" + _span(first, last)
+        if any(f["cite"] == cite for f in out):
+            continue
+        out.append({"cite": cite, "lines": line_count(data),
+                    "changed": changed(rel, data) if callable(changed)
+                    else None})
+    return out
+
+
+def _past_said(found):
+    how = {False: "", True: " after this step, which changed the file",
+           None: " after this step, which may have changed the file"}
+    return "; ".join(f.get("cite", "") + " (" + str(f.get("lines")) + " lines"
+                     + how.get(f.get("changed"), how[None]) + ")"
+                     for f in found if isinstance(f, dict))
+
+
 def read_lines(passes):
     """the files and ranges each pass read, from its transcript, and the
     READ lines the step wrote beside them; a READ line naming a file no call
-    of its transcript printed or searched is marked so."""
+    of its transcript printed or searched is marked so, and so is every
+    `<file>:<lines>` its block named past the end of the file as the step
+    left it (`past_end`)."""
     out = []
     for p in passes:
         found = p.get("facts", {}).get("read")
         said = p["block"]["read"] if _present(p["block"]) else []
-        if found is None and not said:
+        past = p.get("facts", {}).get("past_end") or []
+        if found is None and not said and not past:
             continue
         if found is None:
             out.append("- " + at(p) + ": no transcript to read it from")
@@ -1397,6 +1447,8 @@ def read_lines(passes):
             shown = found is None or _named(item, paths)
             out.append(("  said: " if shown else
                         "  said, not in its transcript: ") + item)
+        if past:
+            out.append("  cites past a file's last line: " + _past_said(past))
     return out or ["- no pass has a transcript or a READ line"]
 
 

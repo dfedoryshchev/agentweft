@@ -63,6 +63,15 @@ def spec_paths(workdir):
     return out
 
 
+def _from(path, root):
+    """-> `path` from `root`, "" when it is not under it."""
+    try:
+        return Path(path).resolve().relative_to(
+            Path(root).resolve()).as_posix()
+    except (ValueError, OSError, TypeError):
+        return ""
+
+
 def replays(fm):
     """whether any step of the flow has a red-first gate, which needs the
     place as the run found it."""
@@ -316,6 +325,34 @@ class Run(object):
         when the run keeps no snapshot: it cannot tell."""
         looked = getattr(self, "looked", None)
         return looked is not None and self.start.hashes() != looked
+
+    def changed_in_step(self, rel, data):
+        """whether the step that just ran changed the file at `rel`, from the
+        top of the place, which holds `data` now: read against the snapshot
+        `look` took before it when the run keeps one; else False when git
+        shows the file as it was when the run started; None when neither can
+        tell."""
+        start, looked = getattr(self, "start", None), \
+            getattr(self, "looked", None)
+        target = Path(self.workdir) / rel
+        if start is not None and looked is not None:
+            top = _from(target, start.root)
+            before = next((d[top] for d in looked if top in d), None) \
+                if top else None
+            if before is not None:
+                return before != snapshot._sha(data)
+        tree = getattr(self, "tree", None)
+        if tree is None or not tree.git or not tree.start:
+            return None
+        top = _from(target, tree.root)
+        if not top or top in tree.dirty:
+            return None
+        was = snapshot._git(tree.root, "show", tree.start + ":" + top,
+                            text=False)
+        if was is None or was.replace(b"\r\n", b"\n") != \
+                data.replace(b"\r\n", b"\n"):
+            return None
+        return False
 
     def wrote_code(self, step):
         """note `step` as a writer of each product file that differs from
