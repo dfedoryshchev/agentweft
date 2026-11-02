@@ -757,11 +757,13 @@ def read_lines(entries, place):
 
 
 DRIVE = re.compile(r"^[A-Za-z]:/")
+SHELL_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
 
 
 def outside(path, place):
     """whether a path a tool wrote is outside the place. a relative one is
-    read from the place, where the step ran; either separator splits it."""
+    read from the place, where the step ran; either separator splits it. on
+    a place with a drive letter, Git Bash's `/d/...` is read as that drive."""
     import posixpath
     from pathlib import Path
 
@@ -772,6 +774,8 @@ def outside(path, place):
     for root in dict.fromkeys([str(place), str(Path(place).resolve())]):
         base = posixpath.normpath(root.replace("\\", "/"))
         got = full
+        if DRIVE.match(base):
+            got = SHELL_DRIVE.sub(r"\1:", got)
         if DRIVE.match(base) or DRIVE.match(got):
             base, got = base.casefold(), got.casefold()
         if got == base or got.startswith(base.rstrip("/") + "/"):

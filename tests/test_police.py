@@ -435,6 +435,49 @@ def test_a_whole_path_in_another_case_on_a_drive_is_inside(tmp_path):
     assert hits == []
 
 
+def shell_form(path):
+    """-> a drive path as Git Bash writes it, `/d/x/y` for x/y on drive d."""
+    text = str(path).replace("\\", "/")
+    if not police.DRIVE.match(text):
+        pytest.skip("no drive letter in this folder")
+    return "/" + text[0].lower() + text[2:]
+
+
+def test_a_write_inside_the_place_in_the_shells_form_is_no_hit(tmp_path):
+    place = tmp_path / "place"
+    place.mkdir()
+    upper = "/" + shell_form(place)[1].upper() + shell_form(place)[2:]
+    hits = police.check(pieces(write(shell_form(place) + "/pkg/a.py"),
+                               write(shell_form(place / "pkg" / CAFE), "Edit"),
+                               write(upper + "/a.py")),
+                        place=str(place))
+    assert hits == []
+
+
+@pytest.mark.parametrize("tail", ["/x.py", "/place2/x.py", "/" + CAFE])
+def test_a_write_outside_the_place_in_the_shells_form_is_a_hit(tmp_path,
+                                                               tail):
+    place = tmp_path / "place"
+    place.mkdir()
+    hits = police.check(pieces(write(shell_form(tmp_path) + tail)),
+                        place=str(place))
+    assert wires(hits) == ["outside"]
+
+
+@pytest.mark.parametrize("path", ["//host/share/place/a.py",
+                                  "\\\\host\\share\\place\\a.py"])
+def test_a_share_path_is_not_read_as_a_drive(tmp_path, path):
+    place = tmp_path / "place"
+    shell_form(place)
+    hits = police.check(pieces(write(path)), place=str(place))
+    assert wires(hits) == ["outside"]
+
+
+def test_a_one_letter_folder_on_a_place_with_no_drive_stays_itself():
+    assert police.outside("/d/place/a.py", "/srv/place")
+    assert not police.outside("/d/place/a.py", "/d/place")
+
+
 def test_a_read_outside_the_place_is_not_a_write(tmp_path):
     hits = police.check(pieces(read("../../x.py"),
                                ("Grep", {"pattern": "x", "path": "../.."}, "")),

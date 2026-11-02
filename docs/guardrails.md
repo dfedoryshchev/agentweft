@@ -867,9 +867,10 @@ in `steps.jsonl`:
   count.
 - `outside`: a Write, Edit, MultiEdit or NotebookEdit of a file outside the
   place the step ran in: `../../x.py`, read from the place, or a whole path
-  that is not under it (either separator; a drive letter in any case). a
-  read outside the place is not one, and a shell command that writes a
-  file is not read for it:
+  that is not under it (either separator; a drive letter in any case; on a
+  place with a drive letter, Git Bash's `/d/...` is drive d). a read
+  outside the place is not one, and a shell command that writes a file is
+  not read for it:
 
       police (shadow): worker.md outside: Write "../../x.py" writes outside the place
 
