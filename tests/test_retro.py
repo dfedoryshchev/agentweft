@@ -1,6 +1,7 @@
 """`retro: true` adds one last step that reads why each failed attempt failed
 and writes runs/<id>/retro.md. it is advice: it never fails or stops a run."""
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -124,6 +125,73 @@ def test_the_retro_is_taught_to_read_the_sibling_a_step_says_may_share_a_defect(
             " claim names it by file and line and its scope takes that file"
             " too; when it is not, retro.md says so in one line and no fact is"
             " written for it") in skill
+
+
+def test_the_retro_is_taught_to_read_the_siblings_a_doubt_says_do_the_same():
+    skill = " ".join(resolver.skill("retro").split())
+    assert ("a doubt that leaves a gap because other functions or places do"
+            " the same or follow the same pattern sends you the same way: you"
+            " read the functions or places it names or implies, and the claim"
+            " names each by file and line, or retro.md says in one line that"
+            " the pattern does not hold there") in skill
+
+
+def test_the_retro_is_taught_to_name_the_file_the_fix_touched_in_a_change():
+    skill = " ".join(resolver.skill("retro").split())
+    assert ("change: <the gate, prompt or flow.yaml key to change> for <the"
+            " file the fix touched> - <the change>") in skill
+
+
+SAME = ("direct calls to pkg.export still skip the month check; not added"
+        " because the other library functions follow the same pattern of"
+        " validating in cli.py")
+ALIKE_HEAD = ("doubts that leave a gap because other functions or places do"
+              " the same, from steps.jsonl: read each function or place named"
+              " or implied, and name it by file and line in the claim, or say"
+              " in one line that the pattern does not hold there:")
+
+
+def doubted(*doubts, key="doubts"):
+    return [({"seq": 2, "step": "patcher.md",
+              "handoff": {key: list(doubts)}}, None)]
+
+
+def alike_part(looked):
+    found = dict(retro.parts(looked, ["- none"], ["pkg/export.py"], [], [],
+                             3))
+    return found.get(ALIKE_HEAD)
+
+
+@pytest.mark.parametrize("doubt", [
+    SAME,
+    "pkg\\report.py and pkg\\budget.py do the same, so the guard stays in the"
+    " command",
+    "the other loaders follow the same approach: none checks the "
+    + "caf" + chr(0xE9) + " field",
+    "left as is: the sibling parsers does the same",
+])
+def test_a_doubt_that_leaves_a_gap_because_others_do_the_same_sends_the_retro_to_read_them(
+        doubt):
+    assert alike_part(doubted("the month is checked once", doubt)) == [
+        "- seq 2 patcher.md doubts: " + retro.stops.flat(doubt)[:retro.ITEM]]
+    prompt = retro.prompt("r-1", "f", "done", Path("."), [],
+                          more=retro.parts(doubted(doubt), ["- none"],
+                                           ["pkg/export.py"], [], [], 3))
+    assert ALIKE_HEAD + "\n- seq 2 patcher.md doubts: " in prompt
+
+
+@pytest.mark.parametrize("looked", [
+    doubted("the month is checked once in cli.py"),
+    doubted("the same test failed twice before it passed"),
+    doubted("the same month is read twice"),
+    doubted(SAME, key="did"),
+    doubted(),
+    [({"seq": 2, "step": "patcher.md", "handoff": "not a block"}, None)],
+    [({"seq": 2, "step": "patcher.md"}, None)],
+    [({"seq": 3, "step": "retro.md", "handoff": {"doubts": [SAME]}}, None)],
+])
+def test_a_doubt_with_no_such_clause_gets_no_sibling_part(looked):
+    assert alike_part(looked) == []
 
 
 def test_the_retro_is_taught_that_a_decisions_why_keeps_its_kind():

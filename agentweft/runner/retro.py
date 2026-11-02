@@ -215,6 +215,28 @@ def handed(lines):
     return out
 
 
+ALIKE = re.compile(r"\b(?:do|does|did|doing)\s+the\s+same\b"
+                   r"|\bsame\s+(?:pattern|approach|convention|shape|way)\b",
+                   re.I)
+
+
+def alike(lines):
+    """-> a line per DOUBTS item a pass not yet looked at handed over that
+    leaves a gap because other functions or places do the same, with its seq
+    and step."""
+    out = []
+    for line, _ in lines:
+        block = line.get("handoff")
+        if not isinstance(block, dict) or line.get("step") == STEP:
+            continue
+        for item in block.get("doubts") or []:
+            text = stops.flat(item if isinstance(item, str) else str(item))
+            if ALIKE.search(text):
+                out.append("- seq " + str(line.get("seq")) + " "
+                           + str(line.get("step")) + " doubts: " + text[:ITEM])
+    return out
+
+
 def gave_reasons(lines):
     """-> the lines among `lines` of the passes that gave a reason."""
     return [(line, folder) for line, folder in lines
@@ -382,6 +404,11 @@ def parts(looked, rulings, changed, stale, live, cap, docs=(),
     `led` is where the record holds what each step's reasons led to
     (`evidence`)."""
     return [("what each step handed over, from steps.jsonl:", handed(looked)),
+            ("doubts that leave a gap because other functions or places do"
+             " the same, from steps.jsonl: read each function or place named"
+             " or implied, and name it by file and line in the claim, or say"
+             " in one line that the pattern does not hold there:",
+             alike(looked)),
             ("what each step's reasons led to, as the runner found it in the"
              " record:", list(led)),
             ("rulings written in this run, from decisions.md:", rulings),

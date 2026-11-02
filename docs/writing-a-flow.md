@@ -395,7 +395,11 @@ once the handoff is written, every run that ends hands the retro role
 attempt (a gate that failed, a send-back, a stop), each gate that could not
 do its job (an `issue`, `docs/gates.md`) and each shell write a step went on
 past after the hook refused it, by seq and step; each step's DID, ASSUMED,
-TRIED and DOUBTS lines, and each defect it found beside the change (its
+TRIED and DOUBTS lines; a DOUBTS line that leaves a gap because other
+functions or places do the same or follow the same pattern again under a
+heading of its own, which sends the retro to read them and name each by file
+and line (the part is there only when a step wrote such a line); and each
+defect it found beside the change (its
 ADJACENT items, `docs/journal.md`, "what each step hands over") with whether
 it was fixed and by which test, a defect left not fixed being the retro's
 `defect` fact; for each reason a step gave (its BECAUSE items) whose `led
@@ -427,7 +431,7 @@ answers keep the reasons. a clean run is
 handed `- none failed` and the rest, so the retro keeps the facts and the
 docs even when nothing went wrong. it writes `runs/<run-id>/retro.md`: per
 failed attempt what failed, why, and which gate, prompt or `flow.yaml` key
-to change, the one change to make first, a `## docs` line per named doc,
+to change for the file the fix touched, the one change to make first, a `## docs` line per named doc,
 `current` or `ticket`, and one FACTS block. it is granted `read` and nothing
 else, whatever the flow's steps are granted.
 
