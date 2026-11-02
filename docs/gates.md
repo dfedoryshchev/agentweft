@@ -629,9 +629,14 @@ in `gates.md`:
   when the run started (a helper, a fixture, an imported name, a test) that
   is bound again further down to something else counts too, since every test
   using it now runs against the new binding though its own code is as it
-  was (`the code its tests share changed`). formatting and comments do not,
-  and neither do additions: a new name, on an import line of its own or added
-  to one the file had, and a new test method in a test class the file had.
+  was (`the code its tests share changed`). so does code added that changes
+  how those tests run: a `pytestmark` or `pytest_plugins`, a fixture with
+  `autouse`, a statement that is not a definition or an assignment to plain
+  names (a call, a module patched as the file loads), or a new name a test it
+  started with reads or takes as a fixture. formatting and comments do not,
+  and neither do other additions: a new name, on an import line of its own or
+  added to one the file had, a constant or helper for the new tests, and a
+  new test method in a test class the file had.
   a file deleted counts for every test it held
   (`deleted with its file`).
 - test files in other languages named like one (`*.test.ts`, `*Tests.cs`,
@@ -642,8 +647,9 @@ in `gates.md`:
   proves it. handoff.md's rulings section reads the file the same way at the
   end of the run, so a python test file whose removed lines leave every test
   it started with and the code they share as they were (an import line that
-  gained a name) needs no ruling; a file already loose when the run began is
-  not read that way and still does.
+  gained a name; nothing added that changes how they run) needs no ruling;
+  a file already loose when the run began is not read that way and still
+  does.
 - a change fails the step like a gate, naming each test, and the step goes
   again with that at the end of its prompt. on its last go (the flow's
   `send_backs`, once by default) the run parks for a ruling instead, cause

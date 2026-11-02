@@ -1264,6 +1264,31 @@ def test_a_test_file_whose_tests_or_their_code_changed_is_still_unruled(
     assert "UNRULED" in line, line
 
 
+WITH_PYTEST = "import pytest\n" + STARTED
+
+
+@pytest.mark.parametrize("added", [
+    "pytestmark = pytest.mark.skip\n",
+    "import calc\n\n\n@pytest.fixture(autouse=True)\ndef _fake(monkeypatch):\n"
+    "    monkeypatch.setattr(calc, 'add', lambda a, b: 3)\n",
+    "import calc\nsetattr(calc, 'add', lambda a, b: 3)\n",
+], ids=["module skip", "autouse patch", "a module patched on import"])
+def test_a_test_file_that_gained_code_changing_its_start_tests_is_unruled(
+        tmp_path, added):
+    now = WITH_PYTEST.replace("import add\n", "import add, sub\n" + added)
+    [line] = a_test_file_run(tmp_path, now, before=WITH_PYTEST)
+    assert "UNRULED" in line, line
+
+
+def test_a_test_file_that_gained_a_constant_and_a_test_needs_no_ruling(
+        tmp_path):
+    now = WITH_PYTEST.replace("import add\n", "import add, sub\n\nWANT = 'caf"
+                              + chr(0xe9) + "'\n") + (
+        "\n\ndef test_sub():\n    assert sub(3, 1) == 2, WANT\n")
+    [line] = a_test_file_run(tmp_path, now, before=WITH_PYTEST)
+    assert line.endswith(NO_RULING), line
+
+
 def test_a_test_file_the_rule_cannot_read_is_still_unruled(tmp_path):
     now = STARTED.replace("import add\n", "import add, sub\n")
     [line] = a_test_file_run(tmp_path, now, before=STARTED + "def (:\n")

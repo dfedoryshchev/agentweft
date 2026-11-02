@@ -9,10 +9,13 @@ found it:
   test the run started with that is gone or whose code is not what it was is
   a change, and so is a change to the code its tests share (a constant, a
   fixture, a helper), including a name the file had that is bound again
-  further down to something else. formatting and comments are not; new
-  names are not, on an import line of their own or added to one the file
-  had, and neither is a new test in a test class the file had, so a test
-  added beside the others can import what it needs.
+  further down to something else, and code added that changes how those
+  tests run (a `pytestmark`, an autouse fixture, a module patched as the
+  file loads, a new name a start test reads or takes as a fixture).
+  formatting and comments are not; new names are not, on an import line of
+  their own or added to one the file had, and neither is a new test in a
+  test class the file had, so a test added beside the others can import
+  what it needs.
 - a test file in another language (`*.test.ts`, `*Tests.cs`, `*_test.go`) is
   compared by line: a line removed or rewritten is a change.
 - a file deleted is a change to every test it held.
@@ -72,21 +75,95 @@ def _docstring(node):
         isinstance(node.value.value, str)
 
 
-def shared(source):
-    """-> a Counter of the code in `source` that is neither a test, an
-    import nor a docstring, each piece as a dump of its syntax tree."""
-    out = Counter()
-    for node in ast.parse(source).body:
+def _pieces(tree):
+    """-> [(key, node, the collected test class it is in or None)] for the
+    code at the top of `tree` that is neither a test, an import nor a
+    docstring, the members of a collected test class one by one."""
+    out = []
+    for node in tree.body:
         if isinstance(node, (ast.Import, ast.ImportFrom)) or \
                 _is_test_func(node) or _docstring(node):
             continue
         if isinstance(node, ast.ClassDef) and collected(node):
             for member in node.body:
                 if not _is_test_func(member) and not _docstring(member):
-                    out[node.name + "." + ast.dump(member)] += 1
+                    out.append((node.name + "." + ast.dump(member), member,
+                                node.name))
             continue
-        out[ast.dump(node)] += 1
+        out.append((ast.dump(node), node, None))
     return out
+
+
+def shared(source):
+    """-> a Counter of the code in `source` that is neither a test, an
+    import nor a docstring, each piece as a dump of its syntax tree."""
+    return Counter(key for key, _, _ in _pieces(ast.parse(source)))
+
+
+def _autouse(decorator):
+    return isinstance(decorator, ast.Call) and any(
+        k.arg in ("autouse", None) and not (
+            isinstance(k.value, ast.Constant) and not k.value.value)
+        for k in decorator.keywords)
+
+
+def _plain(target):
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return all(_plain(t) for t in target.elts)
+    return isinstance(target, ast.Name) and not target.id.startswith("pytest")
+
+
+def _acts(node):
+    """whether a statement added beside the tests changes how the tests
+    around it run: anything but a definition or an assignment to plain
+    names, a name pytest reads (`pytestmark`, `pytest_plugins`) and a
+    fixture with autouse among them."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return node.name.startswith("pytest") or \
+            any(_autouse(d) for d in node.decorator_list)
+    if isinstance(node, ast.Assign):
+        return not all(_plain(t) for t in node.targets)
+    if isinstance(node, ast.AnnAssign):
+        return not _plain(node.target)
+    return True
+
+
+def _start_tests(tree):
+    for node in tree.body:
+        if _is_test_func(node):
+            yield node
+        elif isinstance(node, ast.ClassDef) and collected(node):
+            for member in node.body:
+                if _is_test_func(member):
+                    yield member
+
+
+def added_code(was, now):
+    """whether code `now` gained beside the tests `was` held changes how
+    those tests run: a new piece `_acts` holds, at the top or in a test
+    class the file had, or a new name a start test reads or takes as a
+    fixture, which it found elsewhere before."""
+    then, later = ast.parse(was), ast.parse(now)
+    classes = {n.name for n in then.body
+               if isinstance(n, ast.ClassDef) and collected(n)}
+    before = shared(was)
+    for key, node, owner in _pieces(later):
+        if owner is not None and owner not in classes:
+            continue
+        if before[key] > 0:
+            before[key] -= 1
+        elif _acts(node):
+            return True
+    used = set()
+    for test in _start_tests(then):
+        for n in ast.walk(test):
+            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+                used.add(n.id)
+            elif isinstance(n, ast.arg):
+                used.add(n.arg)
+    bound = last_bindings(was)
+    return any(name in used and name not in bound
+               for name in last_bindings(now))
 
 
 COMPOUND = (ast.If, ast.Try, ast.With, ast.For, ast.While)
@@ -171,7 +248,8 @@ def _python(name, was, now):
             items.append((t, REMOVED))
         elif new[t] != code:
             items.append((t, CHANGED))
-    if shared(was) - shared(now) or rebound(was, now):
+    if shared(was) - shared(now) or rebound(was, now) or \
+            (old and added_code(was, now)):
         items.append((name, SHARED))
     return Edit(name, items, len(set(new) - set(old)))
 

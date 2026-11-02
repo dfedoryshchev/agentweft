@@ -390,6 +390,90 @@ def test_a_start_test_class_whose_own_code_changed_is_still_a_change():
         (FILE + "::TestReport::test_alphabetical", "changed")]
 
 
+PYTEST = "import pytest" + NL
+AUTOUSE = ("@pytest.fixture(autouse=True)" + NL + "def _fake(monkeypatch):"
+           + NL + "    monkeypatch.setattr(report, 'report', sorted)" + NL)
+BY_NAME = ("def test_alphabetical(names):" + NL
+           + "    assert listed(names) == sorted(names)" + NL)
+
+
+@pytest.mark.parametrize("added", [
+    "pytestmark = pytest.mark.skip" + NL,
+    "pytestmark: list = [pytest.mark.skip]" + NL,
+    "pytest_plugins = ['fakes']" + NL,
+    AUTOUSE,
+    AUTOUSE.replace("autouse=True", "scope='module', autouse=1"),
+    "report.report = lambda names: ['a', 'b']" + NL,
+    "vars(report)['report'] = sorted" + NL,
+    "setattr(report, 'report', sorted)" + NL,
+    "if True:" + NL + "    report.report = sorted" + NL,
+], ids=["module skip", "annotated mark", "plugins", "autouse fixture",
+        "autouse among keywords", "an attribute set", "a subscript set",
+        "a bare call", "a block"])
+def test_code_added_that_changes_how_the_start_tests_run_is_a_change(added):
+    from agentweft.guardrails import testedits
+
+    was = PYTEST + HEAD + NL + NL + RIGHT
+    now = PYTEST + HEAD.replace("listed", "listed, count") + NL + NL + added \
+        + NL + NL + RIGHT
+    assert testedits._python(FILE, was, now).items == SHARED_ITEM, added
+    assert not testedits.added_only(FILE, was, now)
+
+
+def test_a_mark_or_an_autouse_fixture_added_to_a_test_class_is_a_change():
+    from agentweft.guardrails import testedits
+
+    was = PYTEST + HEAD + NL + NL + CLASS
+    for member in ("    pytestmark = pytest.mark.skip" + NL,
+                   "    " + AUTOUSE.replace(NL, NL + "    ").rstrip(" ")
+                   .replace("monkeypatch)", "self, monkeypatch)")):
+        now = was + NL + member
+        assert testedits._python(FILE, was, now).items == SHARED_ITEM, member
+
+
+def test_a_new_name_a_start_test_reads_or_takes_is_a_change():
+    from agentweft.guardrails import testedits
+
+    was = PYTEST + HEAD + NL + NL + BY_NAME
+    for added in ("@pytest.fixture" + NL + "def names():" + NL
+                  + "    return []" + NL,
+                  "sorted = list" + NL,
+                  "from fakes import sorted" + NL):
+        now = PYTEST + HEAD + NL + added + NL + NL + BY_NAME
+        assert testedits._python(FILE, was, now).items == SHARED_ITEM, added
+
+
+@pytest.mark.parametrize("added", [
+    "EXPECTED = 'caf" + chr(0xE9) + "'" + NL,
+    "def pairs():" + NL + "    return ['b', 'a']" + NL,
+    "@pytest.fixture" + NL + "def pairs():" + NL + "    return ['b']" + NL,
+    AUTOUSE.replace("autouse=True", "autouse=False"),
+    '"""the report tests."""' + NL,
+    "class TestCount:" + NL + "    pytestmark = pytest.mark.slow" + NL + NL
+    + "    def test_count(self):" + NL + "        assert report.count(['a'])"
+    " == 1" + NL,
+], ids=["a constant", "a helper", "a fixture", "autouse off", "a docstring",
+        "a new test class with its own mark"])
+def test_code_added_for_new_tests_only_is_not_a_change(added):
+    from agentweft.guardrails import testedits
+
+    was = PYTEST + HEAD + NL + NL + RIGHT
+    now = PYTEST + HEAD + NL + NL + added + NL + NL + RIGHT + NL + NL \
+        + COUNT.replace("report.count", "count")
+    now = now.replace("as listed", "as listed, count")
+    assert testedits._python(FILE, was, now).items == [], added
+    assert testedits.added_only(FILE, was, now)
+
+
+def test_a_mark_added_to_a_file_that_started_with_no_tests_changes_none():
+    from agentweft.guardrails import testedits
+
+    was = PYTEST + HEAD
+    now = was + NL + "pytestmark = pytest.mark.skip" + NL + NL + NL + RIGHT
+    assert testedits._python(FILE, was, now).items == []
+    assert testedits._python(FILE, "", "pytestmark = 1" + NL).items == []
+
+
 def test_a_tester_that_extends_an_import_line_is_not_sent_back_for_it(
         tmp_path, monkeypatch):
     place = a_place(tmp_path / "repo")
