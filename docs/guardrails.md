@@ -631,13 +631,19 @@ a ticket is handed to a step on its file under its own header, never as a
 rule, and the planner folds it into the run or says why not (`docs/flows.md`,
 "the brief the run keeps"). once the leg has ended the runner retires each
 live ticket the run was handed that is done, `retired: <day> done in run
-<id>`: a step's DID item names its id and nothing in it says it was not
-done ("not done", "left for later"), and the lines its evidence cites in
-its file are no longer there as the run found them (moved lines are still
-there; for evidence cited in another file, its file changed); or its check
-no longer holds. each other one it was handed gains one on
-`untaken: <n>`, and at 5 it is marked stale, `stale: <day> not taken in 5
-runs it was handed to`, for the retro to argue again or retire.
+<id>`: a step's DID item names its id and does not say it was not done
+(a word such as "not", "left" or "skipped" before the id or opening what
+follows it, "F-0001: not done", "left F-0001 for later", or a doing negated
+anywhere, "did not", "could not"; elsewhere in the item "no longer" or
+"without" are a done's own words), and the lines its evidence cites in its
+file are no longer there as the run found them (moved lines are still
+there; for evidence cited in another file, its file changed); on a test
+file, the file gained a test or changed one it held, or those lines went
+with every test it held still there, so a test added for the ticket does
+it and a file emptied or deleted does not; or its check no longer holds.
+each other one it was handed gains one on `untaken: <n>`, and at 5 it is
+marked stale, `stale: <day> not taken in 5 runs it was handed to`, for the
+retro to argue again or retire.
 
 ### a fact's check
 

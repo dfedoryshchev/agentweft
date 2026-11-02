@@ -181,6 +181,115 @@ def test_a_did_line_with_its_file_unchanged_retires_nothing(tmp_path):
     assert fact.status == facts.LIVE and fact.get("untaken") == "1"
 
 
+@pytest.mark.parametrize("did", [
+    "F-0001: the raise no longer has a bare message",
+    "F-0001: the raise names the line, without a new helper",
+    "F-0001: named the line the worker left out",
+    "F-0001 - the raise names the line; nothing else changed",
+])
+def test_a_did_that_says_it_was_done_in_plain_words_retires_the_ticket(
+        tmp_path, did):
+    a_place(tmp_path)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "pkg/a.py", CODE.replace("raise ValueError('empty')",
+                                           "raise ValueError('empty line')"))
+    lines = [{"facts_attached": ["F-0001"], "handoff": {"did": [did]}}]
+    assert store.runway(lines, "run-9") == (["F-0001"], []), did
+    assert facts.read(tmp_path)[0].status == facts.RETIRED
+
+
+@pytest.mark.parametrize("did", [
+    "left F-0001 for a later run", "skipped F-0001", "F-0001: still open",
+    "F-0001 isn't done", "F-0001: couldn't name the line, the caller differs",
+    "F-0001: I did not get to it", "F-0001: deferred",
+    "F-0001: it was not needed", "did F-0002; not F-0001",
+])
+def test_a_did_that_negates_the_ticket_or_its_doing_retires_nothing(
+        tmp_path, did):
+    a_place(tmp_path)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "pkg/a.py", CODE.replace("raise ValueError('empty')",
+                                           "raise ValueError('empty line')"))
+    lines = [{"facts_attached": ["F-0001"], "handoff": {"did": [did]}}]
+    assert store.runway(lines, "run-9") == ([], []), did
+
+
+TESTS = NL.join(["from pkg.a import parse", "", "",
+                 "def test_parse_splits():",
+                 "    assert parse('a b') == ['a', 'b']", ""])
+EMPTY = NL.join(["", "", "def test_parse_empty_caf" + chr(0xE9) + "():",
+                 "    with pytest.raises(ValueError):", "        parse('')",
+                 ""])
+
+
+def a_test_ticket(tmp_path, rel="tests/test_a.py", text=TESTS, cite=4):
+    put(tmp_path, rel, text)
+    put(tmp_path, "facts/" + rel + ".md", NL.join([
+        "## F-0001 live", "scope: " + rel.replace("/", "\\"),
+        "kind: nice-to-do", "claim: add a case that parse raises on an empty"
+        " line", "why: the worker changed parse and no test holds the raise",
+        "source: run r-1 step worker.md seq 2; evidence: " + rel + ":"
+        + str(cite) + ' "' + text.split(NL)[cite - 1].strip()[:12] + '"'])
+        + NL)
+
+
+def test_a_test_gap_ticket_done_by_an_added_test_is_retired(tmp_path):
+    a_test_ticket(tmp_path)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "tests/test_a.py", TESTS + EMPTY)
+    lines = [{"facts_attached": ["F-0001"],
+              "handoff": {"did": ["F-0001: added test_parse_empty"]}}]
+    assert store.runway(lines, "run-9") == (["F-0001"], [])
+
+
+def test_a_test_gap_ticket_done_in_a_test_it_held_is_retired(tmp_path):
+    a_test_ticket(tmp_path)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "tests/test_a.py", TESTS + "    assert parse('') == []" + NL)
+    lines = [{"facts_attached": ["F-0001"],
+              "handoff": {"did": ["F-0001: the split test holds the empty"
+                                  " line"]}}]
+    assert store.runway(lines, "run-9") == (["F-0001"], [])
+
+
+def test_a_ticket_on_a_test_file_in_another_language_done_by_lines_added(
+        tmp_path):
+    ts = NL.join(["import { parse } from '../src/a';", "",
+                  "test('splits', () => {",
+                  "  expect(parse('a b')).toEqual(['a', 'b']);", "});", ""])
+    a_test_ticket(tmp_path, "src/a.test.ts", ts, 3)
+    store = factsguard.Store(tmp_path)
+    put(tmp_path, "src/a.test.ts", ts + NL.join([
+        "test('empty', () => {", "  expect(() => parse('')).toThrow();",
+        "});", ""]))
+    lines = [{"facts_attached": ["F-0001"],
+              "handoff": {"did": ["F-0001: added the empty case"]}}]
+    assert store.runway(lines, "run-9") == (["F-0001"], [])
+
+
+@pytest.mark.parametrize("did, now", [
+    ("F-0001: not done, left for a later run", TESTS + EMPTY),
+    ("F-0001 was not taken in", TESTS + EMPTY),
+    ("F-0002: added test_parse_empty", TESTS + EMPTY),
+    ("F-0001: added test_parse_empty", TESTS),
+    ("F-0001: added test_parse_empty", TESTS + NL + "# a note" + NL),
+    ("F-0001: added test_parse_empty", TESTS + EMPTY + "def (:" + NL),
+    ("F-0001: added test_parse_empty", None),
+    ("F-0001: added test_parse_empty", ""),
+], ids=["not done", "not taken", "another id", "file as it was",
+        "a comment only", "unparseable", "file deleted", "file emptied"])
+def test_a_test_gap_ticket_not_done_by_a_test_is_not_retired(tmp_path, did,
+                                                             now):
+    a_test_ticket(tmp_path)
+    store = factsguard.Store(tmp_path)
+    if now is None:
+        (tmp_path / "tests" / "test_a.py").unlink()
+    else:
+        put(tmp_path, "tests/test_a.py", now)
+    lines = [{"facts_attached": ["F-0001"], "handoff": {"did": [did]}}]
+    assert store.runway(lines, "run-9") == ([], []), did
+
+
 def test_a_ticket_handed_five_times_and_never_taken_goes_stale(tmp_path):
     a_place(tmp_path, untaken=4)
     store = factsguard.Store(tmp_path)

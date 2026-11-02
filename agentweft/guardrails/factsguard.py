@@ -134,10 +134,20 @@ WORD = re.compile(r"[^\s`'\"(),;<>]+")
 TICKETS = 3
 # the runs a nice-to-do is handed to and not taken in before it goes stale
 DECAY = 5
-# a DID item that names a ticket to say it was not done
+# a DID item that names a ticket to say it was not done: one of these words
+# before the id or opening what follows it, or a doing negated anywhere; read
+# anywhere else in the item they are a done's plain words ("no longer")
 UNDONE = re.compile(r"\b(?:not|no|never|none|nothing|cannot|undone|skip\w*"
                     r"|left|leav\w*|defer\w*|postpon\w*|untouched|unchanged"
-                    r"|later|instead|unable|without)\b|n't\b", re.I)
+                    r"|later|instead|unable|without|open|pending|dropped)\b"
+                    r"|\w*n't\b", re.I)
+OPENS = re.compile(r"[\s:;,.-]*(?:(?:was|is|were|are|has|have|had|been|being"
+                   r"|it|i|we|stays?|stayed|remains?|remained|kept|got|still"
+                   r"|so)\s+)*", re.I)
+NOT_DONE = re.compile(r"\b(?:did|could|can|would|will)\s+not\b"
+                      r"|\b(?:didn't|couldn't|can't|cannot|won't|unable)\b"
+                      r"|\bnot\s+(?:done|taken|added|fixed|made|applied"
+                      r"|attempted|addressed|possible|needed|started)\b", re.I)
 # a nice-to-do's claim: the change, a few lines of one file
 TIDY = 200
 WIDE = re.compile(r"\b(?:refactor\w*|rewrit\w*|restructur\w*|redesign\w*"
@@ -327,6 +337,55 @@ def still_there(root, rel, block):
     n = len(block)
     return any(tuple(lines[i:i + n]) == block
                for i in range(len(lines) - n + 1))
+
+
+def undone(item, id):
+    """whether DID item `item` says ticket `id` was not done."""
+    text = str(item)
+    if NOT_DONE.search(text):
+        return True
+    for m in re.finditer(r"\bF-(\d+)\b", text):
+        if "F-%04d" % int(m.group(1)) != id:
+            continue
+        rest = text[m.end():]
+        rest = rest[OPENS.match(rest).end():]
+        if UNDONE.search(text[:m.start()]) or UNDONE.match(rest):
+            return True
+    return False
+
+
+def test_code(rel):
+    name = rel.rsplit("/", 1)[-1]
+    return (rel.endswith(".py") and snapshot.is_test(rel)) or \
+        snapshot.WHOLE_FILE.search(name) is not None
+
+
+def file_text(root, rel):
+    """-> the text of the file `rel` of the place, None when it is not
+    there or cannot be read."""
+    path = Path(root) / rel
+    try:
+        return "\n".join(facts.text_lines(path)) if path.is_file() else None
+    except (OSError, ValueError):
+        return None
+
+
+def tests_grew(rel, was, now):
+    """-> (whether test file text `now` holds a test `was` did not, or held
+    with other code, a line it did not have for a file in another language;
+    whether it still holds every test `was` held). (False, False) when
+    either is missing or does not parse."""
+    if was is None or now is None:
+        return False, False
+    if rel.endswith(".py"):
+        old, new = snapshot.test_ids(was, rel), snapshot.test_ids(now, rel)
+        if old is None or new is None:
+            return False, False
+        return (any(old.get(i) != code for i, code in new.items()),
+                set(old) <= set(new))
+    then, later = was.split("\n"), now.split("\n")
+    return (any(line.strip() and line not in then for line in later),
+            all(line in later for line in then if line.strip()))
 
 
 def closing(text, at=0):
@@ -566,6 +625,8 @@ class Store(object):
         self.pinned = None
         # each live nice-to-do's file as the run found it
         self.tidies = {}
+        # and the text of each one's test file, a ticket a test does
+        self.tests_then = {}
         self.taken()
         self.watch()
 
@@ -943,22 +1004,26 @@ class Store(object):
                 cited = cited_lines(self.root, f.get("source"), f.scopes[0])
                 self.tidies[f.id] = cited if cited is not None else \
                     facts.scope_digest(self.root, f.scopes, self.own)
+                if test_code(f.scopes[0]):
+                    self.tests_then[f.id] = file_text(self.root, f.scopes[0])
 
     def runway(self, lines, run_id, today=None):
         """retire each live nice-to-do handed in the run's steps.jsonl
-        `lines` once it is done: a step's DID item names its id and says
-        nothing of it not being done, and the lines its evidence cites in its
-        file are no longer there as the run found them (its file changed, for
-        evidence cited elsewhere); or its check no longer holds. count on each other one handed a run it was not taken in
-        (`untaken`), and at DECAY mark it stale. -> (the ids retired, the
-        ids gone stale)."""
+        `lines` once it is done: a step's DID item names its id and does not
+        say it was not done (`undone`), and the lines its evidence cites in
+        its file are no longer there as the run found them (its file changed,
+        for evidence cited elsewhere); on a test file, it gained a test, or
+        those lines moved with every test it held still there; or its check
+        no longer holds. count on each other one handed a run it was not
+        taken in (`untaken`), and at DECAY mark it stale. -> (the ids
+        retired, the ids gone stale)."""
         handed, did = set(), set()
         for line in lines if not self.off else ():
             handed.update((line or {}).get("facts_attached") or [])
             for item in ((line or {}).get("handoff") or {}).get("did") or []:
-                if not UNDONE.search(str(item)):
-                    did.update("F-%04d" % int(n) for n
-                               in re.findall(r"\bF-(\d+)\b", str(item)))
+                for n in re.findall(r"\bF-(\d+)\b", str(item)):
+                    if not undone(item, "F-%04d" % int(n)):
+                        did.add("F-%04d" % int(n))
         if not handed:
             return [], []
         stamp = today or datetime.date.today().isoformat()
@@ -973,6 +1038,11 @@ class Store(object):
                     if isinstance(was, tuple) else was is not None \
                     and was != facts.scope_digest(self.root, f.scopes,
                                                   self.own)
+                if f.id in self.tests_then:
+                    grew, kept = tests_grew(
+                        f.scopes[0], self.tests_then[f.id],
+                        file_text(self.root, f.scopes[0]))
+                    moved = grew or (moved and kept)
                 flipped = bool(f.get("check").strip()) \
                     and self.run(f)[0] is False
                 if f.id in did and moved or flipped:
