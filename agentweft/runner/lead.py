@@ -25,9 +25,14 @@ operator's.
 the lines are read by `verbs`, so the decision is never split on a `|`, and
 one inside a code fence or a `>` quote is not a decision.
 """
+import re
+
 from . import verbs
 
 DECIDED = "DECIDED"
+# a reason after a picked option that takes the pick back
+NO = re.compile(r"[\s.:;,-]*(?:no|not|never|nope|neither|none|wrong"
+                r"|\w+n't)\b", re.I)
 ESCALATE = "ESCALATE"
 WHY = "WHY"
 
@@ -155,14 +160,20 @@ def ticket_question(fact):
 
 def ticket_pick(head):
     """-> how the lead `head`'s DECIDED is read for a critical ticket: the
-    option its line opens on, word for word, or why it is neither. a line
-    that opens any other way, or names the other option after, is neither."""
+    option its line opens on, word for word, or why it is neither. the
+    option ends the line or is followed by a `:`, `-`, `,`, `;` or `.` whose
+    reason does not open on a no ("re-iterate now is not needed" and
+    "re-iterate now: no" are neither); a line that opens any other way, or
+    names the other option after, is neither."""
     def pick(decided):
         said = " ".join(decided.lower().split()).lstrip("`'\"*- ")
         for option, other in ((NOW, LATER), (LATER, NOW)):
             rest = said[len(option):]
-            if (said.startswith(option) and not rest[:1].isalnum()
-                    and rest[:1] != "-" and other not in rest):
+            if not said.startswith(option) or rest[:1].isalnum() \
+                    or rest[:1] == "-" or other in rest:
+                continue
+            rest = rest.lstrip("`'\"* ")
+            if not rest or rest[0] in ":-,;." and not NO.match(rest[1:]):
                 return option, ""
         return None, (head + " decided " + decided + ", neither " + NOW
                       + " nor " + LATER)

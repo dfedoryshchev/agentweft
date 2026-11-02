@@ -135,6 +135,34 @@ def test_a_decision_that_opens_on_one_option_is_that_option(decided, want):
     assert lead.ticket_pick("planner.md")(decided) == (want, "")
 
 
+@pytest.mark.parametrize("decided", [
+    "re-iterate now is not needed; the work stands",
+    "re-iterate now? no, the work stands as it is",
+    "accept as later would be wrong, the change has to come first",
+    "re-iterate now: no, the work stands",
+    "re-iterate now - not needed",
+    "`accept as later` isn't right here",
+    "accept as later (not really)",
+    "", "   ", "`",
+])
+def test_a_decision_that_names_an_option_and_then_negates_it_is_neither(
+        decided):
+    picked, why = lead.ticket_pick("planner.md")(decided)
+    assert picked is None, picked
+    assert "neither re-iterate now nor accept as later" in why
+
+
+@pytest.mark.parametrize("decided, want", [
+    ("accept as later: the message is not in the spec", lead.LATER),
+    ("`re-iterate now` - TASK.md asks for the line", lead.NOW),
+    ("re-iterate now; the caller prints 'caf" + chr(0xE9) + "' as it is",
+     lead.NOW),
+    ("**accept as later**, nothing reads it yet", lead.LATER),
+])
+def test_an_option_with_a_reason_after_a_break_still_reads(decided, want):
+    assert lead.ticket_pick("planner.md")(decided) == (want, "")
+
+
 def test_the_lead_is_asked_for_an_options_exact_words_first(tmp_path):
     put(tmp_path, "pkg/a.py", CODE)
     fields = {"scope": "pkg/a.py", "kind": "nice-to-do", "label": "critical",
