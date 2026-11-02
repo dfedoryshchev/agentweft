@@ -141,8 +141,19 @@ UNDONE = re.compile(r"\b(?:not|no|never|none|nothing|cannot|undone|skip\w*"
 # a nice-to-do's claim: the change, a few lines of one file
 TIDY = 200
 WIDE = re.compile(r"\b(?:refactor\w*|rewrit\w*|restructur\w*|redesign\w*"
-                  r"|mov(?:e|es|ed|ing)|split\w*|extract\w*|renam\w*)\b",
+                  r"|mov(?:e|es|ed|ing)|extract\w*|renam\w*)\b",
                   re.I)
+# split as a change to the code; "splits", "is split on", `.split(` and
+# splitlines are the behaviour a test checks
+SPLIT = re.compile(r"(?<![\w.])split(?:ting)?\b(?!\s*\(|\s+(?:on|by|at)\b)",
+                   re.I)
+SPLIT_SAID = re.compile(r"\b(?:is|are|was|were|be|been|being|gets?|got)\s+$",
+                        re.I)
+
+
+def splits_code(said):
+    return any(not SPLIT_SAID.search(said[:m.start()])
+               for m in SPLIT.finditer(said))
 # words that carry a nice-to-do past its one file, in its claim or its why
 SPREAD = re.compile(r"\b(?:across|(?:every|each|all)\s+(?:the\s+|other\s+)?"
                     r"(?:callers?|call\s+sites?|uses?|usages?|modules?|files?"
@@ -1356,7 +1367,8 @@ def tidy_refusal(root, p):
     """-> why a nice-to-do is not written, "" when it may be: it names one
     file of the place and nothing wider, not decisions.md, the store or a
     spec, and
-    its claim is a change of a few lines in it, no refactor or rename, that
+    its claim is a change of a few lines in it, no refactor, rename or split
+    of the code (a test of how a line splits is not one), that
     names no other file or folder (a path with or without a suffix, or a
     bare name that is a file of the place), and neither it nor its why
     carries the change past it (across, every caller, the same in). only a
@@ -1384,7 +1396,8 @@ def tidy_refusal(root, p):
              and (Path(root) / w).exists()]
     others = [w for w in named if facts.norm(w) != scopes[0]
               and w != scopes[0].rsplit("/", 1)[-1]]
-    if len(claim) > TIDY or WIDE.search(said) or SPREAD.search(said) \
+    if len(claim) > TIDY or WIDE.search(said) or splits_code(said) \
+            or SPREAD.search(said) \
             or SPREAD.search(why) or others:
         return ("a nice-to-do is a change of a few lines in " + scopes[0]
                 + " (at most " + str(TIDY) + " characters, no other file or"

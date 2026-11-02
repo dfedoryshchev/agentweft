@@ -242,6 +242,39 @@ def test_a_ticket_the_size_of_a_task_is_refused_however_it_is_worded(
     assert fact is None and "a task, not a tidy" in said, said
 
 
+@pytest.mark.parametrize("claim", [
+    'Add a unit case calling `cli._check` and `read_rows` with delimiter "\\x00"'
+    " to show U+0000 is accepted and splits fields, since argv can't carry a"
+    " NUL byte.",
+    "a test that the line splits on LF",
+    "a test that the line is split on LF only",
+    "splitlines() is never used",
+    "a case where `line.split` meets a tab",
+    "a test that 'caf" + chr(0xE9) + chr(0x2028) + "x' splits on LF only",
+    "a test that parse splitting on whitespace keeps a tab",
+])
+def test_split_as_the_behaviour_a_test_checks_is_a_tidy(tmp_path, claim):
+    fact, said = sized(tmp_path, claim)
+    assert fact is not None, said
+
+
+@pytest.mark.parametrize("claim", [
+    "split _check into two functions",
+    "split parse in pkg\\a.py into two",
+    "splitting parse into two functions",
+    "split",
+    "rename read_rows",
+])
+def test_split_as_a_change_to_the_code_stays_refused(tmp_path, claim):
+    fact, said = sized(tmp_path, claim)
+    assert fact is None and "a task, not a tidy" in said, said
+
+
+def test_an_empty_ticket_claim_is_not_written(tmp_path):
+    fact, said = sized(tmp_path, "")
+    assert fact is None and said, said
+
+
 @pytest.mark.parametrize("why", [
     "the caller prints it",
     "seq 1 worker.md renamed the flag in pkg/b.py and pkg/cli, and the raise"

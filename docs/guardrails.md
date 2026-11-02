@@ -608,7 +608,9 @@ then hold the change. on top of the rules above it is refused unless:
   `decisions.md`, a store file or a spec file;
 - its claim is a change of a few lines in that file: at most 200
   characters, no refactor, rewrite, restructure, redesign, move, split,
-  extract or rename, and no other file or folder named (a path with or
+  extract or rename (split as a change to the code: "splits fields", "is
+  split on LF", `line.split(` and `splitlines` are the behaviour a test
+  checks, and pass), and no other file or folder named (a path with or
   without a suffix, a folder ending in `/`, or a bare name that is a file
   of the place), quoted or not, save the text a doc edit's `replace
   "<now>" with "<after>"` quotes; and neither the claim nor its why carries
