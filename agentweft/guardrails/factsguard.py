@@ -164,12 +164,20 @@ SPLIT_SAID = re.compile(r"\b(?:is|are|was|were|be|been|being|gets?|got)\s+$",
 def splits_code(said):
     return any(not SPLIT_SAID.search(said[:m.start()])
                for m in SPLIT.finditer(said))
-# words that carry a nice-to-do past its one file, in its claim or its why
-SPREAD = re.compile(r"\b(?:across|(?:every|each|all)\s+(?:the\s+|other\s+)?"
-                    r"(?:callers?|call\s+sites?|uses?|usages?|modules?|files?"
-                    r"|places?)|(?:do|does|make|the)\s+same\s+(?:in|at|for|to"
-                    r"|across|with)|same\s+change|as\s+well\s+as\s+in"
-                    r"|also\s+in)\b", re.I)
+# words that carry a nice-to-do's claim past its one file by naming a scope;
+# "the same for", "also in" or "across the line" alone are plain English
+WIDER = (r"(?:callers?|call\s+sites?|uses?|usages?|modules?|files?|folders?"
+         r"|places?|packages?|functions?|codebase|repo(?:sitory)?|project)")
+SPREAD = re.compile(r"\b(?:(?:every|each|all)\s+(?:the\s+|other\s+)?" + WIDER
+                    + r"|across\s+(?:(?:the|all|every|each|its|other)\s+)*"
+                    + WIDER + r"|(?:do|does|did|doing|make|makes|apply"
+                    r"|applies)\s+(?:the\s+)?same(?:\s+(?:thing|change|fix))?"
+                    r"\s+(?:in|at|for|to|across|with)\s+(?:the\s+)?(?:other"
+                    r"|every|each|all)|same\s+change)\b", re.I)
+# the same carried to a path, read in the claim and the why: the word after
+SPREAD_TO = re.compile(r"\b(?:same(?:\s+(?:thing|change|fix))?\s+(?:in|at|for"
+                       r"|to|across|with)|across|as\s+well\s+as\s+in)\s+"
+                       r"(?:the\s+)?([^\s,;]+)", re.I)
 FILE_NAME = re.compile(r"^[\w.-]+\.(?:pyi?|[cm]?js|tsx?|jsx|md|rst|txt|go|rs"
                        r"|java|kt|cs|rb|php|json|ya?ml|toml|cfg|ini|sh|html"
                        r"|css|c|h|cc|cpp|hpp|sql)$")
@@ -1425,6 +1433,20 @@ def beyond(check, scopes):
     return ""
 
 
+def spread_to(text, scope):
+    """whether `text` carries the same change to a path that is not
+    `scope`: "the same in pkg/b.py", "across pkg/cli"."""
+    for m in SPREAD_TO.finditer(text or ""):
+        w = m.group(1).strip("`'\"().:")
+        path = w.replace("\\", "/")
+        if not ("/" in path[1:] and "://" not in path
+                or FILE_NAME.match(path.rsplit("/", 1)[-1])):
+            continue
+        if facts.norm(path) != scope and path != scope.rsplit("/", 1)[-1]:
+            return True
+    return False
+
+
 def held_as_rule(f):
     """whether a fact's check is run after a step as the project's rule: a
     live fact with one that is not a nice-to-do, whose check says only
@@ -1440,8 +1462,9 @@ def tidy_refusal(root, p):
     its claim is a change of a few lines in it, no refactor, rename or split
     of the code (a test of how a line splits is not one), that
     names no other file or folder (a path with or without a suffix, or a
-    bare name that is a file of the place), and neither it nor its why
-    carries the change past it (across, every caller, the same in). only a
+    bare name that is a file of the place), it carries the change past it
+    by no scope (every caller, across the modules, `SPREAD`) and neither
+    it nor its why by a path (the same in pkg/b.py, `spread_to`). only a
     doc edit's `replace "<now>" with "<after>"` claim keeps what it quotes
     out of that, the text the doc is to hold. the why may name other files:
     it says what the run did that makes the ticket worth it."""
@@ -1467,8 +1490,8 @@ def tidy_refusal(root, p):
     others = [w for w in named if facts.norm(w) != scopes[0]
               and w != scopes[0].rsplit("/", 1)[-1]]
     if len(claim) > TIDY or WIDE.search(said) or splits_code(said) \
-            or SPREAD.search(said) \
-            or SPREAD.search(why) or others:
+            or SPREAD.search(said) or spread_to(said, scopes[0]) \
+            or spread_to(why, scopes[0]) or others:
         return ("a nice-to-do is a change of a few lines in " + scopes[0]
                 + " (at most " + str(TIDY) + " characters, no other file or"
                 " folder, no refactor, rewrite, move or rename, and nothing"

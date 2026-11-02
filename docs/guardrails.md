@@ -613,10 +613,13 @@ then hold the change. on top of the rules above it is refused unless:
   checks, and pass), and no other file or folder named (a path with or
   without a suffix, a folder ending in `/`, or a bare name that is a file
   of the place), quoted or not, save the text a doc edit's `replace
-  "<now>" with "<after>"` quotes; and neither the claim nor its why carries
-  the change past that file ("across", "every caller", "all uses", "the
-  same in"): `... that is a task, not a tidy`. the why may name the files
-  the run changed, as the cause;
+  "<now>" with "<after>"` quotes; and the claim carries the change past
+  that file by no scope ("every caller", "all uses", "across the
+  modules", "do the same for the other ...", "same change") and neither it
+  nor its why by a path ("the same in pkg/b.py", "across pkg/cli"):
+  `... that is a task, not a tidy`. "returns the same for", "also in"
+  and "across the line" are plain words and pass. the why may name the
+  files the run changed, as the cause;
 - the run has not written `tickets_per_run` of them already (3 when
   unsaid), a cap of their own beside the facts'.
 

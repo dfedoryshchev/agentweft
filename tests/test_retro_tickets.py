@@ -285,6 +285,47 @@ def test_a_one_file_tidy_whose_why_names_the_cause_is_written(tmp_path, why):
     assert fact is not None, said
 
 
+@pytest.mark.parametrize("claim, why", [
+    ("add a case that parse returns the same for an empty line",
+     "the worker changed parse and no test holds it"),
+    ("add a case for a blank line",
+     "the worker read the blank-line rule, which is also in README.md"),
+    ("add a case for a tab inside a field",
+     "parse reads the delimiter across the whole line"),
+    ("a test that 'caf" + chr(0xE9) + "' reads the same with a tab",
+     "the raise is also in pkg\\a.py, the file this names"),
+], ids=["the same for", "also in", "across", "non-ASCII and the file itself"])
+def test_a_one_file_ticket_in_plain_words_is_written(tmp_path, claim, why):
+    fact, said = sized(tmp_path, claim, why)
+    assert fact is not None, said
+
+
+def test_a_ticket_with_no_why_is_refused_for_that_not_as_a_task(tmp_path):
+    claim = "a test that the raise names the line across a CRLF line end"
+    fact, said = sized(tmp_path, claim, "")
+    assert fact is None and said == "it has no why", said
+    a_sized_place(tmp_path / "bare")
+    assert factsguard.tidy_refusal(tmp_path / "bare", factsguard.Proposal(
+        {"scope": "pkg/a.py", "claim": claim})) == ""
+
+
+@pytest.mark.parametrize("claim, why", [
+    ("name the line in the raise and do the same for the other parsers",
+     "the caller prints it"),
+    ("name the line in the raise across all modules", "the caller prints it"),
+    ("name the line in the raise", "and the same in pkg\\b.py"),
+    ("name the line in the raise", "and the same with caf" + chr(0xE9)
+     + "/b.py"),
+    ("name the line in the raise", "do the same across pkg/cli"),
+], ids=["do the same for the other", "across all modules",
+        "a Windows path in the why", "a non-ASCII path in the why",
+        "a folder in the why"])
+def test_a_ticket_carried_to_other_code_in_any_form_stays_refused(
+        tmp_path, claim, why):
+    fact, said = sized(tmp_path, claim, why)
+    assert fact is None and "a task, not a tidy" in said, said
+
+
 def test_a_doc_edit_ticket_may_quote_doc_text_that_names_files(tmp_path):
     fact, said = sized(
         tmp_path, 'replace "parse returns a list of words." with "`parse` in'
