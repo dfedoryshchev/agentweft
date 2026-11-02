@@ -3,11 +3,11 @@ reason the record cannot find is said so.
 
 the step says it in its HANDOFF block, a BECAUSE item with its `from:` and
 `led to:` lines under it. the runner holds every `led to:` to the record it
-already has: a test id to the red proof and the gates' tests, a
-`<file>:<lines>` to the diff, a TRIED, ASSUMED or QUESTION item to the
-block's own, a DECIDED one to decisions.md. what it finds is printed in the
-why section, what it does not is `(not in the record)` and counted as
-`why_unbacked`.
+already has: a test id to the red proof, the gates' tests or a test the
+diff added or changed, a `<file>:<lines>` to the diff, a TRIED, ASSUMED or
+QUESTION item to the block's own, a DECIDED one to decisions.md. what it
+finds is printed in the why section, what it does not is `(not in the
+record)` and counted as `why_unbacked`.
 """
 import datetime
 import subprocess
@@ -563,6 +563,93 @@ def test_a_test_in_a_file_the_red_proof_holds_without_ids_is_in_the_record():
     assert held_as(said, proof=supplied) == said
     assert held_as("tests/test_other.py::test_halves_round_up",
                    proof=supplied) == summary.UNHELD
+
+
+TESTS_AT_START = ("from calc import add\n\n\ndef test_add():\n"
+                  "    assert add(1, 2) == 3\n\n\nclass TestCalc(object):\n"
+                  "    def test_neg(self):\n"
+                  "        assert add(-1, -1) == -2\n")
+
+
+def a_test_run(tmp_path, now, loose=None, more=None, start=TESTS_AT_START):
+    """-> the changes of a run whose tests/test_calc.py went from `start`
+    to `now`, `loose` the file uncommitted when it began and `more`
+    {path: text} files it added."""
+    place = tmp_path / "repo"
+    (place / "tests").mkdir(parents=True)
+    git(place, "init", "-q")
+    git(place, "config", "user.email", "t@t")
+    git(place, "config", "user.name", "t")
+    path = place / "tests" / "test_calc.py"
+    path.write_text(start, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "start")
+    if loose is not None:
+        path.write_text(loose, encoding="utf-8")
+    tree = summary.tree(place)
+    path.write_text(now, encoding="utf-8")
+    for rel, text in (more or {}).items():
+        (place / rel).write_text(text, encoding="utf-8")
+    return tree.changes()
+
+
+ADDED = TESTS_AT_START.replace(
+    "class TestCalc(", "def test_sub():\n    assert add(3, -1) == 2\n\n\n"
+    "class TestCalc(") + ("\n    def test_zero(self):\n"
+                          "        assert add(0, 0) == 0\n")
+
+
+def test_a_led_to_test_id_is_held_by_the_test_file_whose_diff_adds_it(
+        tmp_path):
+    changes = a_test_run(tmp_path, ADDED)
+    record = summary.record_of([], changes, [], None)
+    assert summary.held_at("tests/test_calc.py::test_sub", {}, record) == \
+        "the diff of tests/test_calc.py, in `test_sub`"
+    for said in ("tests/test_calc.py::test_sub",
+                 "tests/test_calc.py::TestCalc::test_zero",
+                 "tests\\test_calc.py::test_sub", "test_calc.py::test_sub"):
+        assert held_as(said, changes=changes, proof=None) == said, said
+
+
+def test_a_test_the_diff_did_not_add_or_change_is_still_not_held(tmp_path):
+    changes = a_test_run(tmp_path, ADDED)
+    for said in ("tests/test_calc.py::test_add",
+                 "tests/test_calc.py::TestCalc::test_neg",
+                 "tests/test_calc.py::test_zero", "tests/test_calc.py::test_y",
+                 "tests/test_other.py::test_sub"):
+        assert held_as(said, changes=changes, proof=None) == summary.UNHELD, \
+            said
+    record = {"ids": [], "proved": [], "commands": [], "decided": [],
+              "files": {"tests/t.py": [(1, 222)]},
+              "names": {"tests/t.py": {"test_x"}}}
+    assert summary.held_at("tests/t.py::test_x", {}, record) == ""
+
+
+def test_a_test_whose_code_the_run_changed_or_wrote_new_is_held(tmp_path):
+    name = "test_caf" + chr(0xe9)
+    changes = a_test_run(tmp_path, TESTS_AT_START.replace("== 3", "== 3, 'x'"),
+                         more={"tests/test_new.py": "def " + name + "():\n"
+                               "    assert True\n"})
+    assert held_as("tests/test_calc.py::test_add", changes=changes,
+                   proof=None) == "tests/test_calc.py::test_add"
+    said = "tests/test_new.py::" + name
+    assert held_as(said, changes=changes, proof=None) == said
+
+
+@pytest.mark.parametrize("said, now, start, loose", [
+    ("test_sub", ADDED, TESTS_AT_START, ADDED),
+    ("test_sub", ADDED + "def broken(:\n", TESTS_AT_START, None),
+    ("test_sub", ADDED, TESTS_AT_START + "def broken(:\n", None),
+    ("test_add", TESTS_AT_START.replace(
+        "def test_add():\n    assert add(1, 2) == 3\n", ""), TESTS_AT_START,
+     None),
+], ids=["loose before the run", "unparseable now", "unparseable at the start",
+        "a test removed"])
+def test_a_test_file_the_record_cannot_read_holds_no_test(tmp_path, said, now,
+                                                          start, loose):
+    changes = a_test_run(tmp_path, now, loose=loose, start=start)
+    said = "tests/test_calc.py::" + said
+    assert held_as(said, changes=changes, proof=None) == summary.UNHELD
 
 
 OWN = ("DECIDED: Leave the order between option errors unspecified. Keep"

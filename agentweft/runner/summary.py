@@ -28,6 +28,7 @@ from pathlib import Path
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_spec as spec_path
+from agentweft.guardrails.snapshot import test_ids
 from agentweft.guardrails import skips, specfiles, testedits
 
 from . import (front, handoff, investigate, lead, leftred, manifest, ruling,
@@ -209,11 +210,13 @@ class Tree(object):
         untracked one); `status` and `log` are what `git status --short` and
         `git log --oneline <start>..HEAD` print, line for line.
         `tests_added` holds the changed test files with lines removed that
-        the test-edits check reads as gaining only (`added_only`)."""
+        the test-edits check reads as gaining only (`added_only`), and
+        `test_ids` the ids of the tests the run added or changed, by file
+        (`written`)."""
         out = {"git": self.git, "start": self.start, "commits": [],
                "files": [], "tests_changed": [], "spec_changed": [],
-               "tests_added": [], "ranges": {}, "names": {}, "status": [],
-               "log": []}
+               "tests_added": [], "test_ids": {}, "ranges": {}, "names": {},
+               "status": [], "log": []}
         names = {}
         if not self.git:
             return out
@@ -271,27 +274,47 @@ class Tree(object):
                     out["tests_changed"].append((path, a, d))
                 if is_spec(path, self.root, self.place):
                     out["spec_changed"].append((path, a, d))
-        out["tests_added"] = sorted(set(
-            path for path, a, d in out["tests_changed"]
-            if d and self.added_only(path)))
+        removed = set(path for path, a, d in out["tests_changed"] if d)
+        for path in sorted(set(f[0] for f in out["files"])):
+            read = self.test_read(path)
+            if read is None:
+                continue
+            was, now = read
+            if path in removed and was is not None and \
+                    testedits.added_only(path, was, now):
+                out["tests_added"].append(path)
+            ids = written(path, was, now)
+            if ids:
+                out["test_ids"][path] = ids
         out["names"] = dict((p, sorted(n)) for p, n in names.items())
         return out
 
-    def added_only(self, path):
-        """whether a python test file the run started with holds every test
-        and the code they share as the start commit had them. a file already
-        modified before the run is not read: the run found it as it was on
-        disk, not as committed."""
-        if not self.start or not path.endswith(".py") or path in self.dirty:
-            return False
-        was = _git(self.place, "show", self.start + ":" + path)
-        if was is None:
-            return False
+    def test_read(self, path):
+        """-> (what a python test file held at the start commit, None when
+        it was not there; what it holds now), None for a file not read: not
+        a python test, gone, or already modified before the run, which the
+        run found as it was on disk, not as committed."""
+        if not path.endswith(".py") or not is_test(path) or \
+                path in self.dirty:
+            return None
         try:
             now = (self.root / path).read_bytes().decode("utf-8", "replace")
         except OSError:
-            now = None
-        return testedits.added_only(path, was, now)
+            return None
+        return (_git(self.place, "show", self.start + ":" + path)
+                if self.start else None), now
+
+
+def written(path, was, now):
+    """-> the ids of the tests in python test source `now` that `was` did not
+    hold or held with other code, as pytest names them (`<path>::<test>`);
+    every test when `was` is None, the file new; none when either does not
+    parse."""
+    new = test_ids(now, path)
+    old = {} if was is None else test_ids(was, path)
+    if new is None or old is None:
+        return []
+    return [i for i, code in new.items() if old.get(i) != code]
 
 
 def tree(place):
@@ -913,7 +936,8 @@ def record_of(passes, changes, decided, proof):
     """-> what a reason's `led to:` is held to: the test ids the red proof and
     the gates hold, the test files the red proof holds with no id listed, the
     files the run changed with the lines each change covers and the names it
-    touches in each, and the rulings on record."""
+    touches in each, the tests it added or changed in each (`written`), and
+    the rulings on record."""
     ids, commands = [], []
     for p in passes:
         for g in p["gates"]:
@@ -927,7 +951,7 @@ def record_of(passes, changes, decided, proof):
         ids.extend(listed)
         proved = [f for f in proof.get("tests") or {}
                   if not any(_tail(i.split("::")[0], f) for i in listed)]
-    files, names = {}, {}
+    files, names, tests = {}, {}, {}
     if changes.get("git"):
         spans = changes.get("ranges") or {}
         for path, _, _, how in changes.get("files") or []:
@@ -935,8 +959,11 @@ def record_of(passes, changes, decided, proof):
                 _spans(spans.get((path, how.split(",")[0]), "")))
         names = dict((p, set(n)) for p, n in
                      (changes.get("names") or {}).items())
+        tests = dict((p, list(i)) for p, i in
+                     (changes.get("test_ids") or {}).items())
     return {"ids": ids, "proved": proved, "commands": commands,
-            "files": files, "names": names, "decided": list(decided)}
+            "files": files, "names": names, "tests": tests,
+            "decided": list(decided)}
 
 
 CODE = re.compile(r"`([^`]+)`")
@@ -998,10 +1025,11 @@ def held_at(said, block, record, step=None):
     section a step wrote into its own block, which is its own choice; the
     step's own WOULD PASS and CATCH lines, by name; a `<file>:<lines>` in
     the diff, its lines among the lines the change covers; a test id the red
-    proof or a gate holds, or one in a test file the red proof holds with no
-    id listed. a line that leads with a file or a test id and goes on with a
-    note is held to what it leads with: a function the change touches in
-    that file, its lines, each further file or test id it lists."""
+    proof or a gate holds, one in a test file the red proof holds with no id
+    listed, or one the run added or changed in a test file. a line that
+    leads with a file or a test id and goes on with a note is held to what
+    it leads with: a function the change touches in that file, its lines,
+    each further file or test id it lists."""
     said = _unquoted(said or "")
     step = step or {}
     if not said:
@@ -1130,6 +1158,11 @@ def _held(said, record):
         for f in record.get("proved", ()):
             if _tail(said.split("::")[0], f):
                 return "the red proof's test file " + f
+        for have, written_ids in (record.get("tests") or {}).items():
+            for i in written_ids:
+                if _tail(said, i):
+                    return ("the diff of " + have + ", in `"
+                            + i.split("::", 1)[1] + "`")
         for c in record["commands"]:
             if said in c:
                 return "a gate's command: " + c
