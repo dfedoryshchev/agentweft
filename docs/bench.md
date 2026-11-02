@@ -346,7 +346,10 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
 
 - `failed`: a `## seq <n> <step>` section for the attempt `gold.yaml` names
 - `cause`: that section's `why:` line holds every word `cause` lists
-- `change`: that section's `change:` line names the `change` file
+- `change`: that section's `change:` line names the `change` file. the
+  gold's rule: the change line names the file the fix touched, either
+  separator, so a process change that names no file (a new check, a prompt
+  rule) misses this point however right it is
 - `fact`: the FACTS block parses and has a fact or supersession of the gold's
   kind (one of them, when the gold lists several) with one of the gold's
   scopes, and its label when the gold names one,
@@ -366,9 +369,12 @@ items it is scored on in `gold.yaml`, and an answer scores one for each of:
 
 the four cases with a failed attempt are scored on the first four,
 `renamed-flag` on the ticket, and `ruled-open` on the fact, a `why` or
-`decision` labelled `important`, as the retro skill asks: the open clause does not make it an `investigation`. a change sent to the wrong file scores 0
-whatever else it got right. a case passes when every one of the k repeats
-scores all its items; the gold itself does on every case, and a test holds
+`decision` labelled `important`, as the retro skill asks: the open clause does not make it an `investigation`. the score
+is the points held, each counted on its own: a change sent to the wrong file
+misses the change point and keeps the others, so an answer with the attempt
+and the cause right and the change and the fact missed scores 2 of 4. an
+answer passes only with every point; a case passes when every one of the k
+repeats scores all its items; the gold itself does on every case, and a test holds
 it there. each row keeps `reader`, None until a
 blind reader gives the change text and the fact's why 0 to 2.
 

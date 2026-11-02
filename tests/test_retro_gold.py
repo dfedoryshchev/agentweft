@@ -8,6 +8,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.bench import __main__ as bench
 from agentweft.bench import retrogold
@@ -137,13 +139,43 @@ def test_a_fact_the_runner_would_refuse_scores_no_fact_point():
                   for p in place.rglob("*")) == before
 
 
-def test_an_answer_that_sends_the_change_to_the_wrong_file_gets_nothing():
+def test_an_answer_that_sends_the_change_to_the_wrong_file_misses_the_change():
     case = CASES / "cross-file"
     wrong = retrogold.answer_of(case).replace("logcount/reader.py",
                                               "logcount/cli.py")
     got = retrogold.score(wrong, retrogold.gold_of(case), case)
-    assert got["change"] == 0
-    assert (got["score"], got["passed"]) == (0, False)
+    assert (got["failed"], got["cause"], got["change"], got["fact"]) == (
+        1, 0, 0, 1)
+    assert (got["score"], got["passed"]) == (2, False)
+
+
+def test_a_missed_change_point_leaves_the_other_points_counted():
+    case = CASES / "cross-file"
+    gold = retrogold.answer_of(case)
+    said = gold.split("\nFACTS\n")[0].replace(
+        "change: logcount/reader.py read_inputs - raise LogcountError on an"
+        " unreadable file, never print",
+        "change: a coverage check against `git diff --name-only` - fail"
+        " the step when a file it named is untouched")
+    assert said != gold.split("\nFACTS\n")[0]
+    got = retrogold.score(said, retrogold.gold_of(case), case)
+    assert (got["failed"], got["cause"], got["change"], got["fact"]) == (
+        1, 1, 0, 0)
+    assert (got["score"], got["passed"]) == (2, False)
+    windows = gold.replace("change: logcount/reader.py",
+                           "change: logcount\\reader.py")
+    assert retrogold.score(windows, retrogold.gold_of(case), case)[
+        "passed"] is True
+
+
+@pytest.mark.parametrize("answer", ["", "## seq 3 worker.md\n",
+                                    "## seq 3 worker.md\nchange: \n",
+                                    "not an answer \x00 at all"])
+def test_an_answer_with_no_change_line_neither_passes_nor_scores_it(answer):
+    case = CASES / "cross-file"
+    got = retrogold.score(answer, retrogold.gold_of(case), case)
+    assert got["change"] == 0 and got["passed"] is False
+    assert got["score"] == got["failed"] + got["cause"] + got["fact"]
 
 
 def test_each_item_is_scored_on_its_own():

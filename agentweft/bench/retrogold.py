@@ -20,8 +20,9 @@ a case names the items it is scored on: a run with a failed attempt the
 first four, a run that left a doc stale the ticket, a run whose lead ruled
 the fact. an answer scores one for each; the fact and the ticket only when
 the runner would write them on the case's record (an edit or a test guard
-counts as the ticket the runner would keep it as). a change sent to the wrong
-file is worth nothing whatever else it got right, so it scores 0. a blind
+counts as the ticket the runner would keep it as). the change line names the
+file the fix touched, or it misses that point; every other point still
+counts, and the answer does not pass. a blind
 reader gives the change text and the fact's why 0 to 2 apart (`reader`, None
 until then). a case passes a cell when every repeat scores all its items.
 
@@ -232,7 +233,7 @@ def score(answer, gold, case):
                             for w in want["claim"]) \
                     and not refusal(case, "fact", None, ticket):
                 got["ticket"] = 1
-    total = sum(got.values()) if got.get("change", 1) else 0
+    total = sum(got.values())
     return dict(got, score=total, passed=total == len(names), reader=None)
 
 
