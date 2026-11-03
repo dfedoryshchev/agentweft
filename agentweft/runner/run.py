@@ -521,14 +521,18 @@ class Run(object):
             return None, None
         decided = self.spec_rulings()
         asked = self.runner_asked(ruling.asked_lines)
+        specs, request = self.spec_paths(), self.request()
         left, ruled = [], []
         for rel, was, now in found:
             for n, line, there in specfiles.lost(was, now):
-                d = ruling.spec_line_ruled(decided, line, asked)
+                d = ruling.spec_line_ruled(decided, line, asked, rel,
+                                           request, specs)
                 if d is None:
                     left.append((rel, n, line, there))
-                else:
-                    ruled.append((rel, n, summary.stamp(d)))
+                    continue
+                by = ruling.files_named(d, asked, request, specs).get(rel)
+                ruled.append((rel, n, summary.stamp(d) + (
+                    "; " + rel + " named to change by " + by if by else "")))
         if not left:
             return specfiles.passed(found, ruled), None
         line = specfiles.held(left)
@@ -594,9 +598,29 @@ class Run(object):
         mode = self.fm.get("spec_files")
         decided = self.spec_rulings()
         asked = self.runner_asked(ruling.asked_lines)
+        specs, request = self.spec_paths(), self.request()
         return [rel + ":" + str(n) for rel, was, now in found
                 for n, line in specfiles.moved(was, now, mode)
-                if ruling.spec_line_ruled(decided, line, asked) is None]
+                if ruling.spec_line_ruled(decided, line, asked, rel,
+                                          request, specs) is None]
+
+    def request(self):
+        return getattr(self, "task_text", None) or ""
+
+    def spec_paths(self):
+        """-> the spec files the run started with, as paths from the
+        place."""
+        start = getattr(self, "start", None)
+        if start is None or not start.hashed:
+            return set()
+        return set(start.from_place(rel) for rel in start.specs)
+
+    def spec_line_covered(self, rel, line):
+        """-> the ruling that already lets `line` of the spec file `rel`, as
+        the run found it, change, or None."""
+        return ruling.spec_line_ruled(
+            self.spec_rulings(), line, self.runner_asked(ruling.asked_lines),
+            rel, self.request(), self.spec_paths())
 
     def tests_held(self, step, last=False):
         """-> (the line for the record when a test file the run started with

@@ -385,6 +385,11 @@ after every step the runner reads them against how the run found them:
   it cites. the runner knows its own question by what it wrote in the leg's
   `manifest.json` when it parked, never by the question's words, so a step's
   own question that quotes a spec line, answered `override:`, rules nothing.
+  such an `override:` also rules every line of a spec file the request or the
+  answer names to change by its exact path (`journal.md`, the conflict's
+  answers), and `gates.md` lists each of those lines under it with who named
+  the file: `docs/api.md:3 (ruling <when> <heading>; docs/api.md named to
+  change by the request)`. a line of a file nobody named still parks.
   any other answer goes to the step, which runs again; an answer starting
   `request:` never rules one.
   the check waits for the step's other gates to pass, since a failed one

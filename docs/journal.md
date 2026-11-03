@@ -1301,7 +1301,13 @@ conflict`, exit 2, and the question is in `question.md` and in the handoff's
 
 - `override:` lets the request win. the step that stopped runs again, with
   the answer at the end of its prompt and the line `this authorises changing
-  TASK.md:3, and nothing else`.
+  TASK.md:3, and nothing else`. a spec file the request or the answer names
+  to change, by its exact path in a sentence that asks for it (`update
+  docs/api.md and rules/api-shape.md to say so`, never a folder, a glob or a
+  sentence with a no or a not), is added to that line, `and every line of
+  docs/api.md and rules/api-shape.md`, and a later CONFLICT on a line of one
+  of them carries on instead of stopping again. the request is read as it
+  was given, without the words a `request:` answer added.
 - `request:` keeps the spec. the words are added under the request, which
   stays word for word above them, and the run starts again from its first
   step that is handed the request: in fix-with-test a conflict at the patcher

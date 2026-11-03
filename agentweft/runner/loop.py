@@ -507,8 +507,11 @@ def go(leg):
                             + (blamed or step), at=blamed)
 
             honest = not forged_by(run, step)
-            said = ruling.conflict_of(out.output, run.workdir, run.start) \
-                if honest else None
+            covered = getattr(run, "spec_line_covered", None)
+            said = ruling.conflict_of(out.output, run.workdir, run.start,
+                                      ruled=covered) if honest else None
+            if honest and said is None and ruling.conflicts(out.output):
+                print(step + " cites spec lines a ruling already lets change")
             if said and not said[1]:
                 print(step + " found the request contradicts the spec")
                 return stop(stops.CONFLICT, "spec conflict: "
@@ -520,7 +523,8 @@ def go(leg):
                                 + ", ".join(ruling.authorised(said[0]))
                                 + " is there as the run found it")],
                             asked=ruling.conflict_asked(
-                                out.output, run.workdir, run.start))
+                                out.output, run.workdir, run.start,
+                                ruled=covered))
             wrong = wrongtest.judge(out.output, step, run, route) \
                 if honest else None
             if wrong and wrong[0] == "back":

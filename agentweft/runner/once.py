@@ -200,8 +200,9 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             note("failed", why, stops.NO_ANSWER, output=out.output)
             return out.output, run.budget, why
         honest = not forged_by(run, step)
-        said = ruling.conflict_of(out.output, run.workdir, run.start) \
-            if honest else None
+        said = ruling.conflict_of(out.output, run.workdir, run.start,
+                                  ruled=getattr(run, "spec_line_covered",
+                                                None)) if honest else None
         if said and not said[1]:
             note("conflict", said[0], stops.CONFLICT, output=out.output)
             return (out.output, run.budget, "spec conflict at " + step + ": "

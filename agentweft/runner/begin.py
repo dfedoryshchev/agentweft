@@ -557,14 +557,18 @@ def begin(unrecorded):
         run.rule(*raised, by="cap")
     if answer is not None:
         asker = (found.data.get("stopped") or {}).get("step") or start
+        files = ruling.files_to_change(answer, run.request(),
+                                       run.spec_paths()) \
+            if kind == ruling.OVERRIDE and ruling.asked_lines(
+                found.data.get("stopped")) else {}
         run.rule(ruling.decided(asker, answer),
                  ruling.why(asker, pick_up, question, answer, ruling.who(),
-                            kind), by="answer")
+                            kind, files), by="answer")
         if kind == ruling.REQUEST:
             print("ruled: the request is amended, and the run starts again at "
                   + start)
         else:
-            run.ruled[start] = ruling.told(question, answer, kind)
+            run.ruled[start] = ruling.told(question, answer, kind, files)
             print("ruled: " + start + " runs again with the answer")
     return Leg(flow=flow, fm=fm, run=run, route=route, record=record,
                folder=folder, run_id=run_id, started=started, clock=clock,

@@ -32,8 +32,11 @@ run on a conflict, with the question in handoff.md; one that is not fails the
 step, and so does a plan line marked `spec: contradicts` with no CONFLICT
 line. the answer to a conflict says which one holds: `override: <the new
 rule>` lets the request win and authorises that spec line to change, and
-nothing else; `request: <what to do instead>` keeps the spec, adds the words
-to the request, and starts again from the first step that reads it.
+every line of a spec file the request or the answer names to change by its
+exact path (`named_to_change`), and nothing else; a later CONFLICT on a line
+it covers does not stop the run again. `request: <what to do instead>` keeps
+the spec, adds the words to the request, and starts again from the first
+step that reads it.
 
 the lines are read by `verbs`, so one inside a code fence or a `>` quote is
 not a question: a test that asserts on the string "NEEDS:" asks nothing.
@@ -355,7 +358,48 @@ def as_found(workdir, rel, start=None):
     return data.decode("utf-8", "replace")
 
 
-def conflict_of(output, workdir, start=None, handed=()):
+def conflicts(output):
+    """-> [(what a CONFLICT line says, the words on a `request:` line
+    straight after it or "")] for every CONFLICT line of `output`."""
+    seen = verbs.visible(output)
+    out = []
+    for i, (_, line) in enumerate(seen):
+        head = verbs.key_of(line)
+        if head is None or head[0] != "CONFLICT":
+            continue
+        nxt = verbs.key_of(seen[i + 1][1]) if i + 1 < len(seen) else None
+        out.append((head[1], flat(verbs.unquoted(nxt[1]))
+                    if nxt is not None and nxt[0] == "REQUEST" else ""))
+    return out
+
+
+def unruled(output, workdir, start=None, ruled=None):
+    """-> (what the CONFLICT line the run stops on says, its request words),
+    or None when there is none. with `ruled(file, line)`, which -> the ruling
+    that already lets that spec line change or None, it is the first CONFLICT
+    line citing a line no ruling covers, and None when a ruling covers every
+    line each one cites; a line that cannot be read is never covered."""
+    found = conflicts(output)
+    if not found:
+        return None
+    if ruled is None:
+        return found[0][0], request_of(output)
+    for said, words in found:
+        m = CONFLICT.match(said.strip())
+        if not m:
+            return said, words
+        rel, first, last, quote, _ = cite_of(m)
+        lines, _ = lines_of(workdir, rel, first, last, start)
+        end = runs_to(lines, first, last, quote) \
+            if lines is not None and quote else None
+        if end is None or any(ruled(rel, lines[n - 1]) is None
+                              for n in range(first, end + 1)
+                              if lines[n - 1].strip()):
+            return said, words
+    return None
+
+
+def conflict_of(output, workdir, start=None, handed=(), ruled=None):
     """-> None for an answer with no CONFLICT line, else (the question, "")
     when the quote is at the line it cites as the run found it, or ("", what
     is wrong with it) when it is not. a quote that runs on past the cite
@@ -363,17 +407,22 @@ def conflict_of(output, workdir, start=None, handed=()):
     marks a behaviour `spec: contradicts` and has no CONFLICT line is wrong
     the same way,
     unless each line it marks is one an earlier step's answer, in `handed`,
-    already holds: that is the step quoting what it was given."""
-    said = verbs.parse(output).conflict
-    if said is None:
+    already holds: that is the step quoting what it was given. with
+    `ruled`, a CONFLICT line whose lines a ruling already lets change is
+    passed over (`unruled`), and None comes back when every one is."""
+    if verbs.parse(output).conflict is None:
         return untyped(output, handed)
+    found = unruled(output, workdir, start, ruled)
+    if found is None:
+        return None
+    said, after = found
     m = CONFLICT.match(said.strip())
     if not m:
         return "", ('the CONFLICT line is not <file>:<line> "<the line>",'
                     " with request: <the request's words> on the next line: "
                     + said)
     rel, first, last, quote, cite = cite_of(m)
-    words = flat(m.group(5)) or request_of(output)
+    words = flat(m.group(5)) or after
     if not quote:
         return "", "the CONFLICT line cites " + cite + " and quotes nothing"
     lines, why = lines_of(workdir, rel, first, last, start)
@@ -579,12 +628,81 @@ def authorised(question):
     return out
 
 
+AMENDED = "\n\nadded after a spec conflict, and it decides where the two" \
+    " disagree:\n\n"
+
+
 def amended(task, answer):
     """-> the request with a `request:` answer added after it. the request
     as it was given stays word for word, first."""
     words = answer.strip()[len(REQUEST) + 1:].strip()
-    return ((task or "").rstrip("\n") + "\n\nadded after a spec conflict, and"
-            " it decides where the two disagree:\n\n" + words + "\n")
+    return (task or "").rstrip("\n") + AMENDED + words + "\n"
+
+
+def given(task):
+    """-> the request as it was given, without the words `request:` answers
+    added after it."""
+    return (task or "").split(AMENDED, 1)[0]
+
+
+SENTENCES = re.compile(r"(?<=[.!?;])\s+|\n")
+CHANGE = r"(?:update|change|rewrite|edit|amend|revise)"
+NAME = r"[^\s,;]+"
+NAMES = NAME + r"(?:\s*,\s*(?:and\s+)?" + NAME + r"|\s+and\s+" + NAME + r")*"
+CHANGE_THEM = re.compile(r"\b" + CHANGE + r"s?\s+(?:the\s+)?(" + NAMES + ")",
+                         re.I)
+THEY_CHANGE = re.compile(
+    "(" + NAMES + r")\s+(?:(?:may|must|should|will|can)\s+)?(?:change|be"
+    r" (?:updated|changed|rewritten|edited|amended|revised))\b", re.I)
+
+
+def path_of(name):
+    """-> a name as it is written in a sentence, as a path from the place:
+    quotes and the sentence's own stops taken off, `\\` read as `/`."""
+    name = name.strip("`'\"()[]").rstrip(".:!?").strip("`'\"()[]")
+    name = name.replace("\\", "/")
+    return name[2:] if name.startswith("./") else name
+
+
+def named_to_change(text, specs):
+    """-> the spec files, of the paths from the place in `specs`, that a
+    sentence of `text` asks to change by naming each by its exact path:
+    `update docs/api.md and rules/api-shape.md`, or `docs/api.md must
+    change`. a folder or a glob is no spec file, and a sentence with a no or
+    a not in it names nothing."""
+    specs = set(specs or ())
+    out = set()
+    for sentence in SENTENCES.split(text or ""):
+        if negated(sentence):
+            continue
+        for found in (CHANGE_THEM, THEY_CHANGE):
+            for m in found.finditer(sentence):
+                names = re.split(r"\s*,\s*(?:and\s+)?|\s+and\s+", m.group(1))
+                out.update(p for p in map(path_of, names) if p in specs)
+    return out
+
+
+def files_to_change(answer, request, specs):
+    """-> {spec file: who named it, "the request" or "the answer"} for an
+    `override:` answer and the request it lets win."""
+    out = dict((rel, "the request") for rel in
+               named_to_change(given(request), specs))
+    for rel in named_to_change(answer, specs):
+        out[rel] = "the answer" if rel not in out \
+            else "the request and the answer"
+    return out
+
+
+def files_named(d, asked, request, specs):
+    """-> `files_to_change` for `d` when it is an `override:` answer, given
+    with --answer, to a question the runner asked about spec lines (`asked`,
+    as `answers_lines` reads it), else {}."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if not found or kind_of(found[1]) != OVERRIDE or not m \
+            or not (asked or {}).get(m.group(1)):
+        return {}
+    return files_to_change(found[1], request, specs)
 
 
 QUOTED = re.compile(r'"([^"\n]+)"')
@@ -825,10 +943,11 @@ def asked_lines(stopped):
     return tuple(l for l in said["lines"] if isinstance(l, str))
 
 
-def conflict_asked(output, workdir, start=None):
-    """-> `lines_asked` of the lines a CONFLICT line in `output` cites, as
-    the run found them, or None when they cannot be read."""
-    said = verbs.parse(output).conflict
+def conflict_asked(output, workdir, start=None, ruled=None):
+    """-> `lines_asked` of the lines the CONFLICT line in `output` the run
+    stops on (`unruled`) cites, as the run found them, or None when they
+    cannot be read."""
+    said = (unruled(output, workdir, start, ruled) or ("",))[0]
     m = CONFLICT.match((said or "").strip())
     if not m:
         return None
@@ -851,12 +970,15 @@ def answers_lines(d, line, asked):
     return flat(line) in (asked or {}).get(m.group(1), ())
 
 
-def spec_line_ruled(decided, line, asked=None):
+def spec_line_ruled(decided, line, asked=None, rel=None, request="",
+                    specs=()):
     """-> the decisions.md entry that lets a spec line the run started with
     be removed or rewritten, or None. it quotes the line in its own words,
     or it is an `override:` answer to a question the runner asked that named
     the line (`asked`, as `answers_lines` reads it): a step's own question
-    quoting the line, answered the same way, rules nothing. an answer of
+    quoting the line, answered the same way, rules nothing. such an answer
+    also lets every line of `rel`, the file the line is in, change when it
+    or the request names that file to change (`files_named`). an answer of
     `request:` keeps the spec, so it never rules one."""
     for d in decided:
         said = answered(d)
@@ -866,6 +988,8 @@ def spec_line_ruled(decided, line, asked=None):
         if quotes_line(own_words(d), line):
             return d
         if answers_lines(d, line, asked):
+            return d
+        if rel is not None and rel in files_named(d, asked, request, specs):
             return d
     return None
 
@@ -927,29 +1051,39 @@ def decided(step, answer):
     return "ruling for " + step + ": " + first
 
 
-def scope(question, kind):
+def listed(names):
+    names = sorted(names)
+    return names[0] if len(names) == 1 else \
+        ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def scope(question, kind, files=()):
     """-> the sentence saying what a conflict's answer lets change, or ""
-    for any other answer."""
+    for any other answer. `files` are the spec files the request or the
+    answer names to change (`files_to_change`), which an override lets
+    change line by line too."""
     if kind == OVERRIDE and authorised(question):
+        named = (", and every line of " + listed(files) + ", which the request"
+                 " or the answer names to change") if files else ""
         return ("this authorises changing " + ", ".join(authorised(question))
-                + ", and nothing else.")
+                + named + ", and nothing else.")
     if kind == REQUEST:
         return ("the spec holds. the request is amended with these words, and"
                 " the run starts again from its first step that reads it.")
     return ""
 
 
-def why(step, run_id, question, answer, by, kind=None):
-    said = scope(question, kind)
+def why(step, run_id, question, answer, by, kind=None, files=()):
+    said = scope(question, kind, files)
     return ("asked by " + step + " in " + run_id + ":\n\n" + question
             + ANSWERED + answer + ("\n\n" + said if said else "")
             + ANSWERED_BY + by + ANSWERED_END)
 
 
-def told(question, answer, kind=None):
+def told(question, answer, kind=None, files=()):
     """-> the end of the step's prompt on the run that carries on: last, so
     the answer is the final thing the step reads."""
-    said = scope(question, kind)
+    said = scope(question, kind, files)
     return ("\n\nRULING. when this step last ran it asked:\n\n" + question
             + "\n\nthe answer, which decides it:\n\n" + answer
             + ("\n\n" + said if said else "") + "\n")
