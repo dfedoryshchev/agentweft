@@ -22,14 +22,21 @@ question, the way a REFUSED line without a cite is. its quote has to be what
 that line says as the run found it, or start there and run on into the lines
 of its paragraph, and then the claim cites them all: a claim on words the
 spec does not hold goes nowhere, and fails the step the way a gate does.
+
+under an override the run holds, a test the run started with that pins a line
+the override lets change is wrong with that line: a claim on it, quoting the
+line as the run found it or as the run's own ruled edit left it
+(`ruling.ruled_quote`), is no question when the step changed the test, and
+lets the change stand at the test-edits check (`ruled_claim`).
 """
 from pathlib import Path
 
 from agentweft.flow.spec import step_id
+from agentweft.guardrails import testedits
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import cited, misquote, spanned
+from .ruling import cited, misquote, ruled_quote, spanned
 
 WRONG = "WRONG TEST"
 WHY = "WHY"
@@ -157,17 +164,45 @@ def back_to(writer, tests):
             " now are what " + writer + " handed over above.\n")
 
 
-def misquoted(output, workdir, start=None):
+def misquoted(output, workdir, start=None, ruled=None):
     """-> what is wrong with the quote on each claim's `spec:` line, or "".
-    a claim citing a line that is not there is a question, not this."""
+    a claim citing a line that is not there is a question, not this, and
+    with `ruled` a quote of lines a ruling covers (`ruled_quote`) is right
+    as the ruled edit left them too."""
     wrong = []
     for _, _, spec in claims(output):
         if not spec or cited(spec, [], workdir) is None:
             continue
         said = misquote(spec, workdir, start, "the WRONG TEST spec: line")
+        if said and ruled_quote(spec, workdir, start, ruled) is not None:
+            continue
         if said and said not in wrong:
             wrong.append(said)
     return "; ".join(wrong)
+
+
+def same_test(said, test):
+    """whether a claim's test, as a step wrote it, is `test`, a test id or a
+    file the test-edits check reads whole: the claim names a test in it."""
+    said = said.replace("\\", "/")
+    said = said[2:] if said.startswith("./") else said
+    if "::" not in test:
+        return said.partition("::")[0] == test
+    path, _, name = said.partition("::")
+    return path + "::" + name.split("[")[0] == test
+
+
+def ruled_claim(outputs, test, workdir, start=None, ruled=None):
+    """-> the ruling that lets `test`, one the run started with, change
+    because an answer of this run names it on a WRONG TEST line whose spec:
+    line quotes spec lines that ruling covers (`ruled_quote`), else None."""
+    for output in outputs:
+        for said, _, spec in claims(output or ""):
+            if spec and same_test(said, test):
+                d = ruled_quote(spec, workdir, start, ruled)
+                if d is not None:
+                    return d
+    return None
 
 
 def judge(output, step, run, route):
@@ -178,7 +213,10 @@ def judge(output, step, run, route):
     every claim of one answer is judged together: one claim that has to be
     a ruling parks the answer, so nothing goes back that a person is about
     to rule on. the claims whose writer is the first claim's go back in one
-    round; a claim on another writer's test is made again on the next go."""
+    round; a claim on another writer's test is made again on the next go.
+    a claim on a test the run started with, which the step changed, whose
+    spec: line quotes lines a ruling of this run covers (`ruled_quote`) is
+    no question: it is already ruled, and the test-edits check holds it."""
     said = claims(output)
     if not said:
         return None
@@ -187,7 +225,16 @@ def judge(output, step, run, route):
             return "ask", asked(step, test, why, spec,
                                 "no line of the spec that is there was cited")
     start = getattr(run, "start", None)
-    if misquoted(output, run.workdir, start):
+    ruled = getattr(run, "spec_line_covered", None)
+    if misquoted(output, run.workdir, start, ruled):
+        return None
+    changed = [t for e in testedits.changes(start) for t, how in e.items
+               if testedits.claimable(t, how)] if ruled is not None else []
+    said = [(test, why, spec) for test, why, spec in said
+            if born(start, test)
+            or not any(same_test(test, t) for t in changed)
+            or ruled_quote(spec, run.workdir, start, ruled) is None]
+    if not said:
         return None
     said = [(test, why, spanned(spec, run.workdir, start))
             for test, why, spec in said]

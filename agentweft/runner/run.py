@@ -475,11 +475,13 @@ class Run(object):
                 starttests.TIMEOUT, now=False)
         return baseline.outcomes(found), ""
 
-    def replayed(self, step):
+    def replayed(self, step, output=""):
         """-> (the start tests' line for the record or None, (why, question)
         when a test green at the start is red now and no ruling covers it,
         else None). only after a `writes: product` step, and never when the
-        run skips tests."""
+        run skips tests. a test `output` or another answer of this run names
+        on a WRONG TEST line quoting spec lines a ruling covers is covered
+        by that ruling, as `tests_held` reads it."""
         if self.writes_for(step) != "product" or self.order.skip:
             return None, None
         known = None if self.suite == baseline.OFF else self.known_at_start
@@ -488,9 +490,13 @@ class Run(object):
         if not found.red:
             return found.result, None
         decided = self.spec_rulings()
+        claims = self.answered(output)
         left, ruled = [], []
         for test, said in found.red:
             d = ruling.covering(decided, test, self.workdir, self.start)
+            if d is None:
+                d = wrongtest.ruled_claim(claims, test, self.workdir,
+                                          self.start, self.spec_line_covered)
             if d is None:
                 left.append((test, said))
             else:
@@ -622,31 +628,58 @@ class Run(object):
             self.spec_rulings(), line, self.runner_asked(ruling.asked_lines),
             rel, self.request(), self.spec_paths())
 
-    def tests_held(self, step, last=False):
+    def answered(self, output=""):
+        """-> `output`, then what every step of this run answered last."""
+        return [output] + list((getattr(self, "produced", None) or {})
+                               .values())
+
+    def claimed(self, said, tests):
+        """-> the ruling of the first of `tests` when the answers in `said`
+        name each on a WRONG TEST line under one (`wrongtest.ruled_claim`),
+        else None; None for no tests."""
+        found = None
+        for test in tests:
+            d = wrongtest.ruled_claim(said, test, self.workdir, self.start,
+                                      self.spec_line_covered)
+            if d is None:
+                return None
+            found = found or d
+        return found
+
+    def tests_held(self, step, last=False, output=""):
         """-> (the line for the record when a test file the run started with
         changed, else None; (why, question, what the run's record keeps of
         the question) when it changed in a way no ruling covers and this is
         the step's `last` go, else None). a step
         with a go left fails like a gate and goes back. the lead's decisions
-        are not read: one that names the test does not let it change."""
+        are not read: one that names the test does not let it change. a test
+        changed, or a file the check reads whole, that `output` or another
+        answer of this run names on a WRONG TEST line quoting spec lines a
+        ruling covers is covered by that ruling (`wrongtest.ruled_claim`)."""
         start = getattr(self, "start", None)
         found = testedits.changes(start)
         if not found:
             return None, None
         decided = self.spec_rulings()
         asked = self.runner_asked(ruling.asked_edits)
+        said = self.answered(output)
         left, ruled = [], []
         for edit in found:
             for test, how in edit.items:
                 d = ruling.edit_ruled(decided, test, self.workdir, start,
                                       asked)
                 if d is None:
+                    d = self.claimed(said, testedits.claimed_by(edit, test,
+                                                                how))
+                if d is None:
                     left.append((test, how))
                 else:
                     ruled.append((test, summary.stamp(d)))
         if not left:
             return testedits.passed(found, ruled), None
-        line = testedits.held(step, left)
+        line = testedits.held(step, left, any(
+            ruling.kind_of(ruling.answered(d)) == ruling.OVERRIDE
+            for d in decided))
         if not last:
             return line, None
         return line, ("needs a ruling: " + line.detail,

@@ -103,6 +103,24 @@ def new_lines(was, now):
     return out
 
 
+def became(was, now):
+    """-> {its line number now: the line of `was` it stands in for, or None
+    for a line added} for each line of `now` that `was` did not have. blank
+    lines and trailing spaces do not count."""
+    old = [l.rstrip() for l in was.split("\n")]
+    new = [l.rstrip() for l in now.split("\n")]
+    out = {}
+    match = difflib.SequenceMatcher(None, old, new, autojunk=False)
+    for op, i1, i2, j1, j2 in match.get_opcodes():
+        if op not in ("insert", "replace"):
+            continue
+        took = [l for l in old[i1:i2] if l.strip()] if op == "replace" else []
+        for k in range(j1, j2):
+            if new[k].strip():
+                out[k + 1] = took.pop(0) if took else None
+    return out
+
+
 def moved(was, now, mode=None):
     """-> [(line number, the line)] for every line a ruling has to quote for
     the change from `was` to `now` to stand: each line removed or rewritten,

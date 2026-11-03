@@ -70,6 +70,12 @@ not, the refusal does not end the run and the claim goes to no one: a `quote`
 result goes in front of the step's gates and fails it, naming the quote and
 the line (`the WRONG TEST spec: line quotes "...", which is not at
 TASK.md:3 as the run found it`), and the step is sent back as for any gate.
+a claim's quote of spec lines an override the run holds lets change may also
+be those lines as the run's own edit left them: each a line the run rewrote
+or added where the override lets a line change. a claim on a test the run
+started with that the step changed, quoting lines such an override covers, is
+no question: it parks nothing, and the test-edits check below lets the change
+stand.
 a VERIFIED claim in the HANDOFF block written as `<file>:<line> "<the
 line>"` is evidence only, so it fails nothing: it is marked `unbacked` with
 the same words when the quote is not at that line, and `backed` by the file
@@ -677,6 +683,22 @@ in `gates.md`:
   inside the tests it was given, so a decision of its that names the test
   still leaves the edit to the operator. covered tests pass as `changed, each
   covered by a ruling`.
+- or unless the run holds an override that lets the spec lines the test pins
+  change, and an answer of this run names the test on a `WRONG TEST:` line
+  whose `spec:` line quotes those lines, as the run found them or as the
+  run's own ruled edit left them (`the quote` above): the test was right
+  about the old line and is wrong about the ruled one, so it may change with
+  it. a test changed with no such line, or quoting a line no ruling covers,
+  still fails. the code a python file's tests share counts only when each
+  test the file started with that reads what changed, itself or through a
+  helper it calls, is named that way; every test it started with, when the
+  change is a fixture with autouse, a name pytest reads, a call as the file
+  loads or a member of a test class. a file read by line counts when a test
+  in it is. a test removed, a file
+  deleted or one that no longer parses never does. the step that fails this
+  check under such an override is told the `WRONG TEST:` way too, and
+  handoff.md's rulings section lists each test under the ruling, `<file> +a
+  -d: <test> <- ruling <when> <heading>`.
 
 which files changed is read from content hashes, and what they held from the
 start commit (or the snapshot, for a file already loose), so a step that

@@ -49,15 +49,17 @@ class Edit(object):
     """one test file the run started with that is not as it was. `items` is
     [(test id, or the file when the change is the file's, how it changed)];
     `added` how many tests or lines it gained; `unread` that what it held at
-    the start cannot be read back."""
+    the start cannot be read back; `shared_by` the tests of a python file
+    that run against a change to the code they share (`sharing`)."""
 
-    __slots__ = ("path", "items", "added", "unread")
+    __slots__ = ("path", "items", "added", "unread", "shared_by")
 
-    def __init__(self, path, items=(), added=0, unread=False):
+    def __init__(self, path, items=(), added=0, unread=False, shared_by=()):
         self.path = path
         self.items = list(items)
         self.added = added
         self.unread = unread
+        self.shared_by = list(shared_by)
 
 
 def _text(data):
@@ -233,6 +235,73 @@ def rebound(was, now):
     return any(later.get(name) != code for name, code in then.items())
 
 
+def _reads(node):
+    """-> the names `node` reads or takes as a fixture."""
+    out = set()
+    for n in ast.walk(node):
+        if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
+            out.add(n.id)
+        elif isinstance(n, ast.arg):
+            out.add(n.arg)
+    return out
+
+
+def _graph(*trees):
+    """-> {name bound at the top of any of `trees`: the names its code
+    reads}, so a helper reaches what it calls."""
+    out = {}
+    for tree in trees:
+        for node in tree.body:
+            for bound, _ in _bound(node):
+                out.setdefault(bound, set()).update(_reads(node))
+    return out
+
+
+def sharing(name, was, now):
+    """-> the ids of the tests `was` held that run against what changed in
+    the code they share in `now`: each that reads, itself or through the
+    helpers it calls, a name bound to something else now or one `now` binds
+    that `was` did not. every one when the change is not such a name (a
+    fixture with autouse, a name pytest reads, a call as the file loads, a
+    member of a test class) or no test can be shown to read it."""
+    old = test_ids(was, name) or {}
+    every = list(old)
+    then, later = last_bindings(was), last_bindings(now)
+    names = {n for n, code in then.items() if later.get(n) != code}
+    names |= {n for n in later if n not in then}
+    first, last = ast.parse(was), ast.parse(now)
+    autouse = {n.name for t in (first, last) for n in t.body
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+               and any(_autouse(d) for d in n.decorator_list)}
+    loose = (Counter(k for k, n, _ in _pieces(first) if not _bound(n))
+             != Counter(k for k, n, _ in _pieces(last) if not _bound(n)))
+    if loose or not names or any("." in n or n.startswith("pytest")
+                                 or n in autouse for n in names):
+        return every
+    graph = _graph(first, last)
+    out = []
+    for test, node in _named_tests(first, name):
+        seen, todo = set(), list(_reads(node))
+        while todo:
+            n = todo.pop()
+            if n not in seen:
+                seen.add(n)
+                todo.extend(graph.get(n, ()))
+        if seen & names:
+            out.append(test)
+    return out or every
+
+
+def _named_tests(tree, name):
+    for node in tree.body:
+        if _is_test_func(node):
+            yield name + "::" + node.name, node
+        elif isinstance(node, ast.ClassDef) and collected(node):
+            for member in node.body:
+                if _is_test_func(member):
+                    yield name + "::" + node.name + "::" + member.name, member
+
+
 def _python(name, was, now):
     old = test_ids(was, name)
     if old is None:
@@ -248,10 +317,12 @@ def _python(name, was, now):
             items.append((t, REMOVED))
         elif new[t] != code:
             items.append((t, CHANGED))
+    by = []
     if shared(was) - shared(now) or rebound(was, now) or \
             (old and added_code(was, now)):
         items.append((name, SHARED))
-    return Edit(name, items, len(set(new) - set(old)))
+        by = sharing(name, was, now)
+    return Edit(name, items, len(set(new) - set(old)), shared_by=by)
 
 
 def added_only(name, was, now):
@@ -298,6 +369,28 @@ def changes(start):
     return out
 
 
+def claimable(test, how):
+    """whether a change a WRONG TEST line under a ruling may cover: a test
+    whose code changed, or a file whose lines or shared code did. a test
+    removed, a file deleted or one that no longer parses is not."""
+    if "::" in test:
+        return how == CHANGED
+    return how == SHARED or how.endswith(" removed or rewritten")
+
+
+def claimed_by(edit, test, how):
+    """-> what a WRONG TEST line has to name for the change `test`, `how`, in
+    `edit` to stand: the test itself; for the code a python file's tests
+    share, every test the file started with that runs against the change
+    (`sharing`); for a file read by line, the file. [] for a change no claim
+    covers."""
+    if not claimable(test, how):
+        return []
+    if "::" not in test and how == SHARED:
+        return list(edit.shared_by)
+    return [test]
+
+
 def what(n, edit):
     word = "line" if not edit.path.endswith(".py") else "test"
     return str(n) + " " + word + ("" if n == 1 else "s")
@@ -323,12 +416,18 @@ def passed(found, ruled):
     return Result(NAME, True, line)
 
 
-def held(step, left):
+def held(step, left, overridden=False):
     """-> the failed gate for a step that changed tests the run started
-    with. `left` is [(test id or file, how it changed)]."""
+    with. `left` is [(test id or file, how it changed)]; `overridden` that
+    the run holds an override, under which a WRONG TEST line may cover
+    one."""
     return Result(NAME, False, step + " changed tests the run started with: "
                   + ", ".join(t + " (" + how + ")" for t, how in left)
                   + ". put each back as the run found it; a new test goes in"
                   " as a test of its own. a ruling in decisions.md that names"
                   " the test, or quotes the spec line that decides it, lets"
-                  " the change stand")
+                  " the change stand" + (
+                      ", and so does a WRONG TEST line for the test whose"
+                      " spec: line quotes a line the override lets change, as"
+                      " the run found it or as the ruled edit left it"
+                      if overridden else ""))

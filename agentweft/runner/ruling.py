@@ -47,6 +47,8 @@ import hashlib
 import re
 from pathlib import Path
 
+from agentweft.guardrails import specfiles
+
 from . import lead, verbs
 from .config import SPEC_CHANGE, verdict
 from .handoff import KEYS, KNOWN, NONE_WORDS, bounds, without
@@ -570,6 +572,51 @@ def misquote(said, workdir, start=None, who="the answer"):
         return ""
     return (who + ' quotes "' + quote + '", which is not at ' + cite
             + " as the run found it")
+
+
+def ruled_quote(said, workdir, start=None, ruled=None):
+    """-> the ruling that covers the spec lines `said`, `<file>:<line> "<the
+    line>"`, quotes, or None. the quote is held to those lines as the run
+    found them, each one a ruling lets change, or to them as the run's own
+    edit left them, each a line it changed (`specfiles.became`) standing in
+    for a line a ruling lets change or added where one lets a line be."""
+    text = (said or "").strip()
+    m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
+    if ruled is None or not m:
+        return None
+    rel, first, last, quote, _ = cite_of(m)
+    if not quote:
+        return None
+    lines, _ = lines_of(workdir, rel, first, last, start)
+    end = runs_to(lines, first, last, quote) if lines is not None else None
+    if end is not None:
+        return every_ruled(rel, lines[first - 1:end], ruled)
+    was = as_found(workdir, rel, start)
+    root = Path(workdir).resolve()
+    path = (root / rel).resolve()
+    try:
+        path.relative_to(root)
+        now = path.read_text(encoding="utf-8", errors="replace")
+    except (ValueError, OSError):
+        return None
+    new = now.split("\n")
+    if was is None or not 1 <= first <= last <= len(new):
+        return None
+    end = runs_to(new, first, last, quote)
+    if end is None:
+        return None
+    stood = specfiles.became(was, now)
+    found = None
+    for n in range(first, end + 1):
+        if not new[n - 1].strip():
+            continue
+        if n not in stood:
+            return None
+        d = ruled(rel, stood[n] if stood[n] is not None else new[n - 1])
+        if d is None:
+            return None
+        found = found or d
+    return found
 
 
 def spanned(said, workdir, start=None):

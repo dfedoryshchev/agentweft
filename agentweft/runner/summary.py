@@ -338,7 +338,28 @@ def stamp(d):
     return d.at.strftime(stops.STAMP) + " " + d.decided
 
 
-def rulings(changes, decided, spec_files=None):
+def held_by(gates, decided):
+    """-> {test file: [(test id or the file, the decision)]} for every test
+    the run started with that a passing test-edits check let change under a
+    decision of `decided`, read from its line; the last check's say counts."""
+    out = {}
+    for g in gates or ():
+        if not isinstance(g, dict) or g.get("gate") != testedits.NAME \
+                or not g.get("ok"):
+            continue
+        detail = g.get("detail") or ""
+        found = {}
+        for d in decided:
+            at = re.escape(" (ruling " + stamp(d) + ")")
+            for m in re.finditer(r"(?:^|[\s,:])(\S+?)" + at, detail):
+                path = m.group(1).partition("::")[0]
+                found.setdefault(path, []).append((m.group(1), d))
+        if found:
+            out = found
+    return out
+
+
+def rulings(changes, decided, spec_files=None, gates=()):
     """the lines a person owes a ruling on, or that one already covers.
 
     a pre-existing test whose lines were removed or changed, and a spec file
@@ -353,6 +374,7 @@ def rulings(changes, decided, spec_files=None):
     """
     out = []
     added = changes.get("tests_added") or ()
+    held = held_by(gates, decided)
     for path, a, d in changes.get("tests_changed", []):
         line = "- pre-existing test " + path + " +" + str(a) + " -" + str(d)
         if d == 0:
@@ -361,6 +383,10 @@ def rulings(changes, decided, spec_files=None):
         if path in added:
             out.append(line + ", no test it started with or the code its"
                        " tests share changed, no ruling needed")
+            continue
+        if held.get(path):
+            out.extend(line + ": " + test + " <- ruling " + stamp(by)
+                       for test, by in held[path])
             continue
         found = _ruling_for(path, decided)
         out.append(line + (" <- ruling " + stamp(found) if found else
@@ -1842,7 +1868,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.append(headline)
 
     still = still_open(every, stopped)
-    owed = rulings(changes, decided, spec_files)
+    owed = rulings(changes, decided, spec_files, gates)
     extra = [front.point(investigate.STEP, l[2:]) for l in
              investigate.listed(dug, "DECISIONS")]
     extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
@@ -2061,7 +2087,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## rulings")
-    owed = rulings(changes, decided, spec_files)
+    owed = rulings(changes, decided, spec_files, gates)
     out.extend(owed or ["- no pre-existing test or spec file changed"])
     out.extend("- on record: " + stamp(d) for d in decided)
     if not decided:

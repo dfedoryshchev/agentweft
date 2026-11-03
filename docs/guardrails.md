@@ -354,7 +354,11 @@ step like a gate and parks the run for a ruling on its last go. a test added
 beside the others passes. a ruling that names the test, quotes the spec line
 that decides it, or answers `override:` to that park lets the change stand;
 one that only names the file does not (`docs/gates.md`, "the tests the run
-started with, as it found them").
+started with, as it found them"). under an override the run already holds, a
+test that pins a line the override lets change may change with it: the step
+names it on a `WRONG TEST:` line whose `spec:` line quotes that line, as the
+run found it or as the run's own ruled edit left it, and handoff.md lists the
+test under that ruling. a test on a line no ruling covers still parks.
 
 ## the spec files
 

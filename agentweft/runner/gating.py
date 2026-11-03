@@ -207,7 +207,8 @@ def check_step(run, route, step, out, run_dir=None):
     covered = getattr(run, "spec_line_covered", None)
     began = time.time()
     wrong = [w for w in (ruling.misquoted(out.output, workdir, start),
-                         wrongtest.misquoted(out.output, workdir, start)) if w]
+                         wrongtest.misquoted(out.output, workdir, start,
+                                             covered)) if w]
     if wrong:
         results.insert(0, timed(Result("quote", False, "; ".join(wrong)),
                                 began))
@@ -234,7 +235,7 @@ def check_step(run, route, step, out, run_dir=None):
         last = ok and tries is not None and \
             tries.get(step, 0) >= route.gate_cap(step)
         began = time.time()
-        line, test_asks = kept(step, last)
+        line, test_asks = kept(step, last, out.output)
         if line is not None:
             results.append(timed(line, began))
         if test_asks and "spec_ruling" not in out.meta:
@@ -242,7 +243,7 @@ def check_step(run, route, step, out, run_dir=None):
     replayed = getattr(run, "replayed", None)
     if replayed is not None and all(r.ok for r in results):
         began = time.time()
-        line, held = replayed(step)
+        line, held = replayed(step, out.output)
         if line is not None:
             results.append(timed(line, began))
         if held:
