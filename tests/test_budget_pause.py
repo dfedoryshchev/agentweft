@@ -150,6 +150,32 @@ def test_the_call_cap_is_checked_before_the_call_not_after():
     assert Budget(max_calls=4).ahead(charge=5)[0] == "reached"
 
 
+def test_the_call_kept_for_the_retro_is_the_retros_alone():
+    b = Budget(max_calls=3)
+    b.retro = True
+    assert b.kept() == 1
+    b.calls = 2
+    word, why = b.ahead()
+    assert word == "reached"
+    assert why == ("call cap: 2 of 3 calls spent, and the next step takes 1;"
+                   " 1 is kept for the retro")
+    assert b.ahead(retro=True) is None
+    b.calls = 3
+    assert b.ahead(retro=True)[1] == ("call cap: 3 of 3 calls spent, and the"
+                                      " next step takes 1")
+    b.calls = 1
+    assert b.ahead(charge=2)[1].endswith("; 1 is kept for the retro")
+    assert b.ahead(charge=3)[1].endswith("the next step takes 3")
+
+
+def test_a_cap_with_no_room_beside_the_retro_keeps_nothing():
+    for b in (Budget(max_calls=1), Budget()):
+        b.retro = True
+        assert b.kept() == 0 and b.ahead() is None
+    b = Budget(max_calls=3)
+    assert b.kept() == 0
+
+
 def test_the_token_cap_says_reaching_at_eighty_percent_and_reached_at_it():
     b = Budget(max_tokens=100)
     b.estimated, b.estimated_calls = 79, 1

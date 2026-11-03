@@ -7,7 +7,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.roles import resolver
-from agentweft.runner import chain, engine, manifest, state
+from agentweft.runner import chain, engine, manifest, state, stops
 from agentweft.runner import retro
 from test_stops import (CLAUDE, a_flow, answer, ends, refused_by_the_limit,
                         steps_of, the_folder)
@@ -335,7 +335,7 @@ def test_a_run_waiting_for_a_ruling_holds_its_retro(tmp_path, monkeypatch,
 def test_failures_before_a_budget_stop_reach_the_retro_of_the_leg_that_ends(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "capped", ["worker", "reviewer"],
-           tail="retro: true\nmax_calls: 3\n" + CLAUDE)
+           tail="retro: true\nmax_calls: 4\n" + CLAUDE)
     first = fake_cli(answer("done\n"),
                      answer("VERDICT: redo\n\nthe file is not named\n"),
                      answer("done in a.py\n"))
@@ -379,12 +379,57 @@ def test_a_flow_cannot_name_a_step_retro(step):
 
 
 def test_a_run_at_its_call_cap_spends_nothing_on_a_retro(
-        tmp_path, monkeypatch, fake_cli):
-    fake = two_fails(tmp_path, monkeypatch, fake_cli,
-                     tail="retro: true\nmax_calls: 2\n")
-    engine.main()
-    assert len(fake.calls) == 2
-    assert outcomes(the_folder())[-1] == "worker.md:gate failed"
+        tmp_path, monkeypatch, fake_cli, capsys):
+    a_flow(tmp_path, monkeypatch, "one", ["worker"],
+           tail="retro: true\nmax_calls: 1\n" + CLAUDE)
+    fake = fake_cli(answer("done\n"), answer("## change first\n"))
+    assert engine.main() == 0
+    assert len(fake.calls) == 1
+    assert outcomes(the_folder()) == ["worker.md:ok"]
+    assert ("retro not run: call cap: 1 of 1 calls spent, and the next step"
+            " takes 1\n") in capsys.readouterr().out
+
+
+def test_a_run_whose_steps_would_spend_the_cap_parks_keeping_the_retros_call(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    a_flow(tmp_path, monkeypatch, "kept", ["worker", "reviewer"],
+           tail="retro: true\nmax_calls: 2\n" + CLAUDE)
+    first = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+                     answer("## change first\n"))
+    assert engine.main() == 2
+    leg = the_folder()
+    assert len(first.calls) == 1
+    assert [(l["step"], l["cause"]) for l in steps_of(leg)] == [
+        ("worker.md", None), ("reviewer.md", stops.BUDGET)]
+    note = (leg / "handoff.md").read_text(encoding="utf-8")
+    assert ("call cap: 1 of 2 calls spent, and the next step takes 1; 1 is"
+            " kept for the retro") in note
+    said = capsys.readouterr().out
+    assert "retro not run: the run stopped on budget" in said
+    again = fake_cli(answer("VERDICT: ok\n\nfine\n"),
+                     answer("## change first\n"))
+    monkeypatch.setattr(sys, "argv", ["run.py", "kept", "--force", "--resume",
+                                      leg.name, "--max-calls", "3"])
+    assert engine.main() == 0
+    [resumed] = [p for p in state.RUNS.iterdir() if p.is_dir() and p != leg]
+    assert len(again.calls) == 2
+    assert outcomes(resumed)[-1] == "retro.md:ok"
+    assert manifest.load(resumed).spend["calls"] == 3
+
+
+@pytest.mark.parametrize("tail, calls", [
+    ("retro: true\nmax_calls: 3\n", 3), ("retro: false\nmax_calls: 2\n", 2),
+    ("max_calls: 2\n", 2)], ids=["under", "off", "absent"])
+def test_a_run_under_its_cap_or_with_no_retro_runs_as_it_did(
+        tail, calls, tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "fits", ["worker", "reviewer"],
+           tail=tail + CLAUDE)
+    fake = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+                    answer("## change first\n"))
+    assert engine.main() == 0
+    assert len(fake.calls) == calls
+    assert outcomes(the_folder()) == ["worker.md:ok", "reviewer.md:ok"] + (
+        ["retro.md:ok"] if calls == 3 else [])
 
 
 def test_passes_that_did_what_they_were_asked_are_not_failed_attempts():

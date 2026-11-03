@@ -144,13 +144,16 @@ class Plan(object):
 
     def short(self, ahead):
         """-> why the blocks of `ahead` do not fit what the cap leaves of the
-        run now, [] when they do."""
+        run now, [] when they do. the call kept for the retro is not the
+        steps' to take."""
         out = []
         need = sum(self.calls[s] for s in ahead)
         room = self.left(CALLS)
-        if room is not None and need > room:
+        kept = self.budget.kept()
+        if room is not None and need > room - kept:
             out.append("the steps take ~" + str(need) + " calls, the "
-                       "call cap leaves " + str(room))
+                       "call cap leaves " + str(room - kept)
+                       + (" beside the 1 kept for the retro" if kept else ""))
         total = sum(self.blocks[s] for s in ahead)
         room = self.left(TOKENS)
         if self.unit == TOKENS and room is not None and total > room:
@@ -244,8 +247,10 @@ class Plan(object):
             rows.append(s.ljust(width) + "cut")
         if self.buffer is not None:
             rows.append("buffer".ljust(width) + str(self.buffer))
+        kept = ["retro     1 call of the buffer kept for retro.md; no step"
+                " spends it"] if b.kept() else []
         out = ["# budget plan", "",
-               "cap       " + (", ".join(caps) if caps else "none"),
+               "cap       " + (", ".join(caps) if caps else "none")] + kept + [
                "unit      " + self.unit,
                "estimate  " + source,
                "realism   " + self.realism(), ""]

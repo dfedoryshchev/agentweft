@@ -12,13 +12,14 @@
     "2 worker.md parked",
     "3 worker.md ok -> merge.md",
     "4 merge.md ok -> reviewer.md",
-    "5 reviewer.md ok  PASS length  PASS regex  PASS quote"
+    "5 reviewer.md ok  PASS length  PASS regex  PASS quote",
+    "6 retro.md ok"
   ],
   "journal": [
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>",
     "<time>  weekly digest  parked at worker.md  <secs>s  weekly-digest-<run>  budget  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  reached, completion 1/4 steps, call cap: 1 of 1 calls spent, and the next step takes 2  weekly-digest-<run>/handoff.md",
     "<time>  weekly digest  running  <secs>s  weekly-digest-<run>  resumes weekly-digest-<run>",
-    "<time>  weekly digest  ok (resumed)  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)  weekly-digest-<run>/handoff.md  resumes weekly-digest-<run>"
+    "<time>  weekly digest  ok (resumed)  <secs>s  weekly-digest-<run>  weekly-digest-<day>-1.md  6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6)  weekly-digest-<run>/handoff.md  resumes weekly-digest-<run>"
   ],
   "index": [
     "PARKED  weekly-digest  at worker.md",
@@ -124,7 +125,7 @@
     "- red first: not proven by a gate",
     "## rulings",
     "- no pre-existing test or spec file changed",
-    "- on record: <time> carried weekly-digest-<run> on with the call cap from 1 to 5",
+    "- on record: <time> carried weekly-digest-<run> on with the call cap from 1 to 6",
     "## not verified",
     "- handoff missing: planner.md",
     "- handoff missing: worker.md",
@@ -139,16 +140,18 @@
     "- worker.md <secs>s ($0.0200), won none, checked 0: no events",
     "- merge.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md <secs>s ($0.0100), won none, checked 3: no events",
-    "- won none: 5 passes, <secs>s, $0.0500, cost not stated on 1",
-    "- USD on steps that won nothing and checked nothing: $0.0400 of $0.0500, cost not stated on 1",
+    "- retro.md <secs>s ($0.0100), won facts 0, tickets 0 (0 refused): no events (after this handoff was written)",
+    "- won none: 6 passes, <secs>s, $0.0600, cost not stated on 1",
+    "- USD on steps that won nothing and checked nothing: $0.0400 of $0.0600, cost not stated on 1",
     "- USD on steps that won nothing and checked 3: $0.0100",
-    "- total: 5 passes, <secs>s, $0.0500, cost not stated on 1",
+    "- upkeep, not waste: the retro $0.0100",
+    "- total: 6 passes, <secs>s, $0.0600, cost not stated on 1",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "- runner by phase: setup <secs>s, sizing <secs>s, before <secs>s, snapshot <secs>s, step <secs>s, trail <secs>s, police <secs>s, asks <secs>s, checks <secs>s, after <secs>s, finish <secs>s, stop <secs>s, handoff <secs>s",
     "## run",
     "- picked up: planner.md -> worker.md",
     "- steps: worker.md <secs>s -> merge.md <secs>s -> reviewer.md <secs>s",
-    "- spend: 5 calls, 600 tokens counted (input 500, output 100), unpriced: model-in-replay x5, reported $0.0500 (cli x5)",
+    "- spend: 6 calls, 720 tokens counted (input 600, output 120), unpriced: model-in-replay x6, reported $0.0600 (cli x6), the retro's call included",
     "- done",
     "- record: runs/weekly-digest-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 3 lines, head <hash> (python run.py verify weekly-digest-<run>)"
@@ -169,6 +172,13 @@
     "weekly-digest-<run>/manifest.json",
     "weekly-digest-<run>/merge.md",
     "weekly-digest-<run>/planner.md",
+    "weekly-digest-<run>/retro-view/gates.jsonl",
+    "weekly-digest-<run>/retro-view/gates.md",
+    "weekly-digest-<run>/retro-view/steps.jsonl",
+    "weekly-digest-<run>/retro-view/steps/003-worker.md",
+    "weekly-digest-<run>/retro-view/steps/004-merge.md",
+    "weekly-digest-<run>/retro-view/steps/005-reviewer.md",
+    "weekly-digest-<run>/retro.md",
     "weekly-digest-<run>/reviewer.md",
     "weekly-digest-<run>/rulings.json",
     "weekly-digest-<run>/rulings.json",
@@ -178,6 +188,7 @@
     "weekly-digest-<run>/steps/003-worker.md",
     "weekly-digest-<run>/steps/004-merge.md",
     "weekly-digest-<run>/steps/005-reviewer.md",
+    "weekly-digest-<run>/steps/006-retro.md",
     "weekly-digest-<run>/tasks.jsonl",
     "weekly-digest-<run>/why.md",
     "weekly-digest-<run>/workdir",
@@ -630,6 +641,100 @@
           "red-proof.json": null
         }
       }
+    },
+    {
+      "seq": 6,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "checked": 0,
+      "cause": null,
+      "why": null,
+      "file": "steps/006-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
     }
   ],
   "printed": [
@@ -685,7 +790,8 @@
       "  - rent.md: due on the 1st",
       "## can wait",
       "  - garden.md: order seeds in march",
-      "retro not run: call cap: 5 of 5 calls spent, and the next step takes 1",
+      "started retro.md",
+      "retro: <tmp>/runs/weekly-digest-<run>/retro.md",
       "# weekly digest weekly-digest-<run>: done",
       "weekly digest picked up 2 earlier passes and ran worker.md -> merge.md -> reviewer.md in <secs>s.",
       "suite: 3 of 3 gates passed; red first: not proven by a gate.",
@@ -704,6 +810,7 @@
   "prompts": [
     "merge.md go 1",
     "planner.md go 1",
+    "retro.md go 1",
     "reviewer.md go 1",
     "worker.md task 1 go 1",
     "worker.md task 2 go 1"

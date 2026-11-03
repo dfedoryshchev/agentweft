@@ -150,7 +150,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -250,7 +250,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "patcher-1",

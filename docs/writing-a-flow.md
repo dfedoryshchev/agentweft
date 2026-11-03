@@ -543,7 +543,14 @@ passes it picked up.
 
 a run that stops to wait (for a ruling, a person, the provider's limit, the
 budget or an interrupt), or one at its call cap, holds its retro and prints
-`retro not run:` and why. its failed attempts are not lost: the leg that
+`retro not run:` and why. under `retro: true` the steps leave the retro one
+call of a cap of 2 or more, so a run gets to its cap only by a wait or a cap
+of 1 (`docs/guardrails.md`, the call cap). the shipped flows that set a call
+cap carry that call in it, one over what their steps take: build-feature 13,
+fix-with-test 10, ops-check 9, code-review 7, weekly-digest 21, repo-audit
+27. a flow of your own with a retro does the same: give `max_calls` one more
+than the steps need. its failed attempts are not lost:
+the leg that
 carries the run on hands them to its own retro, with its own. an attempt one
 retro was handed is not handed to the next, and a stop that waited is not a
 failed attempt. a run a tool fault stopped (`exception`: the provider refused

@@ -25,6 +25,6 @@ context:
   command: ["audit-tool", "mcp"]
   tool: hotspots
   arguments: {dir: "."}
-max_calls: 26
+max_calls: 27
 max_tokens: 250000
 timeout: 300

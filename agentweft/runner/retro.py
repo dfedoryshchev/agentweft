@@ -590,7 +590,7 @@ def held(run, stopped):
     cause = (stopped or {}).get("cause")
     if cause in HOLDS:
         return "the run stopped on " + cause
-    waits = run.budget.ahead()
+    waits = run.budget.ahead(retro=True)
     if waits and waits[0] == REACHED:
         return waits[1]
     return ""

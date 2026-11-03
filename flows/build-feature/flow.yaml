@@ -48,6 +48,6 @@ promises:
     - the tests are written before the code, and fail without it
     - the whole suite passes once the code is in
 spec_files: additions
-max_calls: 12
+max_calls: 13
 timeout: 600
 retries: 2

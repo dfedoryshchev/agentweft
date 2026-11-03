@@ -119,7 +119,7 @@
       "budget": {
         "spent": 0,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": null,

@@ -41,6 +41,6 @@ promises:
     - the new test fails on the unpatched code
     - the new test passes with the patch
     - the whole suite passes with the patch
-max_calls: 9
+max_calls: 10
 timeout: 300
 retries: 2

@@ -130,7 +130,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 5,
+        "buffer": 6,
         "risk": "ok"
       },
       "session": "planner-1",
@@ -206,7 +206,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 5,
+        "buffer": 6,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -314,7 +314,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 5,
+        "buffer": 6,
         "risk": "ok"
       },
       "session": "reviewer-1",

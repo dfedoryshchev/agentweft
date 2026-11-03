@@ -26,6 +26,17 @@ tokens are only known once a step has answered, so the token cap pauses at
 `reaching` once 80% of it is spent and at `reached` once all of it is. the
 call cap gets no 80% pause: it is counted exactly, so it never goes over.
 
+a flow with `retro: true` ends on a retro, and a cap that the steps spend to
+the last call leaves it none. so the steps leave it one: a step that would
+take the call kept for the retro parks the run before it, as the cap does,
+and the why says so (`call cap: 11 of 12 calls spent, and the next step takes
+1; 1 is kept for the retro`). the cap is not raised for it: `max_calls: 12`
+still spends 12, the retro's call among them. the shipped flows' caps carry
+it (`docs/writing-a-flow.md`). a cap of 1 keeps nothing, and
+`retro: false` or `conditional` keeps nothing either. a run waiting on the cap
+holds its retro as any wait does; the leg that carries it on under a raised
+cap keeps the call again and spends it at its end.
+
 the cap is for the task, not for one go at it: a resumed run starts at what
 the run it picks up had spent, and one still at its cap is refused, so a budget
 park carries on only once the cap is raised. raise it for that resume with
@@ -126,12 +137,15 @@ measured over earlier runs of the shipped flows (worker 41%, patcher 22%,
 tester 14%, verify 11%, planner 8%, reviewer 4%; a role not on the list gets
 the mean), with a tenth held back as the buffer. a flow with only a call cap
 is planned at one call per step, and a fanned-out step counts once until an
-earlier run says how wide it went.
+earlier run says how wide it went. a flow with `retro: true` and a call cap
+of 2 or more keeps one call for the retro, and the plan says so under the cap
+(`retro     1 call of the buffer kept for retro.md; no step spends it`).
 
 when the blocks do not fit what the cap leaves, the run says so before it
 calls anything, and the plan file ends with the same line:
 
     RISKY: the steps take ~3 calls, the call cap leaves 2 (budget-plan.md)
+    RISKY: the steps take ~3 calls, the call cap leaves 2 beside the 1 kept for the retro (budget-plan.md)
     RISKY: the blocks add up to ~115000 tokens, the token cap leaves 100000 (budget-plan.md)
 
 RISKY is a warning, not a stop: the cap still stops the run where it always

@@ -75,6 +75,9 @@ class Budget(object):
         # goes the provider turned away and counted at 0 tokens, such as the
         # account's limit: nothing was worked on, so they are not calls
         self.refused_calls = 0
+        # the run ends on a retro (`retro: true`), which the steps leave a
+        # call for
+        self.retro = False
         self.lock = threading.Lock()
 
     def charge(self, prompt, answer, provider="cli", error=None, model=None):
@@ -277,20 +280,31 @@ class Budget(object):
                     + str(self.max_tokens) + " (" + self.token_parts() + ")")
         return None
 
-    def ahead(self, charge=1, near=NEAR):
+    def kept(self):
+        """-> the calls the steps leave for the retro: one when the run ends
+        on a retro and its call cap has room for a step beside it, else 0."""
+        return 1 if self.retro and self.max_calls > 1 else 0
+
+    def ahead(self, charge=1, near=NEAR, retro=False):
         """-> (REACHED or REACHING, why) when the next step should wait for
         someone, None when it can go.
 
         the call cap is read before the step: a step of `charge` calls that
         would take the run past it does not start, so a cap of 20 spends 20.
-        tokens are only known once a step has answered, so the token cap gets
-        a warning as well, once `near` of it is spent.
+        a step does not start on the call `kept` leaves for the retro either;
+        `retro` is the retro asking, which may spend it. tokens are only
+        known once a step has answered, so the token cap gets a warning as
+        well, once `near` of it is spent.
         """
+        keep = 0 if retro else self.kept()
         with self.lock:
-            if self.max_calls and self.calls + charge > self.max_calls:
-                return REACHED, ("call cap: " + str(self.calls) + " of "
-                                 + str(self.max_calls) + " calls spent, and "
-                                 "the next step takes " + str(charge))
+            if self.max_calls and self.calls + charge + keep > self.max_calls:
+                why = ("call cap: " + str(self.calls) + " of "
+                       + str(self.max_calls) + " calls spent, and the next"
+                       " step takes " + str(charge))
+                if self.calls + charge <= self.max_calls:
+                    why = why + "; " + str(keep) + " is kept for the retro"
+                return REACHED, why
             if not self.max_tokens:
                 return None
             share = self.capped * 100 // self.max_tokens

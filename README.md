@@ -75,7 +75,7 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
       invariants:
         - no file appears in two lists
         - every line names a file
-    max_calls: 20
+    max_calls: 21
 
 ## the ideas that survived
 

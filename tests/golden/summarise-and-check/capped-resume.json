@@ -10,13 +10,14 @@
   "path": [
     "1 worker.md ok -> reviewer.md",
     "2 reviewer.md parked",
-    "3 reviewer.md ok"
+    "3 reviewer.md ok",
+    "4 retro.md ok"
   ],
   "journal": [
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>",
     "<time>  summarise-and-check  parked at reviewer.md  <secs>s  summarise-and-check-<run>  budget  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  reached, completion 1/2 steps, call cap: 1 of 1 calls spent, and the next step takes 1  summarise-and-check-<run>/handoff.md",
     "<time>  summarise-and-check  running  <secs>s  summarise-and-check-<run>  resumes summarise-and-check-<run>",
-    "<time>  summarise-and-check  ok (resumed), 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)  summarise-and-check-<run>/handoff.md  resumes summarise-and-check-<run>"
+    "<time>  summarise-and-check  ok (resumed), 2 promise(s) not checked  <secs>s  summarise-and-check-<run>  summarise-and-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  summarise-and-check-<run>/handoff.md  resumes summarise-and-check-<run>"
   ],
   "index": [
     "PARKED  summarise-and-check  at reviewer.md",
@@ -116,7 +117,7 @@
     "- red first: not proven by a gate",
     "## rulings",
     "- no pre-existing test or spec file changed",
-    "- on record: <time> carried summarise-and-check-<run> on with the call cap from 1 to 2",
+    "- on record: <time> carried summarise-and-check-<run> on with the call cap from 1 to 3",
     "## not verified",
     "- handoff missing: worker.md",
     "- handoff missing: reviewer.md",
@@ -127,16 +128,18 @@
     "- worker.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md <secs>s (cost not stated), won none, checked 0: parked",
     "- reviewer.md <secs>s ($0.0100), won none, checked 0: no events",
-    "- won none: 3 passes, <secs>s, $0.0200, cost not stated on 1",
-    "- USD on steps that won nothing and checked nothing: $0.0200 of $0.0200, cost not stated on 1",
+    "- retro.md <secs>s ($0.0100), won facts 0, tickets 0 (0 refused): no events (after this handoff was written)",
+    "- won none: 4 passes, <secs>s, $0.0300, cost not stated on 1",
+    "- USD on steps that won nothing and checked nothing: $0.0200 of $0.0300, cost not stated on 1",
     "- USD on steps that won nothing and checked 0: $0.0000",
-    "- total: 3 passes, <secs>s, $0.0200, cost not stated on 1",
+    "- upkeep, not waste: the retro $0.0100",
+    "- total: 4 passes, <secs>s, $0.0300, cost not stated on 1",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "- runner by phase: setup <secs>s, sizing <secs>s, before <secs>s, snapshot <secs>s, step <secs>s, trail <secs>s, police <secs>s, asks <secs>s, checks <secs>s, after <secs>s, finish <secs>s, stop <secs>s, handoff <secs>s",
     "## run",
     "- picked up: worker.md -> reviewer.md",
     "- steps: reviewer.md <secs>s",
-    "- spend: 2 calls, 240 tokens counted (input 200, output 40), unpriced: model-in-replay x2, reported $0.0200 (cli x2)",
+    "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3), the retro's call included",
     "- done",
     "- record: runs/summarise-and-check-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 1 lines, head <hash> (python run.py verify summarise-and-check-<run>)"
@@ -154,6 +157,10 @@
     "summarise-and-check-<run>/handoff.md",
     "summarise-and-check-<run>/manifest.json",
     "summarise-and-check-<run>/manifest.json",
+    "summarise-and-check-<run>/retro-view/gates.md",
+    "summarise-and-check-<run>/retro-view/steps.jsonl",
+    "summarise-and-check-<run>/retro-view/steps/003-reviewer.md",
+    "summarise-and-check-<run>/retro.md",
     "summarise-and-check-<run>/reviewer.md",
     "summarise-and-check-<run>/rulings.json",
     "summarise-and-check-<run>/rulings.json",
@@ -161,6 +168,7 @@
     "summarise-and-check-<run>/steps.jsonl",
     "summarise-and-check-<run>/steps/001-worker.md",
     "summarise-and-check-<run>/steps/003-reviewer.md",
+    "summarise-and-check-<run>/steps/004-retro.md",
     "summarise-and-check-<run>/why.md",
     "summarise-and-check-<run>/workdir",
     "summarise-and-check-<run>/workdir",
@@ -393,7 +401,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 0,
+        "buffer": 1,
         "risk": "ok"
       },
       "session": "reviewer-1",
@@ -430,6 +438,100 @@
       },
       "chain": {
         "prev": null,
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "checked": 0,
+      "cause": null,
+      "why": null,
+      "file": "steps/004-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
+      },
+      "chain": {
+        "prev": "<hash>",
         "files": {
           "start-snapshot.json": null,
           "red-proof.json": null
@@ -481,7 +583,8 @@
       "VERDICT: ok",
       "notes.md: the plan moved to friday (line 3)",
       "deleted: nothing, every line was backed",
-      "retro not run: call cap: 2 of 2 calls spent, and the next step takes 1",
+      "started retro.md",
+      "retro: <tmp>/runs/summarise-and-check-<run>/retro.md",
       "# summarise-and-check summarise-and-check-<run>: done",
       "summarise-and-check picked up 2 earlier passes and ran reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -498,6 +601,7 @@
     ]
   ],
   "prompts": [
+    "retro.md go 1",
     "reviewer.md go 1",
     "worker.md go 1"
   ]

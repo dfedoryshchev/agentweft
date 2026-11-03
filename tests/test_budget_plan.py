@@ -4,6 +4,8 @@ takes what a step leaves and pays what a step runs over."""
 import json
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.runner import engine, prompts, stops
 
@@ -160,6 +162,33 @@ def test_a_step_that_overruns_draws_from_the_buffer_and_says_so(
                                                         - health["planned"])
 
 
+def a_plan(max_calls, retro):
+    from agentweft.guardrails import blocks as plans
+    from agentweft.guardrails.budget import Budget
+
+    b = Budget(max_calls=max_calls)
+    b.retro = retro
+    return plans.Plan(b, ["a.md", "b.md", "c.md"], {})
+
+
+def test_a_plan_keeps_the_retros_call_out_of_the_steps_room():
+    tight = a_plan(3, True)
+    assert tight.risky == ["the steps take ~3 calls, the call cap leaves 2"
+                           " beside the 1 kept for the retro"]
+    fits = a_plan(4, True)
+    assert fits.risky == [] and fits.buffer == 1
+    assert ("retro     1 call of the buffer kept for retro.md; no step spends"
+            " it") in fits.text().split(NL)
+
+
+@pytest.mark.parametrize("max_calls, retro", [(3, False), (1, True)])
+def test_a_plan_with_nothing_kept_reads_as_it_did(max_calls, retro):
+    plan = a_plan(max_calls, retro)
+    assert "retro " not in plan.text()
+    assert plan.risky == ([] if max_calls == 3 else
+                          ["the steps take ~3 calls, the call cap leaves 1"])
+
+
 GOLDEN = __import__("pathlib").Path(__file__).resolve().parent / "golden"
 
 
@@ -185,6 +214,9 @@ def test_a_line_closed_after_one_opened_inside_it_keeps_its_own_calls(
         max_calls = 10
         capped = 0
         calls = 0
+
+        def kept(self):
+            return 0
 
     class P(object):
         name = "fake"

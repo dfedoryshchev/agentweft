@@ -157,7 +157,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "planner-1",
@@ -233,7 +233,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "tester-1",
@@ -315,7 +315,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -435,7 +435,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "reviewer-1",
@@ -543,7 +543,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 7,
+        "buffer": 8,
         "risk": "ok"
       },
       "session": "reviewer-runs-1",

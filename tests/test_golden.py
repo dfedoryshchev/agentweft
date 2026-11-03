@@ -670,7 +670,9 @@ def stops_of(flow):
     first = CASES[(flow, "pass")]["answers"]
     opening = next(iter(first.values()))
     resumes = spec.get("journal", True)
-    calls = str(calls_in(first))
+    # the steps leave the retro its call, so a cap that is just enough for
+    # them carries on to the end with one more
+    calls = str(calls_in(first) + (1 if spec.get("retro") is True else 0))
     goes = settings.get("retries", flow=spec)
     out = {
         "no-answer": ending(flow, [stops.NO_ANSWER], [say("")] * goes),
@@ -1417,6 +1419,38 @@ def no_terse(monkeypatch):
 
 def no_retro(monkeypatch):
     monkeypatch.setattr(retro, "on", lambda fm: False)
+
+
+def more_tests(n):
+    """-> the worker's answer that adds the n-th negative case to the test."""
+    cases = "".join("\n\ndef test_mul_neg_" + str(i) + "():\n"
+                    "    from calc import mul\n\n"
+                    "    assert mul(-" + str(i) + ", 3) == -" + str(3 * i)
+                    + "\n" for i in range(1, n + 1))
+    return say(MUL_BUILT + "- test_mul.py: mul(-" + str(n) + ", 3)\n",
+               {"test_mul.py": MUL_TEST + cases})
+
+
+def test_a_build_feature_run_of_twelve_step_calls_ends_on_its_retro(
+        tmp_path, monkeypatch, capsys):
+    ok = "VERDICT: ok\n\n" + MUL_BUILT
+    case = {"place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+            "args": ["--task", FEATURE],
+            "answers": {
+                "planner.md": [MUL_PLAN, MUL_DECIDED], "tester.md": [MUL_RED],
+                "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL}),
+                              more_tests(1), more_tests(2)],
+                "reviewer.md": ["VERDICT: redo\n\nmul(-1, 3) is not tried\n",
+                                ok, ok],
+                "reviewer-runs.md": ["VERDICT: redo\n\nmul(-2, 3) is not"
+                                     " tried\n", ok],
+                "retro.md": [BUILD_RETRO]}}
+    got = replay("build-feature", case, tmp_path, monkeypatch, capsys)
+    steps = [s for s in got["steps"] if s["step"] != "retro.md"]
+    assert len(steps) == 12, [(s["step"], s["outcome"]) for s in got["steps"]]
+    assert got["exit"] == 0
+    assert got["steps"][-1]["step"] == "retro.md"
+    assert got["steps"][-1]["outcome"] == "ok"
 
 
 @pytest.mark.parametrize("flow, path, off, gone", [

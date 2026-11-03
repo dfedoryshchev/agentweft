@@ -11,13 +11,14 @@
     "1 planner.md ok -> worker.md",
     "2 worker.md parked",
     "3 worker.md ok -> reviewer.md",
-    "4 reviewer.md ok"
+    "4 reviewer.md ok",
+    "5 retro.md ok"
   ],
   "journal": [
     "<time>  ops-check  running  <secs>s  ops-check-<run>",
     "<time>  ops-check  parked at worker.md  <secs>s  ops-check-<run>  budget  1 call, 120 tokens counted (input 100, output 20), unpriced: model-in-replay x1, reported $0.0100 (cli x1)  reached, completion 1/3 steps, call cap: 1 of 1 calls spent, and the next step takes 1  ops-check-<run>/handoff.md",
     "<time>  ops-check  running  <secs>s  ops-check-<run>  resumes ops-check-<run>",
-    "<time>  ops-check  ok (resumed), 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)  ops-check-<run>/handoff.md  resumes ops-check-<run>"
+    "<time>  ops-check  ok (resumed), 3 promise(s) not checked  <secs>s  ops-check-<run>  ops-check-<day>-1.md  4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4)  ops-check-<run>/handoff.md  resumes ops-check-<run>"
   ],
   "index": [
     "PARKED  ops-check  at worker.md",
@@ -119,7 +120,7 @@
     "- red first: not proven by a gate",
     "## rulings",
     "- no pre-existing test or spec file changed",
-    "- on record: <time> carried ops-check-<run> on with the call cap from 1 to 3",
+    "- on record: <time> carried ops-check-<run> on with the call cap from 1 to 4",
     "## not verified",
     "- handoff missing: planner.md",
     "- handoff missing: worker.md",
@@ -132,16 +133,18 @@
     "- worker.md <secs>s (cost not stated), won none, checked 0: parked",
     "- worker.md <secs>s ($0.0100), won none, checked 0: no events",
     "- reviewer.md <secs>s ($0.0100), won none, checked 0: no events",
-    "- won none: 4 passes, <secs>s, $0.0300, cost not stated on 1",
-    "- USD on steps that won nothing and checked nothing: $0.0300 of $0.0300, cost not stated on 1",
+    "- retro.md <secs>s ($0.0100), won facts 0, tickets 0 (0 refused): no events (after this handoff was written)",
+    "- won none: 5 passes, <secs>s, $0.0400, cost not stated on 1",
+    "- USD on steps that won nothing and checked nothing: $0.0300 of $0.0400, cost not stated on 1",
     "- USD on steps that won nothing and checked 0: $0.0000",
-    "- total: 4 passes, <secs>s, $0.0300, cost not stated on 1",
+    "- upkeep, not waste: the retro $0.0100",
+    "- total: 5 passes, <secs>s, $0.0400, cost not stated on 1",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",
     "- runner by phase: setup <secs>s, sizing <secs>s, before <secs>s, snapshot <secs>s, step <secs>s, trail <secs>s, police <secs>s, asks <secs>s, checks <secs>s, after <secs>s, finish <secs>s, stop <secs>s, handoff <secs>s",
     "## run",
     "- picked up: planner.md -> worker.md",
     "- steps: worker.md <secs>s -> reviewer.md <secs>s",
-    "- spend: 3 calls, 360 tokens counted (input 300, output 60), unpriced: model-in-replay x3, reported $0.0300 (cli x3)",
+    "- spend: 4 calls, 480 tokens counted (input 400, output 80), unpriced: model-in-replay x4, reported $0.0400 (cli x4), the retro's call included",
     "- done",
     "- record: runs/ops-check-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 2 lines, head <hash> (python run.py verify ops-check-<run>)"
@@ -160,6 +163,11 @@
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/manifest.json",
     "ops-check-<run>/planner.md",
+    "ops-check-<run>/retro-view/gates.md",
+    "ops-check-<run>/retro-view/steps.jsonl",
+    "ops-check-<run>/retro-view/steps/003-worker.md",
+    "ops-check-<run>/retro-view/steps/004-reviewer.md",
+    "ops-check-<run>/retro.md",
     "ops-check-<run>/reviewer.md",
     "ops-check-<run>/rulings.json",
     "ops-check-<run>/rulings.json",
@@ -168,6 +176,7 @@
     "ops-check-<run>/steps/001-planner.md",
     "ops-check-<run>/steps/003-worker.md",
     "ops-check-<run>/steps/004-reviewer.md",
+    "ops-check-<run>/steps/005-retro.md",
     "ops-check-<run>/why.md",
     "ops-check-<run>/workdir",
     "ops-check-<run>/workdir",
@@ -336,7 +345,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 0,
+        "buffer": 1,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -444,7 +453,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 0,
+        "buffer": 1,
         "risk": "ok"
       },
       "session": "reviewer-1",
@@ -478,6 +487,100 @@
         "read": [],
         "questions": [],
         "other": {}
+      },
+      "chain": {
+        "prev": "<hash>",
+        "files": {
+          "start-snapshot.json": null,
+          "red-proof.json": null
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "time": "<time>",
+      "step": "retro.md",
+      "from": null,
+      "to": null,
+      "provider": "cli",
+      "command": "claude",
+      "model": "model-in-replay",
+      "model_reported": "model-in-replay",
+      "model_choice": null,
+      "effort": {
+        "asked": "provider default",
+        "base": null,
+        "raised": 0,
+        "applies": true
+      },
+      "verbosity": null,
+      "grant": {
+        "tools": [
+          "read"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false}}",
+          "--tools",
+          "Read,Glob",
+          "--allowedTools",
+          "Read,Glob",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--restricted",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": null
+      },
+      "tokens": {
+        "counted": true,
+        "input": 100,
+        "output": 20,
+        "cache_read": 0,
+        "cache_creation": 0
+      },
+      "cost": 0.01,
+      "priced": null,
+      "cost_from": null,
+      "cost_parts": null,
+      "budget": null,
+      "session": "retro-1",
+      "seconds": "<seconds>",
+      "cached": false,
+      "retries": {},
+      "background_killed": 0,
+      "shell_writes_denied": null,
+      "shell_trap_recoveries": null,
+      "gates": [],
+      "ungated": null,
+      "outcome": "ok",
+      "won": "none",
+      "checked": 0,
+      "cause": null,
+      "why": null,
+      "file": "steps/005-retro.md",
+      "task_file": null,
+      "tasks": null,
+      "handoff": null,
+      "facts": {
+        "written": [],
+        "counted": [],
+        "changed": [],
+        "refused": [],
+        "proposed": 0,
+        "owed": []
       },
       "chain": {
         "prev": "<hash>",
@@ -533,7 +636,8 @@
       "promise not checked: every finding keeps the raw line",
       "saved <tmp>/runs/ops-check-<day>-1.md",
       "- [high] app.log: ERROR nightly-export failed: disk full",
-      "retro not run: call cap: 3 of 3 calls spent, and the next step takes 1",
+      "started retro.md",
+      "retro: <tmp>/runs/ops-check-<run>/retro.md",
       "# ops-check ops-check-<run>: done",
       "ops-check picked up 2 earlier passes and ran worker.md -> reviewer.md in <secs>s.",
       "suite: no gates ran; red first: not proven by a gate.",
@@ -551,6 +655,7 @@
   ],
   "prompts": [
     "planner.md go 1",
+    "retro.md go 1",
     "reviewer.md go 1",
     "worker.md go 1"
   ]
