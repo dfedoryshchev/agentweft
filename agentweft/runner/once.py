@@ -15,8 +15,9 @@ from . import (investigate, retro, router, ruling, stops, summary, trace,
 from .asking import lead_pass, rides, to_lead, worked_then_asked
 from .fanout import run_fanout
 from .gating import (LEFT_OUT, SIZED, and_forged, boundary_note, check_step,
-                     forged_by, forged_first, gate_told, gate_why, off_task,
-                     outage_why, police_line, preflight_after,
+                     cited_past_end, forged_by, forged_first, gate_told,
+                     gate_why, off_task, outage_why, police_line,
+                     preflight_after,
                      preflight_before, reviewers_on, risk_map)
 from .run import Run
 
@@ -173,6 +174,9 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             return (out.output, run.budget, "provider outage at " + step
                     + ": " + why)
         state["out"] = out
+        found = cited_past_end(run, out)
+        if found:
+            out.meta["past_end"] = found
         run.wrote_tests(step)
         forged = forged_first(run, step, out)
         fenced = run.fenced(step)

@@ -279,7 +279,7 @@ and `continued`
 - `conformance` is only on the line of a step that changed a file in the
   scope of a fact with a `check:`: per fact, its id, scope, claim and check,
   the `result` (`held`, `broken` or `could not run`) and what it `said`
-  (`docs/guardrails.md`, "a fact's check"). `past_end` is only on the line of a step whose block named a `<file>:<lines>` past the end of the file as the step left it: `[{"cite", "lines", "changed"}]`, `changed` true, false or null for not known (the read section, below).
+  (`docs/guardrails.md`, "a fact's check"). `past_end` is only on the line of a step whose block named a `<file>:<lines>` past the end of the file as the step left it, a step that asks, parks or stops on a conflict before its gates among them: `[{"cite", "lines", "changed"}]`, `changed` true, false or null for not known (the read section, below).
 - a go that never answered, one that timed out say, stated no cost and was
   paid for all the same. it is in `cost` at the price table's figure: from
   its session's transcript when the cli wrote one, else estimated from the
@@ -790,7 +790,7 @@ five sections are written by the runner alone:
   counts or names (an option by any start of its name, `--coun` too), or whose output goes to a file or
   into anything but a reader, holds nothing; nor does another program's line in the call that names the
   file. a READ line that names a file none of those calls covered is `said, not in its transcript:`. a pass
-  with no transcript says so. last comes `cites past a file's last line:`, each `<file>:<lines>` the step's block named (a VERIFIED item by its claim alone) whose last line is past the end of the file as the place held it when the step's gates began, with the file's line count, and `after this step, which changed the file` (or `which may have changed the file` when neither the snapshot taken before the step nor git can say) when it changed under the step; a file not in the place is not read.
+  with no transcript says so. last comes `cites past a file's last line:`, each `<file>:<lines>` the step's block named (a VERIFIED item by its claim alone) whose last line is past the end of the file as the place held it when the step answered, before any gate ran (a step that asks, parks or stops on a conflict before its gates is read the same way), with the file's line count, and `after this step, which changed the file` (or `which may have changed the file` when neither the snapshot taken before the step nor git can say) when it changed under the step; a file not in the place is not read.
 - **tests and checks**: each new test's red-first record, ending `- encodes
   TASK.md:12 (patcher)` when a step's line names the test and a spec line.
 - **see the fix by hand**: on a run that finished holding a red proof shown

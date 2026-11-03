@@ -8,7 +8,7 @@ import sys
 import pytest
 
 sys.path.insert(0, ".")
-from agentweft.runner import engine, handoff, summary
+from agentweft.runner import engine, handoff, stops, summary
 from test_stops import CLAUDE, a_flow, answer, the_folder
 
 
@@ -550,3 +550,90 @@ def test_a_cite_past_a_file_s_end_is_flagged_on_its_step_as_the_file_stood(
     assert [(s["step"], s.get("past_end")) for s in steps_of(folder)][:2] == [
         ("worker.md", [{"cite": "pkg/lines.py:98", "lines": 50,
                         "changed": False}]), ("patcher.md", None)]
+
+
+ASKS = "NEEDS: which file?\nOPTIONS:\n- a.py\n- b.py\n"
+CONFLICTS = ('CONFLICT: RULES.md:3 "every line of the output names its source'
+             ' file"\nrequest: a summary with no file names in it\n')
+
+
+def a_stop(tmp_path, monkeypatch, fake_cli, said, cite, change=False):
+    """-> (cause, past_end) of the one step line of a run whose worker
+    answers `said` with a block that reads `cite`, and stops there."""
+    from test_stops import steps_of
+
+    place = a_repo(tmp_path / "repo")
+    (place / "pkg").mkdir()
+    (place / "pkg" / "lines.py").write_text(FIFTY, encoding="utf-8")
+    (place / NAMED).write_bytes(b"a\r\nb\r\nc")
+    (place / "RULES.md").write_text(
+        "# rules\n\nevery line of the output names its source file\n",
+        encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "more")
+    monkeypatch.setattr(handoff, "PROJECTS", tmp_path / "projects")
+    a_flow(tmp_path, monkeypatch, "stops", ["worker", "reviewer"],
+           tail="lead: none\nworkdir: " + place.as_posix() + "\n" + CLAUDE)
+    fake_cli(answer(said + "\nHANDOFF\nDID:\n- read the module\nREAD:\n- "
+                    + cite + " - the whole module\nEND HANDOFF\n",
+                    session="w-1"))
+    if change:
+        real = engine.Run.step
+
+        def step(self, name, *a, **kw):
+            (place / "pkg" / "more.py").write_text("x = 1\n", encoding="utf-8")
+            return real(self, name, *a, **kw)
+
+        monkeypatch.setattr(engine.Run, "step", step)
+    assert engine.main() == 2
+    [line] = steps_of(the_folder())
+    return line["cause"], line.get("past_end")
+
+
+@pytest.mark.parametrize("said, cite, change, cause", [
+    (ASKS, "pkg/lines.py:1-51", False, stops.WAITING),
+    (ASKS, "pkg\\lines.py:51", False, stops.WAITING),
+    (ASKS, "pkg/lines.py:1-51", True, stops.WAITING),
+    (CONFLICTS, "pkg/lines.py:1-51", False, (stops.CONFLICT,))],
+    ids=["asked", "asked-backslash", "worked-then-asked", "conflict"])
+def test_a_cite_past_the_end_is_flagged_on_a_step_stopped_before_its_gates(
+        said, cite, change, cause, tmp_path, monkeypatch, fake_cli):
+    stopped, past = a_stop(tmp_path, monkeypatch, fake_cli, said, cite, change)
+    assert stopped in cause
+    assert past == [{"cite": cite.replace("\\", "/"), "lines": 50,
+                     "changed": False}]
+
+
+@pytest.mark.parametrize("cite, want", [
+    ("pkg/lines.py:1-51", [{"cite": "pkg/lines.py:1-51", "lines": 50,
+                            "changed": False}]),
+    ("pkg/lines.py:1-50", None)], ids=["past", "inside"])
+def test_a_scored_run_flags_a_cite_past_the_end_on_a_step_that_asked(
+        cite, want, tmp_path, monkeypatch):
+    from agentweft.runner import once
+    from test_stops import steps_of
+
+    place = a_repo(tmp_path / "repo")
+    (place / "pkg").mkdir()
+    (place / "pkg" / "lines.py").write_text(FIFTY, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "more")
+    a_flow(tmp_path, monkeypatch, "asks", ["worker", "reviewer"],
+           tail="lead: none\n")
+    trail = tmp_path / "trail"
+    trail.mkdir()
+    once.run_once("asks", provider={"provider": "fake", "replies": {
+        "worker.md": [ASKS + "\nHANDOFF\nREAD:\n- " + cite
+                      + " - the whole module\nEND HANDOFF\n"]}},
+        trail=trail, workdir=str(place))
+    [line] = steps_of(trail)
+    assert line["cause"] in stops.WAITING
+    assert line.get("past_end") == want
+
+
+@pytest.mark.parametrize("said, cite", [
+    (ASKS, "pkg/lines.py:1-50"), (ASKS, NAMED + ":3"),
+    (CONFLICTS, "pkg/lines.py:50")], ids=["asked", "no-break", "conflict"])
+def test_an_in_range_cite_on_a_step_that_stops_before_its_gates_is_no_flag(
+        said, cite, tmp_path, monkeypatch, fake_cli):
+    assert a_stop(tmp_path, monkeypatch, fake_cli, said, cite)[1] is None

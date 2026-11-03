@@ -28,8 +28,9 @@ from .ending import (FLAG_OF, cap_of, finish, passes, remember,
 from .fanout import run_fanout
 from .laps import Laps
 from .gating import (NEWLINE, and_forged, boundary_note, check_step,
-                     forged_by, forged_first, gate_told, gate_why,
-                     held_after_stop, nothing_why, off_task, outage_why,
+                     cited_past_end, forged_by, forged_first, gate_told,
+                     gate_why, held_after_stop, nothing_why, off_task,
+                     outage_why,
                      police_line, preflight_after, preflight_before, risk_map,
                      reviewers_on, sent_back_times, since, SIZED, times,
                      unwired_lines)
@@ -456,6 +457,7 @@ def go(leg):
             entry = trail.open(step, run.taken(), used, came_from,
                                output=out.output, fanned=step == run.fan)
             entry.handoff = out.block
+            entry.past_end = cited_past_end(run, out) or None
 
             forged = forged_first(run, step, out)
             if forged:

@@ -152,6 +152,20 @@ def timed(result, began):
     return result
 
 
+def cited_past_end(run, out):
+    """-> each `<file>:<lines>` the step's block names past the end of the
+    file as the step left it (`summary.past_end`), [] for none. the loop
+    reads it as soon as the step answers too, so a step that asks, parks or
+    stops on a conflict before `check_step` is flagged as well."""
+    from .handoff import parse
+    from .summary import past_end
+
+    block = getattr(out, "block", None)
+    return past_end(block if isinstance(block, dict) else parse(
+        out.output or ""), getattr(run, "workdir", None),
+        getattr(run, "changed_in_step", None))
+
+
 def check_step(run, route, step, out, run_dir=None):
     """what a step has to get past once it has produced something.
 
@@ -172,16 +186,10 @@ def check_step(run, route, step, out, run_dir=None):
     broken one is a failed gate.
 
     each `<file>:<lines>` the step's block names past the end of the file
-    as the step left it goes on `out.meta["past_end"]` (`summary.past_end`),
+    as the step left it goes on `out.meta["past_end"]` (`cited_past_end`),
     read before any gate runs code in the place.
     """
-    from .handoff import parse
-    from .summary import past_end
-
-    block = getattr(out, "block", None)
-    found = past_end(block if isinstance(block, dict) else parse(
-        out.output or ""), getattr(run, "workdir", None),
-        getattr(run, "changed_in_step", None))
+    found = cited_past_end(run, out)
     if found:
         out.meta["past_end"] = found
     held = getattr(run, "held", lambda g, s: g.run)
