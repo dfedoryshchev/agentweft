@@ -140,6 +140,125 @@ def test_a_continuation_line_joins_the_item_above_it():
     assert got["doubts"] == ["the export drops a row"]
 
 
+PROBE = ('python -m pkg report --month 2026-13 --file /tmp/empty.json;'
+         ' echo "rc=$?"; python -c "\n'
+         "from pkg import when\n"
+         "for v in ['2026-13', '2026-1', '\uff12\uff10\uff12\uff16-01']:\n"
+         "    try: print(repr(v), when.month_of(v))\n"
+         '    except Exception as e: print(repr(v), e)"')
+CODED = ("HANDOFF\n"
+         "DID:\n"
+         "- added a failing test\n"
+         "VERIFIED:\n"
+         "- On an empty file, report takes a bad month and exits 0.\n"
+         "  cmd: " + PROBE + "\n"
+         "  saw: date,amount\n"
+         "  saw: rc=0\n"
+         "- month_of turns away 2026-13 and 2026-1.\n"
+         "  cmd: same command as above\n"
+         "  saw: '2026-13' bad month: 2026-13\n"
+         "  saw: '2026-1' bad month: 2026-1\n"
+         "- The new test fails and the 3 old ones pass.\n"
+         "  cmd: python -m pytest -q tests/test_report.py 2>&1 | tail -3\n"
+         "  saw: 1 failed, 3 passed\n"
+         "- It fails on the exit code.\n"
+         "  cmd: python -m pytest -q tests/test_report.py 2>&1 | grep -E '^E '"
+         "; git status --short\n"
+         "  saw: E       assert (0, 'date,amount') == (2, '')\n"
+         "- Only the test file changed.\n"
+         "  cmd: same command as above\n"
+         "  saw:  M tests/test_report.py\n"
+         "NOT VERIFIED:\n"
+         "- the full suite - ran one file\n"
+         "END HANDOFF\n")
+PROBED = ("date,amount\r\nrc=0\nTraceback (most recent call last):\r\n"
+          "    try: print(repr(v), when.month_of(v))\r\n"
+          "'2026-13' bad month: 2026-13\r\n'2026-1' bad month: 2026-1")
+
+
+def test_a_line_of_a_verified_command_that_reads_like_a_heading_stays_in_it():
+    got = handoff.parse(CODED)
+    assert got["other"] == {}
+    assert [i["claim"] for i in got["verified"]] == [
+        "On an empty file, report takes a bad month and exits 0.",
+        "month_of turns away 2026-13 and 2026-1.",
+        "The new test fails and the 3 old ones pass.",
+        "It fails on the exit code.", "Only the test file changed."]
+    first = got["verified"][0]
+    assert first["cmd"] == " ".join(p.strip() for p in PROBE.split("\n"))
+    assert first["saw"] == "date,amount / rc=0"
+    assert got["verified"][1]["cmd"] == first["cmd"]
+    assert got["not_verified"] == ["the full suite - ran one file"]
+
+
+def test_the_whole_command_and_its_output_back_the_claim():
+    got = handoff.back(handoff.parse(CODED), [
+        (PROBE, PROBED),
+        ("python -m pytest -q tests/test_report.py 2>&1 | tail -3",
+         "1 failed, 3 passed in 0.5s"),
+        ("python -m pytest -q tests/test_report.py 2>&1 | grep -E '^E ';"
+         " git status --short",
+         "E       assert (0, 'date,amount') == (2, '')\n"
+         " M tests/test_report.py")])
+    assert [(i["backed"], i["by"]) for i in got["verified"]] == [
+        ("backed", "command")] * 5
+
+
+@pytest.mark.parametrize("after, where, want", [
+    ("NOT VERIFIED:\n- the json path - not run", "not_verified",
+     ["the json path - not run"]),
+    ("Assumed: the month comes first", "assumed",
+     ["the month comes first"]),
+    ("NEEDS: which order holds?", "NEEDS", ["which order holds?"]),
+    ("Needs: which order holds?", "NEEDS", ["which order holds?"]),
+    ("TRY: a heading in capitals", "TRY", ["a heading in capitals"]),
+])
+@pytest.mark.parametrize("code", ["", "  try: f()\n"])
+def test_a_real_heading_still_ends_the_command(after, where, want, code):
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- it runs\n"
+                        '  cmd: python -c "\n' + code + after
+                        + "\nEND HANDOFF\n")
+    [item] = got["verified"]
+    assert item["cmd"] == ('python -c " try: f()' if code else 'python -c "')
+    assert (got[where] if where in got else got["other"][where]) == want
+
+
+def test_a_question_still_ends_the_command():
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- it runs\n  cmd: python -c \"\n"
+                        "Question: which order holds?\nEND HANDOFF\n")
+    assert got["questions"][0]["question"] == "which order holds?"
+    assert got["verified"][0]["cmd"] == 'python -c "'
+
+
+OPENED = "else: open(r'place\\caf" + chr(0xE9) + ".txt')\""
+
+
+@pytest.mark.parametrize("code", ["", "    " + OPENED + "\n"])
+def test_a_next_item_still_ends_the_command(code):
+    got = handoff.parse(
+        "HANDOFF\nVERIFIED:\n- it runs\n  cmd: python -c \"\n" + code
+        + "- the second one\n  cmd: ls\n  saw: a.py\nEND HANDOFF\n")
+    first, second = got["verified"]
+    assert first["cmd"] == "python -c \"" + (" " + OPENED if code else "")
+    assert second["claim"] == "the second one" and second["cmd"] == "ls"
+    assert got["other"] == {}
+
+
+def test_a_word_and_colon_after_the_output_is_not_the_command():
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- it runs\n  cmd: ls\n"
+                        "  saw: a.py\nnote: the folder was empty\n"
+                        "END HANDOFF\n")
+    assert got["verified"][0]["cmd"] == "ls"
+    assert got["other"] == {"NOTE": ["the folder was empty"]}
+
+
+def test_a_command_with_no_end_of_block_is_unreadable():
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- it runs\n  cmd: python -c \"\n"
+                        "  try: f()\n")
+    assert got["state"] == "unreadable"
+    assert got["verified"] == []
+
+
 def test_the_answer_without_its_block_is_what_the_gates_and_the_saved_run_see():
     assert handoff.without("fixed it\n\n" + BLOCK) == "fixed it\n"
     assert handoff.without("no block here\n") == "no block here\n"

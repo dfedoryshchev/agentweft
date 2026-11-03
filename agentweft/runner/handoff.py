@@ -132,7 +132,10 @@ def parse(text):
     its line is its first item. items are bullets, a line that is neither
     joins the item above it, and `none` is an empty section rather than an
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
-    is kept under `other` as the step wrote it. an ASSUMED item's `why:` and
+    is kept under `other` as the step wrote it. under a VERIFIED `cmd:`, a
+    line that reads `word: text` with the word in lower case and no name this
+    or `verbs` knows (`try: f()` in a `python -c` body) is the command's, not
+    a heading. an ASSUMED item's `why:` and
     `if wrong:` lines are its own, kept on lines of their own under the
     choice, and so are an ADJACENT item's `fixed:` and `test:` lines and a
     BECAUSE item's `from:` and `led to:` lines; the
@@ -159,6 +162,10 @@ def parse(text):
             continue
         if items is out["adjacent"] and items and _labelled(line, FOUND):
             items[-1] = items[-1] + "\n" + _labelled(line, FOUND)
+            continue
+        if (items is out["verified"] and items and _in_cmd(items[-1])
+                and _code_line(line)):
+            items[-1] = items[-1] + " " + line.strip()
             continue
         head = verbs.key_of(line)
         if head is not None and head[0] in ASKING and not head[2]:
@@ -247,6 +254,30 @@ def _labelled(line, labels=PART):
     m = verbs.BULLET.match(line)
     body = (m.group(1) if m else line).strip()
     return body if labels.match(body) else None
+
+
+def _in_cmd(item):
+    """whether the VERIFIED item `item` ends on its `cmd:` line, so a line
+    under it can still be the command."""
+    bits = OLD_PART.split(item.split("\n")[-1].strip())
+    labels = bits[1::2]
+    if not labels:
+        m = PART.match(bits[0])
+        labels = [m.group(1)] if m else []
+    return bool(labels) and labels[-1].lower() in ("cmd", "command", "ran")
+
+
+def _code_line(line):
+    """whether `line`, read as `word: text`, is a line of a command and not a
+    heading: not bulleted, not in capitals, and no name the block or the run's
+    own verbs know (`Assumed:`, `Needs:`, `Question:` in any case still open
+    theirs)."""
+    head = verbs.key_of(line)
+    if head is None:
+        return False
+    name, _, bulleted, caps = head
+    return not (bulleted or caps or name in KEYS or name in ASKING
+                or name in verbs.FIELD)
 
 
 def reason(item):
