@@ -204,6 +204,7 @@ def check_step(run, route, step, out, run_dir=None):
         if moved:
             results.insert(0, timed(Result(bounds.NAME, False, moved), began))
     workdir, start = getattr(run, "workdir", "."), getattr(run, "start", None)
+    covered = getattr(run, "spec_line_covered", None)
     began = time.time()
     wrong = [w for w in (ruling.misquoted(out.output, workdir, start),
                          wrongtest.misquoted(out.output, workdir, start)) if w]
@@ -212,7 +213,7 @@ def check_step(run, route, step, out, run_dir=None):
                                 began))
     began = time.time()
     said = ruling.conflict_of(out.output, workdir, start,
-                              handed=handed_to(run, step))
+                              handed=handed_to(run, step), ruled=covered)
     if said and said[1]:
         results.insert(0, timed(Result("conflict", False, said[1]), began))
     forged = getattr(run, "forged", {}).pop(step, "")

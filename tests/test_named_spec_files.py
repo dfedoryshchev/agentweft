@@ -6,7 +6,8 @@ stops on, let every line of those files change for the run, not only the
 line the conflict cited. a file is named by its exact path, in a sentence of
 the request or the answer that asks for the change; a folder, a glob, a
 negated sentence or a `request:` answer names none, and a line of a file
-nobody named still stops.
+nobody named still stops. a plan line that marks covered lines `spec:
+contradicts` needs no CONFLICT line for them; a mark on any other line does.
 """
 import datetime
 import json
@@ -100,17 +101,18 @@ def paging_edits(place, api="docs/api.md"):
 
 
 def two_legs(tmp_path, monkeypatch, request, answer=OVERRIDE,
-             api="docs/api.md"):
+             api="docs/api.md", plan=None):
     """two legs: the planner stops on the rule's line, the answer goes
-    in, and the planner's next go cites lines of the api doc. -> (steps
-    asked on the second leg, the prompts sent, its exit code)."""
+    in, and the planner's next go (`plan`, or one citing lines of the api
+    doc) is read. -> (steps asked on the second leg, the prompts sent, its
+    exit code)."""
     place = paging_place(tmp_path, monkeypatch, api)
     first = plain({"planner.md": [first_plan(request)]})
     asked, _, code = go(tmp_path, monkeypatch, "build-feature", first,
                         lambda s, n: None, "--task", request)
     assert (asked, code) == (["planner.md"], stops.EXIT_STOP)
     [leg] = folders(tmp_path)
-    second = plain({"planner.md": [second_plan(request)
+    second = plain({"planner.md": [plan or second_plan(request)
                                    .replace("docs/api.md", api)],
                     "tester.md": [TESTER], "worker.md": [BUILT],
                     "reviewer.md": [REVIEWED],
@@ -239,6 +241,48 @@ def test_the_run_stops_on_the_first_conflict_line_no_ruling_covers(tmp_path):
     misquoted = conflict("docs/api.md:3", "not the line", NAMED)
     assert ruling.conflict_of(misquoted, tmp_path,
                               ruled=lambda rel, line: "a ruling")[1]
+
+
+MARKED = NL.join([
+    "- behaviour: cursor([1, 2, 3], 1, 1) is [2]",
+    "  file: pages.py",
+    "  spec: contradicts docs/api.md:3 and docs/api.md:4 (ruling)",
+    "  spec: contradicts rules/api-shape.md:1 (ruling)", ""])
+
+
+def test_a_plan_marking_lines_the_override_covers_needs_no_conflict_line(
+        tmp_path, monkeypatch):
+    asked, _, code = two_legs(tmp_path, monkeypatch, NAMED, plan=MARKED)
+    gates = (folders(tmp_path)[-1] / "gates.md").read_text(encoding="utf-8")
+    assert "FAIL conflict" not in gates
+    assert code == stops.EXIT_OK
+
+
+def test_a_mark_needs_a_conflict_line_unless_a_ruling_covers_each_line(
+        tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "rules").mkdir()
+    (tmp_path / "docs" / "api.md").write_text(API, encoding="utf-8")
+    (tmp_path / "rules" / "api-shape.md").write_text(RULE, encoding="utf-8")
+
+    def docs_only(rel, line):
+        return "a ruling" if rel == "docs/api.md" else None
+
+    def mark(*cites):
+        return "- behaviour: x" + NL + "  spec: contradicts " \
+            + " and ".join(cites) + " (ruling)" + NL
+
+    assert ruling.conflict_of(mark("docs/api.md:3", "docs/api.md:4"),
+                              tmp_path, ruled=docs_only) is None
+    assert ruling.conflict_of(mark("docs/api.md:3-4"), tmp_path,
+                              ruled=docs_only) is None
+    for plan in (mark("rules/api-shape.md:1"),
+                 mark("docs/api.md:3", "rules/api-shape.md:1"),
+                 mark("docs/api.md:3") + mark("rules/api-shape.md:1"),
+                 mark("the api doc"), mark("docs/api.md:40")):
+        said = ruling.conflict_of(plan, tmp_path, ruled=docs_only)
+        assert said and "has no CONFLICT line" in said[1], plan
+    assert ruling.conflict_of(mark("docs/api.md:3"), tmp_path)[1]
 
 
 def entry(decided, why):

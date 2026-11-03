@@ -55,7 +55,11 @@ cause `conflict` before any gate runs, so a red test the step marked as
 contradicting the spec is never something the step is sent back to turn
 green. when it is not, a `conflict` result goes in front of the step's gates
 and fails it, with what was wrong (`docs/journal.md`, when the request
-contradicts the spec).
+contradicts the spec). a plan line marked `spec: contradicts <file>:<line>`
+with no CONFLICT line fails the step the same way, unless an override the
+run holds already lets every line it cites change: those lines are ruled,
+and a new conflict on them would ask what is answered. a mark on any other
+line, or citing none, still fails it.
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that

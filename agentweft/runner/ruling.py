@@ -30,10 +30,11 @@ that line as the run found it, from the start snapshot, so a step cannot make
 its own cite true by editing the file first. a quote that is there stops the
 run on a conflict, with the question in handoff.md; one that is not fails the
 step, and so does a plan line marked `spec: contradicts` with no CONFLICT
-line. the answer to a conflict says which one holds: `override: <the new
-rule>` lets the request win and authorises that spec line to change, and
-every line of a spec file the request or the answer names to change by its
-exact path (`named_to_change`), and nothing else; a later CONFLICT on a line
+line, unless a ruling the run holds already lets every line it cites change
+(`mark_ruled`). the answer to a conflict says which one holds: `override:
+<the new rule>` lets the request win and authorises that spec line to
+change, and every line of a spec file the request or the answer names to
+change by its exact path (`named_to_change`), and nothing else; a later CONFLICT on a line
 it covers does not stop the run again. `request: <what to do instead>` keeps
 the spec, adds the words to the request, and starts again from the first
 step that reads it.
@@ -411,7 +412,7 @@ def conflict_of(output, workdir, start=None, handed=(), ruled=None):
     `ruled`, a CONFLICT line whose lines a ruling already lets change is
     passed over (`unruled`), and None comes back when every one is."""
     if verbs.parse(output).conflict is None:
-        return untyped(output, handed)
+        return untyped(output, handed, workdir, start, ruled)
     found = unruled(output, workdir, start, ruled)
     if found is None:
         return None
@@ -444,12 +445,48 @@ def marks(output):
             verbs.visible(output) if CONTRADICTS.match(line)]
 
 
-def untyped(output, handed=()):
+MARKED = re.compile(r"""([^\s:`'"(),]*[./][^\s:`'"(),]*):(\d+)(?:-(\d+))?""")
+
+
+def every_ruled(rel, lines, ruled):
+    """-> the ruling that lets the first of `lines`, of the spec file `rel`,
+    change, when one lets each that is not blank change; else None."""
+    found = None
+    for line in lines:
+        if not line.strip():
+            continue
+        d = ruled(rel, line)
+        if d is None:
+            return None
+        found = found or d
+    return found
+
+
+def mark_ruled(mark, workdir, start=None, ruled=None):
+    """whether a `spec: contradicts` mark cites spec lines and a ruling the
+    run holds already lets every one of them, as the run found it, change."""
+    found = False
+    for m in MARKED.finditer(mark or ""):
+        rel, first = m.group(1), int(m.group(2))
+        last = int(m.group(3) or first)
+        lines, _ = lines_of(workdir, rel, first, last, start)
+        if lines is None or every_ruled(rel, lines[first - 1:last],
+                                        ruled) is None:
+            return False
+        found = True
+    return found
+
+
+def untyped(output, handed=(), workdir=".", start=None, ruled=None):
     """-> None, or ("", why) for an answer whose plan marks a behaviour
     `spec: contradicts` with no CONFLICT line to stop the run on it, the
-    marks an earlier step's answer in `handed` already holds left out."""
+    marks an earlier step's answer in `handed` already holds left out, and
+    with `ruled` the marks on lines a ruling already lets change
+    (`mark_ruled`)."""
     given = set(flat(m) for text in handed for m in marks(text))
-    marked = [m for m in marks(output) if flat(m) not in given]
+    marked = [m for m in marks(output) if flat(m) not in given
+              and not (ruled is not None
+                       and mark_ruled(m, workdir, start, ruled))]
     if not marked:
         return None
     return "", ("the answer marks " + "; ".join(marked) + " and has no"
