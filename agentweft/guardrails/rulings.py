@@ -21,7 +21,9 @@ who wrote it; with that record gone or unreadable, none counts.
 
 the lead's decisions are rulings for the step that asked, not over the spec:
 the checks that let a spec line or a start test change read every entry but
-the lead's (`read(but=(LEAD,))`).
+the lead's (`read(but=(LEAD,))`). that holds in a later run too: an entry
+there at the start in the form the lead's decision is written in is read as
+the lead's, so its quote of a spec line never lets the line change.
 """
 import hashlib
 import json
@@ -33,6 +35,13 @@ from agentweft.orchestrate import decisions
 FILE = "rulings.json"
 GATE = "rulings"
 LEAD = "lead"
+
+
+def by_lead(d):
+    """whether `d` is written the way the runner writes a lead's decision:
+    by this run, or by an earlier one and there when this run started."""
+    from agentweft.runner import lead
+    return lead.decided_of(d.why) is not None
 
 
 def digest(d):
@@ -81,9 +90,11 @@ class Kept(object):
     def read(self, but=()):
         """-> the entries of decisions.md the runner has on record, oldest
         first, less those written by any of `but`. anything else in the file
-        is not a ruling."""
+        is not a ruling. with LEAD in `but`, an entry in the form the lead's
+        decision is written in is left out too, whichever run wrote it."""
         known = self.known(but)
-        return [d for d in decisions.read(self.root) if digest(d) in known]
+        return [d for d in decisions.read(self.root) if digest(d) in known
+                and not (LEAD in but and by_lead(d))]
 
     def check(self, step, how=""):
         """-> "" when decisions.md, and each record on `also`, is as the

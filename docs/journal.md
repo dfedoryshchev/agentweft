@@ -1148,7 +1148,11 @@ tests, never over them, so its entry never counts as the ruling that lets a
 spec line or a start test change: when the step acting on it rewrites or
 removes a spec line, edits a test the run started with (even one the
 decision names), or turns a test green at the start red, the run stops
-there for you, the way it would with no decision. a question gets one round
+there for you, the way it would with no decision. that holds in every later
+run too: a lead's entry already in `decisions.md` when a run starts still
+lets no spec line change, and a `CONFLICT:` on a line its why quotes stops
+that run. an entry you wrote by hand, and an earlier `--answer`, still rule
+the lines they quote. a question gets one round
 with the lead, so
 the same `NEEDS:` asked again after the lead decided it parks too. the
 question in `question.md` then says why the lead did not decide it. a flow

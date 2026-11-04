@@ -282,10 +282,11 @@ class Run(object):
     def spec_rulings(self):
         """-> the rulings that can let a spec line change, or a start test
         change in its file or its result: every one on record but the
-        lead's, which decides inside them."""
+        lead's, this run's or an earlier one's, which decides inside
+        them."""
         kept = getattr(self, "kept", None)
         if kept is None:
-            return self.decided()
+            return [d for d in self.decided() if not rulings.by_lead(d)]
         return kept.read(but=(rulings.LEAD,))
 
     def rule(self, decided, why, by):
