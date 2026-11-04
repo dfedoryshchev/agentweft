@@ -225,9 +225,7 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
                     + " for a ruling: " + wrong[1].split("\n")[0])
         if honest:
             rides(step, out)
-        said = ruling.asked_of(out.output, run.workdir, out.verdict,
-                               out.meta.get("allowed"), run.start) \
-            if honest else None
+        said = run.asked(step, out) if honest else None
         if said and said[0] == ruling.DECLINED:
             note("refused", said[1], stops.DECLINED, output=out.output)
             return out.output, run.budget, ""

@@ -260,7 +260,13 @@ turns only that gate off: the order checks still want a red proof.
   test fails names it). a step that names the whole file an earlier step's
   ids are in is held to those ids. a `red` that is neither true nor false fails. without a command the pass
   says nothing was run. an empty answer fails as `the step answered nothing`,
-  not as a test that never failed.
+  not as a test that never failed. a step held to `red: true` that cannot
+  make a test fail (no `TEST:` and no `FAILS:` line, or each saying none) and
+  asks a HANDOFF `QUESTION:` citing a `<file>:<line>` in the place parks the
+  run on that question before this gate runs, `needs you: ruling`, with its
+  `RECOMMEND:` as an option: no send-back is spent on it. with no such
+  question the gate fails it as before. a run that skips tests never parks
+  this way.
 - **red-first** - `command: [...]` with `{test}` in it, `expect` (default 1),
   `timeout`, `results` (`junit`, with `{results}` in the command). goes on
   the step that made the fix, and shows each new test fails without it and

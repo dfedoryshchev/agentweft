@@ -244,6 +244,9 @@
     "worker.md go 1 6ae6950c6c9737e86d341b02adccaa552f720eb5cd19c71291ba78603ab58b4e",
     "worker.md go 2 6ae6950c6c9737e86d341b02adccaa552f720eb5cd19c71291ba78603ab58b4e"
   ],
+  "fix-with-test/no-red-asks": [
+    "worker.md go 1 6ae6950c6c9737e86d341b02adccaa552f720eb5cd19c71291ba78603ab58b4e"
+  ],
   "fix-with-test/no-red-proof": [
     "retro.md go 1 e71c5433652942750a3addb16c1b5d82c50f38eb17f8faa0f6974f81020b9f12",
     "worker.md go 1 6ae6950c6c9737e86d341b02adccaa552f720eb5cd19c71291ba78603ab58b4e"

@@ -559,9 +559,7 @@ def go(leg):
                 if entry.file:
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")
-            said = ruling.asked_of(out.output, run.workdir, out.verdict,
-                                   out.meta.get("allowed"), run.start) \
-                if honest else None
+            said = run.asked(step, out) if honest else None
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)

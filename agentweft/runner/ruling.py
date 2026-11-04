@@ -8,7 +8,8 @@ gate, and it waits for a ruling; a step that changed the place first has its
 gates run on that before the park. a question that says what it would pick
 (`RECOMMEND:`) and whose `SIZE:` for that pick changes no code parks nothing:
 it is the step's call, and goes on as a doubt with that answer taken
-(`demoted`).
+(`demoted`). a step held to a red test that shows none failing and asks a
+HANDOFF `QUESTION:` citing a line in the place parks the same way (`no_red`).
 `--resume <run id> --answer "<text>"` (or `--answer-file <path>`) runs that
 same step again with the answer at the end of its prompt, and the question,
 the answer and who gave it go into decisions.md in the place the run works
@@ -51,7 +52,9 @@ from agentweft.guardrails import specfiles
 
 from . import lead, verbs
 from .config import SPEC_CHANGE, verdict
+from .handoff import CITE as CITED_LINE
 from .handoff import KEYS, KNOWN, NONE_WORDS, bounds, without
+from .handoff import parse as parse_handoff
 
 PARK = "park"
 ASKED = "ruling"
@@ -156,7 +159,49 @@ def asked_of(output, workdir, word=None, allowed=None, start=None):
     return None
 
 
-NO_CODE = re.compile(r"^(zero|none|nothing|no code|no change|0\b)")
+def unnamed(output, key):
+    """whether the first `key:` line of `output` is missing, or says none:
+    "none", "none written", "no test"."""
+    for _, line in verbs.visible(output):
+        head = verbs.key_of(line)
+        if head is None or head[0] != key or head[2] or not head[3]:
+            continue
+        said = head[1].lower().strip(" .`")
+        return said in NONE_WORDS or said.startswith(("none", "no "))
+    return True
+
+
+def no_red(step, output, workdir):
+    """-> the question a step held to a red test parks on when it shows no
+    test failing, with no `TEST:` and no `FAILS:` line or each saying none,
+    and its HANDOFF asks a `QUESTION:` that cites a line of a file in the
+    place; None for any other answer, which the red-test gate judges as
+    before."""
+    if not unnamed(output, "TEST") or not unnamed(output, "FAILS"):
+        return None
+    for asked in parse_handoff(output)["questions"]:
+        cites = []
+        for m in CITED_LINE.finditer(asked["question"]):
+            if cited(m.group(0), (), workdir) and m.group(0) not in cites:
+                cites.append(m.group(0))
+        if not cites:
+            continue
+        out = ["NEEDS: " + step + " could not make a test fail, and asks: "
+               + flat(asked["question"]), "CITES:"]
+        out.extend("- " + c for c in cites)
+        out.append("OPTIONS:")
+        if asked["recommend"]:
+            out.append("- " + flat(asked["recommend"]))
+        out.append("- anything else is told to " + step + ", which runs"
+                   " again with it")
+        for key in ("recommend", "size"):
+            if asked[key]:
+                out.append(key.upper() + ": " + flat(asked[key]))
+        return "\n".join(out)
+    return None
+
+
+NO_CODE =re.compile(r"^(zero|none|nothing|no code|no change|0\b)")
 ONE_TEST = re.compile(r"^(only )?(one|a|1) (new |unit |optional |regression )*"
                       r"test( function| case)?( only)?$")
 # "zero code lines" names no code; "one line in parse.py" or "4 lines for B"

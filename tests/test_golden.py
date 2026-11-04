@@ -196,6 +196,12 @@ ORDER_ASKED = say("TEST: test_calc.py\n\n-    return a - b\n"
                           " test_calc.py | saw: 1 passed"),
                   {"calc.py": FIXED})
 
+NO_RED_ASKS = ("add(1, 2) is 3 on this code, so no test was written.\n"
+               "\nHANDOFF\nDID:\n- wrote no test: add(1, 2) gives 3\n"
+               "QUESTION: calc.py:2 already adds, so add(1, 2) is 3. was the"
+               " report about another input?\nRECOMMEND: close the report as"
+               " not seen on this code\nEND HANDOFF\n")
+
 NEG = "\n\ndef neg(a):\n    return -a\n"
 NEG_TEST = "from calc import neg\n\n\ndef test_neg():\n    assert neg(2) == -2\n"
 FIXED_NEG_BROKEN = FIXED + "\n\ndef neg(a):\n    return a\n"
@@ -332,6 +338,10 @@ CASES = {
                                      "answers": {
         "worker.md": ["could not make it fail: add(1, 2) looks right to me\n"]
         * 2}},
+    ("fix-with-test", "no-red-asks"): {"place": {"calc.py": FIXED},
+                                        "args": ["--task", BUG], "task": BUG,
+                                        "answers": {
+        "worker.md": [NO_RED_ASKS]}},
     ("fix-with-test", "start-test-edited"): {
         "place": {"calc.py": BUGGY, "test_calc.py": KEPT_TEST},
         "args": ["--task", BUG], "task": BUG,

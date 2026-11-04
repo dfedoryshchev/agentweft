@@ -17,6 +17,7 @@ from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   testedits, worktree)
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
+from agentweft.guardrails.gates.redtest_gate import truth
 from agentweft.guardrails import factsguard, factsread
 from agentweft.orchestrate import decisions, facts, project, synthesise
 from agentweft.guardrails.budget import Budget
@@ -937,6 +938,29 @@ class Run(object):
                                     project=getattr(self, "project", None))
                         for g in (s.get("gates") or [])]
         return []
+
+    def wants_red(self, step):
+        """whether `step` is held to a test it shows failing: a red-test gate
+        with red on, in a run that does not skip tests."""
+        order = getattr(self, "order", None)
+        if order is not None and order.skip:
+            return False
+        return any(g.name == "red-test" and truth(g.opts.get("red", True))
+                   for g in self.gates_for(step))
+
+    def asked(self, step, out):
+        """-> what `ruling.asked_of` reads in `out`, or, for a step held to
+        a red test that shows none failing and asks a question citing a line,
+        that question (`ruling.no_red`): the step parks with its reason
+        before the red-test gate, rather than failing it."""
+        said = ruling.asked_of(out.output, self.workdir, out.verdict,
+                               out.meta.get("allowed"),
+                               getattr(self, "start", None))
+        if said is None and self.wants_red(step):
+            question = ruling.no_red(step, out.output, self.workdir)
+            if question:
+                return ruling.ASKED, question
+        return said
 
     def suite_of(self, step):
         """-> what `step`'s gates that run the whole suite said of the place
