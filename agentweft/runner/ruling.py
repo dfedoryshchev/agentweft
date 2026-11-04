@@ -615,8 +615,43 @@ def misquote(said, workdir, start=None, who="the answer"):
         return who + ' quotes "' + quote + '" from ' + cite + ", and " + why
     if runs_to(lines, first, last, quote) is not None:
         return ""
+    if moved_to(workdir, rel, first, last, quote, start) is not None:
+        return ""
     return (who + ' quotes "' + quote + '", which is not at ' + cite
             + " as the run found it")
+
+
+def now_of(workdir, rel):
+    """-> the text of `rel`, a path from `workdir`, as it is now, or None."""
+    root = Path(workdir).resolve()
+    path = (root / rel).resolve()
+    try:
+        path.relative_to(root)
+        return path.read_text(encoding="utf-8", errors="replace")
+    except (ValueError, OSError):
+        return None
+
+
+def moved_to(workdir, rel, first, last, quote, start=None):
+    """-> (first, last), the lines as the run found them that `quote` reads
+    at lines `first` to `last` of `rel` as it is now, when each line it
+    reads at is one the run left as it was and lines the run added moved
+    (`specfiles.stayed`); else None. a line the run rewrote or added is
+    never one."""
+    was, now = as_found(workdir, rel, start), now_of(workdir, rel)
+    if was is None or now is None:
+        return None
+    new = now.split("\n")
+    if not 1 <= first <= last <= len(new):
+        return None
+    end = runs_to(new, first, last, quote)
+    if end is None:
+        return None
+    kept = specfiles.stayed(was, now)
+    found = [kept.get(n) for n in range(first, end + 1) if new[n - 1].strip()]
+    if not found or None in found:
+        return None
+    return min(found), max(found)
 
 
 def ruled_quote(said, workdir, start=None, ruled=None):
@@ -624,7 +659,9 @@ def ruled_quote(said, workdir, start=None, ruled=None):
     line>"`, quotes, or None. the quote is held to those lines as the run
     found them, each one a ruling lets change, or to them as the run's own
     edit left them, each a line it changed (`specfiles.became`) standing in
-    for a line a ruling lets change or added where one lets a line be."""
+    for a line a ruling lets change or added where one lets a line be, or a
+    line it left as it was, moved by lines added above it
+    (`specfiles.stayed`), that a ruling lets change."""
     text = (said or "").strip()
     m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
     if ruled is None or not m:
@@ -636,13 +673,8 @@ def ruled_quote(said, workdir, start=None, ruled=None):
     end = runs_to(lines, first, last, quote) if lines is not None else None
     if end is not None:
         return every_ruled(rel, lines[first - 1:end], ruled)
-    was = as_found(workdir, rel, start)
-    root = Path(workdir).resolve()
-    path = (root / rel).resolve()
-    try:
-        path.relative_to(root)
-        now = path.read_text(encoding="utf-8", errors="replace")
-    except (ValueError, OSError):
+    was, now = as_found(workdir, rel, start), now_of(workdir, rel)
+    if now is None:
         return None
     new = now.split("\n")
     if was is None or not 1 <= first <= last <= len(new):
@@ -651,13 +683,14 @@ def ruled_quote(said, workdir, start=None, ruled=None):
     if end is None:
         return None
     stood = specfiles.became(was, now)
+    kept = specfiles.stayed(was, now)
     found = None
     for n in range(first, end + 1):
         if not new[n - 1].strip():
             continue
-        if n not in stood:
+        if n not in stood and n not in kept:
             return None
-        d = ruled(rel, stood[n] if stood[n] is not None else new[n - 1])
+        d = ruled(rel, stood[n] if stood.get(n) is not None else new[n - 1])
         if d is None:
             return None
         found = found or d

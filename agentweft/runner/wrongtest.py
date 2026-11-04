@@ -21,7 +21,9 @@ the spec line has to be a line that is there: a claim nobody can check is a
 question, the way a REFUSED line without a cite is. its quote has to be what
 that line says as the run found it, or start there and run on into the lines
 of its paragraph, and then the claim cites them all: a claim on words the
-spec does not hold goes nowhere, and fails the step the way a gate does.
+spec does not hold goes nowhere, and fails the step the way a gate does. a
+line the run left as it was may be cited at its number now, where lines the
+run added moved it (`ruling.moved_to`).
 
 under an override the run holds, a test the run started with that pins a line
 the override lets change is wrong with that line: a claim on it, quoting the

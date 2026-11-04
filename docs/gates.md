@@ -70,7 +70,11 @@ not, the refusal does not end the run and the claim goes to no one: a `quote`
 result goes in front of the step's gates and fails it, naming the quote and
 the line (`the WRONG TEST spec: line quotes "...", which is not at
 TASK.md:3 as the run found it`), and the step is sent back as for any gate.
-a claim's quote of spec lines an override the run holds lets change may also
+a quote of a line the run left as it was is also found at its number now,
+where lines the run added above it moved it: each line it reads at is mapped
+back to the line it was when the run started. a line the run rewrote or
+added is never found that way, and a `CONFLICT:` quote is still read at the
+numbers the run found. a claim's quote of spec lines an override the run holds lets change may also
 be those lines as the run's own edit left them: each a line the run rewrote
 or added where the override lets a line change. a claim on a test the run
 started with that the step changed, quoting lines such an override covers, is

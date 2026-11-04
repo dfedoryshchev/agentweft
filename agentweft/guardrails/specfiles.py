@@ -121,6 +121,22 @@ def became(was, now):
     return out
 
 
+def stayed(was, now):
+    """-> {its line number now: its line number as the run found it} for
+    each line of `now` that is a line of `was` left as it was, where lines
+    added or rewritten around it may have moved it. trailing spaces do not
+    count."""
+    old = [l.rstrip() for l in was.split("\n")]
+    new = [l.rstrip() for l in now.split("\n")]
+    out = {}
+    match = difflib.SequenceMatcher(None, old, new, autojunk=False)
+    for op, i1, i2, j1, j2 in match.get_opcodes():
+        if op == "equal":
+            for k in range(j2 - j1):
+                out[j1 + k + 1] = i1 + k + 1
+    return out
+
+
 def moved(was, now, mode=None):
     """-> [(line number, the line)] for every line a ruling has to quote for
     the change from `was` to `now` to stand: each line removed or rewritten,
