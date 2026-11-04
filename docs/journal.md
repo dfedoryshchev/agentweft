@@ -1295,6 +1295,14 @@ at that line as the run found it: from the start snapshot, so `git show
 as a step left it. a step cannot make its own cite true by editing the spec
 first.
 
+a request that contradicts several spec lines gets a CONFLICT line for each,
+the `request:` line under the first. the run stops once, on one question
+citing every line (`the request contradicts docs/api.md:3 and
+docs/api.md:4`), and each quote is checked the same way: one that is not
+there fails the step. an `override:` then lets each cited line change, so
+the next go does not stop again on the second one. a CONFLICT line on a
+line a ruling the run holds already covers is passed over.
+
 when the quote is there, the run stops before that step's gates: the journal
 says `stopped at <step>` with cause `conflict`, the outcome is `stopped: spec
 conflict`, exit 2, and the question is in `question.md` and in the handoff's

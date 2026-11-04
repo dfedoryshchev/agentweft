@@ -28,7 +28,9 @@ words>` on the line after it, is a step finding that the request contradicts
 the spec. the older one-line form, `| <the request's words>` after the quote,
 still reads. the quote is checked against
 that line as the run found it, from the start snapshot, so a step cannot make
-its own cite true by editing the file first. a quote that is there stops the
+its own cite true by editing the file first. an answer may hold a CONFLICT
+line for each of several spec lines, and they stop the run once, on one
+question citing them all. a quote that is there stops the
 run on a conflict, with the question in handoff.md; one that is not fails the
 step, and so does a plan line marked `spec: contradicts` with no CONFLICT
 line, unless a ruling the run holds already lets every line it cites change
@@ -422,20 +424,27 @@ def conflicts(output):
 
 
 def unruled(output, workdir, start=None, ruled=None):
-    """-> (what the CONFLICT line the run stops on says, its request words),
-    or None when there is none. with `ruled(file, line)`, which -> the ruling
-    that already lets that spec line change or None, it is the first CONFLICT
-    line citing a line no ruling covers, and None when a ruling covers every
+    """-> (what the first CONFLICT line the run stops on says, its request
+    words), or None when there is none (`every_unruled`)."""
+    found = every_unruled(output, workdir, start, ruled)
+    return found[0] if found else None
+
+
+def every_unruled(output, workdir, start=None, ruled=None):
+    """-> [(what a CONFLICT line says, its request words)] for each CONFLICT
+    line the run stops on, in the order given. with `ruled(file, line)`,
+    which -> the ruling that already lets that spec line change or None,
+    those citing a line no ruling covers, and [] when a ruling covers every
     line each one cites; a line that cannot be read is never covered."""
     found = conflicts(output)
-    if not found:
-        return None
     if ruled is None:
-        return found[0][0], request_of(output)
+        return found
+    out = []
     for said, words in found:
         m = CONFLICT.match(said.strip())
         if not m:
-            return said, words
+            out.append((said, words))
+            continue
         rel, first, last, quote, _ = cite_of(m)
         lines, _ = lines_of(workdir, rel, first, last, start)
         end = runs_to(lines, first, last, quote) \
@@ -443,8 +452,36 @@ def unruled(output, workdir, start=None, ruled=None):
         if end is None or any(ruled(rel, lines[n - 1]) is None
                               for n in range(first, end + 1)
                               if lines[n - 1].strip()):
-            return said, words
-    return None
+            out.append((said, words))
+    return out
+
+
+def checked_conflict(said, workdir, start=None):
+    """-> (the cite, as far as the quote runs, the quote, the request words
+    on its own line, "") for one CONFLICT line whose quote is at the line it
+    cites as the run found it, or (None, None, None, what is wrong)."""
+    m = CONFLICT.match(said.strip())
+    if not m:
+        return None, None, None, (
+            'the CONFLICT line is not <file>:<line> "<the line>", with'
+            " request: <the request's words> on the next line: " + said)
+    rel, first, last, quote, cite = cite_of(m)
+    if not quote:
+        return None, None, None, ("the CONFLICT line cites " + cite
+                                  + " and quotes nothing")
+    lines, why = lines_of(workdir, rel, first, last, start)
+    if lines is None:
+        return None, None, None, ("the CONFLICT line cites " + cite + ", and "
+                                  + why)
+    end = runs_to(lines, first, last, quote)
+    if end is None:
+        return None, None, None, (
+            'the CONFLICT line quotes "' + quote + '", which is not at '
+            + cite + " as the run found it. quote the line as it is, or"
+            " answer without a CONFLICT line")
+    if end != last:
+        cite = rel + ":" + str(first) + "-" + str(end)
+    return cite, quote, flat(m.group(5)), ""
 
 
 def conflict_of(output, workdir, start=None, handed=(), ruled=None):
@@ -457,33 +494,24 @@ def conflict_of(output, workdir, start=None, handed=(), ruled=None):
     unless each line it marks is one an earlier step's answer, in `handed`,
     already holds: that is the step quoting what it was given. with
     `ruled`, a CONFLICT line whose lines a ruling already lets change is
-    passed over (`unruled`), and None comes back when every one is."""
+    passed over (`every_unruled`), and None comes back when every one is.
+    an answer with a CONFLICT line for each of several spec lines stops on
+    one question citing them all, each quote checked the same way."""
     if verbs.parse(output).conflict is None:
         return untyped(output, handed, workdir, start, ruled)
-    found = unruled(output, workdir, start, ruled)
-    if found is None:
+    found = every_unruled(output, workdir, start, ruled)
+    if not found:
         return None
-    said, after = found
-    m = CONFLICT.match(said.strip())
-    if not m:
-        return "", ('the CONFLICT line is not <file>:<line> "<the line>",'
-                    " with request: <the request's words> on the next line: "
-                    + said)
-    rel, first, last, quote, cite = cite_of(m)
-    words = flat(m.group(5)) or after
-    if not quote:
-        return "", "the CONFLICT line cites " + cite + " and quotes nothing"
-    lines, why = lines_of(workdir, rel, first, last, start)
-    if lines is None:
-        return "", "the CONFLICT line cites " + cite + ", and " + why
-    end = runs_to(lines, first, last, quote)
-    if end is None:
-        return "", ('the CONFLICT line quotes "' + quote + '", which is not'
-                    " at " + cite + " as the run found it. quote the line"
-                    " as it is, or answer without a CONFLICT line")
-    if end != last:
-        cite = rel + ":" + str(first) + "-" + str(end)
-    return question_of_conflict(cite, quote, words), ""
+    cites, quotes, words = [], [], ""
+    for said, after in found:
+        cite, quote, own, why = checked_conflict(said, workdir, start)
+        if why:
+            return "", why
+        words = words or own or after
+        if cite not in cites:
+            cites.append(cite)
+            quotes.append(quote)
+    return question_of_conflict(cites, quotes, words), ""
 
 
 def marks(output):
@@ -739,13 +767,24 @@ def request_of(output):
     return ""
 
 
-def question_of_conflict(cite, quote, words):
-    out = ["NEEDS: the request contradicts " + cite
-           + ". which one holds?", "CITES:", "- " + cite + ' - "' + quote + '"']
+def in_order(names):
+    """-> `names` as a sentence names them, in the order given."""
+    return names[0] if len(names) == 1 else \
+        ", ".join(names[:-1]) + " and " + names[-1]
+
+
+def question_of_conflict(cites, quotes, words):
+    """-> the question a conflict stops on: `cites` are the spec lines the
+    request contradicts, each with its quote in `quotes`, in the order the
+    step gave them."""
+    named = in_order(cites)
+    out = ["NEEDS: the request contradicts " + named
+           + ". which one holds?", "CITES:"]
+    out.extend("- " + c + ' - "' + q + '"' for c, q in zip(cites, quotes))
     if words:
         out.append('- the request - "' + words + '"')
     out.extend(["OPTIONS:",
-                "- override: <the new rule>. the request wins, and " + cite
+                "- override: <the new rule>. the request wins, and " + named
                 + " may change to match it, nothing else",
                 "- request: <what to do instead>. the spec holds; the words"
                 " are added to the request and the run starts again from its"
@@ -1106,19 +1145,24 @@ def asked_lines(stopped):
 
 
 def conflict_asked(output, workdir, start=None, ruled=None):
-    """-> `lines_asked` of the lines the CONFLICT line in `output` the run
-    stops on (`unruled`) cites, as the run found them, or None when they
-    cannot be read."""
-    said = (unruled(output, workdir, start, ruled) or ("",))[0]
-    m = CONFLICT.match((said or "").strip())
-    if not m:
+    """-> `lines_asked` of the lines every CONFLICT line in `output` the run
+    stops on (`every_unruled`) cites, as the run found them, or None when
+    one cannot be read."""
+    found = every_unruled(output, workdir, start, ruled)
+    if not found:
         return None
-    rel, first, last, quote, _ = cite_of(m)
-    lines, _ = lines_of(workdir, rel, first, last, start)
-    if lines is None:
-        return None
-    end = runs_to(lines, first, last, quote) or last
-    return lines_asked(lines[first - 1:end])
+    asked = []
+    for said, _ in found:
+        m = CONFLICT.match((said or "").strip())
+        if not m:
+            return None
+        rel, first, last, quote, _ = cite_of(m)
+        lines, _ = lines_of(workdir, rel, first, last, start)
+        if lines is None:
+            return None
+        end = runs_to(lines, first, last, quote) or last
+        asked.extend(lines[first - 1:end])
+    return lines_asked(asked)
 
 
 def answers_lines(d, line, asked):

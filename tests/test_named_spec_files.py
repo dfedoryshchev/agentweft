@@ -237,7 +237,8 @@ def test_the_run_stops_on_the_first_conflict_line_no_ruling_covers(tmp_path):
     assert ruling.conflict_of(said, tmp_path,
                               ruled=lambda rel, line: "a ruling") is None
     assert ruling.conflict_of(said, tmp_path)[0].split(NL)[0] == (
-        "NEEDS: the request contradicts docs/api.md:3. which one holds?")
+        "NEEDS: the request contradicts docs/api.md:3 and"
+        " rules/api-shape.md:1. which one holds?")
     misquoted = conflict("docs/api.md:3", "not the line", NAMED)
     assert ruling.conflict_of(misquoted, tmp_path,
                               ruled=lambda rel, line: "a ruling")[1]

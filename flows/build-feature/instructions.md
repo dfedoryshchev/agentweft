@@ -34,4 +34,6 @@ and any file the request names.
       CONFLICT: <file>:<line> "<the spec line, word for word>"
       request: <the request's words>
 
-  the run stops there and the question goes to a person.
+  when it rules out several lines, answer a CONFLICT line for each of them,
+  the request under the first. the run stops there and one question, naming
+  every line, goes to a person.
