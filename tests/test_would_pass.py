@@ -270,18 +270,20 @@ def test_a_run_whose_only_working_pass_added_a_case_still_leads_with_it():
 
 def test_the_suite_run_that_checks_the_case_is_timed_as_a_gate(
         tmp_path, monkeypatch):
-    import time
+    from agentweft.runner import begin, laps, manifest, run
 
-    from agentweft.runner import manifest, run
-
+    now = [1000.0]
+    clock = types.SimpleNamespace(time=lambda: now[0])
+    monkeypatch.setattr(begin, "time", clock)
+    monkeypatch.setattr(laps, "time", clock)
     real = run.Run.suite_of
 
     def slow(self, step):
-        began = time.time()
-        time.sleep(SLOW)
+        began = now[0]
+        now[0] += SLOW
         out = real(self, step)
         for r in out:
-            r.began, r.seconds = began, round(time.time() - began, 3)
+            r.began, r.seconds = began, now[0] - began
         return out
 
     monkeypatch.setattr(run.Run, "suite_of", slow)
@@ -298,14 +300,15 @@ def test_the_suite_run_that_checks_the_case_is_timed_as_a_gate(
     mine = [g for g in timed if g["seq"] == case["seq"]
             and g["gate"] == "command"]
     assert len(mine) == 1 and mine[0]["ok"] is True
-    assert mine[0]["step"] == "tester.md" and mine[0]["seconds"] >= SLOW
+    assert mine[0]["step"] == "tester.md" and mine[0]["seconds"] == SLOW
     runner = manifest.load(folder).data["runner"]
-    assert runner["phases"]["after"] < SLOW, runner
+    assert runner["wall"] == SLOW, runner
+    assert set(runner["phases"].values()) == {0.0}, runner
     assert runner["gates"] >= SLOW
 
 
-# longer than the rest of a fake run's `after` phase takes, so the suite run
-# counted there would show
+# the run's laps read only the fake clock, which only the suite run moves, so
+# its seconds counted in any phase would show there
 SLOW = 5.0
 
 
