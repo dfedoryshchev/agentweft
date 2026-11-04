@@ -47,6 +47,7 @@ not a question: a test that asserts on the string "NEEDS:" asks nothing.
 """
 import getpass
 import hashlib
+import keyword
 import re
 from pathlib import Path
 
@@ -723,6 +724,51 @@ def ruled_quote(said, workdir, start=None, ruled=None):
             return None
         found = found or d
     return found
+
+
+WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+IDLE = set(keyword.kwlist + [k.lower() for k in keyword.kwlist]) | {
+    "all", "and", "any", "are", "but", "can", "each", "for", "from", "has",
+    "have", "its", "not", "one", "than", "that", "the", "then", "this",
+    "was", "were", "when", "which", "will", "with"}
+
+
+def words(text):
+    """-> the words of `text` a test and a spec line can share, lower case:
+    names of three letters or more that are not a keyword or a filler."""
+    return {w.lower() for w in WORD.findall(text or "")
+            if len(w) > 2 and w.lower() not in IDLE}
+
+
+def took(said, workdir, start=None):
+    """-> the words the run's own edit took out of the spec lines `said`,
+    `<file>:<line> "<the line>"`, quotes: the words of those lines as the run
+    found them, read at their number then or, for a quote of the edit, from
+    the lines it stands in for (`specfiles.became`), that the file no longer
+    holds anywhere. none for lines the run left as they were."""
+    text = (said or "").strip()
+    m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
+    if not m:
+        return set()
+    rel, first, last, quote, _ = cite_of(m)
+    was, now = as_found(workdir, rel, start), now_of(workdir, rel)
+    if not quote or was is None:
+        return set()
+    lines = was.split("\n")
+    end = runs_to(lines, first, last, quote) \
+        if 1 <= first <= last <= len(lines) else None
+    if end is not None:
+        found = lines[first - 1:end]
+    else:
+        new = (now or "").split("\n")
+        end = runs_to(new, first, last, quote) \
+            if 1 <= first <= last <= len(new) else None
+        if end is None:
+            return set()
+        stood = specfiles.became(was, now)
+        found = [stood[n] for n in range(first, end + 1)
+                 if stood.get(n) is not None]
+    return words(" ".join(found)) - words(now)
 
 
 def spanned(said, workdir, start=None):

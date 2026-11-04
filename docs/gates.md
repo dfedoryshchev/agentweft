@@ -704,8 +704,15 @@ in `gates.md`:
   whose `spec:` line quotes those lines, as the run found them or as the
   run's own ruled edit left them (`the quote` above): the test was right
   about the old line and is wrong about the ruled one, so it may change with
-  it. a test changed with no such line, or quoting a line no ruling covers,
-  still fails. the code a python file's tests share counts only when each
+  it. the claim covers the test only when the test's change is that edit's:
+  the lines the change took out of the test (of the file, for the code its
+  tests share or a file read by line) hold a word the run's edit took out of
+  the quoted lines and the file no longer holds. a claim quoting a ruled line
+  for a test that pins something else covers nothing, and neither does one
+  on lines the run has not edited yet. a test changed with no such line, or
+  quoting a line no ruling covers, still fails, and on its last go parks on
+  this check's question, which an `override:` naming the test answers. the
+  code a python file's tests share counts only when each
   test the file started with that reads what changed, itself or through a
   helper it calls, is named that way; every test it started with, when the
   change is a fixture with autouse, a name pytest reads, a call as the file
@@ -713,8 +720,9 @@ in `gates.md`:
   in it is. a test removed, a file
   deleted or one that no longer parses never does. the step that fails this
   check under such an override is told the `WRONG TEST:` way too, and
-  handoff.md's rulings section lists each test under the ruling, `<file> +a
-  -d: <test> <- ruling <when> <heading>`.
+  handoff.md's rulings section lists each test under the ruling with the
+  line its claim quoted, `<file> +a -d: <test> <- ruling <when> <heading>
+  (claimed on <file>:<line>)`.
 
 which files changed is read from content hashes, and what they held from the
 start commit (or the snapshot, for a file already loose), so a step that

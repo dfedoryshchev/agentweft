@@ -29,7 +29,11 @@ under an override the run holds, a test the run started with that pins a line
 the override lets change is wrong with that line: a claim on it, quoting the
 line as the run found it or as the run's own ruled edit left it
 (`ruling.ruled_quote`), is no question when the step changed the test, and
-lets the change stand at the test-edits check (`ruled_claim`).
+lets the change stand at the test-edits check (`ruled_claim`) when the
+test's change is that edit's: the lines it took out of the test hold a word
+the run's edit took out of the quoted line. a claim that quotes a ruled line
+for a test pinning something else covers nothing, and the test-edits check
+asks about the change.
 """
 from pathlib import Path
 
@@ -38,7 +42,8 @@ from agentweft.guardrails import testedits
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import cited, misquote, ruled_quote, spanned
+from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, misquote,
+                     ruled_quote, spanned, took, words)
 
 WRONG = "WRONG TEST"
 WHY = "WHY"
@@ -194,17 +199,31 @@ def same_test(said, test):
     return path + "::" + name.split("[")[0] == test
 
 
-def ruled_claim(outputs, test, workdir, start=None, ruled=None):
-    """-> the ruling that lets `test`, one the run started with, change
-    because an answer of this run names it on a WRONG TEST line whose spec:
-    line quotes spec lines that ruling covers (`ruled_quote`), else None."""
+def ruled_claim(outputs, test, workdir, start=None, ruled=None, gone=""):
+    """-> (the ruling, the claim's cite) that lets `test`, one the run
+    started with, change because an answer of this run names it on a WRONG
+    TEST line whose spec: line quotes spec lines that ruling covers
+    (`ruled_quote`), and the test's change is that ruled edit's: `gone`, the
+    lines the change took out, holds a word the run's edit took out of the
+    quoted lines (`ruling.took`). else None: a ruled line quoted for a test
+    that pins something else covers nothing."""
+    pinned = words(gone)
+    if not pinned:
+        return None
     for output in outputs:
         for said, _, spec in claims(output or ""):
-            if spec and same_test(said, test):
-                d = ruled_quote(spec, workdir, start, ruled)
-                if d is not None:
-                    return d
+            if not spec or not same_test(said, test):
+                continue
+            d = ruled_quote(spec, workdir, start, ruled)
+            if d is not None and pinned & took(spec, workdir, start):
+                return d, cite_in(spec)
     return None
+
+
+def cite_in(spec):
+    """-> the `<file>:<line>` a claim's spec: line cites, or ""."""
+    m = CONFLICT.match(spec.strip()) or FIRST_QUOTE.match(spec.strip())
+    return cite_of(m)[4] if m else ""
 
 
 def judge(output, step, run, route):

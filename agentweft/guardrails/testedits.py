@@ -43,6 +43,7 @@ DELETED = "deleted with its file"
 SHARED = "the code its tests share changed"
 UNPARSED = "no longer parses"
 UNREAD = "changed, with no start commit to compare it against"
+CLAIMED_ON = "claimed on"
 
 
 class Edit(object):
@@ -50,9 +51,12 @@ class Edit(object):
     [(test id, or the file when the change is the file's, how it changed)];
     `added` how many tests or lines it gained; `unread` that what it held at
     the start cannot be read back; `shared_by` the tests of a python file
-    that run against a change to the code they share (`sharing`)."""
+    that run against a change to the code they share (`sharing`); `was` and
+    `now` the file's text as the run found it and as it is (None when gone
+    or not read)."""
 
-    __slots__ = ("path", "items", "added", "unread", "shared_by")
+    __slots__ = ("path", "items", "added", "unread", "shared_by", "was",
+                 "now")
 
     def __init__(self, path, items=(), added=0, unread=False, shared_by=()):
         self.path = path
@@ -60,6 +64,8 @@ class Edit(object):
         self.added = added
         self.unread = unread
         self.shared_by = list(shared_by)
+        self.was = None
+        self.now = None
 
 
 def _text(data):
@@ -364,9 +370,37 @@ def changes(start):
             continue
         data = _read(start.root / rel) if rel in now else None
         was, data = _text(was), None if data is None else _text(data)
-        found = _python(name, was, data) if python else None
-        out.append(found or _lines(name, was, data))
+        found = (_python(name, was, data) if python else None) \
+            or _lines(name, was, data)
+        found.was, found.now = was, data
+        out.append(found)
     return out
+
+
+def _source_of(source, name, test):
+    """-> the code of the test `test` (an id under `name`) in `source`, or
+    ""."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return ""
+    for t, node in _named_tests(tree, name):
+        if t == test:
+            return ast.get_source_segment(source, node) or ""
+    return ""
+
+
+def gone(edit, test, how):
+    """-> the lines the change `test`, `how`, in `edit` took out or rewrote,
+    as the run found them: a python test's own lines for a test whose code
+    changed, else the file's. "" when the file is gone or was not read."""
+    if edit.was is None or edit.now is None:
+        return ""
+    was, now = edit.was, edit.now
+    if "::" in test and how == CHANGED:
+        was = _source_of(was, edit.path, test)
+        now = _source_of(now, edit.path, test)
+    return "\n".join(line for _, line, _ in specfiles.lost(was, now))
 
 
 def claimable(test, how):
@@ -399,14 +433,16 @@ def what(n, edit):
 def passed(found, ruled):
     """-> the passing line for test files that only gained tests, or whose
     changes a ruling covers. `ruled` is [(test id or file, the ruling's
-    stamp)]."""
+    stamp, the cite of the WRONG TEST claim it rests on or "")]."""
     said = [e.path + ": " + what(e.added, e) + " added"
             for e in found if not e.unread]
     line = "; ".join(said)
     if ruled:
         line += (". " if line else "") + "changed, each covered by a" \
-            " ruling: " + ", ".join(t + " (ruling " + by + ")"
-                                    for t, by in ruled)
+            " ruling: " + ", ".join(
+                t + " (ruling " + by + ")"
+                + (" " + CLAIMED_ON + " " + cite if cite else "")
+                for t, by, cite in ruled)
     elif said:
         line += ", none the run started with changed"
     unread = [e.path for e in found if e.unread]

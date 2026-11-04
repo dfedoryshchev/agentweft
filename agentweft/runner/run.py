@@ -482,8 +482,9 @@ class Run(object):
         when a test green at the start is red now and no ruling covers it,
         else None). only after a `writes: product` step, and never when the
         run skips tests. a test `output` or another answer of this run names
-        on a WRONG TEST line quoting spec lines a ruling covers is covered
-        by that ruling, as `tests_held` reads it, and a start test file every
+        on a WRONG TEST line quoting spec lines a ruling covers, for a
+        change tied to the ruled edit, is covered by that ruling, as
+        `tests_held` reads it, and a start test file every
         change of which a ruling covers is replayed as the run left it
         (`as_left`)."""
         if self.writes_for(step) != "product" or self.order.skip:
@@ -496,12 +497,15 @@ class Run(object):
             return found.result, None
         decided = self.spec_rulings()
         claims = self.answered(output)
+        edits = testedits.changes(getattr(self, "start", None))
         left, ruled = [], []
         for test, said in found.red:
             d = ruling.covering(decided, test, self.workdir, self.start)
             if d is None:
                 d = wrongtest.ruled_claim(claims, test, self.workdir,
-                                          self.start, self.spec_line_covered)
+                                          self.start, self.spec_line_covered,
+                                          self.gone_of(edits, test))
+                d = d and d[0]
             if d is None:
                 left.append((test, said))
             else:
@@ -674,14 +678,29 @@ class Run(object):
         else:
             self.kept_claims = kept
 
-    def claimed(self, said, tests):
-        """-> the ruling of the first of `tests` when the answers in `said`
-        name each on a WRONG TEST line under one (`wrongtest.ruled_claim`),
-        else None; None for no tests."""
+    @staticmethod
+    def gone_of(edits, test):
+        """-> the lines the changes to `test`, a start test id, took out:
+        its own, and its file's where the change is the file's."""
+        path = test.partition("::")[0]
+        out = []
+        for edit in edits:
+            if edit.path != path:
+                continue
+            for item, how in edit.items:
+                if item == edit.path or wrongtest.same_test(test, item):
+                    out.append(testedits.gone(edit, item, how))
+        return "\n".join(out)
+
+    def claimed(self, said, tests, gone=""):
+        """-> (the ruling, the cite of the claim) of the first of `tests`
+        when the answers in `said` name each on a WRONG TEST line under one
+        whose ruled edit `gone`, the lines the change took out, is tied to
+        (`wrongtest.ruled_claim`), else None; None for no tests."""
         found = None
         for test in tests:
             d = wrongtest.ruled_claim(said, test, self.workdir, self.start,
-                                      self.spec_line_covered)
+                                      self.spec_line_covered, gone)
             if d is None:
                 return None
             found = found or d
@@ -689,11 +708,12 @@ class Run(object):
 
     def edits_ruled(self, found, output="", decided=None):
         """-> [(edit, test or file, how it changed, the ruling that covers
-        the change or None)] for each change in the start test edits
-        `found`: an `override:` answer naming it (`ruling.edit_ruled`), or
-        `output` or another answer of this run naming it on a WRONG TEST
-        line under a ruling (`claimed`). the one reading both `tests_held`
-        and `replayed` use."""
+        the change or None, the cite of the WRONG TEST claim it rests on or
+        "")] for each change in the start test edits `found`: an
+        `override:` answer naming it (`ruling.edit_ruled`), or `output` or
+        another answer of this run naming it on a WRONG TEST line under a
+        ruling, for a change tied to the ruled edit (`claimed`). the one
+        reading both `tests_held` and `replayed` use."""
         start = getattr(self, "start", None)
         if decided is None:
             decided = self.spec_rulings()
@@ -704,10 +724,12 @@ class Run(object):
             for test, how in edit.items:
                 d = ruling.edit_ruled(decided, test, self.workdir, start,
                                       asked)
+                cite = ""
                 if d is None:
-                    d = self.claimed(said, testedits.claimed_by(edit, test,
-                                                                how))
-                out.append((edit, test, how, d))
+                    d, cite = self.claimed(
+                        said, testedits.claimed_by(edit, test, how),
+                        testedits.gone(edit, test, how)) or (None, "")
+                out.append((edit, test, how, d, cite))
         return out
 
     def as_left(self, output=""):
@@ -718,7 +740,7 @@ class Run(object):
         if not found:
             return set()
         held, unruled = set(), set()
-        for edit, _, _, d in self.edits_ruled(found, output):
+        for edit, _, _, d, _ in self.edits_ruled(found, output):
             (unruled if d is None else held).add(edit.path)
         return held - unruled
 
@@ -731,19 +753,22 @@ class Run(object):
         are not read: one that names the test does not let it change. a test
         changed, or a file the check reads whole, that `output` or another
         answer of this run names on a WRONG TEST line quoting spec lines a
-        ruling covers is covered by that ruling (`wrongtest.ruled_claim`)."""
+        ruling covers is covered by that ruling when the change took out a
+        word the run's edit took out of those lines
+        (`wrongtest.ruled_claim`)."""
         found = testedits.changes(getattr(self, "start", None))
         if not found:
             return None, None
         decided = self.spec_rulings()
         left, ruled = [], []
-        for edit, test, how, d in self.edits_ruled(found, output, decided):
+        for edit, test, how, d, cite in self.edits_ruled(found, output,
+                                                         decided):
             if d is None:
                 left.append((test, how))
             else:
-                ruled.append((test, summary.stamp(d)))
+                ruled.append((test, summary.stamp(d), cite))
         if not left:
-            self.keep_claims(output, [test for test, _ in ruled])
+            self.keep_claims(output, [test for test, _, _ in ruled])
             return testedits.passed(found, ruled), None
         line = testedits.held(step, left, any(
             ruling.kind_of(ruling.answered(d)) == ruling.OVERRIDE

@@ -4,7 +4,10 @@ once an `override:` answer lets spec lines change, a test the run started
 with that pins exactly those lines is wrong with them. a step may change it
 when its answer names it on a WRONG TEST line whose `spec:` line quotes a
 line the ruling covers, as the run found it or as the run's own ruled edit
-left it, and the handoff lists each such test under that ruling. a plan that
+left it, when the lines the step took out of the test hold a word the run's
+edit took out of that line, and the handoff lists each such test under that
+ruling with the line its claim quoted. a ruled line quoted for a test that
+pins an unruled line covers nothing, loosened or rewritten. a plan that
 marks a ruled line `spec: contradicts` needs no new CONFLICT line for it.
 the start-tests replay lays out a start test file every change of which a
 ruling covers as the run left it, so a python test that runs a js test file
@@ -286,6 +289,51 @@ def test_a_start_test_on_a_line_no_ruling_covers_still_refuses(
         tmp_path, "question.md")
 
 
+LOOSENED = NAMES_START.replace("assert names(['b', 'a']) == ['b', 'a']",
+                               "assert names(['b', 'a'])")
+
+
+def loosen(place):
+    (place / "tests" / "test_names.py").write_text(LOOSENED, encoding="utf-8")
+
+
+def test_an_unrelated_start_test_loosened_under_a_ruled_quote_is_refused(
+        tmp_path, monkeypatch):
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1]),
+        wrong(NAMES_TEST, FOUND[0])), forge=loosen)
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    assert "FAIL test-edits" in gates
+    assert NAMES_TEST + " (changed)" in gates
+    assert "- " + NAMES_TEST + " - changed" in record(tmp_path,
+                                                       "question.md")
+
+
+def test_an_unrelated_behaviour_broken_with_its_test_rewritten_is_refused(
+        tmp_path, monkeypatch):
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1]),
+        wrong(NAMES_TEST, FOUND[0])), names=True)
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    assert NAMES_TEST + " (changed)" in gates
+    assert NAMES_TEST + " <- ruling" not in record(tmp_path, "handoff.md")
+
+
+def test_the_handoff_shows_the_line_each_claim_was_made_on(
+        tmp_path, monkeypatch):
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1])))
+    assert code == stops.EXIT_OK, record(tmp_path, "gates.md")
+    handoff = record(tmp_path, "handoff.md")
+    stamp = stamp_of(tmp_path)
+    assert ENVELOPE_TEST + " <- ruling " + stamp \
+        + " (claimed on docs/api.md:4)" in handoff, handoff
+    assert FIRST_PAGE_TEST + " <- ruling " + stamp \
+        + " (claimed on docs/api.md:3)" in handoff, handoff
+
+
 def test_a_quote_of_neither_the_found_line_nor_the_ruled_edit_still_fails(
         tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
@@ -455,20 +503,72 @@ def by(answer, kind):
     return ruled
 
 
-def test_a_request_answer_covers_no_claim(tmp_path):
-    specs_at(tmp_path)
+def edited_place(tmp_path, monkeypatch):
+    """-> (the place with the run's ruled edit made, its start)."""
+    place = place_of(tmp_path, monkeypatch)
+    start = snapshot.take(place)
+    (place / "docs" / "api.md").write_text(CURSOR_API, encoding="utf-8")
+    (place / "rules" / "api-shape.md").write_text(CURSOR_RULE,
+                                                  encoding="utf-8")
+    return place, start
+
+
+ENVELOPE_GONE = '    assert set(listing([1])) == {"items", "page", "total"}'
+
+
+def test_a_request_answer_covers_no_claim(tmp_path, monkeypatch):
+    place, start = edited_place(tmp_path, monkeypatch)
     said = [wrong(ENVELOPE_TEST, FOUND[0]) + wrong(
         FIRST_PAGE_TEST, 'rules/api-shape.md:1 "' + RULE_LINE + '"')]
     over = by(OVERRIDE, ruling.OVERRIDE)
     kept = by("request: keep the envelope, and update docs/api.md",
               ruling.REQUEST)
     for test in (ENVELOPE_TEST, FIRST_PAGE_TEST):
-        assert wrongtest.ruled_claim(said, test, tmp_path, ruled=over)
-        assert wrongtest.ruled_claim(said, test, tmp_path, ruled=kept) is None
-        assert wrongtest.ruled_claim([built()], test, tmp_path,
-                                     ruled=over) is None
-    assert wrongtest.ruled_claim(said, NAMES_TEST, tmp_path,
-                                 ruled=over) is None
+        assert wrongtest.ruled_claim(said, test, place, start, over,
+                                     ENVELOPE_GONE)
+        assert wrongtest.ruled_claim(said, test, place, start, kept,
+                                     ENVELOPE_GONE) is None
+        assert wrongtest.ruled_claim([built()], test, place, start, over,
+                                     ENVELOPE_GONE) is None
+    assert wrongtest.ruled_claim(said, NAMES_TEST, place, start, over,
+                                 ENVELOPE_GONE) is None
+
+
+def test_a_claim_covers_a_test_only_where_its_change_is_the_ruled_edit_s(
+        tmp_path, monkeypatch):
+    place, start = edited_place(tmp_path, monkeypatch)
+    over = by(OVERRIDE, ruling.OVERRIDE)
+    said = [wrong(ENVELOPE_TEST, FOUND[0])]
+    d, cite = wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
+                                    ENVELOPE_GONE)
+    assert d is not None and cite == "docs/api.md:4"
+    for gone in ("    assert names(['b', 'a']) == ['b', 'a']", "",
+                 "    assert listing([1])['items'] == [1]"):
+        assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
+                                     gone) is None, gone
+    assert ruling.took(FOUND[0], place, start) == {"page", "total"}
+    assert ruling.took(EDITED[1], place, start) == {"page", "total"}
+    assert ruling.took(FOUND[1], place, start) == {"page", "per_page"}
+    assert ruling.took(FOUND[0], place, None) == set()
+    assert ruling.took('docs/names.md:3 "' + NAMES_LINE + '"', place,
+                       start) == set()
+
+
+def test_a_test_s_change_is_read_from_the_lines_it_lost():
+    edit = testedits.Edit("tests/test_names.py")
+    edit.was, edit.now = NAMES_START, LOOSENED
+    assert testedits.gone(edit, NAMES_TEST, testedits.CHANGED).strip() \
+        == "assert names(['b', 'a']) == ['b', 'a']"
+    edit = testedits.Edit("tests/test_envelope.py")
+    edit.was, edit.now = SHARED, CURSOR_SHARED
+    lost = testedits.gone(edit, "tests/test_envelope.py", testedits.SHARED)
+    assert 'KEYS = {"items", "page", "total"}' in lost
+    assert testedits.gone(edit, FIRST_PAGE_TEST, testedits.CHANGED).strip() \
+        == 'assert listing([1])["page"] == 1'
+    edit = testedits.Edit(JS_FILE)
+    edit.was, edit.now = JS, CURSOR_JS
+    assert testedits.gone(edit, JS_FILE, "2 lines removed or rewritten") \
+        .split() == ["expect", "page", "expect", "total"]
 
 
 HELPED = NL.join([
