@@ -634,9 +634,45 @@ class Run(object):
             rel, self.request(), self.spec_paths())
 
     def answered(self, output=""):
-        """-> `output`, then what every step of this run answered last."""
+        """-> `output`, then what every step of this run answered last, then
+        the WRONG TEST claims the test-edits check took earlier in the run
+        (`keep_claims`)."""
         return [output] + list((getattr(self, "produced", None) or {})
-                               .values())
+                               .values()) + self.claims_kept()
+
+    def claims_kept(self):
+        """-> the WRONG TEST claims kept on the run's record: this leg's,
+        and every leg's before it that a resume carried."""
+        record = getattr(self, "record", None)
+        if record is not None:
+            return list(record.data.get("claims") or [])
+        return list(getattr(self, "kept_claims", None) or [])
+
+    def keep_claims(self, output, tests):
+        """keep each claim in `output` and the run's other answers on a
+        WRONG TEST line naming one of `tests` whose spec: line quotes lines a
+        ruling covers, once the test-edits check took it, so a later go of
+        the step need not repeat it. each is held to the spec as it is when
+        it is read again (`wrongtest.ruled_claim`)."""
+        kept = self.claims_kept()
+        for text in [output] + list((getattr(self, "produced", None) or {})
+                                    .values()):
+            for said, why, spec in wrongtest.claims(text or ""):
+                claim = wrongtest.claimed(said, why, spec)
+                if claim in kept or not spec or not any(
+                        wrongtest.same_test(said, t) for t in tests):
+                    continue
+                if ruling.ruled_quote(spec, self.workdir,
+                                      getattr(self, "start", None),
+                                      self.spec_line_covered) is not None:
+                    kept.append(claim)
+        if kept == self.claims_kept():
+            return
+        record = getattr(self, "record", None)
+        if record is not None:
+            record.data["claims"] = kept
+        else:
+            self.kept_claims = kept
 
     def claimed(self, said, tests):
         """-> the ruling of the first of `tests` when the answers in `said`
@@ -707,6 +743,7 @@ class Run(object):
             else:
                 ruled.append((test, summary.stamp(d)))
         if not left:
+            self.keep_claims(output, [test for test, _ in ruled])
             return testedits.passed(found, ruled), None
         line = testedits.held(step, left, any(
             ruling.kind_of(ruling.answered(d)) == ruling.OVERRIDE

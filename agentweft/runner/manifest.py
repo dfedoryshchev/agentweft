@@ -185,6 +185,8 @@ class Manifest(object):
         out.data["spend"] = dict(self.spend)
         if self.data.get("sessions"):
             out.data["sessions"] = dict(self.data["sessions"])
+        if self.data.get("claims"):
+            out.data["claims"] = list(self.data["claims"])
         return out
 
     @property
