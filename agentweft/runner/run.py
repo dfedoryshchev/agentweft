@@ -481,12 +481,15 @@ class Run(object):
         else None). only after a `writes: product` step, and never when the
         run skips tests. a test `output` or another answer of this run names
         on a WRONG TEST line quoting spec lines a ruling covers is covered
-        by that ruling, as `tests_held` reads it."""
+        by that ruling, as `tests_held` reads it, and a start test file every
+        change of which a ruling covers is replayed as the run left it
+        (`as_left`)."""
         if self.writes_for(step) != "product" or self.order.skip:
             return None, None
         known = None if self.suite == baseline.OFF else self.known_at_start
         found = starttests.replay(self.start, redorder.test_command(self.fm),
-                                  green=self.start_green, known=known)
+                                  green=self.start_green, known=known,
+                                  as_left=self.as_left(output))
         if not found.red:
             return found.result, None
         decided = self.spec_rulings()
@@ -646,6 +649,41 @@ class Run(object):
             found = found or d
         return found
 
+    def edits_ruled(self, found, output="", decided=None):
+        """-> [(edit, test or file, how it changed, the ruling that covers
+        the change or None)] for each change in the start test edits
+        `found`: an `override:` answer naming it (`ruling.edit_ruled`), or
+        `output` or another answer of this run naming it on a WRONG TEST
+        line under a ruling (`claimed`). the one reading both `tests_held`
+        and `replayed` use."""
+        start = getattr(self, "start", None)
+        if decided is None:
+            decided = self.spec_rulings()
+        asked = self.runner_asked(ruling.asked_edits)
+        said = self.answered(output)
+        out = []
+        for edit in found:
+            for test, how in edit.items:
+                d = ruling.edit_ruled(decided, test, self.workdir, start,
+                                      asked)
+                if d is None:
+                    d = self.claimed(said, testedits.claimed_by(edit, test,
+                                                                how))
+                out.append((edit, test, how, d))
+        return out
+
+    def as_left(self, output=""):
+        """-> the start test files, as paths from the place, every change
+        of which a ruling covers (`edits_ruled`). a file that only gained
+        tests or lines has no change a ruling covers, so it is not one."""
+        found = testedits.changes(getattr(self, "start", None))
+        if not found:
+            return set()
+        held, unruled = set(), set()
+        for edit, _, _, d in self.edits_ruled(found, output):
+            (unruled if d is None else held).add(edit.path)
+        return held - unruled
+
     def tests_held(self, step, last=False, output=""):
         """-> (the line for the record when a test file the run started with
         changed, else None; (why, question, what the run's record keeps of
@@ -656,25 +694,16 @@ class Run(object):
         changed, or a file the check reads whole, that `output` or another
         answer of this run names on a WRONG TEST line quoting spec lines a
         ruling covers is covered by that ruling (`wrongtest.ruled_claim`)."""
-        start = getattr(self, "start", None)
-        found = testedits.changes(start)
+        found = testedits.changes(getattr(self, "start", None))
         if not found:
             return None, None
         decided = self.spec_rulings()
-        asked = self.runner_asked(ruling.asked_edits)
-        said = self.answered(output)
         left, ruled = [], []
-        for edit in found:
-            for test, how in edit.items:
-                d = ruling.edit_ruled(decided, test, self.workdir, start,
-                                      asked)
-                if d is None:
-                    d = self.claimed(said, testedits.claimed_by(edit, test,
-                                                                how))
-                if d is None:
-                    left.append((test, how))
-                else:
-                    ruled.append((test, summary.stamp(d)))
+        for edit, test, how, d in self.edits_ruled(found, output, decided):
+            if d is None:
+                left.append((test, how))
+            else:
+                ruled.append((test, summary.stamp(d)))
         if not left:
             return testedits.passed(found, ruled), None
         line = testedits.held(step, left, any(

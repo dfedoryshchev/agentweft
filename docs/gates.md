@@ -596,6 +596,12 @@ records it as a `start-tests` line in `gates.md`:
   start state and then every product file as it is now, with the product
   files deleted since deleted there too. a step's commits change nothing: the
   start commit is the snapshot's, and the product is read from the files.
+- a start test file every change of which the `test-edits` check below held
+  under a ruling (an `override:` answer, or a WRONG TEST line quoting a line
+  it covers) is laid out there as the run left it, after the product, so a
+  test that runs it, such as a python test that runs a folder of js tests,
+  is judged on the ruled file. a file with one change no ruling covers, or
+  one that only gained tests, stays as the run found it.
 - one pytest run over all of them, no model: the flow's red-test or red-first
   command up to `pytest` (else `python -m pytest`), with `-rA` and
   `--continue-on-collection-errors`. product files whose hashes are what they

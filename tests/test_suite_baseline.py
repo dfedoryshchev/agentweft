@@ -158,9 +158,9 @@ def test_on_hands_the_replay_its_baseline(tmp_path, monkeypatch):
     asked = []
     real = starttests.tests_in
 
-    def watched(start, files, base, timeout, now):
+    def watched(start, files, base, timeout, now, **kw):
         asked.append(now)
-        return real(start, files, base, timeout, now)
+        return real(start, files, base, timeout, now, **kw)
 
     monkeypatch.setattr(starttests, "tests_in", watched)
     code, _ = running(tmp_path, monkeypatch, place, BREAKS, False)

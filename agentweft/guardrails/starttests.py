@@ -11,6 +11,12 @@ is now (the start snapshot says which files are product), and the tests
 there are the ones the run found, whatever the place holds now. one pytest
 run, no model.
 
+a start test file whose every change a ruling covers (the test-edits check
+held it: an `override:` answer, or a WRONG TEST line under one) is laid out
+as the run left it, so a test that runs it, a python test over a folder of
+js tests, is judged on the ruled file. a file with one change no ruling
+covers stays as the run found it.
+
 a test green when the run started and red now is the run's doing. a test that
 was red when the run started is not counted, so an inherited red is never
 blamed on the run; which ones were green is read from the run's suite
@@ -116,12 +122,16 @@ def run_tests(base, files, there, timeout):
     return found, ""
 
 
-def lay_out_now(start, tree):
+def lay_out_now(start, tree, as_left=()):
     """the place's start state in a checkout of the start commit, then every
-    product file as it is now, and none of the product files gone since."""
+    product file as it is now, and none of the product files gone since;
+    then each start test file named in `as_left` (paths from the place) as
+    it is now."""
     start.lay_out(tree, [])
     now = start.product_now()
-    for rel in now:
+    left = sorted(rel for rel in start.tests
+                  if start.from_place(rel) in as_left)
+    for rel in list(now) + left:
         data = _read(start.root / rel)
         if data is None:
             continue
@@ -133,13 +143,14 @@ def lay_out_now(start, tree):
             (Path(tree) / rel).unlink()
 
 
-def tests_in(start, files, base, timeout, now):
-    """-> (outcomes, "") of `files` on the start state, with the product as
-    it is now when `now`, or (None, why)."""
+def tests_in(start, files, base, timeout, now, as_left=()):
+    """-> (outcomes, "") of `files` on the start state, with the product and
+    the start test files in `as_left` as they are now when `now`, or (None,
+    why)."""
     try:
         with worktree.temporary(start.root, start.start) as tree:
             if now:
-                lay_out_now(start, tree)
+                lay_out_now(start, tree, as_left)
             else:
                 start.lay_out(tree, [])
             return run_tests(base, files, start.place_in(tree), timeout)
@@ -167,11 +178,14 @@ def gone_red(after, before):
     return out
 
 
-def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
+def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None,
+           as_left=()):
     """-> a Replay of the run's start tests against the product as it is now.
     `green` is a dict the run keeps the start state's outcomes in, so they
     are run once. `known` gives them instead of a run here: a function that
-    returns (outcomes, "") or (None, why), the run's suite baseline."""
+    returns (outcomes, "") or (None, why), the run's suite baseline.
+    `as_left` names the start test files every change of which a ruling
+    covers; they are laid out as they are now (`lay_out_now`)."""
     if start is None or not start.hashed:
         return Replay()
     files = modules(start)
@@ -182,9 +196,11 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
         return Replay(Result(NAME, True, "not replayed - " + why,
                              issue="could not replay: " + why))
     base = base_of(cmd)
-    after, why = tests_in(start, files, base, timeout, now=True)
+    after, why = tests_in(start, files, base, timeout, now=True,
+                          as_left=as_left)
     if after is None and hostfault.line(why):
-        after, again = tests_in(start, files, base, timeout, now=True)
+        after, again = tests_in(start, files, base, timeout, now=True,
+                                as_left=as_left)
         if after is None and hostfault.line(again):
             return Replay(hostfault.held(Result(NAME, False, again + ", twice"),
                                          "run the start tests",
@@ -210,7 +226,8 @@ def replay(start, cmd=None, timeout=TIMEOUT, green=None, known=None):
     red = gone_red(after, green["found"])
     fault = hostfault.same(said for _, said in red)
     if fault:
-        again, why = tests_in(start, files, base, timeout, now=True)
+        again, why = tests_in(start, files, base, timeout, now=True,
+                              as_left=as_left)
         if again is None and not hostfault.line(why):
             return Replay(Result(NAME, False, why, issue="could not run the"
                                  " start tests: " + why))

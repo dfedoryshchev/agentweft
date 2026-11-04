@@ -6,6 +6,9 @@ when its answer names it on a WRONG TEST line whose `spec:` line quotes a
 line the ruling covers, as the run found it or as the run's own ruled edit
 left it, and the handoff lists each such test under that ruling. a plan that
 marks a ruled line `spec: contradicts` needs no new CONFLICT line for it.
+the start-tests replay lays out a start test file every change of which a
+ruling covers as the run left it, so a python test that runs a js test file
+is judged on the ruled file, and one that runs an unruled one is not.
 everything else still holds: a test on a line no ruling covers, a test
 changed with no WRONG TEST line, code a file's tests share with a test that
 reads it unnamed, a quote of neither the found line nor the ruled edit, a
@@ -17,7 +20,7 @@ import datetime
 import sys
 
 sys.path.insert(0, ".")
-from agentweft.guardrails import testedits
+from agentweft.guardrails import snapshot, starttests, testedits, worktree
 from agentweft.orchestrate import decisions
 from agentweft.runner import ruling, stops, wrongtest
 
@@ -64,6 +67,33 @@ NAMES_START = ("from pages import names" + NL + NL + NL
                + "def test_names_keep_their_order():" + NL
                + "    assert names(['b', 'a']) == ['b', 'a']" + NL)
 NAMES_SORTED = NAMES_START.replace("== ['b', 'a']", "== ['a', 'b']")
+# a test file read by line, and a python test that runs it: the shape of a
+# pytest test that runs a node suite over a folder of js tests
+JS_FILE = "tests/envelope.test.js"
+JS_TEST = JS_FILE + "::expects the envelope"
+BRIDGE_TEST = "tests/test_bridge.py::test_the_js_suite_passes"
+JS = "expect items" + NL + "expect page" + NL + "expect total" + NL
+CURSOR_JS = "expect items" + NL + "expect next" + NL
+BRIDGE = ("from pathlib import Path" + NL + NL + "from pages import listing"
+          + NL + NL + NL + "def test_the_js_suite_passes():" + NL
+          + '    js = Path(__file__).parent / "envelope.test.js"' + NL
+          + '    for line in js.read_text(encoding="utf-8").splitlines():' + NL
+          + "        assert line.split()[1] in listing([1]), line" + NL)
+# pytest runs the js file by itself too, as a js runner would
+JS_RUNNER = NL.join([
+    "import pytest", "", "",
+    "def pytest_collect_file(parent, file_path):",
+    '    if file_path.name.endswith(".test.js"):',
+    "        return JsFile.from_parent(parent, path=file_path)", "", "",
+    "class JsFile(pytest.File):",
+    "    def collect(self):",
+    '        yield JsCase.from_parent(self, name="expects the envelope")',
+    "", "",
+    "class JsCase(pytest.Item):",
+    "    def runtest(self):",
+    "        from pages import listing",
+    '        for line in self.path.read_text(encoding="utf-8").splitlines():',
+    "            assert line.split()[1] in listing([1]), line", ""])
 
 # a planner's plan on the leg after the override: each ruled line marked,
 # and no CONFLICT line
@@ -97,17 +127,22 @@ def built(*claims):
             + "- tests/test_envelope.py: the envelope is {items, next}" + NL)
 
 
-def place_of(tmp_path, monkeypatch, envelope=ENVELOPE):
+def place_of(tmp_path, monkeypatch, envelope=ENVELOPE, bridge=False):
     monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", GLOBS)
-    a_place(tmp_path / "project", {
+    files = {
         "docs/api.md": API, "docs/names.md": NAMES,
         "rules/api-shape.md": RULE, "pages.py": LISTING, "conftest.py": "",
         "tests/test_envelope.py": envelope,
-        "tests/test_names.py": NAMES_START})
+        "tests/test_names.py": NAMES_START}
+    if bridge:
+        files.update({JS_FILE: JS, "tests/test_bridge.py": BRIDGE,
+                      "conftest.py": JS_RUNNER})
+    a_place(tmp_path / "project", files)
     return tmp_path / "project"
 
 
-def edits_of(place, names=False, forge=None, rewrite=CURSOR_ENVELOPE):
+def edits_of(place, names=False, forge=None, rewrite=CURSOR_ENVELOPE,
+             js=None):
     def edits(step, n):
         if step == "tester.md":
             (place / "tests" / "test_cursor.py").write_text(
@@ -127,18 +162,23 @@ def edits_of(place, names=False, forge=None, rewrite=CURSOR_ENVELOPE):
             if names:
                 (place / "tests" / "test_names.py").write_text(
                     NAMES_SORTED, encoding="utf-8")
+            if js is not None:
+                (place / JS_FILE).write_text(js, encoding="utf-8")
             if forge is not None:
                 forge(place)
     return edits
 
 
 def overridden(tmp_path, monkeypatch, plan, worker, names=False,
-               rewrite=CURSOR_ENVELOPE, envelope=ENVELOPE):
+               rewrite=CURSOR_ENVELOPE, envelope=ENVELOPE, js=None,
+               forge=None):
     """an override run on two legs: the planner stops on the rule's line, the
     override goes in, and the second leg's worker changes the start tests
-    that pin the old envelope. -> (steps asked on the second leg, its exit
+    that pin the old envelope. `js` puts a test file read by line and a
+    python test that runs it in the start state, and is what the worker
+    rewrites that file to. -> (steps asked on the second leg, its exit
     code)."""
-    place = place_of(tmp_path, monkeypatch, envelope)
+    place = place_of(tmp_path, monkeypatch, envelope, bridge=js is not None)
     asked, _, code = go(tmp_path, monkeypatch, "build-feature",
                         plain({"planner.md": [first_plan(NAMED)]}),
                         lambda s, n: None, "--task", NAMED)
@@ -149,7 +189,8 @@ def overridden(tmp_path, monkeypatch, plan, worker, names=False,
                                "worker.md": [worker],
                                "reviewer.md": [REVIEWED],
                                "reviewer-runs.md": [REVIEWED]}),
-                        edits_of(place, names, rewrite=rewrite), "--resume",
+                        edits_of(place, names, forge=forge, rewrite=rewrite,
+                                 js=js), "--resume",
                         leg.name,
                         "--answer", OVERRIDE)
     return asked, code
@@ -277,6 +318,98 @@ def test_an_entry_a_step_wrote_in_decisions_md_rules_nothing(
                         edits_of(place, forge=forge), "--task", NAMED)
     assert code != stops.EXIT_OK
     assert end(tmp_path).cause != "ok"
+
+
+def laid_out(monkeypatch):
+    """-> the `as_left` sets the start-tests replay is handed, as the run
+    calls it."""
+    seen = []
+    real = starttests.replay
+
+    def spy(*args, **kw):
+        seen.append(set(kw.get("as_left", ())))
+        return real(*args, **kw)
+
+    monkeypatch.setattr(starttests, "replay", spy)
+    return seen
+
+
+JS_CLAIMED = built(wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST,
+                                                         FOUND[1]),
+                   wrong(JS_TEST, EDITED[1]))
+
+
+def test_a_bridge_over_a_ruled_test_file_is_green_in_the_replay(
+        tmp_path, monkeypatch):
+    seen = laid_out(monkeypatch)
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, JS_CLAIMED,
+                             js=CURSOR_JS)
+    gates = record(tmp_path, "gates.md")
+    assert "was green when the run started and is red now" not in gates
+    assert code == stops.EXIT_OK, gates
+    edits = [l for l in gates.split(NL) if "PASS test-edits" in l]
+    assert edits and all(JS_FILE + " (ruling " in l for l in edits), edits
+    assert "PASS start-tests" in gates
+    assert asked.count("worker.md") == 1
+    assert {JS_FILE, "tests/test_envelope.py"} in seen
+    handoff = record(tmp_path, "handoff.md")
+    assert JS_FILE + " <- ruling " + stamp_of(tmp_path) in handoff
+    assert "UNRULED" not in handoff
+
+
+def test_a_bridge_over_an_unruled_test_file_still_parks(
+        tmp_path, monkeypatch):
+    seen = laid_out(monkeypatch)
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1])),
+        js=CURSOR_JS)
+    assert code != stops.EXIT_OK
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL test-edits" in gates
+    assert JS_FILE in gates
+    assert "PASS start-tests" not in gates
+    assert all(JS_FILE not in s for s in seen)
+
+
+def test_a_bridge_over_a_half_ruled_test_file_still_parks(
+        tmp_path, monkeypatch):
+    seen = laid_out(monkeypatch)
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(FIRST_PAGE_TEST, FOUND[1])), rewrite=CURSOR_SHARED,
+        envelope=SHARED)
+    assert code != stops.EXIT_OK
+    gates = record(tmp_path, "gates.md")
+    assert "PASS start-tests" not in gates
+    assert all(not s for s in seen)
+
+
+def as_found(path):
+    return path.read_text(encoding="utf-8").replace(chr(13), "")
+
+
+def test_a_ruled_test_file_is_laid_out_as_the_run_left_it(
+        tmp_path, monkeypatch):
+    place = place_of(tmp_path, monkeypatch, bridge=True)
+    start = snapshot.take(place)
+    (place / JS_FILE).write_text(CURSOR_JS, encoding="utf-8")
+    (place / "tests" / "test_envelope.py").write_text(CURSOR_ENVELOPE,
+                                                      encoding="utf-8")
+    fixed = CURSOR_LISTING.replace("sorted(items)", "list(items)")
+    (place / "pages.py").write_text(fixed, encoding="utf-8")
+    with worktree.temporary(start.root, start.start) as tree:
+        starttests.lay_out_now(start, tree, as_left={JS_FILE})
+        there = start.place_in(tree)
+        assert as_found(there / JS_FILE) == CURSOR_JS
+        assert as_found(there / "tests" / "test_envelope.py") == ENVELOPE
+        assert as_found(there / "pages.py") == fixed
+    both = {JS_FILE, "tests/test_envelope.py"}
+    found = starttests.replay(start)
+    assert BRIDGE_TEST in [t for t, _ in found.red]
+    found = starttests.replay(start, as_left=both)
+    assert found.red == [], found.result.detail
+    (place / "pages.py").write_text(CURSOR_LISTING, encoding="utf-8")
+    found = starttests.replay(start, as_left=both)
+    assert [t for t, _ in found.red] == [NAMES_TEST]
 
 
 # the pieces
