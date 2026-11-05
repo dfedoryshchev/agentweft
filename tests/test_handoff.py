@@ -223,6 +223,30 @@ def test_a_real_heading_still_ends_the_command(after, where, want, code):
     assert (got[where] if where in got else got["other"][where]) == want
 
 
+FED = ("HANDOFF\nVERIFIED:\n- the flag is read\n  cmd: python - <<EOF\n"
+       "read: true\ntried: 3\nEOF\n  saw: ok\n- the second one\n  cmd: ls\n"
+       "  saw: a.py\nEND HANDOFF\n")
+
+
+def test_a_lower_case_section_name_inside_a_command_stays_in_it():
+    got = handoff.parse(FED)
+    assert got["read"] == [] and got["tried"] == [] and got["other"] == {}
+    first, second = got["verified"]
+    assert first["cmd"] == "python - <<EOF read: true tried: 3 EOF"
+    assert first["saw"] == "ok"
+    assert second["claim"] == "the second one" and second["cmd"] == "ls"
+
+
+@pytest.mark.parametrize("after, where", [("Read: the spec", "read"),
+                                          ("TRIED: once", "tried")])
+def test_a_section_name_not_in_lower_case_still_ends_the_command(after,
+                                                                  where):
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- it runs\n  cmd: python -c \"\n"
+                        + after + "\nEND HANDOFF\n")
+    assert got["verified"][0]["cmd"] == 'python -c "'
+    assert got[where] == [after.split(": ", 1)[1]]
+
+
 def test_a_question_still_ends_the_command():
     got = handoff.parse("HANDOFF\nVERIFIED:\n- it runs\n  cmd: python -c \"\n"
                         "Question: which order holds?\nEND HANDOFF\n")

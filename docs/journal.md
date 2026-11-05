@@ -556,9 +556,10 @@ capitals it does not know (`NEEDS:`, `CITES:`, `OPTIONS:`) is kept under
 `other`. a VERIFIED item's `cmd:` and `saw:` lines are read as parts of
 the claim above them, so a command keeps any pipe in it, and a line of a
 command that runs on over lines and reads `word: text` with the word in
-lower case (`try: f()` in a `python -c` body) stays in the command; a
-heading the block or the verbs know, in any case, a heading in capitals, a
-`saw:` line or the next item still ends it; a block written in
+lower case (`try: f()` in a `python -c` body, `read: true` in a heredoc)
+stays in the command; a name the verbs or an open question know, in any
+case, a section name of the block not in lower case (`Read:`), a heading
+in capitals, a `saw:` line or the next item still ends it; a block written in
 the older one-line form, `<claim> | cmd: <command> | saw: <excerpt>`, is
 still read, split on the `cmd:` and `saw:` labels only, and a `saw:` that
 quotes two or more pieces matches each piece on its own. a `cmd:` that

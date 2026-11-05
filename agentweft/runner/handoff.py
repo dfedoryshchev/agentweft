@@ -133,9 +133,9 @@ def parse(text):
     joins the item above it, and `none` is an empty section rather than an
     item. a heading in capitals this does not know (NEEDS, CITES, OPTIONS)
     is kept under `other` as the step wrote it. under a VERIFIED `cmd:`, a
-    line that reads `word: text` with the word in lower case and no name this
-    or `verbs` knows (`try: f()` in a `python -c` body) is the command's, not
-    a heading. an ASSUMED item's `why:` and
+    line that reads `word: text` with the word in lower case and no name
+    `verbs` or a question knows (`try: f()` in a `python -c` body, `read:
+    true` in a heredoc) is the command's, not a heading (`_code_line`). an ASSUMED item's `why:` and
     `if wrong:` lines are its own, kept on lines of their own under the
     choice, and so are an ADJACENT item's `fixed:` and `test:` lines and a
     BECAUSE item's `from:` and `led to:` lines; the
@@ -269,15 +269,20 @@ def _in_cmd(item):
 
 def _code_line(line):
     """whether `line`, read as `word: text`, is a line of a command and not a
-    heading: not bulleted, not in capitals, and no name the block or the run's
-    own verbs know (`Assumed:`, `Needs:`, `Question:` in any case still open
-    theirs)."""
+    heading: not bulleted, not in capitals, no name the run's own verbs or an
+    open question know (`Assumed:`, `Needs:`, `Question:` in any case still
+    open theirs), and a section name of the block only in lower case
+    (`read: true` in a heredoc is the command's, `Read:` opens READ)."""
     head = verbs.key_of(line)
     if head is None:
         return False
     name, _, bulleted, caps = head
-    return not (bulleted or caps or name in KEYS or name in ASKING
-                or name in verbs.FIELD)
+    if bulleted or caps or name in ASKING or name in verbs.FIELD:
+        return False
+    if name in KEYS:
+        raw = verbs.KEY.match(line).group(1)
+        return raw == raw.lower()
+    return True
 
 
 def reason(item):
