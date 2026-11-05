@@ -641,7 +641,9 @@ answers, in order:
   ruling leads with the question it wrote to `question.md`, with its cites
   and options, whatever asked it: a `NEEDS:` or `CONFLICT:` line, `VERDICT:
   park`, a `REFUSED:` with no spec line cited, a spec change request, or the
-  runner. a stop that asked nothing (a gate, the cap, an outage, a crash, a
+  runner, and with the `RECOMMEND:` and `SIZE:` that question carries (the
+  runner's own question on a step that could not make a test fail carries
+  the step's). a stop that asked nothing (a gate, the cap, an outage, a crash, a
   refusal that cites the spec) leads with the stop itself, where and why;
   on the cap, a provider limit or an interrupt a `recommendation:` line
   under it says what that cause asks for with the command (raise the cap

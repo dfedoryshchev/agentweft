@@ -97,6 +97,16 @@ def test_no_test_and_a_cited_question_parks_on_the_first_go(tmp_path,
     assert read(project / "calc.py") == WORKS
 
 
+def test_the_one_decision_shows_the_questions_recommend(tmp_path,
+                                                        monkeypatch):
+    _, _, folder, _ = run_it(tmp_path, monkeypatch,
+                             {"worker.md": answer(SAYS)})
+    handoff = read(folder / "handoff.md")
+    top = handoff.split("## the one decision", 1)[1].split("\n## ", 1)[0]
+    assert "recommendation: none given" not in top, top
+    assert "recommendation: close the report as not seen on this code" in top
+
+
 def test_a_test_line_saying_none_parks_the_same_way(tmp_path, monkeypatch):
     top = ("FAILS: none. add(1, 2) gives 3" + NL + "TEST: none written" + NL
            + NL)

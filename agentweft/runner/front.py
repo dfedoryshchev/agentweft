@@ -264,6 +264,7 @@ def stopped_on(stopped, asking=(), passes=()):
         return None
     v = verbs.parse(said)
     text, rec, size = parts(v.needs or said.strip())
+    rec, size = rec or v.recommend or "", size or v.size or ""
     role = stopped["at"]
     kind = "conflict" if stopped["cause"] == stops.CONFLICT else "needs"
     if stopped.get("by"):
