@@ -308,7 +308,9 @@ report to the `coverage:` floor, `reject` checks a step's output against
 the reject rules that have a pattern, and `project` runs one of the `gates:`
 by name, on the step that names it (see `docs/gates.md`). a gate the file
 declares and no flow names is still not run. a `fence:` block
-turns on the scope fence for every run (see `docs/guardrails.md`). no role takes its
+turns on the scope fence for every run (see `docs/guardrails.md`), and a
+`spec:` list names the files that are the spec, in place of `TASK.md`,
+`SPEC*.md` and `docs/spec*` (see `docs/gates.md`). no role takes its
 pre-work from it, and a reject rule with no pattern is still only a sentence.
 the rest is the format and a loader that refuses a word it has no name for, the way `flow.yaml`
 has for months - `project.yml: roles: architect: no such tool shel. there is:

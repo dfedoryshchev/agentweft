@@ -171,6 +171,7 @@ class Run(object):
         if bad:
             raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))
         self.fence = fence.at(self.workdir, own=state.RUNS, held=self.project)
+        snapshot.project_globs = self.project.spec()
         self.start = None
         self.suite = baseline.mode(fm)
         self.baseline = None

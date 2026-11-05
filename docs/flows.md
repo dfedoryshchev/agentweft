@@ -67,7 +67,8 @@ step's own words can name two more values, filled each time the step is
 called:
 
 - `{SPEC_AT_START}`: every spec file (`TASK.md`, `SPEC*.md`, `docs/spec*`
-  from the top of the place) as the run found it, under its path, read from
+  from the top of the place, or the project's `spec:` list) as the run found
+  it, under its path, read from
   the start commit, or from the start snapshot for a file already loose, and
   never from the work tree
 - `{SPEC_DIFF}`: what has changed in them since, as a unified diff, or
@@ -371,7 +372,8 @@ neither a role nor a step earlier in the same flow is refused by the checker.
   `spec_files: additions`, which then holds what it adds, or when a ruling
   in `decisions.md` quotes every spec line that moved.
 - `spec`: the spec files only, created or changed: `TASK.md`, `SPEC*.md`
-  and `docs/spec*` from the top of the place, or the `spec_globs` setting.
+  and `docs/spec*` from the top of the place, or the project's `spec:` list
+  in `orchestrate/project.yml`, or the `spec_globs` setting (`gates.md`).
   an analyst or planner that writes the spec down. not allowed with
   `spec_files: read-only`.
 - `none`: nothing.

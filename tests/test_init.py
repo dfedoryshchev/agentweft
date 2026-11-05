@@ -71,8 +71,7 @@ def test_init_yes_writes_every_setting_with_its_default(place, monkeypatch,
                    "AGENTWEFT_PERMISSION_MODE": "dontAsk",
                    "AGENTWEFT_CO_AUTHOR": "false",
                    "AGENTWEFT_MAX_CALLS": "25", "AGENTWEFT_MAX_TOKENS": "0",
-                   "AGENTWEFT_TESTS_E2E": "false", "AGENTWEFT_COMMITS": "none",
-                   "AGENTWEFT_SPEC_GLOBS": "TASK.md,SPEC*.md,docs/spec*"}
+                   "AGENTWEFT_TESTS_E2E": "false", "AGENTWEFT_COMMITS": "none"}
     assert not (place / "prices.yaml").exists()
     out = capsys.readouterr().out
     assert "agentweft minimal --force --flows" in out
@@ -292,7 +291,7 @@ def test_init_answers_reach_the_run(place, monkeypatch, fake_cli):
         .replace("AGENTWEFT_CO_AUTHOR=false", "AGENTWEFT_CO_AUTHOR=true")
         .replace("dontAsk", "acceptEdits")
         .replace("AGENTWEFT_PROVIDER=cli", "AGENTWEFT_PROVIDER=fake")
-        .replace("TASK.md,SPEC*.md,docs/spec*", "docs/rfc*"),
+        + "AGENTWEFT_SPEC_GLOBS=docs/rfc*\n",
         encoding="utf-8")
     engine.load_env()
     assert providers.build({}).name == "fake"

@@ -8,9 +8,10 @@
 # project.yml, answer it for your own repo, and keep it in your repo rather
 # than in the prompts.
 #
-# the coverage and reject gates and the fence act on parts of it. the rest is
-# only read by its loader, which refuses a word it has no name for - a typo in
-# a file like this would otherwise sit here looking exactly like a rule.
+# the coverage and reject gates, the fence and the spec list act on parts of
+# it. the rest is only read by its loader, which refuses a word it has no name
+# for - a typo in a file like this would otherwise sit here looking exactly
+# like a rule.
 
 project:
   name: example-app
@@ -89,3 +90,9 @@ roles:
 # rewrites every time and nobody would miss.
 fence:
   skip: ["**/__pycache__/**", ".pytest_cache/**"]
+
+# the files that are the spec: what a run quotes a conflict against, what a
+# step may not rewrite without a ruling. globs from the top of the place, a `*`
+# never crossing a `/`, and a folder names every file under it. left out, the
+# spec is TASK.md, SPEC*.md and docs/spec*; AGENTWEFT_SPEC_GLOBS wins over it.
+spec: [TASK.md, docs/architecture.md, docs/api]

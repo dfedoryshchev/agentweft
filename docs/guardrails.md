@@ -376,7 +376,8 @@ a claim of its own. a new run starts with none.
 
 a step that cannot make the work match the spec can make the spec match the
 work. `spec_files:` says what a step may do to the spec files (`TASK.md` or
-`SPEC*.md` at the top of the place, or a file under `docs/spec*` there), and
+`SPEC*.md` at the top of the place, or a file under `docs/spec*` there, or
+what the project's `spec:` list in `orchestrate/project.yml` names), and
 after every step the runner reads them against how the run found them:
 
 - `read-only` (fix-with-test): any change, added lines included, fails the

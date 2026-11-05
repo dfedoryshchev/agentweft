@@ -121,8 +121,10 @@ QUESTIONS = (
              note="none leaves every change in the work tree, wip commits "
                   "after each step, squash makes one commit per task"),
     Question(env("spec_globs"), "the files that are the spec, as globs "
-             "from the top of the project, comma separated",
-             default("spec_globs"), kind="globs"),
+             "from the top of the project, comma separated", "",
+             kind="globs",
+             note="blank leaves it to each project: the `spec:` list in its "
+                  "orchestrate/project.yml, then " + default("spec_globs")),
 )
 
 PRICES = Question("prices", "keep a price table of your own here "

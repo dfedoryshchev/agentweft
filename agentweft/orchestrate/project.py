@@ -42,7 +42,7 @@ from . import workflow
 
 REQUIRED = ("project",)
 KNOWN = ("project", "read_first", "standards", "coverage", "gates", "roles",
-         "fence")
+         "fence", "spec")
 PROJECT_KNOWN = ("name", "stack")
 FENCE_KNOWN = ("skip",)
 STANDARDS_KNOWN = ("forbidden", "immediate_reject")
@@ -55,6 +55,7 @@ KEPT = "project.yml"
 # a path as it appears in a prompt: something in backticks with a separator in
 # it. crude, and it only has to find the thing the file exists to take away.
 PATH = re.compile(r"`([^`\s]+/[^`\s]+)`")
+DRIVE = re.compile(r"[A-Za-z]:")
 
 
 def in_prose(text):
@@ -80,6 +81,11 @@ class Held(object):
 
     def read(self):
         return load(reader.read(self.text) or {})
+
+    def spec(self):
+        """-> the spec globs the file names, None when there is no file or
+        it names none."""
+        return None if self.text is None else self.read().spec()
 
 
 def hold(place=None):
@@ -166,6 +172,13 @@ class Project(object):
         if self.raw.get("fence") is None:
             return None
         return list(self.raw["fence"].get("skip") or [])
+
+    def spec(self):
+        """-> the globs, from the top of the place, that name its spec files,
+        or None when the file names none and the default stands."""
+        if self.raw.get("spec") is None:
+            return None
+        return list(self.raw["spec"])
 
 
 def _strings(bad, where, value):
@@ -307,10 +320,25 @@ def _check_fence(bad, block):
         _strings(bad, "fence: skip", block["skip"])
 
 
+def _check_spec(bad, block):
+    if not isinstance(block, list):
+        bad.append("spec: should be a list")
+        return
+    if not block:
+        bad.append("spec: names no file; leave it out for the default")
+    for glob in block:
+        if not isinstance(glob, str):
+            bad.append("spec: " + str(glob) + " should be str")
+        elif not glob or glob.startswith("/") or "\\" in glob \
+                or DRIVE.match(glob) or ".." in glob.split("/"):
+            bad.append("spec: " + glob + " should be a glob from the top of"
+                       " the place")
+
+
 CHECKS = (("project", _check_project), ("read_first", _check_read_first),
           ("standards", _check_standards), ("coverage", _check_coverage),
           ("gates", _check_gates), ("roles", _check_roles),
-          ("fence", _check_fence))
+          ("fence", _check_fence), ("spec", _check_spec))
 
 
 def check(raw):

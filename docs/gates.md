@@ -490,8 +490,13 @@ file (the product), plus the bytes of the files that already differed from
 the start commit. content, never mtimes. a spec file is `TASK.md` or
 `SPEC*.md` at the top of the place, or any file under `docs/spec*` there,
 read from the place and not the top of the repo, and a `*` never crosses a
-`/` (the handoff's rulings use the same definition). the test runner's own
-files are in none of the three: `conftest.py` anywhere, `pytest.ini`,
+`/` (the handoff's rulings use the same definition). a project names its own
+in `orchestrate/project.yml`, `spec: [docs/*.md, rules]` (a glob that names
+a folder names every file under it), read once from the copy the run started
+with; `AGENTWEFT_SPEC_GLOBS` (a comma list, `agentweft init` asks for it)
+wins over both when it is set. a `spec:` entry that is absolute, climbs out
+with `..`, or is empty stops the run before its first step. the test
+runner's own files are in none of the three: `conftest.py` anywhere, `pytest.ini`,
 `.coverage*`, and anything under `.hypothesis/` or `.pytest_cache/`. nor are
 the runner's own files in the place, `decisions.md` and the `.md` files
 under `facts/`, which it

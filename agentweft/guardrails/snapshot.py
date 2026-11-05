@@ -111,14 +111,17 @@ def _glob(pattern):
 
 
 _SPEC_RE = {}
+project_globs = None
 
 
 def spec_globs():
-    """-> the globs a spec file is named by: `spec_globs`, which
-    `agentweft init` asks for (`runner/settings.py`)."""
+    """-> the globs a spec file is named by: `AGENTWEFT_SPEC_GLOBS` when it
+    is set (`agentweft init` asks for it), else the `spec:` list of the
+    project.yml the run started with, else the default
+    (`runner/settings.py`)."""
     from agentweft.runner import settings
 
-    return tuple(settings.get("spec_globs"))
+    return tuple(settings.get("spec_globs", default=project_globs))
 
 
 def spec_re():
