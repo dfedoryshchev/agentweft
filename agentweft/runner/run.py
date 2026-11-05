@@ -508,7 +508,9 @@ class Run(object):
             if d is None:
                 d = wrongtest.ruled_claim(claims, test, self.workdir,
                                           self.start, self.spec_line_covered,
-                                          self.gone_of(edits, test))
+                                          self.gone_of(edits, test),
+                                          self.gone_of(edits, test,
+                                                       testedits.came))
                 d = d and d[0]
             if d is None:
                 left.append((test, said))
@@ -683,9 +685,10 @@ class Run(object):
             self.kept_claims = kept
 
     @staticmethod
-    def gone_of(edits, test):
-        """-> the lines the changes to `test`, a start test id, took out:
-        its own, and its file's where the change is the file's."""
+    def gone_of(edits, test, read=testedits.gone):
+        """-> the lines the changes to `test`, a start test id, took out
+        (or, with `read` = `testedits.came`, put in): its own, and its
+        file's where the change is the file's."""
         path = test.partition("::")[0]
         out = []
         for edit in edits:
@@ -693,18 +696,19 @@ class Run(object):
                 continue
             for item, how in edit.items:
                 if item == edit.path or wrongtest.same_test(test, item):
-                    out.append(testedits.gone(edit, item, how))
+                    out.append(read(edit, item, how))
         return "\n".join(out)
 
-    def claimed(self, said, tests, gone=""):
+    def claimed(self, said, tests, gone="", came=""):
         """-> (the ruling, the cite of the claim) of the first of `tests`
         when the answers in `said` name each on a WRONG TEST line under one
-        whose ruled edit `gone`, the lines the change took out, is tied to
-        (`wrongtest.ruled_claim`), else None; None for no tests."""
+        whose ruled edit the change, `gone` the lines it took out and `came`
+        the lines it put in, is tied to (`wrongtest.ruled_claim`), else
+        None; None for no tests."""
         found = None
         for test in tests:
             d = wrongtest.ruled_claim(said, test, self.workdir, self.start,
-                                      self.spec_line_covered, gone)
+                                      self.spec_line_covered, gone, came)
             if d is None:
                 return None
             found = found or d
@@ -732,7 +736,8 @@ class Run(object):
                 if d is None:
                     d, cite = self.claimed(
                         said, testedits.claimed_by(edit, test, how),
-                        testedits.gone(edit, test, how)) or (None, "")
+                        testedits.gone(edit, test, how),
+                        testedits.came(edit, test, how)) or (None, "")
                 out.append((edit, test, how, d, cite))
         return out
 
@@ -757,9 +762,8 @@ class Run(object):
         are not read: one that names the test does not let it change. a test
         changed, or a file the check reads whole, that `output` or another
         answer of this run names on a WRONG TEST line quoting spec lines a
-        ruling covers is covered by that ruling when the change took out a
-        word the run's edit took out of those lines
-        (`wrongtest.ruled_claim`)."""
+        ruling covers is covered by that ruling when the change is tied to
+        the run's edit of those lines (`wrongtest.ruled_claim`)."""
         found = testedits.changes(getattr(self, "start", None))
         if not found:
             return None, None

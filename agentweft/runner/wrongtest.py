@@ -31,9 +31,12 @@ line as the run found it or as the run's own ruled edit left it
 (`ruling.ruled_quote`), is no question when the step changed the test, and
 lets the change stand at the test-edits check (`ruled_claim`) when the
 test's change is that edit's: the lines it took out of the test hold a word
-the run's edit took out of the quoted line. a claim that quotes a ruled line
-for a test pinning something else covers nothing, and the test-edits check
-asks about the change.
+the run's edit took out of the quoted line, or hold a word of that line as
+the run found it, the edit rewrote or removed the line, and the lines the
+change put in hold a new word the edit wrote into the file (a field moved
+into a nested shape keeps its name in the file). a claim that quotes a
+ruled line for a test pinning something else covers nothing, and the
+test-edits check asks about the change.
 """
 from pathlib import Path
 
@@ -42,7 +45,7 @@ from agentweft.guardrails import testedits
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, misquote,
+from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, fate, misquote,
                      ruled_quote, spanned, took, words)
 
 WRONG = "WRONG TEST"
@@ -199,23 +202,33 @@ def same_test(said, test):
     return path + "::" + name.split("[")[0] == test
 
 
-def ruled_claim(outputs, test, workdir, start=None, ruled=None, gone=""):
+def ruled_claim(outputs, test, workdir, start=None, ruled=None, gone="",
+                came=""):
     """-> (the ruling, the claim's cite) that lets `test`, one the run
     started with, change because an answer of this run names it on a WRONG
     TEST line whose spec: line quotes spec lines that ruling covers
     (`ruled_quote`), and the test's change is that ruled edit's: `gone`, the
     lines the change took out, holds a word the run's edit took out of the
-    quoted lines (`ruling.took`). else None: a ruled line quoted for a test
-    that pins something else covers nothing."""
+    quoted lines (`ruling.took`), or holds a word of those lines as the run
+    found them, the edit removed or rewrote each of them, and `came`, the
+    lines the change put in, holds a word `gone` did not that the edit wrote
+    into their file and they did not hold (`ruling.fate`). else None: a
+    ruled line quoted for a test that pins something else covers nothing."""
     pinned = words(gone)
     if not pinned:
         return None
+    put = words(came) - pinned
     for output in outputs:
         for said, _, spec in claims(output or ""):
             if not spec or not same_test(said, test):
                 continue
             d = ruled_quote(spec, workdir, start, ruled)
-            if d is not None and pinned & took(spec, workdir, start):
+            if d is None:
+                continue
+            if pinned & took(spec, workdir, start):
+                return d, cite_in(spec)
+            found, brought = fate(spec, workdir, start)
+            if pinned & found and put & brought:
                 return d, cite_in(spec)
     return None
 

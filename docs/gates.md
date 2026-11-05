@@ -713,7 +713,14 @@ in `gates.md`:
   it. the claim covers the test only when the test's change is that edit's:
   the lines the change took out of the test (of the file, for the code its
   tests share or a file read by line) hold a word the run's edit took out of
-  the quoted lines and the file no longer holds. a claim quoting a ruled line
+  the quoted lines and the file no longer holds; or they hold a word of the
+  quoted lines as the run found them, the edit removed or rewrote each of
+  those lines, and the lines the change put in hold a word the lines it took
+  out did not, which the edit wrote into the file and the quoted lines did
+  not hold (a field moved into a nested shape keeps its name in the file, so
+  `item["qty"]` that becomes `item["locations"][0]["qty"]` is tied by
+  `locations`). a change that only drops a word, with nothing the edit wrote
+  in its place, is not tied that way. a claim quoting a ruled line
   for a test that pins something else covers nothing, and neither does one
   on lines the run has not edited yet. a test changed with no such line, or
   quoting a line no ruling covers, still fails, and on its last go parks on

@@ -403,6 +403,20 @@ def gone(edit, test, how):
     return "\n".join(line for _, line, _ in specfiles.lost(was, now))
 
 
+def came(edit, test, how):
+    """-> the lines the change `test`, `how`, in `edit` put in, added or
+    rewritten, as they are now, read the way `gone` reads what it took out.
+    "" when the file is gone or was not read."""
+    if edit.was is None or edit.now is None:
+        return ""
+    was, now = edit.was, edit.now
+    if "::" in test and how == CHANGED:
+        was = _source_of(was, edit.path, test)
+        now = _source_of(now, edit.path, test)
+    new = now.split("\n")
+    return "\n".join(new[n - 1] for n in sorted(specfiles.became(was, now)))
+
+
 def claimable(test, how):
     """whether a change a WRONG TEST line under a ruling may cover: a test
     whose code changed, or a file whose lines or shared code did. a test

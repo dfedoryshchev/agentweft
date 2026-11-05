@@ -5,8 +5,10 @@ with that pins exactly those lines is wrong with them. a step may change it
 when its answer names it on a WRONG TEST line whose `spec:` line quotes a
 line the ruling covers, as the run found it or as the run's own ruled edit
 left it, when the lines the step took out of the test hold a word the run's
-edit took out of that line, and the handoff lists each such test under that
-ruling with the line its claim quoted. a ruled line quoted for a test that
+edit took out of that line, or hold a word of that line, which the edit
+rewrote, and the lines the step put in hold a new word the edit wrote (a
+field moved into a nested shape), and the handoff lists each such test under
+that ruling with the line its claim quoted. a ruled line quoted for a test that
 pins an unruled line covers nothing, loosened or rewritten. a plan that
 marks a ruled line `spec: contradicts` needs no new CONFLICT line for it.
 the start-tests replay lays out a start test file every change of which a
@@ -628,6 +630,146 @@ def test_code_tests_share_is_held_to_the_tests_that_run_against_it():
     classed = NL.join(["class TestIt:", "    x = 1", "",
                        "    def test_a(self):", "        assert self.x", ""])
     assert sharing(classed.replace("x = 1", "x = 2"), classed) == ["test_a"]
+
+
+QTY_LINE = "- `qty`: integer, in the base unit of the item's unit"
+UNIT_LINE = "- `unit`: one of g, kg"
+ITEMS_DOC = "# items" + NL + NL + QTY_LINE + NL + UNIT_LINE + NL
+NESTED_DOC = ("# items" + NL + NL
+              + "- `locations`: a list of `{location_id, qty}`, one entry per"
+              " location" + NL + UNIT_LINE + NL
+              + "- in each entry, `qty` is an integer in the base unit of the"
+              " item's unit" + NL)
+ITEM = 'def item():' + NL + '    return {"qty": 2000, "unit": "g"}' + NL
+NESTED_ITEM = ('def item():' + NL + '    return {"locations": [{"location_id":'
+               ' None, "qty": 2000}], "unit": "g"}' + NL)
+QTY_TEST = "tests/test_items.py::test_an_item_reads_its_qty"
+UNIT_TEST = "tests/test_items.py::test_an_item_has_a_unit"
+ITEM_TESTS = ("from items import item" + NL + NL + NL
+              + "def test_an_item_reads_its_qty():" + NL
+              + '    assert item()["qty"] == 2000' + NL + NL + NL
+              + "def test_an_item_has_a_unit():" + NL
+              + '    assert item()["unit"] == "g"' + NL)
+NESTED_TESTS = ITEM_TESTS.replace('item()["qty"]',
+                                  'item()["locations"][0]["qty"]')
+LOOSE_UNIT = NESTED_TESTS.replace('assert item()["unit"] == "g"',
+                                  'assert item()["unit"]')
+SHAPE = ("This changes the item shape: an item reads `locations`, a list of"
+         " `{location_id, qty}`. Update docs/items.md to say so.")
+SHAPE_OVERRIDE = ("override: an item reads locations, a list of {location_id,"
+                  " qty}; the items doc changes to say so.")
+SHAPE_TEST = ("def test_an_item_lists_its_locations():" + NL
+              + "    from items import item" + NL + NL
+              + '    assert item()["locations"][0]["qty"] == 2000' + NL)
+SHAPE_TESTER = ("FAILS: KeyError: 'locations'" + NL
+                + "TEST: tests/test_locations.py" + NL)
+QTY_FOUND = 'docs/items.md:3 "' + QTY_LINE + '"'
+
+
+def nested(tmp_path, monkeypatch, worker, tests=NESTED_TESTS):
+    """an override run on two legs that moves `qty` into a nested shape: the
+    planner stops on the qty line, the override goes in, and the second
+    leg's worker rewrites the doc and the code, and the start test file to
+    `tests`. -> (steps asked on the second leg, its exit code)."""
+    monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", GLOBS)
+    place = tmp_path / "project"
+    a_place(place, {"docs/items.md": ITEMS_DOC, "items.py": ITEM,
+                    "conftest.py": "", "tests/test_items.py": ITEM_TESTS})
+
+    def edits(step, n):
+        if step == "tester.md":
+            (place / "tests" / "test_locations.py").write_text(
+                SHAPE_TEST, encoding="utf-8")
+        if step == "worker.md":
+            (place / "items.py").write_text(NESTED_ITEM, encoding="utf-8")
+            (place / "docs" / "items.md").write_text(NESTED_DOC,
+                                                     encoding="utf-8")
+            (place / "tests" / "test_items.py").write_text(
+                tests, encoding="utf-8")
+
+    stop = ('CONFLICT: ' + QTY_FOUND + NL + "request: " + SHAPE + NL)
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [stop]}), lambda s, n: None,
+                        "--task", SHAPE)
+    assert (asked, code) == (["planner.md"], stops.EXIT_STOP)
+    [leg] = folders(tmp_path)
+    plan = NL.join(["- behaviour: item() lists its locations",
+                    "  file: items.py", ""])
+    built_it = (worker + NL + "- items.py: locations" + NL
+                + "- docs/items.md: locations" + NL)
+    return go(tmp_path, monkeypatch, "build-feature",
+              plain({"planner.md": [plan], "tester.md": [SHAPE_TESTER],
+                     "worker.md": [built_it], "reviewer.md": [REVIEWED],
+                     "reviewer-runs.md": [REVIEWED]}),
+              edits, "--resume", leg.name, "--answer", SHAPE_OVERRIDE)[::2]
+
+
+def test_a_field_moved_into_a_nested_shape_lets_its_start_test_follow(
+        tmp_path, monkeypatch):
+    _, code = nested(tmp_path, monkeypatch, wrong(QTY_TEST, QTY_FOUND))
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL test-edits" not in gates
+    assert code == stops.EXIT_OK, gates
+    assert QTY_TEST + " <- ruling " + stamp_of(tmp_path) \
+        + " (claimed on docs/items.md:3)" in record(tmp_path, "handoff.md")
+
+
+def test_a_start_test_loosened_on_a_word_the_moved_line_shares_is_refused(
+        tmp_path, monkeypatch):
+    _, code = nested(tmp_path, monkeypatch, wrong(QTY_TEST, QTY_FOUND)
+                     + wrong(UNIT_TEST, QTY_FOUND), tests=LOOSE_UNIT)
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    assert "FAIL test-edits" in gates
+    assert UNIT_TEST + " (changed)" in gates
+    assert QTY_TEST + " (changed)" not in gates
+
+
+def nested_place(tmp_path, monkeypatch):
+    """-> (the place with the nested shape written, its start)."""
+    monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", GLOBS)
+    place = tmp_path / "project"
+    a_place(place, {"docs/items.md": ITEMS_DOC, "items.py": ITEM,
+                    "conftest.py": "", "tests/test_items.py": ITEM_TESTS})
+    start = snapshot.take(place)
+    (place / "docs" / "items.md").write_text(NESTED_DOC, encoding="utf-8")
+    return place, start
+
+
+def any_line(rel, line):
+    return "a ruling" if rel == "docs/items.md" else None
+
+
+def test_a_claim_ties_by_the_quoted_line_and_what_the_edit_brought(
+        tmp_path, monkeypatch):
+    place, start = nested_place(tmp_path, monkeypatch)
+    said = [wrong(QTY_TEST, QTY_FOUND)]
+    gone, came = '    assert item()["qty"] == 2000', \
+        '    assert item()["locations"][0]["qty"] == 2000'
+    assert ruling.took(QTY_FOUND, place, start) == set()
+    d, cite = wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
+                                    gone, came)
+    assert d == "a ruling" and cite == "docs/items.md:3"
+    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
+                                 gone) is None
+    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
+                                 '    assert item()["unit"] == "g"',
+                                 '    assert item()["unit"]') is None
+    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
+                                 '    insert(qty=1, unit="g")',
+                                 '    insert(unit="g")') is None, \
+        "a change that only drops the field puts in nothing the edit wrote"
+    assert wrongtest.ruled_claim(
+        said, QTY_TEST, place, start, any_line,
+        "    assert names(['b', 'a']) == ['b', 'a']",
+        "    assert names(['b', 'a']) == ['locations']") is None
+    unit = [wrong(UNIT_TEST, 'docs/items.md:4 "' + UNIT_LINE + '"')]
+    assert wrongtest.ruled_claim(unit, UNIT_TEST, place, start, any_line,
+                                 '    assert item()["unit"] == "g"',
+                                 '    assert item()["unit"] == "locations"') \
+        is None, "a line the run left as it was covered a test"
+    assert wrongtest.ruled_claim(said, QTY_TEST, place, None, any_line,
+                                 gone, came) is None
 
 
 def test_a_claim_names_a_test_by_its_id_or_a_file_read_whole():

@@ -781,36 +781,70 @@ def words(text):
             if len(w) > 2 and w.lower() not in IDLE}
 
 
-def took(said, workdir, start=None):
-    """-> the words the run's own edit took out of the spec lines `said`,
-    `<file>:<line> "<the line>"`, quotes: the words of those lines as the run
-    found them, read at their number then or, for a quote of the edit, from
-    the lines it stands in for (`specfiles.became`), that the file no longer
-    holds anywhere; a cite of several lines is read at those its quote
-    stands on (`placed`). none for lines the run left as they were."""
+def quoted_as_found(said, workdir, start=None):
+    """-> (the spec lines `said`, `<file>:<line> "<the line>"`, quotes, as
+    the run found them, read at their number then or, for a quote of the
+    edit, from the lines it stands in for (`specfiles.became`); their file
+    as found; as it is now; whether the run's own edit removed or rewrote
+    each of them), or None. a cite of several lines is read at those its
+    quote stands on (`placed`)."""
     text = (said or "").strip()
     m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
     if not m:
-        return set()
+        return None
     rel, first, last, quote, _ = cite_of(m)
     was, now = as_found(workdir, rel, start), now_of(workdir, rel)
     if not quote or was is None:
-        return set()
+        return None
+    now = now or ""
     lines = was.split("\n")
     span = placed(lines, first, last, quote) \
         if 1 <= first <= last <= len(lines) else None
     if span is not None:
+        lost = {n for n, _, _ in specfiles.lost(was, now)}
         found = lines[span[0] - 1:span[1]]
-    else:
-        new = (now or "").split("\n")
-        span = placed(new, first, last, quote) \
-            if 1 <= first <= last <= len(new) else None
-        if span is None:
-            return set()
-        stood = specfiles.became(was, now)
-        found = [stood[n] for n in range(span[0], span[1] + 1)
-                 if stood.get(n) is not None]
+        edited = all(n in lost for n in range(span[0], span[1] + 1)
+                     if lines[n - 1].strip())
+        return found, was, now, edited
+    new = now.split("\n")
+    span = placed(new, first, last, quote) \
+        if 1 <= first <= last <= len(new) else None
+    if span is None:
+        return None
+    stood = specfiles.became(was, now)
+    found = [stood[n] for n in range(span[0], span[1] + 1)
+             if stood.get(n) is not None]
+    return found, was, now, bool(found)
+
+
+def took(said, workdir, start=None):
+    """-> the words the run's own edit took out of the spec lines `said`,
+    `<file>:<line> "<the line>"`, quotes: the words of those lines as the run
+    found them (`quoted_as_found`) that the file no longer holds anywhere.
+    none for lines the run left as they were."""
+    read = quoted_as_found(said, workdir, start)
+    if read is None:
+        return set()
+    found, _, now, _ = read
     return words(" ".join(found)) - words(now)
+
+
+def fate(said, workdir, start=None):
+    """-> (the words of the spec lines `said`, `<file>:<line> "<the line>"`,
+    quotes, as the run found them; the words of the lines the run's edit
+    wrote into their file, added or rewritten, that those lines did not
+    hold), both empty unless the run's own edit removed or rewrote each of
+    those lines. a field the edit moved keeps its name in the file, so what
+    ties a test to the move is the line it pinned and the words the move
+    wrote."""
+    read = quoted_as_found(said, workdir, start)
+    if read is None or not read[3]:
+        return set(), set()
+    found, was, now, _ = read
+    held = words(" ".join(found))
+    new = now.split("\n")
+    wrote = " ".join(new[n - 1] for n in specfiles.became(was, now))
+    return held, words(wrote) - held
 
 
 def spanned(said, workdir, start=None):
