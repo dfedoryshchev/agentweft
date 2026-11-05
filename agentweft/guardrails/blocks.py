@@ -247,8 +247,10 @@ class Plan(object):
             rows.append(s.ljust(width) + "cut")
         if self.buffer is not None:
             rows.append("buffer".ljust(width) + str(self.buffer))
-        kept = ["retro     1 call of the buffer kept for retro.md; no step"
-                " spends it"] if b.kept() else []
+        held = "buffer" if self.unit == CALLS and self.buffer is not None \
+            and self.buffer >= b.kept() else "call cap"
+        kept = ["retro     1 call of the " + held + " kept for retro.md; no"
+                " step spends it"] if b.kept() else []
         out = ["# budget plan", "",
                "cap       " + (", ".join(caps) if caps else "none")] + kept + [
                "unit      " + self.unit,

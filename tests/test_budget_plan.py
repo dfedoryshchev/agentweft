@@ -181,6 +181,25 @@ def test_a_plan_keeps_the_retros_call_out_of_the_steps_room():
             " it") in fits.text().split(NL)
 
 
+def test_a_plan_says_the_buffer_holds_the_retros_call_only_when_it_does():
+    tight = a_plan(3, True)
+    assert tight.buffer == 0
+    lines = tight.text().split(NL)
+    assert not any("of the buffer kept" in l for l in lines), \
+        "the plan says the buffer holds the retro's call on a buffer of 0"
+    assert ("retro     1 call of the call cap kept for retro.md; no step"
+            " spends it") in lines
+    from agentweft.guardrails import blocks as plans
+    from agentweft.guardrails.budget import Budget
+
+    b = Budget(max_calls=10, max_tokens=100000)
+    b.retro = True
+    tokens = plans.Plan(b, ["a.md", "b.md"], {})
+    assert tokens.unit == "tokens"
+    assert ("retro     1 call of the call cap kept for retro.md; no step"
+            " spends it") in tokens.text().split(NL)
+
+
 @pytest.mark.parametrize("max_calls, retro", [(3, False), (1, True)])
 def test_a_plan_with_nothing_kept_reads_as_it_did(max_calls, retro):
     plan = a_plan(max_calls, retro)

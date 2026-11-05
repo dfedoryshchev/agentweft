@@ -550,7 +550,9 @@ of 1 (`docs/guardrails.md`, the call cap). the shipped flows that set a call
 cap carry that call in it, one over what their steps take: build-feature 13,
 fix-with-test 10, ops-check 9, code-review 7, weekly-digest 21, repo-audit
 27. a flow of your own with a retro does the same: give `max_calls` one more
-than the steps need. its failed attempts are not lost:
+than the steps need. a flow that sets no `max_calls` (release-notes,
+summarise-and-check, the template) leaves the setting's cap to its steps and
+gets the retro's call on top of it. its failed attempts are not lost:
 the leg that
 carries the run on hands them to its own retro, with its own. an attempt one
 retro was handed is not handed to the next, and a stop that waited is not a

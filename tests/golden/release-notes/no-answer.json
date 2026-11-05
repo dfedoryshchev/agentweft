@@ -129,7 +129,7 @@
       "budget": {
         "spent": 3,
         "planned": 1,
-        "buffer": 21,
+        "buffer": 22,
         "risk": "over by 2, drawn from the buffer"
       },
       "session": "worker-3",

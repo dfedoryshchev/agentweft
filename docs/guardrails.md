@@ -31,9 +31,13 @@ cap that the steps spend to the last call leaves it none. so the steps leave
 it one: a step that would
 take the call kept for the retro parks the run before it, as the cap does,
 and the why says so (`call cap: 11 of 12 calls spent, and the next step takes
-1; 1 is kept for the retro`). the cap is not raised for it: `max_calls: 12`
-still spends 12, the retro's call among them. the shipped flows' caps carry
-it (`docs/writing-a-flow.md`). a cap of 1 keeps nothing, and
+1; 1 is kept for the retro`). a cap the flow sets, or one given with
+`--max-calls`, is not raised for it: `max_calls: 12` still spends 12, the
+retro's call among them. the shipped flows' caps carry it
+(`docs/writing-a-flow.md`). a flow that sets no `max_calls` runs under the
+setting (`AGENTWEFT_MAX_CALLS`, 25 by default), which is the steps' to
+spend, and the retro's call comes on top of it: the run's cap reads 26. a
+cap of 1 keeps nothing, and
 `retro: false` or no `retro:` keeps nothing either; `conditional` keeps the
 call whether or not the run turns out to need its retro, since that is known
 only at the end. a run waiting on the cap
@@ -144,6 +148,9 @@ earlier run says how wide it went. a flow with `retro: true` or
 `conditional` and a call cap of 2 or more keeps one call for the retro, and
 the plan says so under the cap
 (`retro     1 call of the buffer kept for retro.md; no step spends it`).
+when the plan is in tokens, or its buffer of calls is 0 and the RISKY line
+below says the steps are short of it, the line reads `1 call of the call cap`
+instead.
 
 when the blocks do not fit what the cap leaves, the run says so before it
 calls anything, and the plan file ends with the same line:

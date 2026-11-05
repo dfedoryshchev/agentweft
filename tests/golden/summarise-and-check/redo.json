@@ -137,7 +137,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 23,
+        "buffer": 24,
         "risk": "ok"
       },
       "session": "worker-1",
@@ -245,7 +245,7 @@
       "budget": {
         "spent": 1,
         "planned": 1,
-        "buffer": 23,
+        "buffer": 24,
         "risk": "ok"
       },
       "session": "reviewer-1",
@@ -321,7 +321,7 @@
       "budget": {
         "spent": 2,
         "planned": 1,
-        "buffer": 22,
+        "buffer": 23,
         "risk": "over by 1, drawn from the buffer"
       },
       "session": "worker-2",
@@ -429,7 +429,7 @@
       "budget": {
         "spent": 2,
         "planned": 1,
-        "buffer": 21,
+        "buffer": 22,
         "risk": "over by 1, drawn from the buffer"
       },
       "session": "reviewer-2",

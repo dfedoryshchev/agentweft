@@ -107,6 +107,9 @@ class Run(object):
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
         self.budget.retro = retro.on(fm or {})
+        if self.budget.retro and self.budget.max_calls \
+                and (fm or {}).get("max_calls") is None:
+            self.budget.max_calls += 1
         self.caps = {}
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.

@@ -436,6 +436,34 @@ def test_a_conditional_retro_keeps_its_call_too(tmp_path, monkeypatch,
             " kept for the retro") in note
 
 
+def test_a_retro_flow_with_no_cap_of_its_own_keeps_the_steps_budget(
+        tmp_path, monkeypatch, fake_cli, capsys):
+    monkeypatch.setenv("AGENTWEFT_MAX_CALLS", "2")
+    a_flow(tmp_path, monkeypatch, "uncapped", ["worker", "reviewer"],
+           tail="retro: true\n" + CLAUDE)
+    fake = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+                    answer("## change first\n"))
+    code = engine.main()
+    leg = the_folder()
+    assert outcomes(leg) == ["worker.md:ok", "reviewer.md:ok", "retro.md:ok"], \
+        "the steps lost a call of the setting's cap to the retro"
+    assert code == 0 and len(fake.calls) == 3
+    plan = (leg / "budget-plan.md").read_text(encoding="utf-8")
+    assert "cap       3 calls" in plan
+
+
+def test_a_cap_given_for_the_run_still_holds_the_retros_call_inside_it(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "given", ["worker", "reviewer"],
+           tail="retro: true\n" + CLAUDE, args=("--max-calls", "2"))
+    first = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+                     answer("## change first\n"))
+    assert engine.main() == 2
+    assert len(first.calls) == 1
+    assert [(l["step"], l["cause"]) for l in steps_of(the_folder())] == [
+        ("worker.md", None), ("reviewer.md", stops.BUDGET)]
+
+
 @pytest.mark.parametrize("said", ["retro: false\n", ""])
 def test_a_flow_with_no_retro_keeps_no_call(tmp_path, monkeypatch, fake_cli,
                                             said):
