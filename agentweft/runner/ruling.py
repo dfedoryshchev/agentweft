@@ -497,7 +497,9 @@ def conflict_of(output, workdir, start=None, handed=(), ruled=None):
     `ruled`, a CONFLICT line whose lines a ruling already lets change is
     passed over (`every_unruled`), and None comes back when every one is.
     an answer with a CONFLICT line for each of several spec lines stops on
-    one question citing them all, each quote checked the same way."""
+    one question citing them all, each quote checked the same way, with the
+    request's words from the first of them that carries any, a line a
+    ruling covers included (`request_words`)."""
     if verbs.parse(output).conflict is None:
         return untyped(output, handed, workdir, start, ruled)
     found = every_unruled(output, workdir, start, ruled)
@@ -512,7 +514,20 @@ def conflict_of(output, workdir, start=None, handed=(), ruled=None):
         if cite not in cites:
             cites.append(cite)
             quotes.append(quote)
-    return question_of_conflict(cites, quotes, words), ""
+    return question_of_conflict(cites, quotes,
+                                words or request_words(output)), ""
+
+
+def request_words(output):
+    """-> the request's words on the first CONFLICT line of `output` that
+    carries any, ruled or not, or "": the step puts them under its first
+    CONFLICT line, which may be one a ruling already covers."""
+    for said, after in conflicts(output):
+        m = CONFLICT.match(said.strip())
+        words = (flat(m.group(5)) if m else "") or after
+        if words:
+            return words
+    return ""
 
 
 def marks(output):

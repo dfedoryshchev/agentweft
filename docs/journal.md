@@ -1301,7 +1301,8 @@ citing every line (`the request contradicts docs/api.md:3 and
 docs/api.md:4`), and each quote is checked the same way: one that is not
 there fails the step. an `override:` then lets each cited line change, so
 the next go does not stop again on the second one. a CONFLICT line on a
-line a ruling the run holds already covers is passed over.
+line a ruling the run holds already covers is passed over; the `request:`
+words under it still go into the question the other lines stop on.
 
 when the quote is there, the run stops before that step's gates: the journal
 says `stopped at <step>` with cause `conflict`, the outcome is `stopped: spec

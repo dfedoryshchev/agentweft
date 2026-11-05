@@ -110,3 +110,27 @@ def test_every_quote_is_checked_and_every_line_is_on_the_record(tmp_path):
                     + conflict("docs/api.md:4", "not the line", UNNAMED))
     question, wrong = ruling.conflict_of(second_wrong, tmp_path)
     assert question == "" and "docs/api.md:4" in wrong
+
+
+def page_only(rel, line):
+    return "a ruling" if line == PAGE_LINE else None
+
+
+def test_the_request_words_stay_when_the_first_conflict_line_is_ruled(
+        tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "api.md").write_text(API, encoding="utf-8")
+    said = (conflict("docs/api.md:3", PAGE_LINE, "cursor paging")
+            + 'CONFLICT: docs/api.md:4 "' + ENVELOPE_LINE + '"' + NL)
+    question, wrong = ruling.conflict_of(said, tmp_path, ruled=page_only)
+    assert wrong == ""
+    assert "docs/api.md:4" in question and "docs/api.md:3" not in question
+    assert '- the request - "cursor paging"' in question, question
+    piped = ('CONFLICT: docs/api.md:3 "' + PAGE_LINE + '" | cursor paging'
+             + NL + 'CONFLICT: docs/api.md:4 "' + ENVELOPE_LINE + '"' + NL)
+    question, _ = ruling.conflict_of(piped, tmp_path, ruled=page_only)
+    assert '- the request - "cursor paging"' in question, question
+    own = (conflict("docs/api.md:3", PAGE_LINE, "cursor paging")
+           + conflict("docs/api.md:4", ENVELOPE_LINE, "a next cursor"))
+    question, _ = ruling.conflict_of(own, tmp_path, ruled=page_only)
+    assert '- the request - "a next cursor"' in question, question
