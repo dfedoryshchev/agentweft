@@ -1480,7 +1480,10 @@ def read_lines(passes):
                         "  said, not in its transcript: ") + item)
         if past:
             out.append("  cites past a file's last line: " + _past_said(past))
-    return out or ["- no pass has a transcript or a READ line"]
+    return out or [NO_READ]
+
+
+NO_READ = "- no pass has a transcript or a READ line"
 
 
 SPEC_REF = re.compile(r"[\w./-]+\.md:\d+(?:-\d+)?")
@@ -1698,13 +1701,26 @@ def section(lines, heading):
     return first, end
 
 
-def after_retro(path, every, spend, police=None):
+def after_retro(path, every, spend, police=None, added=1):
     """the handoff the retro read, once the retro has run: the retro's pass
-    in the retro section with the sums taken again over every pass, and the
-    run's spend as it stands. `every` is every pass, the retro's last.
-    `police` is the police section with what police saw of the retro, None
-    when police did not read it."""
+    in the retro section with the sums taken again over every pass, the
+    cites past a file's end of the `added` passes the retro added at the end
+    of `every` (its own, a lead's at what it escalated) in the read section,
+    and the run's spend as it stands. `every` is every pass, the retro's
+    last. `police` is the police section with what police saw of the retro,
+    None when police did not read it."""
     lines = Path(path).read_text(encoding="utf-8").split("\n")
+    past = ["- " + at(p) + " cites past a file's last line: "
+            + _past_said(p["facts"]["past_end"])
+            for p in every[len(every) - added:] if added > 0
+            and (p.get("facts") or {}).get("past_end")]
+    found = section(lines, "read")
+    if found and past:
+        first, end = found
+        if lines[first:end] == [NO_READ]:
+            lines[first:end] = past
+        else:
+            lines[end:end] = past
     found = section(lines, "retro")
     if found:
         first, end = found
@@ -1727,8 +1743,8 @@ def after_retro(path, every, spend, police=None):
     if found and police:
         lines[found[0]:found[1]] = police
     elif police and not found and "## carry forward" in lines:
-        at = lines.index("## carry forward")
-        lines[at:at] = ["## police"] + police + [""]
+        put = lines.index("## carry forward")
+        lines[put:put] = ["## police"] + police + [""]
     Path(path).write_text("\n".join(lines), encoding="utf-8")
 
 

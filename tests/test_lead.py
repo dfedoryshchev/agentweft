@@ -213,6 +213,58 @@ def test_a_decision_that_cites_task_md_and_changes_nothing_stands(
     assert not (folder / "question.md").exists()
 
 
+LEAD_PAST = (DECIDED + NL + "HANDOFF" + NL + "READ:" + NL
+             + "- TASK.md:9 - the rule on products" + NL + "END HANDOFF" + NL)
+RETRO_PAST = ("## change first" + NL + "- calc.py:40 is where mul returns"
+              + NL + NL + "FACTS" + NL + "END FACTS" + NL)
+
+
+def test_the_leads_pass_and_the_retro_have_their_cites_past_a_files_end_flagged(
+        tmp_path, monkeypatch):
+    from test_stops import steps_of
+
+    answers = {"planner.md": [PLAN, LEAD_PAST], "tester.md": [TESTER],
+               "worker.md": [NEEDS, WORKER], "reviewer.md": [OK],
+               "reviewer-runs.md": [OK], RETRO: [RETRO_PAST]}
+    writes = {"tester.md": [("tests/test_mul.py", TEST)],
+              "worker.md": [("", ""), ("calc.py", AFTER)]}
+    asked, _, code, folder, _ = run_it(tmp_path, monkeypatch, "build-feature",
+                                       answers, writes)
+    assert code == stops.EXIT_OK
+    lines = steps_of(folder)
+    [led] = [l for l in lines if l["outcome"] == "decided"]
+    assert led["step"] == "planner.md"
+    assert led.get("past_end") == [{"cite": "TASK.md:9", "lines": 3,
+                                    "changed": None}]
+    [looked] = [l for l in lines if l["step"] == RETRO]
+    assert looked.get("past_end") == [{"cite": "calc.py:40", "lines": 6,
+                                       "changed": None}]
+    own = [l for l in lines if l["step"] == "planner.md"
+           and l["outcome"] != "decided"]
+    assert own and all(l.get("past_end") is None for l in own)
+    handoff = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert "cites past a file's last line: TASK.md:9 (3 lines" in handoff
+    assert ("- retro.md cites past a file's last line: calc.py:40 (6 lines"
+            in handoff), handoff
+
+
+def test_in_range_cites_of_the_lead_and_the_retro_are_no_flag(tmp_path,
+                                                             monkeypatch):
+    from test_stops import steps_of
+
+    answers = {"planner.md": [PLAN, LEAD_PAST.replace("TASK.md:9",
+                                                      "TASK.md:3")],
+               "tester.md": [TESTER], "worker.md": [NEEDS, WORKER],
+               "reviewer.md": [OK], "reviewer-runs.md": [OK],
+               RETRO: [RETRO_PAST.replace("calc.py:40", "calc.py:6")]}
+    writes = {"tester.md": [("tests/test_mul.py", TEST)],
+              "worker.md": [("", ""), ("calc.py", AFTER)]}
+    _, _, code, folder, _ = run_it(tmp_path, monkeypatch, "build-feature",
+                                   answers, writes)
+    assert code == stops.EXIT_OK
+    assert all(l.get("past_end") is None for l in steps_of(folder))
+
+
 def test_a_decision_that_names_a_start_test_and_changes_nothing_stands(
         tmp_path, monkeypatch):
     project = tmp_path / "project"

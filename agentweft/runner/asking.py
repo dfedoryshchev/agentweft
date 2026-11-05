@@ -2,7 +2,8 @@
 from agentweft.guardrails import rulings
 
 from . import lead, ruling
-from .gating import and_forged, check_step, gate_why, off_task, police_line
+from .gating import (and_forged, check_step, cited_past_end, gate_why,
+                     off_task, police_line)
 from .handoff import EMPTY, PARTIAL, PRESENT
 
 
@@ -70,13 +71,15 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
 def lead_pass(trail, run, out, asker, decided):
     """write the lead's go at a question into the trail, as its own line:
     decided when its decision is on record, overruled when it answered
-    DECIDED and the runner did not hold it, else escalated."""
+    DECIDED and the runner did not hold it, else escalated. its cites past
+    a file's end are on the line too (`cited_past_end`)."""
     entry = trail.open(run.lead, run.taken(),
                        run.by_step.get(run.lead, run.provider), asker,
                        output=out.output)
     entry.handoff = out.block
     entry.police = out.meta.get("police")
     entry.decided = bool(decided)
+    entry.past_end = cited_past_end(run, out, looked=False) or None
     if decided:
         trail.close(entry, "decided", to=asker)
         return

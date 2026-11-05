@@ -152,18 +152,21 @@ def timed(result, began):
     return result
 
 
-def cited_past_end(run, out):
+def cited_past_end(run, out, looked=True):
     """-> each `<file>:<lines>` the step's block names past the end of the
     file as the step left it (`summary.past_end`), [] for none. the loop
     reads it as soon as the step answers too, so a step that asks, parks or
-    stops on a conflict before `check_step` is flagged as well."""
+    stops on a conflict before `check_step` is flagged as well, and so is
+    the lead's go at a question. `looked` is whether the place was looked at
+    right before this go (`Run.look`); the lead's go comes after the step
+    that asked, so whether it changed a file is not known."""
     from .handoff import parse
     from .summary import past_end
 
     block = getattr(out, "block", None)
     return past_end(block if isinstance(block, dict) else parse(
         out.output or ""), getattr(run, "workdir", None),
-        getattr(run, "changed_in_step", None))
+        getattr(run, "changed_in_step", None) if looked else None)
 
 
 def check_step(run, route, step, out, run_dir=None):

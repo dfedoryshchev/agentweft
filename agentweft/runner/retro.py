@@ -690,6 +690,9 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     entry = trail.open(STEP, [tried], used, None, output=said or None)
     entry.police = seen
     entry.held = held_back
+    if said:
+        entry.past_end = summary.past_end(
+            said, getattr(run, "workdir", None)) or None
     if done.present:
         entry.facts = done.record()
         if kept and kept[0]:

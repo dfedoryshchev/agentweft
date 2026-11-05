@@ -209,7 +209,8 @@ def go(leg):
                                             [(retro.STEP, t)
                                              for t in looked.told],
                                             str(run.workdir)))
-                                    if looked is not None else None)
+                                    if looked is not None else None,
+                                    added=len(trail.closed) - went)
         upkeep.tally(run, trail)
         return path, lines
 

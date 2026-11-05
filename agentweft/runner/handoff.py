@@ -224,7 +224,10 @@ def cites(block):
     """-> [(path, first line, last line)] for each `<file>:<line>` or
     `<file>:<a>-<b>` the block's own words name, once each, in the order of
     its sections: a VERIFIED item by its claim, never the command it ran or
-    what that printed, and an open question by its words."""
+    what that printed, and an open question by its words. a text in place
+    of a block is an answer that has none, the retro's, read whole."""
+    if isinstance(block, str):
+        block = {"other": {"": [block]}}
     if not isinstance(block, dict):
         return []
     texts = []
