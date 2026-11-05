@@ -1352,6 +1352,57 @@ def test_an_edited_pre_existing_test_is_unruled_unless_a_decision_names_it(
     assert not any("UNRULED" in l for l in lines)
 
 
+def an_answer(at, step, answer, kind):
+    from agentweft.runner import ruling
+
+    return decisions.Decision(
+        ruling.decided(step, answer),
+        ruling.why(step, "run-1", "NEEDS: which holds?", answer, "someone",
+                   kind=kind), datetime.datetime(2026, 1, 1, 10, at))
+
+
+KEEP = "request: keep the envelope, and leave rules/api-shape.md as it is"
+CURSOR = ("override: cursor paging; rules/api-shape.md and docs/api.md change"
+          " to say so")
+
+
+def spec_passed(*covered):
+    return [{"gate": "spec-files", "ok": True, "detail":
+             "rules/api-shape.md: 0 lines added. removed or changed, each"
+             " covered by a ruling: " + ", ".join(
+                 cite + " (ruling " + summary.stamp(d) + ")"
+                 for cite, d in covered)}]
+
+
+def test_a_spec_change_names_the_ruling_the_gate_tied_it_to():
+    from agentweft.runner import ruling
+
+    asked = an_answer(7, "worker.md", KEEP, ruling.REQUEST)
+    over = an_answer(10, "planner.md", CURSOR, ruling.OVERRIDE)
+    changes = {"spec_changed": [("rules/api-shape.md", 1, 1)]}
+    [line] = summary.rulings(changes, [asked, over],
+                             gates=spec_passed(("rules/api-shape.md:1",
+                                                over)))
+    assert line == ("- spec rules/api-shape.md +1 -1 <- ruling "
+                    + summary.stamp(over)), line
+
+
+def test_a_request_entry_is_never_the_ruling_for_a_change():
+    from agentweft.runner import ruling
+
+    asked = an_answer(7, "worker.md", KEEP, ruling.REQUEST)
+    changes = {"spec_changed": [("rules/api-shape.md", 1, 1)],
+               "tests_changed": [("tests/test_calc.py", 1, 1)]}
+    kept = KEEP + " and tests/test_calc.py"
+    lines = summary.rulings(changes, [an_answer(7, "worker.md", kept,
+                                                ruling.REQUEST)])
+    assert len(lines) == 2 and all("UNRULED" in l for l in lines), lines
+    over = an_answer(10, "planner.md", CURSOR, ruling.OVERRIDE)
+    [line] = summary.rulings({"spec_changed": [("rules/api-shape.md", 1,
+                                                1)]}, [asked, over])
+    assert line.endswith("<- ruling " + summary.stamp(over)), line
+
+
 STARTED = ("from calc import add\n\n\ndef two():\n    return 2\n\n\n"
            "def test_add():\n    assert add(1, two()) == 3\n")
 NO_RULING = (", no test it started with or the code its tests share changed,"

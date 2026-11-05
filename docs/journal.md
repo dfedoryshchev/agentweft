@@ -751,7 +751,10 @@ the spend. a pre-existing test whose lines were removed or changed, and a
 spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
 `docs/spec*` there, or what the project's `spec:` list names; a `*` never
 crosses a `/`) changed at all, each name the
-`decisions.md` entry behind them or print `UNRULED`; an add-only test change
+`decisions.md` entry behind them or print `UNRULED`: for a spec file, the
+ruling the spec-files check tied its removed or changed lines to, and
+otherwise the entry that names it; a `request:` answer rules nothing, so it
+is never the entry named, whichever run wrote it; an add-only test change
 says so, and so does a python test file whose removed lines leave every test it started with and the code they share as they were (the test-edits check's reading: a name added to an import line, formatting), and a spec file with lines added and none
 removed in a flow with `spec_files: additions`, which allows exactly that:
 it is not owed a ruling and is not in the one decision. a step that claims a person agreed, approved or

@@ -326,12 +326,38 @@ def _names(decision):
 
 
 def _ruling_for(path, decided):
-    """-> the decision that names this path, by its path or its file name."""
+    """-> the decision that names this path, by its path or its file name.
+    a `request:` answer rules nothing, so it is never the one."""
     name = path.rsplit("/", 1)[-1].lower()
     for d in decided:
+        if ruling.kind_of(ruling.answered(d)) == ruling.REQUEST:
+            continue
         if path.lower() in _names(d) or name in _names(d):
             return d
     return None
+
+
+def spec_held_by(gates, decided):
+    """-> {spec file: [the decisions, in the order the line names them]}
+    that a passing spec-files check tied the file's removed or changed lines
+    to, read from its line; the last check's say counts."""
+    out = {}
+    for g in gates or ():
+        if not isinstance(g, dict) or g.get("gate") != specfiles.NAME \
+                or not g.get("ok"):
+            continue
+        detail = g.get("detail") or ""
+        found = []
+        for d in decided:
+            at = r":\d+ \(ruling " + re.escape(stamp(d)) + r"[;)]"
+            for m in re.finditer(r"(?:^|[\s,:])(\S+?)" + at, detail):
+                found.append((m.start(), m.group(1), d))
+        if found:
+            out = {}
+            for _, path, d in sorted(found, key=lambda f: f[0]):
+                if d not in out.setdefault(path, []):
+                    out[path].append(d)
+    return out
 
 
 def stamp(d):
@@ -368,7 +394,9 @@ def rulings(changes, decided, spec_files=None, gates=()):
     a pre-existing test whose lines were removed or changed, and a spec file
     (`TASK.md`, `SPEC*.md` or under `docs/spec*`, from the top of the
     place) changed at all, each name
-    the decisions.md entry behind them or say UNRULED. an add-only test
+    the decisions.md entry behind them or say UNRULED: for a spec file, the
+    ruling a passing spec-files check tied its lines to (`spec_held_by`),
+    else the entry that names it, never a `request:` one. an add-only test
     change needs none and says so, and so does a test file whose lines
     removed leave every test it started with and the code they share as they
     were (`tests_added`, as the test-edits check reads it), and a spec file
@@ -378,6 +406,7 @@ def rulings(changes, decided, spec_files=None, gates=()):
     out = []
     added = changes.get("tests_added") or ()
     held = held_by(gates, decided)
+    tied = spec_held_by(gates, decided)
     for path, a, d in changes.get("tests_changed", []):
         line = "- pre-existing test " + path + " +" + str(a) + " -" + str(d)
         if d == 0:
@@ -402,6 +431,9 @@ def rulings(changes, decided, spec_files=None, gates=()):
         if d == 0 and spec_files == specfiles.ADDITIONS:
             out.append(line + ", lines added only, which spec_files: "
                        + specfiles.ADDITIONS + " allows, no ruling needed")
+            continue
+        if tied.get(path):
+            out.extend(line + " <- ruling " + stamp(by) for by in tied[path])
             continue
         found = _ruling_for(path, decided)
         out.append(line
