@@ -543,7 +543,8 @@ passes it picked up.
 
 a run that stops to wait (for a ruling, a person, the provider's limit, the
 budget or an interrupt), or one at its call cap, holds its retro and prints
-`retro not run:` and why. under `retro: true` the steps leave the retro one
+`retro not run:` and why. under `retro: true` or `conditional` the steps
+leave the retro one
 call of a cap of 2 or more, so a run gets to its cap only by a wait or a cap
 of 1 (`docs/guardrails.md`, the call cap). the shipped flows that set a call
 cap carry that call in it, one over what their steps take: build-feature 13,

@@ -106,7 +106,7 @@ class Run(object):
         self.ruled = {}
         self.ranking = ""
         self.budget = Budget(*defaults.for_flow(fm))
-        self.budget.retro = (fm or {}).get("retro") is True
+        self.budget.retro = retro.on(fm or {})
         self.caps = {}
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.

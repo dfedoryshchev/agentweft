@@ -417,6 +417,35 @@ def test_a_run_whose_steps_would_spend_the_cap_parks_keeping_the_retros_call(
     assert manifest.load(resumed).spend["calls"] == 3
 
 
+def test_a_conditional_retro_keeps_its_call_too(tmp_path, monkeypatch,
+                                                fake_cli, capsys):
+    a_flow(tmp_path, monkeypatch, "maybe", ["worker", "reviewer"],
+           tail="retro: conditional\nmax_calls: 2\n" + CLAUDE)
+    fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+             answer("## change first\n"))
+    code = engine.main()
+    said = capsys.readouterr().out
+    assert "retro not run: call cap" not in said, \
+        "the steps spent the call a conditional retro needs"
+    assert code == 2
+    leg = the_folder()
+    assert [(l["step"], l["cause"]) for l in steps_of(leg)] == [
+        ("worker.md", None), ("reviewer.md", stops.BUDGET)]
+    note = (leg / "handoff.md").read_text(encoding="utf-8")
+    assert ("call cap: 1 of 2 calls spent, and the next step takes 1; 1 is"
+            " kept for the retro") in note
+
+
+@pytest.mark.parametrize("said", ["retro: false\n", ""])
+def test_a_flow_with_no_retro_keeps_no_call(tmp_path, monkeypatch, fake_cli,
+                                            said):
+    a_flow(tmp_path, monkeypatch, "none", ["worker", "reviewer"],
+           tail=said + "max_calls: 2\n" + CLAUDE)
+    fake = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"))
+    assert engine.main() == 0
+    assert len(fake.calls) == 2
+
+
 @pytest.mark.parametrize("tail, calls", [
     ("retro: true\nmax_calls: 3\n", 3), ("retro: false\nmax_calls: 2\n", 2),
     ("max_calls: 2\n", 2)], ids=["under", "off", "absent"])

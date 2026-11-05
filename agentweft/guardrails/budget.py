@@ -75,8 +75,8 @@ class Budget(object):
         # goes the provider turned away and counted at 0 tokens, such as the
         # account's limit: nothing was worked on, so they are not calls
         self.refused_calls = 0
-        # the run ends on a retro (`retro: true`), which the steps leave a
-        # call for
+        # the run may end on a retro (`retro: true` or `conditional`), which
+        # the steps leave a call for
         self.retro = False
         self.lock = threading.Lock()
 
@@ -281,8 +281,9 @@ class Budget(object):
         return None
 
     def kept(self):
-        """-> the calls the steps leave for the retro: one when the run ends
-        on a retro and its call cap has room for a step beside it, else 0."""
+        """-> the calls the steps leave for the retro: one when the run may
+        end on a retro and its call cap has room for a step beside it, else
+        0."""
         return 1 if self.retro and self.max_calls > 1 else 0
 
     def ahead(self, charge=1, near=NEAR, retro=False):
