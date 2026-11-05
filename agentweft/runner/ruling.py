@@ -893,14 +893,21 @@ def given(task):
 
 
 SENTENCES = re.compile(r"(?<=[.!?;])\s+|\n")
-CHANGE = r"(?:update|change|rewrite|edit|amend|revise)"
-NAME = r"[^\s,;]+"
-NAMES = NAME + r"(?:\s*,\s*(?:and\s+)?" + NAME + r"|\s+and\s+" + NAME + r")*"
-CHANGE_THEM = re.compile(r"\b" + CHANGE + r"s?\s+(?:the\s+)?(" + NAMES + ")",
-                         re.I)
-THEY_CHANGE = re.compile(
-    "(" + NAMES + r")\s+(?:(?:may|must|should|will|can)\s+)?(?:change|be"
-    r" (?:updated|changed|rewritten|edited|amended|revised))\b", re.I)
+TOKENS = re.compile(r"[^\s,;]+|[,;]")
+CHANGE = re.compile(r"(?:update|change|rewrite|edit|amend|revise)s?")
+CHANGED = re.compile(r"(?:updated|changed|rewritten|edited|amended|revised)")
+MODAL = ("may", "must", "should", "will", "can")
+# after one of these, "change" is a noun: "make the change rules/x.md asks for"
+DETERMINER = {"a", "an", "the", "this", "that", "these", "those", "each",
+              "every", "any", "some", "another", "my", "your", "our", "its",
+              "his", "her", "their"}
+# a name followed by any other word is the subject of a clause of its own:
+# "update the handler and docs/api.md stays as it is"
+GOES_ON = {"to", "so", "too", "accordingly", "also", "both", "for", "with",
+           "in", "now", "first", "then", "again", "alike", "together", "by",
+           "from", "on", "at"}
+OPENS = {"and", "both", "then", "so", "now", "also"}
+CLOSES = re.compile(r"""[.:!?)\]][`'"\])]*$""")
 
 
 def path_of(name):
@@ -911,21 +918,100 @@ def path_of(name):
     return name[2:] if name.startswith("./") else name
 
 
+def word(tok):
+    return tok.strip("`'\"()[].:!?").lower()
+
+
+def objects(toks, i, specs):
+    """-> the spec files of the list of names that starts at `toks[i]`,
+    after a verb asking to change them. the list holds spec paths only, and
+    ends at the first name that is not one, or that a word of its own
+    follows (`GOES_ON`)."""
+    out = []
+    while i < len(toks):
+        name = path_of(toks[i])
+        if name not in specs:
+            break
+        if CLOSES.search(toks[i]) or i + 1 == len(toks) or toks[i + 1] == ";":
+            out.append(name)
+            break
+        j = i + 1
+        if toks[j] == ",":
+            j += 1
+        if j < len(toks) and word(toks[j]) == "and":
+            j += 1
+        if j > i + 1:
+            out.append(name)
+            i = j
+            continue
+        after = word(toks[i + 1])
+        if after in GOES_ON or (after == "as" and i + 2 < len(toks)
+                                and word(toks[i + 2]) == "well"):
+            out.append(name)
+        break
+    return out
+
+
+def opens(toks, i):
+    """whether the name at `toks[i]` opens its clause."""
+    if i == 0:
+        return True
+    before = toks[i - 1]
+    return before in (",", ";") or bool(CLOSES.search(before)) \
+        or word(before) in OPENS
+
+
+def subjects(toks, k, specs):
+    """-> the spec files of the list of names that ends at `toks[k]`, as the
+    subject of a verb saying they change. a name the list reaches back to
+    that does not open its clause ("keep rules/x.md, docs/api.md must
+    change") is the object of another verb, and is left out."""
+    chain = []
+    i = k
+    while i >= 0 and path_of(toks[i]) in specs \
+            and not (chain and CLOSES.search(toks[i])):
+        chain.insert(0, i)
+        j = i - 1
+        if j >= 0 and word(toks[j]) == "and":
+            j -= 1
+        if j >= 0 and toks[j] == ",":
+            j -= 1
+        if j == i - 1:
+            break
+        i = j
+    while chain and not opens(toks, chain[0]):
+        chain.pop(0)
+    return [path_of(toks[n]) for n in chain]
+
+
 def named_to_change(text, specs):
     """-> the spec files, of the paths from the place in `specs`, that a
     sentence of `text` asks to change by naming each by its exact path:
     `update docs/api.md and rules/api-shape.md`, or `docs/api.md must
-    change`. a folder or a glob is no spec file, and a sentence with a no or
-    a not in it names nothing."""
+    change`. a list of names stops at its clause (`objects`, `subjects`). a
+    folder or a glob is no spec file, and a sentence with a no or a not in
+    it names nothing."""
     specs = set(specs or ())
     out = set()
     for sentence in SENTENCES.split(text or ""):
         if negated(sentence):
             continue
-        for found in (CHANGE_THEM, THEY_CHANGE):
-            for m in found.finditer(sentence):
-                names = re.split(r"\s*,\s*(?:and\s+)?|\s+and\s+", m.group(1))
-                out.update(p for p in map(path_of, names) if p in specs)
+        toks = TOKENS.findall(sentence)
+        for k, tok in enumerate(toks):
+            said = word(tok)
+            if CHANGE.fullmatch(said) and not CLOSES.search(tok) and not (
+                    k and word(toks[k - 1]) in DETERMINER):
+                i = k + 1
+                if i < len(toks) and word(toks[i]) == "the":
+                    i += 1
+                out.update(objects(toks, i, specs))
+            if said == "change" or (said == "be" and k + 1 < len(toks)
+                                    and CHANGED.fullmatch(word(toks[k + 1]))):
+                e = k - 1
+                if e >= 0 and word(toks[e]) in MODAL:
+                    e -= 1
+                if e >= 0:
+                    out.update(subjects(toks, e, specs))
     return out
 
 

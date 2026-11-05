@@ -217,6 +217,36 @@ def test_a_folder_a_glob_a_reference_or_a_negated_sentence_names_nothing():
     assert named("docs/api.md says the page starts at 1.") == set()
 
 
+def test_a_list_of_names_stops_at_its_clause():
+    assert named("Update the handler and docs/api.md stays as it is.") \
+        == set()
+    assert named("Update rules/api-shape.md, docs/api.md is the reference.") \
+        == {"rules/api-shape.md"}
+    assert named("Make the change rules/api-shape.md asks for.") == set()
+    assert named("Keep rules/api-shape.md, docs/api.md must change.") \
+        == {"docs/api.md"}
+    assert named("Make the docs/api.md change the request asks for.") \
+        == set()
+
+
+def test_a_list_of_names_reads_on_through_its_own_clause():
+    assert named("Update docs/api.md, and rules/api-shape.md as well.") \
+        == {"docs/api.md", "rules/api-shape.md"}
+    assert named("Update docs/api.md and the handler.") == {"docs/api.md"}
+    assert named("Update docs/api.md, then run the tests.") == {"docs/api.md"}
+    assert named("Cursor paging wins, docs/api.md and rules/api-shape.md"
+                 " should be updated.") == {"docs/api.md",
+                                            "rules/api-shape.md"}
+    assert named("Update docs/api.md: cursor paging.") == {"docs/api.md"}
+
+
+def test_an_answer_that_keeps_a_file_covers_none_of_its_lines():
+    kept = answered("override: cursor paging wins, update the handler and"
+                    " docs/api.md stays the reference", ruling.OVERRIDE)
+    assert ruling.spec_line_ruled([kept], PAGE_LINE, ASKED, rel="docs/api.md",
+                                  request=UNNAMED, specs=SPECS) is None
+
+
 def test_the_run_stops_on_the_first_conflict_line_no_ruling_covers(tmp_path):
     (tmp_path / "docs").mkdir()
     (tmp_path / "rules").mkdir()
