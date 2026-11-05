@@ -350,3 +350,28 @@ def test_only_an_override_to_the_runners_spec_question_covers_a_named_file():
     assert ruled(by_answer, "docs/api.md", request=UNNAMED) is by_answer
     amended = ruling.amended(UNNAMED, "request: update docs/api.md")
     assert ruled(over, "docs/api.md", request=amended) is None
+
+
+STEP_ASKS = NL.join(["NEEDS: does the page paging stay beside the cursor?",
+                     "CITES:", "- docs/api.md:3", "OPTIONS:", "- it stays",
+                     "- it goes", ""])
+
+
+def test_an_override_to_a_steps_own_question_writes_no_scope_sentence(
+        tmp_path, monkeypatch):
+    paging_place(tmp_path, monkeypatch)
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [STEP_ASKS]}), lambda s, n: None,
+                        "--task", UNNAMED)
+    assert (asked, code) == (["planner.md"], stops.EXIT_STOP)
+    [leg] = folders(tmp_path)
+    _, sent, _ = go(tmp_path, monkeypatch, "build-feature",
+                    plain({"planner.md": [STEP_ASKS]}), lambda s, n: None,
+                    "--resume", leg.name, "--answer",
+                    "override: update docs/api.md, the cursor replaces it")
+    [ruled] = decisions.read(tmp_path / "project")
+    assert "authorises" not in ruled.why, ruled.why
+    assert "the cursor replaces it" in sent[0]
+    assert "authorises" not in sent[0]
+    assert ruling.spec_line_ruled([ruled], PAGE_LINE, {}, rel="docs/api.md",
+                                  request=UNNAMED, specs=SPECS) is None
