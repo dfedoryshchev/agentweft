@@ -343,7 +343,9 @@ from that commit (`agentweft/guardrails/snapshot.py`). after the step, a test
 file whose content is not what it was is one the run wrote or changed; it
 does not matter whether a step committed it. a test file is one under a test
 path (`tests/`, `test/`, `spec/`, `__tests__/`) or named like one
-(`test_x.py`, `x_test.py`, `x.test.ts`, `XTests.cs`). a python test in it is
+(`test_x.py`, `x_test.py`, `x.test.ts`, `XTests.cs`), never one of the
+runner's own `.md` files under `facts/` (`facts/tests/test_x.py.md` is the
+store's, not a test). a python test in it is
 new when its name was not in the file at the start or its code is not what it
 was, and its id is the one pytest takes: `file::name`, `file::Class::name`,
 nested classes included, a class counted when it is named `Test*` or derives
@@ -499,8 +501,9 @@ with `..`, or is empty stops the run before its first step. the test
 runner's own files are in none of the three: `conftest.py` anywhere, `pytest.ini`,
 `.coverage*`, and anything under `.hypothesis/` or `.pytest_cache/`. nor are
 the runner's own files in the place, `decisions.md` and the `.md` files
-under `facts/`, which it
-writes between steps and between legs: a resumed leg never takes its own
+under `facts/` (a test path inside it included), which it
+writes between steps and between legs, and handoff.md never asks a ruling on
+them as tests the run started with: a resumed leg never takes its own
 counts for a change the run made. a place
 outside git is hashed too, every file under it but those in a folder whose
 name starts with a dot or is `__pycache__`, `node_modules`, `venv`, `.venv`,

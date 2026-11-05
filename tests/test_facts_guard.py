@@ -91,6 +91,37 @@ def test_a_step_that_adds_a_facts_file_fails_and_it_is_taken_away(tmp_path):
     assert store.check("worker.md") == ""
 
 
+STORED = "facts/tests/test_report.py.md"
+NOTES = "tests/notes.md"
+
+
+def test_the_runners_own_store_is_never_read_as_a_test_file(tmp_path):
+    from agentweft.guardrails import snapshot
+    from agentweft.runner import summary
+
+    place = sf.a_place(tmp_path / "repo")
+    put(place, STORED, entry("F-0001", "tests/test_report.py", "it pins"))
+    put(place, NOTES, "what the suite covers" + NL)
+    sf.git(place, "add", ".")
+    sf.git(place, "commit", "-qm", "facts")
+    start = snapshot.take(place)
+    tree = summary.tree(place)
+    assert STORED not in start.tests and NOTES in start.tests
+    assert snapshot.is_runners(STORED) and snapshot.is_test(NOTES)
+    put(place, STORED, entry("F-0001", "tests/test_report.py", "healed"))
+    put(place, NOTES, "what the suite covers now" + NL)
+    put(place, "tests/test_report.py", sf.BASELINE.replace("assert", "#"))
+    assert [rel for rel, _ in start.test_changes()] == [
+        "tests/notes.md", "tests/test_report.py"]
+    changes = tree.changes()
+    assert [p for p, _, _ in changes["tests_changed"]] == [
+        "tests/notes.md", "tests/test_report.py"], changes["tests_changed"]
+    lines = summary.rulings(changes, [])
+    assert not any("facts/" in line for line in lines), lines
+    assert any("tests/test_report.py" in line and "UNRULED" in line
+               for line in lines), lines
+
+
 def test_a_projects_own_files_in_a_facts_folder_stay_the_projects(tmp_path):
     from agentweft.guardrails import snapshot
 

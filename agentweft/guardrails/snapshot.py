@@ -248,8 +248,9 @@ class Snapshot(object):
 
     def test_files(self):
         """-> the test files under the place, as paths from the top of the
-        repo."""
-        return [rel for rel in self.files() if is_test(rel)]
+        repo; the runner's own files (`is_runners`) are none."""
+        return [rel for rel in self.files()
+                if is_test(rel) and not self.runners(rel)]
 
     def hashes(self):
         """-> ({test file: sha256}, {spec file: sha256}, {product file:
@@ -267,7 +268,7 @@ class Snapshot(object):
                     if rel in start:
                         now[rel] = start[rel]
                 continue
-            if is_test(rel):
+            if is_test(rel) and not self.runners(rel):
                 tests[rel] = _sha(data)
             elif is_spec(self.from_place(rel)):
                 specs[rel] = _sha(data)

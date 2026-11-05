@@ -27,6 +27,7 @@ from pathlib import Path
 
 from agentweft.flow.spec import step_id
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
+from agentweft.guardrails.snapshot import is_runners
 from agentweft.guardrails.snapshot import is_spec as spec_path
 from agentweft.guardrails.snapshot import test_ids
 from agentweft.guardrails import skips, specfiles, testedits
@@ -82,6 +83,21 @@ def is_spec(path, root=None, place=None):
         except ValueError:
             return False
     return spec_path(path)
+
+
+def is_test_file(path, root=None, place=None):
+    """whether a path from the top of the repo is a test file
+    (`snapshot.is_test`) and not one the runner itself writes in the place
+    (`snapshot.is_runners`), read from the top of the place."""
+    if not is_test(path):
+        return False
+    if root is not None and place is not None:
+        try:
+            path = (Path(root) / path).resolve().relative_to(
+                Path(place).resolve()).as_posix()
+        except ValueError:
+            return True
+    return not is_runners(path)
 
 
 def _numstat(text):
@@ -270,7 +286,7 @@ class Tree(object):
                 out["files"].append((path, a, d, how))
                 if kind == "untracked":
                     continue
-                if is_test(path):
+                if is_test_file(path, self.root, self.place):
                     out["tests_changed"].append((path, a, d))
                 if is_spec(path, self.root, self.place):
                     out["spec_changed"].append((path, a, d))
@@ -294,8 +310,8 @@ class Tree(object):
         it was not there; what it holds now), None for a file not read: not
         a python test, gone, or already modified before the run, which the
         run found as it was on disk, not as committed."""
-        if not path.endswith(".py") or not is_test(path) or \
-                path in self.dirty:
+        if not path.endswith(".py") or path in self.dirty or \
+                not is_test_file(path, self.root, self.place):
             return None
         try:
             now = (self.root / path).read_bytes().decode("utf-8", "replace")
@@ -2133,7 +2149,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                        + str(len(named)) + " of " + str(len(red))
                        + " red without the fix")
     touched = [(path, a, d) for path, a, d, how in changes.get("files", [])
-               if is_test(path)]
+               if is_test_file(path)]
     if touched:
         out.append("- test files touched: " + "; ".join(
             path + " +" + str(a) + " -" + str(d) for path, a, d in touched))
