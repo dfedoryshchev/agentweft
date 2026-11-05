@@ -625,6 +625,30 @@ def test_a_test_the_diff_did_not_add_or_change_is_still_not_held(tmp_path):
     assert summary.held_at("tests/t.py::test_x", {}, record) == ""
 
 
+def test_a_parametrized_led_to_test_id_is_held_like_its_plain_id(tmp_path):
+    changes = a_test_run(tmp_path, ADDED)
+    record = summary.record_of([], changes, [], None)
+    assert summary.held_at("tests/test_calc.py::test_sub[1]", {}, record) \
+        == "the diff of tests/test_calc.py, in `test_sub`"
+    proved = summary.record_of([], {}, [], {"ids": [
+        "tests/test_calc.py::test_add"], "tests": {}})
+    assert summary.held_at("tests/test_calc.py::test_add[neg-2]", {},
+                           proved) == "test tests/test_calc.py::test_add"
+
+
+def test_a_parametrized_id_is_not_held_by_another_case_or_test(tmp_path):
+    record = summary.record_of([], {}, [], {"ids": [
+        "tests/t.py::test_x[1]"], "tests": {}})
+    assert summary.held_at("tests/t.py::test_x[1]", {}, record) == \
+        "test tests/t.py::test_x[1]"
+    for said in ("tests/t.py::test_x[2]", "tests/t.py::test_y[1]",
+                 "tests/t.py::test_x"):
+        assert summary.held_at(said, {}, record) == "", said
+    changes = a_test_run(tmp_path, ADDED)
+    assert summary.held_at("tests/test_calc.py::test_add[1]", {},
+                           summary.record_of([], changes, [], None)) == ""
+
+
 def test_a_test_whose_code_the_run_changed_or_wrote_new_is_held(tmp_path):
     name = "test_caf" + chr(0xe9)
     changes = a_test_run(tmp_path, TESTS_AT_START.replace("== 3", "== 3, 'x'"),

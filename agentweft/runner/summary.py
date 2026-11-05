@@ -1166,9 +1166,22 @@ def _span(a, b):
     return str(a) if a == b else str(a) + "-" + str(b)
 
 
+CASE = re.compile(r"(::[^\[\]]+)\[[^\[\]]*\]$")
+
+
 def _held(said, record):
     """-> where the record holds one file, `<file>:<lines>` or test id, ""
-    when it does not."""
+    when it does not. a test id with a case (`::test_x[1]`) is held as it
+    is, or else as its plain id: a record that holds `test_x` holds every
+    case of it, one that holds only `test_x[1]` holds no other."""
+    held = _held_one(said, record)
+    plain = CASE.sub(r"\1", said)
+    if held or plain == said:
+        return held
+    return _held_one(plain, record)
+
+
+def _held_one(said, record):
     if "::" not in said:
         spot = SPOT.match(said)
         path = spot.group(1) if spot else said

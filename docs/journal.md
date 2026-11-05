@@ -659,7 +659,7 @@ answers, in order:
   (`<role>'s reasons, and what each led to:`, each `because <reason>
   (<from>) -> <what it led to>`, `own read` for a reason that names no
   source): the runner holds every `led to:` to the record, a test id to the
-  red proof, the gates' tests or the tests the run added or changed in a test file (by its syntax tree, never a test that was only there), a `<file>:<lines>` to the diff and the lines
+  red proof, the gates' tests or the tests the run added or changed in a test file (by its syntax tree, never a test that was only there; a case, `::test_x[1]`, is held as it is or by its plain id, never by another case), a `<file>:<lines>` to the diff and the lines
   its change covers, a TRIED, ASSUMED or QUESTION item to the step's own
   block, a DECIDED one to `decisions.md`, each by its words (three words or
   twelve letters at least: a bare TRIED, ASSUMED or DECIDED names nothing; a
