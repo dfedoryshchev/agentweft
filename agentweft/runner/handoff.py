@@ -274,17 +274,18 @@ def _code_line(line):
     """whether `line`, read as `word: text`, is a line of a command and not a
     heading: not bulleted, not in capitals, no name the run's own verbs or an
     open question know (`Assumed:`, `Needs:`, `Question:` in any case still
-    open theirs), and a section name of the block only in lower case
-    (`read: true` in a heredoc is the command's, `Read:` opens READ)."""
+    open theirs), and a section name of the block only in lower case with
+    text after it (`read: true` in a heredoc is the command's; `Read:`, and
+    a bare `read:` with its items under it, open READ)."""
     head = verbs.key_of(line)
     if head is None:
         return False
-    name, _, bulleted, caps = head
+    name, text, bulleted, caps = head
     if bulleted or caps or name in ASKING or name in verbs.FIELD:
         return False
     if name in KEYS:
         raw = verbs.KEY.match(line).group(1)
-        return raw == raw.lower()
+        return raw == raw.lower() and bool((text or "").strip())
     return True
 
 

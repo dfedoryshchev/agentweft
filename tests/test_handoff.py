@@ -237,6 +237,17 @@ def test_a_lower_case_section_name_inside_a_command_stays_in_it():
     assert second["claim"] == "the second one" and second["cmd"] == "ls"
 
 
+LOWER = ("HANDOFF\nVERIFIED:\n- the tests pass\n  cmd: python -m pytest -q\n"
+         "read:\n- calc.py:1-3\ntried:\n- none\nEND HANDOFF\n")
+
+
+def test_a_lower_case_heading_after_a_one_line_command_opens_its_section():
+    got = handoff.parse(LOWER)
+    assert got["read"] == ["calc.py:1-3"], got
+    [only] = got["verified"]
+    assert only["cmd"] == "python -m pytest -q"
+
+
 @pytest.mark.parametrize("after, where", [("Read: the spec", "read"),
                                           ("TRIED: once", "tried")])
 def test_a_section_name_not_in_lower_case_still_ends_the_command(after,
