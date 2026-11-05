@@ -448,19 +448,43 @@ def every_unruled(output, workdir, start=None, ruled=None):
             continue
         rel, first, last, quote, _ = cite_of(m)
         lines, _ = lines_of(workdir, rel, first, last, start)
-        end = runs_to(lines, first, last, quote) \
+        span = placed(lines, first, last, quote) \
             if lines is not None and quote else None
-        if end is None or any(ruled(rel, lines[n - 1]) is None
-                              for n in range(first, end + 1)
-                              if lines[n - 1].strip()):
+        if span is None or any(ruled(rel, lines[n - 1]) is None
+                               for n in range(span[0], span[1] + 1)
+                               if lines[n - 1].strip()):
             out.append((said, words))
     return out
 
 
+def placed(lines, first, last, quote):
+    """-> (first, last), the lines of a CONFLICT cite its quote stands on, or
+    None when it is not there. a cite of several lines whose quote stands on
+    fewer of them is narrowed to those; one whose quote stands in more than
+    one place among them keeps every line it cites, and is asked about
+    whole."""
+    end = runs_to(lines, first, last, quote)
+    if end is None:
+        return None
+    found = []
+    for a in range(first, end + 1):
+        for b in range(a, end + 1):
+            if quote in flat(" ".join(lines[a - 1:b])):
+                found.append((a, b))
+                break
+    if not found:
+        return first, end
+    least = min(found, key=lambda s: s[1] - s[0])
+    if any(not (a <= least[0] and b >= least[1]) for a, b in found):
+        return first, end
+    return least
+
+
 def checked_conflict(said, workdir, start=None):
-    """-> (the cite, as far as the quote runs, the quote, the request words
-    on its own line, "") for one CONFLICT line whose quote is at the line it
-    cites as the run found it, or (None, None, None, what is wrong)."""
+    """-> (the cite, as the lines the quote stands on (`placed`), the quote,
+    the request words on its own line, "") for one CONFLICT line whose quote
+    is at the line it cites as the run found it, or (None, None, None, what
+    is wrong)."""
     m = CONFLICT.match(said.strip())
     if not m:
         return None, None, None, (
@@ -474,14 +498,15 @@ def checked_conflict(said, workdir, start=None):
     if lines is None:
         return None, None, None, ("the CONFLICT line cites " + cite + ", and "
                                   + why)
-    end = runs_to(lines, first, last, quote)
-    if end is None:
+    span = placed(lines, first, last, quote)
+    if span is None:
         return None, None, None, (
             'the CONFLICT line quotes "' + quote + '", which is not at '
             + cite + " as the run found it. quote the line as it is, or"
             " answer without a CONFLICT line")
-    if end != last:
-        cite = rel + ":" + str(first) + "-" + str(end)
+    if span != (first, last):
+        cite = rel + ":" + str(span[0]) + (
+            "-" + str(span[1]) if span[1] != span[0] else "")
     return cite, quote, flat(m.group(5)), ""
 
 
@@ -1307,8 +1332,8 @@ def conflict_asked(output, workdir, start=None, ruled=None):
         lines, _ = lines_of(workdir, rel, first, last, start)
         if lines is None:
             return None
-        end = runs_to(lines, first, last, quote) or last
-        asked.extend(lines[first - 1:end])
+        a, b = placed(lines, first, last, quote) or (first, last)
+        asked.extend(lines[a - 1:b])
     return lines_asked(asked)
 
 

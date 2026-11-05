@@ -1288,8 +1288,12 @@ across it, with runs of spaces counted as one. a quote that starts at the
 cited line and runs on, unbroken, into the lines after it in the same
 paragraph, a sentence the file wraps, is read the same way: the question
 then cites the lines it covers (`TASK.md:61-64`), and an `override:` may
-change those. a quote that starts at another line, skips one or runs past a
-blank line is not there. the runner checks the quote is
+change those. a range whose quote stands on fewer of its lines is narrowed
+to them: `TASK.md:1-4` quoting line 3 alone asks about `TASK.md:3`, and an
+`override:` lets that line change, not the range. when the quote stands in
+more than one place in the range, the question cites the whole range. a
+quote that starts at another line, skips one or runs past a blank line is
+not there. the runner checks the quote is
 at that line as the run found it: from the start snapshot, so `git show
 <start>:<file>` or the bytes of a file that was already loose, never the file
 as a step left it. a step cannot make its own cite true by editing the spec

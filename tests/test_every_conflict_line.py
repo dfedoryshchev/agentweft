@@ -134,3 +134,34 @@ def test_the_request_words_stay_when_the_first_conflict_line_is_ruled(
            + conflict("docs/api.md:4", ENVELOPE_LINE, "a next cursor"))
     question, _ = ruling.conflict_of(own, tmp_path, ruled=page_only)
     assert '- the request - "a next cursor"' in question, question
+
+
+def test_a_range_cite_with_a_one_line_quote_asks_about_that_line(tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "api.md").write_text(API, encoding="utf-8")
+    said = conflict("docs/api.md:1-4", PAGE_LINE, "cursor paging")
+    question, wrong = ruling.conflict_of(said, tmp_path)
+    assert wrong == ""
+    assert ruling.authorised(question) == ["docs/api.md:3"], question
+    assert ruling.asked_lines({"runner": ruling.conflict_asked(
+        said, tmp_path)}) == (PAGE_LINE,)
+    assert ruling.conflict_of(said, tmp_path, ruled=page_only) is None
+    both = conflict("docs/api.md:1-4", PAGE_LINE + " " + ENVELOPE_LINE, "x")
+    question, _ = ruling.conflict_of(both, tmp_path)
+    assert ruling.authorised(question) == ["docs/api.md:3-4"], question
+
+
+def test_a_range_cite_whose_quote_cannot_be_placed_asks_about_the_range(
+        tmp_path):
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "api.md").write_text(
+        "# api" + NL + PAGE_LINE + NL + PAGE_LINE + NL, encoding="utf-8")
+    said = conflict("docs/api.md:1-3", PAGE_LINE, "cursor paging")
+    question, wrong = ruling.conflict_of(said, tmp_path)
+    assert wrong == ""
+    assert ruling.authorised(question) == ["docs/api.md:1-3"], question
+    assert ruling.asked_lines({"runner": ruling.conflict_asked(
+        said, tmp_path)}) == ("# api", PAGE_LINE, PAGE_LINE)
+    assert ruling.conflict_of(said, tmp_path, ruled=page_only) is not None
+    missing = conflict("docs/api.md:1-3", "not in the file", "x")
+    assert ruling.conflict_of(missing, tmp_path)[1]
