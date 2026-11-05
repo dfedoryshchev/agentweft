@@ -982,11 +982,13 @@ MODAL = ("may", "must", "should", "will", "can")
 DETERMINER = {"a", "an", "the", "this", "that", "these", "those", "each",
               "every", "any", "some", "another", "my", "your", "our", "its",
               "his", "her", "their"}
-# a name followed by any other word is the subject of a clause of its own:
-# "update the handler and docs/api.md stays as it is"
-GOES_ON = {"to", "so", "too", "accordingly", "also", "both", "for", "with",
-           "in", "now", "first", "then", "again", "alike", "together", "by",
-           "from", "on", "at"}
+# a name followed by one of these, or by a word that reads as a verb of its
+# own (`verb_like`), is the subject of a clause of its own: "update the
+# handler and docs/api.md stays as it is"
+CLAUSE = {"is", "are", "was", "were", "be", "been", "being", "am", "stay",
+          "remain", "hold", "say", "ask", "keep", "win", "do", "did", "has",
+          "have", "had", "must", "should", "may", "might", "will", "would",
+          "can", "could", "shall", "which", "that", "who", "whose", "whom"}
 OPENS = {"and", "both", "then", "so", "now", "also"}
 CLOSES = re.compile(r"""[.:!?)\]][`'"\])]*$""")
 
@@ -1003,11 +1005,25 @@ def word(tok):
     return tok.strip("`'\"()[].:!?").lower()
 
 
+def verb_like(tok):
+    """whether a word after a name opens a clause the name is the subject
+    of: a modal, a form of be, have or do, a relative (`CLAUSE`), or a word
+    that ends the way a verb of its own does (`-s`, `-ed`), which a plural
+    noun also does, so such a name is left out, never let in."""
+    said = word(tok)
+    if said in CLAUSE:
+        return True
+    if "/" in said or "." in said:
+        return False
+    return said != "as" and len(said) > 2 and said.endswith(("s", "ed"))
+
+
 def objects(toks, i, specs):
     """-> the spec files of the list of names that starts at `toks[i]`,
     after a verb asking to change them. the list holds spec paths only, and
-    ends at the first name that is not one, or that a word of its own
-    follows (`GOES_ON`)."""
+    ends at the first name that is not one, or that opens a clause of its
+    own: a verb, a modal or a relative follows it (`verb_like`), after a
+    comma too ("..., which stays the reference")."""
     out = []
     while i < len(toks):
         name = path_of(toks[i])
@@ -1022,12 +1038,12 @@ def objects(toks, i, specs):
         if j < len(toks) and word(toks[j]) == "and":
             j += 1
         if j > i + 1:
+            if j < len(toks) and verb_like(toks[j]):
+                break
             out.append(name)
             i = j
             continue
-        after = word(toks[i + 1])
-        if after in GOES_ON or (after == "as" and i + 2 < len(toks)
-                                and word(toks[i + 2]) == "well"):
+        if not verb_like(toks[i + 1]):
             out.append(name)
         break
     return out

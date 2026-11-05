@@ -1330,8 +1330,12 @@ conflict`, exit 2, and the question is in `question.md` and in the handoff's
   docs/api.md and rules/api-shape.md to say so`, never a folder, a glob or a
   sentence with a no or a not), is added to that line. a list of names stops
   at its clause: it holds spec paths only, and a name that a verb of its own
-  follows (`update the handler and docs/api.md stays as it is`) or that comes
-  after `the change` (a noun, not the verb) is not asked to change. the
+  follows (`update the handler and docs/api.md stays as it is`), a modal, a
+  form of be, have or do, a relative (`..., which stays the reference`), a
+  word ending as a verb does (`-s`, `-ed`), or that comes after `the change`
+  (a noun, not the verb) is not asked to change. any other word after a name
+  keeps it named (`update docs/api.md as needed`, `the docs/api.md file`,
+  `update docs/api.md where it names the page`). the
   added words are `and every line of docs/api.md and rules/api-shape.md`,
   and a later CONFLICT on a line of one of them carries on instead of
   stopping again. the request is read as it

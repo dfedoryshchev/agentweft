@@ -240,6 +240,30 @@ def test_a_list_of_names_reads_on_through_its_own_clause():
     assert named("Update docs/api.md: cursor paging.") == {"docs/api.md"}
 
 
+def test_a_named_file_followed_by_an_ordinary_word_stays_named():
+    assert named("Switch to cursor paging and update docs/api.md as"
+                 " needed.") == {"docs/api.md"}
+    assert named("Update the docs/api.md file to say so.") == {"docs/api.md"}
+    assert named("Update docs/api.md where it names the page.") \
+        == {"docs/api.md"}
+    assert named("Update docs/api.md if it names the page.") \
+        == {"docs/api.md"}
+    assert named("Update docs/api.md and rules/api-shape.md accordingly.") \
+        == {"docs/api.md", "rules/api-shape.md"}
+    assert named("Update docs/api.md to match.") == {"docs/api.md"}
+
+
+def test_a_list_of_names_stops_at_a_verb_a_modal_or_which():
+    assert named("Update docs/api.md and rules/api-shape.md, which stays the"
+                 " reference.") == {"docs/api.md"}
+    for said in ("Update rules/api-shape.md, docs/api.md lists the pages.",
+                 "Update rules/api-shape.md, docs/api.md should stay.",
+                 "Update rules/api-shape.md, docs/api.md has the pages.",
+                 "Update rules/api-shape.md, docs/api.md that names them.",
+                 "Update rules/api-shape.md, docs/api.md changed already."):
+        assert named(said) == {"rules/api-shape.md"}, said
+
+
 def test_an_answer_that_keeps_a_file_covers_none_of_its_lines():
     kept = answered("override: cursor paging wins, update the handler and"
                     " docs/api.md stays the reference", ruling.OVERRIDE)
