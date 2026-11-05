@@ -707,7 +707,8 @@ in `gates.md`:
 - or unless the run holds an override that lets the spec lines the test pins
   change, and an answer of this run names the test on a `WRONG TEST:` line
   whose `spec:` line quotes those lines, as the run found them or as the
-  run's own ruled edit left them (`the quote` above): the test was right
+  run's own ruled edit left them (`the quote` above; a range cite is read
+  at the lines its quote stands on, as a CONFLICT cite is): the test was right
   about the old line and is wrong about the ruled one, so it may change with
   it. the claim covers the test only when the test's change is that edit's:
   the lines the change took out of the test (of the file, for the code its

@@ -725,7 +725,8 @@ def moved_to(workdir, rel, first, last, quote, start=None):
 
 def ruled_quote(said, workdir, start=None, ruled=None):
     """-> the ruling that covers the spec lines `said`, `<file>:<line> "<the
-    line>"`, quotes, or None. the quote is held to those lines as the run
+    line>"`, quotes, or None. a cite of several lines is read at those its
+    quote stands on (`placed`). the quote is held to those lines as the run
     found them, each one a ruling lets change, or to them as the run's own
     edit left them, each a line it changed (`specfiles.became`) standing in
     for a line a ruling lets change or added where one lets a line be, or a
@@ -739,22 +740,22 @@ def ruled_quote(said, workdir, start=None, ruled=None):
     if not quote:
         return None
     lines, _ = lines_of(workdir, rel, first, last, start)
-    end = runs_to(lines, first, last, quote) if lines is not None else None
-    if end is not None:
-        return every_ruled(rel, lines[first - 1:end], ruled)
+    span = placed(lines, first, last, quote) if lines is not None else None
+    if span is not None:
+        return every_ruled(rel, lines[span[0] - 1:span[1]], ruled)
     was, now = as_found(workdir, rel, start), now_of(workdir, rel)
     if now is None:
         return None
     new = now.split("\n")
     if was is None or not 1 <= first <= last <= len(new):
         return None
-    end = runs_to(new, first, last, quote)
-    if end is None:
+    span = placed(new, first, last, quote)
+    if span is None:
         return None
     stood = specfiles.became(was, now)
     kept = specfiles.stayed(was, now)
     found = None
-    for n in range(first, end + 1):
+    for n in range(span[0], span[1] + 1):
         if not new[n - 1].strip():
             continue
         if n not in stood and n not in kept:
@@ -785,7 +786,8 @@ def took(said, workdir, start=None):
     `<file>:<line> "<the line>"`, quotes: the words of those lines as the run
     found them, read at their number then or, for a quote of the edit, from
     the lines it stands in for (`specfiles.became`), that the file no longer
-    holds anywhere. none for lines the run left as they were."""
+    holds anywhere; a cite of several lines is read at those its quote
+    stands on (`placed`). none for lines the run left as they were."""
     text = (said or "").strip()
     m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
     if not m:
@@ -795,18 +797,18 @@ def took(said, workdir, start=None):
     if not quote or was is None:
         return set()
     lines = was.split("\n")
-    end = runs_to(lines, first, last, quote) \
+    span = placed(lines, first, last, quote) \
         if 1 <= first <= last <= len(lines) else None
-    if end is not None:
-        found = lines[first - 1:end]
+    if span is not None:
+        found = lines[span[0] - 1:span[1]]
     else:
         new = (now or "").split("\n")
-        end = runs_to(new, first, last, quote) \
+        span = placed(new, first, last, quote) \
             if 1 <= first <= last <= len(new) else None
-        if end is None:
+        if span is None:
             return set()
         stood = specfiles.became(was, now)
-        found = [stood[n] for n in range(first, end + 1)
+        found = [stood[n] for n in range(span[0], span[1] + 1)
                  if stood.get(n) is not None]
     return words(" ".join(found)) - words(now)
 

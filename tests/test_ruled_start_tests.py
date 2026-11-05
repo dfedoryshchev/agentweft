@@ -554,6 +554,35 @@ def test_a_claim_covers_a_test_only_where_its_change_is_the_ruled_edit_s(
                        start) == set()
 
 
+def only_the_envelope(rel, line):
+    return "the envelope ruling" if line.rstrip() == ENVELOPE_LINE else None
+
+
+def test_a_range_cite_is_read_at_the_line_its_quote_stands_on(tmp_path,
+                                                              monkeypatch):
+    place, start = edited_place(tmp_path, monkeypatch)
+    ranged = 'docs/api.md:3-4 "' + ENVELOPE_LINE + '"'
+    assert ruling.ruled_quote(ranged, place, start, only_the_envelope) == \
+        "the envelope ruling", "a range cite read a line its quote is not on"
+    assert ruling.took(ranged, place, start) == {"page", "total"}
+    edited = 'docs/api.md:3-4 "- Every list returns `{items, next}`."'
+    assert ruling.took(edited, place, start) == {"page", "total"}
+
+
+def test_a_range_cite_whose_quote_stands_twice_is_still_read_whole(tmp_path):
+    twice = "# api" + NL + NL + ENVELOPE_LINE + NL + PAGE_LINE + NL \
+        + ENVELOPE_LINE + NL
+    specs_at(tmp_path, api=twice)
+    ranged = 'docs/api.md:3-5 "' + ENVELOPE_LINE + '"'
+    assert ruling.ruled_quote(ranged, tmp_path, ruled=only_the_envelope) \
+        is None
+    assert ruling.ruled_quote(ranged, tmp_path, ruled=named_only) == \
+        "a ruling"
+    wrong_quote = 'docs/api.md:3-4 "- Every list returns nothing."'
+    assert ruling.ruled_quote(wrong_quote, tmp_path, ruled=named_only) is None
+    assert ruling.took(wrong_quote, tmp_path) == set()
+
+
 def test_a_test_s_change_is_read_from_the_lines_it_lost():
     edit = testedits.Edit("tests/test_names.py")
     edit.was, edit.now = NAMES_START, LOOSENED
