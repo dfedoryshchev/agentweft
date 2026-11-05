@@ -226,6 +226,39 @@ def test_an_override_run_finishes_with_its_pinned_tests_under_the_ruling(
     assert "UNRULED" not in handoff
 
 
+WHERE_PLAN = MARKED_PLAN.replace(
+    "docs/api.md:4 (ruling)",
+    "docs/api.md:4, ruled override at decisions.md:3")
+
+
+def test_a_mark_that_names_where_its_ruling_sits_is_still_read_as_ruled(
+        tmp_path, monkeypatch):
+    _, code = overridden(tmp_path, monkeypatch, WHERE_PLAN, built(
+        wrong(ENVELOPE_TEST, EDITED[0]), wrong(FIRST_PAGE_TEST, FOUND[1])))
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL conflict" not in gates, gates
+    assert code == stops.EXIT_OK, gates
+
+
+def test_a_mark_is_read_as_ruled_only_on_the_spec_lines_it_cites(tmp_path):
+    specs_at(tmp_path)
+    (tmp_path / decisions.FILE).write_text(
+        "# decisions" + NL + NL + "## an entry" + NL, encoding="utf-8")
+    assert ruling.mark_ruled("docs/api.md:4, ruled override at decisions.md:3",
+                             tmp_path, ruled=named_only)
+    for mark in ("decisions.md:3 (ruling)", "the envelope (ruling)",
+                 "docs/names.md:3, ruled override at decisions.md:3",
+                 "docs/api.md:4 and decisions.md:3 and docs/names.md:3"):
+        assert not ruling.mark_ruled(mark, tmp_path, ruled=named_only), mark
+
+    def everything(rel, line):
+        return "a ruling"
+
+    assert not ruling.mark_ruled("decisions.md:3", tmp_path,
+                                 ruled=everything), \
+        "decisions.md became a line a ruling covers"
+
+
 def test_a_claim_quoting_the_line_as_the_run_found_it_lets_the_test_change(
         tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(

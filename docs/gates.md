@@ -58,8 +58,10 @@ and fails it, with what was wrong (`docs/journal.md`, when the request
 contradicts the spec). a plan line marked `spec: contradicts <file>:<line>`
 with no CONFLICT line fails the step the same way, unless an override the
 run holds already lets every line it cites change: those lines are ruled,
-and a new conflict on them would ask what is answered. a mark on any other
-line, or citing none, still fails it.
+and a new conflict on them would ask what is answered. a cite of
+`decisions.md` (`ruled override at decisions.md:152`) names where the ruling
+sits, not a spec line, so it is passed over and is never a line a ruling
+covers. a mark on any other line, or citing no spec line, still fails it.
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that

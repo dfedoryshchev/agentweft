@@ -52,6 +52,7 @@ import re
 from pathlib import Path
 
 from agentweft.guardrails import specfiles
+from agentweft.orchestrate.decisions import FILE as RULINGS_FILE
 
 from . import lead, verbs
 from .config import SPEC_CHANGE, verdict
@@ -580,10 +581,14 @@ def every_ruled(rel, lines, ruled):
 
 def mark_ruled(mark, workdir, start=None, ruled=None):
     """whether a `spec: contradicts` mark cites spec lines and a ruling the
-    run holds already lets every one of them, as the run found it, change."""
+    run holds already lets every one of them, as the run found it, change.
+    a cite of decisions.md names where a ruling sits, not a spec line: it is
+    passed over, and never counts as one."""
     found = False
     for m in MARKED.finditer(mark or ""):
         rel, first = m.group(1), int(m.group(2))
+        if rel.replace("\\", "/").removeprefix("./") == RULINGS_FILE:
+            continue
         last = int(m.group(3) or first)
         lines, _ = lines_of(workdir, rel, first, last, start)
         if lines is None or every_ruled(rel, lines[first - 1:last],
