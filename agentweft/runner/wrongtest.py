@@ -18,8 +18,8 @@ several claims, each opened by its own WRONG TEST line: the tests one step
 wrote go back to it together, in one round, and the tests the run started
 with park once, on one question naming them all. an `override:` to it lets
 each test it named change, and a later claim on a start test quoting only
-lines its claims quoted, when that test as the run found it is red against
-the product now (`Run.wrong_ruled`).
+lines its claims quoted, when that test as the run found it shares a word
+with those lines and is red against the product now (`Run.wrong_ruled`).
 
 the spec line has to be a line that is there: a claim nobody can check is a
 question, the way a REFUSED line without a cite is. its quote has to be what

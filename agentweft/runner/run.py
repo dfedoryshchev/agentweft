@@ -785,9 +785,10 @@ class Run(object):
         that lets `test`, a start test id or a file, change, or None: the
         question named the test, or `spec`, the spec: line of a claim on it,
         quotes only lines that question's claims quoted, as the run found
-        them, and the test as the run found it is red against the product
-        now (`forced`), so the run's change is what makes it wrong with that
-        line. a test still green as found is not tied to the line by a claim
+        them, the test as the run found it shares a word with those lines,
+        and it is red against the product now (`forced`), so the run's change
+        is what makes it wrong with that line. a test still green as found,
+        or one that reads nothing of the line, is not tied to it by a claim
         the step wrote."""
         asked = self.runner_asked(ruling.asked_wrong)
         if not any(tests for tests, _ in asked.values()):
@@ -801,9 +802,20 @@ class Run(object):
                 continue
             if any(wrongtest.same_test(t, test) for t in found[0]):
                 return d
-            if lines and set(lines) <= set(found[1]) and self.forced(test):
+            if lines and set(lines) <= set(found[1]) \
+                    and self.reads_lines(test, lines) and self.forced(test):
                 return d
         return None
+
+    def reads_lines(self, test, lines):
+        """whether `test`, a start test id or a file, as the run found it,
+        shares a word with `lines`, spec lines as the run found them."""
+        rel = test.partition("::")[0]
+        was = ruling.as_found(self.workdir, rel,
+                              getattr(self, "start", None)) or ""
+        source = testedits._source_of(was, rel, test.split("[")[0]) \
+            if "::" in test and rel.endswith(".py") else was
+        return bool(ruling.words(source) & ruling.words(" ".join(lines)))
 
     def wrong_covered(self, said, tests):
         """-> (the ruling, the cite of the claim or "") that lets every one

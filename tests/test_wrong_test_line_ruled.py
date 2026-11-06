@@ -6,9 +6,11 @@ the unchanged line "migrate runs every pending file in order". the worker
 claims both in one answer: the run parks once, naming both, and the one
 `override:` to that question lets both change at the test-edits check. a
 claim made later in the run on another start test quoting the same line is
-covered too, when that test as the run found it is red against the product
-now: the step's change is what made it wrong. a test that is still green as
-found, a claim on another line and a `request:` answer cover nothing.
+covered too, when that test as the run found it shares a word with the line
+and is red against the product now: the step's change is what made it wrong.
+a test that is still green as found, one the step broke besides that reads
+nothing of the line, a claim on another line and a `request:` answer cover
+nothing.
 
 the shipped build-feature flow, on fake answers and a real git place.
 """
@@ -159,6 +161,25 @@ def test_a_test_still_green_as_found_is_not_covered_by_the_line(
     question = read(folder, "question.md")
     assert NAMES_TEST in question, question
     assert DB_TEST not in question and MORE_TEST not in question
+
+
+LOWER = MORE.replace("    return text", "    return text.lower()")
+NAMES_LOWER = a_test("test_a_name_is_kept", "name_of(\"Rice\") == \"rice\"")
+
+
+def test_a_later_claim_on_a_test_that_shares_no_word_with_the_line_asks(
+        tmp_path, monkeypatch):
+    # the names test pins the name line; the move broke it, so it is red as
+    # found, but nothing in it reads the migrate line it is claimed on
+    place, leg = first_leg(tmp_path, monkeypatch, claim(DB_TEST) + NL
+                           + claim(MORE_TEST))
+    writes = dict(BOTH, **{"tests/test_names.py": NAMES_LOWER,
+                           "db.py": LOWER})
+    asked, code, folder = second_leg(tmp_path, monkeypatch, place, leg,
+                                     claim(NAMES_TEST), writes)
+    assert code != stops.EXIT_OK
+    assert NAMES_TEST + " <- ruling " not in read(folder, "handoff.md")
+    assert NAMES_TEST in read(folder, "question.md")
 
 
 def test_a_claim_on_another_line_still_asks(tmp_path, monkeypatch):
