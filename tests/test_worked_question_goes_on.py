@@ -14,7 +14,7 @@ import json
 import sys
 
 sys.path.insert(0, ".")
-from agentweft.runner import ruling, stops
+from agentweft.runner import engine, ruling, stops
 
 from test_no_code_question import (BLOCK, FAIL, NL, a_flow, answering, folder,
                                    gated, run)
@@ -85,6 +85,32 @@ def test_a_question_from_a_step_that_changed_nothing_still_parks(
     assert run(monkeypatch) == stops.EXIT_STOP
     assert asked == ["a.md"]
     assert not gated(folder(tmp_path))
+
+
+B_ASKS = ("NEEDS: which file holds the parser?" + NL
+          + "RECOMMEND: parse.py" + NL + "SIZE: 3 lines in calc.py" + NL)
+
+
+def test_a_later_park_shows_its_own_recommendation_and_keeps_the_earlier(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch)
+    asked = []
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        asked.append(step)
+        if step == "a.md":
+            (tmp_path / "calc.py").write_text("x = 2" + NL, encoding="utf-8")
+            return "fixed it" + NL + CITED + BLOCK, False
+        return "looked" + NL + B_ASKS, False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    assert run(monkeypatch) == stops.EXIT_STOP
+    assert asked == ["a.md", "b.md"]
+    said = decision(folder(tmp_path))
+    stop, _, rest = said.partition("raised by b")
+    own, _, also = rest.partition("also open:")
+    assert "parse.py" in own and "keep 400" not in own, said
+    assert GAP in also and "keep 400" in also, said
 
 
 def test_which_questions_change_no_code():

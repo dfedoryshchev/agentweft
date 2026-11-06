@@ -1087,7 +1087,10 @@ answer waits on nothing the run has left to do. the run goes on past it,
 the gates not run again, whether or not a lead escalated the question: the
 question stays in the step's answer, its line in `steps.jsonl` keeps it as
 `went_on`, and the handoff shows it as the one decision with its
-recommendation, so it reaches you on a run that ends `done`. otherwise the
+recommendation, so it reaches you on a run that ends `done`. when a later
+step stops the run, its question is the one decision, shown with that
+step's own recommendation, and the question the run went on past is listed
+under it as `also open`. otherwise the
 journal
 says `parked at <step>`, `why.md` says `kind       ruling`, the step is
 `parked for a ruling` in the manifest, the question is in

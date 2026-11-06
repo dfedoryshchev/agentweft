@@ -1960,9 +1960,10 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
              investigate.listed(dug, "DECISIONS")]
     extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
                  if "UNRULED" in l)
-    waits = front.stopped_on(stopped, still, every)
+    went = [p for p in still if p.get("went_on")]
+    waits = front.stopped_on(stopped, stopped_at(every, stopped), every)
     points, taken = front.questions(every, extra,
-                                    asking=[] if waits else still,
+                                    asking=went if waits else still,
                                     settled=settled(decided, every, run_id))
     found = front.clusters(([waits] if waits else []) + points)
     if last and stopped:
@@ -2307,10 +2308,16 @@ def still_open(passes, stopped):
     other question an earlier pass asked was answered before the run went
     past it, by the lead or with --answer."""
     out = [p for p in passes if p.get("went_on")]
+    return out + [p for p in stopped_at(passes, stopped) if p not in out]
+
+
+def stopped_at(passes, stopped):
+    """-> the last pass of the step a stopped run stopped at, [] for a run
+    that did not stop: the only pass whose words the stop's question is
+    shown with."""
     if not stopped:
-        return out
-    at = [p for p in passes if p["step"] == stopped["at"]]
-    return out + [p for p in at[-1:] if p not in out]
+        return []
+    return [p for p in passes if p["step"] == stopped["at"]][-1:]
 
 
 def top(lines):
