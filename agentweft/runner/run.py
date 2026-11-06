@@ -1045,7 +1045,9 @@ class Run(object):
         """-> what `ruling.asked_of` reads in `out`, or, for a step held to
         a red test that shows none failing and asks a question citing a line,
         that question (`ruling.no_red`): the step parks with its reason
-        before the red-test gate, rather than failing it."""
+        before the red-test gate, rather than failing it. such a step that
+        asks nothing ends the run as refused on the ruling it was given
+        (`ruled_no_change`), when there is one."""
         said = ruling.asked_of(out.output, self.workdir, out.verdict,
                                out.meta.get("allowed"),
                                getattr(self, "start", None))
@@ -1053,7 +1055,40 @@ class Run(object):
             question = ruling.no_red(step, out.output, self.workdir)
             if question:
                 return ruling.ASKED, question
+            ended = self.ruled_no_change(step, out.output)
+            if ended:
+                return ruling.DECLINED, ended
         return said
+
+    def ruled_no_change(self, step, output):
+        """-> why the run ends with no change, or None: `step`, held to a
+        red test, says on its `TEST:` line that it wrote none and names no
+        failure, and neither it nor any step
+        before it in this leg changed a file of the place, after an answer
+        given with --answer to this run, or a leg before it, that is no
+        `override:`. the request was answered, the spec holds or the code
+        already does the ask, so there is nothing to build. an `override:`
+        lets the request win, so a run holding one never ends this way, and
+        an entry this run did not write (one there when it started) is never
+        its answer."""
+        if not ruling.unnamed(output, "TEST", missing=False) \
+                or not ruling.unnamed(output, "FAILS"):
+            return None
+        start, kept = getattr(self, "start", None), getattr(self, "kept",
+                                                            None)
+        if start is None or not start.hashed or kept is None \
+                or getattr(self, "looked", None) is None \
+                or self.changed_tree() or start.product_changed() \
+                or start.test_changes():
+            return None
+        given = set(w.get("sha256") for w in kept.written
+                    if w.get("by") == "answer")
+        answers = [d for d in kept.read() if rulings.digest(d) in given]
+        if not answers or any(ruling.kind_of(ruling.answered(d) or d.decided)
+                              == ruling.OVERRIDE for d in answers):
+            return None
+        return (step + " wrote no failing test and changed nothing, under"
+                " the ruling of " + summary.stamp(answers[-1]))
 
     def suite_of(self, step):
         """-> what `step`'s gates that run the whole suite said of the place

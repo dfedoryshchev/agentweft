@@ -163,16 +163,23 @@ def asked_of(output, workdir, word=None, allowed=None, start=None):
     return None
 
 
-def unnamed(output, key):
-    """whether the first `key:` line of `output` is missing, or says none:
-    "none", "none written", "no test"."""
+def unnamed(output, key, missing=True):
+    """whether the first `key:` line of `output` says none: "none", "none
+    written", "no test"; `missing` when there is no such line."""
     for _, line in verbs.visible(output):
         head = verbs.key_of(line)
         if head is None or head[0] != key or head[2] or not head[3]:
             continue
-        said = head[1].lower().strip(" .`")
-        return said in NONE_WORDS or said.startswith(("none", "no "))
-    return True
+        return says_none(head[1])
+    return missing
+
+
+def says_none(text):
+    """whether `text` says none: "none", "none written", "nothing fails",
+    "no test"."""
+    said = (text or "").lower().strip(" .`")
+    return said in NONE_WORDS or said.startswith(("none", "no ")) \
+        or bool(re.match(r"nothing\b", said))
 
 
 def no_red(step, output, workdir):
@@ -180,12 +187,20 @@ def no_red(step, output, workdir):
     test failing, with no `TEST:` and no `FAILS:` line or each saying none,
     and its HANDOFF asks a `QUESTION:` that cites a line of a file in the
     place; None for any other answer, which the red-test gate judges as
-    before."""
+    before. a question that says none asks nothing, whatever it cites, and
+    a line of the runner's own files (decisions.md, the facts store) is no
+    line of the place: it points at a ruling, not at the code."""
+    from agentweft.guardrails.snapshot import is_runners
+
     if not unnamed(output, "TEST") or not unnamed(output, "FAILS"):
         return None
     for asked in parse_handoff(output)["questions"]:
+        if says_none(asked["question"]):
+            continue
         cites = []
         for m in CITED_LINE.finditer(asked["question"]):
+            if is_runners(path_of(m.group(1))):
+                continue
             if cited(m.group(0), (), workdir) and m.group(0) not in cites:
                 cites.append(m.group(0))
         if not cites:

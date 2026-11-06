@@ -1180,7 +1180,10 @@ at <step>`, outcome `refused (spec cited)`, exit 0: the step's answer is that
 the spec says no, and nothing is owed. the steps after it do not run. a
 refusal that cites nothing, or a line that is not there, is read as a question
 and parks for a ruling instead. the runner refusing to START a step is a
-different thing, the `refused` cause, and that is a stop.
+different thing, the `refused` cause, and that is a stop. a step held to a
+red test that wrote none and changed nothing, after your `request:` or a plain
+answer to its question, ends the same way with that ruling as the reason
+(`docs/gates.md`, red-test).
 
 a step can say a test it was given is wrong, on lines of its own:
 

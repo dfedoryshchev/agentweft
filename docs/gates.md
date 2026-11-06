@@ -270,9 +270,17 @@ turns only that gate off: the order checks still want a red proof.
   make a test fail (no `TEST:` and no `FAILS:` line, or each saying none) and
   asks a HANDOFF `QUESTION:` citing a `<file>:<line>` in the place parks the
   run on that question before this gate runs, `needs you: ruling`, with its
-  `RECOMMEND:` as an option: no send-back is spent on it. with no such
-  question the gate fails it as before. a run that skips tests never parks
-  this way.
+  `RECOMMEND:` as an option: no send-back is spent on it. a question that
+  says none, or cites only `decisions.md` or the facts store, is no such
+  question. one that asks nothing, says `TEST: none` and changed no file
+  of the place, with no step before it in the leg changing one either,
+  after an answer this run was given with `--answer` that is no
+  `override:` (a `request:`, or a plain answer to its question), ends the
+  run `refused at <step>`, outcome `refused (spec cited)`, exit 0, with
+  that ruling as the reason: the request was answered and there is nothing
+  to build. an `override:` never ends a run this way, and an entry there
+  when the run started is not its answer. otherwise the gate fails it as
+  before. a run that skips tests never parks or ends this way.
 - **red-first** - `command: [...]` with `{test}` in it, `expect` (default 1),
   `timeout`, `results` (`junit`, with `{results}` in the command). goes on
   the step that made the fix, and shows each new test fails without it and
