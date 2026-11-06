@@ -663,8 +663,9 @@ def untyped(output, handed=(), workdir=".", start=None, ruled=None,
     (`mark_ruled`), and with `held` the marks on lines a `request:` answer
     to the runner's own question already held: that question was asked and
     answered, and typing it again would ask it twice. the spec holds by
-    such an answer, so a held mark passes only on a behaviour the plan
-    builds nowhere (`builds`); one it builds fails, told to leave it out."""
+    such an answer, so a held mark passes only on a behaviour whose `file:`
+    line says it builds nothing (`builds`); any other fails, told to leave
+    it out or say `file: none`."""
     given = set(flat(m) for text in handed for m in marks(text))
 
     def either(rel, line):
@@ -678,9 +679,11 @@ def untyped(output, handed=(), workdir=".", start=None, ruled=None,
                                 and mark_ruled(m, workdir, start, ruled)):
             continue
         if held is not None and mark_ruled(m, workdir, start, either):
-            if built.get(flat(m)):
-                against.append(m + " (built in " + ", ".join(built[flat(m)])
-                               + ")")
+            files = built.get(flat(m))
+            if files is None:
+                against.append(m + " (its behaviour has no file: line)")
+            elif files:
+                against.append(m + " (built in " + ", ".join(files) + ")")
             continue
         marked.append(m)
     said = []
@@ -699,24 +702,40 @@ def untyped(output, handed=(), workdir=".", start=None, ruled=None,
 
 
 def builds(output):
-    """-> {a `spec: contradicts` mark, flat: the files its behaviour's
-    `file:` line names that the plan would write}, for each mark whose
-    behaviour names one. a name with a dot or a slash counts, whether or not
-    the file is there yet; the runner's own files (decisions.md, the facts
-    store) are none of them."""
+    """-> {a `spec: contradicts` mark, flat: what its behaviour's `file:`
+    lines say the plan writes}, for every mark: [] only when a `file:` line
+    of that behaviour, before or after the mark, names `none` or only the
+    runner's own files (decisions.md, the facts store); the files it names
+    besides (a name with a dot or a slash, there yet or not); the line
+    itself when it names no file and is not `none`; None with no `file:`
+    line at all. only [] says the behaviour builds nothing."""
     from agentweft.guardrails.snapshot import is_runners
 
-    out, files = {}, []
+    def said(rest):
+        names = [n.rstrip(".") for n in NAME.findall(rest)]
+        built = [n for n in names if not is_runners(path_of(n))]
+        if built or names:
+            return built
+        first = (rest.split() or [""])[0].strip(".,;:").lower()
+        return [] if first and first in NONE_WORDS else [rest.strip()]
+
+    blocks, block = [], {"files": None, "marks": []}
     for _, line in verbs.visible(output):
         text = line.strip()
         if BEHAVIOUR.match(text):
-            files = []
+            blocks.append(block)
+            block = {"files": None, "marks": []}
         m = FILE_LINE.match(text)
-        if m:
-            files = [n.rstrip(".") for n in NAME.findall(m.group(1))
-                     if not is_runners(path_of(n.rstrip(".")))]
-        if CONTRADICTS.match(line) and files:
-            out[flat(text.lstrip("-").strip())] = files
+        if m and m.group(1).strip():
+            block["files"] = (block["files"] or []) + said(m.group(1))
+        if CONTRADICTS.match(line):
+            block["marks"].append(flat(text.lstrip("-").strip()))
+    blocks.append(block)
+    out = {}
+    for b in blocks:
+        for mark in b["marks"]:
+            if mark not in out or out[mark] == []:
+                out[mark] = b["files"]
     return out
 
 

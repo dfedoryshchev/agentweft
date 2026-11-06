@@ -86,6 +86,15 @@ def test_a_behaviour_the_plan_builds_against_a_held_line_still_fails(
     assert "type it as CONFLICT" not in said, said
 
 
+def test_a_held_mark_whose_behaviour_names_no_file_line_still_fails(
+        tmp_path, monkeypatch):
+    asked, said = answered(tmp_path, monkeypatch, NL.join([
+        "- behaviour: listing([1]) is {items, next}",
+        "  spec: contradicts " + HELD + " (ruling)", ""]))
+    assert "FAIL conflict" in said, said
+    assert "already held" in said and "type it as CONFLICT" not in said, said
+
+
 def test_which_marked_behaviours_the_plan_builds():
     debt = NL.join([
         "- behaviour: debt to note: the copy request is deferred under the"
@@ -94,10 +103,23 @@ def test_which_marked_behaviours_the_plan_builds():
         " notes)",
         "  spec: contradicts docs/architecture.md:17. a person already ruled"
         " on this (spec holds)", ""])
-    assert ruling.builds(debt) == {}
-    assert ruling.builds(NL.join(["- behaviour: x", "  file: none",
-                                  "  spec: contradicts a.md:1", ""])) == {}
+    assert list(ruling.builds(debt).values()) == [[]]
+    assert list(ruling.builds(NL.join(["- behaviour: x", "  file: none",
+                                       "  spec: contradicts a.md:1",
+                                       ""])).values()) == [[]]
     assert list(ruling.builds(BUILT).values()) == [["pages.py"]]
+    # no file: line, one after the mark, and one naming no file but not
+    # none: nothing says the behaviour builds nothing
+    mark = "  spec: contradicts " + HELD + " (ruling)"
+    head = "- behaviour: listing([1]) is {items, next}"
+    assert list(ruling.builds(NL.join([head, mark, ""])).values()) == [None]
+    assert list(ruling.builds(NL.join([head, mark, "  file: pages.py",
+                                       ""])).values()) == [["pages.py"]]
+    assert list(ruling.builds(NL.join([head, mark, "  file: none",
+                                       ""])).values()) == [[]]
+    assert list(ruling.builds(NL.join([head, "  file: the pages module", mark,
+                                       ""])).values()) == [
+        ["the pages module"]]
     assert list(ruling.builds(BUILT.replace(
         "pages.py", "frontend/src/new_page.js, decisions.md")).values()) \
         == [["frontend/src/new_page.js"]]
