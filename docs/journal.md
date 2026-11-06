@@ -1078,7 +1078,17 @@ product file changed since the run started, is not said to have asked
 instead of doing the work: the section says `the run did the work, then
 <step> asked for a ruling: the place holds its change to <files>.`, read off
 the start snapshot, whichever step asked (a `WRONG TEST:` claim on a test the
-run started with included). the run parks either way. the journal
+run started with included). the run parks either way, but for one case: a
+step that changed the place, whose gates all passed on that change with
+nothing held for a ruling, and whose question has a `RECOMMEND:` that
+changes no product code (it keeps things as they are, or its `SIZE:` names
+no code or only doc or spec lines, `one doc line`), did its work, and the
+answer waits on nothing the run has left to do. the run goes on past it,
+the gates not run again, whether or not a lead escalated the question: the
+question stays in the step's answer, its line in `steps.jsonl` keeps it as
+`went_on`, and the handoff shows it as the one decision with its
+recommendation, so it reaches you on a run that ends `done`. otherwise the
+journal
 says `parked at <step>`, `why.md` says `kind       ruling`, the step is
 `parked for a ruling` in the manifest, the question is in
 `runs/<run-id>/question.md`, and the handoff's "needs you" section shows it

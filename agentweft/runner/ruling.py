@@ -313,6 +313,35 @@ def costs_nothing(size, recommend):
     return no_code(priced(size, recommend))
 
 
+DOC_LINES = re.compile(r"^(only )?([1-9]\d*|one|two|three|a|a few) (doc|docs"
+                       r"|documentation|spec|readme)( file)? lines?"
+                       r"( (in|of|to) docs?/\S+)?$")
+
+
+def doc_only(size):
+    """-> whether a SIZE prices only lines of the docs or the spec, or no
+    code ("one doc line", "no code, 2 doc lines in docs/api.md")."""
+    said = flat(size).lower().rstrip(" .")
+    parts = [p.strip(" .") for p in PARTS.split(re.sub(r";|\.\s+", ",",
+                                                         said))]
+    parts = [p for p in parts if p]
+    return bool(parts) and any(DOC_LINES.match(p) for p in parts) and all(
+        DOC_LINES.match(p) or NO_CODE.match(p) or ONE_TEST.match(p)
+        for p in parts)
+
+
+def asks_no_code(output):
+    """whether `output` asks a NEEDS question with a RECOMMEND whose answer
+    changes no product code, cited or not: once the step's work passed
+    every gate, nothing the run has left to do waits on the answer. a doc
+    or spec line the answer would add is the person's to write, after."""
+    v = verbs.parse(output)
+    if not v.needs or not v.recommend or v.refused or v.conflict:
+        return False
+    return costs_nothing(v.size, v.recommend) \
+        or doc_only(priced(v.size, v.recommend))
+
+
 def demoted(output):
     """-> (the answer with its question taken out and kept as a DOUBTS line,
     that line) for a NEEDS whose recommended answer changes no code and

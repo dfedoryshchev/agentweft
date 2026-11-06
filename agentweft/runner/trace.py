@@ -289,7 +289,7 @@ class Entry(object):
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
-                 "conformance", "past_end", "case", "held")
+                 "conformance", "past_end", "case", "held", "went_on")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -322,6 +322,9 @@ class Entry(object):
         # what the runner held back of a pass another model answered, under
         # `on_fallback: park`
         self.held = None
+        # the question a pass asked that the run went on past, its work done
+        # with every gate green, for the person to answer
+        self.went_on = None
 
 
 class Trail(object):
@@ -387,6 +390,8 @@ class Trail(object):
             entry.written["conformance"] = entry.conformance
         if entry.past_end:
             entry.written["past_end"] = entry.past_end
+        if entry.went_on:
+            entry.written["went_on"] = entry.went_on
         if entry.written.get("fallback"):
             print(switched_said(entry.step, entry.written["fallback"]))
         self.held.append((entry, outcome))

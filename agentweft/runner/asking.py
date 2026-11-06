@@ -109,13 +109,32 @@ def asked_file(step):
     return stem + ".asked.md"
 
 
-def worked_then_asked(run, route, step, out, run_dir=None):
+def worked_then_asked(run, route, step, out, run_dir=None, checked=None):
     """-> None for a step that asked without changing the place, else what
     its gates said of what it changed: "" when they passed. the run parks
-    either way; this is what the park can say the step left behind."""
+    either way; this is what the park can say the step left behind.
+    `checked` is what `check_step` already said of this answer."""
     if not run.changed_tree():
         return None
-    failed, _ = check_step(run, route, step, out, run_dir=run_dir)
+    failed, _ = checked or check_step(run, route, step, out, run_dir=run_dir)
     out.meta.pop("spec_ruling", None)
     out.meta.pop("conflict", None)
     return gate_why(out.meta["gates"]) if failed else ""
+
+
+HELD = ("spec_ruling", "test_ruling", "conflict")
+
+
+def goes_on(run, route, step, out, run_dir=None):
+    """-> (what `check_step` said, whether the run goes on past `step`'s
+    question): it goes on only when the step changed the place, the answer
+    it recommends changes no product code (`ruling.asks_no_code`) and every
+    gate passed on that change with nothing held for a ruling; the question
+    stays in its answer for the person. (None, False) when the gates were
+    not run."""
+    if not ruling.asks_no_code(out.output) or not run.changed_tree():
+        return None, False
+    checked = check_step(run, route, step, out, run_dir=run_dir)
+    clean = not checked[0] and not checked[1] \
+        and not any(k in out.meta for k in HELD)
+    return checked, clean

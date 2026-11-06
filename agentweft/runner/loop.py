@@ -21,7 +21,7 @@ from . import summary
 from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
-from .asking import (asked_file, lead_pass, rides, to_lead,
+from .asking import (asked_file, goes_on, lead_pass, rides, to_lead,
                      worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
@@ -562,9 +562,11 @@ def go(leg):
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")
             said = run.asked(step, out) if honest else None
+            checked = None
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)
+            went_on = False
             if said:
                 head, decided, question = to_lead(run, step, said[1], given,
                                                   run_id, folder=step_dir)
@@ -586,8 +588,16 @@ def go(leg):
                     run.ruled[step] = decided
                     out = handed
                     continue
-                worked = worked_then_asked(run, route, step, out,
+                checked, went_on = goes_on(run, route, step, out,
                                            run_dir=step_dir)
+                if went_on:
+                    entry.went_on = said[1].split(NEWLINE)[0]
+                    print(step + " did the work with every gate green and"
+                          " asked what changes no code: the run goes on, and"
+                          " the question waits for you in the handoff")
+            if said and not went_on:
+                worked = worked_then_asked(run, route, step, out,
+                                           run_dir=step_dir, checked=checked)
                 if worked is not None:
                     entry.gates = out.meta.get("gates", [])
                     entry.ungated = out.meta.get("ungated")
@@ -600,8 +610,8 @@ def go(leg):
                             waiting="user", question=question, worked=worked)
 
             lap.to("checks")
-            failed, blocked = check_step(run, route, step, out,
-                                         run_dir=step_dir)
+            failed, blocked = checked if went_on else check_step(
+                run, route, step, out, run_dir=step_dir)
             lap.to("after")
             entry.gates = out.meta.get("gates", [])
             entry.ungated = out.meta.get("ungated")

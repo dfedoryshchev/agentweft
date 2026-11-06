@@ -574,7 +574,7 @@ def redo_why(said):
 
 
 def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
-           facts=None, writes="", case=None):
+           facts=None, writes="", case=None, went_on=""):
     """one pass of one step, the shape `build` reads. `facts` is what its
     steps.jsonl line holds for the retro and the files its transcript shows
     it read (`facts_of`); `writes` is what the flow says the step writes
@@ -582,7 +582,8 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
     keeps it (`wouldpass.held`), None for a pass that added none. `ruled` is
     the DECIDED line of a lead's pass whose decision the runner put on
     record (outcome `decided`), "" for any other pass, and `would` its
-    WOULD PASS and CATCH lines (`wouldpass.read`)."""
+    WOULD PASS and CATCH lines (`wouldpass.read`). `went_on` is the question
+    the run went on past, the pass's work green, "" when there was none."""
     ruled = lead.read(said)[0] if outcome == "decided" else None
     return {"step": step, "role": role, "seconds": seconds, "writes": writes,
             "block": block if isinstance(block, dict) else handoff.empty(),
@@ -590,7 +591,7 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
             "verbs": verbs.parse(said), "ruled": ruled or "",
             "would": wouldpass.read(said),
             "redo_why": redo_why(said) if outcome == "redo" else "",
-            "facts": facts or {}, "case": case}
+            "facts": facts or {}, "case": case, "went_on": went_on or ""}
 
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
@@ -746,7 +747,8 @@ def line_pass(line, folder, roles, fm, root=None):
                   line.get("ungated"), line.get("outcome") or "", said,
                   facts=facts_of(line, root), writes=writes_of(fm, step),
                   case=line.get("case")
-                  if isinstance(line.get("case"), dict) else None)
+                  if isinstance(line.get("case"), dict) else None,
+                  went_on=line.get("went_on") or "")
 
 
 def cases(path):
@@ -2300,13 +2302,15 @@ def settled(decided, passes, run_id):
 
 def still_open(passes, stopped):
     """-> the passes whose questions nobody has answered yet: on a stopped
-    run, the last pass of the step it stopped at. a finished run has none,
-    and a question an earlier pass asked was answered before the run went
+    run, the last pass of the step it stopped at, and on any run each pass
+    whose question the run went on past, its work green (`went_on`). any
+    other question an earlier pass asked was answered before the run went
     past it, by the lead or with --answer."""
+    out = [p for p in passes if p.get("went_on")]
     if not stopped:
-        return []
+        return out
     at = [p for p in passes if p["step"] == stopped["at"]]
-    return at[-1:]
+    return out + [p for p in at[-1:] if p not in out]
 
 
 def top(lines):

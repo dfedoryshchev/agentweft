@@ -141,7 +141,8 @@ def passes(trail, run, fm):
                                   facts=summary.facts_of(entry.written or {},
                                                          run.workdir),
                                   writes=summary.writes_of(fm, entry.step),
-                                  case=entry.case))
+                                  case=entry.case,
+                                  went_on=entry.went_on or ""))
     return out
 
 
