@@ -53,7 +53,8 @@ from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
 from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, claim_lines, fate,
-                     misquote, ruled_quote, spanned, took, words, wrong_asked)
+                     misquote, pinned_words, ruled_quote, spanned, took, words,
+                     wrong_asked)
 
 WRONG = "WRONG TEST"
 WHY = "WHY"
@@ -245,12 +246,13 @@ def ruled_claim(outputs, test, workdir, start=None, ruled=None, gone="",
     the change put in, holds a word `gone` did not that the edit wrote into
     their file and they did not hold (`ruling.fate`), and `forced(test)`
     says the test as the run found it, green at the start, is red against
-    the product now. no `forced`, no tie that way. else None: a ruled line
+    the product now. no `forced`, no tie that way. a builtin the test's code
+    reads is no word of `gone` (`pinned_words`). else None: a ruled line
     quoted for a test that pins something else covers nothing."""
-    pinned = words(gone)
+    pinned = pinned_words(gone)
     if not pinned:
         return None
-    put = words(came) - pinned
+    put = words(came) - words(gone)
     for output in outputs:
         for said, _, spec in claims(output or ""):
             if not spec or not same_test(said, test):

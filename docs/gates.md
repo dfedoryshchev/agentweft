@@ -747,7 +747,11 @@ in `gates.md`:
   them proves nothing alone: a test the move left green, loosened with a
   word the edit wrote, is not tied, and neither is a test the replay does
   not show red (a js file, a test that reads the spec files, which the
-  replay lays out as the run found them, a run that skips tests). a change that only drops a word, with nothing the edit
+  replay lays out as the run found them, a run that skips tests). on both
+  ways, and on the no-claim way below, a builtin name the test's code reads
+  (`list(`, `next(`) is no word of the lines taken out: the step's edit
+  decides which words leave the spec file, and any test may call one; inside
+  a string literal (`item["type"]`) the name counts. a change that only drops a word, with nothing the edit
   wrote in its place, is not tied that way. a claim quoting a ruled line
   for a test that pins something else covers nothing, and neither does one
   on lines the run has not edited yet. a test changed with no such line, or
@@ -769,9 +773,9 @@ in `gates.md`:
   each test that reads it), as the run found it and green at the start, is
   red against the product as it is now, and the lines the change took out
   hold a word the edit took out of a spec line a ruling lets change and the
-  file no longer holds. both sides are text the run found: what the change
-  put in never ties it, so a step that also broke a behaviour no ruling
-  covers and wrote the new envelope's words into that test is still asked.
+  file no longer holds. what the change put in never ties it, so a step that
+  also broke a behaviour no ruling covers and wrote the new envelope's words
+  into that test is still asked.
   a test removed, or
   deleted with its file, took out all its lines, so one the edit decides is
   listed too, by name, and the start-tests replay does not read it as red.

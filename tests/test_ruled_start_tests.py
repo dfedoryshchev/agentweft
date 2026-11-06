@@ -662,6 +662,33 @@ def test_a_claim_covers_a_test_only_where_its_change_is_the_ruled_edit_s(
                        start) == set()
 
 
+CALL_API = ("# api" + NL + NL + "- Every call takes `?after=&limit=`." + NL
+            + "- Every call returns `{items, next}`." + NL)
+
+
+def test_a_builtin_read_as_code_never_ties_a_claim(tmp_path, monkeypatch):
+    place, start = edited_place(tmp_path, monkeypatch)
+    (place / "docs" / "api.md").write_text(CALL_API, encoding="utf-8")
+    over = by(OVERRIDE, ruling.OVERRIDE)
+    assert "list" in ruling.took(FOUND[1], place, start)
+    said = [wrong(NAMES_TEST, FOUND[1])]
+    assert wrongtest.ruled_claim(
+        said, NAMES_TEST, place, start, over,
+        "    assert list(names(['b', 'a'])) == ['b', 'a']") is None
+    said = [wrong(ENVELOPE_TEST, FOUND[0])]
+    assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
+                                 ENVELOPE_GONE)
+
+
+def test_which_words_of_a_test_can_tie_it():
+    assert ruling.pinned_words(
+        "assert list(names(['b']))['type'] == len(KEYS)") == {"names", "type",
+                                                              "keys"}
+    assert ruling.pinned_words('expect(item.next).toBe("list")') == {
+        "expect", "item", "tobe", "list"}
+    assert ruling.pinned_words("") == set()
+
+
 def only_the_envelope(rel, line):
     return "the envelope ruling" if line.rstrip() == ENVELOPE_LINE else None
 

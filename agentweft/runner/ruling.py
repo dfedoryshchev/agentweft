@@ -45,6 +45,7 @@ step that reads it.
 the lines are read by `verbs`, so one inside a code fence or a `>` quote is
 not a question: a test that asserts on the string "NEEDS:" asks nothing.
 """
+import builtins
 import getpass
 import hashlib
 import keyword
@@ -891,6 +892,21 @@ def words(text):
     names of three letters or more that are not a keyword or a filler."""
     return {w.lower() for w in WORD.findall(text or "")
             if len(w) > 2 and w.lower() not in IDLE}
+
+
+BUILTINS = {w.lower() for w in dir(builtins)}
+LITERAL = re.compile(r"""(['"])(?:\\.|(?!\1).)*\1""")
+
+
+def pinned_words(text):
+    """-> the words of a test's lines `text` that can tie it to a spec line:
+    `words`, less a builtin name the code reads (`list(`, `next(`): any test
+    may call one, and the step's ruled edit decides which words leave the
+    spec file. inside a string literal a builtin's name is data the test
+    pins (`["type"]`) and counts."""
+    text = text or ""
+    quoted = " ".join(m.group(0) for m in LITERAL.finditer(text))
+    return words(quoted) | (words(LITERAL.sub(" ", text)) - BUILTINS)
 
 
 def quoted_as_found(said, workdir, start=None):

@@ -763,13 +763,13 @@ class Run(object):
         run found them, the lines it put in). every test, as the run found it
         and green at the start, is red against the product now (`forced`),
         and the lines taken out hold a word the edit took out of a spec line
-        a ruling lets change and out of its file. both sides are text the run
-        found: what the step wrote into the test never ties it, nor does a
-        word the line keeps or shares with any code."""
+        a ruling lets change and out of its file (`ruling.pinned_words`: a
+        builtin the test's code reads never ties). what the step wrote into
+        the test never ties it, nor does a word the line keeps."""
         if not pinned or not pinned[0]:
             return None
         tests, gone, _ = pinned
-        taken = ruling.words(gone)
+        taken = ruling.pinned_words(gone)
         if not taken:
             return None
         lost = self.ruled_lost()

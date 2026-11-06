@@ -124,6 +124,25 @@ def test_a_builtin_shared_with_the_ruled_line_does_not_decide_a_test(
     refused_on_names(tmp_path)
 
 
+CALL_API = ("# api" + NL + NL + "- Every call takes `?after=&limit=`." + NL
+            + "- Every call returns `{items, next}`." + NL)
+
+
+def test_a_builtin_the_ruled_rewrite_drops_from_its_file_does_not_decide(
+        tmp_path, monkeypatch):
+    # the rewrite words the doc without `list`, so the edit took `list` out
+    # of the line and out of its file; the names test reads `list(` as code
+    def reword(place):
+        (place / "docs" / "api.md").write_text(CALL_API, encoding="utf-8")
+        (place / "tests" / "test_names.py").write_text(NAMES_NEXT,
+                                                       encoding="utf-8")
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(),
+                             names=True, forge=reword,
+                             names_start=NAMES_LIST)
+    assert code != stops.EXIT_OK
+    refused_on_names(tmp_path)
+
+
 def test_a_test_still_green_as_found_is_not_decided(tmp_path, monkeypatch):
     def loosen(place):
         (place / "tests" / "test_names.py").write_text(LOOSE_NAMES,
