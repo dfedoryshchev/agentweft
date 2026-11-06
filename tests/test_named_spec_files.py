@@ -264,6 +264,32 @@ def test_a_list_of_names_stops_at_a_verb_a_modal_or_which():
         assert named(said) == {"rules/api-shape.md"}, said
 
 
+def test_the_first_name_after_the_verb_is_its_object_whatever_follows():
+    for said in ("Update docs/api.md examples to match.",
+                 "Fix the paging and update docs/api.md typos too.",
+                 "Update docs/api.md headings for the new paging.",
+                 "Update docs/api.md sections on paging.",
+                 "Update docs/api.md afterwards.",
+                 "Update docs/api.md always, it is the reference.",
+                 "Update docs/api.md and tests to match.",
+                 "Update docs/api.md and examples accordingly.",
+                 "Update docs/api.md and keep the handler as it is."):
+        assert named(said) == {"docs/api.md"}, said
+
+
+def test_a_later_name_stays_in_the_list_only_before_words_that_go_on_with_it():
+    for said in ("Update docs/api.md and rules/api-shape.md went stale.",
+                 "Update docs/api.md and rules/api-shape.md got it right.",
+                 "Update docs/api.md and rules/api-shape.md said so already.",
+                 "Update docs/api.md and rules/api-shape.md examples follow."):
+        assert named(said) == {"docs/api.md"}, said
+    for said in ("Update docs/api.md and rules/api-shape.md as needed.",
+                 "Update docs/api.md and rules/api-shape.md where needed.",
+                 "Update docs/api.md and rules/api-shape.md to match.",
+                 "Update docs/api.md, rules/api-shape.md, and the handler."):
+        assert named(said) == {"docs/api.md", "rules/api-shape.md"}, said
+
+
 def test_an_answer_that_keeps_a_file_covers_none_of_its_lines():
     kept = answered("override: cursor paging wins, update the handler and"
                     " docs/api.md stays the reference", ruling.OVERRIDE)

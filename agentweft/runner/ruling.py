@@ -982,13 +982,15 @@ MODAL = ("may", "must", "should", "will", "can")
 DETERMINER = {"a", "an", "the", "this", "that", "these", "those", "each",
               "every", "any", "some", "another", "my", "your", "our", "its",
               "his", "her", "their"}
-# a name followed by one of these, or by a word that reads as a verb of its
-# own (`verb_like`), is the subject of a clause of its own: "update the
-# handler and docs/api.md stays as it is"
-CLAUSE = {"is", "are", "was", "were", "be", "been", "being", "am", "stay",
-          "remain", "hold", "say", "ask", "keep", "win", "do", "did", "has",
-          "have", "had", "must", "should", "may", "might", "will", "would",
-          "can", "could", "shall", "which", "that", "who", "whose", "whom"}
+# a name the list reaches after a comma or `and` stays in it only when one of
+# these follows: any other word may be the verb of a clause the name is the
+# subject of ("update docs/api.md and rules/x.md went stale"), and a verb
+# cannot be told from a noun by its spelling, so such a name is left out
+GOES_ON = {"to", "so", "too", "accordingly", "also", "both", "for", "with",
+           "in", "now", "first", "then", "again", "alike", "together", "by",
+           "from", "on", "at", "where", "wherever", "if", "when", "once"}
+AS_WHAT = {"well", "needed", "required", "necessary"}
+RELATIVE = {"which", "that", "who", "whose", "whom"}
 OPENS = {"and", "both", "then", "so", "now", "also"}
 CLOSES = re.compile(r"""[.:!?)\]][`'"\])]*$""")
 
@@ -1005,45 +1007,48 @@ def word(tok):
     return tok.strip("`'\"()[].:!?").lower()
 
 
-def verb_like(tok):
-    """whether a word after a name opens a clause the name is the subject
-    of: a modal, a form of be, have or do, a relative (`CLAUSE`), or a word
-    that ends the way a verb of its own does (`-s`, `-ed`), which a plural
-    noun also does, so such a name is left out, never let in."""
-    said = word(tok)
-    if said in CLAUSE:
-        return True
-    if "/" in said or "." in said:
-        return False
-    return said != "as" and len(said) > 2 and said.endswith(("s", "ed"))
+def goes_on(toks, i):
+    """whether the words from `toks[i]` go on with the name before them
+    rather than open a clause it is the subject of (`GOES_ON`, `as well`,
+    `as needed`)."""
+    said = word(toks[i])
+    if said == "as":
+        return i + 1 < len(toks) and word(toks[i + 1]) in AS_WHAT
+    return said in GOES_ON
 
 
 def objects(toks, i, specs):
     """-> the spec files of the list of names that starts at `toks[i]`,
     after a verb asking to change them. the list holds spec paths only, and
-    ends at the first name that is not one, or that opens a clause of its
-    own: a verb, a modal or a relative follows it (`verb_like`), after a
-    comma too ("..., which stays the reference")."""
+    ends at the first name that is not one. the first name is the verb's
+    object whatever follows it ("update docs/api.md examples"); a name the
+    list reaches after a comma or `and` may be the subject of a clause of
+    its own, so it stays only before the sentence's end, another joint or a
+    word that goes on with it (`goes_on`), and never before a relative after
+    a comma ("..., which stays the reference")."""
     out = []
     while i < len(toks):
         name = path_of(toks[i])
         if name not in specs:
             break
+        later = bool(out)
         if CLOSES.search(toks[i]) or i + 1 == len(toks) or toks[i + 1] == ";":
             out.append(name)
             break
         j = i + 1
-        if toks[j] == ",":
+        comma = toks[j] == ","
+        if comma:
             j += 1
         if j < len(toks) and word(toks[j]) == "and":
             j += 1
         if j > i + 1:
-            if j < len(toks) and verb_like(toks[j]):
+            if later and comma and j < len(toks) \
+                    and word(toks[j]) in RELATIVE:
                 break
             out.append(name)
             i = j
             continue
-        if not verb_like(toks[i + 1]):
+        if not later or goes_on(toks, i + 1):
             out.append(name)
         break
     return out
