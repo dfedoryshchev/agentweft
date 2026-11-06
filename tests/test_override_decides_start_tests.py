@@ -5,12 +5,12 @@ the override lets spec lines change, and the run's edit rewrites them. a
 start test whose change is that edit's needs no WRONG TEST line of its own:
 the test as the run found it, green at the start, is red against the product
 now, and the lines the change took out of it hold a word the edit took out of
-a line the override covers (or hold a word of that line and the lines it put
-in a new word the edit wrote). such a test, changed, removed or deleted with
-its file, is listed under the ruling in the handoff with the line that
-decided it. a test the edit's lines do not decide still needs its own claim
-or parks: one still green as found, one whose lines share no word the edit
-took out.
+a line the override covers and out of its file. such a test, changed,
+removed or deleted with its file, is listed under the ruling in the handoff
+with the line that decided it. a test the edit's lines do not decide still
+needs its own claim or parks: one still green as found, one whose lines share
+no word the edit took out, and one the move also broke whose rewrite writes
+the new envelope's words, or shares a builtin with the ruled line.
 """
 import sys
 
@@ -76,6 +76,52 @@ def test_a_test_the_edit_does_not_decide_still_needs_a_claim(tmp_path,
     left = said.split("FAIL test-edits")[-1].split(NL)[0]
     assert NAMES_TEST + " (changed)" in left
     assert ENVELOPE_TEST not in left and FIRST_PAGE_TEST not in left
+
+
+ORDER_START = ("from pages import listing" + NL + NL + NL
+               + "def test_names_keep_their_order():" + NL
+               + "    assert listing(['b', 'a'])['items'] == ['b', 'a']" + NL)
+ORDER_LEFT = ORDER_START.replace(
+    "== ['b', 'a']", "== ['a', 'b'] and listing(['b', 'a'])['next'] is None")
+NAMES_LIST = NAMES_START.replace("assert names(['b', 'a'])",
+                                 "assert list(names(['b', 'a']))")
+NAMES_NEXT = NAMES_START.replace("assert names(['b', 'a']) == ['b', 'a']",
+                                 "assert next(iter(names(['b', 'a']))) == 'a'")
+
+
+def refused_on_names(tmp_path):
+    said = gates(tmp_path)
+    assert "FAIL test-edits" in said, said
+    assert NAMES_TEST + " (changed)" in said.split("FAIL test-edits")[-1] \
+        .split(NL)[0]
+
+
+def test_a_test_the_move_also_broke_is_not_decided_by_a_word_the_step_wrote(
+        tmp_path, monkeypatch):
+    # the order test pins docs/names.md:3, which no ruling covers; the move
+    # sorts the items and the rewrite adds the new envelope's key
+    def sort(place):
+        listing = (place / "pages.py").read_text(encoding="utf-8")
+        (place / "pages.py").write_text(listing.replace(
+            '"items": items', '"items": sorted(items)'), encoding="utf-8")
+        (place / "tests" / "test_names.py").write_text(ORDER_LEFT,
+                                                       encoding="utf-8")
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(),
+                             forge=sort, names_start=ORDER_START)
+    assert code != stops.EXIT_OK
+    refused_on_names(tmp_path)
+
+
+def test_a_builtin_shared_with_the_ruled_line_does_not_decide_a_test(
+        tmp_path, monkeypatch):
+    def rewrite(place):
+        (place / "tests" / "test_names.py").write_text(NAMES_NEXT,
+                                                       encoding="utf-8")
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(),
+                             names=True, forge=rewrite,
+                             names_start=NAMES_LIST)
+    assert code != stops.EXIT_OK
+    refused_on_names(tmp_path)
 
 
 def test_a_test_still_green_as_found_is_not_decided(tmp_path, monkeypatch):

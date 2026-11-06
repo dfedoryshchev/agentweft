@@ -765,8 +765,10 @@ in `gates.md`:
   each test that reads it), as the run found it and green at the start, is
   red against the product as it is now, and the lines the change took out
   hold a word the edit took out of a spec line a ruling lets change and the
-  file no longer holds, or hold a word of that line and the lines the change
-  put in hold a new word the edit wrote into the file. a test removed, or
+  file no longer holds. both sides are text the run found: what the change
+  put in never ties it, so a step that also broke a behaviour no ruling
+  covers and wrote the new envelope's words into that test is still asked.
+  a test removed, or
   deleted with its file, took out all its lines, so one the edit decides is
   listed too, by name, and the start-tests replay does not read it as red.
   handoff.md lists each such test under the ruling with the line that

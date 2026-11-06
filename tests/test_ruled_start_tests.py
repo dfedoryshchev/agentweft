@@ -149,13 +149,14 @@ def built(*claims):
             + "- tests/test_envelope.py: the envelope is {items, next}" + NL)
 
 
-def place_of(tmp_path, monkeypatch, envelope=ENVELOPE, bridge=False):
+def place_of(tmp_path, monkeypatch, envelope=ENVELOPE, bridge=False,
+             names_start=NAMES_START):
     monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", GLOBS)
     files = {
         "docs/api.md": API, "docs/names.md": NAMES,
         "rules/api-shape.md": RULE, "pages.py": LISTING, "conftest.py": "",
         "tests/test_envelope.py": envelope,
-        "tests/test_names.py": NAMES_START}
+        "tests/test_names.py": names_start}
     if bridge:
         files.update({JS_FILE: JS, "tests/test_bridge.py": BRIDGE,
                       "conftest.py": JS_RUNNER})
@@ -193,14 +194,15 @@ def edits_of(place, names=False, forge=None, rewrite=CURSOR_ENVELOPE,
 
 def overridden(tmp_path, monkeypatch, plan, worker, names=False,
                rewrite=CURSOR_ENVELOPE, envelope=ENVELOPE, js=None,
-               forge=None):
+               forge=None, names_start=NAMES_START):
     """an override run on two legs: the planner stops on the rule's line, the
     override goes in, and the second leg's worker changes the start tests
     that pin the old envelope. `js` puts a test file read by line and a
     python test that runs it in the start state, and is what the worker
-    rewrites that file to. -> (steps asked on the second leg, its exit
-    code)."""
-    place = place_of(tmp_path, monkeypatch, envelope, bridge=js is not None)
+    rewrites that file to; `names_start` is the names test the run starts
+    with. -> (steps asked on the second leg, its exit code)."""
+    place = place_of(tmp_path, monkeypatch, envelope, bridge=js is not None,
+                     names_start=names_start)
     asked, _, code = go(tmp_path, monkeypatch, "build-feature",
                         plain({"planner.md": [first_plan(NAMED)]}),
                         lambda s, n: None, "--task", NAMED)
