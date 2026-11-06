@@ -1,0 +1,14 @@
+{
+  "exit": 1,
+  "raised": null,
+  "path": [],
+  "journal": [],
+  "index": [],
+  "handoff": [],
+  "files": [],
+  "steps": [],
+  "printed": [
+    "code-review takes a task ({TASK} in instructions.md). give it with --task \"<text>\" or --task-file <path>"
+  ],
+  "prompts": []
+}

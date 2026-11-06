@@ -137,6 +137,8 @@ ONE_FINDING = "- [high] app.py:12 the loop reads one past the end of items\n"
 LOOP = "def last(items):\n    return items[len(items)]\n"
 LOOP_FIXED = "def last(items):\n    return items[len(items) - 1]\n"
 LOOP_THEIRS = "def last(items):\n    return items[-1]\n"
+LOOP_DIFF = ("--- a/app.py\n+++ b/app.py\n@@ -1,2 +1,2 @@\n def last(items):\n"
+             "-    return items[-1]\n+    return items[len(items)]\n")
 NOTES = ("## added\n- a --dry-run switch on the export\n\n"
          "## fixed\n- the export no longer drops the last row\n")
 SUMMARY = ("notes.md: the plan moved to friday (line 3)\n\n"
@@ -308,16 +310,17 @@ CASES = {
         "planner.md": [MUL_PLAN],
         "tester.md": [say("TEST: test_mul.py\n\n" + MUL_TEST,
                           {"test_mul.py": MUL_TEST})] * 2}},
-    ("code-review", "pass"): {"answers": {
+    ("code-review", "pass"): {"args": ["--task", LOOP_DIFF], "answers": {
         "worker.md": [ONE_FINDING],
         "reviewer.md": ["VERDICT: ok\n\n" + ONE_FINDING]}},
-    ("code-review", "redo"): {"answers": {
+    ("code-review", "redo"): {"args": ["--task", LOOP_DIFF], "answers": {
         "worker.md": ["- [high] app.py the loop reads one past the end\n",
                       ONE_FINDING],
         "reviewer.md": ["VERDICT: redo\n\nthe finding on app.py has no line\n",
                         "VERDICT: ok\n\n" + ONE_FINDING]}},
     ("code-review", "model-map"): {
-        "args": ["--model-for", "worker=low,reviewer=opus"],
+        "args": ["--task", LOOP_DIFF, "--model-for",
+                 "worker=low,reviewer=opus"],
         "env": {"MODEL_LOW": "low-in-replay"},
         "answers": {
             "worker.md": [ONE_FINDING],
@@ -348,7 +351,8 @@ CASES = {
         "answers": {"worker.md": [say("FAILS: assert -1 == 3\nTEST: "
                                       "test_calc.py\n\n" + TEST,
                                       {"test_calc.py": TEST})] * 2}},
-    ("code-review", "task-refused"): {"args": ["--task", BUG], "answers": {}},
+    ("ops-check", "task-refused"): {"args": ["--task", BUG], "answers": {}},
+    ("code-review", "task-missing"): {"answers": {}},
     ("ops-check", "pass"): {"answers": {
         "planner.md": ["- app.log: the nightly export\n"],
         "worker.md": ["- [high] app.log: ERROR nightly-export failed: "
@@ -584,12 +588,14 @@ CASES = {
         "answers": {"worker.md": FIXES["worker.md"],
                     "patcher.md": [SUB_CONFLICT]}},
     ("code-review", "target-moved"): {
-        "place": {"app.py": LOOP}, "git": True, "args": ["--target", "main"],
+        "place": {"app.py": LOOP}, "git": True,
+        "args": ["--task", LOOP_DIFF, "--target", "main"],
         "ends": [stops.MOVED], "answers": {"worker.md": [dict(
             say(ONE_FINDING, {"app.py": LOOP_FIXED}),
             then=main_moves("app.py", LOOP_THEIRS))]}},
     ("code-review", "merge-unchecked"): {
-        "place": {"app.py": LOOP}, "git": True, "args": ["--target", "main"],
+        "place": {"app.py": LOOP}, "git": True,
+        "args": ["--task", LOOP_DIFF, "--target", "main"],
         "ends": [stops.UNCHECKED], "answers": {"worker.md": [dict(
             say(ONE_FINDING, {"app.py": LOOP_FIXED}), then=main_gone)]}},
 }

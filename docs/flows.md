@@ -31,6 +31,12 @@ then one flow serves every bug:
     python run.py fix-with-test --task "add(1, 2) returns -1"
     python run.py fix-with-test --task-file bug.md
 
+`code-review` writes it in `instructions.md`, so the diff to review reaches
+its worker and the reviewer that holds each finding to a line of it:
+
+    git diff main > change.diff
+    python run.py code-review --task-file change.diff
+
 `--task-file` is read as UTF-8, a byte order mark dropped. the text goes in
 exactly where `{TASK}` is and nowhere else: in a step's own file it reaches
 that step, in `instructions.md` it reaches every step. a fanned-out flow that

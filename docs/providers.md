@@ -167,7 +167,7 @@ a flow can give a tier to a role rather than to each step:
 
 and a run can say which model each role uses without the flow being edited:
 
-    python run.py code-review --force --model-for reviewer=low,worker=opus
+    python run.py code-review --force --task-file change.diff --model-for reviewer=low,worker=opus
 
 the flag can be given more than once. a value is a tier (`high`, `mid`,
 `low`, resolved as above) or a model id, handed to the provider as typed - the

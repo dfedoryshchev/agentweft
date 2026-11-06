@@ -307,7 +307,7 @@ def test_show_says_where_a_flow_takes_its_task(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["run.py", "show", "fix-with-test"])
     cli.cmd_show()
     assert "  task: {TASK} in worker.md" in capsys.readouterr().out
-    monkeypatch.setattr(sys, "argv", ["run.py", "show", "code-review"])
+    monkeypatch.setattr(sys, "argv", ["run.py", "show", "ops-check"])
     cli.cmd_show()
     assert "task:" not in capsys.readouterr().out
 
