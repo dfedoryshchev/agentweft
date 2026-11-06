@@ -248,6 +248,27 @@ def test_a_lower_case_heading_after_a_one_line_command_opens_its_section():
     assert only["cmd"] == "python -m pytest -q"
 
 
+@pytest.mark.parametrize("cmd, body", [
+    ("python - <<EOF", "read:\n  notes.md\nEOF\n"),
+    ("python - <<'END'", "tried:\n  once\nEND\n"),
+    ('python -c "', 'read:\n"\n')])
+def test_a_bare_lower_case_name_inside_a_command_still_open_stays_in_it(
+        cmd, body):
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- the config loads\n  cmd: "
+                        + cmd + "\n" + body + "  saw: ok\nEND HANDOFF\n")
+    assert got["read"] == [] and got["tried"] == [], got
+    [only] = got["verified"]
+    assert only["cmd"].startswith(cmd) and only["saw"] == "ok"
+
+
+def test_a_bare_yaml_read_key_in_a_heredoc_is_no_read_section():
+    got = handoff.parse("HANDOFF\nVERIFIED:\n- the config loads\n  cmd: python"
+                        " - <<EOF\nread:\n  - notes.md\nEOF\n  saw: ok\n"
+                        "END HANDOFF\n")
+    assert got["read"] == [], got
+    assert got["verified"][0]["cmd"] == "python - <<EOF read:"
+
+
 @pytest.mark.parametrize("after, where", [("Read: the spec", "read"),
                                           ("TRIED: once", "tried")])
 def test_a_section_name_not_in_lower_case_still_ends_the_command(after,

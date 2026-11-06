@@ -557,10 +557,13 @@ capitals it does not know (`NEEDS:`, `CITES:`, `OPTIONS:`) is kept under
 the claim above them, so a command keeps any pipe in it, and a line of a
 command that runs on over lines and reads `word: text` with the word in
 lower case (`try: f()` in a `python -c` body, `read: true` in a heredoc)
-stays in the command; a name the verbs or an open question know, in any
-case, a section name of the block not in lower case (`Read:`) or in lower
-case with nothing after it (`read:` with its items under it), a heading
-in capitals, a `saw:` line or the next item still ends it; a block written in
+stays in the command, and so does a bare `read:` and any other line that is
+not a bullet while the command is still open (a heredoc whose closing word
+has not come, a quote not closed, a line ending in `\`); a name the verbs or
+an open question know, in any case, a section name of the block not in lower
+case (`Read:`) or in lower case with nothing after it after a command that is
+done (`read:` with its items under it), a heading in capitals, a `saw:` line
+or the next item still ends it; a block written in
 the older one-line form, `<claim> | cmd: <command> | saw: <excerpt>`, is
 still read, split on the `cmd:` and `saw:` labels only, and a `saw:` that
 quotes two or more pieces matches each piece on its own. a `cmd:` that

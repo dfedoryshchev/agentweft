@@ -135,7 +135,9 @@ def parse(text):
     is kept under `other` as the step wrote it. under a VERIFIED `cmd:`, a
     line that reads `word: text` with the word in lower case and no name
     `verbs` or a question knows (`try: f()` in a `python -c` body, `read:
-    true` in a heredoc) is the command's, not a heading (`_code_line`). an ASSUMED item's `why:` and
+    true` in a heredoc) is the command's, not a heading (`_code_line`), and
+    while the command is still open (`_open`) so is a bare `read:` and any
+    line that is not a bullet. an ASSUMED item's `why:` and
     `if wrong:` lines are its own, kept on lines of their own under the
     choice, and so are an ADJACENT item's `fixed:` and `test:` lines and a
     BECAUSE item's `from:` and `led to:` lines; the
@@ -163,10 +165,14 @@ def parse(text):
         if items is out["adjacent"] and items and _labelled(line, FOUND):
             items[-1] = items[-1] + "\n" + _labelled(line, FOUND)
             continue
-        if (items is out["verified"] and items and _in_cmd(items[-1])
-                and _code_line(line)):
-            items[-1] = items[-1] + " " + line.strip()
-            continue
+        if items is out["verified"] and items and _in_cmd(items[-1]) \
+                and line.strip():
+            going = _open(items[-1])
+            if _code_line(line, going) or (
+                    going and verbs.key_of(line) is None
+                    and not verbs.BULLET.match(line)):
+                items[-1] = items[-1] + " " + line.strip()
+                continue
         head = verbs.key_of(line)
         if head is not None and head[0] in ASKING and not head[2]:
             name, rest = head[0], head[1]
@@ -270,13 +276,28 @@ def _in_cmd(item):
     return bool(labels) and labels[-1].lower() in ("cmd", "command", "ran")
 
 
-def _code_line(line):
+def _open(item):
+    """whether the VERIFIED item `item`'s command, as far as it has been
+    read, is still open: a heredoc whose closing word has not come, a quote
+    not closed, or a line ending in `\\`."""
+    cmd = OLD_PART.split(item.split("\n")[-1].strip())[-1]
+    m = PART.match(cmd)
+    cmd = m.group(2) if m else cmd
+    doc = HEREDOC.search(cmd)
+    if doc and doc.group(2) not in cmd[doc.end():].split():
+        return True
+    return cmd.count('"') % 2 == 1 or cmd.count("'") % 2 == 1 \
+        or cmd.rstrip().endswith("\\")
+
+
+def _code_line(line, going=False):
     """whether `line`, read as `word: text`, is a line of a command and not a
     heading: not bulleted, not in capitals, no name the run's own verbs or an
     open question know (`Assumed:`, `Needs:`, `Question:` in any case still
-    open theirs), and a section name of the block only in lower case with
-    text after it (`read: true` in a heredoc is the command's; `Read:`, and
-    a bare `read:` with its items under it, open READ)."""
+    open theirs), and a section name of the block only in lower case, with
+    text after it or inside a command still `going` (`read: true` and a bare
+    `read:` in a heredoc are the command's; `Read:`, and a bare `read:` with
+    its items under it after a one-line command, open READ)."""
     head = verbs.key_of(line)
     if head is None:
         return False
@@ -285,7 +306,7 @@ def _code_line(line):
         return False
     if name in KEYS:
         raw = verbs.KEY.match(line).group(1)
-        return raw == raw.lower() and bool((text or "").strip())
+        return raw == raw.lower() and (going or bool((text or "").strip()))
     return True
 
 
