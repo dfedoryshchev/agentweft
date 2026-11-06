@@ -217,7 +217,8 @@ def check_step(run, route, step, out, run_dir=None):
                                 began))
     began = time.time()
     said = ruling.conflict_of(out.output, workdir, start,
-                              handed=handed_to(run, step), ruled=covered)
+                              handed=handed_to(run, step), ruled=covered,
+                              held=getattr(run, "spec_line_held", None))
     if said and said[1]:
         results.insert(0, timed(Result("conflict", False, said[1]), began))
     forged = getattr(run, "forged", {}).pop(step, "")

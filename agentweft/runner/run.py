@@ -652,6 +652,13 @@ class Run(object):
             self.spec_rulings(), line, self.runner_asked(ruling.asked_lines),
             rel, self.request(), self.spec_paths())
 
+    def spec_line_held(self, rel, line):
+        """-> the `request:` answer to the runner's own question that named
+        `line`, as the run found it, so the line holds by it; or None."""
+        asked = self.runner_asked(ruling.asked_lines)
+        return next((d for d in self.spec_rulings()
+                     if ruling.holds_line(d, line, asked)), None)
+
     def answered(self, output=""):
         """-> `output`, then what every step of this run answered last, then
         the WRONG TEST claims the test-edits check took earlier in the run

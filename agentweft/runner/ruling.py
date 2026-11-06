@@ -563,7 +563,8 @@ def checked_conflict(said, workdir, start=None):
     return cite, quote, flat(m.group(5)), ""
 
 
-def conflict_of(output, workdir, start=None, handed=(), ruled=None):
+def conflict_of(output, workdir, start=None, handed=(), ruled=None,
+                held=None):
     """-> None for an answer with no CONFLICT line, else (the question, "")
     when the quote is at the line it cites as the run found it, or ("", what
     is wrong with it) when it is not. a quote that runs on past the cite
@@ -577,9 +578,10 @@ def conflict_of(output, workdir, start=None, handed=(), ruled=None):
     an answer with a CONFLICT line for each of several spec lines stops on
     one question citing them all, each quote checked the same way, with the
     request's words from the first of them that carries any, a line a
-    ruling covers included (`request_words`)."""
+    ruling covers included (`request_words`). `held` is read for the marks
+    only (`untyped`)."""
     if verbs.parse(output).conflict is None:
-        return untyped(output, handed, workdir, start, ruled)
+        return untyped(output, handed, workdir, start, ruled, held)
     found = every_unruled(output, workdir, start, ruled)
     if not found:
         return None
@@ -650,16 +652,24 @@ def mark_ruled(mark, workdir, start=None, ruled=None):
     return found
 
 
-def untyped(output, handed=(), workdir=".", start=None, ruled=None):
+def untyped(output, handed=(), workdir=".", start=None, ruled=None,
+            held=None):
     """-> None, or ("", why) for an answer whose plan marks a behaviour
     `spec: contradicts` with no CONFLICT line to stop the run on it, the
     marks an earlier step's answer in `handed` already holds left out, and
     with `ruled` the marks on lines a ruling already lets change
-    (`mark_ruled`)."""
+    (`mark_ruled`), and with `held` the marks on lines a `request:` answer
+    to the runner's own question already held: that question was asked and
+    answered, and typing it again would ask it twice."""
     given = set(flat(m) for text in handed for m in marks(text))
+
+    def either(rel, line):
+        return (ruled(rel, line) if ruled is not None else None) or \
+            (held(rel, line) if held is not None else None)
+
     marked = [m for m in marks(output) if flat(m) not in given
-              and not (ruled is not None
-                       and mark_ruled(m, workdir, start, ruled))]
+              and not ((ruled is not None or held is not None)
+                       and mark_ruled(m, workdir, start, either))]
     if not marked:
         return None
     return "", ("the answer marks " + "; ".join(marked) + " and has no"
@@ -1511,6 +1521,17 @@ def answers_lines(d, line, asked):
     found = asked_and_answered(d)
     m = ASKED_IN.match(d.why)
     if not found or kind_of(found[1]) != OVERRIDE or not m:
+        return False
+    return flat(line) in (asked or {}).get(m.group(1), ())
+
+
+def holds_line(d, line, asked):
+    """whether `d` is a `request:` answer, given with --answer, to a
+    question the runner stopped a leg on that named `line`: the spec line
+    holds, by that answer. `asked` is as `answers_lines` reads it."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if not found or kind_of(found[1]) != REQUEST or not m:
         return False
     return flat(line) in (asked or {}).get(m.group(1), ())
 

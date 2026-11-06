@@ -58,7 +58,12 @@ and fails it, with what was wrong (`docs/journal.md`, when the request
 contradicts the spec). a plan line marked `spec: contradicts <file>:<line>`
 with no CONFLICT line fails the step the same way, unless an override the
 run holds already lets every line it cites change: those lines are ruled,
-and a new conflict on them would ask what is answered. a cite of
+and a new conflict on them would ask what is answered. the same holds for a
+line a `request:` answer held, given with `--answer` to a question the
+runner stopped a leg of this run on that named the line: the spec holds by
+that answer, and the mark names the question already asked (a behaviour
+left unbuilt under the ruling). such an answer still lets no spec line
+change. a cite of
 `decisions.md` (`ruled override at decisions.md:152`) names where the ruling
 sits, not a spec line, so it is passed over and is never a line a ruling
 covers. a mark on any other line, or citing no spec line, still fails it.
