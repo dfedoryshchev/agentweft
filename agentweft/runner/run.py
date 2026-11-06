@@ -510,7 +510,8 @@ class Run(object):
                                           self.start, self.spec_line_covered,
                                           self.gone_of(edits, test),
                                           self.gone_of(edits, test,
-                                                       testedits.came))
+                                                       testedits.came),
+                                          forced=self.forced)
                 d = d and d[0]
             if d is None:
                 left.append((test, said))
@@ -708,11 +709,33 @@ class Run(object):
         found = None
         for test in tests:
             d = wrongtest.ruled_claim(said, test, self.workdir, self.start,
-                                      self.spec_line_covered, gone, came)
+                                      self.spec_line_covered, gone, came,
+                                      forced=self.forced)
             if d is None:
                 return None
             found = found or d
         return found
+
+    def forced(self, test):
+        """whether `test`, a start test id or a file read whole, as the run
+        found it and green at the start, is red against the product as it
+        is now (`starttests.replay` with no file laid out as the run left
+        it), read once per state of the product. never when the run skips
+        tests or has no start to replay."""
+        start = getattr(self, "start", None)
+        order = getattr(self, "order", None)
+        if start is None or not start.hashed or order is None or order.skip:
+            return False
+        key = tuple(sorted(start.product_now().items()))
+        held = getattr(self, "red_as_found", None)
+        if held is None or held[0] != key:
+            known = None if self.suite == baseline.OFF else \
+                self.known_at_start
+            found = starttests.replay(start, redorder.test_command(self.fm),
+                                      green=self.start_green, known=known)
+            held = (key, [red for red, _ in found.red])
+            self.red_as_found = held
+        return any(wrongtest.same_test(red, test) for red in held[1])
 
     def edits_ruled(self, found, output="", decided=None):
         """-> [(edit, test or file, how it changed, the ruling that covers

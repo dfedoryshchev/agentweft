@@ -6,8 +6,9 @@ when its answer names it on a WRONG TEST line whose `spec:` line quotes a
 line the ruling covers, as the run found it or as the run's own ruled edit
 left it, when the lines the step took out of the test hold a word the run's
 edit took out of that line, or hold a word of that line, which the edit
-rewrote, and the lines the step put in hold a new word the edit wrote (a
-field moved into a nested shape), and the handoff lists each such test under
+rewrote, the lines the step put in hold a new word the edit wrote (a field
+moved into a nested shape) and the test as the run found it is red against
+the product now, and the handoff lists each such test under
 that ruling with the line its claim quoted. a ruled line quoted for a test that
 pins an unruled line covers nothing, loosened or rewritten. a plan that
 marks a ruled line `spec: contradicts` needs no new CONFLICT line for it.
@@ -758,6 +759,19 @@ def test_a_start_test_loosened_on_a_word_the_moved_line_shares_is_refused(
     assert QTY_TEST + " (changed)" not in gates
 
 
+def test_a_start_test_loosened_with_a_word_the_move_wrote_is_refused(
+        tmp_path, monkeypatch):
+    loose = NESTED_TESTS.replace('assert item()["unit"] == "g"',
+                                 'assert item()["locations"] and item()["unit"]')
+    _, code = nested(tmp_path, monkeypatch, wrong(QTY_TEST, QTY_FOUND)
+                     + wrong(UNIT_TEST, QTY_FOUND), tests=loose)
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    assert "FAIL test-edits" in gates
+    assert UNIT_TEST + " (changed)" in gates
+    assert QTY_TEST + " (changed)" not in gates
+
+
 def nested_place(tmp_path, monkeypatch):
     """-> (the place with the nested shape written, its start)."""
     monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", GLOBS)
@@ -780,29 +794,54 @@ def test_a_claim_ties_by_the_quoted_line_and_what_the_edit_brought(
     gone, came = '    assert item()["qty"] == 2000', \
         '    assert item()["locations"][0]["qty"] == 2000'
     assert ruling.took(QTY_FOUND, place, start) == set()
+    broke = {QTY_TEST}.__contains__
     d, cite = wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                    gone, came)
+                                    gone, came, forced=broke)
     assert d == "a ruling" and cite == "docs/items.md:3"
     assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                 gone) is None
+                                 gone, came) is None, \
+        "with no word of whether the move broke the test, nothing ties"
+    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
+                                 gone, came, forced=lambda t: False) is None
+    every = lambda t: True
+    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
+                                 gone, forced=every) is None
     assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
                                  '    assert item()["unit"] == "g"',
-                                 '    assert item()["unit"]') is None
+                                 '    assert item()["unit"]',
+                                 forced=every) is None
     assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
                                  '    insert(qty=1, unit="g")',
-                                 '    insert(unit="g")') is None, \
+                                 '    insert(unit="g")', forced=every) is None, \
         "a change that only drops the field puts in nothing the edit wrote"
     assert wrongtest.ruled_claim(
         said, QTY_TEST, place, start, any_line,
         "    assert names(['b', 'a']) == ['b', 'a']",
-        "    assert names(['b', 'a']) == ['locations']") is None
+        "    assert names(['b', 'a']) == ['locations']", forced=every) is None
     unit = [wrong(UNIT_TEST, 'docs/items.md:4 "' + UNIT_LINE + '"')]
     assert wrongtest.ruled_claim(unit, UNIT_TEST, place, start, any_line,
                                  '    assert item()["unit"] == "g"',
-                                 '    assert item()["unit"] == "locations"') \
+                                 '    assert item()["unit"] == "locations"',
+                                 forced=every) \
         is None, "a line the run left as it was covered a test"
     assert wrongtest.ruled_claim(said, QTY_TEST, place, None, any_line,
-                                 gone, came) is None
+                                 gone, came, forced=broke) is None
+
+
+def test_a_test_the_move_left_green_does_not_tie_on_a_word_it_shares(
+        tmp_path, monkeypatch):
+    place, start = nested_place(tmp_path, monkeypatch)
+    broke = {QTY_TEST}.__contains__
+    names = "tests/test_names.py::test_an_item_has_its_name"
+    assert wrongtest.ruled_claim(
+        [wrong(names, QTY_FOUND)], names, place, start, any_line,
+        '    assert item()["name"] == "flour"',
+        '    assert item()["locations"] or item()["name"]',
+        forced=broke) is None
+    assert wrongtest.ruled_claim(
+        [wrong(UNIT_TEST, QTY_FOUND)], UNIT_TEST, place, start, any_line,
+        '    assert item()["unit"] == "g"',
+        '    assert item()["unit"]  # per entry', forced=broke) is None
 
 
 def test_a_claim_names_a_test_by_its_id_or_a_file_read_whole():

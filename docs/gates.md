@@ -724,8 +724,14 @@ in `gates.md`:
   out did not, which the edit wrote into the file and the quoted lines did
   not hold (a field moved into a nested shape keeps its name in the file, so
   `item["qty"]` that becomes `item["locations"][0]["qty"]` is tied by
-  `locations`). a change that only drops a word, with nothing the edit wrote
-  in its place, is not tied that way. a claim quoting a ruled line
+  `locations`), and the test as the run found it, green at the start, is red
+  against the product as it is now (the start-tests replay, read once per
+  state of the product). the step writes the lines it puts in, so a word in
+  them proves nothing alone: a test the move left green, loosened with a
+  word the edit wrote, is not tied, and neither is a test the replay does
+  not show red (a js file, a test that reads the spec files, which the
+  replay lays out as the run found them, a run that skips tests). a change that only drops a word, with nothing the edit
+  wrote in its place, is not tied that way. a claim quoting a ruled line
   for a test that pins something else covers nothing, and neither does one
   on lines the run has not edited yet. a test changed with no such line, or
   quoting a line no ruling covers, still fails, and on its last go parks on

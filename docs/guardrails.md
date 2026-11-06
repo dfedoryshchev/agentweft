@@ -373,7 +373,8 @@ test under that ruling with the line the claim quoted. the claim holds only
 when the lines the step took out of the test hold a word the run's edit took
 out of that line, or hold a word of that line, which the edit rewrote, and
 the lines the step put in hold a new word the edit wrote (a field moved into
-a nested shape keeps its name in the file): a ruled line quoted for a test
+a nested shape keeps its name in the file) and the test as the run found it
+is red against the product now: a ruled line quoted for a test
 that pins something else covers nothing. a test on a line no ruling covers still parks. a
 claim the check took holds for the rest of the run, a resume of it included:
 a later go of the step, sent back for something else, need not repeat it.
