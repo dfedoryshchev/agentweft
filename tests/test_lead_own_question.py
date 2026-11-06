@@ -117,6 +117,37 @@ def test_a_lead_recommendation_that_names_a_test_or_quotes_parks(
         assert decisions.read(place) == [], rec
 
 
+def test_which_words_name_a_spec_or_test_file(monkeypatch):
+    from agentweft.runner import asking
+    monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", "TASK.md,docs")
+    for said in ("TASK.md says so", "see docs\\api.md:3", "docs/api.md,",
+                 "frontend/tests/items.test.js expects it"):
+        assert asking.names_a_spec_or_test(said), said
+    for said in ("clear it in api.py", "2 lines in frontend/src/api.js", "",
+                 "none"):
+        assert not asking.names_a_spec_or_test(said), said
+
+
+def test_a_lead_question_naming_a_spec_or_test_file_with_no_line_parks(
+        tmp_path, monkeypatch):
+    monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", "TASK.md,docs")
+    clash = ("TASK.md says the list is never cached, and the request asks"
+             " for a cache. build the cache?")
+    for ask, rec in ((clash, "build the cache the request asks for"),
+                     (ASK, "clear it, and say so in docs/api.md"),
+                     (ASK, "clear it, the way tests/cache_spec.js expects")):
+        place = tmp_path / str(len(list(tmp_path.iterdir())))
+        place.mkdir()
+        a_flow(place, monkeypatch)
+        asked = answering(monkeypatch, block(ask, rec))
+        assert run(monkeypatch) == stops.EXIT_STOP, (ask, rec)
+        assert [s for s, _ in asked] == ["planner.md"], (ask, rec)
+        assert decisions.read(place) == [], (ask, rec)
+        runs = sorted((p for p in (tmp_path / "runs").iterdir()
+                       if p.is_dir()), key=lambda p: p.stat().st_mtime)
+        assert rec in (runs[-1] / "question.md").read_text(encoding="utf-8")
+
+
 def test_a_lead_question_of_none_asks_nothing(tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch)
     asked = answering(monkeypatch, block("none"))

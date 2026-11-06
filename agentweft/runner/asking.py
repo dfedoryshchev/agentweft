@@ -114,6 +114,27 @@ def names_a_test_or_quotes(text):
     return bool(ruling.QUOTED.search(text) or TESTISH.search(text))
 
 
+def names_a_spec_or_test(text):
+    """whether `text` names a spec file or a test file, with or without a
+    line: a question about one is the person's, however it is worded."""
+    from agentweft.guardrails.snapshot import is_spec, is_test
+
+    for name in ruling.NAME.findall(text or ""):
+        rel = ruling.path_of(re.sub(r":\d+(?:-\d+)?$", "", name))
+        if is_spec(rel) or is_test(rel):
+            return True
+    return False
+
+
+def lead_s_own(asked, rec, cites):
+    """whether the lead's own QUESTION `asked` is the lead's to decide by
+    its RECOMMEND `rec`: there is one, it cites no line of the place
+    (`cites`), it neither quotes nor may name a test, and neither names a
+    spec or test file."""
+    return bool(rec) and not cites and not names_a_test_or_quotes(rec) \
+        and not names_a_spec_or_test(asked + " " + rec)
+
+
 def lead_questions(run, step, out):
     """-> [(the question as a NEEDS line, the RECOMMEND or "", the place
     lines it cites, its SIZE or "")] for each QUESTION the lead's own
@@ -135,11 +156,12 @@ def lead_questions(run, step, out):
 def lead_escalates(run, step, out):
     """-> the first QUESTION of the lead's own handoff that goes to the
     person, as a NEEDS question, or "": one that cites a line of the place,
-    recommends nothing, or recommends in words that quote something or may
-    name a test (`names_a_test_or_quotes`). the lead's own question has no
-    one above it to decide it."""
+    recommends nothing, recommends in words that quote something or may
+    name a test (`names_a_test_or_quotes`), or names a spec or test file
+    (`names_a_spec_or_test`). the lead's own question has no one above it to
+    decide it."""
     for asked, rec, cites, size in lead_questions(run, step, out):
-        if rec and not cites and not names_a_test_or_quotes(rec):
+        if lead_s_own(asked, rec, cites):
             continue
         said = [asked]
         if cites:
@@ -158,8 +180,7 @@ def lead_decides(run, step, out, where):
     the decision: put on record as the lead's, so every later step gets it
     and the handoff holds it settled."""
     for asked, rec, cites, _ in lead_questions(run, step, out):
-        if not rec or cites or names_a_test_or_quotes(rec) or \
-                lead.key(asked) in run.led:
+        if not lead_s_own(asked, rec, cites) or lead.key(asked) in run.led:
             continue
         run.led[lead.key(asked)] = rec
         run.rule(*lead.recorded(step, step, where, asked, rec,

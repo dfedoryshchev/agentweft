@@ -317,8 +317,9 @@ marks critical (section 10). a `QUESTION:` the lead's own handoff asks is
 never left open: with a `RECOMMEND:` and no line of the place cited, the
 recommendation is the lead's decision, on record in `decisions.md` as the
 lead's and handed to every later step; one that cites a line of the place,
-recommends nothing, or recommends in words that quote something or may
-name a test parks the run at the lead for you. how it reads in a run is in
+recommends nothing, recommends in words that quote something or may name a
+test, or names a spec or test file in the question or the recommendation,
+with or without a line, parks the run at the lead for you. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says
