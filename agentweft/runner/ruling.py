@@ -45,6 +45,7 @@ step that reads it.
 the lines are read by `verbs`, so one inside a code fence or a `>` quote is
 not a question: a test that asserts on the string "NEEDS:" asks nothing.
 """
+import ast
 import builtins
 import getpass
 import hashlib
@@ -907,6 +908,38 @@ def pinned_words(text):
     text = text or ""
     quoted = " ".join(m.group(0) for m in LITERAL.finditer(text))
     return words(quoted) | (words(LITERAL.sub(" ", text)) - BUILTINS)
+
+
+def code_words(source):
+    """-> the `words` of the names and string constants python `source`'s
+    code reads: no comment, no docstring or other bare string, no assert
+    message, which say things in English and read nothing. empty for source
+    that does not parse."""
+    try:
+        tree = ast.parse(source or "")
+    except SyntaxError:
+        return set()
+    prose = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
+            prose.add(id(node.value))
+        if isinstance(node, ast.Assert) and node.msg is not None:
+            prose.update(id(n) for n in ast.walk(node.msg))
+    said = []
+    for node in ast.walk(tree):
+        if id(node) in prose:
+            continue
+        if isinstance(node, ast.Name):
+            said.append(node.id)
+        elif isinstance(node, ast.Attribute):
+            said.append(node.attr)
+        elif isinstance(node, ast.arg):
+            said.append(node.arg)
+        elif isinstance(node, ast.keyword) and node.arg:
+            said.append(node.arg)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            said.append(node.value)
+    return words(" ".join(said))
 
 
 def quoted_as_found(said, workdir, start=None):

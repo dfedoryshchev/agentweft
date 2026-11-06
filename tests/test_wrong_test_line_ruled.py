@@ -6,8 +6,10 @@ the unchanged line "migrate runs every pending file in order". the worker
 claims both in one answer: the run parks once, naming both, and the one
 `override:` to that question lets both change at the test-edits check. a
 claim made later in the run on another start test quoting the same line is
-covered too, when that test as the run found it shares a word with the line
-and is red against the product now: the step's change is what made it wrong.
+covered too, when that test's code as the run found it reads a word of the
+line (a name or a string it uses, never a comment, a docstring or an assert
+message) and is red against the product now: the step's change is what made
+it wrong.
 a test that is still green as found, one the step broke besides that reads
 nothing of the line, a claim on another line and a `request:` answer cover
 nothing.
@@ -15,6 +17,8 @@ nothing.
 the shipped build-feature flow, on fake answers and a real git place.
 """
 import sys
+
+import pytest
 
 sys.path.insert(0, ".")
 from agentweft.orchestrate import decisions
@@ -180,6 +184,45 @@ def test_a_later_claim_on_a_test_that_shares_no_word_with_the_line_asks(
     assert code != stops.EXIT_OK
     assert NAMES_TEST + " <- ruling " not in read(folder, "handoff.md")
     assert NAMES_TEST in read(folder, "question.md")
+
+
+@pytest.mark.parametrize("body", [
+    'name_of("Rice") == "Rice", "every name keeps its case"',
+    '(name_of("Rice")  # case kept, in order' + NL + '        == "Rice")'])
+def test_a_line_s_word_only_in_a_message_or_comment_does_not_tie(
+        tmp_path, monkeypatch, body):
+    monkeypatch.setattr(sys.modules[__name__], "NAMES_START",
+                        a_test("test_a_name_is_kept", body))
+    place, leg = first_leg(tmp_path, monkeypatch, claim(DB_TEST) + NL
+                           + claim(MORE_TEST))
+    writes = dict(BOTH, **{"tests/test_names.py": NAMES_LOWER,
+                           "db.py": LOWER})
+    asked, code, folder = second_leg(tmp_path, monkeypatch, place, leg,
+                                     claim(NAMES_TEST), writes)
+    assert code != stops.EXIT_OK
+    assert NAMES_TEST + " <- ruling " not in read(folder, "handoff.md")
+
+
+def test_a_test_reads_the_names_and_strings_its_code_uses(tmp_path):
+    source = NL.join([
+        "def test_qty(items):",
+        '    """every qty is kept in order"""',
+        "    # the file runs every pending migration",
+        '    assert item()["qty"] == items.unit, "every name in order"', ""])
+    assert ruling.code_words(source) == {"items", "item", "qty", "unit"}
+    assert ruling.code_words("def broken(:") == set()
+    place = place_of(tmp_path)
+    (place / "tests" / "test_qty.py").write_text(
+        "def test_qty():" + NL + '    assert item()["pending"] == 1  # order'
+        + NL, encoding="utf-8")
+    from agentweft.guardrails import snapshot
+    from agentweft.runner.run import Run
+    run = Run.__new__(Run)
+    run.workdir, run.start = place, snapshot.take(place)
+    held = ["TASK.md: - " + LINE]
+    assert run.reads_lines("tests/test_qty.py::test_qty", held)
+    assert not run.reads_lines(NAMES_TEST, held)
+    assert run.reads_lines(MORE_TEST, held)
 
 
 def test_a_claim_on_another_line_still_asks(tmp_path, monkeypatch):

@@ -1224,10 +1224,12 @@ the run started with park once, on one question naming every such test and
 citing each spec line once. an `override:` to that question lets every test
 it named change at the test-edits check, and a later claim on another start
 test quoting only lines that question's claims quoted is covered by it too,
-with no question of its own, when that test as the run found it shares a
-word with those lines and is red against the product now; a test still green
-as found, one that reads nothing of the line (a behaviour the step broke
-besides), a claim on another line and a `request:` answer cover nothing.
+with no question of its own, when that test as the run found it reads a
+word of those lines in its code (a name or a string it uses; a comment, a
+docstring or an assert message reads nothing) and is red against the product
+now; a test still green as found, one that reads nothing of the line (a
+behaviour the step broke besides), a claim on another line and a `request:`
+answer cover nothing.
 under an override whose edit rewrote
 spec lines, a start test that edit decides by itself (red as found against
 the product now, its lost lines tied to the rewritten line) needs no claim

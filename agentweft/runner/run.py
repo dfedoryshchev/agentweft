@@ -1,5 +1,7 @@
 """everything a step needs for one run, and the step itself."""
 import json
+import re
+import textwrap
 import threading
 import time
 from pathlib import Path
@@ -785,8 +787,8 @@ class Run(object):
         that lets `test`, a start test id or a file, change, or None: the
         question named the test, or `spec`, the spec: line of a claim on it,
         quotes only lines that question's claims quoted, as the run found
-        them, the test as the run found it shares a word with those lines,
-        and it is red against the product now (`forced`), so the run's change
+        them, the test's code as the run found it reads a word of those
+        lines (`reads_lines`), and it is red against the product now (`forced`), so the run's change
         is what makes it wrong with that line. a test still green as found,
         or one that reads nothing of the line, is not tied to it by a claim
         the step wrote."""
@@ -809,13 +811,21 @@ class Run(object):
 
     def reads_lines(self, test, lines):
         """whether `test`, a start test id or a file, as the run found it,
-        shares a word with `lines`, spec lines as the run found them."""
+        reads a word of `lines`, spec lines as the run found them: a name or
+        a string its code uses (`ruling.code_words`), never a comment, a
+        docstring or an assert message, which can share a word with any
+        line. a file that is not python is read with its comments cut."""
         rel = test.partition("::")[0]
         was = ruling.as_found(self.workdir, rel,
                               getattr(self, "start", None)) or ""
-        source = testedits._source_of(was, rel, test.split("[")[0]) \
-            if "::" in test and rel.endswith(".py") else was
-        return bool(ruling.words(source) & ruling.words(" ".join(lines)))
+        if rel.endswith(".py"):
+            if "::" in test:
+                was = textwrap.dedent(testedits._source_of(
+                    was, rel, test.split("[")[0]))
+            read = ruling.code_words(was)
+        else:
+            read = ruling.words(re.sub(r"(?s)/\*.*?\*/|(?m)//.*$", " ", was))
+        return bool(read & ruling.words(" ".join(lines)))
 
     def wrong_covered(self, said, tests):
         """-> (the ruling, the cite of the claim or "") that lets every one
