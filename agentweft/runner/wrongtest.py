@@ -15,7 +15,11 @@ it says nothing), and that step's gates have to show it red again. a test the
 run started with is somebody else's decision, so it is a ruling: the run parks
 the way it does on a NEEDS line, quoting the claim. an answer may hold
 several claims, each opened by its own WRONG TEST line: the tests one step
-wrote go back to it together, in one round.
+wrote go back to it together, in one round, and the tests the run started
+with park once, on one question naming them all. an `override:` to it lets
+each test it named change, and a later claim on a start test quoting only
+lines its claims quoted, when that test as the run found it is red against
+the product now (`Run.wrong_ruled`).
 
 the spec line has to be a line that is there: a claim nobody can check is a
 question, the way a REFUSED line without a cite is. its quote has to be what
@@ -48,8 +52,8 @@ from agentweft.guardrails import testedits
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, fate, misquote,
-                     ruled_quote, spanned, took, words)
+from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, claim_lines, fate,
+                     misquote, ruled_quote, spanned, took, words, wrong_asked)
 
 WRONG = "WRONG TEST"
 WHY = "WHY"
@@ -147,6 +151,30 @@ def asked(step, test, why, spec, said):
         + (" (" + why + ")" if why else "") + ", and " + said
     if spec:
         out = out + "\nCITES:\n- " + spec
+    return out
+
+
+THEIRS = ("it was in the place when the run started, so the run will not"
+          " rewrite it: which holds, the test or the spec line?")
+
+
+def asked_all(step, said):
+    """-> the one question claims on tests the run started with park on,
+    naming each test with its why and citing each spec line once. `said` is
+    the (test, why, spec) claims."""
+    if len(said) == 1:
+        return asked(step, said[0][0], said[0][1], said[0][2], THEIRS)
+    named = ", ".join(test + (" (" + why + ")" if why else "")
+                      for test, why, _ in said)
+    out = ("NEEDS: " + step + " says " + named + " are wrong, and they were"
+           " in the place when the run started, so the run will not rewrite"
+           " them: which holds, the tests or the spec lines?")
+    cites = []
+    for _, _, spec in said:
+        if spec and spec not in cites:
+            cites.append(spec)
+    if cites:
+        out = out + "\nCITES:\n" + "\n".join("- " + c for c in cites)
     return out
 
 
@@ -249,15 +277,19 @@ def cite_in(spec):
 def judge(output, step, run, route):
     """-> None when `output` claims no wrong test, ("back", writer, the
     tests, the end of the writer's prompt) to send them to the step that
-    wrote them, or ("ask", the question) for a ruling.
+    wrote them, or ("ask", the question) for a ruling; claims on tests the
+    run started with ask once, naming every such test, as ("ask", the
+    question, what the run's record keeps of it: `ruling.wrong_asked`).
 
     every claim of one answer is judged together: one claim that has to be
     a ruling parks the answer, so nothing goes back that a person is about
     to rule on. the claims whose writer is the first claim's go back in one
     round; a claim on another writer's test is made again on the next go.
     a claim on a test the run started with, which the step changed, whose
-    spec: line quotes lines a ruling of this run covers (`ruled_quote`) is
-    no question: it is already ruled, and the test-edits check holds it."""
+    spec: line quotes lines a ruling of this run covers (`ruled_quote`), or
+    that an `override:` to the runner's own WRONG TEST question covers
+    (`Run.wrong_ruled`), is no question: it is already ruled, and the
+    test-edits check holds it."""
     said = claims(output)
     if not said:
         return None
@@ -271,20 +303,24 @@ def judge(output, step, run, route):
         return None
     changed = [t for e in testedits.changes(start) for t, how in e.items
                if testedits.claimable(t, how)] if ruled is not None else []
+    held = getattr(run, "wrong_ruled", None)
     said = [(test, why, spec) for test, why, spec in said
             if born(start, test)
             or not any(same_test(test, t) for t in changed)
-            or ruled_quote(spec, run.workdir, start, ruled) is None]
+            or (ruled_quote(spec, run.workdir, start, ruled) is None
+                and (held is None or held(test, spec) is None))]
     if not said:
         return None
     said = [(test, why, spanned(spec, run.workdir, start))
             for test, why, spec in said]
-    for test, why, spec in said:
-        if not born(getattr(run, "start", None), test):
-            return "ask", asked(step, test, why, spec,
-                                "it was in the place when the run started, so"
-                                " the run will not rewrite it: which holds,"
-                                " the test or the spec line?")
+    theirs = [c for c in said if not born(start, c[0])]
+    if theirs:
+        lines = []
+        for _, _, spec in theirs:
+            lines.extend(l for l in claim_lines(spec, run.workdir, start)
+                         if l not in lines)
+        return ("ask", asked_all(step, theirs),
+                wrong_asked([c[0] for c in theirs], lines))
     writers = []
     for test, why, spec in said:
         writer = author(getattr(run, "authors", {}), run.fm, step, test)

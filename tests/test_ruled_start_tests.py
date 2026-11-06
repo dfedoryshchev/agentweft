@@ -291,8 +291,9 @@ def test_a_claim_on_a_ruled_start_test_the_step_left_as_it_was_still_asks(
         wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1])),
         rewrite=None)
     assert code == stops.EXIT_STOP
-    assert "worker.md says " + ENVELOPE_TEST + " is wrong" in record(
-        tmp_path, "question.md")
+    question = record(tmp_path, "question.md")
+    assert question.startswith("NEEDS: worker.md says " + ENVELOPE_TEST)
+    assert FIRST_PAGE_TEST + " (" in question and " are wrong" in question
 
 
 def test_code_a_file_s_tests_share_changes_when_each_of_them_is_claimed(

@@ -1316,6 +1316,59 @@ def answers_edits(d, test, asked):
     return test in (asked or {}).get(m.group(1), ())
 
 
+WRONG_TESTS = "wrong-test"
+
+
+def claim_lines(spec, workdir, start=None):
+    """-> the spec lines a WRONG TEST claim's `spec:` line quotes, as the
+    run found them, each as `<file>: <the line>`; [] when they cannot be
+    read."""
+    text = (spec or "").strip()
+    m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
+    read = quoted_as_found(spec, workdir, start) if m else None
+    if not read:
+        return []
+    rel = path_of(cite_of(m)[0])
+    return [rel + ": " + flat(l) for l in read[0] if l.strip()]
+
+
+def wrong_asked(tests, lines):
+    """-> what the runner writes in a leg's record of its stop when it parks
+    the leg on WRONG TEST claims on tests the run started with: its id, the
+    tests and the spec lines the claims quote (`claim_lines`)."""
+    return {"id": WRONG_TESTS, "tests": list(tests), "lines": list(lines)}
+
+
+def asked_wrong(stopped):
+    """-> (the tests, the spec lines) the runner's own WRONG TEST question
+    named, read from a leg's record of its stop; ((), ()) for a stop on
+    anything else."""
+    said = (stopped or {}).get("runner") or {}
+    if said.get("id") != WRONG_TESTS:
+        return (), ()
+    tests, lines = said.get("tests"), said.get("lines")
+    if not isinstance(tests, list) or not isinstance(lines, list):
+        return (), ()
+    return (tuple(t for t in tests if isinstance(t, str)),
+            tuple(l for l in lines if isinstance(l, str)))
+
+
+def answers_wrong(d, asked):
+    """-> (the tests, the spec lines) of the runner's own WRONG TEST
+    question that `d`, an `override:` answer given with --answer, answered;
+    None for any other entry. `asked` is {run id: what `asked_wrong` read in
+    that leg's record}, so a step's question in the runner's words is never
+    taken for it."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if not found or kind_of(found[1]) != OVERRIDE or not m:
+        return None
+    said = (asked or {}).get(m.group(1))
+    if not said or not said[0]:
+        return None
+    return said
+
+
 def edit_ruled(decided, test, workdir, start=None, asked=None):
     """-> the decisions.md entry that lets `test`, a test the run started
     with, be changed or removed, or None. `test` is a test id, or a file when

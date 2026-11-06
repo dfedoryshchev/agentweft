@@ -1206,7 +1206,14 @@ one answer may name several tests, each on its own `WRONG TEST:` line with its
 together, in one round, every claim at the end of its prompt. the claims are
 judged together: one that has to be a ruling (a test the run started with, a
 `spec:` line that is not there, a test that has gone back as often as
-`send_backs` allows) parks the answer, and nothing goes back.
+`send_backs` allows) parks the answer, and nothing goes back. claims on tests
+the run started with park once, on one question naming every such test and
+citing each spec line once. an `override:` to that question lets every test
+it named change at the test-edits check, and a later claim on another start
+test quoting only lines that question's claims quoted is covered by it too,
+with no question of its own, when that test as the run found it is red
+against the product now; a test still green as found, a claim on another line
+and a `request:` answer cover nothing.
 
 a reviewer step with `on_missed: <role>` names, under its verdict, the
 likeliest wrong implementation the tests as they are would let pass, and the

@@ -549,7 +549,8 @@ def go(leg):
                             + wrong[1].split(NEWLINE)[0][len("NEEDS: "):],
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", question=wrong[1])
+                            waiting="user", question=wrong[1],
+                            asked=wrong[2] if len(wrong) > 2 else None)
 
             raw = out.output
             if honest and rides(step, out):

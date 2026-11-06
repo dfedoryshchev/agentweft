@@ -675,7 +675,10 @@ class Run(object):
                     continue
                 if ruling.ruled_quote(spec, self.workdir,
                                       getattr(self, "start", None),
-                                      self.spec_line_covered) is not None:
+                                      self.spec_line_covered) is not None \
+                        or any(wrongtest.same_test(said, t)
+                               and self.wrong_ruled(t, spec) is not None
+                               for t in tests):
                     kept.append(claim)
         if kept == self.claims_kept():
             return
@@ -714,6 +717,51 @@ class Run(object):
             if d is None:
                 return None
             found = found or d
+        return found
+
+    def wrong_ruled(self, test, spec=""):
+        """-> the `override:` answer to the runner's own WRONG TEST question
+        that lets `test`, a start test id or a file, change, or None: the
+        question named the test, or `spec`, the spec: line of a claim on it,
+        quotes only lines that question's claims quoted, as the run found
+        them, and the test as the run found it is red against the product
+        now (`forced`), so the run's change is what makes it wrong with that
+        line. a test still green as found is not tied to the line by a claim
+        the step wrote."""
+        asked = self.runner_asked(ruling.asked_wrong)
+        if not any(tests for tests, _ in asked.values()):
+            return None
+        lines = ruling.claim_lines(spec, self.workdir,
+                                   getattr(self, "start", None)) \
+            if spec else []
+        for d in self.spec_rulings():
+            found = ruling.answers_wrong(d, asked)
+            if found is None:
+                continue
+            if any(wrongtest.same_test(t, test) for t in found[0]):
+                return d
+            if lines and set(lines) <= set(found[1]) and self.forced(test):
+                return d
+        return None
+
+    def wrong_covered(self, said, tests):
+        """-> (the ruling, the cite of the claim or "") that lets every one
+        of `tests` change under the runner's own WRONG TEST question
+        (`wrong_ruled`), by name or by a claim in the answers `said`; None
+        when one is not, or for no tests."""
+        found = None
+        for test in tests:
+            d, cite = self.wrong_ruled(test), ""
+            if d is None:
+                for output in said:
+                    for name, _, spec in wrongtest.claims(output or ""):
+                        if d is None and spec and \
+                                wrongtest.same_test(name, test):
+                            d = self.wrong_ruled(test, spec)
+                            cite = wrongtest.cite_in(spec) if d else ""
+            if d is None:
+                return None
+            found = found or (d, cite)
         return found
 
     def forced(self, test):
@@ -761,6 +809,10 @@ class Run(object):
                         said, testedits.claimed_by(edit, test, how),
                         testedits.gone(edit, test, how),
                         testedits.came(edit, test, how)) or (None, "")
+                if d is None:
+                    d, cite = self.wrong_covered(
+                        said, testedits.claimed_by(edit, test, how)) \
+                        or (None, "")
                 out.append((edit, test, how, d, cite))
         return out
 
