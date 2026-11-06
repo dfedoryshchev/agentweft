@@ -660,22 +660,67 @@ def untyped(output, handed=(), workdir=".", start=None, ruled=None,
     with `ruled` the marks on lines a ruling already lets change
     (`mark_ruled`), and with `held` the marks on lines a `request:` answer
     to the runner's own question already held: that question was asked and
-    answered, and typing it again would ask it twice."""
+    answered, and typing it again would ask it twice. the spec holds by
+    such an answer, so a held mark passes only on a behaviour the plan
+    builds nowhere (`builds`); one it builds fails, told to leave it out."""
     given = set(flat(m) for text in handed for m in marks(text))
 
     def either(rel, line):
         return (ruled(rel, line) if ruled is not None else None) or \
             (held(rel, line) if held is not None else None)
 
-    marked = [m for m in marks(output) if flat(m) not in given
-              and not ((ruled is not None or held is not None)
-                       and mark_ruled(m, workdir, start, either))]
-    if not marked:
-        return None
-    return "", ("the answer marks " + "; ".join(marked) + " and has no"
-                ' CONFLICT line. type it as CONFLICT: <file>:<line> "<the'
-                ' line>", with request: <the request\'s words> on the next'
-                " line, or mark the behaviour another way")
+    built = builds(output)
+    marked, against = [], []
+    for m in marks(output):
+        if flat(m) in given or (ruled is not None
+                                and mark_ruled(m, workdir, start, ruled)):
+            continue
+        if held is not None and mark_ruled(m, workdir, start, either):
+            if built.get(flat(m)):
+                against.append(m + " (built in " + ", ".join(built[flat(m)])
+                               + ")")
+            continue
+        marked.append(m)
+    said = []
+    if marked:
+        said.append("the answer marks " + "; ".join(marked) + " and has no"
+                    ' CONFLICT line. type it as CONFLICT: <file>:<line> "<the'
+                    ' line>", with request: <the request\'s words> on the'
+                    " next line, or mark the behaviour another way")
+    if against:
+        said.append("the answer marks " + "; ".join(against) + " on lines a"
+                    " request: answer to the runner's question already held,"
+                    " so the spec holds there and nothing is built against"
+                    " it. leave the behaviour out of the plan, or give it"
+                    " file: none when nothing is built for it")
+    return ("", ". ".join(said)) if said else None
+
+
+def builds(output):
+    """-> {a `spec: contradicts` mark, flat: the files its behaviour's
+    `file:` line names that the plan would write}, for each mark whose
+    behaviour names one. a name with a dot or a slash counts, whether or not
+    the file is there yet; the runner's own files (decisions.md, the facts
+    store) are none of them."""
+    from agentweft.guardrails.snapshot import is_runners
+
+    out, files = {}, []
+    for _, line in verbs.visible(output):
+        text = line.strip()
+        if BEHAVIOUR.match(text):
+            files = []
+        m = FILE_LINE.match(text)
+        if m:
+            files = [n.rstrip(".") for n in NAME.findall(m.group(1))
+                     if not is_runners(path_of(n.rstrip(".")))]
+        if CONTRADICTS.match(line) and files:
+            out[flat(text.lstrip("-").strip())] = files
+    return out
+
+
+BEHAVIOUR = re.compile(r"^-\s*behaviour:", re.I)
+FILE_LINE = re.compile(r"^-?\s*file:\s*(.*)$", re.I)
+NAME = re.compile(r"""[^\s,;()`'"]*[./][^\s,;()`'"]*[^\s,;()`'".]""")
 
 
 # the first quoted span after a cite, for a line that goes on past its quote:

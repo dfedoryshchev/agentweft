@@ -7,7 +7,9 @@ answer that marks a behaviour it leaves unbuilt `spec: contradicts` on that
 line names
 the question already asked; typing it as a CONFLICT again would ask the
 person a question they have ruled on. a mark on a line no answered question
-of the runner's named still needs its CONFLICT line.
+of the runner's named still needs its CONFLICT line, and a held mark on a
+behaviour the plan builds (its `file:` names a file of the place) fails: the
+spec holds there, so it is left out of the plan.
 """
 import sys
 
@@ -31,9 +33,15 @@ def deferred(cite):
         "  spec: allows docs/api.md:4",
         "- behaviour: cursor paging is later work under the ruling; nothing"
         " is built for it",
-        "  file: pages.py",
+        "  file: decisions.md (where later work is noted)",
         "  spec: contradicts " + cite + ". a person already ruled on this"
         " (spec holds)", ""])
+
+
+BUILT = NL.join([
+    "- behaviour: listing([1]) is {items, next}",
+    "  file: pages.py",
+    "  spec: contradicts " + HELD + " (ruling)", ""])
 
 
 def answered(tmp_path, monkeypatch, said):
@@ -68,6 +76,33 @@ def test_a_mark_on_a_line_no_answered_question_named_still_fails(
                            deferred(HELD + ", docs/names.md:3"))
     assert "FAIL conflict" in said, said
     assert "docs/names.md:3" in said
+
+
+def test_a_behaviour_the_plan_builds_against_a_held_line_still_fails(
+        tmp_path, monkeypatch):
+    asked, said = answered(tmp_path, monkeypatch, BUILT)
+    assert "FAIL conflict" in said, said
+    assert "already held" in said and "pages.py" in said, said
+    assert "type it as CONFLICT" not in said, said
+
+
+def test_which_marked_behaviours_the_plan_builds():
+    debt = NL.join([
+        "- behaviour: debt to note: the copy request is deferred under the"
+        " ruling, and nothing is built for it.",
+        "  file: decisions.md (unsure which file the project uses for debt"
+        " notes)",
+        "  spec: contradicts docs/architecture.md:17. a person already ruled"
+        " on this (spec holds)", ""])
+    assert ruling.builds(debt) == {}
+    assert ruling.builds(NL.join(["- behaviour: x", "  file: none",
+                                  "  spec: contradicts a.md:1", ""])) == {}
+    assert list(ruling.builds(BUILT).values()) == [["pages.py"]]
+    assert list(ruling.builds(BUILT.replace(
+        "pages.py", "frontend/src/new_page.js, decisions.md")).values()) \
+        == [["frontend/src/new_page.js"]]
+    assert list(ruling.builds(BUILT.replace(
+        "pages.py", "src\\pages.py")).values()) == [["src\\pages.py"]]
 
 
 def held_by(answer, run_id="build-1", kind=None):

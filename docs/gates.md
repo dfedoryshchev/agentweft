@@ -62,8 +62,12 @@ and a new conflict on them would ask what is answered. the same holds for a
 line a `request:` answer held, given with `--answer` to a question the
 runner stopped a leg of this run on that named the line: the spec holds by
 that answer, and the mark names the question already asked (a behaviour
-left unbuilt under the ruling). such an answer still lets no spec line
-change. a cite of
+left unbuilt under the ruling). that holds only for a behaviour the plan
+builds nowhere: its `file:` line names no file but the runner's own
+(`decisions.md`, the facts store) or says none. a held mark on a behaviour
+whose `file:` names a file of the place fails the step, told to leave the
+behaviour out, since nothing is built against a line the spec holds. such
+an answer still lets no spec line change. a cite of
 `decisions.md` (`ruled override at decisions.md:152`) names where the ruling
 sits, not a spec line, so it is passed over and is never a line a ruling
 covers. a mark on any other line, or citing no spec line, still fails it.
