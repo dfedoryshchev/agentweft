@@ -1,4 +1,6 @@
 """a step that asks instead of going on: the lead decides, or the run parks."""
+import re
+
 from agentweft.guardrails import rulings
 
 from . import lead, ruling
@@ -100,6 +102,75 @@ def rides(step, out):
         out.block["doubts"].append(doubt)
     print(step + " asked what changes no code, and went on: " + doubt)
     return doubt
+
+
+TESTISH = re.compile(r"::|\btest", re.I)
+
+
+def names_a_test_or_quotes(text):
+    """whether `text` quotes something or may name a test: a decision's own
+    words that name a test or quote a spec line let that test or line
+    change, so a step's own words never get there unasked."""
+    return bool(ruling.QUOTED.search(text) or TESTISH.search(text))
+
+
+def lead_questions(run, step, out):
+    """-> [(the question as a NEEDS line, the RECOMMEND or "", the place
+    lines it cites, its SIZE or "")] for each QUESTION the lead's own
+    handoff asks; [] for any other step."""
+    if step != getattr(run, "lead", None) or \
+            out.block.get("state") not in (PRESENT, PARTIAL):
+        return []
+    found = []
+    for q in out.block.get("questions") or []:
+        text = ruling.flat(q.get("question") or "")
+        if not text or ruling.says_none(text):
+            continue
+        found.append(("NEEDS: " + text, ruling.flat(q.get("recommend") or ""),
+                      ruling.place_cites(text, run.workdir),
+                      ruling.flat(q.get("size") or "")))
+    return found
+
+
+def lead_escalates(run, step, out):
+    """-> the first QUESTION of the lead's own handoff that goes to the
+    person, as a NEEDS question, or "": one that cites a line of the place,
+    recommends nothing, or recommends in words that quote something or may
+    name a test (`names_a_test_or_quotes`). the lead's own question has no
+    one above it to decide it."""
+    for asked, rec, cites, size in lead_questions(run, step, out):
+        if rec and not cites and not names_a_test_or_quotes(rec):
+            continue
+        said = [asked]
+        if cites:
+            said += ["CITES:"] + ["- " + c for c in cites]
+        if rec:
+            said.append("RECOMMEND: " + rec)
+        if size:
+            said.append("SIZE: " + size)
+        return "\n".join(said)
+    return ""
+
+
+def lead_decides(run, step, out, where):
+    """each QUESTION of the lead's own handoff that does not go to the
+    person (`lead_escalates`) is the lead's to decide, and its RECOMMEND is
+    the decision: put on record as the lead's, so every later step gets it
+    and the handoff holds it settled."""
+    for asked, rec, cites, _ in lead_questions(run, step, out):
+        if not rec or cites or names_a_test_or_quotes(rec) or \
+                lead.key(asked) in run.led:
+            continue
+        run.led[lead.key(asked)] = rec
+        run.rule(*lead.recorded(step, step, where, asked, rec,
+                                "the recommendation of " + step
+                                + "'s own handoff, and " + step
+                                + " is the flow's lead"),
+                 by=rulings.LEAD)
+        # the handoff was made before the ruling was on record, and the
+        # next step reads the rulings off it
+        out.meta["rulings"] = run.rulings()
+        print(step + ", the flow's lead, decided its own question: " + rec)
 
 
 def asked_file(step):

@@ -182,6 +182,21 @@ def says_none(text):
         or bool(re.match(r"nothing\b", said))
 
 
+def place_cites(text, workdir):
+    """-> each `<file>:<line>` in `text` that is a line of a file in the
+    place, once; a line of the runner's own files (decisions.md, the facts
+    store) is none."""
+    from agentweft.guardrails.snapshot import is_runners
+
+    cites = []
+    for m in CITED_LINE.finditer(text):
+        if is_runners(path_of(m.group(1))):
+            continue
+        if cited(m.group(0), (), workdir) and m.group(0) not in cites:
+            cites.append(m.group(0))
+    return cites
+
+
 def no_red(step, output, workdir):
     """-> the question a step held to a red test parks on when it shows no
     test failing, with no `TEST:` and no `FAILS:` line or each saying none,
@@ -190,19 +205,12 @@ def no_red(step, output, workdir):
     before. a question that says none asks nothing, whatever it cites, and
     a line of the runner's own files (decisions.md, the facts store) is no
     line of the place: it points at a ruling, not at the code."""
-    from agentweft.guardrails.snapshot import is_runners
-
     if not unnamed(output, "TEST") or not unnamed(output, "FAILS"):
         return None
     for asked in parse_handoff(output)["questions"]:
         if says_none(asked["question"]):
             continue
-        cites = []
-        for m in CITED_LINE.finditer(asked["question"]):
-            if is_runners(path_of(m.group(1))):
-                continue
-            if cited(m.group(0), (), workdir) and m.group(0) not in cites:
-                cites.append(m.group(0))
+        cites = place_cites(asked["question"], workdir)
         if not cites:
             continue
         out = ["NEEDS: " + step + " could not make a test fail, and asks: "

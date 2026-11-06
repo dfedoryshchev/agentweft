@@ -313,7 +313,12 @@ acting on a decision does to a spec line or a test the run started with: a
 decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:
 build-feature leads with its planner, and fix-with-test, whose first step
 writes the test, has `lead: none`. the lead also decides a ticket the retro
-marks critical (section 10). how it reads in a run is in
+marks critical (section 10). a `QUESTION:` the lead's own handoff asks is
+never left open: with a `RECOMMEND:` and no line of the place cited, the
+recommendation is the lead's decision, on record in `decisions.md` as the
+lead's and handed to every later step; one that cites a line of the place,
+recommends nothing, or recommends in words that quote something or may
+name a test parks the run at the lead for you. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says

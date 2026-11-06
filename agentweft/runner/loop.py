@@ -21,8 +21,8 @@ from . import summary
 from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
-from .asking import (asked_file, goes_on, lead_pass, rides, to_lead,
-                     worked_then_asked)
+from .asking import (asked_file, goes_on, lead_decides, lead_escalates,
+                     lead_pass, rides, to_lead, worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
@@ -562,6 +562,10 @@ def go(leg):
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")
             said = run.asked(step, out) if honest else None
+            own = lead_escalates(run, step, out) if honest and not said \
+                else ""
+            if own:
+                said = (ruling.ASKED, own)
             checked = None
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
@@ -702,6 +706,9 @@ def go(leg):
                 print(blocked + " - not going on")
                 return stop(stops.GATE, blocked, "gate failed", entry,
                             index="FAILED  " + flow + "  at " + step)
+
+            if honest:
+                lead_decides(run, step, out, run_id)
 
             unproven = investigate.unrooted(step, out.output)
             if unproven:
