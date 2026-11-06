@@ -15,12 +15,14 @@ marks a ruled line `spec: contradicts` needs no new CONFLICT line for it.
 the start-tests replay lays out a start test file every change of which a
 ruling covers as the run left it, so a python test that runs a js test file
 is judged on the ruled file, and one that runs an unruled one is not.
-everything else still holds: a test on a line no ruling covers, a test
-changed with no WRONG TEST line, code a file's tests share with a test that
-reads it unnamed, a quote of neither the found line nor the ruled edit, a
-`request:` answer and an entry a step wrote in decisions.md itself let
-nothing change, and a claim on a start test the step left as it was still
-asks.
+a start test the ruled edit decides by itself (red as found against the
+product now, its lost lines tied to the edit) needs no claim and is listed
+`decided by` the line. for a test the edit does not decide everything else
+still holds: a test on a line no ruling covers, a test changed with no WRONG
+TEST line, code a file's tests share with a test that reads it unnamed, a
+quote of neither the found line nor the ruled edit, a `request:` answer and
+an entry a step wrote in decisions.md itself let nothing change, and a claim
+on a start test the step left as it was still asks.
 """
 import datetime
 import sys
@@ -69,6 +71,20 @@ SHARED = ("from pages import listing" + NL + NL
 CURSOR_SHARED = SHARED.replace(
     '{"items", "page", "total"}', '{"items", "next"}').replace(
     'listing([1])["page"] == 1', 'listing([1])["next"] is None')
+# a third test that reads the shared keys and stays green on the moved
+# product: the ruled edit does not decide it
+KEPT_ITEMS = (NL + NL + "def test_a_list_keeps_its_items():" + NL
+              + '    assert "items" in KEYS' + NL)
+SHARED_KEPT = SHARED + KEPT_ITEMS
+CURSOR_SHARED_KEPT = CURSOR_SHARED + KEPT_ITEMS
+# a test whose lines hold a word the edit took out, green as found against
+# the moved product too: a claim can cover it, the edit does not decide it
+COUNT_TEST = "tests/test_envelope.py::test_a_list_counts_one_item"
+ENVELOPE_COUNT = (ENVELOPE + NL + NL + "def test_a_list_counts_one_item():"
+                  + NL + '    assert listing([1]).get("total", 1) == 1' + NL)
+CURSOR_ENVELOPE_COUNT = (CURSOR_ENVELOPE + NL + NL
+                         + "def test_a_list_counts_one_item():" + NL
+                         + '    assert listing([1]).get("next") is None' + NL)
 NAMES_START = ("from pages import names" + NL + NL + NL
                + "def test_names_keep_their_order():" + NL
                + "    assert names(['b', 'a']) == ['b', 'a']" + NL)
@@ -277,12 +293,24 @@ def test_a_claim_quoting_the_line_as_the_ruled_edit_left_it_lets_it_change(
 def test_a_start_test_changed_with_no_wrong_test_line_still_refuses(
         tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
-        wrong(ENVELOPE_TEST, FOUND[0])))
+        wrong(ENVELOPE_TEST, FOUND[0])), names=True)
     assert code != stops.EXIT_OK
     gates = record(tmp_path, "gates.md")
     assert "FAIL test-edits" in gates
-    assert FIRST_PAGE_TEST + " (changed)" in gates
+    assert NAMES_TEST + " (changed)" in gates
     assert "and so does a WRONG TEST line for the test" in gates
+
+
+def test_a_start_test_the_ruled_edit_decides_needs_no_wrong_test_line(
+        tmp_path, monkeypatch):
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, FOUND[0])))
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL test-edits" not in gates, gates
+    assert code == stops.EXIT_OK, gates
+    assert FIRST_PAGE_TEST + " <- ruling " + stamp_of(tmp_path) + " (" \
+        + testedits.DECIDED_BY + " docs/api.md:" in record(tmp_path,
+                                                           "handoff.md")
 
 
 def test_a_claim_on_a_ruled_start_test_the_step_left_as_it_was_still_asks(
@@ -309,10 +337,22 @@ def test_code_a_file_s_tests_share_does_not_change_on_one_claim(
         tmp_path, monkeypatch):
     one = built(wrong(FIRST_PAGE_TEST, FOUND[1]))
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, one,
-                             rewrite=CURSOR_SHARED, envelope=SHARED)
+                             rewrite=CURSOR_SHARED_KEPT, envelope=SHARED_KEPT)
     assert code != stops.EXIT_OK
     gates = record(tmp_path, "gates.md")
     assert "tests/test_envelope.py (the code its tests share changed)" in gates
+
+
+def test_code_tests_share_changes_on_one_claim_when_the_edit_decides_the_rest(
+        tmp_path, monkeypatch):
+    one = built(wrong(FIRST_PAGE_TEST, FOUND[1]))
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, one,
+                             rewrite=CURSOR_SHARED, envelope=SHARED)
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL test-edits" not in gates, gates
+    assert code == stops.EXIT_OK, gates
+    assert " <- ruling " + stamp_of(tmp_path) + " (" + testedits.DECIDED_BY \
+        + " docs/api.md:" in record(tmp_path, "handoff.md")
 
 
 def test_a_start_test_on_a_line_no_ruling_covers_still_refuses(
@@ -371,16 +411,33 @@ def test_the_handoff_shows_the_line_each_claim_was_made_on(
         + " (claimed on docs/api.md:3)" in handoff, handoff
 
 
+MAGIC = 'rules/api-shape.md:1 "Every list pages by magic and returns what' \
+    ' it likes."'
+
+
 def test_a_quote_of_neither_the_found_line_nor_the_ruled_edit_still_fails(
         tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
-        wrong(ENVELOPE_TEST, 'rules/api-shape.md:1 "Every list pages by'
-              ' magic and returns what it likes."'),
-        wrong(FIRST_PAGE_TEST, FOUND[1])))
+        wrong(COUNT_TEST, MAGIC), wrong(ENVELOPE_TEST, FOUND[0]),
+        wrong(FIRST_PAGE_TEST, FOUND[1])), rewrite=CURSOR_ENVELOPE_COUNT,
+        envelope=ENVELOPE_COUNT)
     assert code != stops.EXIT_OK
     gates = record(tmp_path, "gates.md")
     assert "FAIL quote" in gates
     assert "FAIL test-edits" in gates
+    assert COUNT_TEST + " (changed)" in gates.split("FAIL test-edits")[-1]
+
+
+def test_a_misquoted_claim_on_a_test_the_ruled_edit_decides_still_fails_quote(
+        tmp_path, monkeypatch):
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, MAGIC), wrong(FIRST_PAGE_TEST, FOUND[1])))
+    assert code != stops.EXIT_OK
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL quote" in gates
+    assert "FAIL test-edits" not in gates, gates
+    assert ENVELOPE_TEST + " (ruling " in gates
+    assert testedits.DECIDED_BY + " docs/api.md:" in gates
 
 
 def test_an_entry_a_step_wrote_in_decisions_md_rules_nothing(
@@ -460,12 +517,24 @@ def test_a_bridge_over_a_half_ruled_test_file_still_parks(
         tmp_path, monkeypatch):
     seen = laid_out(monkeypatch)
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
-        wrong(FIRST_PAGE_TEST, FOUND[1])), rewrite=CURSOR_SHARED,
-        envelope=SHARED)
+        wrong(FIRST_PAGE_TEST, FOUND[1])), rewrite=CURSOR_SHARED_KEPT,
+        envelope=SHARED_KEPT)
     assert code != stops.EXIT_OK
     gates = record(tmp_path, "gates.md")
     assert "PASS start-tests" not in gates
     assert all(not s for s in seen)
+
+
+def test_a_test_file_the_ruled_edit_decides_whole_is_laid_out_as_left(
+        tmp_path, monkeypatch):
+    seen = laid_out(monkeypatch)
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(FIRST_PAGE_TEST, FOUND[1])), rewrite=CURSOR_SHARED,
+        envelope=SHARED)
+    gates = record(tmp_path, "gates.md")
+    assert code == stops.EXIT_OK, gates
+    assert "PASS start-tests" in gates
+    assert {"tests/test_envelope.py"} in seen
 
 
 def as_found(path):

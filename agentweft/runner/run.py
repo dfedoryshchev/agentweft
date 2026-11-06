@@ -502,6 +502,10 @@ class Run(object):
         decided = self.spec_rulings()
         claims = self.answered(output)
         edits = testedits.changes(getattr(self, "start", None))
+        dropped = [(test, d) for _, test, how, d, _ in
+                   self.edits_ruled(edits, output, decided)
+                   if d is not None and how in (testedits.REMOVED,
+                                                testedits.DELETED)]
         left, ruled = [], []
         for test, said in found.red:
             d = ruling.covering(decided, test, self.workdir, self.start)
@@ -513,6 +517,10 @@ class Run(object):
                                                        testedits.came),
                                           forced=self.forced)
                 d = d and d[0]
+            if d is None:
+                d = next((by for gone, by in dropped
+                          if wrongtest.same_test(test, gone)
+                          or wrongtest.same_test(gone, test)), None)
             if d is None:
                 left.append((test, said))
             else:
@@ -719,6 +727,57 @@ class Run(object):
             found = found or d
         return found
 
+    def ruled_lost(self):
+        """-> [(the ruling, `<file>:<line>`, the words the run's edit took
+        out of the line, the words the line held, the new words the edit
+        wrote into its file)] for each spec line the run started with that
+        its edit removed or rewrote and a ruling lets change."""
+        found = specfiles.changes(getattr(self, "start", None))
+        if not found:
+            return []
+        decided = self.spec_rulings()
+        asked = self.runner_asked(ruling.asked_lines)
+        specs, request = self.spec_paths(), self.request()
+        out = []
+        for rel, was, now in found:
+            new = now.split("\n")
+            wrote = ruling.words(" ".join(new[n - 1]
+                                          for n in specfiles.became(was, now)))
+            for n, line, _ in specfiles.lost(was, now):
+                d = ruling.spec_line_ruled(decided, line, asked, rel,
+                                           request, specs)
+                if d is None:
+                    continue
+                held = ruling.words(line)
+                out.append((d, rel + ":" + str(n),
+                            held - ruling.words(now), held, wrote - held))
+        return out
+
+    def edit_decided(self, pinned):
+        """-> (the ruling, `decided by <file>:<line>`) when a start test
+        change is the ruled edit's with no claim, else None. `pinned` is
+        `testedits.pinned`: (the tests, the lines the change took out as the
+        run found them, the lines it put in). every test, as the run found it
+        and green at the start, is red against the product now (`forced`),
+        and the lines taken out hold a word the edit took out of a spec line
+        a ruling lets change, or hold a word of that line and the lines put
+        in a new word the edit wrote into its file. what the step wrote into
+        the test alone never ties it."""
+        if not pinned or not pinned[0]:
+            return None
+        tests, gone, came = pinned
+        taken = ruling.words(gone)
+        if not taken:
+            return None
+        put = ruling.words(came) - taken
+        lost = self.ruled_lost()
+        if not lost or not all(self.forced(t) for t in tests):
+            return None
+        for d, cite, took, held, brought in lost:
+            if taken & took or (taken & held and put & brought):
+                return d, testedits.DECIDED_BY + " " + cite
+        return None
+
     def wrong_ruled(self, test, spec=""):
         """-> the `override:` answer to the runner's own WRONG TEST question
         that lets `test`, a start test id or a file, change, or None: the
@@ -813,6 +872,9 @@ class Run(object):
                     d, cite = self.wrong_covered(
                         said, testedits.claimed_by(edit, test, how)) \
                         or (None, "")
+                if d is None:
+                    d, cite = self.edit_decided(
+                        testedits.pinned(edit, test, how)) or (None, "")
                 out.append((edit, test, how, d, cite))
         return out
 

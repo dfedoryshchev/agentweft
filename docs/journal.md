@@ -1213,7 +1213,11 @@ it named change at the test-edits check, and a later claim on another start
 test quoting only lines that question's claims quoted is covered by it too,
 with no question of its own, when that test as the run found it is red
 against the product now; a test still green as found, a claim on another line
-and a `request:` answer cover nothing.
+and a `request:` answer cover nothing. under an override whose edit rewrote
+spec lines, a start test that edit decides by itself (red as found against
+the product now, its lost lines tied to the rewritten line) needs no claim
+at all: the handoff lists it under the ruling `(decided by <file>:<line>)`
+(`docs/gates.md`, test-edits).
 
 a reviewer step with `on_missed: <role>` names, under its verdict, the
 likeliest wrong implementation the tests as they are would let pass, and the

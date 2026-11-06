@@ -44,6 +44,7 @@ SHARED = "the code its tests share changed"
 UNPARSED = "no longer parses"
 UNREAD = "changed, with no start commit to compare it against"
 CLAIMED_ON = "claimed on"
+DECIDED_BY = "decided by"
 
 
 class Edit(object):
@@ -439,6 +440,31 @@ def claimed_by(edit, test, how):
     return [test]
 
 
+def pinned(edit, test, how):
+    """-> (what the change `test`, `how`, in `edit` has to show for it to be
+    the ruled edit's with no claim: the tests each tied on its own, the lines
+    the change took out as the run found them, the lines it put in), or None
+    for a change only a ruling naming it covers. a test removed, or deleted
+    with its file, took out all its lines and put in none."""
+    if edit.was is None:
+        return None
+    if how in (REMOVED, DELETED):
+        source = _source_of(edit.was, edit.path, test) if "::" in test \
+            else edit.was
+        return ([test], source, "") if source.strip() else None
+    tests = claimed_by(edit, test, how)
+    if not tests or edit.now is None:
+        return None
+    return tests, gone(edit, test, how), came(edit, test, how)
+
+
+def said_on(cite):
+    """-> how a passing line says what a change rests on: the cite of a
+    WRONG TEST claim, or the spec line the ruled edit decided it by."""
+    return cite if cite.startswith(DECIDED_BY + " ") \
+        else CLAIMED_ON + " " + cite
+
+
 def what(n, edit):
     word = "line" if not edit.path.endswith(".py") else "test"
     return str(n) + " " + word + ("" if n == 1 else "s")
@@ -455,7 +481,7 @@ def passed(found, ruled):
         line += (". " if line else "") + "changed, each covered by a" \
             " ruling: " + ", ".join(
                 t + " (ruling " + by + ")"
-                + (" " + CLAIMED_ON + " " + cite if cite else "")
+                + (" " + said_on(cite) if cite else "")
                 for t, by, cite in ruled)
     elif said:
         line += ", none the run started with changed"

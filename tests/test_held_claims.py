@@ -6,16 +6,20 @@ then sends the step back for something else, and the step answers again
 without repeating the claim. the claim still stands: the check reads it
 from the run's own record, and the handoff lists the test under the ruling.
 a start test the later go changes needs a claim of its own, a claim whose
-quoted line no longer reads where it cited it covers nothing, and a new run
-starts with no claims, while a resume carries them.
+quoted line no longer reads where it cited it covers nothing (a test the
+ruled edit decides by itself stands without it), and a new run starts with
+no claims, while a resume carries them.
 """
 import sys
 
 sys.path.insert(0, ".")
+from agentweft.guardrails import testedits
 from agentweft.runner import manifest, stops
 
 from test_named_spec_files import NAMED, OVERRIDE, TESTER, first_plan
-from test_ruled_start_tests import (CURSOR_ENVELOPE, EDITED, ENVELOPE_TEST,
+from test_ruled_start_tests import (COUNT_TEST, CURSOR_ENVELOPE,
+                                    CURSOR_ENVELOPE_COUNT, EDITED, ENVELOPE,
+                                    ENVELOPE_COUNT, ENVELOPE_TEST,
                                     FIRST_PAGE_TEST, FOUND, NAMES_SORTED,
                                     NAMES_TEST, TYPED_PLAN, built, edits_of,
                                     place_of, record, stamp_of, wrong)
@@ -31,18 +35,19 @@ CLAIMED_EDIT = built(wrong(ENVELOPE_TEST, EDITED[1]), wrong(FIRST_PAGE_TEST,
 AGAIN = built()
 
 
-def redone(tmp_path, monkeypatch, first=CLAIMED, then=AGAIN, later=None):
+def redone(tmp_path, monkeypatch, first=CLAIMED, then=AGAIN, later=None,
+           envelope=ENVELOPE, rewrite=CURSOR_ENVELOPE):
     """an override run whose worker claims the start tests it changes on
     its first go, is sent back by the reviewer, and answers `then` on its
     second go, where `later(place)` writes more. -> (steps asked on the
     second leg, its exit code)."""
-    place = place_of(tmp_path, monkeypatch)
+    place = place_of(tmp_path, monkeypatch, envelope)
     asked, _, code = go(tmp_path, monkeypatch, "build-feature",
                         plain({"planner.md": [first_plan(NAMED)]}),
                         lambda s, n: None, "--task", NAMED)
     assert (asked, code) == (["planner.md"], stops.EXIT_STOP)
     [leg] = folders(tmp_path)
-    writes = edits_of(place, rewrite=CURSOR_ENVELOPE)
+    writes = edits_of(place, rewrite=rewrite)
 
     def edits(step, n):
         writes(step, n)
@@ -82,18 +87,36 @@ def test_a_start_test_the_later_go_changes_needs_its_own_claim(
     assert NAMES_TEST in gates.split("FAIL test-edits")[-1]
 
 
+def rewords(place):
+    api = (place / "docs" / "api.md").read_text(encoding="utf-8")
+    (place / "docs" / "api.md").write_text(
+        api.replace("`{items, next}`", "`{items, next, size}`"),
+        encoding="utf-8")
+
+
 def test_a_claim_whose_quoted_line_moved_on_covers_nothing(tmp_path,
                                                           monkeypatch):
-    def rewords(place):
-        api = (place / "docs" / "api.md").read_text(encoding="utf-8")
-        (place / "docs" / "api.md").write_text(
-            api.replace("`{items, next}`", "`{items, next, size}`"),
-            encoding="utf-8")
+    first = built(wrong(COUNT_TEST, EDITED[1]), wrong(ENVELOPE_TEST,
+                                                      EDITED[1]),
+                  wrong(FIRST_PAGE_TEST, EDITED[0]))
+    asked, code = redone(tmp_path, monkeypatch, first=first, later=rewords,
+                         envelope=ENVELOPE_COUNT,
+                         rewrite=CURSOR_ENVELOPE_COUNT)
+    assert code != stops.EXIT_OK
+    assert COUNT_TEST in record(tmp_path, "gates.md").split(
+        "FAIL test-edits")[-1]
+
+
+def test_a_test_the_ruled_edit_decides_holds_when_its_claim_moved_on(
+        tmp_path, monkeypatch):
     asked, code = redone(tmp_path, monkeypatch, first=CLAIMED_EDIT,
                          later=rewords)
-    assert code != stops.EXIT_OK
-    assert ENVELOPE_TEST in record(tmp_path, "gates.md").split(
-        "FAIL test-edits")[-1]
+    gates = record(tmp_path, "gates.md")
+    assert "FAIL test-edits" not in gates, gates
+    assert code == stops.EXIT_OK, gates
+    assert ENVELOPE_TEST + " <- ruling " + stamp_of(tmp_path) + " (" \
+        + testedits.DECIDED_BY + " docs/api.md:" in record(tmp_path,
+                                                           "handoff.md")
 
 
 def test_a_resume_carries_the_claims_and_a_new_run_starts_with_none(
