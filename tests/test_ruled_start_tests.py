@@ -312,6 +312,9 @@ def test_a_start_test_the_ruled_edit_moved_with_no_claim_is_asked_about(
     assert ENVELOPE_TEST not in left
     assert FIRST_PAGE_TEST + " <- ruling" not in record(tmp_path,
                                                         "handoff.md")
+    assert "- " + FIRST_PAGE_TEST + " - changed; red as found; reads page of" \
+        " docs/api.md:3 (ruled); rewrite red on the start product" in \
+        record(tmp_path, "question.md").split(NL)
 
 
 def test_a_claim_on_a_ruled_start_test_the_step_left_as_it_was_still_asks(

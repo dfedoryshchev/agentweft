@@ -45,6 +45,11 @@ SHARED = "the code its tests share changed"
 UNPARSED = "no longer parses"
 UNREAD = "changed, with no start commit to compare it against"
 CLAIMED_ON = "claimed on"
+NAMED_IN = "named in the override to the test-edits question"
+FOUND_RED = "red as found and reading a ruled line"
+RED_ONLY = "red as found"
+GREEN = "green as found"
+WHOLE = "changed whole (a file or the code its tests share)"
 
 
 class Edit(object):
@@ -440,6 +445,12 @@ def claimed_by(edit, test, how):
     return [test]
 
 
+def said_on(cite):
+    """-> how a passing line says what a change rests on: the cite of a
+    WRONG TEST claim, or the person's override to this check's question."""
+    return cite if cite == NAMED_IN else CLAIMED_ON + " " + cite
+
+
 def what(n, edit):
     word = "line" if not edit.path.endswith(".py") else "test"
     return str(n) + " " + word + ("" if n == 1 else "s")
@@ -456,7 +467,7 @@ def passed(found, ruled):
         line += (". " if line else "") + "changed, each covered by a" \
             " ruling: " + ", ".join(
                 t + " (ruling " + by + ")"
-                + (" " + CLAIMED_ON + " " + cite if cite else "")
+                + (" " + said_on(cite) if cite else "")
                 for t, by, cite in ruled)
     elif said:
         line += ", none the run started with changed"

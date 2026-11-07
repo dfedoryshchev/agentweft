@@ -1523,16 +1523,25 @@ def edit_ruled(decided, test, workdir, start=None, asked=None):
     return None
 
 
-def question_of_test_edits(step, left):
+def question_of_test_edits(step, left, found=None, groups=()):
     """-> the question a step that still changes tests the run started with
     on its last go parks the run on. `left` is [(test id or file, how it
-    changed)]."""
+    changed)]; `found` the tags the run read for each, in that order, and
+    `groups` [(how many, what they share)], shown after the question for
+    more than one: evidence for the person, deciding nothing."""
     one = len(left) == 1
-    out = ["NEEDS: " + step + " changed "
-           + ("a test" if one else str(len(left)) + " tests")
-           + EDITS_ASKED + ("it" if one else "they")
-           + " change?", "CITES:"]
-    out.extend("- " + test + " - " + how for test, how in left)
+    needs = ("NEEDS: " + step + " changed "
+             + ("a test" if one else str(len(left)) + " tests")
+             + EDITS_ASKED + ("it" if one else "they") + " change?")
+    if groups and not one:
+        needs += (" what the run found, which decides nothing: "
+                  + ", ".join(str(n) + " " + said for n, said in groups)
+                  + ".")
+    out = [needs, "CITES:"]
+    tags = list(found or ()) + [()] * len(left)
+    out.extend("- " + test + " - " + how
+               + "".join("; " + t for t in tagged)
+               for (test, how), tagged in zip(left, tags))
     out.extend(["OPTIONS:",
                 "- override: <why the change holds>. name each test above, or"
                 " quote the spec line that decides it, and the change stands",

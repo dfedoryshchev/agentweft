@@ -1233,7 +1233,11 @@ assert message or a builtin reads nothing). a test still green as found, a
 rewrite the old product passes, one that reads nothing of the line (a
 behaviour the step broke besides), a claim on another line and a `request:`
 answer cover nothing. a start test changed with no claim is never listed
-under a ruling by the run alone.
+under a ruling by the run alone: the run parks on the test-edits question,
+one question naming every such test with what the run found about each (red
+or green as found, a word of a ruled line its code reads, a rewrite red on the
+start product), and the person's `override:` to it lists each test it named
+`(named in the override to the test-edits question)`.
 
 a reviewer step with `on_missed: <role>` names, under its verdict, the
 likeliest wrong implementation the tests as they are would let pass, and the

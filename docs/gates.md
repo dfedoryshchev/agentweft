@@ -727,7 +727,9 @@ in `gates.md`:
   `request:` covers nothing, and neither does the flow's lead: it decides
   inside the tests it was given, so a decision of its that names the test
   still leaves the edit to the operator. covered tests pass as `changed, each
-  covered by a ruling`.
+  covered by a ruling`, and handoff.md lists each test the override to this
+  check's question covers as `<test> <- ruling <when> <heading> (named in the
+  override to the test-edits question)`.
 - or unless the run holds an override that lets the spec lines the test pins
   change, and an answer of this run names the test on a `WRONG TEST:` line
   whose `spec:` line quotes those lines, as the run found them or as the
@@ -779,7 +781,17 @@ in `gates.md`:
   (claimed on <file>:<line>)`.
 - a start test changed with no claim is never listed under a ruling by the
   run alone, however much its change looks like the ruled edit's: it fails,
-  and on the last go parks on this check's question.
+  and on the last go parks on this check's question, one question naming
+  every such test. the question carries what the run found, as evidence for
+  the person that decides nothing: each python test is `red as found` or
+  `green as found` against the product now, `reads <word> of <file>:<n>
+  (ruled)` when its code as the run found it shares a word with a spec line
+  a ruling lets change and the run's edit rewrote, and `rewrite red on the
+  start product` when the test as left fails the product as found; a file
+  read by line is `file read whole`. with more than one test the question
+  counts them by group (`73 red as found and reading a ruled line, 7 red as
+  found, 7 green as found, 19 changed whole (a file or the code its tests
+  share)`). an `override:` to it covers every test it names.
 
 which files changed is read from content hashes, and what they held from the
 start commit (or the snapshot, for a file already loose), so a step that

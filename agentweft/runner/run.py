@@ -832,8 +832,9 @@ class Run(object):
 
     def edits_ruled(self, found, output="", decided=None):
         """-> [(edit, test or file, how it changed, the ruling that covers
-        the change or None, the cite of the WRONG TEST claim it rests on or
-        "")] for each change in the start test edits `found`: an
+        the change or None, the cite of the WRONG TEST claim it rests on,
+        `testedits.NAMED_IN` for the person's override to this check's own
+        question, or "")] for each change in the start test edits `found`: an
         `override:` answer naming it (`ruling.edit_ruled`), or `output` or
         another answer of this run naming it on a WRONG TEST line under a
         ruling, for a change tied to the ruled edit (`claimed`). the one
@@ -848,7 +849,8 @@ class Run(object):
             for test, how in edit.items:
                 d = ruling.edit_ruled(decided, test, self.workdir, start,
                                       asked)
-                cite = ""
+                cite = testedits.NAMED_IN if d is not None and \
+                    ruling.answers_edits(d, test, asked) else ""
                 if d is None:
                     d, cite = self.claimed(
                         said, testedits.claimed_by(edit, test, how)) \
@@ -902,9 +904,68 @@ class Run(object):
             for d in decided))
         if not last:
             return line, None
+        tags, groups = self.evidence(left)
         return line, ("needs a ruling: " + line.detail,
-                      ruling.question_of_test_edits(step, left),
+                      ruling.question_of_test_edits(step, left, tags,
+                                                    groups),
                       ruling.edits_asked(test for test, _ in left))
+
+    def ruled_lines(self):
+        """-> [(spec file, its line number as the run found it, the line)]
+        for each spec line the run started with that its edit removed or
+        rewrote and a ruling lets change."""
+        out = []
+        for rel, was, now in specfiles.changes(
+                getattr(self, "start", None)) or ():
+            for n, line, _ in specfiles.lost(was, now):
+                if self.spec_line_covered(rel, line) is not None:
+                    out.append((rel, n, line))
+        return out
+
+    def evidence(self, left):
+        """-> (the tags for each of `left`, [(test id or file, how it
+        changed)], and [(how many, what they share)] for the groups) the
+        test-edits question shows the person: for a python test id, red or
+        green as found against the product now (`forced`), a word its found
+        code shares with a spec line a ruling lets change and the run's edit
+        rewrote (`found_words`, `ruled_lines`), and, for a changed test,
+        whether its rewrite is red against the product as found (`turned`);
+        a file read by line is read whole. what is found decides nothing:
+        only the person's answer covers a test. no tags when the run cannot
+        replay its start tests."""
+        start = getattr(self, "start", None)
+        order = getattr(self, "order", None)
+        if start is None or not start.hashed or not start.start \
+                or order is None or order.skip:
+            return [], []
+        lines = self.ruled_lines()
+        tags, counts = [], {}
+        for test, how in left:
+            rel = test.partition("::")[0]
+            if "::" not in test or not rel.endswith(".py"):
+                tags.append(["file read whole"] if not rel.endswith(".py")
+                            and "::" not in test else [])
+                counts[testedits.WHOLE] = counts.get(testedits.WHOLE, 0) + 1
+                continue
+            red = self.forced(test)
+            said = [testedits.RED_ONLY if red else testedits.GREEN]
+            read = self.found_words(test)
+            hit = next(((spec, n, sorted(read & ruling.words(line))[0])
+                        for spec, n, line in lines
+                        if read & ruling.words(line)), None)
+            if hit is not None:
+                said.append("reads " + hit[2] + " of " + hit[0] + ":"
+                            + str(hit[1]) + " (ruled)")
+            if how == testedits.CHANGED and self.turned(test):
+                said.append("rewrite red on the start product")
+            tags.append(said)
+            group = testedits.GREEN if not red else (
+                testedits.FOUND_RED if hit is not None
+                else testedits.RED_ONLY)
+            counts[group] = counts.get(group, 0) + 1
+        shown = (testedits.FOUND_RED, testedits.RED_ONLY, testedits.GREEN,
+                 testedits.WHOLE)
+        return tags, [(counts[g], g) for g in shown if counts.get(g)]
 
     def keep(self, role, block):
         for line in block.get("must_not_miss", []):

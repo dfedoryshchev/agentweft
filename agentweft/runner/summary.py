@@ -394,11 +394,12 @@ def held_by(gates, decided):
         found = {}
         for d in decided:
             at = re.escape(" (ruling " + stamp(d) + ")") + r"(?: " \
-                + re.escape(testedits.CLAIMED_ON) + r" ([^\s,;]+))?"
+                + re.escape(testedits.CLAIMED_ON) + r" ([^\s,;]+)| (" \
+                + re.escape(testedits.NAMED_IN) + "))?"
             for m in re.finditer(r"(?:^|[\s,:])(\S+?)" + at, detail):
                 path = m.group(1).partition("::")[0]
-                found.setdefault(path, []).append((m.group(1), d,
-                                                   m.group(2) or ""))
+                found.setdefault(path, []).append(
+                    (m.group(1), d, m.group(2) or m.group(3) or ""))
         if found:
             out = found
     return out
@@ -434,7 +435,7 @@ def rulings(changes, decided, spec_files=None, gates=()):
             continue
         if held.get(path):
             out.extend(line + ": " + test + " <- ruling " + stamp(by)
-                       + (" (" + testedits.CLAIMED_ON + " " + cite + ")"
+                       + (" (" + testedits.said_on(cite) + ")"
                           if cite else "")
                        for test, by, cite in held[path])
             continue
