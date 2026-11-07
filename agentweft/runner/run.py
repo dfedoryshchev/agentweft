@@ -1,7 +1,5 @@
 """everything a step needs for one run, and the step itself."""
 import json
-import re
-import textwrap
 import threading
 import time
 from pathlib import Path
@@ -488,9 +486,9 @@ class Run(object):
         when a test green at the start is red now and no ruling covers it,
         else None). only after a `writes: product` step, and never when the
         run skips tests. a test `output` or another answer of this run names
-        on a WRONG TEST line quoting spec lines a ruling covers, for a
-        change tied to the ruled edit, is covered by that ruling, as
-        `tests_held` reads it, and a start test file every
+        on a WRONG TEST line quoting spec lines a ruling covers, when the
+        claim ties it (`tied`), is covered by that ruling, as `tests_held`
+        reads it, and a start test file every
         change of which a ruling covers is replayed as the run left it
         (`as_left`)."""
         if self.writes_for(step) != "product" or self.order.skip:
@@ -514,10 +512,7 @@ class Run(object):
             if d is None:
                 d = wrongtest.ruled_claim(claims, test, self.workdir,
                                           self.start, self.spec_line_covered,
-                                          self.gone_of(edits, test),
-                                          self.gone_of(edits, test,
-                                                       testedits.came),
-                                          forced=self.forced)
+                                          self.tied)
                 d = d and d[0]
             if d is None:
                 d = next((by for gone, by in dropped
@@ -705,93 +700,78 @@ class Run(object):
         else:
             self.kept_claims = kept
 
-    @staticmethod
-    def gone_of(edits, test, read=testedits.gone):
-        """-> the lines the changes to `test`, a start test id, took out
-        (or, with `read` = `testedits.came`, put in): its own, and its
-        file's where the change is the file's."""
-        path = test.partition("::")[0]
-        out = []
-        for edit in edits:
-            if edit.path != path:
-                continue
-            for item, how in edit.items:
-                if item == edit.path or wrongtest.same_test(test, item):
-                    out.append(read(edit, item, how))
-        return "\n".join(out)
-
-    def claimed(self, said, tests, gone="", came=""):
+    def claimed(self, said, tests):
         """-> (the ruling, the cite of the claim) of the first of `tests`
         when the answers in `said` name each on a WRONG TEST line under one
-        whose ruled edit the change, `gone` the lines it took out and `came`
-        the lines it put in, is tied to (`wrongtest.ruled_claim`), else
-        None; None for no tests."""
+        that ties it (`wrongtest.ruled_claim`, `tied`), else None; None for
+        no tests."""
         found = None
         for test in tests:
             d = wrongtest.ruled_claim(said, test, self.workdir, self.start,
-                                      self.spec_line_covered, gone, came,
-                                      forced=self.forced)
+                                      self.spec_line_covered, self.tied)
             if d is None:
                 return None
             found = found or d
         return found
 
-    def ruled_lost(self):
-        """-> [(the ruling, `<file>:<line>`, the words the run's edit took
-        out of the line and out of its file)] for each spec line the run
-        started with that its edit removed or rewrote and a ruling lets
-        change."""
-        found = specfiles.changes(getattr(self, "start", None))
-        if not found:
-            return []
-        decided = self.spec_rulings()
-        asked = self.runner_asked(ruling.asked_lines)
-        specs, request = self.spec_paths(), self.request()
-        out = []
-        for rel, was, now in found:
-            for n, line, _ in specfiles.lost(was, now):
-                d = ruling.spec_line_ruled(decided, line, asked, rel,
-                                           request, specs)
-                if d is None:
-                    continue
-                out.append((d, rel + ":" + str(n),
-                            ruling.words(line) - ruling.words(now)))
-        return out
+    def tied(self, test, lines):
+        """whether a WRONG TEST claim quoting `lines`, spec lines as the run
+        found them, ties `test`, a start test id, to the ruled edit: the
+        test's code as the run found it shares a word with the lines
+        (`found_words`), the test as the run found it, green at the start, is
+        red against the product now (`forced`), and the test as the run left
+        it is red against the product as the run found it (`turned`). the
+        spec as the run left it is read by none of the three. a test in a
+        file read by line has no python id to run, so it is never tied."""
+        rel = test.partition("::")[0]
+        if "::" not in test or not rel.endswith(".py"):
+            return False
+        if not self.found_words(test) & ruling.words(" ".join(lines)):
+            return False
+        return self.forced(test) and self.turned(test)
 
-    def edit_decided(self, pinned):
-        """-> (the ruling, `decided by <file>:<line>`) when a start test
-        change is the ruled edit's with no claim, else None. `pinned` is
-        `testedits.pinned`: (the tests, the lines the change took out as the
-        run found them, the lines it put in). every test, as the run found it
-        and green at the start, is red against the product now (`forced`),
-        and the lines taken out hold a word the edit took out of a spec line
-        a ruling lets change and out of its file (`ruling.pinned_words`: a
-        builtin the test's code reads never ties). what the step wrote into
-        the test never ties it, nor does a word the line keeps."""
-        if not pinned or not pinned[0]:
-            return None
-        tests, gone, _ = pinned
-        taken = ruling.pinned_words(gone)
-        if not taken:
-            return None
-        lost = self.ruled_lost()
-        if not lost or not all(self.forced(t) for t in tests):
-            return None
-        for d, cite, took in lost:
-            if taken & took:
-                return d, testedits.DECIDED_BY + " " + cite
-        return None
+    def found_words(self, test):
+        """-> the words `test`, a python start test id, reads as the run
+        found it: the names and strings of its code and of the code at the
+        top of its file it reaches (`testedits.read_by`, `ruling.code_words`),
+        never a comment, a docstring, an assert message or a builtin."""
+        rel = test.partition("::")[0]
+        was = ruling.as_found(self.workdir, rel,
+                              getattr(self, "start", None)) or ""
+        return ruling.code_words(testedits.read_by(was, rel,
+                                                   test.split("[")[0]))
+
+    def turned(self, test):
+        """whether `test`, a start test id, as the run left it is red against
+        the product as the run found it (`starttests.tests_as_left_on_start`),
+        read once per state of the test files. a rewrite that asserts
+        nothing the found product fails is green there. never when the run
+        skips tests or has no start commit to run on."""
+        start = getattr(self, "start", None)
+        order = getattr(self, "order", None)
+        if start is None or not start.hashed or order is None or order.skip:
+            return False
+        key = tuple(sorted((rel, hash(data))
+                           for rel, data in start.test_changes()))
+        held = getattr(self, "red_as_left", None)
+        if held is None or held[0] != key:
+            found, _ = starttests.tests_as_left_on_start(
+                start, redorder.test_command(self.fm))
+            held = (key, [t for t, (s, _) in (found or {}).items()
+                          if s in starttests.RED])
+            self.red_as_left = held
+        return any(wrongtest.same_test(red, test) for red in held[1])
 
     def wrong_ruled(self, test, spec=""):
         """-> the `override:` answer to the runner's own WRONG TEST question
         that lets `test`, a start test id or a file, change, or None: the
         question named the test, or `spec`, the spec: line of a claim on it,
         quotes only lines that question's claims quoted, as the run found
-        them, the test's code as the run found it reads a word of those
-        lines (`reads_lines`), and it is red against the product now (`forced`), so the run's change
-        is what makes it wrong with that line. a test still green as found,
-        or one that reads nothing of the line, is not tied to it by a claim
-        the step wrote."""
+        them, and the claim ties the test to them (`tied`), so the run's
+        change is what makes it wrong with that line. a test still green as
+        found, one whose rewrite the found product fails nowhere, or one that
+        reads nothing of the line is not tied to it by a claim the step
+        wrote."""
         asked = self.runner_asked(ruling.asked_wrong)
         if not any(tests for tests, _ in asked.values()):
             return None
@@ -804,28 +784,10 @@ class Run(object):
                 continue
             if any(wrongtest.same_test(t, test) for t in found[0]):
                 return d
-            if lines and set(lines) <= set(found[1]) \
-                    and self.reads_lines(test, lines) and self.forced(test):
+            if lines and set(lines) <= set(found[1]) and self.tied(
+                    test, [l.partition(": ")[2] for l in lines]):
                 return d
         return None
-
-    def reads_lines(self, test, lines):
-        """whether `test`, a start test id or a file, as the run found it,
-        reads a word of `lines`, spec lines as the run found them: a name or
-        a string its code uses (`ruling.code_words`), never a comment, a
-        docstring or an assert message, which can share a word with any
-        line. a file that is not python is read with its comments cut."""
-        rel = test.partition("::")[0]
-        was = ruling.as_found(self.workdir, rel,
-                              getattr(self, "start", None)) or ""
-        if rel.endswith(".py"):
-            if "::" in test:
-                was = textwrap.dedent(testedits._source_of(
-                    was, rel, test.split("[")[0]))
-            read = ruling.code_words(was)
-        else:
-            read = ruling.words(re.sub(r"(?s)/\*.*?\*/|(?m)//.*$", " ", was))
-        return bool(read & ruling.words(" ".join(lines)))
 
     def wrong_covered(self, said, tests):
         """-> (the ruling, the cite of the claim or "") that lets every one
@@ -889,16 +851,12 @@ class Run(object):
                 cite = ""
                 if d is None:
                     d, cite = self.claimed(
-                        said, testedits.claimed_by(edit, test, how),
-                        testedits.gone(edit, test, how),
-                        testedits.came(edit, test, how)) or (None, "")
+                        said, testedits.claimed_by(edit, test, how)) \
+                        or (None, "")
                 if d is None:
                     d, cite = self.wrong_covered(
                         said, testedits.claimed_by(edit, test, how)) \
                         or (None, "")
-                if d is None:
-                    d, cite = self.edit_decided(
-                        testedits.pinned(edit, test, how)) or (None, "")
                 out.append((edit, test, how, d, cite))
         return out
 

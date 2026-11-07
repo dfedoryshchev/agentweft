@@ -1,27 +1,21 @@
-"""under a held override, a start test the override's rewritten lines decide
-is listed under that ruling without a claim per test.
+"""under a held override, a start test changed with no claim is asked about,
+never listed under the ruling by the run alone.
 
 the override lets spec lines change, and the run's edit rewrites them. a
-start test whose change is that edit's needs no WRONG TEST line of its own:
-the test as the run found it, green at the start, is red against the product
-now, and the lines the change took out of it hold a word the edit took out of
-a line the override covers and out of its file. such a test, changed,
-removed or deleted with its file, is listed under the ruling in the handoff
-with the line that decided it. a test the edit's lines do not decide still
-needs its own claim or parks: one still green as found, one whose lines share
-no word the edit took out, and one the move also broke whose rewrite writes
-the new envelope's words, or shares a builtin with the ruled line.
+start test the step changes with them, with no WRONG TEST line of its own,
+fails the test-edits check and parks on its question, however much its
+change looks like the edit's: changed, removed, or deleted with its file,
+red as found or green, sharing a word with the edit or a builtin with the
+ruled line.
 """
 import sys
 
 sys.path.insert(0, ".")
-from agentweft.guardrails import testedits
 from agentweft.runner import stops
 
 from test_ruled_start_tests import (CURSOR_ENVELOPE, ENVELOPE_TEST,
                                     FIRST_PAGE_TEST, NAMES_START, NAMES_TEST,
-                                    TYPED_PLAN, built, overridden, record,
-                                    stamp_of)
+                                    TYPED_PLAN, built, overridden, record)
 
 NL = chr(10)
 ONLY_ENVELOPE = CURSOR_ENVELOPE.split(NL + NL + NL + "def test_a_list_starts")[0] \
@@ -33,49 +27,47 @@ def gates(tmp_path):
     return record(tmp_path, "gates.md")
 
 
-def test_tests_the_ruled_edit_decides_change_with_no_claim(tmp_path,
-                                                           monkeypatch):
-    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built())
-    assert "FAIL test-edits" not in gates(tmp_path), gates(tmp_path)
-    assert code == stops.EXIT_OK
-    assert asked.count("worker.md") == 1
+def asked_about(tmp_path, code, *tests):
+    said = gates(tmp_path)
+    assert code != stops.EXIT_OK, said
+    question = record(tmp_path, "question.md")
     handoff = record(tmp_path, "handoff.md")
-    for test in (ENVELOPE_TEST, FIRST_PAGE_TEST):
-        line = test + " <- ruling " + stamp_of(tmp_path) + " ("
-        assert line + testedits.DECIDED_BY + " docs/api.md:" in handoff, test
+    for test in tests:
+        assert test in question, question
+        assert test + " <- ruling" not in handoff
 
 
-def test_a_removed_test_the_ruled_edit_decides_is_listed(tmp_path,
-                                                         monkeypatch):
+def test_tests_the_ruled_edit_moved_with_no_claim_are_asked_about(
+        tmp_path, monkeypatch):
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built())
+    asked_about(tmp_path, code, ENVELOPE_TEST, FIRST_PAGE_TEST)
+
+
+def test_a_removed_test_with_no_claim_is_asked_about(tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(),
                              rewrite=ONLY_ENVELOPE)
-    assert code == stops.EXIT_OK, gates(tmp_path)
-    handoff = record(tmp_path, "handoff.md")
-    assert FIRST_PAGE_TEST + " <- ruling " + stamp_of(tmp_path) in handoff
+    asked_about(tmp_path, code, FIRST_PAGE_TEST)
+    assert FIRST_PAGE_TEST + " - removed" in record(tmp_path, "question.md")
 
 
-def test_a_deleted_test_file_is_listed_by_name_under_the_ruling(
-        tmp_path, monkeypatch):
+def test_a_deleted_test_file_is_asked_about_by_name(tmp_path, monkeypatch):
     def gone(place):
-        (place / "tests" / "test_envelope.py").unlink()
+        (place / "tests" / "test_envelope.py").unlink(missing_ok=True)
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(),
                              rewrite=None, forge=gone)
-    assert code == stops.EXIT_OK, gates(tmp_path)
-    handoff = record(tmp_path, "handoff.md")
-    for test in (ENVELOPE_TEST, FIRST_PAGE_TEST):
-        assert test + " <- ruling " + stamp_of(tmp_path) in handoff, test
+    asked_about(tmp_path, code, ENVELOPE_TEST, FIRST_PAGE_TEST)
 
 
-def test_a_test_the_edit_does_not_decide_still_needs_a_claim(tmp_path,
-                                                             monkeypatch):
+def test_a_test_the_move_also_broke_is_asked_about_beside_them(tmp_path,
+                                                               monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(),
                              names=True)
     assert code != stops.EXIT_OK
     said = gates(tmp_path)
     assert "FAIL test-edits" in said
     left = said.split("FAIL test-edits")[-1].split(NL)[0]
-    assert NAMES_TEST + " (changed)" in left
-    assert ENVELOPE_TEST not in left and FIRST_PAGE_TEST not in left
+    for test in (NAMES_TEST, ENVELOPE_TEST, FIRST_PAGE_TEST):
+        assert test + " (changed)" in left, test
 
 
 ORDER_START = ("from pages import listing" + NL + NL + NL

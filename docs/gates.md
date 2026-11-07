@@ -734,31 +734,38 @@ in `gates.md`:
   run's own ruled edit left them (`the quote` above; a range cite is read
   at the lines its quote stands on, as a CONFLICT cite is): the test was right
   about the old line and is wrong about the ruled one, so it may change with
-  it. the claim covers the test only when the test's change is that edit's:
-  the lines the change took out of the test (of the file, for the code its
-  tests share or a file read by line) hold a word the run's edit took out of
-  the quoted lines and the file no longer holds; or they hold a word of the
-  quoted lines as the run found them, the edit removed or rewrote each of
-  those lines, and the lines the change put in hold a word the lines it took
-  out did not, which the edit wrote into the file and the quoted lines did
-  not hold (a field moved into a nested shape keeps its name in the file, so
-  `item["qty"]` that becomes `item["locations"][0]["qty"]` is tied by
-  `locations`), and the test as the run found it, green at the start, is red
-  against the product as it is now (the start-tests replay, read once per
-  state of the product). the step writes the lines it puts in, so a word in
-  them proves nothing alone: a test the move left green, loosened with a
-  word the edit wrote, is not tied, and neither is a test the replay does
-  not show red (a js file, a test that reads the spec files, which the
-  replay lays out as the run found them, a run that skips tests). on both
-  ways, and on the no-claim way below, a builtin name the test's code reads
-  (`list(`, `next(`) is no word of the lines taken out: the step's edit
-  decides which words leave the spec file, and any test may call one; inside
-  a string literal (`item["type"]`) the name counts. a change that only drops a word, with nothing the edit
-  wrote in its place, is not tied that way. a claim quoting a ruled line
-  for a test that pins something else covers nothing, and neither does one
-  on lines the run has not edited yet. a test changed with no such line, or
-  quoting a line no ruling covers, still fails, and on its last go parks on
-  this check's question, which an `override:` naming the test answers. the
+  it. the claim covers the test only when all three of these hold, each
+  read from what the run found or what the tests do, never from what the
+  step wrote into the spec or the test:
+  - the test as the run found it, green at the start, is red against the
+    product as it is now (the start-tests replay with nothing laid out as
+    the run left it, read once per state of the product);
+  - the test as the run left it is red against the product as the run found
+    it (one pytest run of the start test modules the run changed, as it left
+    them, in a checkout of the start commit with the start state, read once
+    per state of the test files), so a rewrite that asserts nothing the old
+    product fails (`assert listing([1])`) is not covered;
+  - the test's code as the run found it shares a word with the quoted lines
+    as the run found them: its names and string constants, and those of the
+    code at the top of its file it reads (a constant, a helper, a fixture),
+    so `item()["qty"]` reads `qty`; never a comment, a docstring or an assert
+    message, and never a builtin name the code calls (`list(`, `next(`),
+    while a string holding one (`item()["type"]`) counts. a quote of the
+    ruled edit is read at the lines it stands in for as the run found them,
+    and a line the run left as it was, moved by lines it added above, at
+    that line; a quote of an added line ties nothing.
+  a test in a file read by line has no test id the replay can run, so a
+  claim never covers it this way; neither does it cover a test the replay
+  does not reach (one that reads the spec files, which the replay lays out
+  as the run found them, or any test in a run that skips tests). a claim
+  quoting a ruled line for a test that pins something else covers nothing.
+  a test changed with no such line, or quoting a line no ruling covers,
+  still fails, and on its last go parks on this check's question, which an
+  `override:` to it answers for every test it names. what no program here
+  closes: a step that breaks a behaviour no ruling covers, pins the broken
+  behaviour in the test it rewrites, and claims it on a ruled line whose
+  found words that test's code shares is covered; the product diff, the
+  typed claim and the start-tests line naming the test show it. the
   code a python file's tests share counts only when each
   test the file started with that reads what changed, itself or through a
   helper it calls, is named that way; every test it started with, when the
@@ -770,22 +777,9 @@ in `gates.md`:
   handoff.md's rulings section lists each test under the ruling with the
   line its claim quoted, `<file> +a -d: <test> <- ruling <when> <heading>
   (claimed on <file>:<line>)`.
-- or, with no claim, unless the run's ruled edit decides the test by itself:
-  every test the change touches (for the code a python file's tests share,
-  each test that reads it), as the run found it and green at the start, is
-  red against the product as it is now, and the lines the change took out
-  hold a word the edit took out of a spec line a ruling lets change and the
-  file no longer holds. what the change put in never ties it, so a step that
-  also broke a behaviour no ruling covers and wrote the new envelope's words
-  into that test is still asked.
-  a test removed, or
-  deleted with its file, took out all its lines, so one the edit decides is
-  listed too, by name, and the start-tests replay does not read it as red.
-  handoff.md lists each such test under the ruling with the line that
-  decided it, `<test> <- ruling <when> <heading> (decided by
-  <file>:<line>)`. a test still green as found, one whose lines share no
-  word with the ruled edit, and a js file the replay shows no red id in
-  still need their own claim or ruling.
+- a start test changed with no claim is never listed under a ruling by the
+  run alone, however much its change looks like the ruled edit's: it fails,
+  and on the last go parks on this check's question.
 
 which files changed is read from content hashes, and what they held from the
 start commit (or the snapshot, for a file already loose), so a step that

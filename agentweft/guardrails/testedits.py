@@ -28,6 +28,7 @@ place with no start commit has only the hashes: a test file it cannot read
 back is held as changed, since nothing can show the change was an addition.
 """
 import ast
+import textwrap
 from collections import Counter
 from pathlib import PurePosixPath
 
@@ -44,7 +45,6 @@ SHARED = "the code its tests share changed"
 UNPARSED = "no longer parses"
 UNREAD = "changed, with no start commit to compare it against"
 CLAIMED_ON = "claimed on"
-DECIDED_BY = "decided by"
 
 
 class Edit(object):
@@ -391,31 +391,31 @@ def _source_of(source, name, test):
     return ""
 
 
-def gone(edit, test, how):
-    """-> the lines the change `test`, `how`, in `edit` took out or rewrote,
-    as the run found them: a python test's own lines for a test whose code
-    changed, else the file's. "" when the file is gone or was not read."""
-    if edit.was is None or edit.now is None:
+def read_by(source, name, test):
+    """-> the code of the test `test` (an id under `name`) in `source`, and
+    of each statement at the top of the file that binds a name it reads or
+    takes as a fixture, itself or through what those read (a constant, a
+    helper, a fixture), each dedented; "" when the test is not there or the
+    source does not parse."""
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
         return ""
-    was, now = edit.was, edit.now
-    if "::" in test and how == CHANGED:
-        was = _source_of(was, edit.path, test)
-        now = _source_of(now, edit.path, test)
-    return "\n".join(line for _, line, _ in specfiles.lost(was, now))
-
-
-def came(edit, test, how):
-    """-> the lines the change `test`, `how`, in `edit` put in, added or
-    rewritten, as they are now, read the way `gone` reads what it took out.
-    "" when the file is gone or was not read."""
-    if edit.was is None or edit.now is None:
+    node = next((n for t, n in _named_tests(tree, name) if t == test), None)
+    if node is None:
         return ""
-    was, now = edit.was, edit.now
-    if "::" in test and how == CHANGED:
-        was = _source_of(was, edit.path, test)
-        now = _source_of(now, edit.path, test)
-    new = now.split("\n")
-    return "\n".join(new[n - 1] for n in sorted(specfiles.became(was, now)))
+    graph = _graph(tree)
+    seen, todo = set(), list(_reads(node))
+    while todo:
+        n = todo.pop()
+        if n not in seen:
+            seen.add(n)
+            todo.extend(graph.get(n, ()))
+    parts = [node] + [top for top in tree.body if top is not node and any(
+        bound in seen for bound, _ in _bound(top))]
+    return "\n\n".join(textwrap.dedent(
+        ast.get_source_segment(source, part, padded=True) or "")
+        for part in parts)
 
 
 def claimable(test, how):
@@ -440,31 +440,6 @@ def claimed_by(edit, test, how):
     return [test]
 
 
-def pinned(edit, test, how):
-    """-> (what the change `test`, `how`, in `edit` has to show for it to be
-    the ruled edit's with no claim: the tests each tied on its own, the lines
-    the change took out as the run found them, the lines it put in), or None
-    for a change only a ruling naming it covers. a test removed, or deleted
-    with its file, took out all its lines and put in none."""
-    if edit.was is None:
-        return None
-    if how in (REMOVED, DELETED):
-        source = _source_of(edit.was, edit.path, test) if "::" in test \
-            else edit.was
-        return ([test], source, "") if source.strip() else None
-    tests = claimed_by(edit, test, how)
-    if not tests or edit.now is None:
-        return None
-    return tests, gone(edit, test, how), came(edit, test, how)
-
-
-def said_on(cite):
-    """-> how a passing line says what a change rests on: the cite of a
-    WRONG TEST claim, or the spec line the ruled edit decided it by."""
-    return cite if cite.startswith(DECIDED_BY + " ") \
-        else CLAIMED_ON + " " + cite
-
-
 def what(n, edit):
     word = "line" if not edit.path.endswith(".py") else "test"
     return str(n) + " " + word + ("" if n == 1 else "s")
@@ -481,7 +456,7 @@ def passed(found, ruled):
         line += (". " if line else "") + "changed, each covered by a" \
             " ruling: " + ", ".join(
                 t + " (ruling " + by + ")"
-                + (" " + said_on(cite) if cite else "")
+                + (" " + CLAIMED_ON + " " + cite if cite else "")
                 for t, by, cite in ruled)
     elif said:
         line += ", none the run started with changed"

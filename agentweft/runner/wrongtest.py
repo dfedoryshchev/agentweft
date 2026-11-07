@@ -18,9 +18,8 @@ several claims, each opened by its own WRONG TEST line: the tests one step
 wrote go back to it together, in one round, and the tests the run started
 with park once, on one question naming them all. an `override:` to it lets
 each test it named change, and a later claim on a start test quoting only
-lines its claims quoted, when that test's code as the run found it reads a
-word of those lines and it is red against the product now
-(`Run.wrong_ruled`, `Run.reads_lines`).
+lines its claims quoted, when the claim ties the test the way a claim under
+any override does (`Run.wrong_ruled`, `Run.tied`).
 
 the spec line has to be a line that is there: a claim nobody can check is a
 question, the way a REFUSED line without a cite is. its quote has to be what
@@ -34,17 +33,14 @@ under an override the run holds, a test the run started with that pins a line
 the override lets change is wrong with that line: a claim on it, quoting the
 line as the run found it or as the run's own ruled edit left it
 (`ruling.ruled_quote`), is no question when the step changed the test, and
-lets the change stand at the test-edits check (`ruled_claim`) when the
-test's change is that edit's: the lines it took out of the test hold a word
-the run's edit took out of the quoted line, or hold a word of that line as
-the run found it, the edit rewrote or removed the line, and the lines the
-change put in hold a new word the edit wrote into the file (a field moved
-into a nested shape keeps its name in the file) and the test as the run
-found it, green at the start, is red against the product now: the step
-writes those lines, so the test's own run is what ties them to the move. a
-claim that quotes a
-ruled line for a test pinning something else covers nothing, and the
-test-edits check asks about the change.
+lets the change stand at the test-edits check (`ruled_claim`) when it ties
+the test (`Run.tied`): the test as the run found it, green at the start, is
+red against the product now; the test as the step left it is red against
+the product as the run found it; and the test's code as the run found it
+shares a word with the quoted lines as the run found them. what the step
+wrote, into the spec or the test, is read by none of the three. a claim
+that quotes a ruled line for a test pinning something else covers nothing,
+and the test-edits check asks about the change.
 """
 from pathlib import Path
 
@@ -53,8 +49,8 @@ from agentweft.guardrails import testedits
 from agentweft.guardrails.snapshot import test_ids
 
 from . import verbs
-from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, claim_lines, fate,
-                     misquote, pinned_words, ruled_quote, spanned, took, words,
+from .ruling import (CONFLICT, FIRST_QUOTE, cite_of, cited, claim_lines,
+                     misquote, quoted_as_found, ruled_quote, spanned,
                      wrong_asked)
 
 WRONG = "WRONG TEST"
@@ -235,25 +231,17 @@ def same_test(said, test):
     return path + "::" + name.split("[")[0] == test
 
 
-def ruled_claim(outputs, test, workdir, start=None, ruled=None, gone="",
-                came="", forced=None):
+def ruled_claim(outputs, test, workdir, start=None, ruled=None, tied=None):
     """-> (the ruling, the claim's cite) that lets `test`, one the run
     started with, change because an answer of this run names it on a WRONG
     TEST line whose spec: line quotes spec lines that ruling covers
-    (`ruled_quote`), and the test's change is that ruled edit's: `gone`, the
-    lines the change took out, holds a word the run's edit took out of the
-    quoted lines (`ruling.took`), or holds a word of those lines as the run
-    found them, the edit removed or rewrote each of them, `came`, the lines
-    the change put in, holds a word `gone` did not that the edit wrote into
-    their file and they did not hold (`ruling.fate`), and `forced(test)`
-    says the test as the run found it, green at the start, is red against
-    the product now. no `forced`, no tie that way. a builtin the test's code
-    reads is no word of `gone` (`pinned_words`). else None: a ruled line
-    quoted for a test that pins something else covers nothing."""
-    pinned = pinned_words(gone)
-    if not pinned:
+    (`ruled_quote`), and `tied(test, lines)` holds for those lines as the
+    run found them (`ruling.quoted_as_found`; `Run.tied` reads what the run
+    found and what the tests do). no `tied`, or a quote of lines the run
+    added, ties nothing. else None: a ruled line quoted for a test that pins
+    something else covers nothing."""
+    if tied is None:
         return None
-    put = words(came) - words(gone)
     for output in outputs:
         for said, _, spec in claims(output or ""):
             if not spec or not same_test(said, test):
@@ -261,12 +249,9 @@ def ruled_claim(outputs, test, workdir, start=None, ruled=None, gone="",
             d = ruled_quote(spec, workdir, start, ruled)
             if d is None:
                 continue
-            if pinned & took(spec, workdir, start):
-                return d, cite_in(spec)
-            if forced is None:
-                continue
-            found, brought = fate(spec, workdir, start)
-            if pinned & found and put & brought and forced(test):
+            lines = [l for l in quoted_as_found(spec, workdir, start) or ()
+                     if l.strip()]
+            if lines and tied(test, lines):
                 return d, cite_in(spec)
     return None
 

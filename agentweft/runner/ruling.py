@@ -915,25 +915,15 @@ def words(text):
 
 
 BUILTINS = {w.lower() for w in dir(builtins)}
-LITERAL = re.compile(r"""(['"])(?:\\.|(?!\1).)*\1""")
-
-
-def pinned_words(text):
-    """-> the words of a test's lines `text` that can tie it to a spec line:
-    `words`, less a builtin name the code reads (`list(`, `next(`): any test
-    may call one, and the step's ruled edit decides which words leave the
-    spec file. inside a string literal a builtin's name is data the test
-    pins (`["type"]`) and counts."""
-    text = text or ""
-    quoted = " ".join(m.group(0) for m in LITERAL.finditer(text))
-    return words(quoted) | (words(LITERAL.sub(" ", text)) - BUILTINS)
 
 
 def code_words(source):
     """-> the `words` of the names and string constants python `source`'s
     code reads: no comment, no docstring or other bare string, no assert
-    message, which say things in English and read nothing. empty for source
-    that does not parse."""
+    message, which say things in English and read nothing, and no builtin
+    name (`list(`, `next(`), which any test may call. a builtin's name in a
+    string constant is data the test pins (`["type"]`) and counts. empty for
+    source that does not parse."""
     try:
         tree = ast.parse(source or "")
     except SyntaxError:
@@ -949,25 +939,31 @@ def code_words(source):
         if id(node) in prose:
             continue
         if isinstance(node, ast.Name):
-            said.append(node.id)
+            named = node.id
         elif isinstance(node, ast.Attribute):
-            said.append(node.attr)
+            named = node.attr
         elif isinstance(node, ast.arg):
-            said.append(node.arg)
+            named = node.arg
         elif isinstance(node, ast.keyword) and node.arg:
-            said.append(node.arg)
+            named = node.arg
         elif isinstance(node, ast.Constant) and isinstance(node.value, str):
             said.append(node.value)
+            continue
+        else:
+            continue
+        if named.lower() not in BUILTINS:
+            said.append(named)
     return words(" ".join(said))
 
 
 def quoted_as_found(said, workdir, start=None):
-    """-> (the spec lines `said`, `<file>:<line> "<the line>"`, quotes, as
-    the run found them, read at their number then or, for a quote of the
-    edit, from the lines it stands in for (`specfiles.became`); their file
-    as found; as it is now; whether the run's own edit removed or rewrote
-    each of them), or None. a cite of several lines is read at those its
-    quote stands on (`placed`)."""
+    """-> the spec lines `said`, `<file>:<line> "<the line>"`, quotes, as the
+    run found them, or None: read at their number then or, cited where they
+    are now, from the lines they stand in for (`specfiles.became`) or, for a
+    line the run left as it was and lines it added moved, from that line
+    (`specfiles.stayed`). an added line stands in for none. a cite of
+    several lines is read at those its quote stands on (`placed`). nothing
+    here reads the spec as the run left it beyond placing the quote."""
     text = (said or "").strip()
     m = CONFLICT.match(text) or FIRST_QUOTE.match(text)
     if not m:
@@ -981,50 +977,21 @@ def quoted_as_found(said, workdir, start=None):
     span = placed(lines, first, last, quote) \
         if 1 <= first <= last <= len(lines) else None
     if span is not None:
-        lost = {n for n, _, _ in specfiles.lost(was, now)}
-        found = lines[span[0] - 1:span[1]]
-        edited = all(n in lost for n in range(span[0], span[1] + 1)
-                     if lines[n - 1].strip())
-        return found, was, now, edited
+        return lines[span[0] - 1:span[1]]
     new = now.split("\n")
     span = placed(new, first, last, quote) \
         if 1 <= first <= last <= len(new) else None
     if span is None:
         return None
     stood = specfiles.became(was, now)
-    found = [stood[n] for n in range(span[0], span[1] + 1)
-             if stood.get(n) is not None]
-    return found, was, now, bool(found)
-
-
-def took(said, workdir, start=None):
-    """-> the words the run's own edit took out of the spec lines `said`,
-    `<file>:<line> "<the line>"`, quotes: the words of those lines as the run
-    found them (`quoted_as_found`) that the file no longer holds anywhere.
-    none for lines the run left as they were."""
-    read = quoted_as_found(said, workdir, start)
-    if read is None:
-        return set()
-    found, _, now, _ = read
-    return words(" ".join(found)) - words(now)
-
-
-def fate(said, workdir, start=None):
-    """-> (the words of the spec lines `said`, `<file>:<line> "<the line>"`,
-    quotes, as the run found them; the words of the lines the run's edit
-    wrote into their file, added or rewritten, that those lines did not
-    hold), both empty unless the run's own edit removed or rewrote each of
-    those lines. a field the edit moved keeps its name in the file, so what
-    ties a test to the move is the line it pinned and the words the move
-    wrote."""
-    read = quoted_as_found(said, workdir, start)
-    if read is None or not read[3]:
-        return set(), set()
-    found, was, now, _ = read
-    held = words(" ".join(found))
-    new = now.split("\n")
-    wrote = " ".join(new[n - 1] for n in specfiles.became(was, now))
-    return held, words(wrote) - held
+    kept = specfiles.stayed(was, now)
+    found = []
+    for n in range(span[0], span[1] + 1):
+        if stood.get(n) is not None:
+            found.append(stood[n])
+        elif n in kept:
+            found.append(lines[kept[n] - 1])
+    return found
 
 
 def spanned(said, workdir, start=None):
@@ -1489,7 +1456,7 @@ def claim_lines(spec, workdir, start=None):
     if not read:
         return []
     rel = path_of(cite_of(m)[0])
-    return [rel + ": " + flat(l) for l in read[0] if l.strip()]
+    return [rel + ": " + flat(l) for l in read if l.strip()]
 
 
 def wrong_asked(tests, lines):

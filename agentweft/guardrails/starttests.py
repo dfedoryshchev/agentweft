@@ -17,6 +17,11 @@ as the run left it, so a test that runs it, a python test over a folder of
 js tests, is judged on the ruled file. a file with one change no ruling
 covers stays as the run found it.
 
+the start test modules the run changed also run as the run left them on the
+start state, product as found (`tests_as_left_on_start`): a WRONG TEST claim
+covers a changed test only when that run shows it red, so a rewrite that
+asserts nothing the found product fails is never listed under a ruling.
+
 a test green when the run started and red now is the run's doing. a test that
 was red when the run started is not counted, so an inherited red is never
 blamed on the run; which ones were green is read from the run's suite
@@ -154,6 +159,30 @@ def tests_in(start, files, base, timeout, now, as_left=()):
             else:
                 start.lay_out(tree, [])
             return run_tests(base, files, start.place_in(tree), timeout)
+    except ValueError as e:
+        return None, "could not check out the start commit: " + str(e)
+
+
+def tests_as_left_on_start(start, cmd=None, timeout=TIMEOUT):
+    """-> ({id: (state, said)}, "") for one pytest run of the python test
+    modules the run started with and changed, as the run left them, on the
+    place's start state: a checkout of the start commit with the start
+    state and every test file the run changed or added as it is now, and no
+    product file of the run's. ({}, "") when no such module changed; (None,
+    why) when it cannot run."""
+    if start is None or not start.hashed or not start.start:
+        return None, "the run has no start commit to run them on"
+    changes = start.test_changes()
+    files = sorted(start.from_place(rel) for rel, _ in changes
+                   if rel in start.tests
+                   and TEST_MODULE.search(PurePosixPath(rel).name))
+    if not files:
+        return {}, ""
+    try:
+        with worktree.temporary(start.root, start.start) as tree:
+            start.lay_out(tree, changes)
+            return run_tests(base_of(cmd), files, start.place_in(tree),
+                             timeout)
     except ValueError as e:
         return None, "could not check out the start commit: " + str(e)
 

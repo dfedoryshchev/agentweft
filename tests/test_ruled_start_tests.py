@@ -4,28 +4,26 @@ once an `override:` answer lets spec lines change, a test the run started
 with that pins exactly those lines is wrong with them. a step may change it
 when its answer names it on a WRONG TEST line whose `spec:` line quotes a
 line the ruling covers, as the run found it or as the run's own ruled edit
-left it, when the lines the step took out of the test hold a word the run's
-edit took out of that line, or hold a word of that line, which the edit
-rewrote, the lines the step put in hold a new word the edit wrote (a field
-moved into a nested shape) and the test as the run found it is red against
-the product now, and the handoff lists each such test under
-that ruling with the line its claim quoted. a ruled line quoted for a test that
-pins an unruled line covers nothing, loosened or rewritten. a plan that
-marks a ruled line `spec: contradicts` needs no new CONFLICT line for it.
-the start-tests replay lays out a start test file every change of which a
-ruling covers as the run left it, so a python test that runs a js test file
-is judged on the ruled file, and one that runs an unruled one is not.
-a start test the ruled edit decides by itself (red as found against the
-product now, its lost lines tied to the edit) needs no claim and is listed
-`decided by` the line. for a test the edit does not decide everything else
-still holds: a test on a line no ruling covers, a test changed with no WRONG
-TEST line, code a file's tests share with a test that reads it unnamed, a
-quote of neither the found line nor the ruled edit, a `request:` answer and
-an entry a step wrote in decisions.md itself let nothing change, and a claim
-on a start test the step left as it was still asks.
+left it, and the claim ties the test (`Run.tied`: red as found against the
+product now, red as left against the product as found, and its found code
+sharing a word with the line as found; a field moved into a nested shape
+ties by its name), and the handoff lists each such test under that ruling
+with the line its claim quoted. a ruled line quoted for a test that pins an
+unruled line covers nothing, loosened or rewritten. a plan that marks a
+ruled line `spec: contradicts` needs no new CONFLICT line for it. the
+start-tests replay lays out a start test file every change of which a
+ruling covers as the run left it, and one that runs an unruled one is not.
+a test in a file read by line is never tied by a claim, so a bridge over it
+still parks. a test changed with no WRONG TEST line, a test on a line no
+ruling covers, code a file's tests share with a test that reads it unnamed,
+a quote of neither the found line nor the ruled edit, a `request:` answer
+and an entry a step wrote in decisions.md itself let nothing change, and a
+claim on a start test the step left as it was still asks.
 """
 import datetime
 import sys
+
+import pytest
 
 sys.path.insert(0, ".")
 from agentweft.guardrails import snapshot, starttests, testedits, worktree
@@ -303,16 +301,17 @@ def test_a_start_test_changed_with_no_wrong_test_line_still_refuses(
     assert "and so does a WRONG TEST line for the test" in gates
 
 
-def test_a_start_test_the_ruled_edit_decides_needs_no_wrong_test_line(
+def test_a_start_test_the_ruled_edit_moved_with_no_claim_is_asked_about(
         tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
         wrong(ENVELOPE_TEST, FOUND[0])))
     gates = record(tmp_path, "gates.md")
-    assert "FAIL test-edits" not in gates, gates
-    assert code == stops.EXIT_OK, gates
-    assert FIRST_PAGE_TEST + " <- ruling " + stamp_of(tmp_path) + " (" \
-        + testedits.DECIDED_BY + " docs/api.md:" in record(tmp_path,
-                                                           "handoff.md")
+    assert code != stops.EXIT_OK, gates
+    left = gates.split("FAIL test-edits")[-1].split(NL)[0]
+    assert FIRST_PAGE_TEST + " (changed)" in left
+    assert ENVELOPE_TEST not in left
+    assert FIRST_PAGE_TEST + " <- ruling" not in record(tmp_path,
+                                                        "handoff.md")
 
 
 def test_a_claim_on_a_ruled_start_test_the_step_left_as_it_was_still_asks(
@@ -345,16 +344,15 @@ def test_code_a_file_s_tests_share_does_not_change_on_one_claim(
     assert "tests/test_envelope.py (the code its tests share changed)" in gates
 
 
-def test_code_tests_share_changes_on_one_claim_when_the_edit_decides_the_rest(
+def test_code_tests_share_does_not_change_on_one_claim_when_the_rest_moved(
         tmp_path, monkeypatch):
     one = built(wrong(FIRST_PAGE_TEST, FOUND[1]))
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, one,
                              rewrite=CURSOR_SHARED, envelope=SHARED)
     gates = record(tmp_path, "gates.md")
-    assert "FAIL test-edits" not in gates, gates
-    assert code == stops.EXIT_OK, gates
-    assert " <- ruling " + stamp_of(tmp_path) + " (" + testedits.DECIDED_BY \
-        + " docs/api.md:" in record(tmp_path, "handoff.md")
+    assert code != stops.EXIT_OK, gates
+    assert "tests/test_envelope.py (the code its tests share changed)" in \
+        gates.split("FAIL test-edits")[-1].split(NL)[0]
 
 
 def test_a_start_test_on_a_line_no_ruling_covers_still_refuses(
@@ -430,16 +428,16 @@ def test_a_quote_of_neither_the_found_line_nor_the_ruled_edit_still_fails(
     assert COUNT_TEST + " (changed)" in gates.split("FAIL test-edits")[-1]
 
 
-def test_a_misquoted_claim_on_a_test_the_ruled_edit_decides_still_fails_quote(
+def test_a_misquoted_claim_on_a_test_the_ruled_edit_moved_still_fails_quote(
         tmp_path, monkeypatch):
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
         wrong(ENVELOPE_TEST, MAGIC), wrong(FIRST_PAGE_TEST, FOUND[1])))
     assert code != stops.EXIT_OK
     gates = record(tmp_path, "gates.md")
     assert "FAIL quote" in gates
-    assert "FAIL test-edits" not in gates, gates
-    assert ENVELOPE_TEST + " (ruling " in gates
-    assert testedits.DECIDED_BY + " docs/api.md:" in gates
+    assert ENVELOPE_TEST + " (changed)" in gates.split(
+        "FAIL test-edits")[-1].split(NL)[0]
+    assert ENVELOPE_TEST + " (ruling " not in gates
 
 
 def test_an_entry_a_step_wrote_in_decisions_md_rules_nothing(
@@ -483,22 +481,17 @@ JS_CLAIMED = built(wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST,
                    wrong(JS_TEST, EDITED[1]))
 
 
-def test_a_bridge_over_a_ruled_test_file_is_green_in_the_replay(
+def test_a_claim_on_a_test_file_read_by_line_ties_nothing_by_itself(
         tmp_path, monkeypatch):
     seen = laid_out(monkeypatch)
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, JS_CLAIMED,
                              js=CURSOR_JS)
     gates = record(tmp_path, "gates.md")
-    assert "was green when the run started and is red now" not in gates
-    assert code == stops.EXIT_OK, gates
-    edits = [l for l in gates.split(NL) if "PASS test-edits" in l]
-    assert edits and all(JS_FILE + " (ruling " in l for l in edits), edits
-    assert "PASS start-tests" in gates
-    assert asked.count("worker.md") == 1
-    assert {JS_FILE, "tests/test_envelope.py"} in seen
-    handoff = record(tmp_path, "handoff.md")
-    assert JS_FILE + " <- ruling " + stamp_of(tmp_path) in handoff
-    assert "UNRULED" not in handoff
+    assert code != stops.EXIT_OK, gates
+    left = gates.split("FAIL test-edits")[-1].split(NL)[0]
+    assert JS_FILE in left
+    assert ENVELOPE_TEST not in left and FIRST_PAGE_TEST not in left
+    assert all(JS_FILE not in s for s in seen)
 
 
 def test_a_bridge_over_an_unruled_test_file_still_parks(
@@ -527,12 +520,12 @@ def test_a_bridge_over_a_half_ruled_test_file_still_parks(
     assert all(not s for s in seen)
 
 
-def test_a_test_file_the_ruled_edit_decides_whole_is_laid_out_as_left(
-        tmp_path, monkeypatch):
+def test_a_test_file_claimed_whole_is_laid_out_as_left(tmp_path,
+                                                        monkeypatch):
     seen = laid_out(monkeypatch)
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
-        wrong(FIRST_PAGE_TEST, FOUND[1])), rewrite=CURSOR_SHARED,
-        envelope=SHARED)
+        wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1])),
+        rewrite=CURSOR_SHARED, envelope=SHARED)
     gates = record(tmp_path, "gates.md")
     assert code == stops.EXIT_OK, gates
     assert "PASS start-tests" in gates
@@ -621,7 +614,12 @@ def edited_place(tmp_path, monkeypatch):
     return place, start
 
 
-ENVELOPE_GONE = '    assert set(listing([1])) == {"items", "page", "total"}'
+def tied_by(seen):
+    """-> a `tied` that records (test, lines) and ties every test."""
+    def tied(test, lines):
+        seen.append((test, lines))
+        return True
+    return tied
 
 
 def test_a_request_answer_covers_no_claim(tmp_path, monkeypatch):
@@ -631,62 +629,43 @@ def test_a_request_answer_covers_no_claim(tmp_path, monkeypatch):
     over = by(OVERRIDE, ruling.OVERRIDE)
     kept = by("request: keep the envelope, and update docs/api.md",
               ruling.REQUEST)
+    every = tied_by([])
     for test in (ENVELOPE_TEST, FIRST_PAGE_TEST):
-        assert wrongtest.ruled_claim(said, test, place, start, over,
-                                     ENVELOPE_GONE)
+        assert wrongtest.ruled_claim(said, test, place, start, over, every)
         assert wrongtest.ruled_claim(said, test, place, start, kept,
-                                     ENVELOPE_GONE) is None
+                                     every) is None
         assert wrongtest.ruled_claim([built()], test, place, start, over,
-                                     ENVELOPE_GONE) is None
+                                     every) is None
     assert wrongtest.ruled_claim(said, NAMES_TEST, place, start, over,
-                                 ENVELOPE_GONE) is None
+                                 every) is None
 
 
-def test_a_claim_covers_a_test_only_where_its_change_is_the_ruled_edit_s(
+def test_a_claim_hands_the_tie_the_quoted_lines_as_the_run_found_them(
         tmp_path, monkeypatch):
     place, start = edited_place(tmp_path, monkeypatch)
     over = by(OVERRIDE, ruling.OVERRIDE)
+    seen = []
+    for spec in (FOUND[0], EDITED[1]):
+        d, cite = wrongtest.ruled_claim([wrong(ENVELOPE_TEST, spec)],
+                                        ENVELOPE_TEST, place, start, over,
+                                        tied_by(seen))
+        assert d is not None and cite == "docs/api.md:4"
+    assert seen == [(ENVELOPE_TEST, [ENVELOPE_LINE])] * 2
     said = [wrong(ENVELOPE_TEST, FOUND[0])]
-    d, cite = wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
-                                    ENVELOPE_GONE)
-    assert d is not None and cite == "docs/api.md:4"
-    for gone in ("    assert names(['b', 'a']) == ['b', 'a']", "",
-                 "    assert listing([1])['items'] == [1]"):
-        assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
-                                     gone) is None, gone
-    assert ruling.took(FOUND[0], place, start) == {"page", "total"}
-    assert ruling.took(EDITED[1], place, start) == {"page", "total"}
-    assert ruling.took(FOUND[1], place, start) == {"page", "per_page"}
-    assert ruling.took(FOUND[0], place, None) == set()
-    assert ruling.took('docs/names.md:3 "' + NAMES_LINE + '"', place,
-                       start) == set()
-
-
-CALL_API = ("# api" + NL + NL + "- Every call takes `?after=&limit=`." + NL
-            + "- Every call returns `{items, next}`." + NL)
-
-
-def test_a_builtin_read_as_code_never_ties_a_claim(tmp_path, monkeypatch):
-    place, start = edited_place(tmp_path, monkeypatch)
-    (place / "docs" / "api.md").write_text(CALL_API, encoding="utf-8")
-    over = by(OVERRIDE, ruling.OVERRIDE)
-    assert "list" in ruling.took(FOUND[1], place, start)
-    said = [wrong(NAMES_TEST, FOUND[1])]
-    assert wrongtest.ruled_claim(
-        said, NAMES_TEST, place, start, over,
-        "    assert list(names(['b', 'a'])) == ['b', 'a']") is None
-    said = [wrong(ENVELOPE_TEST, FOUND[0])]
+    assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start,
+                                 over) is None, "no tie, no cover"
     assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
-                                 ENVELOPE_GONE)
-
-
-def test_which_words_of_a_test_can_tie_it():
-    assert ruling.pinned_words(
-        "assert list(names(['b']))['type'] == len(KEYS)") == {"names", "type",
-                                                              "keys"}
-    assert ruling.pinned_words('expect(item.next).toBe("list")') == {
-        "expect", "item", "tobe", "list"}
-    assert ruling.pinned_words("") == set()
+                                 lambda t, l: False) is None
+    (place / "docs" / "api.md").write_text(
+        "# api" + NL + NL + "- Every list has a cursor." + NL + PAGE_LINE + NL
+        + ENVELOPE_LINE + NL, encoding="utf-8")
+    added = 'docs/api.md:3 "- Every list has a cursor."'
+    assert ruling.ruled_quote(added, place, start, named_only)
+    seen[:] = []
+    assert wrongtest.ruled_claim([wrong(ENVELOPE_TEST, added)], ENVELOPE_TEST,
+                                 place, start, named_only,
+                                 tied_by(seen)) is None
+    assert seen == [], "a quote of a line the run added reached the tie"
 
 
 def only_the_envelope(rel, line):
@@ -699,9 +678,9 @@ def test_a_range_cite_is_read_at_the_line_its_quote_stands_on(tmp_path,
     ranged = 'docs/api.md:3-4 "' + ENVELOPE_LINE + '"'
     assert ruling.ruled_quote(ranged, place, start, only_the_envelope) == \
         "the envelope ruling", "a range cite read a line its quote is not on"
-    assert ruling.took(ranged, place, start) == {"page", "total"}
+    assert ruling.quoted_as_found(ranged, place, start) == [ENVELOPE_LINE]
     edited = 'docs/api.md:3-4 "- Every list returns `{items, next}`."'
-    assert ruling.took(edited, place, start) == {"page", "total"}
+    assert ruling.quoted_as_found(edited, place, start) == [ENVELOPE_LINE]
 
 
 def test_a_range_cite_whose_quote_stands_twice_is_still_read_whole(tmp_path):
@@ -715,24 +694,17 @@ def test_a_range_cite_whose_quote_stands_twice_is_still_read_whole(tmp_path):
         "a ruling"
     wrong_quote = 'docs/api.md:3-4 "- Every list returns nothing."'
     assert ruling.ruled_quote(wrong_quote, tmp_path, ruled=named_only) is None
-    assert ruling.took(wrong_quote, tmp_path) == set()
+    assert ruling.quoted_as_found(wrong_quote, tmp_path) is None
 
 
-def test_a_test_s_change_is_read_from_the_lines_it_lost():
-    edit = testedits.Edit("tests/test_names.py")
-    edit.was, edit.now = NAMES_START, LOOSENED
-    assert testedits.gone(edit, NAMES_TEST, testedits.CHANGED).strip() \
-        == "assert names(['b', 'a']) == ['b', 'a']"
-    edit = testedits.Edit("tests/test_envelope.py")
-    edit.was, edit.now = SHARED, CURSOR_SHARED
-    lost = testedits.gone(edit, "tests/test_envelope.py", testedits.SHARED)
-    assert 'KEYS = {"items", "page", "total"}' in lost
-    assert testedits.gone(edit, FIRST_PAGE_TEST, testedits.CHANGED).strip() \
-        == 'assert listing([1])["page"] == 1'
-    edit = testedits.Edit(JS_FILE)
-    edit.was, edit.now = JS, CURSOR_JS
-    assert testedits.gone(edit, JS_FILE, "2 lines removed or rewritten") \
-        .split() == ["expect", "page", "expect", "total"]
+def test_a_test_reads_the_shared_code_it_runs_against():
+    read = testedits.read_by(SHARED, "tests/test_envelope.py", ENVELOPE_TEST)
+    assert 'KEYS = {"items", "page", "total"}' in read
+    assert {"items", "page", "total", "keys", "listing"} <= \
+        ruling.code_words(read)
+    read = testedits.read_by(SHARED, "tests/test_envelope.py",
+                             FIRST_PAGE_TEST)
+    assert "KEYS" not in read
 
 
 HELPED = NL.join([
@@ -858,10 +830,13 @@ def test_a_start_test_loosened_on_a_word_the_moved_line_shares_is_refused(
     assert QTY_TEST + " (changed)" not in gates
 
 
+@pytest.mark.parametrize("left", [
+    'assert item()["locations"] and item()["unit"]',
+    'assert item()["unit"] == "g"  # per entry, in locations' + NL
+    + '    assert item()["unit"]'])
 def test_a_start_test_loosened_with_a_word_the_move_wrote_is_refused(
-        tmp_path, monkeypatch):
-    loose = NESTED_TESTS.replace('assert item()["unit"] == "g"',
-                                 'assert item()["locations"] and item()["unit"]')
+        tmp_path, monkeypatch, left):
+    loose = NESTED_TESTS.replace('assert item()["unit"] == "g"', left)
     _, code = nested(tmp_path, monkeypatch, wrong(QTY_TEST, QTY_FOUND)
                      + wrong(UNIT_TEST, QTY_FOUND), tests=loose)
     gates = record(tmp_path, "gates.md")
@@ -886,61 +861,31 @@ def any_line(rel, line):
     return "a ruling" if rel == "docs/items.md" else None
 
 
-def test_a_claim_ties_by_the_quoted_line_and_what_the_edit_brought(
+def test_a_claim_on_a_moved_field_hands_the_tie_the_line_as_found(
         tmp_path, monkeypatch):
     place, start = nested_place(tmp_path, monkeypatch)
-    said = [wrong(QTY_TEST, QTY_FOUND)]
-    gone, came = '    assert item()["qty"] == 2000', \
-        '    assert item()["locations"][0]["qty"] == 2000'
-    assert ruling.took(QTY_FOUND, place, start) == set()
-    broke = {QTY_TEST}.__contains__
-    d, cite = wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                    gone, came, forced=broke)
+    seen = []
+    d, cite = wrongtest.ruled_claim([wrong(QTY_TEST, QTY_FOUND)], QTY_TEST,
+                                    place, start, any_line, tied_by(seen))
     assert d == "a ruling" and cite == "docs/items.md:3"
-    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                 gone, came) is None, \
-        "with no word of whether the move broke the test, nothing ties"
-    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                 gone, came, forced=lambda t: False) is None
-    every = lambda t: True
-    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                 gone, forced=every) is None
-    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                 '    assert item()["unit"] == "g"',
-                                 '    assert item()["unit"]',
-                                 forced=every) is None
-    assert wrongtest.ruled_claim(said, QTY_TEST, place, start, any_line,
-                                 '    insert(qty=1, unit="g")',
-                                 '    insert(unit="g")', forced=every) is None, \
-        "a change that only drops the field puts in nothing the edit wrote"
-    assert wrongtest.ruled_claim(
-        said, QTY_TEST, place, start, any_line,
-        "    assert names(['b', 'a']) == ['b', 'a']",
-        "    assert names(['b', 'a']) == ['locations']", forced=every) is None
-    unit = [wrong(UNIT_TEST, 'docs/items.md:4 "' + UNIT_LINE + '"')]
-    assert wrongtest.ruled_claim(unit, UNIT_TEST, place, start, any_line,
-                                 '    assert item()["unit"] == "g"',
-                                 '    assert item()["unit"] == "locations"',
-                                 forced=every) \
-        is None, "a line the run left as it was covered a test"
-    assert wrongtest.ruled_claim(said, QTY_TEST, place, None, any_line,
-                                 gone, came, forced=broke) is None
+    assert seen == [(QTY_TEST, [QTY_LINE])]
+    assert wrongtest.ruled_claim([wrong(QTY_TEST, QTY_FOUND)], QTY_TEST,
+                                 place, None, any_line, tied_by([])) is None
 
 
-def test_a_test_the_move_left_green_does_not_tie_on_a_word_it_shares(
+def test_a_found_test_reads_the_moved_field_by_its_string_key(
         tmp_path, monkeypatch):
     place, start = nested_place(tmp_path, monkeypatch)
-    broke = {QTY_TEST}.__contains__
-    names = "tests/test_names.py::test_an_item_has_its_name"
-    assert wrongtest.ruled_claim(
-        [wrong(names, QTY_FOUND)], names, place, start, any_line,
-        '    assert item()["name"] == "flour"',
-        '    assert item()["locations"] or item()["name"]',
-        forced=broke) is None
-    assert wrongtest.ruled_claim(
-        [wrong(UNIT_TEST, QTY_FOUND)], UNIT_TEST, place, start, any_line,
-        '    assert item()["unit"] == "g"',
-        '    assert item()["unit"]  # per entry', forced=broke) is None
+    from agentweft.runner.run import Run
+    run = Run.__new__(Run)
+    run.workdir, run.start = place, start
+    line = ruling.words(QTY_LINE)
+    assert run.found_words(QTY_TEST) & line == {"qty", "item"}
+    assert run.found_words(UNIT_TEST) & line == {"unit", "item"}, \
+        "words alone tie the unit test too: the effects are what refuse it"
+    run.order = None
+    assert not run.tied(QTY_TEST, [QTY_LINE]), "no replay, no tie"
+    assert not run.tied("tests/items.test.js::qty", [QTY_LINE])
 
 
 def test_a_claim_names_a_test_by_its_id_or_a_file_read_whole():

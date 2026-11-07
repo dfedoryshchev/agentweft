@@ -6,14 +6,13 @@ then sends the step back for something else, and the step answers again
 without repeating the claim. the claim still stands: the check reads it
 from the run's own record, and the handoff lists the test under the ruling.
 a start test the later go changes needs a claim of its own, a claim whose
-quoted line no longer reads where it cited it covers nothing (a test the
-ruled edit decides by itself stands without it), and a new run starts with
-no claims, while a resume carries them.
+quoted line no longer reads where it cited it covers nothing, however much
+the test's change looks like the ruled edit's, and a new run starts with no
+claims, while a resume carries them.
 """
 import sys
 
 sys.path.insert(0, ".")
-from agentweft.guardrails import testedits
 from agentweft.runner import manifest, stops
 
 from test_named_spec_files import NAMED, OVERRIDE, TESTER, first_plan
@@ -107,16 +106,13 @@ def test_a_claim_whose_quoted_line_moved_on_covers_nothing(tmp_path,
         "FAIL test-edits")[-1]
 
 
-def test_a_test_the_ruled_edit_decides_holds_when_its_claim_moved_on(
+def test_a_test_the_ruled_edit_moved_is_asked_about_when_its_claim_moved_on(
         tmp_path, monkeypatch):
     asked, code = redone(tmp_path, monkeypatch, first=CLAIMED_EDIT,
                          later=rewords)
     gates = record(tmp_path, "gates.md")
-    assert "FAIL test-edits" not in gates, gates
-    assert code == stops.EXIT_OK, gates
-    assert ENVELOPE_TEST + " <- ruling " + stamp_of(tmp_path) + " (" \
-        + testedits.DECIDED_BY + " docs/api.md:" in record(tmp_path,
-                                                           "handoff.md")
+    assert code != stops.EXIT_OK, gates
+    assert ENVELOPE_TEST in gates.split("FAIL test-edits")[-1]
 
 
 def test_a_resume_carries_the_claims_and_a_new_run_starts_with_none(

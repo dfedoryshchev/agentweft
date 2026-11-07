@@ -1224,17 +1224,16 @@ the run started with park once, on one question naming every such test and
 citing each spec line once. an `override:` to that question lets every test
 it named change at the test-edits check, and a later claim on another start
 test quoting only lines that question's claims quoted is covered by it too,
-with no question of its own, when that test as the run found it reads a
-word of those lines in its code (a name or a string it uses; a comment, a
-docstring or an assert message reads nothing) and is red against the product
-now; a test still green as found, one that reads nothing of the line (a
+with no question of its own, when the claim ties it the way any claim under
+an override does (`docs/gates.md`, test-edits): the test as the run found it
+is red against the product now, the test as the step left it is red against
+the product as the run found it, and its code as the run found it reads a
+word of those lines (a name or a string it uses; a comment, a docstring, an
+assert message or a builtin reads nothing). a test still green as found, a
+rewrite the old product passes, one that reads nothing of the line (a
 behaviour the step broke besides), a claim on another line and a `request:`
-answer cover nothing.
-under an override whose edit rewrote
-spec lines, a start test that edit decides by itself (red as found against
-the product now, its lost lines tied to the rewritten line) needs no claim
-at all: the handoff lists it under the ruling `(decided by <file>:<line>)`
-(`docs/gates.md`, test-edits).
+answer cover nothing. a start test changed with no claim is never listed
+under a ruling by the run alone.
 
 a reviewer step with `on_missed: <role>` names, under its verdict, the
 likeliest wrong implementation the tests as they are would let pass, and the

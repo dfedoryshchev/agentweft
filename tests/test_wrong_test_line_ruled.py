@@ -8,8 +8,10 @@ claims both in one answer: the run parks once, naming both, and the one
 claim made later in the run on another start test quoting the same line is
 covered too, when that test's code as the run found it reads a word of the
 line (a name or a string it uses, never a comment, a docstring or an assert
-message) and is red against the product now: the step's change is what made
-it wrong.
+message), is red against the product now, and as the step left it is red
+against the product as the run found it: the step's change is what made it
+wrong. a line the run moved down by adding one above it is read where the
+run found it.
 a test that is still green as found, one the step broke besides that reads
 nothing of the line, a claim on another line and a `request:` answer cover
 nothing.
@@ -154,6 +156,36 @@ def test_a_later_claim_on_the_same_line_is_covered(tmp_path, monkeypatch):
     assert MORE_TEST + " <- ruling " in read(folder, "handoff.md")
 
 
+ADDED = SPEC.replace("- " + LINE, "- 0007 holds the items that were deleted."
+                     + NL + "- " + LINE)
+MOVED = "TASK.md:4 \"" + LINE + "\""
+
+
+def test_a_later_claim_on_a_line_the_run_moved_down_is_covered(
+        tmp_path, monkeypatch):
+    # the run adds a line above the quoted one, so both claims cite it one
+    # line lower than the run found it
+    place = place_of(tmp_path)
+
+    def edits(step, n):
+        if step == "tester.md":
+            (place / "tests" / "test_new.py").write_text(NEW_TEST,
+                                                         encoding="utf-8")
+        if step == "worker.md":
+            (place / "db.py").write_text(MORE, encoding="utf-8")
+            (place / "TASK.md").write_text(ADDED, encoding="utf-8")
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [PLAN], "tester.md": [TESTER],
+                               "worker.md": [claim(DB_TEST, MOVED) + BUILT]}),
+                        edits, "--task", REQUEST)
+    assert code == stops.EXIT_STOP, asked
+    leg = folders(tmp_path)[-1]
+    asked, code, folder = second_leg(tmp_path, monkeypatch, place, leg,
+                                     claim(MORE_TEST, MOVED), BOTH)
+    assert code == stops.EXIT_OK, read(folder, "gates.md")
+    assert MORE_TEST + " <- ruling " in read(folder, "handoff.md")
+
+
 def test_a_test_still_green_as_found_is_not_covered_by_the_line(
         tmp_path, monkeypatch):
     place, leg = first_leg(tmp_path, monkeypatch, claim(DB_TEST) + NL
@@ -219,10 +251,10 @@ def test_a_test_reads_the_names_and_strings_its_code_uses(tmp_path):
     from agentweft.runner.run import Run
     run = Run.__new__(Run)
     run.workdir, run.start = place, snapshot.take(place)
-    held = ["TASK.md: - " + LINE]
-    assert run.reads_lines("tests/test_qty.py::test_qty", held)
-    assert not run.reads_lines(NAMES_TEST, held)
-    assert run.reads_lines(MORE_TEST, held)
+    line = ruling.words(LINE)
+    assert run.found_words("tests/test_qty.py::test_qty") & line
+    assert not run.found_words(NAMES_TEST) & line
+    assert run.found_words(MORE_TEST) & line == {"pending"}
 
 
 def test_a_claim_on_another_line_still_asks(tmp_path, monkeypatch):
