@@ -122,10 +122,41 @@ def test_which_questions_change_no_code():
                  + "- B: 422" + NL):
         assert not ruling.asks_no_code(said), said
     for size in ("one doc line", "One doc line.", "no code, 2 doc lines in"
-                 " docs/api.md", "zero code lines"):
+                 " docs/api.md", "zero code lines", "one line in docs/api.md",
+                 "two lines in README.md", "a sentence in docs/api.md"):
         assert ruling.asks_no_code(CITED.replace("one doc line", size)), size
-    for size in ("one line in docs/api.md", "one doc line and 2 lines in"
-                 " calc.py", "3 lines in calc.py", "a doc line in"
-                 " src/api.md"):
+    for size in ("one doc line and 2 lines in calc.py", "3 lines in calc.py",
+                 "a doc line in src/api.md", "one line in src/api.md",
+                 "one line", "one line in docs/api.md and one in calc.py"):
         assert not ruling.asks_no_code(CITED.replace("one doc line", size)), \
             size
+
+
+# the shapes of two recorded parks after the work was done: a patcher that
+# priced its answer as one doc line pinned only if someone wants it, and a
+# worker whose answer needs a condition in a code file besides a doc line
+DOC_PRICED = ("NEEDS: `{\"delta\": null}`. docs/api.md:42 only says \"400 a bad"
+              " request\" and names no code." + NL
+              + "RECOMMEND: keep `missing_field`, as the check did before, and"
+              " null means \"not given\" here." + NL
+              + "SIZE: one line in docs/api.md, if someone wants it pinned." + NL)
+CODE_PRICED = ("NEEDS: how an other-class item compares with `below`."
+               " docs/conventions.md:16 says it is not decided yet." + NL
+               + "RECOMMEND: leave it unpinned until a ruling." + NL
+               + "SIZE: one SQL condition in app/db/repo.py and one doc line."
+               + NL)
+
+
+def test_an_answer_priced_as_doc_lines_only_changes_no_code():
+    assert ruling.asks_no_code(DOC_PRICED)
+    assert not ruling.asks_no_code(CODE_PRICED)
+
+
+def test_a_question_priced_as_one_line_in_a_doc_waits_on_a_done_run(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch)
+    asked = answering(monkeypatch, tmp_path, "fixed it" + NL + DOC_PRICED
+                      + BLOCK, WROTE)
+    assert run(monkeypatch) == stops.EXIT_OK
+    assert asked == ["a.md", "b.md"]
+    assert "keep `missing_field`" in decision(folder(tmp_path))

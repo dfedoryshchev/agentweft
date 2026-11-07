@@ -1082,7 +1082,9 @@ run started with included). the run parks either way, but for one case: a
 step that changed the place, whose gates all passed on that change with
 nothing held for a ruling, and whose question has a `RECOMMEND:` that
 changes no product code (it keeps things as they are, or its `SIZE:` names
-no code or only doc or spec lines, `one doc line`), did its work, and the
+no code or only doc or spec lines: `one doc line`, or lines of a doc file it
+names, `one line in docs/api.md`; a SIZE that names a code file, or lines
+with no file, prices code), did its work, and the
 answer waits on nothing the run has left to do. the run goes on past it,
 the gates not run again, whether or not a lead escalated the question: the
 question stays in the step's answer, its line in `steps.jsonl` keeps it as

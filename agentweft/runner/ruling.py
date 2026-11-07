@@ -326,17 +326,42 @@ def costs_nothing(size, recommend):
 DOC_LINES = re.compile(r"^(only )?([1-9]\d*|one|two|three|a|a few) (doc|docs"
                        r"|documentation|spec|readme)( file)? lines?"
                        r"( (in|of|to) docs?/\S+)?$")
+LINES_IN = re.compile(r"^(only )?([1-9]\d*|one|two|three|a|a few) (lines?"
+                      r"|sentences?) (in|of|to) (\S+)$")
+DOC_KINDS = (".md", ".rst", ".txt", ".adoc")
+
+
+def a_doc(path):
+    """whether `path`, as a SIZE names it, is a doc file: under docs/ (or
+    doc/), or a doc-kind file at the top of the place (README.md, TASK.md).
+    a doc-kind file among the code (src/api.md) is not taken for one."""
+    path = path.strip("`'\"").replace("\\", "/")
+    path = path[2:] if path.startswith("./") else path
+    if path.split("/")[0] in ("docs", "doc"):
+        return "/" in path
+    return "/" not in path and path.endswith(DOC_KINDS)
+
+
+def doc_part(part):
+    """whether one part of a SIZE prices only doc or spec lines: "one doc
+    line", or lines of a doc file it names ("one line in docs/api.md")."""
+    if DOC_LINES.match(part):
+        return True
+    m = LINES_IN.match(part)
+    return bool(m) and a_doc(m.group(5))
 
 
 def doc_only(size):
     """-> whether a SIZE prices only lines of the docs or the spec, or no
-    code ("one doc line", "no code, 2 doc lines in docs/api.md")."""
+    code ("one doc line", "no code, 2 doc lines in docs/api.md", "one line
+    in docs/api.md"). a part naming a code file, or lines with no file,
+    prices code."""
     said = flat(size).lower().rstrip(" .")
     parts = [p.strip(" .") for p in PARTS.split(re.sub(r";|\.\s+", ",",
                                                          said))]
     parts = [p for p in parts if p]
-    return bool(parts) and any(DOC_LINES.match(p) for p in parts) and all(
-        DOC_LINES.match(p) or NO_CODE.match(p) or ONE_TEST.match(p)
+    return bool(parts) and any(doc_part(p) for p in parts) and all(
+        doc_part(p) or NO_CODE.match(p) or ONE_TEST.match(p)
         for p in parts)
 
 
