@@ -11,8 +11,9 @@ assert message are no code; a builtin the code calls ties nothing; how the
 step words its rewrite of the spec decides nothing.
 
 a test still green as found, a rewrite that asserts nothing the found product
-fails, and a test whose found code shares no word with the line are asked
-about. a quoted line the run left as it was, moved down by a line the run
+fails, a test whose found code shares no word with the line, and a claim
+quoting a ruled line the run's edit left as it was are asked about. a quoted
+line the run left as it was, moved down by a line the run
 added above it, is read as the run found it.
 """
 import sys
@@ -145,6 +146,21 @@ def test_the_paging_claims_tie_by_both_effects_and_a_found_word(
                        (FIRST_PAGE_TEST, "docs/api.md:3")):
         [line] = [l for l in handoff.split(NL) if test + " <- ruling " in l]
         assert line.endswith("(claimed on " + cite + ")"), line
+
+
+def test_a_claim_on_a_ruled_line_the_run_left_as_it_was_covers_nothing(
+        tmp_path, monkeypatch):
+    # the override said the doc and the rule change; the worker moved the
+    # product and the tests and left both as found
+    from test_named_spec_files import API, RULE
+
+    def keep(place):
+        (place / "docs" / "api.md").write_text(API, encoding="utf-8")
+        (place / "rules" / "api-shape.md").write_text(RULE, encoding="utf-8")
+    _, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(*PAGED),
+                         forge=keep)
+    refused(tmp_path, code, ENVELOPE_TEST)
+    refused(tmp_path, code, FIRST_PAGE_TEST)
 
 
 KEYED = NL.join([

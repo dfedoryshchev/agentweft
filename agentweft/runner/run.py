@@ -487,8 +487,8 @@ class Run(object):
         else None). only after a `writes: product` step, and never when the
         run skips tests. a test `output` or another answer of this run names
         on a WRONG TEST line quoting spec lines a ruling covers, when the
-        claim ties it (`tied`), is covered by that ruling, as `tests_held`
-        reads it, and a start test file every
+        claim ties it (`claim_tied`), is covered by that ruling, as
+        `tests_held` reads it, and a start test file every
         change of which a ruling covers is replayed as the run left it
         (`as_left`)."""
         if self.writes_for(step) != "product" or self.order.skip:
@@ -512,7 +512,7 @@ class Run(object):
             if d is None:
                 d = wrongtest.ruled_claim(claims, test, self.workdir,
                                           self.start, self.spec_line_covered,
-                                          self.tied)
+                                          self.claim_tied)
                 d = d and d[0]
             if d is None:
                 d = next((by for gone, by in dropped
@@ -703,12 +703,12 @@ class Run(object):
     def claimed(self, said, tests):
         """-> (the ruling, the cite of the claim) of the first of `tests`
         when the answers in `said` name each on a WRONG TEST line under one
-        that ties it (`wrongtest.ruled_claim`, `tied`), else None; None for
-        no tests."""
+        that ties it (`wrongtest.ruled_claim`, `claim_tied`), else None;
+        None for no tests."""
         found = None
         for test in tests:
             d = wrongtest.ruled_claim(said, test, self.workdir, self.start,
-                                      self.spec_line_covered, self.tied)
+                                      self.spec_line_covered, self.claim_tied)
             if d is None:
                 return None
             found = found or d
@@ -745,6 +745,17 @@ class Run(object):
         if not self.found_words(test) & ruling.words(" ".join(lines)):
             return False
         return self.forced(test) and self.turned(test)
+
+    def claim_tied(self, test, lines, said=()):
+        """`tied` for a claim under a ruling that lets spec lines change:
+        besides, each quoted line is one the run's edit removed or rewrote
+        under it (`ruled_lines`), so a ruled line the run left as it was ties
+        nothing. a later claim under the person's answer to the runner's own
+        WRONG TEST question reads `tied` alone: there the line stays and the
+        test was wrong about it."""
+        changed = {ruling.flat(line) for _, _, line in self.ruled_lines()}
+        return bool(lines) and {ruling.flat(l) for l in lines} <= changed \
+            and self.tied(test, lines, said)
 
     def claimed_files(self, said):
         """-> the start test files read by line, as paths from the place,

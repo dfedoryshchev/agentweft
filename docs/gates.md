@@ -736,7 +736,10 @@ in `gates.md`:
   run's own ruled edit left them (`the quote` above; a range cite is read
   at the lines its quote stands on, as a CONFLICT cite is): the test was right
   about the old line and is wrong about the ruled one, so it may change with
-  it. the claim covers the test only when all three of these hold, each
+  it. each line the claim quotes has to be one the run's edit removed or
+  rewrote (a ruled line the run left as it was ties nothing: the spec was
+  never moved), and the claim covers the test only when all three of these
+  hold, each
   read from what the run found or what the tests do, never from what the
   step wrote into the spec or the test:
   - the test as the run found it, green at the start, is red against the

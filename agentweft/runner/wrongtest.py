@@ -33,8 +33,9 @@ under an override the run holds, a test the run started with that pins a line
 the override lets change is wrong with that line: a claim on it, quoting the
 line as the run found it or as the run's own ruled edit left it
 (`ruling.ruled_quote`), is no question when the step changed the test, and
-lets the change stand at the test-edits check (`ruled_claim`) when it ties
-the test (`Run.tied`): the test as the run found it, green at the start, is
+lets the change stand at the test-edits check (`ruled_claim`) when each
+quoted line is one the run's edit removed or rewrote and the claim ties the
+test (`Run.claim_tied`): the test as the run found it, green at the start, is
 red against the product now; the test as the step left it is red against
 the product as the run found it; and the test's code as the run found it
 shares a word with the quoted lines as the run found them. what the step
