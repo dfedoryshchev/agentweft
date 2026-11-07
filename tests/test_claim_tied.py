@@ -12,17 +12,24 @@ step words its rewrite of the spec decides nothing.
 
 a test still green as found, a rewrite that asserts nothing the found product
 fails, a test whose found code shares no word with the line, and a claim
-quoting a ruled line the run's edit left as it was are asked about. a quoted
+quoting a ruled line the run's edit left as it was are asked about. two
+known gaps are pinned strict: a rewrite that reads a name or key the run
+added fails the found product without pinning anything and is covered, and a
+module whose widened import no longer loads on the found product asks about
+each changed test in it. a quoted
 line the run left as it was, moved down by a line the run
 added above it, is read as the run found it.
 """
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.guardrails import snapshot, testedits
 from agentweft.runner import ruling, stops
 
-from test_ruled_start_tests import (CURSOR_ENVELOPE, ENVELOPE_TEST,
+from test_ruled_start_tests import (CURSOR_ENVELOPE, CURSOR_LISTING,
+                                    ENVELOPE_TEST,
                                     FIRST_PAGE_TEST, FOUND, NAMES_START,
                                     NAMES_TEST, TYPED_PLAN, built, overridden,
                                     record)
@@ -133,6 +140,58 @@ def test_a_rewrite_the_found_product_passes_is_not_covered_by_a_claim(
     _, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(*PAGED),
                          rewrite=EMPTIED)
     refused(tmp_path, code, ENVELOPE_TEST)
+
+
+READ_NOT_PIN = (
+    "known gap: the rewrite has to fail the product as found, which a read of "
+    "anything the run added does; an honest rewrite fails it the same way (a "
+    "KeyError on the new key), so no fail-closed rule tells a pin from a read")
+LOOSE_NEW_NAME = CURSOR_ENVELOPE.replace(
+    'assert set(listing([1])) == {"items", "next"}',
+    "from pages import cursor" + NL + "    assert listing([1])")
+
+
+@pytest.mark.xfail(strict=True, reason=READ_NOT_PIN)
+def test_a_loosened_rewrite_that_reads_a_name_the_run_added_is_not_covered(
+        tmp_path, monkeypatch):
+    _, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(*PAGED),
+                         rewrite=LOOSE_NEW_NAME)
+    refused(tmp_path, code, ENVELOPE_TEST)
+
+
+ORDER_TEST = "tests/test_names.py::test_items_keep_their_order"
+ORDER_START = ("from pages import listing" + NL + NL + NL
+               + "def test_items_keep_their_order():" + NL
+               + "    assert listing(['b', 'a'])['items'] == ['b', 'a']" + NL)
+SORTING = CURSOR_LISTING.replace("sorted(items)", "list(items)").replace(
+    '{"items": items, "next": None}', '{"items": sorted(items), "next": None}')
+
+
+@pytest.mark.xfail(strict=True, reason=READ_NOT_PIN)
+def test_a_broken_unruled_test_rewritten_to_read_a_new_key_is_not_covered(
+        tmp_path, monkeypatch):
+    def forge(place):
+        (place / "pages.py").write_text(SORTING, encoding="utf-8")
+        (place / "tests" / "test_names.py").write_text(ORDER_START.replace(
+            "['items'] == ['b', 'a']", "['next'] is None"), encoding="utf-8")
+    _, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        *PAGED, wrong(ORDER_TEST, FOUND[0])), forge=forge,
+        names_start=ORDER_START)
+    refused(tmp_path, code, ORDER_TEST)
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "known gap: a module that no longer imports on the product as found has "
+    "no per-test result there, so each changed test in it is asked about; "
+    "reading the import error as red would pass a loosened test beside it"))
+def test_an_honest_rewrite_that_widens_its_module_import_is_covered(
+        tmp_path, monkeypatch):
+    _, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(*PAGED),
+                         rewrite=CURSOR_ENVELOPE.replace(
+                             "from pages import listing",
+                             "from pages import cursor, listing"))
+    gates = record(tmp_path, "gates.md")
+    assert code == stops.EXIT_OK, gates
 
 
 def test_the_paging_claims_tie_by_both_effects_and_a_found_word(

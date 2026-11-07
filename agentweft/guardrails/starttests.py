@@ -19,12 +19,15 @@ covers stays as the run found it. a WRONG TEST claim on such a js file is
 tied to the ruled edit by this replay: a python test the product now leaves
 red turns green with the claimed files as left and stays red without that
 file, and is red on the start state with the files as left
-(`laid_on_start`), so the file pins what the run changed (`Run.turns`).
+(`laid_on_start`), so the file as left needs the run's product
+(`Run.turns`).
 
 the start test modules the run changed also run as the run left them on the
 start state, product as found (`tests_as_left_on_start`): a WRONG TEST claim
 covers a changed test only when that run shows it red, so a rewrite that
-asserts nothing the found product fails is never listed under a ruling.
+asserts nothing the found product fails is not listed under a ruling. it
+reads that the rewrite fails the found product, not that it pins anything:
+a read of a name the run added fails it too.
 
 a test green when the run started and red now is the run's doing. a test that
 was red when the run started is not counted, so an inherited red is never

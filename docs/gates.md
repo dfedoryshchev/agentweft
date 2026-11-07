@@ -749,7 +749,12 @@ in `gates.md`:
     it (one pytest run of the start test modules the run changed, as it left
     them, in a checkout of the start commit with the start state, read once
     per state of the test files), so a rewrite that asserts nothing the old
-    product fails (`assert listing([1])`) is not covered;
+    product fails (`assert listing([1])`) is not covered. this reads that the
+    rewrite fails the old product, not that it pins anything: one that also
+    reads a name or key the run added fails there too (see what no program
+    here closes, below), and a module that no longer imports on the old
+    product has no test result there, so each changed test in it is asked
+    about;
   - the test's code as the run found it shares a word with the quoted lines
     as the run found them: its names and string constants, and those of the
     code at the top of its file it reads (a constant, a helper, a fixture),
@@ -778,10 +783,15 @@ in `gates.md`:
   a test changed with no such line, or quoting a line no ruling covers,
   still fails, and on its last go parks on this check's question, which an
   `override:` to it answers for every test it names. what no program here
-  closes: a step that breaks a behaviour no ruling covers, pins the broken
-  behaviour in the test it rewrites, and claims it on a ruled line whose
-  found words that test's code shares is covered; the product diff, the
-  typed claim and the start-tests line naming the test show it. the
+  closes: a claimed test whose found code shares a word with a ruled line
+  the run rewrote, that the product now breaks (the ruled change, or a
+  behaviour no ruling covers that the step broke too), is covered once the
+  step rewrites it to anything the old product fails; reading a name or a
+  key the run added is enough, so the rewrite need not pin the broken
+  behaviour, or anything. no program tells such a read from a pin, since an
+  honest rewrite fails the old product the same way (a missing key). the
+  product diff, the typed claim and the start-tests line naming the test
+  show it. the
   code a python file's tests share counts only when each
   test the file started with that reads what changed, itself or through a
   helper it calls, is named that way; every test it started with, when the
