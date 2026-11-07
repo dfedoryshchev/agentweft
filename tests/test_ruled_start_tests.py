@@ -13,8 +13,10 @@ unruled line covers nothing, loosened or rewritten. a plan that marks a
 ruled line `spec: contradicts` needs no new CONFLICT line for it. the
 start-tests replay lays out a start test file every change of which a
 ruling covers as the run left it, and one that runs an unruled one is not.
-a test in a file read by line is never tied by a claim, so a bridge over it
-still parks. a test changed with no WRONG TEST line, a test on a line no
+a claimed test file read by line is tied when the python test that runs it,
+red against the product now, turns green with the file as left; one whose
+layout turns no test still parks. a test changed with no WRONG TEST line, a
+test on a line no
 ruling covers, code a file's tests share with a test that reads it unnamed,
 a quote of neither the found line nor the ruled edit, a `request:` answer
 and an entry a step wrote in decisions.md itself let nothing change, and a
@@ -484,17 +486,35 @@ JS_CLAIMED = built(wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST,
                    wrong(JS_TEST, EDITED[1]))
 
 
-def test_a_claim_on_a_test_file_read_by_line_ties_nothing_by_itself(
+def test_a_bridge_over_a_ruled_test_file_is_green_in_the_replay(
         tmp_path, monkeypatch):
     seen = laid_out(monkeypatch)
     asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, JS_CLAIMED,
                              js=CURSOR_JS)
     gates = record(tmp_path, "gates.md")
+    assert "was green when the run started and is red now" not in gates
+    assert code == stops.EXIT_OK, gates
+    edits = [l for l in gates.split(NL) if "PASS test-edits" in l]
+    assert edits and all(JS_FILE + " (ruling " in l for l in edits), edits
+    assert "PASS start-tests" in gates
+    assert asked.count("worker.md") == 1
+    assert {JS_FILE, "tests/test_envelope.py"} in seen
+    handoff = record(tmp_path, "handoff.md")
+    assert JS_FILE + " <- ruling " + stamp_of(tmp_path) in handoff
+    assert "UNRULED" not in handoff
+
+
+def test_a_claimed_test_file_whose_layout_turns_no_python_test_asks(
+        tmp_path, monkeypatch):
+    # the bridge stays red with the file as left, so nothing ties the file
+    # to the ruled edit
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, JS_CLAIMED,
+                             js="expect items" + NL + "expect page" + NL)
+    gates = record(tmp_path, "gates.md")
     assert code != stops.EXIT_OK, gates
     left = gates.split("FAIL test-edits")[-1].split(NL)[0]
     assert JS_FILE in left
     assert ENVELOPE_TEST not in left and FIRST_PAGE_TEST not in left
-    assert all(JS_FILE not in s for s in seen)
 
 
 def test_a_bridge_over_an_unruled_test_file_still_parks(
@@ -619,7 +639,7 @@ def edited_place(tmp_path, monkeypatch):
 
 def tied_by(seen):
     """-> a `tied` that records (test, lines) and ties every test."""
-    def tied(test, lines):
+    def tied(test, lines, said=()):
         seen.append((test, lines))
         return True
     return tied
@@ -658,7 +678,7 @@ def test_a_claim_hands_the_tie_the_quoted_lines_as_the_run_found_them(
     assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start,
                                  over) is None, "no tie, no cover"
     assert wrongtest.ruled_claim(said, ENVELOPE_TEST, place, start, over,
-                                 lambda t, l: False) is None
+                                 lambda t, l, s: False) is None
     (place / "docs" / "api.md").write_text(
         "# api" + NL + NL + "- Every list has a cursor." + NL + PAGE_LINE + NL
         + ENVELOPE_LINE + NL, encoding="utf-8")

@@ -15,7 +15,9 @@ a start test file whose every change a ruling covers (the test-edits check
 held it: an `override:` answer, or a WRONG TEST line under one) is laid out
 as the run left it, so a test that runs it, a python test over a folder of
 js tests, is judged on the ruled file. a file with one change no ruling
-covers stays as the run found it.
+covers stays as the run found it. a WRONG TEST claim on such a js file is
+tied to the ruled edit by this replay: the python test the product now
+leaves red turns green with the claimed files as left (`Run.flipped`).
 
 the start test modules the run changed also run as the run left them on the
 start state, product as found (`tests_as_left_on_start`): a WRONG TEST claim

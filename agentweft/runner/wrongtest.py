@@ -235,13 +235,15 @@ def ruled_claim(outputs, test, workdir, start=None, ruled=None, tied=None):
     """-> (the ruling, the claim's cite) that lets `test`, one the run
     started with, change because an answer of this run names it on a WRONG
     TEST line whose spec: line quotes spec lines that ruling covers
-    (`ruled_quote`), and `tied(test, lines)` holds for those lines as the
-    run found them (`ruling.quoted_as_found`; `Run.tied` reads what the run
-    found and what the tests do). no `tied`, or a quote of lines the run
+    (`ruled_quote`), and `tied(test, lines, outputs)` holds for those lines
+    as the run found them (`ruling.quoted_as_found`; `Run.tied` reads what
+    the run found and what the tests do, and `outputs` for the other files
+    read by line the answers claim). no `tied`, or a quote of lines the run
     added, ties nothing. else None: a ruled line quoted for a test that pins
     something else covers nothing."""
     if tied is None:
         return None
+    outputs = list(outputs)
     for output in outputs:
         for said, _, spec in claims(output or ""):
             if not spec or not same_test(said, test):
@@ -251,7 +253,7 @@ def ruled_claim(outputs, test, workdir, start=None, ruled=None, tied=None):
                 continue
             lines = [l for l in quoted_as_found(spec, workdir, start) or ()
                      if l.strip()]
-            if lines and tied(test, lines):
+            if lines and tied(test, lines, outputs):
                 return d, cite_in(spec)
     return None
 

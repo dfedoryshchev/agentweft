@@ -756,10 +756,18 @@ in `gates.md`:
     ruled edit is read at the lines it stands in for as the run found them,
     and a line the run left as it was, moved by lines it added above, at
     that line; a quote of an added line ties nothing.
-  a test in a file read by line has no test id the replay can run, so a
-  claim never covers it this way; neither does it cover a test the replay
-  does not reach (one that reads the spec files, which the replay lays out
-  as the run found them, or any test in a run that skips tests). a claim
+  a test file read by line (a js test file) has no test id the replay can
+  run, so a claim on it, or on a test in it, covers the file when the start
+  tests turn instead: a python start test the product now leaves red (a
+  test that runs the js suite) is green in a second start-tests replay with
+  every file read by line the answers claim under a ruling laid out as the
+  run left it. a word in the file never ties it, an unclaimed file is never
+  laid out, and a claimed file whose layout turns no python test is asked
+  about. the turn reads the file whole: an unclaimed loosened line in a
+  claimed file rides with it when the turn still goes green. a claim does
+  not cover a test the replay does not reach (one that reads the spec
+  files, which the replay lays out as the run found them, or any test in a
+  run that skips tests). a claim
   quoting a ruled line for a test that pins something else covers nothing.
   a test changed with no such line, or quoting a line no ruling covers,
   still fails, and on its last go parks on this check's question, which an

@@ -714,21 +714,74 @@ class Run(object):
             found = found or d
         return found
 
-    def tied(self, test, lines):
+    def tied(self, test, lines, said=()):
         """whether a WRONG TEST claim quoting `lines`, spec lines as the run
         found them, ties `test`, a start test id, to the ruled edit: the
         test's code as the run found it shares a word with the lines
         (`found_words`), the test as the run found it, green at the start, is
         red against the product now (`forced`), and the test as the run left
         it is red against the product as the run found it (`turned`). the
-        spec as the run left it is read by none of the three. a test in a
-        file read by line has no python id to run, so it is never tied."""
+        spec as the run left it is read by none of the three. a test file
+        read by line, or a test in one, has no python id to run, so it is
+        tied by the start tests it turns instead (`flipped`), with every such
+        file the answers `said` claim under a ruling laid out as the run left
+        it; never by a word in the file."""
         rel = test.partition("::")[0]
-        if "::" not in test or not rel.endswith(".py"):
+        if not rel.endswith(".py"):
+            return self.flipped(self.claimed_files(said) | {rel})
+        if "::" not in test:
             return False
         if not self.found_words(test) & ruling.words(" ".join(lines)):
             return False
         return self.forced(test) and self.turned(test)
+
+    def claimed_files(self, said):
+        """-> the start test files read by line, as paths from the place,
+        that the answers `said` name on a WRONG TEST line whose spec: line
+        quotes lines a ruling covers (`ruling.ruled_quote`)."""
+        start = getattr(self, "start", None)
+        out = set()
+        for output in said or ():
+            for name, _, spec in wrongtest.claims(output or ""):
+                path = name.partition("::")[0].replace("\\", "/")
+                path = path[2:] if path.startswith("./") else path
+                if spec and not path.endswith(".py") and ruling.ruled_quote(
+                        spec, self.workdir, start,
+                        self.spec_line_covered) is not None:
+                    out.add(path)
+        return out
+
+    def flipped(self, files):
+        """whether laying `files`, start test files read by line, out as the
+        run left them turns a python start test the product now leaves red
+        (`forced`) green: one start-tests replay with them as left, per state
+        of the product and the files. the files carry what the test checks,
+        so the change is the run's. a replay that could not run turns
+        nothing."""
+        start = getattr(self, "start", None)
+        order = getattr(self, "order", None)
+        if start is None or not start.hashed or order is None or order.skip:
+            return False
+        self.forced("")
+        before = [t for t in self.red_as_found[1]
+                  if t.partition("::")[0].endswith(".py")]
+        if not before:
+            return False
+        key = (self.red_as_found[0], tuple(sorted(files)), tuple(sorted(
+            (rel, hash(data)) for rel, data in start.test_changes())))
+        held = getattr(self, "red_as_laid", None)
+        if held is None or held[0] != key:
+            known = None if self.suite == baseline.OFF else \
+                self.known_at_start
+            found = starttests.replay(start, redorder.test_command(self.fm),
+                                      green=self.start_green, known=known,
+                                      as_left=set(files))
+            ran = found.result is not None and not found.result.issue
+            held = (key, [red for red, _ in found.red] if ran else None)
+            self.red_as_laid = held
+        if held[1] is None:
+            return False
+        return any(t not in held[1] for t in before)
 
     def found_words(self, test):
         """-> the words `test`, a python start test id, reads as the run
