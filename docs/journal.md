@@ -1083,8 +1083,10 @@ step that changed the place, whose gates all passed on that change with
 nothing held for a ruling, and whose question has a `RECOMMEND:` that
 changes no product code (it keeps things as they are, or its `SIZE:` names
 no code or only doc or spec lines: `one doc line`, or lines of a doc file it
-names, `one line in docs/api.md`; a SIZE that names a code file, or lines
-with no file, prices code), did its work, and the
+names, `one line in docs/api.md`; a SIZE that names a code file, lines
+with no file, a file that is not a doc kind under docs/ (`docs/conf.py`), a
+path that climbs (`..`) or a `.txt` at the top (`requirements.txt`), prices
+code), did its work, and the
 answer waits on nothing the run has left to do. the run goes on past it,
 the gates not run again, whether or not a lead escalated the question: the
 question stays in the step's answer, its line in `steps.jsonl` keeps it as

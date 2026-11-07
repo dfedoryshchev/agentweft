@@ -325,28 +325,37 @@ def costs_nothing(size, recommend):
 
 DOC_LINES = re.compile(r"^(only )?([1-9]\d*|one|two|three|a|a few) (doc|docs"
                        r"|documentation|spec|readme)( file)? lines?"
-                       r"( (in|of|to) docs?/\S+)?$")
+                       r"( (in|of|to) (docs?/\S+))?$")
 LINES_IN = re.compile(r"^(only )?([1-9]\d*|one|two|three|a|a few) (lines?"
                       r"|sentences?) (in|of|to) (\S+)$")
 DOC_KINDS = (".md", ".rst", ".txt", ".adoc")
+# a .txt at the top of a place is as often a build input (requirements.txt,
+# CMakeLists.txt) as a doc
+TOP_DOC_KINDS = (".md", ".rst", ".adoc")
 
 
 def a_doc(path):
-    """whether `path`, as a SIZE names it, is a doc file: under docs/ (or
-    doc/), or a doc-kind file at the top of the place (README.md, TASK.md).
-    a doc-kind file among the code (src/api.md) is not taken for one."""
+    """whether `path`, as a SIZE names it, is a doc file: a doc-kind file
+    under docs/ (or doc/), or at the top of the place (README.md, TASK.md).
+    a doc-kind file among the code (src/api.md), code or config under docs/
+    (docs/conf.py), a path that climbs (`..`) and a .txt at the top
+    (requirements.txt) are not taken for one."""
     path = path.strip("`'\"").replace("\\", "/")
     path = path[2:] if path.startswith("./") else path
-    if path.split("/")[0] in ("docs", "doc"):
-        return "/" in path
-    return "/" not in path and path.endswith(DOC_KINDS)
+    parts = path.split("/")
+    if ".." in parts:
+        return False
+    if parts[0] in ("docs", "doc"):
+        return len(parts) > 1 and path.endswith(DOC_KINDS)
+    return len(parts) == 1 and path.endswith(TOP_DOC_KINDS)
 
 
 def doc_part(part):
     """whether one part of a SIZE prices only doc or spec lines: "one doc
     line", or lines of a doc file it names ("one line in docs/api.md")."""
-    if DOC_LINES.match(part):
-        return True
+    m = DOC_LINES.match(part)
+    if m:
+        return not m.group(7) or a_doc(m.group(7))
     m = LINES_IN.match(part)
     return bool(m) and a_doc(m.group(5))
 

@@ -132,6 +132,19 @@ def test_which_questions_change_no_code():
             size
 
 
+def test_a_build_file_or_code_under_docs_is_no_doc_file():
+    # a dependency or build line, sphinx's config and a path that climbs out
+    # of docs/ change what runs
+    for size in ("one line in requirements.txt", "one line in CMakeLists.txt",
+                 "one line in docs/conf.py", "one line in docs/../pages.py",
+                 "one line in doc/../../calc.py"):
+        assert not ruling.asks_no_code(CITED.replace("one doc line", size)), \
+            size
+    for size in ("one line in docs/notes.txt", "two lines in CHANGELOG.md",
+                 "one line in docs/guide/api.rst"):
+        assert ruling.asks_no_code(CITED.replace("one doc line", size)), size
+
+
 # the shapes of two recorded parks after the work was done: a patcher that
 # priced its answer as one doc line pinned only if someone wants it, and a
 # worker whose answer needs a condition in a code file besides a doc line
