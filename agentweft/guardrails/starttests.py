@@ -18,7 +18,7 @@ js tests, is judged on the ruled file. a file with one change no ruling
 covers stays as the run found it. a WRONG TEST claim on such a js file is
 tied to the ruled edit by this replay: a python test the product now leaves
 red turns green with the claimed files as left and stays red without that
-file, and is red on the start state with the files as left
+file, and is red on the start state with that file alone as left
 (`laid_on_start`), so the file as left needs the run's product
 (`Run.turns`).
 

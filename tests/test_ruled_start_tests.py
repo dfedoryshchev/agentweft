@@ -15,8 +15,9 @@ start-tests replay lays out a start test file every change of which a
 ruling covers as the run left it, and one that runs an unruled one is not.
 a claimed test file read by line is tied when the python test that runs it,
 red against the product now, turns green with the file as left, stays red
-without it and is red on the start state with it; an emptied file, one the
-turn does not need and one whose layout turns no test still park. a test changed with no WRONG TEST line, a
+without it and is red on the start state with it alone as left; an emptied
+file (beside an honest claimed file or not), one the turn does not need and
+one whose layout turns no test still park. a test changed with no WRONG TEST line, a
 test on a line no
 ruling covers, code a file's tests share with a test that reads it unnamed,
 a quote of neither the found line nor the ruled edit, a `request:` answer
@@ -557,6 +558,94 @@ def test_a_claimed_test_file_the_turn_does_not_need_ties_nothing(
     left = gates.split("FAIL test-edits")[-1].split(NL)[0]
     assert OTHER_JS in left and JS_FILE + " " not in left, left
     assert OTHER_JS + " <- ruling" not in record(tmp_path, "handoff.md")
+
+
+# a python test over a folder of js tests: every file read by line is read,
+# so a second claimed file can be needed for the turn
+FOLDER_BRIDGE = NL.join([
+    "from pathlib import Path", "", "from pages import listing, names", "", "",
+    "def test_the_js_suite_passes():",
+    "    for js in sorted(Path(__file__).parent.glob('*.test.js')):",
+    "        for line in js.read_text(encoding='utf-8').splitlines():",
+    "            w = line.split()",
+    "            if w[0] == 'order':",
+    "                assert names(['b', 'a']) == ['b', 'a'], line",
+    "            else:",
+    "                assert w[1] in listing([1]), line", ""])
+FOLDER_RUNNER = JS_RUNNER.replace(
+    "        from pages import listing",
+    "        from pages import listing, names").replace(
+    "            assert line.split()[1] in listing([1]), line",
+    "            w = line.split()" + NL
+    + "            if w[0] == 'order':" + NL
+    + "                assert names(['b', 'a']) == ['b', 'a'], line" + NL
+    + "            else:" + NL
+    + "                assert w[1] in listing([1]), line")
+ORDER_JS = "order names" + NL
+NO_NAMES = "def test_nothing():" + NL + "    assert True" + NL
+
+
+def a_folder(monkeypatch, other):
+    real = a_place
+
+    def with_other(where, files):
+        if JS_FILE in files:
+            files = dict(files, **{OTHER_JS: other,
+                                   "tests/test_bridge.py": FOLDER_BRIDGE,
+                                   "conftest.py": FOLDER_RUNNER})
+        return real(where, files)
+    monkeypatch.setattr(sys.modules[__name__], "a_place", with_other)
+
+
+FOLDER_CLAIMED = built(
+    wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1]),
+    wrong(JS_TEST, EDITED[1]),
+    wrong(OTHER_JS + "::expects the envelope", FOUND[0]))
+
+
+def folder_run(tmp_path, monkeypatch, other, left, product=None):
+    a_folder(monkeypatch, other)
+
+    def forge(place):
+        if product is not None:
+            (place / "pages.py").write_text(product, encoding="utf-8")
+        (place / OTHER_JS).write_text(left, encoding="utf-8")
+    return overridden(tmp_path, monkeypatch, TYPED_PLAN, FOLDER_CLAIMED,
+                      js=CURSOR_JS, forge=forge,
+                      names_start=NO_NAMES if product else NAMES_START)
+
+
+def folder_refused(tmp_path, code):
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    left = gates.split("FAIL test-edits")[-1].split(NL)[0]
+    assert OTHER_JS in left and JS_FILE + " " not in left, left
+    assert OTHER_JS + " <- ruling" not in record(tmp_path, "handoff.md")
+
+
+def test_a_second_claimed_file_the_turn_needs_ties_when_rewritten_honestly(
+        tmp_path, monkeypatch):
+    _, code = folder_run(tmp_path, monkeypatch, "expect total" + NL,
+                         "expect next" + NL)
+    assert code == stops.EXIT_OK, record(tmp_path, "gates.md")
+    assert OTHER_JS + " <- ruling" in record(tmp_path, "handoff.md")
+
+
+def test_an_emptied_file_the_turn_needs_ties_nothing_beside_an_honest_one(
+        tmp_path, monkeypatch):
+    # the honest file as left is red on the start state; the emptied one
+    # alone is green there
+    _, code = folder_run(tmp_path, monkeypatch, "expect total" + NL, "")
+    folder_refused(tmp_path, code)
+
+
+def test_an_unruled_broken_file_emptied_beside_an_honest_one_ties_nothing(
+        tmp_path, monkeypatch):
+    # the step also sorts names, which no ruling covers, and empties the
+    # order test it broke
+    _, code = folder_run(tmp_path, monkeypatch, ORDER_JS, "",
+                         product=CURSOR_LISTING)
+    folder_refused(tmp_path, code)
 
 
 def test_a_bridge_over_an_unruled_test_file_still_parks(

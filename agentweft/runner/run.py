@@ -726,8 +726,10 @@ class Run(object):
         tied by the start tests it turns instead (`turns`), with every such
         file the answers `said` claim under a ruling laid out as the run left
         it: a python test turns green with them and stays red with all of
-        them but this file, and is red on the start state with them as left
-        (`red_on_start`); never by a word in the file."""
+        them but this file, and is red on the start state with this file
+        alone as left, the others as found (`red_on_start`), so a file never
+        rides on another claimed file's read of the run's product; never by
+        a word in the file."""
         rel = test.partition("::")[0]
         if not rel.endswith(".py"):
             files = self.claimed_files(said) | {rel}
@@ -739,7 +741,7 @@ class Run(object):
             if without is None:
                 return False
             needs = turned - without
-            return bool(needs) and self.red_on_start(files, needs)
+            return bool(needs) and self.red_on_start({rel}, needs)
         if "::" not in test:
             return False
         if not self.found_words(test) & ruling.words(" ".join(lines)):
@@ -808,9 +810,11 @@ class Run(object):
     def red_on_start(self, files, tests):
         """whether one of `tests`, python start test ids, is red on the start
         state with `files`, start test files read by line, as the run left
-        them (`starttests.laid_on_start`): the files as left need the run's
-        product, so an emptied or loosened file is never tied. False when it
-        cannot run."""
+        them and every other start file as found
+        (`starttests.laid_on_start`): the files as left need the run's
+        product. `tied` hands one file, so an emptied or loosened file is
+        never tied beside one that reads something new. False when it cannot
+        run."""
         start = getattr(self, "start", None)
         key = (tuple(sorted(files)), tuple(sorted(tests)), tuple(sorted(
             (rel, hash(data)) for rel, data in start.test_changes())))
