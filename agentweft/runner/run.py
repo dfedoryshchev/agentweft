@@ -723,12 +723,23 @@ class Run(object):
         it is red against the product as the run found it (`turned`). the
         spec as the run left it is read by none of the three. a test file
         read by line, or a test in one, has no python id to run, so it is
-        tied by the start tests it turns instead (`flipped`), with every such
+        tied by the start tests it turns instead (`turns`), with every such
         file the answers `said` claim under a ruling laid out as the run left
-        it; never by a word in the file."""
+        it: a python test turns green with them and stays red with all of
+        them but this file, and is red on the start state with them as left
+        (`red_on_start`); never by a word in the file."""
         rel = test.partition("::")[0]
         if not rel.endswith(".py"):
-            return self.flipped(self.claimed_files(said) | {rel})
+            files = self.claimed_files(said) | {rel}
+            turned = self.turns(files)
+            if not turned:
+                return False
+            rest = files - {rel}
+            without = self.turns(rest) if rest else set()
+            if without is None:
+                return False
+            needs = turned - without
+            return bool(needs) and self.red_on_start(files, needs)
         if "::" not in test:
             return False
         if not self.found_words(test) & ruling.words(" ".join(lines)):
@@ -751,37 +762,57 @@ class Run(object):
                     out.add(path)
         return out
 
-    def flipped(self, files):
-        """whether laying `files`, start test files read by line, out as the
-        run left them turns a python start test the product now leaves red
-        (`forced`) green: one start-tests replay with them as left, per state
-        of the product and the files. the files carry what the test checks,
-        so the change is the run's. a replay that could not run turns
-        nothing."""
+    def turns(self, files):
+        """-> the python start tests the product now leaves red (`forced`)
+        that laying `files`, start test files read by line, out as the run
+        left them turns green: one start-tests replay with them as left, per
+        state of the product, the files and the test files. None when the
+        run cannot replay or the replay could not run."""
         start = getattr(self, "start", None)
         order = getattr(self, "order", None)
         if start is None or not start.hashed or order is None or order.skip:
-            return False
+            return None
         self.forced("")
         before = [t for t in self.red_as_found[1]
                   if t.partition("::")[0].endswith(".py")]
         if not before:
-            return False
+            return set()
         key = (self.red_as_found[0], tuple(sorted(files)), tuple(sorted(
             (rel, hash(data)) for rel, data in start.test_changes())))
         held = getattr(self, "red_as_laid", None)
-        if held is None or held[0] != key:
+        if held is None:
+            held = self.red_as_laid = {}
+        if key not in held:
             known = None if self.suite == baseline.OFF else \
                 self.known_at_start
             found = starttests.replay(start, redorder.test_command(self.fm),
                                       green=self.start_green, known=known,
                                       as_left=set(files))
             ran = found.result is not None and not found.result.issue
-            held = (key, [red for red, _ in found.red] if ran else None)
-            self.red_as_laid = held
-        if held[1] is None:
-            return False
-        return any(t not in held[1] for t in before)
+            held[key] = [red for red, _ in found.red] if ran else None
+        if held[key] is None:
+            return None
+        return {t for t in before if t not in held[key]}
+
+    def red_on_start(self, files, tests):
+        """whether one of `tests`, python start test ids, is red on the start
+        state with `files`, start test files read by line, as the run left
+        them (`starttests.laid_on_start`): the files as left need the run's
+        product, so an emptied or loosened file is never tied. False when it
+        cannot run."""
+        start = getattr(self, "start", None)
+        key = (tuple(sorted(files)), tuple(sorted(tests)), tuple(sorted(
+            (rel, hash(data)) for rel, data in start.test_changes())))
+        held = getattr(self, "red_on_start_laid", None)
+        if held is None:
+            held = self.red_on_start_laid = {}
+        if key not in held:
+            found, _ = starttests.laid_on_start(
+                start, set(files), tests, redorder.test_command(self.fm))
+            held[key] = [t for t, (s, _) in (found or {}).items()
+                         if s in starttests.RED]
+        return any(wrongtest.same_test(red, t) for red in held[key]
+                   for t in tests)
 
     def found_words(self, test):
         """-> the words `test`, a python start test id, reads as the run

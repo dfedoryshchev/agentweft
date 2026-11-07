@@ -14,8 +14,9 @@ ruled line `spec: contradicts` needs no new CONFLICT line for it. the
 start-tests replay lays out a start test file every change of which a
 ruling covers as the run left it, and one that runs an unruled one is not.
 a claimed test file read by line is tied when the python test that runs it,
-red against the product now, turns green with the file as left; one whose
-layout turns no test still parks. a test changed with no WRONG TEST line, a
+red against the product now, turns green with the file as left, stays red
+without it and is red on the start state with it; an emptied file, one the
+turn does not need and one whose layout turns no test still park. a test changed with no WRONG TEST line, a
 test on a line no
 ruling covers, code a file's tests share with a test that reads it unnamed,
 a quote of neither the found line nor the ruled edit, a `request:` answer
@@ -515,6 +516,47 @@ def test_a_claimed_test_file_whose_layout_turns_no_python_test_asks(
     left = gates.split("FAIL test-edits")[-1].split(NL)[0]
     assert JS_FILE in left
     assert ENVELOPE_TEST not in left and FIRST_PAGE_TEST not in left
+
+
+def test_a_claimed_test_file_emptied_ties_nothing_by_the_turn(tmp_path,
+                                                              monkeypatch):
+    # an empty file turns the bridge green on any product: the start product
+    # passes it too, so the file as left pins nothing
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, JS_CLAIMED,
+                             js="")
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    assert JS_FILE in gates.split("FAIL test-edits")[-1].split(NL)[0]
+    assert JS_FILE + " <- ruling" not in record(tmp_path, "handoff.md")
+
+
+OTHER_JS = "tests/other.test.js"
+
+
+def test_a_claimed_test_file_the_turn_does_not_need_ties_nothing(
+        tmp_path, monkeypatch):
+    # a second file read by line, green as found and now, emptied and claimed
+    # beside the honest one: the turn goes green without it
+    real = a_place
+
+    def with_other(where, files):
+        if JS_FILE in files:
+            files = dict(files, **{OTHER_JS: "expect items" + NL})
+        return real(where, files)
+    monkeypatch.setattr(sys.modules[__name__], "a_place", with_other)
+
+    def empty(place):
+        (place / OTHER_JS).write_text("", encoding="utf-8")
+    asked, code = overridden(tmp_path, monkeypatch, TYPED_PLAN, built(
+        wrong(ENVELOPE_TEST, FOUND[0]), wrong(FIRST_PAGE_TEST, FOUND[1]),
+        wrong(JS_TEST, EDITED[1]),
+        wrong(OTHER_JS + "::expects the envelope", FOUND[0])),
+        js=CURSOR_JS, forge=empty)
+    gates = record(tmp_path, "gates.md")
+    assert code != stops.EXIT_OK, gates
+    left = gates.split("FAIL test-edits")[-1].split(NL)[0]
+    assert OTHER_JS in left and JS_FILE + " " not in left, left
+    assert OTHER_JS + " <- ruling" not in record(tmp_path, "handoff.md")
 
 
 def test_a_bridge_over_an_unruled_test_file_still_parks(

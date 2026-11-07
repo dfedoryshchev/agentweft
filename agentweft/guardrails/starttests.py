@@ -16,8 +16,10 @@ held it: an `override:` answer, or a WRONG TEST line under one) is laid out
 as the run left it, so a test that runs it, a python test over a folder of
 js tests, is judged on the ruled file. a file with one change no ruling
 covers stays as the run found it. a WRONG TEST claim on such a js file is
-tied to the ruled edit by this replay: the python test the product now
-leaves red turns green with the claimed files as left (`Run.flipped`).
+tied to the ruled edit by this replay: a python test the product now leaves
+red turns green with the claimed files as left and stays red without that
+file, and is red on the start state with the files as left
+(`laid_on_start`), so the file pins what the run changed (`Run.turns`).
 
 the start test modules the run changed also run as the run left them on the
 start state, product as found (`tests_as_left_on_start`): a WRONG TEST claim
@@ -180,6 +182,27 @@ def tests_as_left_on_start(start, cmd=None, timeout=TIMEOUT):
                    and TEST_MODULE.search(PurePosixPath(rel).name))
     if not files:
         return {}, ""
+    try:
+        with worktree.temporary(start.root, start.start) as tree:
+            start.lay_out(tree, changes)
+            return run_tests(base_of(cmd), files, start.place_in(tree),
+                             timeout)
+    except ValueError as e:
+        return None, "could not check out the start commit: " + str(e)
+
+
+def laid_on_start(start, as_left, tests, cmd=None, timeout=TIMEOUT):
+    """-> ({id: (state, said)}, "") for one pytest run of the python modules
+    of `tests`, ids of start tests, on the place's start state with the start
+    test files in `as_left` (paths from the place) as the run left them, and
+    no product file of the run's; (None, why) when it cannot run."""
+    if start is None or not start.hashed or not start.start:
+        return None, "the run has no start commit to run them on"
+    files = sorted({t.partition("::")[0] for t in tests})
+    if not files:
+        return {}, ""
+    changes = [(rel, data) for rel, data in start.test_changes()
+               if start.from_place(rel) in as_left]
     try:
         with worktree.temporary(start.root, start.start) as tree:
             start.lay_out(tree, changes)

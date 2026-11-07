@@ -761,9 +761,12 @@ in `gates.md`:
   tests turn instead: a python start test the product now leaves red (a
   test that runs the js suite) is green in a second start-tests replay with
   every file read by line the answers claim under a ruling laid out as the
-  run left it. a word in the file never ties it, an unclaimed file is never
-  laid out, and a claimed file whose layout turns no python test is asked
-  about. the turn reads the file whole: an unclaimed loosened line in a
+  run left it, stays red in a third with all of them but this file, and is
+  red on the start state with them as left (the file as left needs the
+  run's product: an emptied or loosened file is green there). a word in the
+  file never ties it, an unclaimed file is never laid out, and a claimed
+  file the turn does not need, or whose layout turns no python test, is
+  asked about. the turn reads the file whole: an unclaimed loosened line in a
   claimed file rides with it when the turn still goes green. a claim does
   not cover a test the replay does not reach (one that reads the spec
   files, which the replay lays out as the run found them, or any test in a
