@@ -728,10 +728,13 @@ class Run(object):
         it: a python test turns green with them and stays red with all of
         them but this file, and is red on the start state with this file
         alone as left, the others as found (`red_on_start`), so a file never
-        rides on another claimed file's read of the run's product; never by
-        a word in the file."""
+        rides on another claimed file's read of the run's product; and the
+        file's code as the run found it shares a word with the lines
+        (`js_words`), as a python test's must."""
         rel = test.partition("::")[0]
         if not rel.endswith(".py"):
+            if not self.js_words(test) & ruling.words(" ".join(lines)):
+                return False
             files = self.claimed_files(said) | {rel}
             turned = self.turns(files)
             if not turned:
@@ -839,6 +842,15 @@ class Run(object):
                               getattr(self, "start", None)) or ""
         return ruling.code_words(testedits.read_by(was, rel,
                                                    test.split("[")[0]))
+
+    def js_words(self, test):
+        """-> the words a start test file read by line, or a test in one,
+        reads as the run found it: the names and string literals of the
+        whole file's code (`ruling.js_words`); none for a file the run did
+        not find."""
+        rel = test.partition("::")[0]
+        return ruling.js_words(ruling.as_found(
+            self.workdir, rel, getattr(self, "start", None)) or "")
 
     def turned(self, test):
         """whether `test`, a start test id, as the run left it is red against

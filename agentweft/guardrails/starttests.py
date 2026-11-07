@@ -20,7 +20,8 @@ tied to the ruled edit by this replay: a python test the product now leaves
 red turns green with the claimed files as left and stays red without that
 file, and is red on the start state with that file alone as left
 (`laid_on_start`), so the file as left needs the run's product
-(`Run.turns`).
+(`Run.turns`); the file's code as found also shares a word with the quoted
+line (`Run.js_words`).
 
 the start test modules the run changed also run as the run left them on the
 start state, product as found (`tests_as_left_on_start`): a WRONG TEST claim

@@ -772,11 +772,14 @@ in `gates.md`:
   run left it, stays red in a third with all of them but this file, and is
   red on the start state with this file alone as left, every other start
   file as found (the file as left needs the run's product: an emptied or
-  loosened file is green there, beside another claimed file or not). a
-  word in the
-  file never ties it, an unclaimed file is never laid out, and a claimed
-  file the turn does not need, or whose layout turns no python test, is
-  asked about. the turn reads the file whole: an unclaimed loosened line in a
+  loosened file is green there, beside another claimed file or not), and
+  the file's code as the run found it shares a word with the quoted lines
+  as the run found them: the names and string literals of the whole file,
+  never a comment, a test title (the first string of `describe(`, `it(`,
+  `test(`), a keyword or a test runner name (`expect`, `toEqual`). these
+  are the three a python claim meets, read per file. an unclaimed file is
+  never laid out, and a claimed file that shares no word, that the turn
+  does not need, or whose layout turns no python test, is asked about. the turn reads the file whole: an unclaimed loosened line in a
   claimed file rides with it when the turn still goes green. a claim does
   not cover a test the replay does not reach (one that reads the spec
   files, which the replay lays out as the run found them, or any test in a
@@ -790,7 +793,12 @@ in `gates.md`:
   behaviour no ruling covers that the step broke too), is covered once the
   step rewrites it to anything the old product fails; reading a name or a
   key the run added is enough, so the rewrite need not pin the broken
-  behaviour, or anything. no program tells such a read from a pin, since an
+  behaviour, or anything. for a file read by line the same holds per file:
+  its found code shares a word with the line, a python test that runs it
+  goes red with the run's product and needs the file as left to turn green,
+  and the file as left, alone, fails the old product; a read of a new key
+  is enough there too, and the word may sit anywhere in the file, since
+  the file is read whole. no program tells such a read from a pin, since an
   honest rewrite fails the old product the same way (a missing key). the
   product diff, the typed claim and the start-tests line naming the test
   show it. the

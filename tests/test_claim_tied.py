@@ -250,6 +250,30 @@ def test_a_builtin_name_in_code_is_no_word_but_a_string_holding_one_is():
     assert ruling.code_words("def broken(:") == set()
 
 
+JS_SOURCE = NL.join([
+    "// every page has its total",
+    "import { listing } from '../pages';",
+    "/* the items, in order */",
+    "describe('the page envelope', () => {",
+    "  it(\"keeps the count\", async () => {",
+    "    const body = await listing([1]);",
+    "    expect(body.next).toBeNull();",
+    "    expect(Object.keys(body)).toEqual(['items', `cursor`, \"caf" + chr(233) + "\"]);",
+    "  });",
+    "});", ""])
+
+
+def test_a_js_file_reads_its_names_and_strings_not_comments_or_titles():
+    words = ruling.js_words(JS_SOURCE)
+    assert {"listing", "pages", "body", "next", "items", "cursor",
+            "object", "keys"} <= words
+    assert not words & {"every", "page", "total", "order", "envelope",
+                        "count", "expect", "const", "await", "tobenull",
+                        "toequal", "describe", "import"}
+    assert ruling.js_words("") == set()
+    assert ruling.js_words("/* never closed items") == set()
+
+
 LINE = "migrate runs every pending file in order."
 SPEC = "# db" + NL + NL + "- " + LINE + NL + "- a name is kept." + NL
 ADDED = ("# db" + NL + NL + "- 0007 holds the items that were deleted." + NL

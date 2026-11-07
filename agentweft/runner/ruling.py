@@ -990,6 +990,43 @@ def code_words(source):
     return words(" ".join(said))
 
 
+JS_TOKEN = re.compile(r"//[^\n]*|/\*.*?(?:\*/|\Z)"
+                      r"|\"(?:\\.|[^\"\\\n])*\"|'(?:\\.|[^'\\\n])*'"
+                      r"|`(?:\\.|[^`\\])*`|[A-Za-z_$][\w$]*", re.S)
+JS_TITLE = re.compile(r"\b(describe|it|test)(\.\w+)*\s*\(\s*$")
+JS_IDLE = {
+    "async", "await", "break", "case", "catch", "class", "const", "continue",
+    "debugger", "default", "delete", "else", "export", "extends", "false",
+    "finally", "function", "import", "instanceof", "let", "new", "null",
+    "return", "super", "switch", "this", "throw", "true", "try", "typeof",
+    "undefined", "var", "void", "while", "yield", "require", "module",
+    "exports", "console", "describe", "test", "expect", "jest", "beforeeach",
+    "aftereach", "beforeall", "afterall", "tobe", "toequal", "tostrictequal",
+    "tocontain", "tohavelength", "tohaveproperty", "tomatch", "tothrow",
+    "tobenull", "tobeundefined", "tobedefined", "tobetruthy", "tobefalsy",
+    "resolves", "rejects", "mock", "spyon", "assert", "equal", "deepequal",
+    "strictequal", "deepstrictequal"}
+
+
+def js_words(source):
+    """-> the `words` of the names and string literals js `source`'s code
+    reads, the way `code_words` reads python: no comment, no test title (the
+    first string of `describe(`, `it(`, `test(`), which say things in
+    English, and no keyword or test runner name, which any test may use."""
+    said = []
+    for m in JS_TOKEN.finditer(source or ""):
+        tok = m.group(0)
+        if tok.startswith(("//", "/*")):
+            continue
+        if tok[0] in "\"'`":
+            if not JS_TITLE.search(source[max(0, m.start() - 80):m.start()]):
+                said.append(tok[1:-1])
+            continue
+        if tok.lower() not in JS_IDLE:
+            said.append(tok)
+    return words(" ".join(said))
+
+
 def quoted_as_found(said, workdir, start=None):
     """-> the spec lines `said`, `<file>:<line> "<the line>"`, quotes, as the
     run found them, or None: read at their number then or, cited where they

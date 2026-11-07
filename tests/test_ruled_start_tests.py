@@ -15,11 +15,11 @@ start-tests replay lays out a start test file every change of which a
 ruling covers as the run left it, and one that runs an unruled one is not.
 a claimed test file read by line is tied when the python test that runs it,
 red against the product now, turns green with the file as left, stays red
-without it and is red on the start state with it alone as left; an emptied
-file (beside an honest claimed file or not), one the turn does not need and
-one whose layout turns no test still park. a test changed with no WRONG TEST line, a
-test on a line no
-ruling covers, code a file's tests share with a test that reads it unnamed,
+without it and is red on the start state with it alone as left, and its
+code as found (no comment) shares a word with the quoted line; an emptied
+file (beside an honest claimed file or not), one that shares no word, one
+the turn does not need and one whose layout turns no test still park. a
+test changed with no WRONG TEST line, a test on a line no ruling covers, code a file's tests share with a test that reads it unnamed,
 a quote of neither the found line nor the ruled edit, a `request:` answer
 and an entry a step wrote in decisions.md itself let nothing change, and a
 claim on a start test the step left as it was still asks.
@@ -644,6 +644,16 @@ def test_an_unruled_broken_file_emptied_beside_an_honest_one_ties_nothing(
     # the step also sorts names, which no ruling covers, and empties the
     # order test it broke
     _, code = folder_run(tmp_path, monkeypatch, ORDER_JS, "",
+                         product=CURSOR_LISTING)
+    folder_refused(tmp_path, code)
+
+
+@pytest.mark.parametrize("found", [ORDER_JS, "order names // the items" + NL])
+def test_an_unruled_broken_file_rewritten_to_read_a_new_key_ties_nothing(
+        tmp_path, monkeypatch, found):
+    # red on the start state by itself, but its code as found shares no
+    # word with the envelope line it is claimed on; a comment is no code
+    _, code = folder_run(tmp_path, monkeypatch, found, "expect next" + NL,
                          product=CURSOR_LISTING)
     folder_refused(tmp_path, code)
 
