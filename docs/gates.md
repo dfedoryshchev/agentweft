@@ -789,7 +789,11 @@ in `gates.md`:
   as the run found them: the names and string literals of the whole file,
   never a comment, a test title (the first string of `describe(`, `it(`,
   `test(`), a keyword or a test runner name (`expect`, `toEqual`). these
-  are the three a python claim meets, read per file. an unclaimed file is
+  are the three conditions a python claim meets, read per file, with a wider
+  word read: it also counts import paths (`require('./list')`, `from
+  './list'`), js globals (`Object`, `Set`, `Map`, `JSON`, `Math`) and an
+  assertion's message string, where the python read cuts builtins and a bare
+  `assert`'s message and reads no import line. an unclaimed file is
   never laid out, and a claimed file that shares no word, that the turn
   does not need, or whose layout turns no python test, is asked about. the turn reads the file whole: an unclaimed loosened line in a
   claimed file rides with it when the turn still goes green. a claim does
