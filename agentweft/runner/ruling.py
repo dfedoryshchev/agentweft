@@ -677,8 +677,9 @@ def mark_lines(mark):
 def settles(said, workdir, start=None):
     """-> the `<file>:<line>` that `said`, the words of a `SETTLED BY:` line,
     cites when it quotes that line of the place as the run found it:
-    QUOTE_WORDS words of it or more, starting there and at most running on
-    into its paragraph (`runs_to`), the cited lines one paragraph. "" for
+    QUOTE_WORDS words of it or more (`quote_words`: a heading marker, a list
+    dash or a table bar is no word), starting there and at most running on into
+    its paragraph (`runs_to`), the cited lines one paragraph. "" for
     anything else: no words, `none`, no quote, a line that is not there, a
     quote that is not on it, a quote of fewer words (a heading or a one-word
     line, even whole), a range across a blank line, and a file of the
@@ -692,7 +693,7 @@ def settles(said, workdir, start=None):
     rel, first, last, quote, cite = cite_of(m)
     rel = path_of(rel)
     cite = rel + cite[cite.rindex(":"):]
-    if len(quote.split()) < QUOTE_WORDS or is_runners(rel) \
+    if quote_words(quote) < QUOTE_WORDS or is_runners(rel) \
             or cited(cite, (), workdir) is None:
         return ""
     lines, _ = lines_of(workdir, rel, first, last, start)
@@ -1409,6 +1410,13 @@ QUOTED = re.compile(r'"([^"\n]+)"')
 QUOTE_WORDS = 3
 
 
+def quote_words(quote):
+    """-> how many words `quote` has: the pieces between spaces with a letter
+    or a digit in them, so a heading marker, a list dash or a table bar is
+    none."""
+    return sum(1 for piece in (quote or "").split() if re.search(r"\w", piece))
+
+
 ANSWERED = "\n\nanswered:\n\n"
 ANSWERED_BY = "\n\nanswered by "
 ANSWERED_END = ", with --answer"
@@ -1426,6 +1434,27 @@ def asked_and_answered(d):
     if not sep:
         return None
     return asked, rest.rpartition(ANSWERED_BY)[0].strip()
+
+
+def answer_part(lines):
+    """-> (first, last), the 1-based numbers among `lines`, the lines of one
+    decisions.md entry written by --answer from its heading on, of the lines
+    the person's answer takes; None when it has none. never the heading, the
+    question asked, the runner's sentence of what the answer lets change, nor
+    the closing `answered by` line."""
+    marks = [i for i in range(2, len(lines)) if lines[i - 1] == "answered:"
+             and not lines[i - 2] and not lines[i]]
+    ends = [i for i in range(1, len(lines) + 1)
+            if lines[i - 1].startswith(ANSWERED_BY.strip() + " ")
+            and lines[i - 1].endswith(ANSWERED_END)]
+    if not marks or not ends:
+        return None
+    first, last = marks[-1] + 2, ends[-1] - 2
+    if last - first >= 2 and not lines[last - 2] and (
+            lines[last - 1] == scope("", REQUEST)
+            or lines[last - 1].startswith("this authorises changing ")):
+        last -= 2
+    return (first, last) if first <= last else None
 
 
 def answered(d):

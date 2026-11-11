@@ -164,11 +164,14 @@ def marked(run, step, out, answered=()):
 
 def answer_settles(run, said):
     """-> the `decisions.md:<line>` that `said`, the words of a `SETTLED BY:`
-    line, cites when it quotes lines of one decisions.md entry that --answer
-    wrote in this run or a leg it carries on from (`given_answers`): the
-    person's answer is the context that settles a question asked again in
-    other words. the lines whole, or QUOTE_WORDS words of them or more. ""
-    for anything else."""
+    line, cites when it quotes lines of the answer itself
+    (`ruling.answer_part`) of one decisions.md entry that --answer wrote in
+    this run or a leg it carries on from (`given_answers`): the person's
+    answer is the context that settles a question asked again in other
+    words. the lines whole, or QUOTE_WORDS words of them or more. "" for
+    anything else: the entry's heading, the question it echoes and its
+    closing line too. it checks the lines are the answer, never that the
+    answer answers the question."""
     from pathlib import Path
 
     from agentweft.orchestrate import decisions
@@ -193,11 +196,13 @@ def answer_settles(run, said):
     if not begins:
         return ""
     ends = [h - 1 for h in heads if h > begins[-1]] + [len(lines)]
-    if last > ends[0]:
+    part = ruling.answer_part(lines[begins[-1] - 1:ends[0]])
+    if part is None or not begins[-1] + part[0] - 1 <= first \
+            or last > begins[-1] + part[1] - 1:
         return ""
     found = ruling.flat(" ".join(lines[first - 1:last]))
-    if quote not in found or (quote != found
-                              and len(quote.split()) < ruling.QUOTE_WORDS):
+    if quote not in found or (quote != found and ruling.quote_words(quote)
+                              < ruling.QUOTE_WORDS):
         return ""
     entry = decisions.parse("\n".join(lines[begins[-1] - 1:ends[0]]))
     if len(entry) != 1 or rulings.digest(entry[0]) not in given_answers(run):

@@ -291,6 +291,77 @@ def test_a_decisions_cite_that_is_not_the_person_s_answer_settles_nothing(
     assert code == stops.EXIT_STOP
 
 
+def entry_line(text, has, quote):
+    """-> a decisions.md cite of the last line holding `has`, quoting
+    `quote`, or the whole line."""
+    lines = text.split(NL)
+    n = max(i for i, l in enumerate(lines, 1) if has in l)
+    return decisions.FILE + ":" + str(n) + ' "' + (
+        quote or " ".join(lines[n - 1].split())) + '"'
+
+
+NEW = "which status code does a stale read return?"
+
+
+@pytest.mark.parametrize("has, quote", [
+    ("ruling for planner.md", "ruling for planner.md: clear it"),
+    ("asked by planner.md", "asked by planner.md in"),
+    ("write through", "a write through the client"),
+    ("RECOMMEND: ", REC),
+    ("answered by ", None), ("answered:", None)])
+def test_a_decisions_cite_of_the_entry_outside_the_answer_settles_nothing(
+        tmp_path, monkeypatch, has, quote):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch, lambda text: block(
+        NEW, "return 200", entry_line(text, has, quote)))
+    assert code == stops.EXIT_STOP
+
+
+def test_a_new_question_quoting_the_person_s_answer_is_the_lead_s_to_decide(
+        tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, asked = resumed(tmp_path, monkeypatch, lambda text: block(
+        NEW, "return 200 with the cached body", answer_line(text)))
+    assert code == stops.EXIT_OK
+    assert asked == ["planner.md", "worker.md"]
+
+
+def test_a_quote_of_several_lines_of_the_answer_settles(tmp_path,
+                                                        monkeypatch):
+    said = "clear it" + NL + "on every write"
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+
+    def planner(text):
+        lines = text.split(NL)
+        n = max(i for i, l in enumerate(lines, 1) if l == "clear it")
+        return block(REWORDED, REC, decisions.FILE + ":" + str(n) + "-"
+                     + str(n + 1) + ' "clear it on every write"')
+    code, _ = resumed(tmp_path, monkeypatch, planner, answer=said)
+    assert code == stops.EXIT_OK
+
+
+def test_an_answer_too_short_to_quote_in_part_settles_only_whole(
+        tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch, lambda text: block(
+        REWORDED, REC, answer_line(text).replace('"clear it"', '"clear"')))
+    assert code == stops.EXIT_STOP
+
+
+@pytest.mark.parametrize("settled", [
+    'TASK.md:1 "## list cache"', 'TASK.md:2 "- list cache"',
+    'TASK.md:3 "| list | cache |"', 'TASK.md:4 "--- list cache"'])
+def test_a_marker_is_not_a_word_of_a_settling_quote(tmp_path, monkeypatch,
+                                                    settled):
+    a_flow(tmp_path, monkeypatch)
+    (tmp_path / "TASK.md").write_text(NL.join([
+        "## list cache", "- list cache", "| list | cache |", "--- list cache",
+        ""]), encoding="utf-8")
+    asked = answering(monkeypatch, block(ASK, REC, settled))
+    assert run(monkeypatch) == stops.EXIT_STOP
+    assert [s for s, _ in asked] == ["planner.md"]
+
+
 def test_an_answer_given_to_another_run_settles_nothing(tmp_path,
                                                          monkeypatch):
     parks(tmp_path, monkeypatch, block(ASK, REC))

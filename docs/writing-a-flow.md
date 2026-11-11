@@ -319,7 +319,8 @@ never left open. when the context settles it, a line under it says where,
     SETTLED BY: TASK.md:12 "the line, word for word"
 
 and when that line is in the place and says what the quote says (three
-words of it or more, the cited lines one paragraph), the `RECOMMEND:` is the
+words of it or more, where a heading marker, a list dash or a table bar is no
+word, the cited lines one paragraph), the `RECOMMEND:` is the
 lead's decision: on record in `decisions.md` as the lead's, handed to every
 later step, and listed first under the handoff's one decision as decided by
 the lead, with the line it was settled by, for you to overrule. the runner
@@ -337,8 +338,14 @@ same kind you answered cited is passed over, however it is worded around the
 cite, and a mark on a line you were not asked about still parks; a question
 asked again in the same words is passed over, and one asked in other words is
 settled when its SETTLED BY line quotes your answer in `decisions.md`, the
-entry `--answer` wrote in this run. a reworded question with no such line,
-or one that quotes any other entry, is asked again. how it reads in a run is in
+entry `--answer` wrote in this run: a line of your answer itself, never the
+entry's heading or the question it repeats. a line of your answer quoted
+whole settles however short, so a one-word answer can; any other quote of it
+needs three words. the runner checks the cited line is from your answer, not
+that it answers the new question: a new question quoting your answer is
+decided by the lead, and the handoff shows the line it was settled by. a
+reworded question with no such line, or one that quotes any other entry, is
+asked again. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says

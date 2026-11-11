@@ -76,7 +76,8 @@ covers. a mark on any other line, or citing no spec line, still fails it.
 
 the lead's own `QUESTION:` is decided by its `RECOMMEND:` only on typed
 lines: a `SETTLED BY: <file>:<line> "<the line>"` under it whose quote,
-three words or more, is at that line of the place as the run found it, the
+three words or more (a heading marker, a list dash or a table bar is no
+word), is at that line of the place as the run found it, the
 cited lines one paragraph, and no `spec: breaks` or `spec: contradicts`
 mark in the plan; anything else, the SETTLED BY line missing, empty,
 misquoted, a heading or a one-word line, or a range across a blank line
@@ -90,8 +91,14 @@ and if neither does, the handoff's first line under the one decision is
 that decision with the line it was settled by, for the person to read and
 overrule. on a resume, an answered mark is matched by the lines
 it cites and its kind, never by its words, and a reworded question is
-settled only by a SETTLED BY line quoting the entry `--answer` wrote in this
-run (its digest among the runner's own records of what it wrote).
+settled only by a SETTLED BY line quoting the answer in the entry `--answer`
+wrote in this run (its digest among the runner's own records of what it
+wrote): the lines of the person's answer, never the entry's heading, the
+question it repeats or its closing line. an answer line quoted whole settles
+however short (a one-word answer), any other quote of it needs three words.
+the floor holds here too: the check proves the cited line is from the
+answer, not that it answers the question, so a new question quoting the
+answer is decided by the lead and shown on the handoff with that line.
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that
