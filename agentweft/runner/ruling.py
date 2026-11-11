@@ -661,6 +661,19 @@ def broken(output):
             if BREAKS.match(line) or CONTRADICTS.match(line)]
 
 
+def mark_lines(mark):
+    """-> the (kind, file, line) of every line a `spec: breaks` or `spec:
+    contradicts` mark cites, its kind `breaks` or `contradicts`; an empty set
+    for a mark that cites none."""
+    kind = "breaks" if BREAKS.match(mark or "") else "contradicts"
+    out = set()
+    for m in MARKED.finditer(mark or ""):
+        first = int(m.group(2))
+        out |= set((kind, path_of(m.group(1)), n)
+                   for n in range(first, int(m.group(3) or first) + 1))
+    return out
+
+
 def settles(said, workdir, start=None):
     """-> the `<file>:<line>` that `said`, the words of a `SETTLED BY:` line,
     cites when it quotes that line of the place as the run found it: the

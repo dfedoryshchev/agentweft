@@ -48,7 +48,9 @@ answers it: give that line under the question, on a line of its own,
 and your RECOMMEND is the decision, on record for the person to overrule. a
 question no line answers, a gap the spec and the request leave, goes to the
 person: leave SETTLED BY out. so does every question of a plan that marks a
-line `breaks` or `contradicts`.
+line `breaks` or `contradicts`. a question the person already answered in
+this run is settled by that answer: give its line in decisions.md as the
+SETTLED BY line.
 
 a path of a file you plan in that its tests already leave unchecked, seen in
 the code or the tests, may be named for that step on its own line,

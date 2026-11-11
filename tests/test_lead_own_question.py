@@ -166,6 +166,128 @@ def test_a_question_the_person_answered_is_not_asked_again_on_the_resume(
     assert [s for s, _ in asked] == ["planner.md", "worker.md"]
 
 
+def resumed(tmp_path, monkeypatch, planner, answer="clear it"):
+    """-> (the exit code, the steps called) of a resume of the run that
+    waits, with `answer`; `planner` is the planner's answer, or a function of the
+    place's decisions.md text as the planner is called."""
+    asked = []
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        asked.append(step)
+        if step != "planner.md":
+            return "done" + NL, False
+        if callable(planner):
+            return planner((tmp_path / decisions.FILE).read_text(
+                encoding="utf-8")), False
+        return planner, False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--resume",
+                                      folder(tmp_path).name, "--answer",
+                                      answer])
+    return engine.main(), asked
+
+
+@pytest.mark.parametrize("again", ["breaks TASK.md:2 (answered: clear it)",
+                                   "breaks TASK.md:2-2",
+                                   "breaks `TASK.md:2` - the cached list"])
+def test_an_answered_mark_written_differently_on_the_resume_is_not_asked_again(
+        tmp_path, monkeypatch, again):
+    parks(tmp_path, monkeypatch, block(ASK, REC, spec="breaks TASK.md:2"))
+    code, asked = resumed(tmp_path, monkeypatch, block(ASK, REC, spec=again))
+    assert code == stops.EXIT_OK
+    assert asked == ["planner.md", "worker.md"]
+
+
+@pytest.mark.parametrize("again", ["breaks TASK.md:1", "breaks TASK.md:1-2",
+                                   "breaks docs/api.md:1", "breaks"])
+def test_a_new_or_wider_mark_on_the_resume_still_parks(tmp_path, monkeypatch,
+                                                       again):
+    parks(tmp_path, monkeypatch, block(ASK, REC, spec="breaks TASK.md:2"))
+    code, asked = resumed(tmp_path, monkeypatch, block(ASK, REC, spec=again))
+    assert code == stops.EXIT_STOP
+    assert asked == ["planner.md"]
+
+
+def answer_line(text, answer="clear it"):
+    """-> the decisions.md line the person's answer stands on, as a cite."""
+    lines = text.split(NL)
+    n = max(i for i, l in enumerate(lines, 1) if l.strip() == answer)
+    return decisions.FILE + ":" + str(n) + ' "' + answer + '"'
+
+
+REWORDED = ASK.replace("should", "must")
+
+
+def test_a_reworded_question_the_person_s_answer_settles_is_not_asked_again(
+        tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, asked = resumed(tmp_path, monkeypatch, lambda text: block(
+        REWORDED, REC, answer_line(text)))
+    assert code == stops.EXIT_OK
+    assert asked == ["planner.md", "worker.md"]
+    first = decision(folder(tmp_path)).strip().split(NL)
+    assert first[0] == "- decided by the lead: " + REWORDED
+
+
+def test_a_reworded_question_that_cites_no_answer_is_asked_again(
+        tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch, block(REWORDED, REC))
+    assert code == stops.EXIT_STOP
+
+
+def test_a_new_question_on_the_resume_still_parks(tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch, block(
+        "which status code does a stale read return?",
+        "return 200 with the cached body"))
+    assert code == stops.EXIT_STOP
+
+
+def test_a_question_extended_with_a_new_clause_still_parks(tmp_path,
+                                                           monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch,
+                      block(ASK + " (and the detail view?)", REC))
+    assert code == stops.EXIT_STOP
+
+
+@pytest.mark.parametrize("cite", [
+    lambda text: answer_line(text).replace('"clear it"', '"clear all"'),
+    lambda text: answer_line(text).replace(":", ":1", 1),
+    lambda text: decisions.FILE + ':1 "# decisions"',
+    lambda text: answer_line(text).replace(decisions.FILE, "TASK.md")])
+def test_a_decisions_cite_that_is_not_the_person_s_answer_settles_nothing(
+        tmp_path, monkeypatch, cite):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch,
+                      lambda text: block(REWORDED, REC, cite(text)))
+    assert code == stops.EXIT_STOP
+
+
+def test_an_answer_given_to_another_run_settles_nothing(tmp_path,
+                                                         monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, REC))
+    code, _ = resumed(tmp_path, monkeypatch, block(ASK, REC))
+    assert code == stops.EXIT_OK
+    text = (tmp_path / decisions.FILE).read_text(encoding="utf-8")
+    answering(monkeypatch, block(REWORDED, REC, answer_line(text)))
+    assert run(monkeypatch) == stops.EXIT_STOP
+
+
+def test_a_decisions_cite_of_an_entry_the_lead_wrote_settles_nothing(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch)
+    answering(monkeypatch, block(ASK, REC, SETTLES))
+    assert run(monkeypatch) == stops.EXIT_OK
+    text = (tmp_path / decisions.FILE).read_text(encoding="utf-8")
+    n = next(i for i, l in enumerate(text.split(NL), 1) if REC in l)
+    answering(monkeypatch, block(REWORDED, REC, decisions.FILE + ":" + str(n)
+                                 + ' "' + REC + '"'))
+    assert run(monkeypatch) == stops.EXIT_STOP
+
+
 def test_a_clash_named_only_in_the_question_s_words_parks(tmp_path,
                                                           monkeypatch):
     monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", "TASK.md,docs")
@@ -205,6 +327,9 @@ def test_the_planner_is_taught_the_settling_line_and_the_broken_mark(
     taught = 'SETTLED BY: <file>:<line> "<the line, word for word>"'
     assert taught in said and "|" not in taught
     assert "spec: breaks TASK.md:<line>" in said
+    assert " ".join(said.split()).count(
+        "settled by that answer: give its line in decisions.md as the"
+        " SETTLED BY line") == 1
 
 
 def test_a_conflict_stops_before_the_lead_s_own_question_is_read(

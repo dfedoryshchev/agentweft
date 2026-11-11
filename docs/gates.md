@@ -84,7 +84,10 @@ clash only in a question's words, marks nothing and gives a true SETTLED BY
 line is decided by the lead, and then the spec-files check and the
 start-tests replay hold what the build changes; if neither does, the
 handoff's first line under the one decision is that decision, for the
-person to overrule.
+person to overrule. on a resume, an answered mark is matched by the lines
+it cites and its kind, never by its words, and a reworded question is
+settled only by a SETTLED BY line quoting the entry `--answer` wrote in this
+run (its digest among the runner's own records of what it wrote).
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that

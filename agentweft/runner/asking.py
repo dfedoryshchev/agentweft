@@ -102,14 +102,23 @@ def rides(step, out):
     return doubt
 
 
+def given_answers(run):
+    """-> the digests of the decisions.md entries --answer wrote in this run
+    or a leg it carries on from."""
+    kept = getattr(run, "kept", None)
+    if kept is None:
+        return set()
+    return set(w.get("sha256") for w in kept.written
+               if w.get("by") == "answer")
+
+
 def answered_here(run):
     """-> the questions this run, or a leg it carries on from, put to the
     person and had answered with --answer, each as its lines."""
     kept = getattr(run, "kept", None)
     if kept is None:
         return []
-    given = set(w.get("sha256") for w in kept.written
-                if w.get("by") == "answer")
+    given = given_answers(run)
     out = []
     for d in kept.read():
         found = ruling.settled(d) if rulings.digest(d) in given else None
@@ -118,30 +127,95 @@ def answered_here(run):
     return out
 
 
+def answered_marks(answered):
+    """-> the (kind, file, line) of every spec line a mark listed in a
+    question of `answered` (`answered_here`) cites."""
+    out = set()
+    for lines in answered:
+        for line in lines:
+            mark = line.strip().lstrip("-").strip()
+            if ruling.BREAKS.match(mark) or ruling.CONTRADICTS.match(mark):
+                out |= ruling.mark_lines(mark)
+    return out
+
+
 def marked(run, step, out, answered=()):
     """-> the `spec: breaks` and `spec: contradicts` marks of the lead's own
     answer, as written, but those on lines a ruling the run holds already
-    lets change (`ruling.mark_ruled`) and those a question in `answered`
-    (`answered_here`) already put to the person; [] for any other step. each
-    sends the lead's questions to the person."""
+    lets change (`ruling.mark_ruled`) and those whose every cited line a
+    mark of the same kind in a question of `answered` (`answered_here`)
+    already put to the person, however the mark is worded around its cite;
+    [] for any other step. each sends the lead's questions to the person."""
     if step != getattr(run, "lead", None):
         return []
     covered = getattr(run, "spec_line_covered", None)
-    return [m for m in ruling.broken(out.output)
-            if not any("- " + m in lines for lines in answered)
-            and (covered is None or not ruling.mark_ruled(
-                m, run.workdir, getattr(run, "start", None), covered))]
+    put = answered_marks(answered)
+    found = []
+    for m in ruling.broken(out.output):
+        cited = ruling.mark_lines(m)
+        if cited and cited <= put:
+            continue
+        if covered is not None and ruling.mark_ruled(
+                m, run.workdir, getattr(run, "start", None), covered):
+            continue
+        found.append(m)
+    return found
+
+
+def answer_settles(run, said):
+    """-> the `decisions.md:<line>` that `said`, the words of a `SETTLED BY:`
+    line, cites when it quotes lines of one decisions.md entry that --answer
+    wrote in this run or a leg it carries on from (`given_answers`): the
+    person's answer is the context that settles a question asked again in
+    other words. the lines whole, or QUOTE_WORDS words of them or more. ""
+    for anything else."""
+    from pathlib import Path
+
+    from agentweft.orchestrate import decisions
+
+    m = ruling.FIRST_QUOTE.match((said or "").strip())
+    if not m:
+        return ""
+    rel, first, last, quote, cite = ruling.cite_of(m)
+    if ruling.path_of(rel) != decisions.FILE or not quote:
+        return ""
+    try:
+        text = (Path(run.workdir) / decisions.FILE).read_text(
+            encoding="utf-8")
+    except OSError:
+        return ""
+    lines = text.split("\n")
+    if not 1 <= first <= last <= len(lines):
+        return ""
+    heads = [i for i, line in enumerate(lines, 1)
+             if decisions.ENTRY.match(line)]
+    begins = [h for h in heads if h <= first]
+    if not begins:
+        return ""
+    ends = [h - 1 for h in heads if h > begins[-1]] + [len(lines)]
+    if last > ends[0]:
+        return ""
+    found = ruling.flat(" ".join(lines[first - 1:last]))
+    if quote not in found or (quote != found
+                              and len(quote.split()) < ruling.QUOTE_WORDS):
+        return ""
+    entry = decisions.parse("\n".join(lines[begins[-1] - 1:ends[0]]))
+    if len(entry) != 1 or rulings.digest(entry[0]) not in given_answers(run):
+        return ""
+    return decisions.FILE + cite[cite.rindex(":"):]
 
 
 def lead_s_own(run, rec, settled, marks):
-    """-> the line of the place that settles a QUESTION of the lead's own,
-    so the lead decides it by its RECOMMEND `rec`, or "": there is a
-    RECOMMEND, the plan marks no spec line (`marks`), and the question's
-    `SETTLED BY:` words `settled` quote a line of the place as the run
-    found it (`ruling.settles`)."""
+    """-> the line that settles a QUESTION of the lead's own, so the lead
+    decides it by its RECOMMEND `rec`, or "": there is a RECOMMEND, the plan
+    marks no spec line (`marks`), and the question's `SETTLED BY:` words
+    `settled` quote a line of the place as the run found it
+    (`ruling.settles`) or the person's answer in this run
+    (`answer_settles`)."""
     if not rec or marks:
         return ""
-    return ruling.settles(settled, run.workdir, getattr(run, "start", None))
+    return ruling.settles(settled, run.workdir, getattr(run, "start", None)) \
+        or answer_settles(run, settled)
 
 
 def lead_questions(run, step, out, answered=()):

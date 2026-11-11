@@ -330,7 +330,13 @@ lead for you, and so does every question of a plan that marks a behaviour
 `spec: breaks <file>:<line>` or `spec: contradicts <file>:<line>`: the park
 lists the mark under the question. a `spec: breaks` mark parks the run with
 no question too. a question or a mark you already answered in this run, with
-`--answer`, is not asked again. how it reads in a run is in
+`--answer`, is not asked again: a mark whose every cited line a mark of the
+same kind you answered cited is passed over, however it is worded around the
+cite, and a mark on a line you were not asked about still parks; a question
+asked again in the same words is passed over, and one asked in other words is
+settled when its SETTLED BY line quotes your answer in `decisions.md`, the
+entry `--answer` wrote in this run. a reworded question with no such line,
+or one that quotes any other entry, is asked again. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says
