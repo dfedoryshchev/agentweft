@@ -111,6 +111,30 @@ def test_a_lead_question_a_line_of_the_place_settles_is_its_decision(
     first = decision(folder(tmp_path)).strip().split(NL)
     assert first[0] == "- decided by the lead: " + ASK
     assert REC in first[1]
+    shown = settled.replace("\\", "/")
+    assert first[2] == "  settled by " + shown
+
+
+def test_a_settling_quote_inside_one_paragraph_settles(tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch)
+    (tmp_path / "TASK.md").write_text(NL.join([
+        "# task", "", "the list is cached", "for five minutes", ""]),
+        encoding="utf-8")
+    answering(monkeypatch, block(ASK, REC, 'TASK.md:3-4 "the list is cached'
+                                 ' for five minutes"'))
+    assert run(monkeypatch) == stops.EXIT_OK
+
+
+@pytest.mark.parametrize("settled", [
+    'TASK.md:1-3 "the list is cached"', 'TASK.md:2-3 "the list is cached"'])
+def test_a_settling_range_across_a_blank_line_settles_nothing(
+        tmp_path, monkeypatch, settled):
+    a_flow(tmp_path, monkeypatch)
+    (tmp_path / "TASK.md").write_text(NL.join([
+        "# task", "", "the list is cached", ""]), encoding="utf-8")
+    asked = answering(monkeypatch, block(ASK, REC, settled))
+    assert run(monkeypatch) == stops.EXIT_STOP
+    assert [s for s, _ in asked] == ["planner.md"]
 
 
 def test_a_lead_question_no_line_settles_parks(tmp_path, monkeypatch):
@@ -125,7 +149,8 @@ def test_a_lead_question_with_no_recommendation_parks(tmp_path, monkeypatch):
 @pytest.mark.parametrize("settled", [
     "", "none", "TASK.md:2", "TASK.md:2 the list is cached",
     'TASK.md:9 "the list is cached"', 'TASK.md:2 "the list is never cached"',
-    'TASK.md:2 "list"', 'TASK.md:0 "the list is cached"',
+    'TASK.md:2 "list"', 'TASK.md:1 "# task"',
+    'TASK.md:0 "the list is cached"',
     'nowhere.md:1 "the list is cached"', '../TASK.md:2 "the list is cached"',
     'decisions.md:1 "the list is cached"', "the spec says so",
     '"the list is cached"'])

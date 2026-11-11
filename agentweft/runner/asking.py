@@ -285,11 +285,12 @@ def lead_decides(run, step, out, where):
         if not line or lead.key(asked) in run.led:
             continue
         run.led[lead.key(asked)] = rec
+        quote = ruling.cite_of(ruling.FIRST_QUOTE.match(settled.strip()))[3]
         run.rule(*lead.recorded(step, step, where, asked, rec,
                                 "the recommendation of " + step
-                                + "'s own handoff, which " + line
-                                + " settles, and " + step
-                                + " is the flow's lead"),
+                                + "'s own handoff, which " + line + ' "'
+                                + quote + '"' + lead.SETTLES + step
+                                + lead.SETTLES_END),
                  by=rulings.LEAD)
         # the handoff was made before the ruling was on record, and the
         # next step reads the rulings off it

@@ -676,11 +676,14 @@ def mark_lines(mark):
 
 def settles(said, workdir, start=None):
     """-> the `<file>:<line>` that `said`, the words of a `SETTLED BY:` line,
-    cites when it quotes that line of the place as the run found it: the
-    line whole, or QUOTE_WORDS words of it or more, starting there and at
-    most running on into its paragraph (`runs_to`). "" for anything else:
-    no words, `none`, no quote, a line that is not there, a quote that is not
-    on it, and a file of the runner's own."""
+    cites when it quotes that line of the place as the run found it:
+    QUOTE_WORDS words of it or more, starting there and at most running on
+    into its paragraph (`runs_to`), the cited lines one paragraph. "" for
+    anything else: no words, `none`, no quote, a line that is not there, a
+    quote that is not on it, a quote of fewer words (a heading or a one-word
+    line, even whole), a range across a blank line, and a file of the
+    runner's own. it checks the line is there and says the quote, never that
+    the line answers the question."""
     from agentweft.guardrails.snapshot import is_runners
 
     m = FIRST_QUOTE.match((said or "").strip())
@@ -689,13 +692,12 @@ def settles(said, workdir, start=None):
     rel, first, last, quote, cite = cite_of(m)
     rel = path_of(rel)
     cite = rel + cite[cite.rindex(":"):]
-    if not quote or is_runners(rel) or cited(cite, (), workdir) is None:
+    if len(quote.split()) < QUOTE_WORDS or is_runners(rel) \
+            or cited(cite, (), workdir) is None:
         return ""
     lines, _ = lines_of(workdir, rel, first, last, start)
-    if lines is None or runs_to(lines, first, last, quote) is None:
-        return ""
-    if quote != flat(" ".join(lines[first - 1:last])) \
-            and len(quote.split()) < QUOTE_WORDS:
+    if lines is None or runs_to(lines, first, last, quote) is None \
+            or not all(line.strip() for line in lines[first - 1:last]):
         return ""
     return cite
 

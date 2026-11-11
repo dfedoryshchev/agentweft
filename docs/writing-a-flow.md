@@ -318,11 +318,13 @@ never left open. when the context settles it, a line under it says where,
 
     SETTLED BY: TASK.md:12 "the line, word for word"
 
-and when that line is in the place and says what the quote says (the whole
-line, or three words of it or more), the `RECOMMEND:` is the lead's
-decision: on record in `decisions.md` as the lead's, handed to every later
-step, and listed first under the handoff's one decision as decided by the
-lead, for you to overrule. it rules no spec line and no test: what the step
+and when that line is in the place and says what the quote says (three
+words of it or more, the cited lines one paragraph), the `RECOMMEND:` is the
+lead's decision: on record in `decisions.md` as the lead's, handed to every
+later step, and listed first under the handoff's one decision as decided by
+the lead, with the line it was settled by, for you to overrule. the runner
+checks the line is there and says the quote, not that it answers the
+question: that is what the settled-by line is shown for. it rules no spec line and no test: what the step
 acting on it changes is held as above. a question with no such line (a gap
 the spec and the request leave), with a SETTLED BY line that names no line
 of the place or misquotes it, or with no `RECOMMEND:`, parks the run at the

@@ -389,13 +389,16 @@ def _list(items, most, width, indent="- "):
 LED = "- decided by the lead: "
 LED_SO = ("  its decision: {rec} (on record in decisions.md; it rules no spec"
           " line or test, and is yours to overrule)")
+LED_BY = "  settled by "
 
 
 def _decision(found, most, width, stop=None, led=()):
     out = ["## the one decision"]
-    for question, rec in led:
+    for question, rec, by in led:
         out.append(_cut(LED + question, width))
         out.append(_cut(LED_SO.format(rec=rec), width))
+        if by:
+            out.append(_cut(LED_BY + by, width))
     if led and not stop and not found:
         return out
     if stop:
@@ -482,8 +485,9 @@ def view(head, found, why, not_done, product_gaps, stop=None, led=()):
     stopped, what to do about it) for a stop no step asked a question on,
     and is then the decision itself: a gate or a cap is what the person
     decides on, not a question a step left open. `led` is [(question,
-    decision)] the lead decided of its own handoff: each is listed first
-    under the one decision, before what waits on the person. the head is
+    decision, the line that settled it or "")] the lead decided of its own
+    handoff: each is listed first under the one decision, with the line that
+    settled it, before what waits on the person. the head is
     cut too, last, when cutting the lists is not enough: a long task line or
     stop reason is in full in the record below."""
     out = []

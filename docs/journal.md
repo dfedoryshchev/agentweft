@@ -644,7 +644,8 @@ answers, in order:
   `also open:`. a question of its own the lead decided, settled by a line of
   the place (`writing-a-flow.md`, section 8), comes first, before anything
   else: `- decided by the lead: <the question>`, its decision on the line
-  under it, yours to overrule. any other question the lead decided, and one
+  under it, yours to overrule, and `settled by <file>:<line> "<the quote>"`
+  under that, the line it was decided on. any other question the lead decided, and one
   an `--answer` settled, is under
   the rulings, not here, so a finished run needs nothing: the same question
   in any step's block or doubts, on the leg it was asked in or a later one,

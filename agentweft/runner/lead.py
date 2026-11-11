@@ -140,12 +140,14 @@ def decided_of(why):
 
 
 OWN = re.compile(r"^asked by (\S+) in (\S+):\n\nNEEDS: ")
+SETTLES, SETTLES_END = " settles, and ", " is the flow's lead"
+SETTLED_BY = re.compile(r", which (.+)" + SETTLES + r"\S+" + SETTLES_END + "$")
 
 
 def own(d):
-    """-> (the run it was asked in, the question, the decision) of a
-    decisions.md entry the lead wrote on a QUESTION of its own handoff;
-    None for any other entry."""
+    """-> (the run it was asked in, the question, the decision, the cite and
+    quote that settled it or "") of a decisions.md entry the lead wrote on a
+    QUESTION of its own handoff; None for any other entry."""
     decided = decided_of(d.why)
     m = OWN.match(d.why)
     if decided is None or not m or not d.decided.startswith(
@@ -153,7 +155,10 @@ def own(d):
             or not d.why.endswith(LEAD_BY + m.group(1) + LEAD_BY_END):
         return None
     asked = d.why[m.end():].rpartition(LEAD_DECIDED)[0]
-    return m.group(2), asked.split("\n")[0], read(decided)[0] or ""
+    option, why, _ = read(decided)
+    by = SETTLED_BY.search(why or "")
+    return (m.group(2), asked.split("\n")[0], option or "",
+            by.group(1) if by else "")
 
 
 NOW, LATER = "re-iterate now", "accept as later"
