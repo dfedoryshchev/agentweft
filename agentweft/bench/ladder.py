@@ -196,6 +196,7 @@ def _decision(c):
     if not c["order"] or c["order"][0] != "the one decision":
         return 0, "the one decision is not the first section"
     found = items(c["secs"]["the one decision"])
+    found = [f for f in found if not f[0].startswith(front.LED)] or found[:1]
     if len(found) != 1:
         return 0, str(len(found)) + " items under the one decision, not one"
     item, under = found[0]

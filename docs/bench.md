@@ -250,7 +250,8 @@ order:
    `--hidden` file names is also held to its verdict, `done` on a red tree
    is a miss, and the point is then named `outcome true`
 2. `the one decision first and right`: it is the first section and holds one
-   item; `none` only on a done run; a done run never shows open a question a
+   item, after the `decided by the lead` items it lists first; `none` only on
+   a done run; a done run never shows open a question a
    ruling on record decided (the ruling cites a line the question cites, or
    holds at least half of the question's words and at least three of them,
    words such as test, file and line not counted, the question read whole

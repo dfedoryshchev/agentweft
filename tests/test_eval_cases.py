@@ -23,6 +23,7 @@ CASES = [("fix-with-test", "clean-fix", "done"),
          ("fix-with-test", "question-priced-on-the-other", "done"),
          ("build-feature", "wrong-test", "done"),
          ("build-feature", "wrong-test-after-code", "done"),
+         ("build-feature", "never-cached", "stopped: spec conflict"),
          ("repo-audit", "two-files", "done")]
 
 
@@ -77,10 +78,12 @@ def test_without_the_red_first_gate_the_green_test_case_drops(monkeypatch):
 
 def test_without_the_conflict_check_the_conflict_case_drops(monkeypatch):
     monkeypatch.setattr(ruling, "conflict_of", lambda *a, **k: None)
-    r = scored("fix-with-test", live("fix-with-test", "spec-conflict"))
-    assert r["passed"] < r["checked"]
-    assert any(f.startswith("it ended stopped: spec conflict")
-               for f in failed(r))
+    for flow, name in (("fix-with-test", "spec-conflict"),
+                       ("build-feature", "never-cached")):
+        r = scored(flow, live(flow, name))
+        assert r["passed"] < r["checked"], name
+        assert any(f.startswith("it ended stopped: spec conflict")
+                   for f in failed(r)), name
 
 
 def test_without_reading_a_cited_refusal_the_declined_case_drops(monkeypatch):

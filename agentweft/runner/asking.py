@@ -1,6 +1,4 @@
 """a step that asks instead of going on: the lead decides, or the run parks."""
-import re
-
 from agentweft.guardrails import rulings
 
 from . import lead, ruling
@@ -104,88 +102,119 @@ def rides(step, out):
     return doubt
 
 
-TESTISH = re.compile(r"::|\btest", re.I)
+def answered_here(run):
+    """-> the questions this run, or a leg it carries on from, put to the
+    person and had answered with --answer, each as its lines."""
+    kept = getattr(run, "kept", None)
+    if kept is None:
+        return []
+    given = set(w.get("sha256") for w in kept.written
+                if w.get("by") == "answer")
+    out = []
+    for d in kept.read():
+        found = ruling.settled(d) if rulings.digest(d) in given else None
+        if found:
+            out.append(found[1].split("\n"))
+    return out
 
 
-def names_a_test_or_quotes(text):
-    """whether `text` quotes something or may name a test: a decision's own
-    words that name a test or quote a spec line let that test or line
-    change, so a step's own words never get there unasked."""
-    return bool(ruling.QUOTED.search(text) or TESTISH.search(text))
+def marked(run, step, out, answered=()):
+    """-> the `spec: breaks` and `spec: contradicts` marks of the lead's own
+    answer, as written, but those on lines a ruling the run holds already
+    lets change (`ruling.mark_ruled`) and those a question in `answered`
+    (`answered_here`) already put to the person; [] for any other step. each
+    sends the lead's questions to the person."""
+    if step != getattr(run, "lead", None):
+        return []
+    covered = getattr(run, "spec_line_covered", None)
+    return [m for m in ruling.broken(out.output)
+            if not any("- " + m in lines for lines in answered)
+            and (covered is None or not ruling.mark_ruled(
+                m, run.workdir, getattr(run, "start", None), covered))]
 
 
-def names_a_spec_or_test(text):
-    """whether `text` names a spec file or a test file, with or without a
-    line: a question about one is the person's, however it is worded."""
-    from agentweft.guardrails.snapshot import is_spec, is_test
-
-    for name in ruling.NAME.findall(text or ""):
-        rel = ruling.path_of(re.sub(r":\d+(?:-\d+)?$", "", name))
-        if is_spec(rel) or is_test(rel):
-            return True
-    return False
-
-
-def lead_s_own(asked, rec, cites):
-    """whether the lead's own QUESTION `asked` is the lead's to decide by
-    its RECOMMEND `rec`: there is one, it cites no line of the place
-    (`cites`), it neither quotes nor may name a test, and neither names a
-    spec or test file."""
-    return bool(rec) and not cites and not names_a_test_or_quotes(rec) \
-        and not names_a_spec_or_test(asked + " " + rec)
+def lead_s_own(run, rec, settled, marks):
+    """-> the line of the place that settles a QUESTION of the lead's own,
+    so the lead decides it by its RECOMMEND `rec`, or "": there is a
+    RECOMMEND, the plan marks no spec line (`marks`), and the question's
+    `SETTLED BY:` words `settled` quote a line of the place as the run
+    found it (`ruling.settles`)."""
+    if not rec or marks:
+        return ""
+    return ruling.settles(settled, run.workdir, getattr(run, "start", None))
 
 
-def lead_questions(run, step, out):
+def lead_questions(run, step, out, answered=()):
     """-> [(the question as a NEEDS line, the RECOMMEND or "", the place
-    lines it cites, its SIZE or "")] for each QUESTION the lead's own
-    handoff asks; [] for any other step."""
+    lines it cites, its SIZE or "", its SETTLED BY words or "")] for each
+    QUESTION the lead's own handoff asks, but one a question in `answered`
+    (`answered_here`) already put to the person; [] for any other step."""
     if step != getattr(run, "lead", None) or \
             out.block.get("state") not in (PRESENT, PARTIAL):
         return []
+    asked = set(lead.key(lines[0]) for lines in answered)
     found = []
     for q in out.block.get("questions") or []:
         text = ruling.flat(q.get("question") or "")
-        if not text or ruling.says_none(text):
+        if not text or ruling.says_none(text) \
+                or lead.key("NEEDS: " + text) in asked:
             continue
         found.append(("NEEDS: " + text, ruling.flat(q.get("recommend") or ""),
                       ruling.place_cites(text, run.workdir),
-                      ruling.flat(q.get("size") or "")))
+                      ruling.flat(q.get("size") or ""),
+                      ruling.flat(q.get("settled") or "")))
     return found
 
 
+UNASKED = "NEEDS: the plan marks a line of the spec broken and asks nothing" \
+    " about it"
+
+
 def lead_escalates(run, step, out):
-    """-> the first QUESTION of the lead's own handoff that goes to the
-    person, as a NEEDS question, or "": one that cites a line of the place,
-    recommends nothing, recommends in words that quote something or may
-    name a test (`names_a_test_or_quotes`), or names a spec or test file
-    (`names_a_spec_or_test`). the lead's own question has no one above it to
-    decide it."""
-    for asked, rec, cites, size in lead_questions(run, step, out):
-        if lead_s_own(asked, rec, cites):
+    """-> what of the lead's own answer goes to the person, as a NEEDS
+    question, or "": its first QUESTION that no line of the place settles
+    (`lead_s_own`), with the marks of a plan that marks a spec line listed
+    first under its CITES; with no such question, a `spec: breaks` mark
+    alone. a question or mark already put to the person in this run and
+    answered is not asked again. the lead's own question has no one above
+    it to decide it."""
+    answered = answered_here(run)
+    marks = marked(run, step, out, answered)
+    for asked, rec, cites, size, settled in lead_questions(run, step, out,
+                                                           answered):
+        if lead_s_own(run, rec, settled, marks):
             continue
         said = [asked]
-        if cites:
-            said += ["CITES:"] + ["- " + c for c in cites]
+        if marks or cites:
+            said += ["CITES:"] + ["- " + c for c in marks + cites]
         if rec:
             said.append("RECOMMEND: " + rec)
         if size:
             said.append("SIZE: " + size)
         return "\n".join(said)
+    breaks = [m for m in marks if ruling.BREAKS.match(m)]
+    if breaks:
+        return "\n".join([UNASKED, "CITES:"] + ["- " + m for m in breaks])
     return ""
 
 
 def lead_decides(run, step, out, where):
-    """each QUESTION of the lead's own handoff that does not go to the
-    person (`lead_escalates`) is the lead's to decide, and its RECOMMEND is
-    the decision: put on record as the lead's, so every later step gets it
-    and the handoff holds it settled."""
-    for asked, rec, cites, _ in lead_questions(run, step, out):
-        if not lead_s_own(asked, rec, cites) or lead.key(asked) in run.led:
+    """each QUESTION of the lead's own handoff that a line of the place
+    settles (`lead_s_own`) is the lead's to decide, and its RECOMMEND is the
+    decision: put on record as the lead's, so every later step gets it and
+    the handoff lists it first, for the person to overrule."""
+    answered = answered_here(run)
+    marks = marked(run, step, out, answered)
+    for asked, rec, _, _, settled in lead_questions(run, step, out,
+                                                    answered):
+        line = lead_s_own(run, rec, settled, marks)
+        if not line or lead.key(asked) in run.led:
             continue
         run.led[lead.key(asked)] = rec
         run.rule(*lead.recorded(step, step, where, asked, rec,
                                 "the recommendation of " + step
-                                + "'s own handoff, and " + step
+                                + "'s own handoff, which " + line
+                                + " settles, and " + step
                                 + " is the flow's lead"),
                  by=rulings.LEAD)
         # the handoff was made before the ruling was on record, and the

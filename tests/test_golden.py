@@ -233,6 +233,11 @@ MUL_NEEDS = ("NEEDS: should mul round a float product to an int?\n"
              "- round: round it to an int\n")
 MUL_DECIDED = ("DECIDED: keep: return the product as it is\n"
                "why: TASK.md:3 says a times b and nothing about rounding\n")
+MUL_SETTLED = ("\nHANDOFF\nDID:\n- planned mul in calc.py\n"
+               "QUESTION: should mul round a float product to an int?\n"
+               "RECOMMEND: keep: return the product as it is\n"
+               'SETTLED BY: TASK.md:3 "mul(a, b) returns a times b"\n'
+               "SIZE: none\nEND HANDOFF\n")
 ADD_SPEC = "# calc\n\ncalc only adds; it has no other operation\n"
 ADD_CONFLICT = ('CONFLICT: TASK.md:3 "calc only adds; it has no other'
                 ' operation"\nrequest: ' + FEATURE + "\n")
@@ -490,6 +495,14 @@ CASES = {
             "planner.md": [MUL_PLAN, MUL_DECIDED],
             "tester.md": [MUL_RED],
             "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "lead-settles"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "answers": {
+            "planner.md": [MUL_PLAN + MUL_SETTLED],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
             "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
             "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
     ("fix-with-test", "suite-red"): {

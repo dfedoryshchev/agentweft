@@ -166,6 +166,11 @@ sacrifice list, which only a run of the cli does.
 - `build-feature/wrong-test-after-code`: the worker writes the code, then
   says the test contradicts the spec; the tester's new test is red on the
   start commit though the code would pass it, and the run goes on, `done`
+- `build-feature/never-cached`: the request asks for a cache and a spec line
+  says the list is never cached; the planner marks the behaviour `spec:
+  contradicts` and answers the CONFLICT line, `stopped: spec conflict`. it
+  is the answer a planner owes that clash: one that names it only in a
+  question, with no mark, has its question go to the person as a gap
 - `repo-audit/two-files`: plan, two workers fanned out, merge, review, five
   calls, `done`
 - `weekly-digest/busy-week`: four files planned into the three lists, four

@@ -635,7 +635,11 @@ answers, in order:
   line under the `QUESTION:` or `NEEDS:`; a doubt from an older block that
   carries them after a pipe is still read); the
   first is in full, the rest one line each under
-  `also open:`. a question the lead decided or an `--answer` settled is under
+  `also open:`. a question of its own the lead decided, settled by a line of
+  the place (`writing-a-flow.md`, section 8), comes first, before anything
+  else: `- decided by the lead: <the question>`, its decision on the line
+  under it, yours to overrule. any other question the lead decided, and one
+  an `--answer` settled, is under
   the rulings, not here, so a finished run needs nothing: the same question
   in any step's block or doubts, on the leg it was asked in or a later one,
   is settled with it. a ruling given to another run settles nothing here, and

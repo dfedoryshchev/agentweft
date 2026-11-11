@@ -105,6 +105,18 @@ def test_a_stop_whose_cause_names_what_to_do_needs_the_recommendation():
             "decision"] == 1, cause
 
 
+def test_the_lead_s_own_decisions_listed_first_are_not_the_one_item():
+    text = a_stop_decision(stops.GATE)
+    led = [front.LED + "where does the section go?",
+           front.LED_SO.format(rec="before line 137")]
+    at = text.index("- " + stops.outcome(stops.GATE))
+    both = text[:at] + "\n".join(led * 2) + "\n" + text[at:]
+    assert got(ladder.score(both))["decision"] == 1
+    alone = text[:at] + "\n".join(led) + "\n\n## not done" + \
+        text.split("## not done", 1)[1]
+    assert got(ladder.score(alone))["decision"] == 1
+
+
 ORDER_RULED = ("- on record: 2026-01-05 21:40 planner.md decided for worker.md:"
                " Leave the order among invalid option values unspecified."
                " Keep the order `_check_options` already uses: `--scale`,"

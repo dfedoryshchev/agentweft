@@ -75,6 +75,7 @@ CITE = re.compile(r"""^\s*[`'"]?([^\s:`'"]+):(\d+)\b""")
 CONFLICT = re.compile(r"""^[`'"]?([^\s:`'"]+):(\d+)(?:-(\d+))?[`'"]?\s+"(.*?)"\s*"""
                       r"""(?:\|\s*(.*?))?\s*$""")
 CONTRADICTS = re.compile(r"^\s*(?:-\s*)?spec:\s*contradicts\b", re.I)
+BREAKS = re.compile(r"^\s*(?:-\s*)?spec:\s*breaks\b", re.I)
 CITED = re.compile(r"""^-\s*([^\s:`'"]+:\d+(?:-\d+)?)\b""")
 
 
@@ -650,6 +651,40 @@ def marks(output):
     """-> the lines of `output` that mark a behaviour `spec: contradicts`."""
     return [line.strip().lstrip("-").strip() for _, line in
             verbs.visible(output) if CONTRADICTS.match(line)]
+
+
+def broken(output):
+    """-> the lines of `output` that mark a behaviour `spec: breaks` or
+    `spec: contradicts`, as written."""
+    return [line.strip().lstrip("-").strip() for _, line in
+            verbs.visible(output)
+            if BREAKS.match(line) or CONTRADICTS.match(line)]
+
+
+def settles(said, workdir, start=None):
+    """-> the `<file>:<line>` that `said`, the words of a `SETTLED BY:` line,
+    cites when it quotes that line of the place as the run found it: the
+    line whole, or QUOTE_WORDS words of it or more, starting there and at
+    most running on into its paragraph (`runs_to`). "" for anything else:
+    no words, `none`, no quote, a line that is not there, a quote that is not
+    on it, and a file of the runner's own."""
+    from agentweft.guardrails.snapshot import is_runners
+
+    m = FIRST_QUOTE.match((said or "").strip())
+    if not m:
+        return ""
+    rel, first, last, quote, cite = cite_of(m)
+    rel = path_of(rel)
+    cite = rel + cite[cite.rindex(":"):]
+    if not quote or is_runners(rel) or cited(cite, (), workdir) is None:
+        return ""
+    lines, _ = lines_of(workdir, rel, first, last, start)
+    if lines is None or runs_to(lines, first, last, quote) is None:
+        return ""
+    if quote != flat(" ".join(lines[first - 1:last])) \
+            and len(quote.split()) < QUOTE_WORDS:
+        return ""
+    return cite
 
 
 MARKED = re.compile(r"""([^\s:`'"(),]*[./][^\s:`'"(),]*):(\d+)(?:-(\d+))?""")

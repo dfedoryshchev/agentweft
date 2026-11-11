@@ -1,0 +1,21 @@
+task: cache the list, so the page does not fetch it again within 5 minutes
+place: place
+provider:
+  provider: fake
+  replies:
+    planner.md:
+      - |
+        - behaviour: api.list_items() called twice within 5 minutes fetches once
+          file: api.py
+          spec: contradicts TASK.md:3
+
+        CONFLICT: TASK.md:3 "The list is never cached: every call fetches it again."
+        request: cache the list, so the page does not fetch it again within 5 minutes
+expect:
+  invariants: all
+  outcome: "stopped: spec conflict"
+  steps:
+    match: strict
+    path:
+      - planner.md conflict
+  calls: 1

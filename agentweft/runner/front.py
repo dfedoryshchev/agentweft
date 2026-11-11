@@ -3,7 +3,8 @@
 the record below it is long and in the runner's order; this is in the
 reader's. it opens with the outcome and one sentence and the suite, then the
 one decision the run leaves (on a stop, the question it waits on or the stop
-itself), then why (what the last working step did and what the steps
+itself; first, any question of its own the lead decided, for the person to
+overrule), then why (what the last working step did and what the steps
 assumed), what was not done (on a stop, a plain line on what is left; then
 what nobody verified and the doubts left as they are), and the spec lines an open question turns on. it is held to
 BUDGET tokens, about four characters to a token; a list that does not fit
@@ -385,8 +386,18 @@ def _list(items, most, width, indent="- "):
     return out
 
 
-def _decision(found, most, width, stop=None):
+LED = "- decided by the lead: "
+LED_SO = ("  its decision: {rec} (on record in decisions.md; it rules no spec"
+          " line or test, and is yours to overrule)")
+
+
+def _decision(found, most, width, stop=None, led=()):
     out = ["## the one decision"]
+    for question, rec in led:
+        out.append(_cut(LED + question, width))
+        out.append(_cut(LED_SO.format(rec=rec), width))
+    if led and not stop and not found:
+        return out
     if stop:
         out.append(_cut("- " + stop[0], width))
         out.append("  " + stop[1])
@@ -464,21 +475,23 @@ def gaps(found, spec_changed=(), lead=True):
     return out
 
 
-def view(head, found, why, not_done, product_gaps, stop=None):
+def view(head, found, why, not_done, product_gaps, stop=None, led=()):
     """-> the default view: `head` as it is, then the one decision, why,
     not done and product gaps, cut until it fits BUDGET. `why` and
     `not_done` are [(label or None, [items])]. `stop` is (how the run
     stopped, what to do about it) for a stop no step asked a question on,
     and is then the decision itself: a gate or a cap is what the person
-    decides on, not a question a step left open. the head is cut too, last,
-    when cutting the lists is not enough: a long task line or stop reason is
-    in full in the record below."""
+    decides on, not a question a step left open. `led` is [(question,
+    decision)] the lead decided of its own handoff: each is listed first
+    under the one decision, before what waits on the person. the head is
+    cut too, last, when cutting the lists is not enough: a long task line or
+    stop reason is in full in the record below."""
     out = []
     for most, width, cut in [step + (False,) for step in STEPS] + [
             step + (True,) for step in STEPS]:
         out = [_cut(l, width) for l in head] if cut else list(head)
         out.append("")
-        out.extend(_decision(found, most, width, stop))
+        out.extend(_decision(found, most, width, stop, led))
         out.append("")
         out.extend(_section("why", why, most, width))
         out.append("")

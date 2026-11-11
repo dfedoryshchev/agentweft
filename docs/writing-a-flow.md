@@ -314,12 +314,23 @@ decision is judged by what that step changes, not by the files it names. pick th
 build-feature leads with its planner, and fix-with-test, whose first step
 writes the test, has `lead: none`. the lead also decides a ticket the retro
 marks critical (section 10). a `QUESTION:` the lead's own handoff asks is
-never left open: with a `RECOMMEND:` and no line of the place cited, the
-recommendation is the lead's decision, on record in `decisions.md` as the
-lead's and handed to every later step; one that cites a line of the place,
-recommends nothing, recommends in words that quote something or may name a
-test, or names a spec or test file in the question or the recommendation,
-with or without a line, parks the run at the lead for you. how it reads in a run is in
+never left open. when the context settles it, a line under it says where,
+
+    SETTLED BY: TASK.md:12 "the line, word for word"
+
+and when that line is in the place and says what the quote says (the whole
+line, or three words of it or more), the `RECOMMEND:` is the lead's
+decision: on record in `decisions.md` as the lead's, handed to every later
+step, and listed first under the handoff's one decision as decided by the
+lead, for you to overrule. it rules no spec line and no test: what the step
+acting on it changes is held as above. a question with no such line (a gap
+the spec and the request leave), with a SETTLED BY line that names no line
+of the place or misquotes it, or with no `RECOMMEND:`, parks the run at the
+lead for you, and so does every question of a plan that marks a behaviour
+`spec: breaks <file>:<line>` or `spec: contradicts <file>:<line>`: the park
+lists the mark under the question. a `spec: breaks` mark parks the run with
+no question too. a question or a mark you already answered in this run, with
+`--answer`, is not asked again. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says

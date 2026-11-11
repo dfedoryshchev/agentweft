@@ -74,6 +74,18 @@ an answer still lets no spec line change. a cite of
 sits, not a spec line, so it is passed over and is never a line a ruling
 covers. a mark on any other line, or citing no spec line, still fails it.
 
+the lead's own `QUESTION:` is decided by its `RECOMMEND:` only on typed
+lines: a `SETTLED BY: <file>:<line> "<the line>"` under it whose quote is
+at that line of the place as the run found it, and no `spec: breaks` or
+`spec: contradicts` mark in the plan; anything else, the SETTLED BY line
+missing, empty or misquoted included, parks the run at the lead for a
+person (`writing-a-flow.md`, section 8). the floor: a planner that names a
+clash only in a question's words, marks nothing and gives a true SETTLED BY
+line is decided by the lead, and then the spec-files check and the
+start-tests replay hold what the build changes; if neither does, the
+handoff's first line under the one decision is that decision, for the
+person to overrule.
+
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that
 is there have to quote what that line says as the run found it, or start

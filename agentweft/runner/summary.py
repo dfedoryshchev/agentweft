@@ -2031,7 +2031,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                              if carry[0] == CARRY_ON else ""))
     view = front.view(out, found, why, not_done,
                       front.gaps(found, changes.get("spec_changed", []),
-                                 lead=not stop), stop=stop)
+                                 lead=not stop), stop=stop,
+                      led=lead_own_decisions(decided, every, run_id))
     out[:] = view
     out.append("")
     out.extend(front.pointer(run_id))
@@ -2297,6 +2298,14 @@ def settled(decided, passes, run_id):
         if found and found[0] in runs:
             out.append(front.asked_point(found[1]))
     return out
+
+
+def lead_own_decisions(decided, passes, run_id):
+    """-> [(the question, the decision)] the lead decided of its own
+    handoff in this run or a leg before it (`lead.own`)."""
+    runs = set([run_id] + [p["run"] for p in passes if p.get("run")])
+    return [found[1:] for found in map(lead.own, decided or [])
+            if found and found[0] in runs]
 
 
 def still_open(passes, stopped):

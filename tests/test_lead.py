@@ -464,6 +464,54 @@ def test_a_decision_acted_on_by_turning_a_start_test_red_stops_at_the_replay(
     assert gone in (folder / "question.md").read_text(encoding="utf-8")
 
 
+def own_decided(tmp_path, monkeypatch, rec, writes, more=""):
+    """-> (exit code, steps called, the run's folder): the planner asks its
+    own question, a line of the spec settles it so the lead decides `rec`,
+    and the worker writes `writes`."""
+    import test_spec_files as sf
+    place = sf.a_place(tmp_path / "repo")
+    lead_flow(tmp_path, more)
+    plan = NL.join(["- report.py: count", "", "HANDOFF", "DID:",
+                    "- planned count", "QUESTION: may the report keep its"
+                    " order?", "RECOMMEND: " + rec,
+                    'SETTLED BY: TASK.md:3 "' + sf.LINE + '"', "END HANDOFF",
+                    ""])
+    does = {"planner.md": ({}, plan),
+            "tester.md": ({"tests/test_count.py": sf.COUNT}, sf.TESTER_SAID),
+            "worker.md": (writes, sf.WORKER_SAID)}
+    code, called = sf.running(tmp_path, monkeypatch, place, does, False)
+    assert decisions.read(place)[0].decided.startswith(
+        "planner.md decided for planner.md: ")
+    return code, called, sf.folders()[-1]
+
+
+def test_the_lead_s_own_decision_acted_on_by_a_spec_rewrite_parks(
+        tmp_path, monkeypatch):
+    import test_spec_files as sf
+    code, called, folder = own_decided(
+        tmp_path, monkeypatch, "rewrite TASK.md:3 to say sorted",
+        {"report.py": sf.COUNTED,
+         "TASK.md": sf.SPEC.replace(sf.LINE, sf.REWRITTEN)},
+        "spec_files: additions" + NL)
+    assert called == ["planner.md", "tester.md", "worker.md"]
+    assert code == stops.EXIT_STOP
+    question = (folder / "question.md").read_text(encoding="utf-8")
+    assert "worker.md removed or rewrote a line of the spec" in question
+
+
+def test_the_lead_s_own_decision_acted_on_by_a_red_start_test_stops(
+        tmp_path, monkeypatch):
+    import test_spec_files as sf
+    gone = "tests/test_report.py::test_alphabetical"
+    code, called, folder = own_decided(
+        tmp_path, monkeypatch, "give the order given; " + gone + " gives way",
+        {"report.py": "def report(names):" + NL + "    return list(names)"
+         + NL, "tests/test_count.py": sf.COUNT})
+    assert called == ["planner.md", "tester.md", "worker.md"]
+    assert code == stops.exit_code(stops.CONFLICT)
+    assert gone in (folder / "question.md").read_text(encoding="utf-8")
+
+
 def test_a_resume_still_knows_which_rulings_the_lead_wrote(tmp_path):
     from agentweft.guardrails import rulings
     decisions.record(tmp_path, "by hand", "the person wrote it")

@@ -139,6 +139,23 @@ def decided_of(why):
     return rest.rpartition(LEAD_BY)[0].strip()
 
 
+OWN = re.compile(r"^asked by (\S+) in (\S+):\n\nNEEDS: ")
+
+
+def own(d):
+    """-> (the run it was asked in, the question, the decision) of a
+    decisions.md entry the lead wrote on a QUESTION of its own handoff;
+    None for any other entry."""
+    decided = decided_of(d.why)
+    m = OWN.match(d.why)
+    if decided is None or not m or not d.decided.startswith(
+            m.group(1) + " decided for " + m.group(1) + ": ") \
+            or not d.why.endswith(LEAD_BY + m.group(1) + LEAD_BY_END):
+        return None
+    asked = d.why[m.end():].rpartition(LEAD_DECIDED)[0]
+    return m.group(2), asked.split("\n")[0], read(decided)[0] or ""
+
+
 NOW, LATER = "re-iterate now", "accept as later"
 
 

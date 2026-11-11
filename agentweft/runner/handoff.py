@@ -56,7 +56,8 @@ KEYS = dict((head, key) for head, key in SECTIONS)
 KNOWN = set(KEYS.values())
 # an open question in the block and what it carries, each on a line of its
 # own; it never stops the run the way a NEEDS line does
-ASKING = {"QUESTION": "question", "RECOMMEND": "recommend", "SIZE": "size"}
+ASKING = {"QUESTION": "question", "RECOMMEND": "recommend", "SIZE": "size",
+          "SETTLED BY": "settled"}
 
 MISSING = "missing"
 PRESENT = "present"
@@ -142,8 +143,9 @@ def parse(text):
     choice, and so are an ADJACENT item's `fixed:` and `test:` lines and a
     BECAUSE item's `from:` and `led to:` lines; the
     older one-line form with `|` stays one line. `QUESTION:`
-    opens an open question, and the `RECOMMEND:` and `SIZE:` lines after it
-    are its own, under `questions`; `QUESTION: none` asks nothing.
+    opens an open question, and the `RECOMMEND:`, `SIZE:` and `SETTLED BY:`
+    lines after it are its own, under `questions`; `QUESTION: none` asks
+    nothing.
     """
     shown = verbs.visible(text)
     found, why = bounds(shown)
