@@ -289,7 +289,8 @@ class Entry(object):
     __slots__ = ("seq", "step", "attempts", "provider", "came_from", "file",
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
-                 "conformance", "past_end", "case", "held", "went_on")
+                 "conformance", "past_end", "case", "held", "went_on",
+                 "kind")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -325,6 +326,8 @@ class Entry(object):
         # the question a pass asked that the run went on past, its work done
         # with every gate green, for the person to answer
         self.went_on = None
+        # on a park only: what parked it, ASKED or HELD, for `won`
+        self.kind = None
 
 
 class Trail(object):
@@ -582,11 +585,17 @@ def shell_trap_recoveries(attempts):
     return sum(found) if found else None
 
 
-WON = ("caught", "stopped", "delivered", "proved", "decided", "none")
+WON = ("caught", "stopped", "delivered", "proved", "decided", "ruling",
+       "none")
+
+# what parked a run, as the runner knows it when it parks: a question it
+# sent to the person (ASKED), or a check of its own that held the step
+# (HELD: a fence, a gate's ruling, a preflight, the redo cap, a fallback)
+ASKED, HELD = "asked", "held"
 
 
 def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
-        decided=False):
+        decided=False, kind=None):
     """-> what a pass bought, one of WON, from its line and what the record
     says of it, never from what a gate or the model wrote.
 
@@ -594,7 +603,11 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     back. a gate that broke (it could not run) caught nothing. proved: the
     run's red proof was written by this pass. a stop the step made is
     stopped when the place is as the step found it, and delivered when the
-    step's work is in it. a pass that went on is delivered too when its work
+    step's work is in it. a park is that stop only by its `kind`: HELD is,
+    ASKED (a question sent to the person, the place as the step found it) is
+    ruling, the cost of asking, neither a stop that caught something nor
+    spend that bought nothing; a park of no kind, or one not known, bought
+    nothing. a pass that went on is delivered too when its work
     is in the place and a gate that ran, and did not break, passed it having
     done its job: a pass from a gate that could not (a replay with no start,
     say) checked nothing. decided: the lead's decision is on record. a stop
@@ -619,6 +632,10 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
         return "stopped"
     if proved:
         return "proved"
+    if cause == PARKED and kind == ASKED:
+        return "delivered" if changed else "ruling"
+    if cause == PARKED and kind != HELD:
+        return "none"
     if cause in (CONFLICT, REFUSED, DECLINED, PARKED):
         return "delivered" if changed else "stopped"
     if decided:
@@ -697,7 +714,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "ungated": entry.ungated,
            "outcome": outcome,
            "won": won(outcome, cause, gates, to, entry.proved, entry.changed,
-                      entry.decided),
+                      entry.decided, entry.kind),
            "checked": checked(entry.handoff, gates),
            "cause": cause,
            "why": why,

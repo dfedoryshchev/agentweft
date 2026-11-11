@@ -9,6 +9,8 @@ import sys
 import types
 from decimal import Decimal
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.runner import engine, handoff, spend, stops, summary, trace
 
@@ -70,7 +72,7 @@ def test_a_failed_gate_caught_and_a_conflict_stopped():
                to="worker.md") == "caught"
     assert won("conflict", cause="conflict") == "stopped"
     assert won("refused", cause="refused") == "stopped"
-    assert won("parked", cause="parked") == "stopped"
+    assert won("parked", cause="parked", kind=trace.HELD) == "stopped"
     assert won("parked", cause="budget") == "none"
     assert won("crashed", cause="exception") == "none"
 
@@ -90,9 +92,85 @@ def test_a_lead_whose_decision_is_on_record_decided():
 
 
 def test_a_stop_that_left_the_steps_work_in_the_tree_delivered():
-    assert won("parked", cause="parked", changed=True) == "delivered"
+    assert won("parked", cause="parked", changed=True,
+               kind=trace.HELD) == "delivered"
     assert won("conflict", cause="conflict", changed=False) == "stopped"
     assert won("parked", cause="budget", changed=True) == "none"
+
+
+QUESTIONS = (
+    "needs a ruling: should a newline in the separator be printed raw or"
+    " escaped?",
+    "needs a ruling: where should the new section go in the spec?",
+    "needs a ruling: when two files fail in different ways, which error is"
+    " reported?")
+
+
+def a_park(why, cause=stops.PARKED, **record):
+    entry = trace.Entry(1, "planner.md", [], Said(), None, None, False)
+    entry.changed = False
+    for k, v in record.items():
+        setattr(entry, k, v)
+    return trace.line(entry, "parked", why=why, cause=cause)
+
+
+def test_a_park_with_no_kind_on_record_won_nothing():
+    for why in QUESTIONS:
+        assert a_park(why)["won"] == "none"
+        assert a_park(why, changed=True)["won"] == "none"
+
+
+def test_a_park_at_a_question_sent_to_the_person_is_a_ruling():
+    for why in QUESTIONS:
+        assert a_park(why, kind=trace.ASKED)["won"] == "ruling"
+    assert a_park(QUESTIONS[0], kind=trace.ASKED,
+                  changed=True)["won"] == "delivered"
+
+
+def test_a_park_a_gate_made_still_stopped():
+    assert a_park("fenced", kind=trace.HELD)["won"] == "stopped"
+    assert a_park("fenced", kind=trace.HELD, changed=True)["won"] == \
+        "delivered"
+
+
+def test_an_unknown_stop_kind_never_reads_as_a_win():
+    for kind in ("", "conflict", "stopped", object()):
+        assert a_park(QUESTIONS[0], kind=kind)["won"] == "none"
+        assert a_park(QUESTIONS[0], kind=kind, changed=True)["won"] == "none"
+
+
+def test_a_conflict_stop_keeps_stopped_whatever_its_kind():
+    for kind in (None, trace.ASKED, trace.HELD, "whatever"):
+        assert a_park("spec conflict: TASK.md:3", cause=stops.CONFLICT,
+                      kind=kind)["won"] == "stopped"
+
+
+def test_a_park_s_kind_moves_no_key_of_the_line():
+    assert sorted(a_park(QUESTIONS[0], kind=trace.ASKED)) == \
+        sorted(a_park(QUESTIONS[0]))
+    assert "kind" not in a_park(QUESTIONS[0], kind=trace.ASKED)
+
+
+@pytest.mark.parametrize("spec,settled", [
+    ("allows TASK.md:2", None), ("breaks TASK.md:2", "SETTLES")])
+def test_the_lead_s_own_question_sent_to_the_person_is_a_ruling(
+        tmp_path, monkeypatch, spec, settled):
+    import test_lead_own_question as own
+
+    own.parks(tmp_path, monkeypatch, own.block(
+        own.ASK, own.REC, settled and own.SETTLES, spec=spec))
+    [parked] = [l for l in lines_of(own.folder(tmp_path))
+                if l["outcome"] == "parked"]
+    assert (parked["step"], parked["won"]) == ("planner.md", "ruling")
+
+
+def test_the_spend_on_a_ruling_is_summed_apart_from_the_waste():
+    passes = [a_pass_of("planner.md", 0.3, "ruling", 0),
+              a_pass_of("retro.md", 0.05, "none", 0)]
+    said = summary.bought(passes)
+    assert "- won ruling: 1 pass, 1.0s, $0.3000" in said
+    assert ("- USD on steps that won nothing and checked nothing: $0.0000 of"
+            " $0.3500") in said
 
 
 def test_the_retro_puts_money_and_seconds_against_what_each_step_won():
@@ -206,7 +284,7 @@ def test_a_step_that_changed_the_tree_and_then_parked_did_not_stop(
     assert asked["won"] == "delivered"
 
 
-def test_a_step_that_parked_with_the_tree_as_it_found_it_stopped(
+def test_a_step_that_asked_the_person_with_the_tree_as_it_found_it_is_a_ruling(
         tmp_path, monkeypatch):
     import test_lead
 
@@ -218,7 +296,7 @@ def test_a_step_that_parked_with_the_tree_as_it_found_it_stopped(
         {"tester.md": [("tests/test_mul.py", test_lead.TEST)]})
     assert code == stops.EXIT_STOP
     [asked] = [l for l in lines_of(folder) if l["outcome"] == "parked"]
-    assert (asked["step"], asked["won"]) == ("worker.md", "stopped")
+    assert (asked["step"], asked["won"]) == ("worker.md", "ruling")
 
 
 def test_a_lead_decision_that_held_is_decided_and_the_red_proof_names_who_proved(

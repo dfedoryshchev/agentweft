@@ -69,7 +69,8 @@ def scored(flow, fm, provider, task, trail, workdir):
     ended = {}
     state = {"out": EMPTY, "step": steps(flow)[0], "came_from": None}
 
-    def note(outcome, why=None, cause=None, to=None, output=None, case=None):
+    def note(outcome, why=None, cause=None, to=None, output=None, case=None,
+             kind=None):
         taken = run.taken()
         if cause:
             ended.update(cause=cause, why=why or "", at=state["step"])
@@ -89,6 +90,7 @@ def scored(flow, fm, provider, task, trail, workdir):
         entry.past_end = out.meta.pop("past_end", None) \
             if output is not None else None
         entry.case = case
+        entry.kind = kind
         kept.close(entry, outcome, why=why, to=to, cause=cause)
         return entry
 
@@ -182,7 +184,8 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
         fenced = run.fenced(step)
         if fenced:
             fenced = and_forged(fenced, forged)
-            note("parked", fenced, stops.PARKED, output=out.output)
+            note("parked", fenced, stops.PARKED, output=out.output,
+                 kind=trace.HELD)
             return out.output, run.budget, "fenced at " + step + ": " + fenced
         off = off_task(run, step, Path(trail) if trail is not None else None)
         if off:
@@ -220,7 +223,8 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             state["step"] = writer
             continue
         if wrong:
-            note("parked", wrong[1], stops.PARKED, output=out.output)
+            note("parked", wrong[1], stops.PARKED, output=out.output,
+                 kind=trace.HELD)
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + wrong[1].split("\n")[0])
         if honest:
@@ -244,7 +248,8 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
                 note("parked", off, stops.OFF_TASK, output=out.output)
             else:
                 worked_then_asked(run, route, step, out)
-                note("parked", question, stops.PARKED, output=out.output)
+                note("parked", question, stops.PARKED, output=out.output,
+                     kind=trace.ASKED)
             if head is not None and kept is not None:
                 run.attempts = theirs
                 lead_pass(kept, run, head, step, decided)
@@ -261,7 +266,8 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
         spec_asks = out.meta.pop("spec_ruling", None) or \
             out.meta.pop("test_ruling", None)
         if spec_asks:
-            note("parked", spec_asks[1], stops.PARKED, output=out.output)
+            note("parked", spec_asks[1], stops.PARKED, output=out.output,
+                 kind=trace.HELD)
             return (out.output, run.budget, "parked at " + step
                     + " for a ruling: " + spec_asks[1].split("\n")[0])
         held = out.meta.pop("conflict", None)
@@ -304,7 +310,8 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             return out.output, run.budget, blocked
         unproven = investigate.unrooted(step, out.output)
         if unproven:
-            note("parked", unproven, stops.PARKED, output=out.output)
+            note("parked", unproven, stops.PARKED, output=out.output,
+                 kind=trace.HELD)
             return out.output, run.budget, "parked at " + step + ": " + unproven
         missed = wouldpass.read(out.output) \
             if honest and out.verdict != "redo" else None
@@ -374,5 +381,5 @@ def held_by(note, run, out, step, held, output=None):
     if cause == stops.REFUSED:
         note("refused", why, cause, output=output)
         return out.output, run.budget, "refused at " + step + ": " + why
-    note("parked", why, cause, output=output)
+    note("parked", why, cause, output=output, kind=trace.HELD)
     return out.output, run.budget, "parked at " + step + ": " + why

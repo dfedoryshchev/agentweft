@@ -217,7 +217,7 @@ def go(leg):
     def stop(cause, why, outcome, entry=None, index=None, waiting=None,
              told=None, at=None, handed=None, question=None, replayed=False,
              checked=(), worked=None, stopped_for=None, asked=None,
-             rerun=False):
+             rerun=False, kind=None):
         """every way a run ends short goes out through here: the step's line
         and why.md say why, handoff.md says all of it with a "needs you"
         section when someone is waited for, and the journal line carries the
@@ -236,7 +236,8 @@ def go(leg):
         record keeps of a question the runner asks, so an answer to it is
         known by the record and not by the question's words. `rerun` is a
         stop at a step whose work is not done (it asked, and the lead's
-        answer was not held): carrying on runs it again.
+        answer was not held): carrying on runs it again. `kind` is what
+        parked it (`trace.ASKED` or `trace.HELD`), for the step's `won`.
 
         -> the exit code.
         """
@@ -249,6 +250,7 @@ def go(leg):
             entry.changed = before[entry.step] != snapshot.fingerprint(
                 run.workdir, own=state.RUNS)
         if entry is not None:
+            entry.kind = kind
             trail.close(entry, outcome, why=why, cause=cause)
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "why.md").write_text(
@@ -425,7 +427,8 @@ def go(leg):
             if held:
                 return stop(held[0], held[1], "parked",
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", handed=came_from or "the task")
+                            waiting="user", handed=came_from or "the task",
+                            kind=trace.HELD)
             cleared = None
             run.order.watch(step, writes)
             print("started " + step)
@@ -470,7 +473,7 @@ def go(leg):
                 print("fenced at " + step + ": " + fenced)
                 return stop(stops.PARKED, fenced, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user")
+                            waiting="user", kind=trace.HELD)
             lap.to("police")
             off = off_task(run, step, state.RUNS / run_id)
             entry.police = police_line(run, step)
@@ -550,7 +553,8 @@ def go(leg):
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=wrong[1],
-                            asked=wrong[2] if len(wrong) > 2 else None)
+                            asked=wrong[2] if len(wrong) > 2 else None,
+                            kind=trace.HELD)
 
             raw = out.output
             if honest and rides(step, out):
@@ -611,7 +615,8 @@ def go(leg):
                             + said[1].split(NEWLINE)[0][len("NEEDS: "):],
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user", question=question, worked=worked)
+                            waiting="user", question=question, worked=worked,
+                            kind=trace.ASKED)
 
             lap.to("checks")
             failed, blocked = checked if went_on else check_step(
@@ -628,7 +633,8 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=spec_asks[1],
                             stopped_for="removed or rewrote spec lines the"
-                            " run started with", asked=spec_asks[2])
+                            " run started with", asked=spec_asks[2],
+                            kind=trace.HELD)
             test_asks = out.meta.pop("test_ruling", None)
             if test_asks:
                 print(step + " changed a test the run started with")
@@ -636,7 +642,7 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=test_asks[1],
                             stopped_for="changed tests the run started with",
-                            asked=test_asks[2])
+                            asked=test_asks[2], kind=trace.HELD)
             held = out.meta.pop("conflict", None)
             if held:
                 print(step + " turned a test the run started with red")
@@ -699,7 +705,7 @@ def go(leg):
             if hot:
                 return stop(hot[0], hot[1], "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user")
+                            waiting="user", kind=trace.HELD)
             boundary_note(run, step, out.output, state.RUNS / run_id)
 
             if blocked:
@@ -715,7 +721,7 @@ def go(leg):
                 print(unproven)
                 return stop(stops.PARKED, unproven, "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting="user")
+                            waiting="user", kind=trace.HELD)
 
             why = "" if switched else investigate.wanted(fm, step,
                                                          block=out.block)
@@ -781,7 +787,7 @@ def go(leg):
                             why.rstrip(",") or "waiting for " + waiting,
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
-                            waiting=waiting, told=why)
+                            waiting=waiting, told=why, kind=trace.HELD)
             sent_back = out.verdict == "redo" and nxt
             already = kept = None
             if case_for and step == case_for["writer"]:

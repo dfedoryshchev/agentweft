@@ -371,11 +371,17 @@ and `continued`
   - `proved`: the run's red proof (`red-proof.json`) was written by this
     pass. a gate that passed is not enough, and a proof carried in with
     `--continue` names no pass.
-  - `stopped`: it ended the run on a conflict, a refusal or a park for a
-    ruling or a person (`cause` `conflict`, `refused`, `declined` or
-    `parked`), with the place as it found it; a park for the budget or an
-    outage, a crash and no answer bought nothing.
-  - `delivered`: the same stop, with its work in the place: the place's
+  - `stopped`: it ended the run on a conflict, a refusal, or a park one of
+    the runner's own checks made (a fence, a gate's ruling on a spec or test
+    edit, a preflight, the redo cap, a fallback), with the place as it found
+    it (`cause` `conflict`, `refused`, `declined` or `parked`); a park for
+    the budget or an outage, a crash and no answer bought nothing.
+  - `ruling`: it parked on a question the runner sent to the person (the
+    step's own, or the lead's own its context did not settle), with the
+    place as it found it: the cost of asking, neither a defect caught nor
+    waste. a park the line does not say the kind of (an older line) is
+    `none`, never a win.
+  - `delivered`: the same stop or park, with its work in the place: the place's
     content (in git, the commit and every file that differs from it) is not
     what it was before the step ran. a pass that went on (`ok`) is
     `delivered` too when its work is in the place and a gate that ran
@@ -386,7 +392,7 @@ and `continued`
     the pass that asked is `none`, it runs again.
   - `none`: anything else, an all-pass judge among them.
   the retro in `handoff.md` sums seconds and money by it. `won` keeps to
-  these six, since the sums are taken by them.
+  these seven, since the sums are taken by them.
 - `checked` is what the pass checked whatever it won: the VERIFIED lines of
   its HANDOFF block its transcript backed, by any kind, plus the gates that
   ran on its work (not `skipped`, not `broke`). a `none` that checked 9 is a

@@ -292,7 +292,7 @@ the provider never answered for, priced from its transcript or estimated;
 the provider's.
 
 each step's line also says what it won (`caught`, `stopped`, `delivered`,
-`proved`, `decided` or `none`, `journal.md`), read off the run's record (the
+`proved`, `decided`, `ruling` or `none`, `journal.md`), read off the run's record (the
 red proof, the place before and after the step, `decisions.md`, the gates'
 entries), never off what a gate or the model wrote. the retro in
 `handoff.md` puts every step's money and seconds against it, with the total
