@@ -22,14 +22,19 @@ cannot parse or an error of its own, is refused too: a check that crashes and
 lets the call through is no check.
 
 the same hook also stands on Write, Edit, MultiEdit and NotebookEdit for a
-step granted `write` or `edit`, for one thing only: each `--keep <path>`
-argument is a file no tool may write, or a folder, ending in `/`, inside which
-no tool may write a `.md` file, and the runner passes decisions.md and facts/
-in the place (any other file there is the project's own). a
-ruling there lets a change stand and a fact tells the next step its way, so
-a step writing either would be ruling on its own work
-(`guardrails/rulings.py` and `guardrails/factsguard.py` catch whatever gets
-past).
+step that has them in a place: one granted `write` or `edit`, or one granted
+nothing, which has every tool. it holds those tools to two things. each
+`--place <path>` argument is the place the step works in, and a path outside
+every one of them is refused, unless it is under the run's own `tmp/`, the
+folder beside the denials file, where a step may keep a scratch file. the
+fence compares the tree inside the place only, so a helper written beside it
+would go unseen. each `--keep <path>` argument is a file no tool may write,
+or a folder, ending in `/`, inside which no tool may write a `.md` file, and
+the runner passes decisions.md and facts/ in the place (any other file there
+is the project's own). a ruling there lets a change stand and a fact tells
+the next step its way, so a step writing either would be ruling on its own
+work (`guardrails/rulings.py` and `guardrails/factsguard.py` catch whatever
+gets past).
 
 the module runs as a script, by path, in a process of its own, so nothing at
 its top level may import from the package.
@@ -37,6 +42,7 @@ its top level may import from the package.
 import datetime
 import json
 import os
+import posixpath
 import re
 import shlex
 import sys
@@ -48,6 +54,8 @@ TOOLS = ("Bash", "PowerShell")
 # MultiEdit is an older name the cli still maps onto Edit
 EDITORS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 KEEP = "--keep"
+PLACE = "--place"
+SCRATCH = "tmp"
 
 SEPARATORS = {";", ";;", "&", "&&", "|", "||", "|&", "(", ")", "{", "}"}
 REDIRECTS = {">", ">>", ">|", "&>", "&>>", ">&"}
@@ -76,6 +84,10 @@ KEPT = ("refused: `{0}` is the run's record of rulings, and only the runner"
 KEPT_FACTS = ("refused: `{0}` is in the project's facts, and only the runner"
               " writes them. say what you found in your handoff block, on a"
               " DECIDED or DOUBTS line.")
+OUTSIDE = ("refused: `{0}` is outside the place this step works in, and"
+           " nothing outside it is the step's to change. write the project's"
+           " files inside the place{1}.")
+SCRATCH_SAID = ", and a scratch file under `{0}`"
 UNREAD = ("refused: the shell-write check could not read this call ({0}), so"
           " it is not let through. create or change files with the Write or"
           " Edit tool.")
@@ -203,6 +215,9 @@ def is_redirect(token):
 
 def writes_in(words, bodies, cwd):
     """-> the words of one simple command that write a file, or ""."""
+    def sink(target):
+        return is_sink(target, cwd)
+
     rest = []
     skip = False
     for j, t in enumerate(words):
@@ -222,7 +237,7 @@ def writes_in(words, bodies, cwd):
         target = words[j + 1]
         if t.endswith("&") and (target.isdigit() or target == "-"):
             continue
-        if not is_sink(target, cwd):
+        if not sink(target):
             return cut(words, j + 2)
     name, args = program(rest)
     plain = [bare(a) for a in args]
@@ -235,7 +250,7 @@ def writes_in(words, bodies, cwd):
                               for a in plain):
         return cut(words, 3)
     if name == "tee" or name == "tee-object":
-        if any(not is_sink(a, cwd) for a in loose):
+        if any(not sink(a) for a in loose):
             return cut(words, 3)
     if name in COPIERS:
         dest = None
@@ -247,11 +262,11 @@ def writes_in(words, bodies, cwd):
                 dest = a.split("=", 1)[1]
         if dest is None and len(loose) >= 2:
             dest = loose[-1]
-        if dest is not None and not is_sink(dest, cwd):
+        if dest is not None and not sink(dest):
             return cut(words, len(words))
     if name in PS_WRITERS or name == "truncate":
         return cut(words, 3)
-    if name == "dd" and any(a.startswith("of=") and not is_sink(a[3:], cwd)
+    if name == "dd" and any(a.startswith("of=") and not sink(a[3:])
                             for a in plain):
         return cut(words, 3)
     if any(NET_WRITE.search(w) for w in words):
@@ -283,7 +298,7 @@ def snippet(text, most=120):
     return text if len(text) <= most else text[:most - 3] + "..."
 
 
-def note(path, data, hit):
+def note(path, data, hit, more=None):
     if not path:
         return
     line = {"time": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -292,23 +307,72 @@ def note(path, data, hit):
             "command": snippet((data.get("tool_input") or {}).get("command")
                                or "", 500),
             "refused": hit}
+    line.update(more or {})
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(line, ensure_ascii=False) + "\n")
 
 
 def arguments(argv):
-    """-> (the denials file or None, [the files no tool may write])."""
-    denials, kept = None, []
+    """-> (the denials file or None, [the files no tool may write], [the
+    place's spellings])."""
+    denials, kept, places = None, [], []
     i = 0
     while i < len(argv):
-        if argv[i] == KEEP and i + 1 < len(argv):
-            kept.append(argv[i + 1])
+        if argv[i] in (KEEP, PLACE) and i + 1 < len(argv):
+            (kept if argv[i] == KEEP else places).append(argv[i + 1])
             i = i + 2
             continue
         if denials is None:
             denials = argv[i]
         i = i + 1
-    return denials, kept
+    return denials, kept, places
+
+
+DRIVE = re.compile(r"^[A-Za-z]:/")
+SHELL_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
+
+
+def outside(path, place, base=None):
+    """whether a path a tool writes is outside the place. a relative one is
+    read from `base`, the place when none is given; either separator splits
+    it. on a place with a drive letter, Git Bash's `/d/...` is read as that
+    drive, and case does not tell two paths apart."""
+    said = path.replace("\\", "/")
+    if not said.startswith("/") and not DRIVE.match(said):
+        said = str(base if base is not None else place).replace(
+            "\\", "/").rstrip("/") + "/" + said
+    whole = posixpath.normpath(said)
+    for root in dict.fromkeys([str(place), os.path.realpath(str(place))]):
+        top = posixpath.normpath(root.replace("\\", "/"))
+        got = whole
+        if DRIVE.match(top):
+            got = SHELL_DRIVE.sub(r"\1:", got)
+        if DRIVE.match(top) or DRIVE.match(got):
+            top, got = top.casefold(), got.casefold()
+        if got == top or got.startswith(top.rstrip("/") + "/"):
+            return False
+    return True
+
+
+def scratch_of(denials):
+    """-> the run's own tmp folder, beside its denials file, or None."""
+    if not denials:
+        return None
+    return os.path.join(os.path.dirname(os.path.abspath(denials)), SCRATCH)
+
+
+def fenced(data, places, scratch):
+    """-> the path an edit tool call writes outside every place and outside
+    the run's tmp, "" for one inside."""
+    given = data["tool_input"]
+    path = given.get("file_path") or given.get("notebook_path")
+    if not isinstance(path, str) or not path:
+        raise TypeError("no file path")
+    cwd = data.get("cwd") or places[0]
+    roots = list(places) + ([scratch] if scratch else [])
+    if all(outside(path, root, cwd) for root in roots):
+        return path
+    return ""
 
 
 def full(p, cwd):
@@ -344,19 +408,29 @@ def edited(data, kept):
 def decide(argv, raw):
     """-> (exit code, what to print on stderr) for one PreToolUse call. 0 lets
     it run, 2 refuses it."""
-    denials, kept = arguments(argv)
+    denials, kept, places = arguments(argv)
+    scratch = scratch_of(denials)
+    more = None
     try:
         data = json.loads(raw)
         tool = data.get("tool_name")
         if tool in EDITORS:
-            hit, under = edited(data, kept) if kept else ("", "")
-            said = KEPT_FACTS if under.endswith(("/", "\\")) else KEPT
+            hit = fenced(data, places, scratch) if places else ""
+            if hit:
+                more = {"path": hit, "outside": True}
+                tail = SCRATCH_SAID.format(scratch.replace("\\", "/")) \
+                    if scratch else ""
+                said = OUTSIDE.format(snippet(hit), tail)
+            else:
+                hit, under = edited(data, kept) if kept else ("", "")
+                said = (KEPT_FACTS if under.endswith(("/", "\\"))
+                        else KEPT).format(snippet(hit))
         elif tool in TOOLS:
             command = data["tool_input"]["command"]
             if not isinstance(command, str):
                 raise TypeError("the command is not text")
             hit = writes(command, data.get("cwd") or None)
-            said = REASON
+            said = REASON.format(snippet(hit))
         else:
             return 0, ""
     except Exception as e:
@@ -364,27 +438,46 @@ def decide(argv, raw):
     if not hit:
         return 0, ""
     try:
-        note(denials, data, hit)
+        note(denials, data, hit, more)
     except OSError:
         pass
-    return 2, said.format(snippet(hit))
+    return 2, said
 
 
-def denied(folder, sessions):
-    """-> how many calls the hook refused in these sessions, from the run
-    folder's denials file."""
+def refusals(folder, sessions):
+    """-> every line of the run folder's denials file from these sessions."""
     path = folder / FILE
     if not path.is_file():
-        return 0
-    n = 0
+        return []
+    out = []
     for raw in path.read_text(encoding="utf-8", errors="replace").split("\n"):
         try:
             data = json.loads(raw)
         except ValueError:
             continue
         if isinstance(data, dict) and data.get("session") in sessions:
-            n = n + 1
-    return n
+            out.append(data)
+    return out
+
+
+def denied(folder, sessions):
+    """-> how many calls the hook refused in these sessions, from the run
+    folder's denials file."""
+    return len(refusals(folder, sessions))
+
+
+def refused_outside(folder, sessions):
+    """-> the paths the hook refused in these sessions as outside the
+    place, in order."""
+    return [str(d.get("path")) for d in refusals(folder, sessions)
+            if d.get("outside") is True]
+
+
+def outside_said(paths):
+    """-> the step's why line for writes refused outside the place."""
+    more = len(paths) - 1
+    return ("the cli refused a write outside the place: " + paths[0]
+            + (" (and " + str(more) + " more)" if more else ""))
 
 
 # what a model says when it has just walked into one of the traps above

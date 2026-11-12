@@ -492,11 +492,11 @@ changed by the tests the stop ran". entries already there when the run started
 count: between runs the file is the person's, and a ruling written by hand
 is theirs.
 
-before it gets that far, a `claude` step granted `write` or `edit` has the
-shell-write hook on Write, Edit, MultiEdit and NotebookEdit too, refusing a
-call whose `file_path` (or `notebook_path`) is `decisions.md` in the place
-and letting every other path through; a step granted `shell` already has
-every shell write refused. the record is what holds when the hook does not
+before it gets that far, a `claude` step in a place granted `write` or
+`edit`, or granted nothing (which has every tool), has the shell-write hook
+on Write, Edit, MultiEdit and NotebookEdit too, refusing a call whose
+`file_path` (or `notebook_path`) is `decisions.md` in the place; a step
+granted `shell` already has every shell write refused. the record is what holds when the hook does not
 reach: a step on another provider, or a write the hook cannot see.
 
 ## the facts only the runner writes
@@ -814,11 +814,32 @@ fence declared is refused before the first step, because there is nothing to
 tell a file git can restore from one it cannot. the run's own `runs/` folder
 is left out when it sits inside the place.
 
-it is the boundary only. nothing intercepts a tool call; it compares before
-and after, so it catches mistakes and not a determined agent with a shell,
-which can write outside the place or into a skipped path. it is not a security
-boundary. the gates a step runs are commands in the same place, and what they
-touch shows up at the next step's check, and after the last step at none.
+it compares before and after, inside the place only, so a file written
+beside the place would never show in it. so, block or no block, a `claude`
+step in a place that has Write, Edit, MultiEdit or NotebookEdit (granted
+`write` or `edit`, or granted nothing) is handed the shell-write hook on them
+with the place as `--place` (as given and as it resolves), and the hook
+refuses a call whose
+path is outside the place: `../../x.py` read from where the step runs, or a
+whole path not under it (either separator; a drive letter in any case; Git
+Bash's `/d/...` is drive d). the one folder outside it a step may write is
+the run's own `runs/<id>/tmp/`, for a scratch file; the refusal names it:
+
+    refused: `../../fix.py` is outside the place this step works in, and nothing outside it is the step's to change. write the project's files inside the place, and a scratch file under `runs/<id>/tmp`.
+
+the cli shows the refusal to the model and the step carries on. the refusal
+is a line in `runs/<id>/tool-denials.jsonl` with the path, and the step's
+line in `steps.jsonl` says it on its `why`:
+
+    the cli refused a write outside the place: ../../fix.py
+
+a read outside the place is not refused, and the police `outside` tripwire
+still reads the call off the transcript, refused or not.
+
+neither is a security boundary: they do not see what a shell writes outside
+the place or into a skipped path, nor a write by a step on another provider. the gates a step runs are commands in the same place, and
+what they touch shows up at the next step's check, and after the last step at
+none.
 
 ## the sign-off
 
@@ -924,9 +945,10 @@ in `steps.jsonl`:
 - `outside`: a Write, Edit, MultiEdit or NotebookEdit of a file outside the
   place the step ran in: `../../x.py`, read from the place, or a whole path
   that is not under it (either separator; a drive letter in any case; on a
-  place with a drive letter, Git Bash's `/d/...` is drive d). a read
-  outside the place is not one, and a shell command that writes a file is
-  not read for it:
+  place with a drive letter, Git Bash's `/d/...` is drive d), the same
+  reading as the fence's hook, which refuses such a call; the tripwire
+  counts it all the same. a read outside the place is not one, and a shell command that
+  writes a file is not read for it:
 
       police (shadow): worker.md outside: Write "../../x.py" writes outside the place
 

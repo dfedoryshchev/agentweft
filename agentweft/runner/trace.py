@@ -568,6 +568,21 @@ def shell_writes_denied(p, attempts, folder):
     return shellwrite.denied(folder, seen)
 
 
+def fenced_why(attempts, folder, why):
+    """-> the step's why with the writes the hook refused outside the place
+    said on it, `why` itself when there were none."""
+    from agentweft.guardrails import shellwrite
+
+    seen = sessions(attempts)
+    if folder is None or not seen:
+        return why
+    paths = shellwrite.refused_outside(folder, seen)
+    if not paths:
+        return why
+    said = shellwrite.outside_said(paths)
+    return said if not why else why + "; " + said
+
+
 def shell_trap_recoveries(attempts):
     """-> the model's messages naming a shell trap it walked into, summed over
     the step's sessions; None when no transcript could be read. a session
@@ -717,7 +732,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
                       entry.decided, entry.kind),
            "checked": checked(entry.handoff, gates),
            "cause": cause,
-           "why": why,
+           "why": fenced_why(attempts, folder, why),
            "file": entry.file,
            "task_file": task_file,
            "tasks": tasks,

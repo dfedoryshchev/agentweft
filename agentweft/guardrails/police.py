@@ -26,6 +26,8 @@ handoff as a report (`read_told`), never a hit.
 import re
 import shlex
 
+from agentweft.guardrails import shellwrite
+
 KEY = "police"
 ON = "on"
 OFF = "off"
@@ -756,31 +758,13 @@ def read_lines(entries, place):
             for k in order]
 
 
-DRIVE = re.compile(r"^[A-Za-z]:/")
-SHELL_DRIVE = re.compile(r"^/([A-Za-z])(?=/|$)")
+DRIVE = shellwrite.DRIVE
 
 
 def outside(path, place):
-    """whether a path a tool wrote is outside the place. a relative one is
-    read from the place, where the step ran; either separator splits it. on
-    a place with a drive letter, Git Bash's `/d/...` is read as that drive."""
-    import posixpath
-    from pathlib import Path
-
-    said = path.replace("\\", "/")
-    if not said.startswith("/") and not DRIVE.match(said):
-        said = str(place).replace("\\", "/").rstrip("/") + "/" + said
-    full = posixpath.normpath(said)
-    for root in dict.fromkeys([str(place), str(Path(place).resolve())]):
-        base = posixpath.normpath(root.replace("\\", "/"))
-        got = full
-        if DRIVE.match(base):
-            got = SHELL_DRIVE.sub(r"\1:", got)
-        if DRIVE.match(base) or DRIVE.match(got):
-            base, got = base.casefold(), got.casefold()
-        if got == base or got.startswith(base.rstrip("/") + "/"):
-            return False
-    return True
+    """whether a path a tool wrote is outside the place, read the way the
+    hook that refuses such a write reads it (`shellwrite.outside`)."""
+    return shellwrite.outside(path, place)
 
 
 def outside_hits(found, place):

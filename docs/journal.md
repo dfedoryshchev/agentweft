@@ -360,7 +360,9 @@ and `continued`
   `escalated` on the lead's go; a line written before the cap was checked ahead of
   each step can say `over budget`. `cause` is the run's stop cause from the
   list above, null when it went on. `why` is the reason the run had in hand
-  when it stopped there, null when it went on.
+  when it stopped there, null when it went on; a write the cli refused
+  outside the place is said on it either way ("the cli refused a write
+  outside the place: <path>", after `; ` when there is a reason too).
 - `won` is what the pass bought, set by the runner from the line and the
   run's record, never from what a gate or the step wrote:
   - `caught`: a gate failed on its work, or its verdict sent the work back

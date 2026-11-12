@@ -359,14 +359,17 @@ session, the tool, the command and the part that writes. the step's line in
 `shell_trap_recoveries` the model's messages in its transcript that name one
 of the three traps above (`journal.md`).
 
-a `claude` step granted `write` or `edit` gets the same hook on Write, Edit,
-MultiEdit (an older name the cli still maps onto Edit) and NotebookEdit,
-added to the matcher, with `--keep <place>/decisions.md` among its `args`.
-for those tools it reads `file_path` (`notebook_path` for NotebookEdit) and
-refuses only a call on a kept file, so a step cannot write the ruling that
-lets its own change stand ("the rulings only the runner writes" in
-`guardrails.md`); every other path goes through. a step granted neither
-`shell` nor `write` nor `edit` gets no hook.
+a `claude` step in a place granted `write` or `edit`, or granted nothing
+(which has every tool), gets the same hook on Write, Edit, MultiEdit (an
+older name the cli still maps onto Edit) and NotebookEdit, added to the
+matcher, with `--keep <place>/decisions.md` and `--place <place>` among its
+`args`. for those tools it reads `file_path` (`notebook_path` for
+NotebookEdit) and refuses a call on a kept file, so a step cannot write the
+ruling that lets its own change stand ("the rulings only the runner writes"
+in `guardrails.md`), and a call outside the place and outside the run's own
+`runs/<run-id>/tmp/` ("the scope fence" in `guardrails.md`); every other path goes
+through. a step in no place, or granted tools that hold neither `shell` nor
+`write` nor `edit`, gets no hook.
 
 a `claude` step in a place with facts (`journal.md`, "what is known about a
 file") is also handed a PostToolUse hook on Read, Edit and Grep, beside the

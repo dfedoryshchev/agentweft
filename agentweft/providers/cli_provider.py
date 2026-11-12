@@ -69,11 +69,12 @@ EFFORT_VAR = "CLAUDE_CODE_EFFORT_LEVEL"
 CAP_VAR = "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
 
 
-def shell_hook(denials, kept=(), tools=None):
+def shell_hook(denials, kept=(), tools=None, places=()):
     """-> the `hooks` setting that hands every call to `tools` (Bash and
     PowerShell when not given) to the shell-write check before it runs
     (`guardrails/shellwrite.py`). each of `kept` is a file no tool may write,
-    or a folder, written ending in `/`, no tool may write inside.
+    or a folder, written ending in `/`, no tool may write inside. `places`
+    are the spellings of the place an edit tool may not write outside of.
 
     the exec form, `args`, spawns python with no shell between, so no quoting
     differs by platform. `-I` keeps the script's own folder off the import
@@ -87,6 +88,8 @@ def shell_hook(denials, kept=(), tools=None):
         folder = str(path).endswith(("/", "\\"))
         args = args + [shellwrite.KEEP, Path(path).as_posix()
                        + ("/" if folder else "")]
+    for place in places:
+        args = args + [shellwrite.PLACE, Path(place).as_posix()]
     return {"PreToolUse": [{"matcher": "|".join(tools or shellwrite.TOOLS),
                             "hooks": [{"type": "command",
                                        "command": Path(sys.executable)
@@ -789,16 +792,24 @@ class CliProvider(Provider):
         return [place / decisions.FILE,
                 (place / facts.FOLDER).as_posix() + "/"]
 
+    def places(self):
+        """-> the place as the step was handed it and as it resolves, each
+        once: a write in either spelling is inside."""
+        if self.where is None:
+            return []
+        return list(dict.fromkeys([Path(self.where).absolute(),
+                                   Path(self.where).resolve()]))
+
     def hooked(self):
         """-> the tools the PreToolUse hook stands on for this step: the
-        shell for a step granted one, the edit tools for a step granted
-        `write` or `edit` in a place."""
+        shell for a step granted one, the edit tools for a step in a place
+        that has them, granted `write` or `edit` or granted nothing."""
         from agentweft.guardrails import shellwrite
 
         out = list(shellwrite.TOOLS) if self.refuses_shell_writes() else []
-        if self.grant is not None and is_claude(self.command) \
-                and self.kept_files() \
-                and any(word in self.grant for word in ("write", "edit")):
+        if is_claude(self.command) and self.kept_files() and (
+                self.grant is None
+                or any(word in self.grant for word in ("write", "edit"))):
             out = out + list(shellwrite.EDITORS)
         return out
 
@@ -856,8 +867,10 @@ class CliProvider(Provider):
         if not tools_used:
             settings["hooks"] = no_tools()
         elif hooked:
-            kept = self.kept_files() if "Write" in hooked else []
-            settings["hooks"] = shell_hook(self.denials, kept, hooked)
+            edits = "Write" in hooked
+            settings["hooks"] = shell_hook(
+                self.denials, self.kept_files() if edits else [], hooked,
+                self.places() if edits else [])
         if tools_used and self.facts_read and self.facts_handed is not None:
             settings["hooks"] = dict(settings.get("hooks") or {},
                                      **facts_hook(self.facts_read,
