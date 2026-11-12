@@ -318,6 +318,9 @@ never left open. when the context settles it, a line under it says where,
 
     SETTLED BY: TASK.md:12 "the line, word for word"
 
+(the shared handoff template asks every step for this line under each
+`QUESTION:`, `none` when no line answers it; only the lead's is read, and
+the template tells the lead that a question no line settles stops the run),
 and when that line is in the place and says what the quote says (three
 words of it or more, where a heading marker, a list dash or a table bar is no
 word, the cited lines one paragraph), the `RECOMMEND:` is the

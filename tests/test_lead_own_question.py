@@ -428,6 +428,26 @@ def test_the_planner_is_taught_the_settling_line_and_the_broken_mark(
         " SETTLED BY line") == 1
 
 
+def test_the_handoff_question_carries_its_settling_line_and_what_it_costs(
+        monkeypatch):
+    from test_spec_addition import composed
+
+    said = composed(monkeypatch, "planner.md")
+    asked = said.find("QUESTION: <")
+    slot = said.find('SETTLED BY: <file>:<line> "<the line, word for word>",'
+                     ' or none', asked)
+    assert 0 <= asked < slot < said.find("RECOMMEND: <the answer you would"
+                                         " pick", asked)
+    assert ("for the step the flow names as its lead, a question no line"
+            " settles stops the run") in said
+    assert "for any other step it does not stop the work" in said
+    assert "none when you have none. it does not stop the work" not in said
+    assert ("take that reading as an ASSUMED item, its why naming that line."
+            " it is a QUESTION when two readings would change an output a"
+            " test checks") in said
+    assert "you are this flow's lead" in said
+
+
 def test_a_conflict_stops_before_the_lead_s_own_question_is_read(
         tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch)

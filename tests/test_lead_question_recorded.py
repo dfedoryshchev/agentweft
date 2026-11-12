@@ -37,10 +37,18 @@ LEDGERLITE = {80: "- Every other line must have exactly 4 fields with valid"
                   " values. The first line that does not is an",
               81: "  error naming it: `error: line <n>: <reason>` (the reason"
                   " text is free)."}
+INVERT = "- `--invert`: print the well-formed requests that do NOT meet" \
+    " the conditions instead (malformed"
+INVERTED = "  lines are still never printed)."
+FILTERS = dict(LOGSIFT)
+FILTERS.update({134: INVERT, 135: INVERTED, 136: ""})
+SECTIONS = {5: LOGSIFT[5], 6: LOGSIFT[6], 138: INVERT, 139: INVERTED,
+            140: "", 141: "## 6. Module layout (fixed)"}
 PLACES = {"top-section": LOGSIFT, "time-range": LOGSIFT,
           "delimiter-newline": GRADEBOOK, "delimiter-escape": GRADEBOOK,
           "drop-lowest": GRADEBOOK, "error-order": LEDGERLITE,
-          "cache-clear": {}}
+          "cache-clear": {}, "invert-window": FILTERS,
+          "top-placement": SECTIONS}
 QUESTION = {
     "top-section": "Where should the `top` section go in TASK.md",
     "delimiter-newline": "An LF or CR in `--delimiter` printed raw",
@@ -48,7 +56,9 @@ QUESTION = {
     "time-range": "Must T be a real date and time",
     "drop-lowest": "How should `--drop-lowest` combine with",
     "delimiter-escape": "What should `error: invalid --delimiter: <C>` print",
-    "cache-clear": "Should createItem or moveItem on the same client"}
+    "cache-clear": "Should createItem or moveItem on the same client",
+    "invert-window": "With `--invert` and an `--until` at or before",
+    "top-placement": "Where should the `top` section go in TASK.md?"}
 SETTLED = 'SETTLED BY: TASK.md:5-6 "The last section fixes the module layout."'
 CR_LF = ("for LF stderr is no longer exactly one line)" + NL
          + "  file: gradebook/cli.py" + NL + "  spec: adds to TASK.md:23")
@@ -125,3 +135,56 @@ def test_the_newline_question_on_a_line_marked_broken_goes_to_the_person(
         assert said.startswith("NEEDS: " + QUESTION["delimiter-newline"])
         assert "- spec: breaks TASK.md:11" in said.split(NL), said
         assert ruled == []
+
+
+LAST = 'SETTLED BY: TASK.md:5 "The last section fixes the module layout"'
+NEGATED = ('SETTLED BY: TASK.md:134 "print the well-formed requests that do'
+           ' NOT meet the conditions"')
+OFFSET = ("QUESTION: Should a T offset beyond", "SIZE: a few lines in the T"
+          " parser plus tests")
+
+
+def in_the_new_shape(text):
+    """-> the recorded invert-window answer with each question a line of the
+    place answers carrying that line, the quote the planner itself put in
+    the question, the way the handoff now asks for it."""
+    text = typed(text, "SIZE: one test and one line in filters.py",
+                 NEGATED + NL + "SIZE: one test and one line in filters.py")
+    return typed(text, "SIZE: a TASK.md edit only",
+                 LAST + NL + "SIZE: a TASK.md edit only")
+
+
+def test_the_invert_questions_its_lines_settle_are_the_lead_s_and_the_gap_parks(
+        tmp_path):
+    said, ruled = routed(tmp_path, "invert-window",
+                         in_the_new_shape(recorded("invert-window")))
+    assert said.startswith("NEEDS: " + OFFSET[0][len("QUESTION: "):]), said
+    assert ruled == []
+
+
+def test_the_invert_gap_taken_as_assumed_leaves_two_lead_decisions(tmp_path):
+    text = in_the_new_shape(recorded("invert-window"))
+    start, end = text.index(OFFSET[0]), text.index(OFFSET[1])
+    text = text[:start] + text[end + len(OFFSET[1]) + 1:]
+    text = typed(text, "  if wrong: one test changes", NL.join([
+        "  if wrong: one test changes",
+        "- a T offset is held to 00-23 hours and 00-59 minutes",
+        "  why: TASK.md:48 holds a log offset to them, the nearest like line",
+        "  if wrong: the offset tests flip"]))
+    said, ruled = routed(tmp_path, "invert-window", text)
+    assert said == ""
+    assert [w.split(", which ")[1].split(" settles")[0] for _, w, _ in ruled] \
+        == [NEGATED[len("SETTLED BY: "):], LAST[len("SETTLED BY: "):]]
+    assert all(by == rulings.LEAD for _, _, by in ruled)
+
+
+def test_the_placement_question_its_line_settles_is_the_lead_s(tmp_path):
+    rec = "RECOMMEND: Insert a new `## 5a. top` section between lines 139"
+    text = recorded("top-placement")
+    line = next(l for l in text.split(NL) if l.startswith(rec))
+    said, ruled = routed(tmp_path, "top-placement",
+                         typed(text, line, line + NL + LAST))
+    assert said == ""
+    [(decided, why, by)] = ruled
+    assert decided.startswith(LEAD + " decided for " + LEAD + ": Insert a new")
+    assert "TASK.md:5" in why and by == rulings.LEAD

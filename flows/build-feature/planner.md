@@ -36,21 +36,18 @@ whenever the option is not used.
 only a behaviour marked `contradicts` may end the plan: answer the
 `CONFLICT:` line from the instructions first.
 
-anything the spec leaves open, say so on its own line rather than picking an
-answer. the step after you writes the tests from this list, so a behaviour
-missing here is a behaviour nobody tests.
+anything the spec leaves open, say so on its own line, and carry it to the
+handoff as an ASSUMED item or a QUESTION by the rule there. the step after
+you writes the tests from this list, so a behaviour missing here is a
+behaviour nobody tests.
 
-your own QUESTION is yours to decide when a line of the place already
-answers it: give that line under the question, on a line of its own,
-
-    SETTLED BY: <file>:<line> "<the line, word for word>"
-
+you are this flow's lead, so your own QUESTION is yours to decide when a
+line of the place already answers it: its SETTLED BY line gives that line,
 and your RECOMMEND is the decision, on record for the person to overrule. a
-question no line answers, a gap the spec and the request leave, goes to the
-person: leave SETTLED BY out. so does every question of a plan that marks a
-line `breaks` or `contradicts`. a question the person already answered in
-this run is settled by that answer: give its line in decisions.md as the
-SETTLED BY line.
+question no line answers stops the run and goes to the person, and so does
+every question of a plan that marks a line `breaks` or `contradicts`. a
+question the person already answered in this run is settled by that answer:
+give its line in decisions.md as the SETTLED BY line.
 
 a path of a file you plan in that its tests already leave unchecked, seen in
 the code or the tests, may be named for that step on its own line,

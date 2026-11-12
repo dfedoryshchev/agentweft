@@ -774,9 +774,9 @@ def test_decided_is_asked_for_only_for_a_ruling_and_a_choice_is_assumed():
     assert "DECIDED <the ruling>" not in shared
     assert "your own `DECIDED:` line" not in shared
     assert ("DECIDED <a ruling you were handed, by its own words>" in shared)
-    assert ("DECIDED only for a ruling you were handed, or, as the flow's lead,"
-            " the `DECIDED:` line you answered its question with, named by its"
-            " own words: a choice of your own is an ASSUMED item, and a reason"
+    assert ("DECIDED only for a ruling you were handed, or, as the flow's lead"
+            " asked by another step, the `DECIDED:` line you answered that step"
+            " with, named by its own words: a choice of your own is an ASSUMED item, and a reason"
             " that led you to leave a thing alone or out led to `nothing`"
             ) in shared
 
