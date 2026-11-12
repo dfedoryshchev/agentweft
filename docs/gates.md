@@ -796,7 +796,9 @@ in `gates.md`:
     reads a name or key the run added fails there too (see what no program
     here closes, below), and a module that no longer imports on the old
     product has no test result there, so each changed test in it is asked
-    about;
+    about. that is a floor too: an honest rewrite that widens its module's
+    import to a name the run added is asked about, since reading the import
+    error as red would pass a loosened test beside it in the module;
   - the test's code as the run found it shares a word with the quoted lines
     as the run found them: its names and string constants, and those of the
     code at the top of its file it reads (a constant, a helper, a fixture),
@@ -833,8 +835,8 @@ in `gates.md`:
   quoting a ruled line for a test that pins something else covers nothing.
   a test changed with no such line, or quoting a line no ruling covers,
   still fails, and on its last go parks on this check's question, which an
-  `override:` to it answers for every test it names. what no program here
-  closes: a claimed test whose found code shares a word with a ruled line
+  `override:` to it answers for every test it names. the floor, what no
+  program here closes: a claimed test whose found code shares a word with a ruled line
   the run rewrote, that the product now breaks (the ruled change, or a
   behaviour no ruling covers that the step broke too), is covered once the
   step rewrites it to anything the old product fails; reading a name or a
