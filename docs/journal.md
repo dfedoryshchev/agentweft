@@ -1114,7 +1114,8 @@ and ends with the command that answers it:
 
     python run.py fix-with-test --resume <run-id> --answer "numbers"
 
-`--answer-file <path>` takes a longer answer from a file. the resume runs the
+`--answer-file <path>` takes a longer answer from a file, and an answer that
+starts `yours:` hands the call back (`writing-a-flow.md`, section 8). the resume runs the
 step that asked again, AT that step and not after it, on what it was handed
 before, with the question and the answer at the very end of its prompt. the
 question, the answer and who gave it go into `decisions.md` in the place the

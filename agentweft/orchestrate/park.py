@@ -113,6 +113,7 @@ def left_of(lines):
 
 
 ANSWER =' --answer "<your ruling>"'
+YOURS = ' --answer "yours: <any words>"'
 
 
 def ruling(step, who, done, left, command, question, worked=None,
@@ -141,10 +142,14 @@ def ruling(step, who, done, left, command, question, worked=None,
     ran_and_left(out, done, left)
     out.append(step + " runs again with your answer at the end of its prompt, and")
     out.append("the question and the answer go into decisions.md. a longer answer")
-    out.append("can come from a file: --answer-file <path>.")
+    out.append("can come from a file: --answer-file <path>. an answer that")
+    out.append("starts yours: hands the call back: the step makes it, and the")
+    out.append("flow's lead decides each later question of its own by its")
+    out.append("recommendation.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command + ANSWER)
+    out.append("  " + command + YOURS)
     return out
 
 

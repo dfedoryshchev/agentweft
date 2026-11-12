@@ -1240,6 +1240,18 @@ def kind_of(answer):
     return None
 
 
+YOURS = "yours"
+
+
+def handed_back(answer):
+    """whether the answer starts with the word YOURS and a colon: the person
+    hands the call back, and the flow's lead decides each later question of
+    its own by its recommendation. never one of ANSWERS: a conflict's answer
+    says which side holds."""
+    m = re.match(r"\s*(\w+)\s*:", answer or "")
+    return bool(m) and m.group(1).lower() == YOURS
+
+
 def authorised(question):
     """-> the spec lines a conflict's question cites, the ones an override
     may change."""
@@ -1916,10 +1928,32 @@ def why(step, run_id, question, answer, by, kind=None, files=()):
             + ANSWERED_BY + by + ANSWERED_END)
 
 
+HANDS_BACK = ("this answer hands the call back: make it yourself, and say which"
+              " call you made. every later QUESTION of the flow's lead in this"
+              " run that has a RECOMMEND is decided by it, settled by this"
+              " answer and on record for the person to overrule, so ask it as"
+              " before, with its RECOMMEND. a mark on a spec line the person"
+              " was not asked about still goes to the person.")
+
+
+def took(question):
+    """-> the sentence naming the `spec: breaks` and `spec: contradicts`
+    marks a question lists, which its answer answers, or "" for none."""
+    found = [line.strip()[1:].strip() for line in (question or "").split("\n")
+             if line.strip().startswith("-") and (
+                 BREAKS.match(line) or CONTRADICTS.match(line))]
+    if not found:
+        return ""
+    return ("the marks it lists are answered by it: " + "; ".join(found)
+            + ". a plan that marks those lines again still settles its other"
+            " questions; a mark on any other line still goes to the person.")
+
+
 def told(question, answer, kind=None, files=()):
     """-> the end of the step's prompt on the run that carries on: last, so
     the answer is the final thing the step reads."""
-    said = scope(question, kind, files)
+    said = [s for s in (scope(question, kind, files), took(question),
+                        HANDS_BACK if handed_back(answer) else "") if s]
     return ("\n\nRULING. when this step last ran it asked:\n\n" + question
             + "\n\nthe answer, which decides it:\n\n" + answer
-            + ("\n\n" + said if said else "") + "\n")
+            + "".join("\n\n" + s for s in said) + "\n")

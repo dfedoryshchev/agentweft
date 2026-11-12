@@ -352,7 +352,12 @@ needs three words. the runner checks the cited line is from your answer, not
 that it answers the new question: a new question quoting your answer is
 decided by the lead, and the handoff shows the line it was settled by. a
 reworded question with no such line, or one that quotes any other entry, is
-asked again. how it reads in a run is in
+asked again. an answer that starts `yours:` hands the call back: the step
+that asked makes it, and every later question of the lead's own in the run
+that has a `RECOMMEND:` is decided by it, with the line of `decisions.md`
+your answer starts on shown as what settled it. a mark on a line you were
+not asked about still parks, and any other answer decides only the question
+it was given to. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says

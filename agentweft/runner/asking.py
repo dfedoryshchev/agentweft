@@ -210,19 +210,61 @@ def answer_settles(run, said):
     return decisions.FILE + cite[cite.rindex(":"):]
 
 
-def lead_s_own(run, rec, settled, marks):
-    """-> the line that settles a QUESTION of the lead's own, so the lead
-    decides it by its RECOMMEND `rec`, or "": there is a RECOMMEND, the plan
-    marks no spec line (`marks`), and the question's `SETTLED BY:` words
-    `settled` quote a line of the place as the run found it
-    (`ruling.settles`), the person's answer in this run
+def handed_back(run):
+    """-> (`decisions.md:<line>`, its words) of the first line of the first
+    answer --answer wrote in this run, or a leg it carries on from, that
+    hands the call back (`ruling.handed_back`); None when there is none."""
+    from pathlib import Path
+
+    from agentweft.orchestrate import decisions
+
+    given = given_answers(run)
+    if not given:
+        return None
+    try:
+        text = (Path(run.workdir) / decisions.FILE).read_text(
+            encoding="utf-8")
+    except OSError:
+        return None
+    lines = text.split("\n")
+    heads = [i for i, line in enumerate(lines, 1)
+             if decisions.ENTRY.match(line)]
+    for begin, end in zip(heads, [h - 1 for h in heads[1:]] + [len(lines)]):
+        entry = decisions.parse("\n".join(lines[begin - 1:end]))
+        if len(entry) != 1 or rulings.digest(entry[0]) not in given \
+                or not ruling.handed_back(ruling.answered(entry[0])):
+            continue
+        part = ruling.answer_part(lines[begin - 1:end])
+        if part is None:
+            continue
+        n = begin + part[0] - 1
+        return decisions.FILE + ":" + str(n), ruling.flat(lines[n - 1])
+    return None
+
+
+def lead_settled(run, rec, settled, marks):
+    """-> (the line that settles a QUESTION of the lead's own, so the lead
+    decides it by its RECOMMEND `rec`, the words it is settled by), or ("",
+    ""): there is a RECOMMEND, the plan marks no spec line (`marks`), and
+    the question's `SETTLED BY:` words `settled` quote a line of the place
+    as the run found it (`ruling.settles`), the person's answer in this run
     (`answer_settles`) or the request the run was handed
-    (`ruling.request_settles`)."""
+    (`ruling.request_settles`); else the person handed the call back in
+    this run (`handed_back`), and that answer settles it."""
     if not rec or marks:
-        return ""
-    return ruling.settles(settled, run.workdir, getattr(run, "start", None)) \
+        return "", ""
+    line = ruling.settles(settled, run.workdir, getattr(run, "start", None)) \
         or answer_settles(run, settled) \
         or ruling.request_settles(settled, getattr(run, "task_text", None))
+    if line:
+        return line, ruling.settling_quote(settled)
+    return handed_back(run) or ("", "")
+
+
+def lead_s_own(run, rec, settled, marks):
+    """-> the line that settles a QUESTION of the lead's own
+    (`lead_settled`), or ""."""
+    return lead_settled(run, rec, settled, marks)[0]
 
 
 def lead_questions(run, step, out, answered=()):
@@ -288,11 +330,10 @@ def lead_decides(run, step, out, where):
     marks = marked(run, step, out, answered)
     for asked, rec, _, _, settled in lead_questions(run, step, out,
                                                     answered):
-        line = lead_s_own(run, rec, settled, marks)
+        line, quote = lead_settled(run, rec, settled, marks)
         if not line or lead.key(asked) in run.led:
             continue
         run.led[lead.key(asked)] = rec
-        quote = ruling.settling_quote(settled)
         run.rule(*lead.recorded(step, step, where, asked, rec,
                                 "the recommendation of " + step
                                 + "'s own handoff, which " + line + ' "'

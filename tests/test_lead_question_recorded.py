@@ -8,6 +8,11 @@ is a question the context leaves open and goes to the person. the same
 answer with the typed line the planner is now taught is decided by the lead
 when the line it cites settles it, and goes to the person, with the marked
 line beside the question, when the plan marks a spec line broken.
+
+the files named in LEGS are the planner's answer on the leg that carried a
+park on after the person answered it: a new question, and for the newline
+park the answered mark kept. as answered in the bench's words the new
+question still goes to the person; answered `yours:` it is the lead's.
 """
 import sys
 import types
@@ -17,7 +22,7 @@ import pytest
 
 sys.path.insert(0, ".")
 from agentweft.guardrails import rulings
-from agentweft.runner import asking
+from agentweft.runner import asking, ruling
 from agentweft.runner.handoff import Handoff
 
 NL = chr(10)
@@ -251,4 +256,94 @@ def test_a_request_cite_on_a_run_handed_no_request_settles_nothing(tmp_path):
     said, ruled = routed(tmp_path, "depth-key",
                          target_settled_by('the request "' + KEY_RULE + '"'))
     assert said.startswith("NEEDS: Is a target that does not start with")
+    assert ruled == []
+
+
+CANNED = ("No one is available to answer questions during this run. Make the"
+          " call yourself, work in place on the current branch, say which"
+          " calls you made, and continue.")
+NEWLINE_ASKED = NL.join([
+    "NEEDS: an LF or CR given as `--delimiter` would be echoed into `error:"
+    " invalid --delimiter: <C>`, which breaks the one-line stderr rule at"
+    " TASK.md:11; should it be echoed raw, escaped, or dropped?",
+    "CITES:", "- spec: breaks TASK.md:11", "- TASK.md:11",
+    "RECOMMEND: escape only CR and LF as `\\r` and `\\n` and echo everything"
+    " else as given, which keeps TASK.md:11 true",
+    "SIZE: one line in gradebook/cli.py plus one new TASK.md line"])
+INVERT_ASKED = NL.join([
+    "NEEDS: With `--invert` and an `--until` at or before `--since`, should"
+    " filter print every well-formed line (the inverse of a window that"
+    " matches nothing) or nothing at all? TASK.md:134 \"print the well-formed"
+    " requests that do NOT meet the conditions\" points to every line",
+    "CITES:", "- TASK.md:134",
+    "RECOMMEND: print every well-formed line. `--invert` stays a plain"
+    " negation and the window simply matches no request",
+    "SIZE: one test and one line in filters.py"])
+ORDERED = dict(GRADEBOOK)
+ORDERED[23] = "- Errors are found in this order, and only the first is" \
+    " reported: option values, then `-` given"
+OFFSETS = dict(FILTERS)
+OFFSETS[48] = "  the offset's hours are 00 to 23 and minutes 00 to 59"
+# the question each park asked and the person answered, and the place; each
+# file is the planner's answer on the leg that carried the park on
+LEGS = {"delimiter-order": (NEWLINE_ASKED, ORDERED),
+        "offset-range": (INVERT_ASKED, OFFSETS)}
+LEG_QUESTION = {"delimiter-order": "When `--delimiter` and `--curve`",
+                "offset-range": "What offset range is valid"}
+
+
+def on_the_leg(tmp_path, name, answer, text=None):
+    """-> (what goes to the person or "", the rulings the lead wrote) of the
+    recorded leg answer `name`, on a run whose park was answered `answer`
+    with --answer."""
+    asked, lines = LEGS[name]
+    place = a_place(tmp_path, lines)
+    kept = rulings.Kept(place)
+    kept.record(ruling.decided(LEAD, answer),
+                ruling.why(LEAD, "the-park", asked, answer, "the operator"),
+                "answer")
+    ruled = []
+    run = types.SimpleNamespace(
+        workdir=place, lead=LEAD, led={}, start=None, spec_line_covered=None,
+        task_text=None, kept=kept, rulings=lambda: [],
+        rule=lambda decided, why, by: ruled.append((decided, why, by)))
+    out = Handoff("planner", recorded(name) if text is None else text)
+    said = asking.lead_escalates(run, LEAD, out)
+    if not said:
+        asking.lead_decides(run, LEAD, out, "the-leg")
+    return said, ruled
+
+
+@pytest.mark.parametrize("name", sorted(LEGS))
+def test_a_leg_the_bench_s_words_answered_parks_on_its_new_question(
+        tmp_path, name):
+    said, ruled = on_the_leg(tmp_path, name, CANNED)
+    assert said.startswith("NEEDS: " + LEG_QUESTION[name]), said
+    assert "- spec: breaks TASK.md:11" not in said.split(NL)
+    assert ruled == []
+
+
+@pytest.mark.parametrize("name", sorted(LEGS))
+def test_a_leg_answered_yours_has_its_new_question_decided_by_the_lead(
+        tmp_path, name):
+    said, ruled = on_the_leg(tmp_path, name, "yours: " + CANNED)
+    assert said == ""
+    [(decided, why, by)] = ruled
+    rec = [l for l in recorded(name).split(NL)
+           if l.startswith("RECOMMEND: ")][0][len("RECOMMEND: "):]
+    assert decided == LEAD + " decided for " + LEAD + ": " + rec
+    lines = (tmp_path / "decisions.md").read_text(encoding="utf-8").split(NL)
+    n = lines.index("yours: " + CANNED) + 1
+    assert 'which decisions.md:' + str(n) + ' "yours: ' + CANNED + '"' \
+        + " settles" in why
+    assert by == rulings.LEAD
+
+
+def test_a_leg_answered_yours_still_parks_on_a_new_breaks_mark(tmp_path):
+    text = typed(recorded("delimiter-order"), "spec: breaks TASK.md:11",
+                 "spec: breaks TASK.md:43")
+    said, ruled = on_the_leg(tmp_path, "delimiter-order", "yours: " + CANNED,
+                             text)
+    assert said.startswith("NEEDS: " + LEG_QUESTION["delimiter-order"])
+    assert "- spec: breaks TASK.md:43" in said.split(NL)
     assert ruled == []

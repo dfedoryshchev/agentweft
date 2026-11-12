@@ -104,7 +104,17 @@ question it repeats or its closing line. an answer line quoted whole settles
 however short (a one-word answer), any other quote of it needs three words.
 the floor holds here too: the check proves the cited line is from the
 answer, not that it answers the question, so a new question quoting the
-answer is decided by the lead and shown on the handoff with that line.
+answer is decided by the lead and shown on the handoff with that line. an
+answer that starts `yours:` hands the call back, read off its first word
+and never off what the rest says: from then on in the run, and in a leg
+that carries it on, every QUESTION of the lead's own with a `RECOMMEND:`
+that no line settles is decided by that recommendation, settled by the
+line of decisions.md the answer starts on and shown on the handoff with its
+words. it lifts no `spec: breaks` or `spec: contradicts` mark on a line the
+person was not asked about, and a question with no `RECOMMEND:` still
+parks; a conflict's answer is `override:` or `request:` and never `yours:`.
+any other answer decides its own question only. the step that runs again is
+told which marks of its question the answer took.
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that

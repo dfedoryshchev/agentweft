@@ -51,9 +51,13 @@
     "  reviewer-runs.md",
     "worker.md runs again with your answer at the end of its prompt, and",
     "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>.",
+    "can come from a file: --answer-file <path>. an answer that",
+    "starts yours: hands the call back: the step makes it, and the",
+    "flow's lead decides each later question of its own by its",
+    "recommendation.",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force --answer \"<your ruling>\"",
+    "  python run.py build-feature --resume build-feature-<run> --force --answer \"yours: <any words>\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -99,7 +103,8 @@
     "- record: runs/build-feature-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 3 lines, head <hash> (python run.py verify build-feature-<run>)",
     "to carry on",
-    "  python run.py build-feature --resume build-feature-<run> --force --answer \"<your ruling>\""
+    "  python run.py build-feature --resume build-feature-<run> --force --answer \"<your ruling>\"",
+    "  python run.py build-feature --resume build-feature-<run> --force --answer \"yours: <any words>\""
   ],
   "files": [
     "build-feature-<run>/budget-plan.md",
@@ -425,9 +430,13 @@
     "  reviewer-runs.md",
     "worker.md runs again with your answer at the end of its prompt, and",
     "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>.",
+    "can come from a file: --answer-file <path>. an answer that",
+    "starts yours: hands the call back: the step makes it, and the",
+    "flow's lead decides each later question of its own by its",
+    "recommendation.",
     "to carry on",
     "  python run.py build-feature --resume build-feature-<run> --force --answer \"<your ruling>\"",
+    "  python run.py build-feature --resume build-feature-<run> --force --answer \"yours: <any words>\"",
     "handoff: <tmp>/runs/build-feature-<run>/handoff.md"
   ],
   "prompts": [
