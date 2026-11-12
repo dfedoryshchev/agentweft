@@ -256,7 +256,7 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
-      "shell_writes_denied": null,
+      "shell_writes_denied": 0,
       "shell_trap_recoveries": null,
       "gates": [],
       "ungated": true,
@@ -385,7 +385,7 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
-      "shell_writes_denied": null,
+      "shell_writes_denied": 0,
       "shell_trap_recoveries": null,
       "gates": [
         {
@@ -467,7 +467,7 @@
       "cached": false,
       "retries": {},
       "background_killed": 0,
-      "shell_writes_denied": null,
+      "shell_writes_denied": 0,
       "shell_trap_recoveries": null,
       "gates": [
         {

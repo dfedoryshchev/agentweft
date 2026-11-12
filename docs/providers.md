@@ -327,8 +327,10 @@ newlines, a `sed` that matches nothing changes nothing and says nothing, a
 script run on Windows flips every line end in the file, and each costs the
 step turns to notice and undo. the Write and Edit tools have none of those.
 
-so a `claude` step granted `shell` is also handed a PreToolUse hook on Bash
-and PowerShell in its `--settings`, next to the attribution setting below:
+so a `claude` step granted `shell`, and one in a place granted nothing (it
+has every tool, the shell among them), is also handed a PreToolUse hook on
+Bash and PowerShell in its `--settings`, next to the attribution setting
+below:
 
     {"hooks": {"PreToolUse": [{"matcher": "Bash|PowerShell",
       "hooks": [{"type": "command", "command": "<python>",
@@ -342,7 +344,8 @@ command by its prefix and "Bash, but not the Bash that writes" has none.
 
 the hook reads the command and exits 2, which the cli takes as a refusal and
 shows the model, for a redirect or a heredoc into a file (`/dev/null`, a
-duplicated descriptor such as `2>&1` and the temp dir excepted), `tee`, `cp`,
+duplicated descriptor such as `2>&1`, the temp dir and the run's own
+`runs/<run-id>/tmp/` excepted), `tee`, `cp`,
 `mv` and `install`, `sed -i` and `perl -i`, `dd of=`, `truncate`, a
 `python -c` or python heredoc that opens a file to write or calls
 `write_text`, and PowerShell's `Set-Content`, `Add-Content`, `Out-File` and

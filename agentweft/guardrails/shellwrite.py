@@ -190,13 +190,15 @@ def program(words):
     return name, words[k + 1:]
 
 
-def is_sink(target, cwd):
+def is_sink(target, cwd, scratch=None):
     t = bare(target).strip()
     if t.lower() in SINKS or t.startswith("/dev/"):
         return True
     if ".." in re.split(r"[\\/]", t):
         return False
     if TEMP.match(t):
+        return True
+    if scratch and not outside(t, scratch, cwd):
         return True
     full = os.path.normcase(os.path.abspath(os.path.join(cwd, t)))
     tmp = os.path.normcase(os.path.abspath(tempfile.gettempdir()))
@@ -213,10 +215,10 @@ def is_redirect(token):
     return set(token) <= set("<>&|") and ("<" in token or ">" in token)
 
 
-def writes_in(words, bodies, cwd):
+def writes_in(words, bodies, cwd, scratch=None):
     """-> the words of one simple command that write a file, or ""."""
     def sink(target):
-        return is_sink(target, cwd)
+        return is_sink(target, cwd, scratch)
 
     rest = []
     skip = False
@@ -281,13 +283,14 @@ def writes_in(words, bodies, cwd):
     return ""
 
 
-def writes(command, cwd=None):
+def writes(command, cwd=None, scratch=None):
     """-> the part of a shell command that writes a file, "" when none does.
-    raises ValueError when the command cannot be read."""
+    a write into `scratch`, the run's own tmp, is let through like one into
+    the system's. raises ValueError when the command cannot be read."""
     cwd = cwd or os.getcwd()
     found, bodies = segments(command)
     for words in found:
-        hit = writes_in(words, bodies, cwd)
+        hit = writes_in(words, bodies, cwd, scratch)
         if hit:
             return hit
     return ""
@@ -429,7 +432,7 @@ def decide(argv, raw):
             command = data["tool_input"]["command"]
             if not isinstance(command, str):
                 raise TypeError("the command is not text")
-            hit = writes(command, data.get("cwd") or None)
+            hit = writes(command, data.get("cwd") or None, scratch)
             said = REASON.format(snippet(hit))
         else:
             return 0, ""

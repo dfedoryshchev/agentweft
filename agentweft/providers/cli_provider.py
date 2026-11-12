@@ -778,8 +778,14 @@ class CliProvider(Provider):
                 else None}
 
     def refuses_shell_writes(self):
-        return self.grant is not None and "shell" in self.grant \
-            and is_claude(self.command)
+        """a step granted `shell`, or granted nothing in a place (it has
+        every tool, the shell among them), writes files with the write
+        tools."""
+        if not is_claude(self.command):
+            return False
+        if self.grant is None:
+            return self.where is not None
+        return "shell" in self.grant
 
     def kept_files(self):
         """-> the files no tool of this step may write: decisions.md in the

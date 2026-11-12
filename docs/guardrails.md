@@ -496,8 +496,9 @@ before it gets that far, a `claude` step in a place granted `write` or
 `edit`, or granted nothing (which has every tool), has the shell-write hook
 on Write, Edit, MultiEdit and NotebookEdit too, refusing a call whose
 `file_path` (or `notebook_path`) is `decisions.md` in the place; a step
-granted `shell` already has every shell write refused. the record is what holds when the hook does not
-reach: a step on another provider, or a write the hook cannot see.
+granted `shell`, or granted nothing in a place, already has every shell write
+refused. the record is what holds when the hook does not reach: a step on
+another provider, or a write the hook cannot see.
 
 ## the facts only the runner writes
 
@@ -836,8 +837,10 @@ line in `steps.jsonl` says it on its `why`:
 a read outside the place is not refused, and the police `outside` tripwire
 still reads the call off the transcript, refused or not.
 
-neither is a security boundary: they do not see what a shell writes outside
-the place or into a skipped path, nor a write by a step on another provider. the gates a step runs are commands in the same place, and
+neither is a security boundary: they do not see every write a shell can make
+outside the place or into a skipped path (the shell-write hook reads the
+shell's write syntax, not a program that writes on the way to something
+else), nor a write by a step on another provider. the gates a step runs are commands in the same place, and
 what they touch shows up at the next step's check, and after the last step at
 none.
 

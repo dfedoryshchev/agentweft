@@ -560,7 +560,9 @@ def shell_writes_denied(p, attempts, folder):
     from agentweft.guardrails import shellwrite
 
     granted = p.granted()
-    if not granted or granted.get("shell_writes") != "refused":
+    refuses = getattr(p, "refuses_shell_writes", None)
+    if (granted or {}).get("shell_writes") != "refused" and not (
+            granted is None and refuses is not None and refuses()):
         return None
     seen = sessions(attempts)
     if folder is None or not seen:

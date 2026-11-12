@@ -114,6 +114,66 @@ def test_reading_and_the_sinks_pass(command, tmp_path):
     assert (code, said) == (0, ""), command
 
 
+PRODUCT_REWRITE = ("python - <<'EOF'\n"
+                   "p='pkg/filters.py'\n"
+                   "s=open(p,encoding='utf-8').read()\n"
+                   "s=s.replace('''a\n''','''b\n''',1)\n"
+                   "open(p,'w',encoding='utf-8',newline='\\n').write(s)\n"
+                   "EOF\n"
+                   "git diff --stat; python -m pytest -q tests 2>&1 | tail -3")
+
+
+def test_a_python_heredoc_that_rewrites_a_product_file_is_refused(tmp_path):
+    code, said = check().decide([], bash(PRODUCT_REWRITE, cwd=tmp_path))
+    assert code == 2
+    assert "Write tool" in said and "Edit" in said
+
+
+def run_folder(tmp_path, monkeypatch):
+    """-> (the denials file, the run's tmp), with the system's temp folder
+    somewhere else, so only the run's tmp can let a write through."""
+    elsewhere = str(tmp_path / "system-temp")
+    monkeypatch.setattr(check().tempfile, "gettempdir", lambda: elsewhere)
+    run = tmp_path / "runs" / "r-1"
+    run.mkdir(parents=True)
+    return run / "tool-denials.jsonl", run / "tmp"
+
+
+@pytest.mark.parametrize("shape", [
+    "cat > {0}/notes.txt <<'EOF'\na\nEOF",
+    "printf 'x' >> {0}/out.log",
+    "echo hi | tee {0}/seen.txt",
+    "cp calc.py {0}/calc.py.orig",
+])
+def test_a_write_into_the_runs_own_tmp_passes(tmp_path, monkeypatch, shape):
+    denials, scratch = run_folder(tmp_path, monkeypatch)
+    place = tmp_path / "place"
+    place.mkdir()
+    command = shape.format(scratch.as_posix())
+    assert check().decide([str(denials)], bash(command, cwd=place)) \
+        == (0, ""), command
+
+
+def test_a_climb_out_of_the_runs_tmp_is_refused(tmp_path, monkeypatch):
+    denials, scratch = run_folder(tmp_path, monkeypatch)
+    place = tmp_path / "place"
+    place.mkdir()
+    command = "echo x > " + scratch.as_posix() + "/../../calc.py"
+    assert check().decide([str(denials)], bash(command, cwd=place))[0] == 2
+
+
+@pytest.mark.parametrize("command", [
+    "python -m pytest -q",
+    "git commit -m 'add the option'",
+    "git add pkg/a.py tests/test_a.py && git commit -m x",
+    "cat pkg/a.py | grep -n def",
+])
+def test_the_work_a_step_runs_passes(command, tmp_path, monkeypatch):
+    denials, _ = run_folder(tmp_path, monkeypatch)
+    assert check().decide([str(denials)], bash(command, cwd=tmp_path)) \
+        == (0, ""), command
+
+
 def test_a_temp_path_that_climbs_back_out_is_refused(tmp_path):
     code, _ = check().decide([], bash("echo x > /tmp/../calc.py",
                                       cwd=tmp_path))
@@ -209,6 +269,17 @@ def test_the_hook_reaches_the_write_or_edit_tool_only_with_a_kept_file(
     assert "--keep" in hook["args"]
 
 
+def test_a_step_granted_nothing_in_a_place_gets_the_shell_hook(fake_cli,
+                                                                tmp_path):
+    cli_ = fake_cli(answer("ok\n"))
+    p = claude()
+    p.where = tmp_path
+    p.ask("x")
+    matcher, _ = hook_of(cli_.calls[0]["argv"])
+    assert matcher.split("|")[:2] == ["Bash", "PowerShell"]
+    assert p.refuses_shell_writes()
+
+
 def test_a_run_that_opts_into_the_trailer_still_gets_the_hook(fake_cli):
     cli_ = fake_cli(answer("ok\n"))
     claude(grant=["shell"], co_author=True).ask("x")
@@ -292,9 +363,20 @@ def test_a_run_counts_the_refused_writes_on_the_steps_line(
     [folder] = folders(tmp_path)
     first, second = lines(folder)
     assert first.get("shell_writes_denied") == 1
-    assert second.get("shell_writes_denied", "unsaid") is None
+    assert second.get("shell_writes_denied", "unsaid") == 0
     _, hook = hook_of(cli_.calls[0]["argv"])
     assert Path(hook["args"][2]) == folder / "tool-denials.jsonl"
+
+
+def test_a_step_granted_nothing_has_its_refused_writes_counted(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "open", ["worker"])
+    cli_ = fake_cli(answer("did it\n", session="s-1"))
+    refusing(cli_, monkeypatch, "s-1")
+    engine.main()
+    [line] = lines(folders(tmp_path)[0])
+    assert line["grant"] is None
+    assert line.get("shell_writes_denied") == 1
 
 
 def transcript(home, session, said):
