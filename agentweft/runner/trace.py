@@ -602,8 +602,15 @@ def shell_trap_recoveries(attempts):
     return sum(found) if found else None
 
 
-WON = ("caught", "stopped", "delivered", "proved", "decided", "ruling",
-       "none")
+WON = ("caught", "caught-test-gap", "stopped", "delivered", "proved",
+       "decided", "found", "ruling", "maintained", "held", "checked", "none")
+# what the record shows a pass bought in clarity rather than in a defect, a
+# stop or a proof: a gate that could have refused ran green on it, or it ran
+# checks and found nothing
+CLARITY = ("held", "checked")
+# the gates that run the suite or the project's own check on a tree they
+# could refuse
+HOLDS = ("start-tests", "command", "project")
 
 # what parked a run, as the runner knows it when it parks: a question it
 # sent to the person (ASKED), or a check of its own that held the step
@@ -612,7 +619,7 @@ ASKED, HELD = "asked", "held"
 
 
 def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
-        decided=False, kind=None):
+        decided=False, kind=None, block=None, facts=None, checks=0):
     """-> what a pass bought, one of WON, from its line and what the record
     says of it, never from what a gate or the model wrote.
 
@@ -632,8 +639,17 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     that only switched the cause step on was the runner's choice, not a
     defect the step found. a reviewer's `routed` line bought nothing yet: its
     case is held to the code on the test writer's line (`case`), and the
-    reviewer caught something only when that case failed there
-    (`summary.passes_of` reads it so).
+    reviewer caught something only when that case failed there, and a test
+    gap (`caught-test-gap`) when it passed there and the test writer's
+    red-test gate showed it red on the start commit (`summary.passes_of`
+    reads both so).
+
+    past those, what the rest of the record shows: found, the pass's
+    handoff `block` names an adjacent defect or asks a question nothing
+    settles; maintained, the retro wrote or refused facts or tickets
+    (`facts`, what the runner did with its FACTS block); held, a gate of
+    HOLDS ran green on it; checked, it made `checks` checks (`checked`) and
+    found nothing. none is a pass the record shows no effect of.
     """
     from .investigate import STEP
     from .stops import CONFLICT, DECLINED, OFF_TASK, PARKED, REFUSED
@@ -661,7 +677,38 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
             g.get("ok") and not g.get("skipped") and not g.get("broke")
             and not g.get("issue") for g in gates or ()):
         return "delivered"
+    if outcome == "ok" and found_in(block):
+        return "found"
+    if isinstance(facts, dict) and any(
+            facts.get(k) for k in ("written", "tickets", "refused", "changed",
+                                   "pins")):
+        return "maintained"
+    if any(g.get("gate") in HOLDS and g.get("ok") and not g.get("skipped")
+           and not g.get("broke") and not g.get("issue")
+           for g in gates or ()):
+        return "held"
+    if checks:
+        return "checked"
     return "none"
+
+
+def found_in(block):
+    """whether a handoff block names a defect beside the change, an ADJACENT
+    item that does not say none, or asks a QUESTION its own SETTLED BY line
+    says nothing settles."""
+    from .ruling import says_none
+
+    if not isinstance(block, dict):
+        return False
+    for item in block.get("adjacent") or ():
+        if isinstance(item, str) and not says_none(item.split("\n")[0]):
+            return True
+    for q in block.get("questions") or ():
+        if isinstance(q, dict) and q.get("question") \
+                and not says_none(q["question"]) \
+                and says_none(q.get("settled") or "none"):
+            return True
+    return False
 
 
 def checked(block, gates=()):
@@ -696,6 +743,7 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
             task["model_reported"] = last(a, "model")
             tasks.append(task)
     gates = [gate_line(g) for g in entry.gates]
+    checks = checked(entry.handoff, gates)
     effort = first.effort if first else None
     used = effort_used(attempts) if isinstance(effort, dict) else None
     if used:
@@ -731,8 +779,9 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "ungated": entry.ungated,
            "outcome": outcome,
            "won": won(outcome, cause, gates, to, entry.proved, entry.changed,
-                      entry.decided, entry.kind),
-           "checked": checked(entry.handoff, gates),
+                      entry.decided, entry.kind, entry.handoff, entry.facts,
+                      checks),
+           "checked": checks,
            "cause": cause,
            "why": fenced_why(attempts, folder, why),
            "file": entry.file,

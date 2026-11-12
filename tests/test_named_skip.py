@@ -162,7 +162,7 @@ def test_a_gate_skipped_by_name_is_marked_skipped_and_proves_nothing(
     assert said["command"]["skipped"] is True
     assert "skipped" not in said["regex"]
     lines = [json.loads(x) for x in read(folder / "steps.jsonl").splitlines()]
-    assert lines[-1]["won"] == "none"
+    assert (lines[-1]["won"], lines[-1]["checked"]) == ("checked", 1)
     assert "1 of 2 gates passed, 1 skipped" in read(folder / "handoff.md")
 
 

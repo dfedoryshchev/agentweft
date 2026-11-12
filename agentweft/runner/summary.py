@@ -726,10 +726,23 @@ def _passes_in(folder, roles, fm):
             continue
         out.append(line_pass(line, folder, roles, fm, root))
         seqs.append(line.get("seq"))
-    for case in cases(path):
-        if case.get("red") and case.get("seq") in seqs:
+    for n, case in enumerate(cases(path, every=True)):
+        if not case or case.get("seq") not in seqs:
+            continue
+        if case.get("red"):
             out[seqs.index(case["seq"])]["facts"]["won"] = "caught"
+        elif case.get("red") is False and red_on_start(out[n]):
+            out[seqs.index(case["seq"])]["facts"]["won"] = "caught-test-gap"
     return out
+
+
+def red_on_start(p):
+    """whether the red-test gate of a test writer's pass ran and passed:
+    the case it added for a reviewer was shown red on the code as the run
+    found it."""
+    return any(g.get("gate") == "red-test" and g.get("ok")
+               and not g.get("skipped") and not g.get("broke")
+               and not g.get("issue") for g in p.get("gates") or ())
 
 
 def line_pass(line, folder, roles, fm, root=None):
@@ -751,16 +764,20 @@ def line_pass(line, folder, roles, fm, root=None):
                   went_on=line.get("went_on") or "")
 
 
-def cases(path):
+def cases(path, every=False):
     """-> the `case` of every line in steps.jsonl at `path`: what a test writer
-    added for a reviewer's routed line, as held to the code."""
+    added for a reviewer's routed line, as held to the code. `every` keeps
+    one entry per line `_passes_in` reads, None for a line with no case."""
     out = []
     for raw in path.read_text(encoding="utf-8").split("\n"):
         try:
             line = json.loads(raw)
         except ValueError:
             continue
-        if isinstance(line.get("case"), dict):
+        if every and line.get("outcome") != trace.WARM:
+            out.append(line["case"] if isinstance(line.get("case"), dict)
+                       else None)
+        elif not every and isinstance(line.get("case"), dict):
             out.append(line["case"])
     return out
 
@@ -1773,6 +1790,8 @@ def won_words(p):
                 + " (" + str(len(kept.get("refused") or [])) + " refused)")
     if f["won"] == "none" and f.get("checked") is not None:
         return ", won none, checked " + str(f["checked"])
+    if f["won"] == "checked" and f.get("checked"):
+        return ", won checked " + str(f["checked"])
     return ", won " + f["won"]
 
 
@@ -1824,12 +1843,18 @@ def bought(passes):
             and (p.get("facts") or {}).get("won") == "none"
             and (p.get("facts") or {}).get("checked") is not None]
     waste = [p for p in idle if not p["facts"]["checked"]]
-    price = [p for p in idle if p["facts"]["checked"]]
+    # a line written before `checked` and `held` were labels says none with
+    # the checks it made: that is the same clarity bought
+    price = [p for p in idle if p["facts"]["checked"]] + [
+        p for p in passes if p not in upkeep
+        and (p.get("facts") or {}).get("won") in trace.CLARITY]
     out.append("- USD on steps that won nothing and checked nothing: $%.4f of"
                " $%.4f" % (sum(_cost(p) for p in waste),
                           sum(_cost(p) for p in passes)) + _unstated(waste))
-    out.append("- USD on steps that won nothing and checked "
-               + str(sum(p["facts"]["checked"] for p in price))
+    out.append("- USD on steps that bought clarity, checked "
+               + str(sum(p["facts"].get("checked") or 0 for p in price))
+               + " and held " + str(sum(1 for p in price
+                                        if p["facts"]["won"] == "held"))
                + ": $%.4f" % sum(_cost(p) for p in price) + _unstated(price))
     if upkeep:
         out.append("- upkeep, not waste: the retro $%.4f"

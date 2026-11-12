@@ -63,8 +63,9 @@ def test_a_reviewer_that_sends_the_work_back_once_caught_something(
         ("worker.md", "ok", "none"), ("reviewer.md", "ok", "none")]
 
 
-def test_an_all_pass_judge_won_nothing():
-    assert won("ok", [a_gate("verdict", True, "ok")]) == "none"
+def test_an_all_pass_judge_checked_what_its_gate_ran():
+    assert won("ok", [a_gate("verdict", True, "ok")]) == "checked"
+    assert won("ok") == "none"
 
 
 def test_a_failed_gate_caught_and_a_conflict_stopped():
@@ -82,7 +83,7 @@ def test_the_pass_that_wrote_the_red_proof_proved():
                step="tester.md", proved=True) == "proved"
     assert won("ok", [a_gate("red-test", True,
                              "red, as claimed - nothing was run")],
-               step="worker.md") == "none"
+               step="worker.md") == "checked"
 
 
 def test_a_lead_whose_decision_is_on_record_decided():
@@ -332,9 +333,9 @@ def test_a_decided_the_runner_did_not_hold_is_neither_decided_nor_escalated(
 
 def test_a_won_from_the_words_alone_is_none():
     assert won("decided", to="worker.md", step="lead.md") == "none"
-    assert won("ok", [a_gate("command", True, "exit 0")]) == "none"
+    assert won("ok", [a_gate("command", True, "exit 0")]) == "held"
     assert won("ok", [a_gate("red-test", True, "red, exit 1")],
-               step="worker.md") == "none"
+               step="worker.md") == "checked"
 
 
 def test_a_pass_whose_work_is_in_the_place_and_a_gate_passed_delivered():
@@ -342,8 +343,8 @@ def test_a_pass_whose_work_is_in_the_place_and_a_gate_passed_delivered():
     assert trace.won("ok", None, [command], "next.md",
                      changed=True) == "delivered"
     assert trace.won("ok", None, [command], "next.md",
-                     changed=False) == "none"
-    assert trace.won("ok", None, [command], "next.md") == "none"
+                     changed=False) == "held"
+    assert trace.won("ok", None, [command], "next.md") == "held"
     assert trace.won("ok", None, [], "next.md", changed=True) == "none"
     assert trace.won("ok", None, [dict(command, skipped=True)], "next.md",
                      changed=True) == "none"
@@ -411,7 +412,7 @@ def verified(*backed):
 def test_a_reviewer_that_found_nothing_says_how_much_it_checked():
     five = a_line(block=verified("backed", "backed", "backed", "backed",
                                  "backed", "unbacked", "unchecked"))
-    assert (five["won"], five["checked"]) == ("none", 5)
+    assert (five["won"], five["checked"]) == ("checked", 5)
     none = a_line(block=verified("unbacked", "ran"))
     assert (none["won"], none["checked"]) == ("none", 0)
     gated = a_line(block=verified("backed"), gates=[
@@ -468,7 +469,8 @@ def test_the_spend_on_passes_that_won_nothing_is_split_by_what_they_checked():
     assert "- prevented: 1 refusal (writes: 1)" in said
     assert ("- USD on steps that won nothing and checked nothing: $0.3000 of"
             " $0.8000") in said
-    assert "- USD on steps that won nothing and checked 5: $0.2000" in said
+    assert ("- USD on steps that bought clarity, checked 5 and held 0:"
+            " $0.2000") in said
     assert "- upkeep, not waste: the retro $0.0500" in said
     assert said[-1].startswith("- total: 5 passes")
 
@@ -480,5 +482,5 @@ def test_a_pass_whose_cost_was_not_stated_is_named_on_the_waste_lines():
     said = summary.bought(passes)
     assert ("- USD on steps that won nothing and checked nothing: $0.0000 of"
             " $0.5000, cost not stated on 1") in said
-    assert ("- USD on steps that won nothing and checked 4: $0.0000, cost not"
-            " stated on 1") in said
+    assert ("- USD on steps that bought clarity, checked 4 and held 0:"
+            " $0.0000, cost not stated on 1") in said

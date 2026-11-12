@@ -292,11 +292,22 @@ the provider never answered for, priced from its transcript or estimated;
 the provider's.
 
 each step's line also says what it won (`caught`, `stopped`, `delivered`,
-`proved`, `decided`, `ruling` or `none`, `journal.md`), read off the run's record (the
-red proof, the place before and after the step, `decisions.md`, the gates'
-entries), never off what a gate or the model wrote. the retro in
-`handoff.md` puts every step's money and seconds against it, with the total
-spent on `won none`: the first place to look for a step to cut. it also
+`proved`, `decided`, `found`, `ruling`, `maintained`, `held`, `checked` or
+`none`, `journal.md`), read off the run's record (the red proof, the place
+before and after the step, `decisions.md`, the gates' entries, its handoff
+block, the facts the retro kept), never off what a gate or the model wrote:
+`decided` is a decision of the step's on record, the lead's own question
+included; `found` an ADJACENT defect or a QUESTION nothing settles on its
+handoff; `maintained` facts or tickets the retro wrote or refused; `held` a
+start-tests, command or project gate that ran green on it; `checked` the
+checks it made and found nothing with. `none` is a step the record shows no
+effect of. a reviewer whose routed case the next test writer shows red on the
+start commit reads as `caught-test-gap` in the handoff (`caught` when the
+case also fails on the code), since its line was written before the case
+was. the retro in `handoff.md` puts every step's money and seconds against
+it, with the total spent on `won none`, the first place to look for a step to
+cut, and beside it, never in it, the spend that bought clarity (`checked` and
+`held`) with its count of checks. it also
 sums each role's thinking tokens (`journal.md`, `thinking`). its last lines
 put the run's wall beside the seconds of the steps, of the gates
 (`gates.jsonl`, one line per gate run) and of the runner, which is the rest,

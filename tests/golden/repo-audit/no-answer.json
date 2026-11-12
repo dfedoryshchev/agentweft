@@ -65,7 +65,7 @@
     "- retro.md <secs>s ($0.0100), won facts 0, tickets 0 (0 refused): no events (after this handoff was written)",
     "- won none: 2 passes, <secs>s, $0.0400",
     "- USD on steps that won nothing and checked nothing: $0.0300 of $0.0400",
-    "- USD on steps that won nothing and checked 0: $0.0000",
+    "- USD on steps that bought clarity, checked 0 and held 0: $0.0000",
     "- upkeep, not waste: the retro $0.0100",
     "- total: 2 passes, <secs>s, $0.0400",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",

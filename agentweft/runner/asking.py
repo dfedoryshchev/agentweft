@@ -371,14 +371,17 @@ def lead_decides(run, step, out, where):
     """each QUESTION of the lead's own handoff that a line of the place
     settles (`lead_s_own`) is the lead's to decide, and its RECOMMEND is the
     decision: put on record as the lead's, so every later step gets it and
-    the handoff lists it first, for the person to overrule."""
+    the handoff lists it first, for the person to overrule. -> how many it
+    put on record."""
     answered = answered_here(run)
     marks = marked(run, step, out, answered)
+    count = 0
     for asked, rec, _, _, settled in lead_questions(run, step, out,
                                                     answered):
         line, quote = lead_settled(run, rec, settled, marks)
         if not line or lead.key(asked) in run.led:
             continue
+        count += 1
         run.led[lead.key(asked)] = rec
         run.rule(*lead.recorded(step, step, where, asked, rec,
                                 "the recommendation of " + step
@@ -390,6 +393,7 @@ def lead_decides(run, step, out, where):
         # next step reads the rulings off it
         out.meta["rulings"] = run.rulings()
         print(step + ", the flow's lead, decided its own question: " + rec)
+    return count
 
 
 def asked_file(step):

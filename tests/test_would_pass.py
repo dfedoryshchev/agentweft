@@ -115,7 +115,7 @@ def test_a_reviewer_whose_case_fails_on_the_code_caught_it(tmp_path,
     assert won_of(folder)[3] == ("reviewer.md", "caught")
 
 
-def test_a_reviewer_whose_case_passes_on_the_code_caught_nothing(
+def test_a_reviewer_whose_case_passes_on_the_code_caught_a_test_gap(
         tmp_path, monkeypatch):
     answers = {"planner.md": [PLAN], "tester.md": [TESTER, TESTER],
                "worker.md": [WORKER], "reviewer.md": [NAMED],
@@ -130,7 +130,7 @@ def test_a_reviewer_whose_case_passes_on_the_code_caught_nothing(
         "reviewer.md", "routed", "none")
     assert said[4]["case"] == {"seq": reviewer["seq"], "step": "reviewer.md",
                                "red": False}
-    assert won_of(folder)[3] == ("reviewer.md", "none")
+    assert won_of(folder)[3] == ("reviewer.md", "caught-test-gap")
 
 
 def test_a_red_suite_alone_is_not_a_catch_the_case_has_to_fail_itself():

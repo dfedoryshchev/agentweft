@@ -65,7 +65,7 @@
     "- won stopped: 1 pass, <secs>s, $0.0100",
     "- won none: 1 pass, <secs>s, $0.0100",
     "- USD on steps that won nothing and checked nothing: $0.0000 of $0.0200",
-    "- USD on steps that won nothing and checked 0: $0.0000",
+    "- USD on steps that bought clarity, checked 0 and held 0: $0.0000",
     "- upkeep, not waste: the retro $0.0100",
     "- total: 2 passes, <secs>s, $0.0200",
     "- wall <secs>s: steps <secs>s, gates <secs>s, runner <secs>s",

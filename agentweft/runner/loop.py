@@ -714,8 +714,8 @@ def go(leg):
                 return stop(stops.GATE, blocked, "gate failed", entry,
                             index="FAILED  " + flow + "  at " + step)
 
-            if honest:
-                lead_decides(run, step, out, run_id)
+            if honest and lead_decides(run, step, out, run_id):
+                entry.decided = True
 
             unproven = investigate.unrooted(step, out.output)
             if unproven:
