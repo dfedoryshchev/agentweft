@@ -448,6 +448,57 @@ def test_the_handoff_question_carries_its_settling_line_and_what_it_costs(
     assert "you are this flow's lead" in said
 
 
+REQUEST = "add a cache: clear the cached list on every write through the client"
+SAID = 'the request "clear the cached list on every write"'
+
+
+def given_the_request(tmp_path, monkeypatch, planner):
+    """-> (the exit code, the steps called) of a run of a flow that takes the
+    request, handed REQUEST."""
+    a_flow(tmp_path, monkeypatch)
+    (tmp_path / "flows" / "led" / "instructions.md").write_text(
+        "the request:" + NL + NL + "{TASK}" + NL, encoding="utf-8")
+    asked = answering(monkeypatch, planner)
+    monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--task",
+                                      REQUEST])
+    return engine.main(), [s for s, _ in asked]
+
+
+def test_a_lead_question_the_request_settles_is_its_decision(tmp_path,
+                                                            monkeypatch):
+    code, asked = given_the_request(tmp_path, monkeypatch,
+                                    block(ASK, REC, SAID))
+    assert code == stops.EXIT_OK
+    assert asked == ["planner.md", "worker.md"]
+    [entry] = decisions.read(tmp_path)
+    assert entry.decided == "planner.md decided for planner.md: " + REC
+    first = decision(folder(tmp_path)).strip().split(NL)
+    assert first[0] == "- decided by the lead: " + ASK
+    assert first[2] == "  settled by " + SAID
+
+
+@pytest.mark.parametrize("settled", [
+    'the request "clear the cached list on every read"',
+    'the request "clear"', 'the request ""', "the request",
+    'task.md:1 "add a cache: clear the cached list"',
+    'decisions.md:1 "clear the cached list on every write"',
+    'request.md:1 "clear the cached list on every write"'])
+def test_a_request_cite_that_is_not_the_request_s_words_settles_nothing(
+        tmp_path, monkeypatch, settled):
+    code, asked = given_the_request(tmp_path, monkeypatch,
+                                    block(ASK, REC, settled))
+    assert code == stops.EXIT_STOP
+    assert asked == ["planner.md"]
+    assert decisions.read(tmp_path) == []
+
+
+def test_the_planner_is_taught_to_cite_the_request(monkeypatch):
+    from test_spec_addition import composed
+
+    said = composed(monkeypatch, "planner.md")
+    assert 'SETTLED BY: the request "<its words, word for word>"' in said
+
+
 def test_a_conflict_stops_before_the_lead_s_own_question_is_read(
         tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch)

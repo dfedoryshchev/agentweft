@@ -48,7 +48,7 @@ PLACES = {"top-section": LOGSIFT, "time-range": LOGSIFT,
           "delimiter-newline": GRADEBOOK, "delimiter-escape": GRADEBOOK,
           "drop-lowest": GRADEBOOK, "error-order": LEDGERLITE,
           "cache-clear": {}, "invert-window": FILTERS,
-          "top-placement": SECTIONS}
+          "top-placement": SECTIONS, "depth-key": {}}
 QUESTION = {
     "top-section": "Where should the `top` section go in TASK.md",
     "delimiter-newline": "An LF or CR in `--delimiter` printed raw",
@@ -58,7 +58,8 @@ QUESTION = {
     "delimiter-escape": "What should `error: invalid --delimiter: <C>` print",
     "cache-clear": "Should createItem or moveItem on the same client",
     "invert-window": "With `--invert` and an `--until` at or before",
-    "top-placement": "Where should the `top` section go in TASK.md?"}
+    "top-placement": "Where should the `top` section go in TASK.md?",
+    "depth-key": "When `--by` is not `path` and the `--depth` value"}
 SETTLED = 'SETTLED BY: TASK.md:5-6 "The last section fixes the module layout."'
 CR_LF = ("for LF stderr is no longer exactly one line)" + NL
          + "  file: gradebook/cli.py" + NL + "  spec: adds to TASK.md:23")
@@ -84,12 +85,13 @@ def a_place(tmp_path, lines):
     return tmp_path
 
 
-def routed(tmp_path, name, text=None):
-    """-> (what goes to the person or "", the rulings the lead wrote)."""
+def routed(tmp_path, name, text=None, request=None):
+    """-> (what goes to the person or "", the rulings the lead wrote), on a
+    run handed `request`."""
     ruled = []
     run = types.SimpleNamespace(
         workdir=a_place(tmp_path, PLACES[name]), lead=LEAD, led={},
-        start=None, spec_line_covered=None,
+        start=None, spec_line_covered=None, task_text=request,
         rule=lambda decided, why, by: ruled.append((decided, why, by)),
         rulings=lambda: [])
     out = Handoff("planner", recorded(name) if text is None else text)
@@ -188,3 +190,65 @@ def test_the_placement_question_its_line_settles_is_the_lead_s(tmp_path):
     [(decided, why, by)] = ruled
     assert decided.startswith(LEAD + " decided for " + LEAD + ": Insert a new")
     assert "TASK.md:5" in why and by == rulings.LEAD
+
+
+DEPTH = NL.join([
+    "# instructions",
+    "- the request: Feature request: add `--depth N` to `count`, valid only"
+    " with `--by path` (otherwise `error: --depth needs --by path`). It groups"
+    " paths by their first N segments: the key is `/` followed by the first N"
+    " non-empty segments of the path joined by `/` (fewer if the path has"
+    " fewer; `/` alone if it has none), so with `--depth 1` both"
+    " `/api/v1/users` and `/api//v2` count as `/api`. N is a whole number"
+    " written in digits, 1 or more; any other value is `error: invalid"
+    " --depth: <value>`. Update TASK.md to describe it, and add tests.",
+    "- the spec is TASK.md in the directory you are working in.",
+    "- standard library only; pytest for tests.", ""])
+KEY_RULE = "the key is `/` followed by the first N non-empty segments of the" \
+    " path joined by `/`"
+ORDER = ("QUESTION: When `--by` is not `path`", "SIZE: one line ordering in"
+         " logsift/cli.py plus one test")
+
+
+def target_settled_by(settled):
+    """-> the recorded depth-key answer with its error order question, the
+    gap, taken out, and its target question carrying `settled`."""
+    text = recorded("depth-key")
+    start, end = text.index(ORDER[0]), text.index(ORDER[1])
+    text = text[:start] + text[end + len(ORDER[1]) + 1:]
+    return typed(text, "SIZE: no code beyond the rule; one test",
+                 "SETTLED BY: " + settled + NL
+                 + "SIZE: no code beyond the rule; one test")
+
+
+def test_the_target_question_the_request_settles_is_the_lead_s(tmp_path):
+    said, ruled = routed(tmp_path, "depth-key",
+                         target_settled_by('the request "' + KEY_RULE + '"'),
+                         DEPTH)
+    assert said == ""
+    [(decided, why, by)] = ruled
+    assert decided == LEAD + " decided for " + LEAD + ": yes, apply the rule" \
+        " as written, since the request defines the key purely from non-empty" \
+        " segments"
+    assert 'which the request "' + KEY_RULE + '" settles' in why
+    assert by == rulings.LEAD
+
+
+@pytest.mark.parametrize("settled", [
+    'task.md:2 "' + KEY_RULE + '"', 'decisions.md:1 "' + KEY_RULE + '"',
+    'the request "the key is the first N segments"'])
+def test_the_target_question_citing_no_words_of_the_request_goes_to_the_person(
+        tmp_path, settled):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "decisions.md").write_text(KEY_RULE + NL, encoding="utf-8")
+    said, ruled = routed(tmp_path, "depth-key", target_settled_by(settled),
+                         DEPTH)
+    assert said.startswith("NEEDS: Is a target that does not start with")
+    assert ruled == []
+
+
+def test_a_request_cite_on_a_run_handed_no_request_settles_nothing(tmp_path):
+    said, ruled = routed(tmp_path, "depth-key",
+                         target_settled_by('the request "' + KEY_RULE + '"'))
+    assert said.startswith("NEEDS: Is a target that does not start with")
+    assert ruled == []

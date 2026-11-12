@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-11T21:30:25",
+  "recorded": "2026-11-11T22:29:43",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "aecdfec261ba67ea21ac324c73c8532bd5411a21bfecbc777542abdce82f137e",
+      "prompt": "cede2cece5e60d866506b11c1c5952997f2c17b33e18883c2aa7eeaee0e88412",
       "say": "- behaviour: fields(\"a;b\", delimiter=\";\") is [\"a\", \"b\"]\n  file: roster.py\n  spec: adds to TASK.md:3\n- behaviour: fields(\"a,b\") with no delimiter is still [\"a\", \"b\"]\n  file: roster.py\n  spec: allows TASK.md:3\n",
       "detail": "",
       "retryable": null,

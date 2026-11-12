@@ -47,7 +47,11 @@ and your RECOMMEND is the decision, on record for the person to overrule. a
 question no line answers stops the run and goes to the person, and so does
 every question of a plan that marks a line `breaks` or `contradicts`. a
 question the person already answered in this run is settled by that answer:
-give its line in decisions.md as the SETTLED BY line.
+give its line in decisions.md as the SETTLED BY line. a question the
+request's own words answer is settled by them, cited by name and not by a
+line:
+
+    SETTLED BY: the request "<its words, word for word>"
 
 a path of a file you plan in that its tests already leave unchecked, seen in
 the code or the tests, may be named for that step on its own line,

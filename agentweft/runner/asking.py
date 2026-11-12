@@ -215,12 +215,14 @@ def lead_s_own(run, rec, settled, marks):
     decides it by its RECOMMEND `rec`, or "": there is a RECOMMEND, the plan
     marks no spec line (`marks`), and the question's `SETTLED BY:` words
     `settled` quote a line of the place as the run found it
-    (`ruling.settles`) or the person's answer in this run
-    (`answer_settles`)."""
+    (`ruling.settles`), the person's answer in this run
+    (`answer_settles`) or the request the run was handed
+    (`ruling.request_settles`)."""
     if not rec or marks:
         return ""
     return ruling.settles(settled, run.workdir, getattr(run, "start", None)) \
-        or answer_settles(run, settled)
+        or answer_settles(run, settled) \
+        or ruling.request_settles(settled, getattr(run, "task_text", None))
 
 
 def lead_questions(run, step, out, answered=()):
@@ -290,7 +292,7 @@ def lead_decides(run, step, out, where):
         if not line or lead.key(asked) in run.led:
             continue
         run.led[lead.key(asked)] = rec
-        quote = ruling.cite_of(ruling.FIRST_QUOTE.match(settled.strip()))[3]
+        quote = ruling.settling_quote(settled)
         run.rule(*lead.recorded(step, step, where, asked, rec,
                                 "the recommendation of " + step
                                 + "'s own handoff, which " + line + ' "'

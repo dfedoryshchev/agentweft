@@ -82,7 +82,13 @@ cited lines one paragraph, and no `spec: breaks` or `spec: contradicts`
 mark in the plan; anything else, the SETTLED BY line missing, empty,
 misquoted, a heading or a one-word line, or a range across a blank line
 included, parks the run at the lead for a person (`writing-a-flow.md`,
-section 8). the floor: the check proves the line is there and says the
+section 8). the request the run was handed is cited by name, `SETTLED BY:
+the request "<its words>"`, and settles when the words, three or more, are
+in the request as the run holds it (the `--task` text, with an answer that
+amended it after a spec conflict), spaces aside; a run handed no request
+has none to cite. every file the runner itself writes into the place,
+decisions.md and the facts store, stays refused as a place line, and the
+run folder's `task.md` is no file of the place. the floor: the check proves the line is there and says the
 quote, never that the line answers the question, so a planner that cites a
 line that is there but settles nothing, or names a clash only in a
 question's words and marks nothing, is decided by the lead; then the

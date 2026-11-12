@@ -703,6 +703,37 @@ def settles(said, workdir, start=None):
     return cite
 
 
+THE_REQUEST = "the request"
+REQUEST_QUOTE = re.compile(r'''^the\s+request\s+"([^"\n]*)"''', re.I)
+
+
+def request_settles(said, request):
+    """-> THE_REQUEST when `said`, the words of a `SETTLED BY:` line, is
+    `the request "<its words>"` and the words, QUOTE_WORDS of them or more,
+    are in `request`, the request the run was handed as it holds it, spaces
+    aside. "" for anything else, and for a run handed none. the request is
+    no file of the place and its lines are not shown numbered, so it is
+    cited by name; a runner file is still never cited (`settles`)."""
+    m = REQUEST_QUOTE.match((said or "").strip())
+    if not m or not request:
+        return ""
+    quote = flat(m.group(1))
+    if quote_words(quote) < QUOTE_WORDS or quote not in flat(request):
+        return ""
+    return THE_REQUEST
+
+
+def settling_quote(said):
+    """-> the quote of a `SETTLED BY:` line's words, a place line's or the
+    request's, or "" when it has none."""
+    said = (said or "").strip()
+    m = FIRST_QUOTE.match(said)
+    if m:
+        return cite_of(m)[3]
+    m = REQUEST_QUOTE.match(said)
+    return flat(m.group(1)) if m else ""
+
+
 MARKED = re.compile(r"""([^\s:`'"(),]*[./][^\s:`'"(),]*):(\d+)(?:-(\d+))?""")
 
 
