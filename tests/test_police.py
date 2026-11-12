@@ -493,6 +493,36 @@ def test_a_write_with_no_path_names_nothing_outside(tmp_path, given):
     assert hits == []
 
 
+def test_a_call_kept_twice_in_the_transcript_is_one_hit(tmp_path):
+    once = pieces(write("../x.py"))
+    hits = police.check(once + once, place=str(tmp_path / "place"))
+    assert wires(hits) == ["outside"]
+
+
+def test_a_call_the_transcript_keeps_in_its_request_too_is_one_hit(
+        tmp_path, monkeypatch):
+    folder = tmp_path / "projects" / "place"
+    folder.mkdir(parents=True)
+    monkeypatch.setattr(handoff, "PROJECTS", str(tmp_path / "projects"))
+    call = use("Write", {"file_path": "../x.py", "content": "x\n"}, 0)
+    rows = [{"type": "assistant", "sessionId": "s-1",
+             "message": {"role": "assistant", "content": [call]}},
+            {"type": "user", "sessionId": "s-1",
+             "message": {"role": "user", "content": [result(0, "ok")]}},
+            {"type": "api-request-blob", "sessionId": "s-1",
+             "message": {"role": "assistant", "content": [call]}}]
+    (folder / "s-1.jsonl").write_text(
+        "\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    hits = police.check(handoff.pieces("s-1"), place=str(tmp_path / "place"))
+    assert wires(hits) == ["outside"]
+
+
+def test_two_calls_to_the_same_path_stay_two_hits(tmp_path):
+    hits = police.check(pieces(write("../x.py"), write("../x.py")),
+                        place=str(tmp_path / "place"))
+    assert wires(hits) == ["outside", "outside"]
+
+
 def test_with_no_place_known_a_write_is_not_judged():
     assert police.check(pieces(write("../../x.py"))) == []
     assert police.check(pieces(write("../../x.py")), place="") == []

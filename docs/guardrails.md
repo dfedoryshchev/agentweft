@@ -910,7 +910,9 @@ git that may write where it likes), or a git without `merge-tree
 
 off unless a flow says `police: on` (or `shadow`, below). after every step on the `claude` cli the
 run reads the step's transcript, the one the handoff takes its read lines
-from, and holds each tool call to five tripwires. no model is asked, so it
+from, and holds each tool call to five tripwires, once by its id (the
+transcript keeps a call twice, in the answer and in the request sent after
+it). no model is asked, so it
 costs no tokens; what it found and the seconds it took go on the step's line
 in `steps.jsonl`:
 

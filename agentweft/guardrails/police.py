@@ -140,11 +140,15 @@ def text_of(content):
 
 
 def calls(pieces):
-    """-> [Call] from a transcript's pieces, each with what came back."""
+    """-> [Call] from a transcript's pieces, each with what came back. the
+    cli keeps a call in its assistant record and again in the request it
+    sent next, so a call is one Call by its id, however often it is there."""
     out = []
     by_id = {}
     for piece in pieces or []:
         if piece.get("type") == "tool_use":
+            if piece.get("id") is not None and piece.get("id") in by_id:
+                continue
             c = Call(piece.get("name") or "", piece.get("input"), None,
                      len(out))
             out.append(c)
