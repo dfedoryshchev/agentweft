@@ -1963,7 +1963,12 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     points, taken = front.questions(every, extra,
                                     asking=went if waits else still,
                                     settled=settled(decided, every, run_id))
-    found = front.clusters(([waits] if waits else []) + points)
+    on_record = record_of(every, changes, decided, proof)
+    later = [(p, answered_by(p["text"], p.get("at"), every, on_record))
+             for p in points]
+    found = front.clusters(([waits] if waits else [])
+                           + [p for p, by in later if not by])
+    later = [(p, by) for p, by in later if by]
     if last and stopped:
         why = [(last["role"] + " handed over this before the stop, not taken"
                 " as done:", did_of(every, last["role"]))]
@@ -1973,7 +1978,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         why = [(None, ["no step handed over a block, so what was done is"
                        " only what git and the gates show in the full"
                        " record."])]
-    gave, unheld = reasons(every, record_of(every, changes, decided, proof))
+    gave, unheld = reasons(every, on_record)
     why.extend((role + REASONS_OF, lines) for role, lines in gave)
     dropped = []
     for line in ([role + ": " + i for role, b in blocks if _present(b)
@@ -1994,10 +1999,14 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                                 else ", no test names it")
                  + " (" + ", ".join(roles) + ")"
                  for f, roles in beside_it if f["fixed"]]))
-    left_out = []
-    for role, b in blocks:
+    left_out, settled_later = [], {}
+    for n, (role, b) in enumerate(blocks):
         if _present(b):
             for i in b["not_verified"]:
+                by = answered_by(i, n, every, on_record)
+                if by:
+                    settled_later[(n, i)] = by
+                    continue
                 line = role + ": " + i
                 if all(front.norm(i) != front.norm(l.split(": ", 1)[1])
                        for l in left_out):
@@ -2074,6 +2083,12 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         out.append("")
         out.append("## open questions")
         out.extend(asked_too)
+
+    if later:
+        out.append("")
+        out.append(ANSWERED)
+        out.extend("- " + p["role"] + ": " + p["text"] + " - answered by "
+                   + by for p, by in later)
 
     out.append("")
     out.append("## doubts")
@@ -2185,7 +2200,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## not verified")
-    said = ["- " + role + ": " + i for role, b in blocks if _present(b)
+    said = ["- " + role + ": " + i + (" - answered by " + settled_later[(n, i)]
+                                      if (n, i) in settled_later else "")
+            for n, (role, b) in enumerate(blocks) if _present(b)
             for i in b["not_verified"]]
     said.extend("- " + step + " unproven: " + line for step, line in unsure)
     said.extend("- claims the record does not show: " + role + ": "
@@ -2298,6 +2315,54 @@ def settled(decided, passes, run_id):
         if found and found[0] in runs:
             out.append(front.asked_point(found[1]))
     return out
+
+
+TEST_NAME = re.compile(r"(?<![\w./-])(test_\w+)(?!\w|\.\w)")
+ANSWERED = "## answered in the run"
+
+
+def named_tests(text):
+    """-> the test function names `text` names by their exact id, bare
+    (`test_x`) or in a full id (`tests/a.py::test_x`); a test file's name is
+    not one."""
+    return set(TEST_NAME.findall(text or ""))
+
+
+def pass_label(passes, n):
+    """-> where the `n`th of `passes` ran, with its place among the passes of
+    its own run: `tester.md, pass 4 of the run`."""
+    p = passes[n]
+    count = sum(1 for q in passes[:n + 1] if q.get("leg") == p.get("leg"))
+    return at(p) + ", pass " + str(count) + " of the run"
+
+
+def answered_by(text, asked, passes, record):
+    """-> what answered an item a pass raised, "" when nothing did. `asked`
+    is the place of that pass in `passes`, None for an item no pass raised.
+    only a typed link answers: a later pass's `led to:` the record holds, or
+    a later pass's VERIFIED claim its transcript backs, naming a test the
+    item names by its exact id. words never do, so an item that names no
+    test stays open."""
+    names = named_tests(text)
+    if asked is None or not names:
+        return ""
+    for n in range(asked + 1, len(passes)):
+        p = passes[n]
+        b = p["block"]
+        if not _present(b):
+            continue
+        for item in b.get("because") or []:
+            r = handoff.reason(item)
+            if not r["led_to"] or LED.match(r["led_to"]) \
+                    or not names & named_tests(r["led_to"]):
+                continue
+            if held_at(r["led_to"], b, record, p) not in ("", LED_NOWHERE):
+                return pass_label(passes, n) + ": led to " + r["led_to"]
+        for item in b.get("verified") or []:
+            if item.get("backed") == "backed" \
+                    and names & named_tests(item["claim"]):
+                return pass_label(passes, n) + ": verified: " + item["claim"]
+    return ""
 
 
 def lead_own_decisions(decided, passes, run_id):

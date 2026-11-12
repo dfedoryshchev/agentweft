@@ -651,7 +651,15 @@ answers, in order:
   the rulings, not here, so a finished run needs nothing: the same question
   in any step's block or doubts, on the leg it was asked in or a later one,
   is settled with it. a ruling given to another run settles nothing here, and
-  a question the run stops on again is still shown. `- none: nothing
+  a question the run stops on again is still shown. a question a later step
+  answered is not open either, so the one decision is picked from what is
+  still open: a later step's `led to:` the record holds, or a later step's
+  VERIFIED claim its transcript backs, names a test the question names by its
+  exact id (`test_x`, or `tests/a.py::test_x`). only that link answers: a
+  question that names no test, or a test name that only shares words with
+  it, stays open. the answered one is in the full record under `## answered
+  in the run`, with what answered it (`answered by tester.md, pass 4 of the
+  run: led to tests/a.py::test_x`). `- none: nothing
   waits on you.` when nothing does; a `QUESTION: none` asks nothing, and the
   `RECOMMEND:` and `SIZE:` under it go with it. a stop that waits for a
   ruling leads with the question it wrote to `question.md`, with its cites
@@ -698,7 +706,10 @@ answers, in order:
   the tree (`nothing in the tree changed`, or the files it changed are `not
   taken as done`); a refusal that cites the spec says `the work the task
   asked for` is not done, and a stop with no step left after it points at
-  needs you. a finished run has no such line. then what was not verified, the gates' unproven checks, and the
+  needs you. a finished run has no such line. then what was not verified (a
+  line a later step answered, by the same typed link as a question, is left
+  out here and kept in the full record's `## not verified` with ` - answered
+  by ...` after it), the gates' unproven checks, and the
   doubts left as they are, each once: by its words, or by the spec line it
   cites, with the roles that raised it, and how many times when one role
   raised it again after a send-back, so a doubt that was not fixed says so;
@@ -716,7 +727,9 @@ any stop what ran, what is left and the command to carry on), what the steps
 assumed (each as a question), the open questions the default view does not
 print in full (`## open questions`, when there are any: each wording once
 with the roles that asked it, so a question joined to another by its spec
-line, cut to its width or past the cut is still on record), what they doubt
+line, cut to its width or past the cut is still on record), the questions a
+later step answered (`## answered in the run`, when there are any: each with
+the role that asked it and what answered it), what they doubt
 that is not a question (each once by its words), what they found beside the
 change (`## found beside the change`, only when a step found something: each
 defect once by its words, with the roles that named it, as the last of them

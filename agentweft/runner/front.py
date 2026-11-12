@@ -18,7 +18,8 @@ ruled on; two are the same when they cite the same spec line (`TASK.md:12`,
 or a range holding it) or say the same thing once case, punctuation and the
 cited line are taken out. each is printed once, with every role that raised
 it and the recommendation and size the first of them gave. doubts are made
-one the same way. a question a ruling on record answered is not open.
+one the same way. a question a ruling on record answered is not open, nor
+one a later step answered by a typed link (`summary.answered_by`).
 """
 import re
 
@@ -292,14 +293,18 @@ def questions(passes, extra=(), asking=None, settled=()):
     `asking` is the passes whose NEEDS / CONFLICT nobody has answered yet;
     None takes them from every pass. `settled` is the questions a ruling on
     record answered, as points: one of them asked again is not open, and a
-    doubt that asks it is not a doubt either."""
+    doubt that asks it is not a doubt either. each point a pass raised keeps
+    the pass's place in `passes` under `at`; an `extra` point has none."""
     out, taken = [], set()
+    here = [None]
 
     def add(p):
         if not any(same(p, q) for q in settled):
+            p["at"] = here[0]
             out.append(p)
 
-    for p in passes:
+    for n, p in enumerate(passes):
+        here[0] = n
         v = p["verbs"]
         for said, kind in ((v.needs, "needs"), (v.conflict, "conflict")):
             if not said or (asking is not None
