@@ -670,6 +670,48 @@ def broken(output):
             if BREAKS.match(line) or CONTRADICTS.match(line)]
 
 
+ALREADY = re.compile(r"""^\s*(?:-\s*)?spec:\s*breaks\s+[`'"]?([^\s:`'",]+)"""
+                     r""":(\d+)[`'"]?\s*,\s*already\s+at\s+[`'"]?"""
+                     r"""([^\s:`'"]+):(\d+)[`'"]?\s+"(.*)"\s*$""", re.I)
+FIX = re.compile(r"""^\s*-\s*behaviour:\s*fix:\s*[`'"]?([^\s:`'",]+):(\d+)""",
+                 re.I)
+
+
+def already_at(mark, workdir, start=None):
+    """-> (the spec line, the code line) of a `spec: breaks <file>:<line>,
+    already at <file>:<line> "<quote>"` mark whose quote is on that code
+    line as the run found it, QUOTE_WORDS words of it or the line whole;
+    None for any other mark, a quote that is not there, and a code line in
+    the spec file itself or a file of the runner's own."""
+    from agentweft.guardrails.snapshot import is_runners
+
+    m = ALREADY.match(mark or "")
+    if not m:
+        return None
+    spec = path_of(m.group(1)) + ":" + m.group(2)
+    rel, n, quote = path_of(m.group(3)), int(m.group(4)), flat(m.group(5))
+    if not quote or rel == path_of(m.group(1)) or is_runners(rel):
+        return None
+    lines, _ = lines_of(workdir, rel, n, n, start)
+    if lines is None:
+        return None
+    found = flat(lines[n - 1])
+    if quote not in found or (quote != found
+                              and quote_words(quote) < QUOTE_WORDS):
+        return None
+    return spec, rel + ":" + str(n)
+
+
+def fix_planned(output, spec):
+    """whether the plan in `output` carries a behaviour `fix: <spec line>
+    for <the path>` for the spec line `spec`, `<file>:<line>`."""
+    for _, line in verbs.visible(output):
+        m = FIX.match(line)
+        if m and path_of(m.group(1)) + ":" + m.group(2) == spec:
+            return True
+    return False
+
+
 def mark_lines(mark):
     """-> the (kind, file, line) of every line a `spec: breaks` or `spec:
     contradicts` mark cites, its kind `breaks` or `contradicts`; an empty set

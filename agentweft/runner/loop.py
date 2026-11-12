@@ -22,8 +22,8 @@ from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
 from .asking import (asked_file, assumed_answer, goes_on, lead_decides,
-                     lead_escalates, lead_pass, rides, to_lead,
-                     worked_then_asked)
+                     lead_escalates, lead_pass, rides, sibling_proved,
+                     to_lead, worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
@@ -733,6 +733,22 @@ def go(leg):
 
             if honest and lead_decides(run, step, out, run_id):
                 entry.decided = True
+            proof = sibling_proved(run, step, out) if honest else None
+            if proof and proof[0] is not None:
+                entry.gates = list(entry.gates) + [proof[0]]
+                print("  " + repr(proof[0]))
+                with open(step_dir / "gates.md", "a",
+                          encoding="utf-8") as gf:
+                    gf.write("## " + step + NEWLINE + repr(proof[0])
+                             + NEWLINE)
+            elif proof:
+                print(step + " did not show the line already broken")
+                return stop(stops.PARKED, "needs a ruling: "
+                            + proof[1].split(NEWLINE)[0][len("NEEDS: "):],
+                            "parked", entry,
+                            index="PARKED  " + flow + "  at " + step,
+                            waiting="user", question=proof[1],
+                            kind=trace.ASKED)
 
             unproven = investigate.unrooted(step, out.output)
             if unproven:

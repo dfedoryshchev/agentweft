@@ -13,6 +13,10 @@ here is the plan. write the tests for it, and no code that makes them pass.
   is not a failing test.
 - a behaviour marked `adds to` gets its test like any other, and the tests
   of the default it leaves alone stay as they are.
+- a `fix: TASK.md:<line> for <path>` behaviour is a line the code already
+  breaks on that path: its test fails on the code as it stands like the
+  others. name it on its own line, `SIBLING TEST: <file>::<name>`; one that
+  passes now shows the line is not broken there, and the run asks.
 - write no test for a behaviour the plan marks `contradicts`, and never
   change what an existing test expects to make room for the request: a test
   that encodes the request against the spec decides what nobody has decided.

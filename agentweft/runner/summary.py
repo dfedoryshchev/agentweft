@@ -1078,6 +1078,30 @@ def beside_said(found, files=None):
     return out
 
 
+BROKEN_AT = re.compile(r"^(\S+) red on the start commit: (\S+) already broken"
+                       r" at (\S+)$")
+
+
+def already_broken(passes):
+    """-> each spec line the code already broke for a sibling path that the
+    run fixed test-first, as `found_beside` gives a defect: read off the
+    runner's own `already-broken` check, its test red on the start
+    commit."""
+    out = []
+    for p in passes:
+        for g in p.get("gates") or ():
+            if g.get("gate") != "already-broken" or not g.get("ok"):
+                continue
+            for part in (g.get("detail") or "").split("; "):
+                m = BROKEN_AT.match(part)
+                if m:
+                    out.append(({"defect": m.group(2) + " already broken at "
+                                 + m.group(3) + ", red on the start commit",
+                                 "fixed": True, "test": m.group(1)},
+                                ["runner"]))
+    return out
+
+
 def found_beside(blocks):
     """-> each defect the steps found beside the change, once: [(found, the
     roles that named it)], as the last step that named it left it."""
@@ -2136,7 +2160,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                  if _present(b) for i in b["assumed"]]))
     files = [f[0].replace("\\", "/") for f in changes.get("files") or []] \
         if changes.get("git") else None
-    beside_it = found_beside(blocks)
+    beside_it = already_broken(every) + found_beside(blocks)
     why.append(("also fixed beside the change:",
                 [f["defect"] + (", shown by " + f["test"] if f["test"]
                                 else ", no test names it")

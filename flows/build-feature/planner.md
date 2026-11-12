@@ -24,6 +24,13 @@ and what TASK.md says about it, each on its own line:
   change it: the request's own words, or another line of the spec, make it
   false there. it is no conflict and has no CONFLICT line; it goes to the
   person, so ask your QUESTION about it.
+- `spec: breaks TASK.md:<line>, already at <file>:<line> "<the code line's
+  words>"` says the code already breaks that line the same way for a
+  sibling path, quoted from where it does. the run fixes that breach
+  test-first instead of asking: plan it as a behaviour of its own, `-
+  behaviour: fix: TASK.md:<line> for <the sibling path>`, so the line holds
+  for the new path and the old one alike. a quote that is not on that code
+  line, or no `fix:` behaviour, is a plain `breaks`.
 
 TASK.md saying fields are separated by commas: a `--delimiter` option that
 uses another character only when it is given adds to that line, and making

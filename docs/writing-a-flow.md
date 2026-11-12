@@ -356,7 +356,17 @@ of the place or misquotes it, or with no `RECOMMEND:`, parks the run at the
 lead for you, and so does every question of a plan that marks a behaviour
 `spec: breaks <file>:<line>` or `spec: contradicts <file>:<line>`: the park
 lists the mark under the question. a `spec: breaks` mark parks the run with
-no question too. a question or a mark you already answered in this run, with
+no question too, but one in the second form, `spec: breaks <file>:<line>,
+already at <code file>:<line> "<quote>"`, whose quote is on that code line
+as the run found it and whose plan carries a behaviour `fix: <file>:<line>
+for <the sibling path>`: the code already breaks the line that way, so the
+run fixes that breach test-first rather than asking. the test writer names
+the sibling's test on a `SIBLING TEST:` line, and once its red-test gate
+passes the runner runs that test alone on the code as the run found it: red
+is the proof (an `already-broken` check on its line, the item listed first
+under the defects fixed beside the change); green, a test that cannot run
+alone, or no such line parks on the mark as a plain `breaks`. a question or
+a mark you already answered in this run, with
 `--answer`, is not asked again: a mark whose every cited line a mark of the
 same kind you answered cited is passed over, however it is worded around the
 cite, and a mark on a line you were not asked about still parks; a question

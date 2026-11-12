@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-12T12:07:54",
+  "recorded": "2026-11-12T22:10:13",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "e2b1136f89046d34267f26065b31287a39684cedabb6c7e7876ff1ad119cf728",
+      "prompt": "dce75c7217a75c0a376cae9d08c64ba268b76aea949b1f2335298bf3c5c11c37",
       "say": "- mul(2, 3) is 6 | calc.py\n",
       "detail": "",
       "retryable": null,
@@ -67,7 +67,7 @@
       "step": "tester.md",
       "task": null,
       "go": 1,
-      "prompt": "bdff375f87c2fda5e1d850c75bc2a52ed500c315a1fb39f48573bcfc43482d76",
+      "prompt": "30d09bfbe26d7f8d0f84c020f80bc668eea712af54a9a8c1488c6b31e52fe199",
       "say": "FAILS: ImportError: cannot import name 'mul' from 'calc'\nTEST: tests/test_mul.py\n",
       "detail": "",
       "retryable": null,
@@ -85,7 +85,7 @@
       "step": "tester.md",
       "task": null,
       "go": 2,
-      "prompt": "015d7c490b9360a07e3a28236aa10285d9d7d00c6718786791be037a6628df07",
+      "prompt": "121e1706014f2e527c7f60ce29ad574754bdc723fa80edc94d142128ea2295d9",
       "say": "FAILS: ImportError: cannot import name 'mul' from 'calc'\nTEST: tests/test_mul.py\n",
       "detail": "",
       "retryable": null,

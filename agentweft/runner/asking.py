@@ -289,11 +289,90 @@ def marked(run, step, out, answered=()):
         cited = ruling.mark_lines(m)
         if cited and cited <= put:
             continue
+        if adjacent_fix(run, out, m):
+            continue
         if covered is not None and ruling.mark_ruled(
                 m, run.workdir, getattr(run, "start", None), covered):
             continue
         found.append(m)
     return found
+
+
+SIBLING = "SIBLING TEST"
+
+
+def adjacent_fix(run, out, mark):
+    """whether `mark` is a spec line the code already breaks for a sibling
+    path, to be fixed test-first rather than asked about: its quote is on
+    the code line it names (`ruling.already_at`), the plan carries a `fix:`
+    behaviour for that spec line, and no sibling test has shown it is not
+    broken there. each such mark is kept on `run.adjacent` until a test
+    writer proves it."""
+    held = ruling.already_at(mark, run.workdir, getattr(run, "start", None))
+    if held is None or not ruling.fix_planned(out.output, held[0]):
+        return False
+    if mark in (getattr(run, "not_broken", None) or ()):
+        return False
+    adjacent = getattr(run, "adjacent", None)
+    if adjacent is None:
+        adjacent = run.adjacent = {}
+    adjacent.setdefault(mark, {"spec": held[0], "at": held[1],
+                               "test": None})
+    return True
+
+
+def sibling_named(output):
+    """-> the test id on the answer's `SIBLING TEST:` line, or ""."""
+    from . import verbs
+
+    for _, line in verbs.visible(output):
+        head = verbs.key_of(line)
+        if head is not None and head[0] == SIBLING and head[1]:
+            return head[1].strip("`'\" ")
+    return ""
+
+
+def sibling_proved(run, step, out):
+    """-> None when nothing waits on a sibling test, else (the gate result
+    that shows each held mark's line already broken, "") or (None, the
+    question the run parks on). it is read once a test writer's red-test
+    gate passed and a mark waits on its proof: the test on the step's
+    `SIBLING TEST:` line runs alone on the code as the run found it, and
+    red proves the line is already broken there. green, a test that could
+    not run, or no such line makes each mark a plain `spec: breaks` that
+    goes to the person."""
+    from agentweft.guardrails.gates.base import Result
+
+    from . import wouldpass
+
+    waiting = [(m, h) for m, h in (getattr(run, "adjacent", None)
+                                   or {}).items() if not h["test"]]
+    if not waiting or not any(
+            getattr(g, "gate", None) == "red-test" and g.ok
+            for g in out.meta.get("gates") or ()):
+        return None
+    named = sibling_named(out.output)
+    red = wouldpass.alone(run, [named]) if named else None
+    if red:
+        for _, h in waiting:
+            h["test"] = named
+        return Result("already-broken", True, "; ".join(
+            named + " red on the start commit: " + h["spec"]
+            + " already broken at " + h["at"] for _, h in waiting)), ""
+    why = (step + " names no " + SIBLING + " line" if not named else named
+           + " passes on the code as the run found it" if red is False
+           else named + " could not be run alone")
+    not_broken = getattr(run, "not_broken", None)
+    if not_broken is None:
+        not_broken = run.not_broken = set()
+    for m, _ in waiting:
+        not_broken.add(m)
+        run.adjacent.pop(m, None)
+    return None, "\n".join(
+        ["NEEDS: the plan marks a spec line already broken by the code, and"
+         " " + why + ", so it is not shown broken there: the mark is a"
+         " line the request breaks", "CITES:"]
+        + ["- " + m for m, _ in waiting])
 
 
 def answer_settles(run, said):
