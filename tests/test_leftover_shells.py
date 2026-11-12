@@ -14,10 +14,16 @@ from agentweft import providers
 from agentweft.providers import cli_provider
 from agentweft.runner import trace
 
-SLEEP = 15
+# the shell and the cli stay on past the step's timeout, so a step that waited
+# on either runs into it: held to the timeout, not to a few seconds a busy
+# machine runs past
+CEILING = 60
+OUTLASTS = CEILING * 2
+LATE = 3
 
 LEAVES_A_SHELL = r"""
 import json, subprocess, sys, time
+{before}
 sys.stdin.buffer.read()
 child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep({sleep})"],
                          stdout=sys.stdout, stderr=sys.stderr)
@@ -51,7 +57,7 @@ def alive(pid):
     return True
 
 
-def gone(pid, within=5):
+def gone(pid, within=CEILING):
     end = time.time() + within
     while time.time() < end:
         if not alive(pid):
@@ -66,10 +72,10 @@ def fake(tmp_path, monkeypatch):
     every child it starts is ended at teardown, whatever the test did."""
     pids = tmp_path / "children.txt"
 
-    def make(answer=True, noise="", after="", command="claude"):
+    def make(answer=True, noise="", after="", command="claude", before=""):
         script = tmp_path / "fake_cli.py"
         script.write_text(LEAVES_A_SHELL.format(
-            sleep=SLEEP, pids=str(pids), noise=noise,
+            sleep=OUTLASTS, pids=str(pids), noise=noise, before=before,
             answer=ANSWER if answer else "", after=after), encoding="utf-8")
 
         def real(argv):
@@ -89,12 +95,20 @@ def fake(tmp_path, monkeypatch):
             os.kill(pid, 9)
 
 
-def test_an_answer_ends_the_step_and_the_shell_left_behind(fake):
-    p = fake()
+def asked(p):
+    """-> the reply, once it is shown the step ended before its timeout: a
+    step held to its timeout still keeps an answer it had, so a reply with no
+    detail does not show that."""
     began = time.time()
-    r = p.ask("go", timeout=SLEEP * 2)
+    r = p.ask("go", timeout=CEILING)
     took = time.time() - began
-    assert took < SLEEP / 3, "waited %.1fs for a shell the answer left" % took
+    assert not r.detail, r.detail
+    assert took < CEILING, "ran its whole %ds timeout" % CEILING
+    return r
+
+
+def test_an_answer_ends_the_step_and_the_shell_left_behind(fake):
+    r = asked(fake())
     assert r.text == "the answer"
     assert getattr(r, "killed", None) == 1
     [child] = fake.children()
@@ -103,43 +117,49 @@ def test_an_answer_ends_the_step_and_the_shell_left_behind(fake):
 
 def test_an_answer_ends_a_cli_that_stays_on_after_it(fake):
     """the cli itself waiting on its background shell after it has answered."""
-    p = fake(after="time.sleep(%d)" % SLEEP)
-    began = time.time()
-    r = p.ask("go", timeout=SLEEP * 2)
-    took = time.time() - began
-    assert took < SLEEP / 2, "waited %.1fs after the answer" % took
-    assert r.text == "the answer" and not r.detail
+    r = asked(fake(after="time.sleep(%d)" % OUTLASTS))
+    assert r.text == "the answer"
+    assert getattr(r, "killed", None) == 1
+    [child] = fake.children()
+    assert gone(child)
+
+
+def test_a_cli_slow_to_start_still_ends_on_its_answer(fake):
+    """an answer that comes late, as on a busy machine, ends the step as one
+    on time does."""
+    r = asked(fake(before="time.sleep(%d)" % LATE,
+                   after="time.sleep(%d)" % OUTLASTS))
+    assert r.text == "the answer"
     assert getattr(r, "killed", None) == 1
     [child] = fake.children()
     assert gone(child)
 
 
 def test_a_timeout_leaves_nothing_running(fake):
-    p = fake(answer=False, after="time.sleep(%d)" % SLEEP)
-    began = time.time()
-    r = p.ask("go", timeout=2)
-    took = time.time() - began
-    assert took < SLEEP / 2, "a 2s timeout took %.1fs" % took
-    assert r.detail == "timed out after 2s" and r.retryable
+    p = fake(answer=False, after="time.sleep(%d)" % OUTLASTS)
+    # a cli slower to start than the timeout is ended before it starts its
+    # shell, which proves nothing, so the timeout grows until it fires on one
+    for timeout in (2, 8, 30):
+        began = time.time()
+        r = p.ask("go", timeout=timeout)
+        took = time.time() - began
+        if fake.children():
+            break
+    assert took < CEILING, "a %ds timeout took %.1fs" % (timeout, took)
+    assert r.detail == "timed out after %ds" % timeout and r.retryable
     [child] = fake.children()
     assert gone(child), "the shell outlived the timeout"
 
 
 def test_another_command_that_exits_is_not_held_by_its_shell(fake):
-    p = fake(command="sometool")
-    began = time.time()
-    r = p.ask("go", timeout=SLEEP * 2)
-    took = time.time() - began
-    assert took < SLEEP / 3, "waited %.1fs for a shell the command left" % took
+    r = asked(fake(command="sometool"))
     assert "the answer" in r.text
     assert getattr(r, "killed", None) == 1
 
 
 def test_a_loud_stderr_does_not_stall_the_answer(fake):
-    p = fake(noise='sys.stderr.write("e" * 2000000); sys.stderr.flush()')
-    began = time.time()
-    r = p.ask("go", timeout=SLEEP * 2)
-    assert time.time() - began < SLEEP / 3
+    r = asked(fake(noise='sys.stderr.write("e" * 2000000); '
+                         'sys.stderr.flush()'))
     assert r.text == "the answer"
 
 

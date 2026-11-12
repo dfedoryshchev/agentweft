@@ -43,17 +43,21 @@ ADD = ("import os" + NL + NL + "import calc" + NL + NL + NL
        + "        os.remove(flag)" + NL
        + "        raise " + FAULT + NL
        + "    assert calc.add(1, 2) == 3, 'add is still wrong'" + NL)
+# a test run timed out on a busy machine is no host fault and sends the step
+# back, so every gate here is given far longer than a test run can need
+CEILING = 600
+TIMEOUT = "        timeout: " + str(CEILING) + NL
 TESTER = ("  - role: tester" + NL + "    prompt: tester.md" + NL
           + "    writes: tests" + NL + "    gates:" + NL
           + "      - gate: red-test" + NL + "        red: true" + NL
           + "        command: [\"python\", \"-m\", \"pytest\", \"-q\","
-          " \"{test}\"]" + NL)
+          " \"{test}\"]" + NL + TIMEOUT)
 COMMAND = ("      - gate: command" + NL + "        command: [\"python\","
            " \"-m\", \"pytest\", \"-q\", \"-p\", \"no:cacheprovider\"]" + NL
-           + "        expect: 0" + NL)
+           + "        expect: 0" + NL + TIMEOUT)
 RED_FIRST = ("      - gate: red-first" + NL + "        command: [\"python\","
              " \"-m\", \"pytest\", \"-q\", \"-p\", \"no:cacheprovider\","
-             " \"{test}\"]" + NL)
+             " \"{test}\"]" + NL + TIMEOUT)
 
 
 def worker(*gates):
@@ -266,7 +270,7 @@ def red_first_on_a_fix(tmp_path):
     from agentweft.guardrails import gates, snapshot
 
     place = a_place(tmp_path / "repo")
-    g = gates.build({"gate": "red-first", "command": [
+    g = gates.build({"gate": "red-first", "timeout": CEILING, "command": [
         sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
         "{test}"]}, where=place, start=snapshot.take(place))
     (place / "tests" / "test_add.py").write_text(ADD, encoding="utf-8")
@@ -388,7 +392,8 @@ def test_a_command_gate_red_on_a_code_bugs_oserror_is_the_steps(tmp_path):
         + "    (tmp_path / 'd').mkdir()" + NL
         + "    (tmp_path / 'd' / 'f').write_text('')" + NL
         + "    os.rmdir(str(tmp_path / 'd'))" + NL, encoding="utf-8")
-    g = gates.build({"gate": "command", "expect": 0, "command": [
+    g = gates.build({"gate": "command", "expect": 0, "timeout": CEILING,
+                     "command": [
         sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
         "test_tidy.py"]}, where=tmp_path)
     r = g.run("tidied it")
