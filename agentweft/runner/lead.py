@@ -236,11 +236,46 @@ def recorded(lead, asker, where, question, decided, why):
             + LEAD_BY + lead + LEAD_BY_END)
 
 
+ASSUMED_BY = "\n\nanswered by "
+ASSUMED_BY_END = (", whose ASSUMED item cites the line the question cites,"
+                  " before the lead or the operator was asked")
+
+
+def recorded_assumed(owner, n, asker, where, question, item):
+    """-> (the decisions.md heading, its body) of a question the runner
+    answered with ASSUMED item `n` of step `owner`, `item` its lines. it is
+    written in the lead's form, so it decides inside the spec and the tests
+    as a lead's decision does, never over them."""
+    lines = [l.strip() for l in item.split("\n") if l.strip()]
+    choice = lines[0] if lines else ""
+    why = " ".join(l for l in lines[1:])
+    return (asker + "'s question answered by " + owner + "'s ASSUMED "
+            + str(n) + ": " + " ".join(choice.split()),
+            "asked by " + asker + " in " + where + ":\n\n" + question
+            + LEAD_DECIDED + "DECIDED: " + choice + "\nwhy: " + why
+            + ASSUMED_BY + owner + ASSUMED_BY_END)
+
+
+def told_assumed(question, owner, n, item):
+    """-> the end of the asking step's prompt on its next go, for a
+    question an ASSUMED item answered."""
+    return ("\n\nANSWERED. when this step last ran it asked:\n\n" + question
+            + "\n\n" + owner + " already took this as ASSUMED item " + str(n)
+            + ", on the line the question cites, and that answers it for this"
+            " step:\n\n" + item.strip() + "\n")
+
+
 def decided_of(why):
     """-> the DECIDED and why lines of a decisions.md body the lead's
-    decision wrote, without the question it was asked; None for a body
-    written any other way."""
-    if not why.startswith("asked by ") or not why.endswith(LEAD_BY_END):
+    decision wrote, or an ASSUMED item's answer in the same form, without
+    the question it was asked; None for a body written any other way."""
+    if not why.startswith("asked by "):
+        return None
+    if why.endswith(LEAD_BY_END):
+        by = LEAD_BY
+    elif why.endswith(ASSUMED_BY_END):
+        by = ASSUMED_BY
+    else:
         return None
     # the question is a step's words and may hold the markers itself; the
     # decision and its why are read off one line each, so the runner's own
@@ -248,7 +283,7 @@ def decided_of(why):
     _, sep, rest = why.rpartition(LEAD_DECIDED)
     if not sep:
         return None
-    return rest.rpartition(LEAD_BY)[0].strip()
+    return rest.rpartition(by)[0].strip()
 
 
 OWN = re.compile(r"^asked by (\S+) in (\S+):\n\nNEEDS: ")

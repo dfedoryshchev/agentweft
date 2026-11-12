@@ -314,7 +314,15 @@ its own entry in `decisions.md` (and in the run's `rulings.json`, with its
 number), and the step runs again with all of them. a number the lead leaves
 neither decided nor escalated (`ESCALATE <n>: <why>`) is asked once more;
 any still not decided parks the whole ask for you, the undecided numbers
-named and nothing recorded. an `ESCALATE:`, a decision with no `why:`, or a
+named and nothing recorded. before any of that, a question that cites a
+`<file>:<line>` an ASSUMED item of an earlier step of the run cites in its
+choice or its `why:` is answered by that item, with no call at all: the step
+runs again told the item, and `decisions.md` gets an entry in the lead's
+form, "answered by <step>'s ASSUMED <n>" (in `rulings.json` as `by:
+assumed`, with the step and the item). the match is the cited line only; the
+item's `if wrong:` words decide nothing. a question on a line no ASSUMED
+item cites goes to the lead as above, and so does one answered this way and
+asked again. an `ESCALATE:`, a decision with no `why:`, or a
 second ask of the same question comes to you, and so does what the step
 acting on a decision does to a spec line or a test the run started with: a
 decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:

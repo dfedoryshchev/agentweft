@@ -21,8 +21,9 @@ from . import summary
 from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
-from .asking import (asked_file, goes_on, lead_decides, lead_escalates,
-                     lead_pass, rides, to_lead, worked_then_asked)
+from .asking import (asked_file, assumed_answer, goes_on, lead_decides,
+                     lead_escalates, lead_pass, rides, to_lead,
+                     worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
@@ -576,9 +577,25 @@ def go(leg):
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)
             went_on = False
+            answered = assumed_answer(run, step, said[1], run_id) \
+                if said and not own else None
+            if answered and not answered[1]:
+                print(step + " runs again with the ASSUMED items that answer"
+                      " it")
+                trail.close(entry, "asked", why=said[1].split(NEWLINE)[0],
+                            to=step)
+                record.mark(step, manifest.REDO, run_id, out.output)
+                record.save(run.budget)
+                run.ruled[step] = answered[0]
+                out = handed
+                continue
+            if answered:
+                said = (said[0], answered[1])
             if said:
                 head, decided, question = to_lead(run, step, said[1], given,
                                                   run_id, folder=step_dir)
+                if decided and answered:
+                    decided = answered[0] + decided
                 if head is not None:
                     lead_pass(trail, run, head, step, decided)
                 off = head.meta.get("off") if head is not None else ""

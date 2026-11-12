@@ -1,10 +1,14 @@
-"""a step that asks instead of going on: the lead decides, or the run parks."""
+"""a step that asks instead of going on: an ASSUMED item of the run answers
+it, the lead decides, or the run parks."""
+import re
+
 from agentweft.guardrails import rulings
 
 from . import lead, ruling
 from .gating import (and_forged, check_step, cited_past_end, gate_why,
                      off_task, police_line)
 from .handoff import EMPTY, PARTIAL, PRESENT
+from .handoff import parse as parse_handoff
 
 
 def to_lead(run, step, question, given, where, folder=None, pick=None):
@@ -50,6 +54,90 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
     run.rule(*lead.recorded(head, step, where, question, decided, why),
              by=rulings.LEAD)
     return out, lead.told(head, question, decided, why), ""
+
+
+IF_WRONG = re.compile(r"^\s*if\s+wrong\s*:", re.I)
+ASKED_LINE = re.compile(r"^NEEDS: (?:\d+\. )?")
+
+
+def cited_lines(text):
+    """-> the (file, line) of every `<file>:<line>` or `<file>:<a>-<b>` in
+    `text`."""
+    out = set()
+    for m in ruling.MARKED.finditer(text or ""):
+        first = int(m.group(2))
+        out |= set((ruling.path_of(m.group(1)), n)
+                   for n in range(first, int(m.group(3) or first) + 1))
+    return out
+
+
+def assumed_items(run, step):
+    """-> [(the step, its number, the item's lines, the lines it cites)] of
+    each ASSUMED item the run's other steps handed over, in the order they
+    ran. what an item cites is read off its choice and its `why:`; its `if
+    wrong:` is what would follow if it were wrong, never what it rests on."""
+    out = []
+    for owner, text in list((getattr(run, "produced", None) or {}).items()):
+        if owner == step or not text:
+            continue
+        block = parse_handoff(text)
+        if block.get("state") not in (PRESENT, PARTIAL):
+            continue
+        for n, item in enumerate(block.get("assumed") or [], 1):
+            rests = "\n".join(l for l in item.split("\n")
+                              if not IF_WRONG.match(l))
+            found = cited_lines(rests)
+            if found:
+                out.append((owner, n, item, found))
+    return out
+
+
+def asked_key(question):
+    """-> one question of an ask as its words, without its number."""
+    first = (question or "").split("\n")[0]
+    return " ".join(ASKED_LINE.sub("", first).lower().split())
+
+
+def assumed_answer(run, step, question, where):
+    """-> None when no question of `question` is answered by an ASSUMED
+    item, else (what `step` is told on its next go, the rest of the ask or
+    "" when nothing is left for the lead). a question is answered by the
+    first ASSUMED item of another step of the run that cites a line the
+    question cites: the match is the cited line, never the words. that
+    answer is put on record in the lead's form and nobody is called. a
+    question already answered this way and asked again is left for the
+    lead."""
+    told_once = getattr(run, "assumed_led", None)
+    if told_once is None:
+        told_once = run.assumed_led = set()
+    items = assumed_items(run, step)
+    numbered = lead.parts(question) if lead.numbers(question) else None
+    asks = sorted(numbered.items()) if numbered else [(None, question)]
+    told, left = [], []
+    for n, text in asks:
+        key = asked_key(text)
+        hit = None
+        if key not in told_once:
+            cites = cited_lines(text)
+            hit = next((i for i in items if i[3] & cites), None)
+        if hit is None:
+            left.append(text)
+            continue
+        owner, at, item, _ = hit
+        told_once.add(key)
+        run.rule(*lead.recorded_assumed(owner, at, step, where, text, item),
+                 by=rulings.ASSUMED, step=owner, item=at)
+        told.append(lead.told_assumed(text, owner, at, item))
+        print(step + "'s question is answered by " + owner + "'s ASSUMED "
+              + str(at) + ", on the line it cites: " + key)
+    if not told:
+        return None
+    if len(left) == 1:
+        left = [ASKED_LINE.sub("NEEDS: ", left[0], count=1)]
+    elif len(left) > 1:
+        left = [ASKED_LINE.sub("NEEDS: " + str(k) + ". ", t, count=1)
+                for k, t in enumerate(left, 1)]
+    return "".join(told), "\n".join(left)
 
 
 def lead_go(run, head, given, last, folder):
