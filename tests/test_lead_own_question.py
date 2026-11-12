@@ -14,6 +14,7 @@ the line does not say settles nothing. `QUESTION: none` asks nothing, and a
 QUESTION of a step that is not the lead rides on the handoff as before.
 """
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -424,8 +425,12 @@ def test_the_planner_is_taught_the_settling_line_and_the_broken_mark(
     assert taught in said and "|" not in taught
     assert "spec: breaks TASK.md:<line>" in said
     assert " ".join(said.split()).count(
-        "settled by that answer: give its line in decisions.md as the"
-        " SETTLED BY line") == 1
+        "the person's answer to it in this run, as its line in decisions.md")\
+        == 1
+
+
+SLOT = ('SETTLED BY: <file>:<line> "<the line, word for word>", the request'
+        ' "<its words, word for word>", or none')
 
 
 def test_the_handoff_question_carries_its_settling_line_and_what_it_costs(
@@ -434,18 +439,41 @@ def test_the_handoff_question_carries_its_settling_line_and_what_it_costs(
 
     said = composed(monkeypatch, "planner.md")
     asked = said.find("QUESTION: <")
-    slot = said.find('SETTLED BY: <file>:<line> "<the line, word for word>",'
-                     ' or none', asked)
+    slot = said.find(SLOT, asked)
     assert 0 <= asked < slot < said.find("RECOMMEND: <the answer you would"
                                          " pick", asked)
-    assert ("for the step the flow names as its lead, a question no line"
-            " settles stops the run") in said
+    assert ("for the step the flow names as its lead, a question nothing"
+            " you were given settles stops the run") in said
     assert "for any other step it does not stop the work" in said
     assert "none when you have none. it does not stop the work" not in said
-    assert ("take that reading as an ASSUMED item, its why naming that line."
-            " it is a QUESTION when two readings would change an output a"
-            " test checks") in said
     assert "you are this flow's lead" in said
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_a_gap_two_readings_would_split_is_a_question_before_a_like_line():
+    said = " ".join((ROOT / "agentweft" / "fragments" / "handoff.md")
+                    .read_text(encoding="utf-8").split())
+    question = said.find("when two readings would change an output a test"
+                         " checks, it is a QUESTION, even when a similar line"
+                         " points to one")
+    assumed = said.find("ASSUMED is only for a choice no tested output turns"
+                        " on")
+    assert 0 <= question < assumed, said
+    assert "is yours when the spec's nearest like line" not in said
+
+
+def test_the_settled_by_rule_is_in_the_handoff_alone(monkeypatch):
+    from test_spec_addition import composed
+
+    planner = (ROOT / "flows" / "build-feature" / "planner.md").read_text(
+        encoding="utf-8")
+    assert "SETTLED BY: the request" not in planner
+    assert "decisions.md" not in planner
+    said = " ".join(composed(monkeypatch, "planner.md").split())
+    assert said.count('cited by name as `the request "<its words, word for'
+                      ' word>"`') == 1
 
 
 REQUEST = "add a cache: clear the cached list on every write through the client"
@@ -527,7 +555,7 @@ def test_the_planner_is_taught_to_cite_the_request(monkeypatch):
     from test_spec_addition import composed
 
     said = composed(monkeypatch, "planner.md")
-    assert 'SETTLED BY: the request "<its words, word for word>"' in said
+    assert 'the request "<its words, word for word>"' in said
 
 
 def test_a_conflict_stops_before_the_lead_s_own_question_is_read(

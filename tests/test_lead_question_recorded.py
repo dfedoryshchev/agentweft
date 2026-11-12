@@ -169,7 +169,24 @@ def test_the_invert_questions_its_lines_settle_are_the_lead_s_and_the_gap_parks(
     assert ruled == []
 
 
-def test_the_invert_gap_taken_as_assumed_leaves_two_lead_decisions(tmp_path):
+def test_the_offset_gap_two_readings_split_goes_to_the_person(tmp_path,
+                                                              monkeypatch):
+    from test_spec_addition import composed
+
+    rule = ("when two readings would change an output a test checks, it is a"
+            " QUESTION, even when a similar line points to one")
+    assert rule in composed(monkeypatch, "planner.md")
+    offset = [l for l in recorded("invert-window").split(NL)
+              if l.startswith(OFFSET[0])]
+    assert "TASK.md:48" in offset[0] and "+24:00" in offset[0]
+    said, ruled = routed(tmp_path, "invert-window",
+                         in_the_new_shape(recorded("invert-window")))
+    assert said.startswith("NEEDS: " + OFFSET[0][len("QUESTION: "):]), said
+    assert "RECOMMEND: reject offsets outside 00-23 / 00-59" in said
+    assert ruled == []
+
+
+def test_an_assumed_item_is_read_by_no_gate_the_stated_floor(tmp_path):
     text = in_the_new_shape(recorded("invert-window"))
     start, end = text.index(OFFSET[0]), text.index(OFFSET[1])
     text = text[:start] + text[end + len(OFFSET[1]) + 1:]

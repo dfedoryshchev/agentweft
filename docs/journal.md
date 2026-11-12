@@ -629,7 +629,8 @@ answers, in order:
   found it)`), or the tests the run started with run again; `no gates ran`
   is only for a run that checked nothing.
 - **the one decision**: the open questions, from a `QUESTION:` line in a
-  step's HANDOFF block (which never stops the run), a `NEEDS:` or
+  step's HANDOFF block (which stops the run only from the flow's lead,
+  when nothing settles it), a `NEEDS:` or
   `CONFLICT:` line (which do), a doubt that is a question, what the
   investigator leaves to you, and a spec or test change nobody ruled on. two
   are one when they cite the same spec line (`TASK.md:12`, or `TASK.md:3`

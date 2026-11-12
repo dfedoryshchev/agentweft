@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-11T21:31:35",
+  "recorded": "2026-11-12T12:08:50",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 1,
-      "prompt": "7f76a1084df2d132c6f8868db527e55a343e25d05592006c7d43d556831253c4",
+      "prompt": "f3cfbecc585486992c2b2fda3bd24eab12811753748594a680012e9d41f35ee8",
       "say": "TEST: tests/test_add.py\n\ncalc.py: add returned a - b, it returns a + b now\n\nNEEDS: should add() turn down a string, the way sub() does not?\nRECOMMEND: leave it\nSIZE: none if left; one line in calc.py plus a test if a string should be turned down\n",
       "detail": "",
       "retryable": null,
@@ -40,7 +40,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "60d1b76cc495654f08409a703c676349f6c717e17940cd25300ae5a35d94106d",
+      "prompt": "e0ea0c7b820a5ff6764f636f7b9b11eb58dae532ab37fa2c011c4dcd22e368fc",
       "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
       "detail": "",
       "retryable": null,

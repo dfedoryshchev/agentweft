@@ -170,6 +170,17 @@ def test_only_the_lead_is_told_the_lead_decides_its_later_questions():
     assert "every later QUESTION of the flow's lead" in lead
 
 
+def test_an_answer_starting_yours_with_its_own_words_hands_back_and_shows_them():
+    from agentweft.runner import ruling
+
+    answer = "Yours: return 304, never 200"
+    assert ruling.handed_back(answer)
+    told = ruling.told("QUESTION: which code?", answer, lead="planner",
+                       step="planner")
+    assert "\n\n" + answer + "\n\n" in told
+    assert "every later QUESTION of the flow's lead" in told
+
+
 def test_a_golden_of_a_flow_with_no_lead_shows_no_hand_back():
     from pathlib import Path
 

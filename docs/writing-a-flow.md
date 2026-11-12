@@ -319,8 +319,10 @@ never left open. when the context settles it, a line under it says where,
     SETTLED BY: TASK.md:12 "the line, word for word"
 
 (the shared handoff template asks every step for this line under each
-`QUESTION:`, `none` when no line answers it; only the lead's is read, and
-the template tells the lead that a question no line settles stops the run;
+`QUESTION:`, `none` when nothing it was given answers it; only the lead's
+is read, and the template tells the lead that a question nothing settles
+stops the run, and every step that a gap two readings of which would change
+an output a test checks is a QUESTION, even when a like line points to one;
 a question the request's own words answer is settled by them, cited by name
 as `SETTLED BY: the request "<its words>"`, its words three or more and in
 the request as the run holds it; the files the runner writes into the

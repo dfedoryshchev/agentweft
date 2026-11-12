@@ -99,7 +99,12 @@ question's words and marks nothing, is decided by the lead; then the
 spec-files check and the start-tests replay hold what the build changes,
 and if neither does, the handoff's first line under the one decision is
 that decision with the line it was settled by, for the person to read and
-overrule. on a resume, an answered mark is matched by the lines
+overrule. a second floor: an `ASSUMED:` item is never checked by a gate and
+never parks. the template tells a step that a gap two readings of which
+would change an output a test checks is a QUESTION even when a like line
+points to one, and only a choice no tested output turns on is ASSUMED, but
+nothing reads which one a step chose: a real gap filed as ASSUMED goes
+ahead, shown only among that step's ASSUMED lines. on a resume, an answered mark is matched by the lines
 it cites and its kind, never by its words, and a reworded question is
 settled only by a SETTLED BY line quoting the answer in the entry `--answer`
 wrote in this run (its digest among the runner's own records of what it

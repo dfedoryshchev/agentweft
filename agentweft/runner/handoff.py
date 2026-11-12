@@ -55,7 +55,8 @@ SECTIONS = (("DID", "did"), ("BECAUSE", "because"),
 KEYS = dict((head, key) for head, key in SECTIONS)
 KNOWN = set(KEYS.values())
 # an open question in the block and what it carries, each on a line of its
-# own; it never stops the run the way a NEEDS line does
+# own; from any step but the flow's lead it never stops the run the way a
+# NEEDS line does
 ASKING = {"QUESTION": "question", "RECOMMEND": "recommend", "SIZE": "size",
           "SETTLED BY": "settled"}
 
