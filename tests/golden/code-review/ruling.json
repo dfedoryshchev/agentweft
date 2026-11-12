@@ -46,13 +46,9 @@
     "  reviewer.md",
     "worker.md runs again with your answer at the end of its prompt, and",
     "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>. an answer that",
-    "starts yours: hands the call back: the step makes it, and the",
-    "flow's lead decides each later question of its own by its",
-    "recommendation.",
+    "can come from a file: --answer-file <path>.",
     "to carry on",
     "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\"",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"yours: <any words>\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -86,8 +82,7 @@
     "- record: runs/code-review-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 1 lines, head <hash> (python run.py verify code-review-<run>)",
     "to carry on",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\"",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"yours: <any words>\""
+    "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\""
   ],
   "files": [
     "code-review-<run>/budget-plan.md",
@@ -222,13 +217,9 @@
     "  reviewer.md",
     "worker.md runs again with your answer at the end of its prompt, and",
     "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>. an answer that",
-    "starts yours: hands the call back: the step makes it, and the",
-    "flow's lead decides each later question of its own by its",
-    "recommendation.",
+    "can come from a file: --answer-file <path>.",
     "to carry on",
     "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\"",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"yours: <any words>\"",
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [

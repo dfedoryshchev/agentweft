@@ -287,7 +287,8 @@ def go(leg):
                                resume_command(flow, run_id, run.caps),
                                question=question, conflict=conflict,
                                replayed=replayed, worked=worked,
-                               stopped_for=stopped_for, run_did=did)
+                               stopped_for=stopped_for, run_did=did,
+                               led=bool(run.lead))
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:

@@ -115,7 +115,8 @@ def test_a_ruling_park_ends_on_the_answer_form(tmp_path, monkeypatch):
     run(monkeypatch, "asks", "--force")
     [first] = folders(tmp_path)
     again = "  python run.py asks --resume " + first.name + " --force"
-    assert handoff(first)[-2:] == [again + park.ANSWER, again + park.YOURS]
+    assert handoff(first)[-1] == again + park.ANSWER
+    assert again + park.YOURS not in handoff(first)
 
 
 def test_a_conflict_ends_on_both_answer_forms():

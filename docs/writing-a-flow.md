@@ -352,7 +352,8 @@ needs three words. the runner checks the cited line is from your answer, not
 that it answers the new question: a new question quoting your answer is
 decided by the lead, and the handoff shows the line it was settled by. a
 reworded question with no such line, or one that quotes any other entry, is
-asked again. an answer that starts `yours:` hands the call back: the step
+asked again. in a flow that names a lead, the park offers a second form: an
+answer that starts `yours:` hands the call back: the step
 that asked makes it, and every later question of the lead's own in the run
 that has a `RECOMMEND:` is decided by it, with the line of `decisions.md`
 your answer starts on shown as what settled it. a mark on a line you were

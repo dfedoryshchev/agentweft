@@ -51,13 +51,9 @@
     "  patcher.md",
     "worker.md runs again with your answer at the end of its prompt, and",
     "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>. an answer that",
-    "starts yours: hands the call back: the step makes it, and the",
-    "flow's lead decides each later question of its own by its",
-    "recommendation.",
+    "can come from a file: --answer-file <path>.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<your ruling>\"",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"yours: <any words>\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -98,8 +94,7 @@
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 2 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<your ruling>\"",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"yours: <any words>\""
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<your ruling>\""
   ],
   "files": [
     "fix-with-test-<run>/budget-plan.md",
@@ -347,13 +342,9 @@
     "  patcher.md",
     "worker.md runs again with your answer at the end of its prompt, and",
     "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>. an answer that",
-    "starts yours: hands the call back: the step makes it, and the",
-    "flow's lead decides each later question of its own by its",
-    "recommendation.",
+    "can come from a file: --answer-file <path>.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<your ruling>\"",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"yours: <any words>\"",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [

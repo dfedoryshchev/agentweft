@@ -1,6 +1,7 @@
 """an answer that hands the call back, and the marks an answer already took.
 
-the person answers the question of a run that waits with `--answer`. an
+the person answers the question of a run that waits with `--answer`. in a
+flow that names a lead, and only there, the park offers a second form: an
 answer that starts `yours:` hands the call back: every later QUESTION of the lead's own
 in the run is decided by its RECOMMEND, settled by the line of decisions.md
 the hand-back stands on, and listed first on the handoff with those words.
@@ -124,6 +125,59 @@ def test_a_park_offers_the_hand_back(tmp_path, monkeypatch, capsys):
                                       folder(tmp_path).name])
     assert engine.main() == stops.EXIT_STOP
     assert '--answer "yours: <any words>"' in capsys.readouterr().out
+
+
+def lead_less(tmp_path):
+    path = tmp_path / "flows" / "led" / "flow.yaml"
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "lead: planner", "lead: none"), encoding="utf-8")
+
+
+def test_a_flow_with_no_lead_offers_no_hand_back(tmp_path, monkeypatch,
+                                                 capsys):
+    a_flow(tmp_path, monkeypatch)
+    lead_less(tmp_path)
+    worker = NL.join(["HANDOFF", "DID:", "- built it", "NEEDS: " + ASK,
+                      "END HANDOFF", ""])
+    from test_lead_own_question import answering, run
+
+    answering(monkeypatch, block("none"), worker)
+    assert run(monkeypatch) == stops.EXIT_STOP
+    text = (folder(tmp_path) / "handoff.md").read_text(encoding="utf-8")
+    assert "yours:" not in text and "flow's lead" not in text, text
+    capsys.readouterr()
+    monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--resume",
+                                      folder(tmp_path).name])
+    assert engine.main() == stops.EXIT_STOP
+    assert "yours:" not in capsys.readouterr().out
+    _, asked = resumed(tmp_path, monkeypatch, block("none"), YOURS)
+    told = " ".join(dict(asked)["worker.md"].split())
+    assert YOURS in told
+    assert "hands the call back" not in told
+
+
+def test_only_the_lead_is_told_the_lead_decides_its_later_questions():
+    from agentweft.runner import ruling
+
+    alone = ruling.told("NEEDS: which code?", YOURS)
+    worker = ruling.told("NEEDS: which code?", YOURS, lead="planner",
+                         step="worker")
+    lead = ruling.told("QUESTION: which code?", YOURS, lead="planner",
+                       step="planner")
+    assert "hands the call back" not in alone
+    assert "make it yourself" in worker
+    assert "QUESTION of the flow's lead" not in worker
+    assert "every later QUESTION of the flow's lead" in lead
+
+
+def test_a_golden_of_a_flow_with_no_lead_shows_no_hand_back():
+    from pathlib import Path
+
+    golden = Path(__file__).resolve().parent / "golden"
+    assert "yours:" not in (golden / "fix-with-test" / "ruling-resume.json"
+                            ).read_text(encoding="utf-8")
+    assert "yours:" in (golden / "build-feature" / "escalated-resume.json"
+                        ).read_text(encoding="utf-8")
 
 
 def test_a_conflict_is_not_handed_back(tmp_path, monkeypatch, capsys):

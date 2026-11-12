@@ -492,6 +492,37 @@ def test_a_request_cite_that_is_not_the_request_s_words_settles_nothing(
     assert decisions.read(tmp_path) == []
 
 
+AMEND = "request: keep the spec and add a flag for it"
+
+
+@pytest.mark.parametrize("quote, settles", [
+    ("add a cache: clear the cached list", True),
+    ("keep the spec and add a flag", True),
+    ("added after a spec conflict, and it decides", False),
+    ("it decides where the two disagree", False),
+    ("through the client keep the spec", False),
+    ("through the client added after", False)])
+def test_a_request_cite_is_held_to_the_person_s_words_piece_by_piece(
+        quote, settles):
+    from agentweft.runner import ruling
+
+    task = ruling.amended(REQUEST, AMEND)
+    said = 'the request "' + quote + '"'
+    assert ruling.request_settles(said, task) == (
+        ruling.THE_REQUEST if settles else "")
+
+
+def test_a_request_amended_twice_is_read_piece_by_piece(monkeypatch):
+    from agentweft.runner import ruling
+
+    task = ruling.amended(ruling.amended(REQUEST, AMEND),
+                          "request: and drop the flag again later")
+    assert ruling.request_settles('the request "drop the flag again"',
+                                  task) == ruling.THE_REQUEST
+    assert ruling.request_settles('the request "for it and drop"',
+                                  task) == ""
+
+
 def test_the_planner_is_taught_to_cite_the_request(monkeypatch):
     from test_spec_addition import composed
 

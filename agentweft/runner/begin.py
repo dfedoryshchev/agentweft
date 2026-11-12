@@ -7,7 +7,7 @@ from pathlib import Path
 from agentweft.roles import resolver
 
 from .config import config, due, steps, where
-from agentweft.flow.spec import REVIEWER, step_id
+from agentweft.flow.spec import REVIEWER, lead_of, step_id
 from agentweft.guardrails import (baseline, factsguard, redorder, sacrifice,
                                   signoff, skips, snapshot)
 from agentweft.orchestrate import decisions, park, project
@@ -192,7 +192,8 @@ def begin(unrecorded):
                 print("  " + again + park.REQUEST)
             else:
                 print("  " + again + park.ANSWER)
-                print("  " + again + park.YOURS)
+                if lead_of(fm):
+                    print("  " + again + park.YOURS)
             return stops.EXIT_STOP
     if answer is not None and question is None:
         print(pick_up + " is not waiting for a ruling, so --answer has nothing"
@@ -570,7 +571,8 @@ def begin(unrecorded):
             print("ruled: the request is amended, and the run starts again at "
                   + start)
         else:
-            run.ruled[start] = ruling.told(question, answer, kind, files)
+            run.ruled[start] = ruling.told(question, answer, kind, files,
+                                           lead=run.lead, step=start)
             print("ruled: " + start + " runs again with the answer")
     return Leg(flow=flow, fm=fm, run=run, route=route, record=record,
                folder=folder, run_id=run_id, started=started, clock=clock,

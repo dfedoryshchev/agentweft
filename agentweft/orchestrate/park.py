@@ -21,7 +21,7 @@ passes to the next, machine to machine. this is what a run passes to a person.
 
 def lines(step, who, done, left, command, why=None, again=False, cause=None,
           handed=None, question=None, conflict=False, replayed=False,
-          worked=None, stopped_for=None, run_did=()):
+          worked=None, stopped_for=None, run_did=(), led=False):
     """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
@@ -47,13 +47,14 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     the conflict is a test the run started with gone red. `run_did` is the
     product files the place holds changed since the run started: a step
     that asked without changing anything itself still did not stop a run
-    that had done the work, whichever step did it.
+    that had done the work, whichever step did it. `led` says the flow
+    names a lead, so an answer may hand the call back to it.
     """
     if question is not None and conflict:
         return contradicted(step, done, left, command, question, replayed)
     if question is not None:
         return ruling(step, who, done, left, command, question, worked,
-                      stopped_for, run_did)
+                      stopped_for, run_did, led)
     if who is None:
         return stopped(step, cause, done, left, command, why, handed)
     out = ["waiting for    " + who]
@@ -117,7 +118,7 @@ YOURS = ' --answer "yours: <any words>"'
 
 
 def ruling(step, who, done, left, command, question, worked=None,
-           stopped_for=None, run_did=()):
+           stopped_for=None, run_did=(), led=False):
     out = ["waiting for    " + who, "stopped at     " + step, ""]
     if stopped_for:
         out.append(step + " did the work, then the run stopped for a ruling:"
@@ -142,14 +143,18 @@ def ruling(step, who, done, left, command, question, worked=None,
     ran_and_left(out, done, left)
     out.append(step + " runs again with your answer at the end of its prompt, and")
     out.append("the question and the answer go into decisions.md. a longer answer")
-    out.append("can come from a file: --answer-file <path>. an answer that")
-    out.append("starts yours: hands the call back: the step makes it, and the")
-    out.append("flow's lead decides each later question of its own by its")
-    out.append("recommendation.")
+    if led:
+        out.append("can come from a file: --answer-file <path>. an answer that")
+        out.append("starts yours: hands the call back: the step makes it, and the")
+        out.append("flow's lead decides each later question of its own by its")
+        out.append("recommendation.")
+    else:
+        out.append("can come from a file: --answer-file <path>.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command + ANSWER)
-    out.append("  " + command + YOURS)
+    if led:
+        out.append("  " + command + YOURS)
     return out
 
 

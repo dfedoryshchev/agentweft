@@ -713,12 +713,17 @@ def request_settles(said, request):
     are in `request`, the request the run was handed as it holds it, spaces
     aside. "" for anything else, and for a run handed none. the request is
     no file of the place and its lines are not shown numbered, so it is
-    cited by name; a runner file is still never cited (`settles`)."""
+    cited by name; a runner file is still never cited (`settles`). a
+    request a `request:` answer amended is read piece by piece, the request
+    as given and each answer's words apart: the words the runner joins them
+    with (AMENDED) are no one's, and a quote across a join quotes nothing
+    the person said."""
     m = REQUEST_QUOTE.match((said or "").strip())
     if not m or not request:
         return ""
     quote = flat(m.group(1))
-    if quote_words(quote) < QUOTE_WORDS or quote not in flat(request):
+    if quote_words(quote) < QUOTE_WORDS or not any(
+            quote in flat(piece) for piece in request.split(AMENDED)):
         return ""
     return THE_REQUEST
 
@@ -1928,8 +1933,9 @@ def why(step, run_id, question, answer, by, kind=None, files=()):
             + ANSWERED_BY + by + ANSWERED_END)
 
 
-HANDS_BACK = ("this answer hands the call back: make it yourself, and say which"
-              " call you made. every later QUESTION of the flow's lead in this"
+MAKE_IT = ("this answer hands the call back: make it yourself, and say which"
+           " call you made.")
+HANDS_BACK = (MAKE_IT + " every later QUESTION of the flow's lead in this"
               " run that has a RECOMMEND is decided by it, settled by this"
               " answer and on record for the person to overrule, so ask it as"
               " before, with its RECOMMEND. a mark on a spec line the person"
@@ -1949,11 +1955,21 @@ def took(question):
             " questions; a mark on any other line still goes to the person.")
 
 
-def told(question, answer, kind=None, files=()):
+def handing_back(answer, lead, step):
+    """-> what a step that runs again is told of an answer that hands the
+    call back: nothing in a flow with no `lead`, all of HANDS_BACK for the
+    lead `step` is, and only MAKE_IT for any other step."""
+    if not lead or not handed_back(answer):
+        return ""
+    return HANDS_BACK if step == lead else MAKE_IT
+
+
+def told(question, answer, kind=None, files=(), lead=None, step=None):
     """-> the end of the step's prompt on the run that carries on: last, so
-    the answer is the final thing the step reads."""
+    the answer is the final thing the step reads. `step` is the step that
+    runs again and `lead` the step the flow names as its lead, if any."""
     said = [s for s in (scope(question, kind, files), took(question),
-                        HANDS_BACK if handed_back(answer) else "") if s]
+                        handing_back(answer, lead, step)) if s]
     return ("\n\nRULING. when this step last ran it asked:\n\n" + question
             + "\n\nthe answer, which decides it:\n\n" + answer
             + "".join("\n\n" + s for s in said) + "\n")

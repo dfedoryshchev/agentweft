@@ -86,7 +86,11 @@ section 8). the request the run was handed is cited by name, `SETTLED BY:
 the request "<its words>"`, and settles when the words, three or more, are
 in the request as the run holds it (the `--task` text, with an answer that
 amended it after a spec conflict), spaces aside; a run handed no request
-has none to cite. every file the runner itself writes into the place,
+has none to cite. the request as given and each amending answer are
+checked apart, never across the words the runner joins them with, and those
+words are no one's and settle nothing. the floor below covers the request
+too: any three of its words settle any question, since the check reads the
+words, not whether they answer it. every file the runner itself writes into the place,
 decisions.md and the facts store, stays refused as a place line, and the
 run folder's `task.md` is no file of the place. the floor: the check proves the line is there and says the
 quote, never that the line answers the question, so a planner that cites a
@@ -104,8 +108,10 @@ question it repeats or its closing line. an answer line quoted whole settles
 however short (a one-word answer), any other quote of it needs three words.
 the floor holds here too: the check proves the cited line is from the
 answer, not that it answers the question, so a new question quoting the
-answer is decided by the lead and shown on the handoff with that line. an
-answer that starts `yours:` hands the call back, read off its first word
+answer is decided by the lead and shown on the handoff with that line. in
+a flow that names a lead, an answer that starts `yours:` hands the call
+back (a flow with no lead offers no hand-back, and such an answer is read
+as any other), read off its first word
 and never off what the rest says: from then on in the run, and in a leg
 that carries it on, every QUESTION of the lead's own with a `RECOMMEND:`
 that no line settles is decided by that recommendation, settled by the
@@ -114,7 +120,9 @@ words. it lifts no `spec: breaks` or `spec: contradicts` mark on a line the
 person was not asked about, and a question with no `RECOMMEND:` still
 parks; a conflict's answer is `override:` or `request:` and never `yours:`.
 any other answer decides its own question only. the step that runs again is
-told which marks of its question the answer took.
+told which marks of its question the answer took, and of a hand-back, that
+the call is its to make; only the lead is told its later questions are
+decided by its recommendation.
 
 the same holds for every other quote a step gives as evidence. a `REFUSED:`
 line and the `spec:` line under each `WRONG TEST:` claim that cite a line that
