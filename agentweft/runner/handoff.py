@@ -1374,11 +1374,13 @@ def brief(h):
     return out
 
 
-def said(item):
-    """one VERIFIED claim as a line, with how it stood up."""
+def said(item, named=""):
+    """one VERIFIED claim as a line, with how it stood up. `named` is the
+    name its command goes by when later lines name it instead."""
     out = item["claim"]
     if item["cmd"]:
-        out = out + " | cmd: " + item["cmd"]
+        out = out + " | cmd" + (" [" + named + "]" if named else "") + ": " \
+            + item["cmd"]
     if item["saw"]:
         out = out + " | saw: " + item["saw"]
     tail = item["backed"]

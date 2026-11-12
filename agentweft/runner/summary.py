@@ -802,13 +802,117 @@ def replay(passes):
     return None, None
 
 
-def red_first(passes, held=True):
+def red_counts(g, proof, passes=None):
+    """-> the tests red-first gate `g` replayed, counted apart from the run's
+    red proof: written first and red, written first and green, added after
+    green and red without the fix (coverage), added after green and green
+    without it (pins), and, given `passes`, the cases a review added after
+    the gate's pass and proved red on the start commit. "" when the run holds
+    no red proof shown by a gate or `g` kept no tests."""
+    tests = [t for t in g.get("tests") or []
+             if isinstance(t, dict) and t.get("test")]
+    if not proof or proof.get("how") != "gate" or not tests:
+        return ""
+    ids = set(i for i in proof.get("ids") or [] if isinstance(i, str))
+    files = sorted(proof.get("tests") or {})
+    whole = [f for f in files if not any(_tail(i.split("::")[0], f)
+                                         for i in ids)]
+    written = proof.get("source") != "supplied"
+
+    def first(t):
+        return t["test"] in ids or CASE.sub(r"\1", t["test"]) in ids or (
+            written and any(_tail(t["test"].split("::")[0], f)
+                            for f in whole))
+
+    early = [t for t in tests if first(t)]
+    late = [t for t in tests if not first(t)]
+    out = []
+    if early or written:
+        out.append(str(sum(1 for t in early if t["before"] == "red"))
+                   + " written first and red")
+        green = sum(1 for t in early if t["before"] != "red")
+        if green:
+            out.append(str(green) + " written first that "
+                       + ("passes" if green == 1 else "pass")
+                       + " without the fix")
+    else:
+        out.append("0 written first (the " + (proof.get("source") or "given")
+                   + " test" + (" is" if len(files) == 1 else "s are")
+                   + " the proof: " + ", ".join(files) + ")")
+    cover = sum(1 for t in late if t["before"] == "red")
+    pins = len(late) - cover
+    if cover:
+        out.append(str(cover) + " added after green (coverage)")
+    if pins:
+        out.append(str(pins) + " added after green that "
+                   + ("passes" if pins == 1 else "pass") + " without the fix ("
+                   + ("a pin" if pins == 1 else "pins") + ")")
+    review = on_review(passes, g) if passes is not None else 0
+    if review:
+        out.append(str(review) + " added on review, red on the start commit")
+    return "; ".join(out)
+
+
+def on_review(passes, g):
+    """-> how many tests the cases a review routed added after the pass that
+    ran gate `g`, each proved red on the start commit by a red-test gate: the
+    test ids its command names, or one for a command that names none."""
+    after = next((n for n, p in enumerate(passes)
+                  if any(x is g for x in p["gates"])), None)
+    if after is None:
+        return 0
+    count = 0
+    for p in passes[after + 1:]:
+        if not p.get("case"):
+            continue
+        for x in p["gates"]:
+            if x["gate"] == "red-test" and x["ok"] and not x.get("skipped") \
+                    and ON_START in x["detail"]:
+                count += max(1, len(set(w for w in (x["command"] or "").split()
+                                        if "::" in w)))
+    return count
+
+
+ON_START = "on the start commit"
+NAMED_FROM = 80
+
+
+def verified_lines(blocks):
+    """-> a line per VERIFIED claim of every block, with how it stood up. a
+    command of NAMED_FROM characters or more behind more than one claim is
+    printed in full once, named `[c<n>]`, and each later claim it backs
+    names it instead; a shorter one is no longer than its name."""
+    items = [(role, i) for role, b in blocks if _present(b)
+             for i in b["verified"]]
+    many = [c for c in set(i["cmd"] for _, i in items if i["cmd"])
+            if len(c) >= NAMED_FROM
+            and sum(1 for _, i in items if i["cmd"] == c) > 1]
+    named, out = {}, []
+    for role, i in items:
+        if i["cmd"] in many and i["cmd"] in named:
+            line = handoff.said(dict(i, cmd=named[i["cmd"]]
+                                     + ", printed above"))
+        elif i["cmd"] in many:
+            named[i["cmd"]] = "c" + str(len(named) + 1)
+            line = handoff.said(i, named[i["cmd"]])
+        else:
+            line = handoff.said(i)
+        out.append("- " + role + " verified: " + line)
+    return out
+
+
+def red_first(passes, held=True, proof=None):
     """-> the red-first line. `held` False says the run's red-proof record
-    holds no proof, so a red-test gate that went red proved nothing."""
+    holds no proof, so a red-test gate that went red proved nothing. `proof`
+    is the run's red proof: given one shown by a gate, the tests the red-first
+    replay ran are counted apart (`red_counts`)."""
     step, g = replay(passes)
     if g is not None:
         if not g["ok"]:
             return "the red-first gate failed on " + step + ": " + g["detail"]
+        counted = red_counts(g, proof, passes)
+        if counted:
+            return "shown on " + step + ": " + counted
         return "shown on " + step + ", " + g["detail"]
     for p in passes:
         for g in p["gates"]:
@@ -1933,7 +2037,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
         for _, ok, found in made]) or "no gates ran"
     now = leftred.red_now(left) if stopped else ""
     out.append("suite: " + checks + ("; " + now if now else "")
-               + "; red first: " + red_first(every, held)
+               + "; red first: " + red_first(every, held, proof)
                + ("; " + order if order.startswith("tests skipped") else "")
                + "".join("; " + s for s in skipped) + ".")
     if changes.get("git"):
@@ -2132,13 +2236,19 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     out.append("")
     out.append("## tests and checks")
+    _, shown = replay(every)
     for p in every:
         if p["gates"]:
             for g in p["gates"]:
+                detail = g["detail"]
+                counted = red_counts(g, proof) if g is shown and g["ok"] \
+                    else ""
+                if counted:
+                    detail = counted + "; each test is listed below"
                 out.append("- " + at(p) + ": " + ("PASS " if g["ok"]
                                                        else "FAIL ")
-                           + g["gate"] + (" - " + stops.flat(g["detail"])
-                                          if g["detail"] else "")
+                           + g["gate"] + (" - " + stops.flat(detail)
+                                          if detail else "")
                            + (" (" + g["command"] + ")" if g["command"]
                               else ""))
         elif p.get("ungated"):
@@ -2146,7 +2256,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.extend("- " + stopped["at"] + ": " + ("PASS " if ok else "FAIL ")
                + name + " - " + found
                for name, ok, found in (stopped or {}).get("checked") or [])
-    out.append("- red first: " + red_first(every, held))
+    out.append("- red first: " + red_first(every, held, proof))
     out.extend("- " + s for s in sized)
     if order:
         out.append("- test order: " + order)
@@ -2155,7 +2265,6 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     out.extend(suite)
     out.extend(signed)
     out.extend("- " + s + " (" + skips.source(s) + ")" for s in skipped)
-    _, shown = replay(every)
     if shown is not None:
         from agentweft.guardrails.gates.redfirst_gate import (MISSING_NAME,
                                                               said_of)
@@ -2176,12 +2285,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if dug.get("REPRO"):
         out.append("- " + investigate.STEP + " repro: "
                    + dug["REPRO"][0].split(":", 1)[1].strip())
-    for role, b in blocks:
-        if _present(b):
-            out.extend("- " + role + " verified: " + handoff.said(i)
-                       for i in b["verified"])
+    out.extend(verified_lines(blocks))
 
-    hand = [] if stopped else by_hand(every, proof, changes.get("start"))
+    hand =[] if stopped else by_hand(every, proof, changes.get("start"))
     if hand:
         out.append("")
         out.append("## see the fix by hand")

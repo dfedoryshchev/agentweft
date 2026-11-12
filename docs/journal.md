@@ -617,14 +617,25 @@ headings, never by `|`.
 the top is the default view, held to about 900 tokens (four characters to a
 token); a list that does not fit is cut to a line ending `more in the full
 record below`, and when that is not enough the heading and the lines under it
-are cut to width too (a long task line or stop reason is in full below). it
-answers, in order:
+are cut to width too (a long task line or stop reason is in full below). the
+`suite:` line, the question under the one decision, each question
+under `also open:`, the lead's own decisions and every recommendation are
+never cut: a decision cut short is one the person cannot make from the top.
+it answers, in order:
 
 - **what came of it**: the heading, the run's outcome, then on a stop where
   and why; only a run that got through adds the last working step's first
   DID line, so a stop never leads with "fixed". then what ran, the `suite:`
   line (gates passed, the checks the runner made outside the gates and the
-  red-first proof) and the `changed:` line. a conflict stop counts its
+  red-first proof) and the `changed:` line. the red-first proof counts the
+  tests the replay ran apart, read from the run's red proof: `shown on
+  worker.md: 27 written first and red; 10 added after green (coverage); 1
+  added after green that passes without the fix (a pin); 1 added on review,
+  red on the start commit`, each count only when there is one; a red shown
+  on a supplied test reads `0 written first (the supplied test is the proof:
+  tests/test_bug.py)`. the same line closes "tests and checks", where the
+  replay's own gate line gives the counts and each test follows on a line of
+  its own. a conflict stop counts its
   quote check (`1 check passed (the quote at TASK.md:3 is there as the run
   found it)`), or the tests the run started with run again; `no gates ran`
   is only for a run that checked nothing.
@@ -745,7 +756,10 @@ runner's words), each fact
 check a step's change set off
 (`## conformance`, only when one ran: `- <step>: <id> (<scope>) held`,
 `broken` or `could not run`, the check and what it said), what changed,
-what was read, what was tested, what a ruling is owed on, what was not verified, what
+what was read, what was tested (each VERIFIED claim with its command; a
+command behind more than one claim is printed once, `cmd [c1]: <command>`,
+and each later claim names it, `cmd: c1, printed above`), what a ruling is
+owed on, what was not verified, what
 the next session must keep (each line once, with the roles that kept it),
 what went wrong on the way, and what the run was.
 the whole file looks like the example at the end of this section.
@@ -898,7 +912,7 @@ five sections are written by the runner alone:
     # fix-with-test fix-with-test-2026-10-13-091402: done - add returns a + b; it subtracted
 
     fix-with-test ran worker.md -> patcher.md in 27.1s on: add(1, 2) returns -1.
-    suite: 4 of 4 gates passed; red first: shown on patcher.md, 1 of 1 new test red without the fix and green with it: test_calc.py::test_add.
+    suite: 4 of 4 gates passed; red first: shown on patcher.md: 1 written first and red.
     changed: 2 files, 0 commits (from git, below).
 
     ## the one decision

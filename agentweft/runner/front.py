@@ -8,7 +8,8 @@ overrule), then why (what the last working step did and what the steps
 assumed), what was not done (on a stop, a plain line on what is left; then
 what nobody verified and the doubts left as they are), and the spec lines an open question turns on. it is held to
 BUDGET tokens, about four characters to a token; a list that does not fit
-is cut, and the line that cuts it points at the full record below.
+is cut, and the line that cuts it points at the full record below. the
+suite line, the decisions and their recommendations are never cut.
 
 a question asked seven times is one decision. questions are gathered from a
 step's NEEDS and CONFLICT lines, from the QUESTION lines of its block (which
@@ -27,6 +28,7 @@ from . import handoff, stops, verbs
 
 BUDGET = 900
 CHARS_PER_TOKEN = 4
+SUITE = "suite: "
 
 SPEC_REF = re.compile(r"[\w./-]+\.md:\d+(?:-\d+)?")
 WORD = re.compile(r"[a-z0-9]+")
@@ -381,7 +383,9 @@ def raised_by(c):
 
 
 def _cut(line, width):
-    return line if len(line) <= width else line[:width - 3].rstrip() + "..."
+    if width is None or len(line) <= width:
+        return line
+    return line[:width - 3].rstrip() + "..."
 
 
 def _list(items, most, width, indent="- "):
@@ -398,43 +402,47 @@ LED_BY = "  settled by "
 
 
 def _decision(found, most, width, stop=None, led=()):
+    """the questions, the lead's own decisions and every recommendation are
+    printed whole whatever the width: a cut one is a choice the person
+    cannot make from the head. a stop's own reason may be a tool's whole
+    output, and is in full in the record below."""
     out = ["## the one decision"]
     for question, rec, by in led:
-        out.append(_cut(LED + question, width))
-        out.append(_cut(LED_SO.format(rec=rec), width))
+        out.append(LED + question)
+        out.append(LED_SO.format(rec=rec))
         if by:
-            out.append(_cut(LED_BY + by, width))
+            out.append(LED_BY + by)
     if led and not stop and not found:
         return out
     if stop:
         out.append(_cut("- " + stop[0], width))
         out.append("  " + stop[1])
         if len(stop) > 2 and stop[2]:
-            out.append(_cut("  recommendation: " + stop[2], width))
-        return out + _also(found, most, width)
+            out.append("  recommendation: " + stop[2])
+        return out + _also(found, most)
     if not found:
         out.append("- none: nothing waits on you.")
         return out
     first = found[0]
-    out.append(_cut("- " + first["text"], width))
+    out.append("- " + first["text"])
     raised = "  raised by " + raised_by(first)
     if first["refs"]:
         raised = raised + "; cites " + ", ".join(first["refs"])
     out.append(_cut(raised, width))
-    out.append(_cut("  " + recommended(first), width))
+    out.append("  " + recommended(first))
     if first.get("beside"):
         who, rec, size = first["beside"]
-        out.append(_cut("  " + who + "'s recommendation: " + rec
-                        + (" (size: " + size + ")" if size else ""), width))
-    return out + _also(found[1:], most, width)
+        out.append("  " + who + "'s recommendation: " + rec
+                   + (" (size: " + size + ")" if size else ""))
+    return out + _also(found[1:], most)
 
 
-def _also(found, most, width):
+def _also(found, most):
     if not found:
         return []
     return ["  also open:"] + _list(
         [c["text"] + " (" + ", ".join(c["roles"]) + "; " + recommended(c)
-         + ")" for c in found], most, width, "  - ")
+         + ")" for c in found], most, None, "  - ")
 
 
 def recommended(c):
@@ -494,11 +502,13 @@ def view(head, found, why, not_done, product_gaps, stop=None, led=()):
     handoff: each is listed first under the one decision, with the line that
     settled it, before what waits on the person. the head is
     cut too, last, when cutting the lists is not enough: a long task line or
-    stop reason is in full in the record below."""
+    stop reason is in full in the record below. the suite line and the
+    decisions are never cut, so a view that cannot fit them runs over."""
     out = []
     for most, width, cut in [step + (False,) for step in STEPS] + [
             step + (True,) for step in STEPS]:
-        out = [_cut(l, width) for l in head] if cut else list(head)
+        out = [_cut(l, width) if not l.startswith(SUITE) else l
+               for l in head] if cut else list(head)
         out.append("")
         out.extend(_decision(found, most, width, stop, led))
         out.append("")
