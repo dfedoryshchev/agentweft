@@ -582,11 +582,13 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
     record (outcome `decided`), "" for any other pass, and `would` its
     WOULD PASS and CATCH lines (`wouldpass.read`). `went_on` is the question
     the run went on past, the pass's work green, "" when there was none."""
-    ruled = lead.read(said)[0] if outcome == "decided" else None
+    ruled = lead.read(said)[0] or lead.all_decided(said) \
+        if outcome == "decided" else None
     return {"step": step, "role": role, "seconds": seconds, "writes": writes,
             "block": block if isinstance(block, dict) else handoff.empty(),
             "gates": gates, "ungated": ungated, "outcome": outcome,
-            "verbs": verbs.parse(said), "ruled": ruled or "",
+            "verbs": verbs.parse(said), "asks": verbs.every_needs(said),
+            "ruled": ruled or "",
             "would": wouldpass.read(said),
             "redo_why": redo_why(said) if outcome == "redo" else "",
             "facts": facts or {}, "case": case, "went_on": went_on or ""}
@@ -1490,6 +1492,16 @@ def asks(passes):
     out = []
     for p in passes:
         v = p["verbs"]
+        every = p.get("asks") or []
+        if len(every) > 1:
+            for n, each in enumerate(every, 1):
+                out.append("- " + p["role"] + " asks " + str(n) + ": "
+                           + each.needs)
+                out.extend("  cites: " + c for c in each.cites)
+                out.extend("  option: " + o for o in each.options)
+            if v.refused:
+                out.append("- " + p["role"] + " refused: " + v.refused)
+            continue
         if v.needs:
             out.append("- " + p["role"] + " asks: " + v.needs)
         if v.refused:
@@ -2063,7 +2075,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     extra.extend(front.point("runner", "rule on " + l[2:]) for l in owed
                  if "UNRULED" in l)
     went = [p for p in still if p.get("went_on")]
-    waits = front.stopped_on(stopped, stopped_at(every, stopped), every)
+    asking = stopped_at(every, stopped)
+    waits = front.stopped_on(stopped, asking, every)
     points, taken = front.questions(every, extra,
                                     asking=went if waits else still,
                                     settled=settled(decided, every, run_id))
@@ -2071,6 +2084,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     later = [(p, answered_by(p["text"], p.get("at"), every, on_record))
              for p in points]
     found = front.clusters(([waits] if waits else [])
+                           + front.stopped_also(stopped, waits, asking)
                            + [p for p, by in later if not by])
     later = [(p, by) for p, by in later if by]
     if last and stopped:

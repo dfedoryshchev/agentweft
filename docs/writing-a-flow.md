@@ -307,7 +307,14 @@ it is a step or a role of the flow (a role means its first step), or `none`,
 which is the same as leaving it out. a fanned-out step cannot lead, and a name
 that is no step is refused when the flow loads. the lead decides with
 `DECIDED: <option>` and a `why:` line under it, and the step that asked runs
-again with the decision. an `ESCALATE:`, a decision with no `why:`, or a
+again with the decision. an answer that asks several questions, each on a
+`NEEDS:` line of its own, has every one handed to the lead, numbered; the
+lead answers `DECIDED <n>:` with a `why:` line under each, every decision is
+its own entry in `decisions.md` (and in the run's `rulings.json`, with its
+number), and the step runs again with all of them. a number the lead leaves
+neither decided nor escalated (`ESCALATE <n>: <why>`) is asked once more;
+any still not decided parks the whole ask for you, the undecided numbers
+named and nothing recorded. an `ESCALATE:`, a decision with no `why:`, or a
 second ask of the same question comes to you, and so does what the step
 acting on a decision does to a spec line or a test the run started with: a
 decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:

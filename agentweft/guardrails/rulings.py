@@ -75,14 +75,18 @@ class Kept(object):
         return set(self.found) | set(w["sha256"] for w in self.written
                                      if w.get("by") not in but)
 
-    def record(self, decided, why, by, at=None):
-        """write one entry to decisions.md and to the runner's record."""
+    def record(self, decided, why, by, at=None, question=None):
+        """write one entry to decisions.md and to the runner's record;
+        `question` is the number of the question it decides, of an ask
+        holding several."""
         with self.lock:
             path = decisions.record(self.root, decided, why, at)
             d = decisions.read(self.root)[-1]
-            self.written.append({"at": d.at.strftime(decisions.STAMP),
-                                 "decided": d.decided, "by": by,
-                                 "sha256": digest(d)})
+            entry = {"at": d.at.strftime(decisions.STAMP),
+                     "decided": d.decided, "by": by, "sha256": digest(d)}
+            if question is not None:
+                entry["question"] = question
+            self.written.append(entry)
             self.data = self.now()
             self.save()
             return path

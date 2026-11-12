@@ -79,10 +79,12 @@ BREAKS = re.compile(r"^\s*(?:-\s*)?spec:\s*breaks\b", re.I)
 CITED = re.compile(r"""^-\s*([^\s:`'"]+:\d+(?:-\d+)?)\b""")
 
 
-def question_of(v):
+def question_of(v, number=None):
     """-> the question as it is shown and kept: the NEEDS line, then the
-    cites and options under it."""
-    out = ["NEEDS: " + v.needs]
+    cites and options under it. `number` is its place among the questions
+    of one answer that asks more than one."""
+    out = ["NEEDS: " + ("" if number is None else str(number) + ". ")
+           + v.needs]
     if v.cites:
         out.append("CITES:")
         out.extend("- " + c for c in v.cites)
@@ -154,6 +156,10 @@ def asked_of(output, workdir, word=None, allowed=None, start=None):
         if cite is not None:
             return DECLINED, "REFUSED: " + spanned(v.refused, workdir, start)
         v.needs = v.refused + " (refused with no line of the spec cited)"
+    every = verbs.every_needs(output)
+    if len(every) > 1:
+        return ASKED, "\n".join(question_of(each, n)
+                                for n, each in enumerate(every, 1))
     if v.needs:
         return ASKED, question_of(v)
     if word == SPEC_CHANGE and SPEC_CHANGE in (allowed or ()):
@@ -379,12 +385,15 @@ def asks_no_code(output):
     """whether `output` asks a NEEDS question with a RECOMMEND whose answer
     changes no product code, cited or not: once the step's work passed
     every gate, nothing the run has left to do waits on the answer. a doc
-    or spec line the answer would add is the person's to write, after."""
+    or spec line the answer would add is the person's to write, after. an
+    answer asking several holds each to that."""
     v = verbs.parse(output)
     if not v.needs or not v.recommend or v.refused or v.conflict:
         return False
-    return costs_nothing(v.size, v.recommend) \
-        or doc_only(priced(v.size, v.recommend))
+    return all(each.recommend and (costs_nothing(each.size, each.recommend)
+                                   or doc_only(priced(each.size,
+                                                      each.recommend)))
+               for each in verbs.every_needs(output) or [v])
 
 
 def demoted(output):

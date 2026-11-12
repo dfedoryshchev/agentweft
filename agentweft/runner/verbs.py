@@ -10,7 +10,10 @@ a key inside a `>` quote of the task. this is the one reader.
 
 a line counts when it is outside a fence and not quoted; its key is read
 whatever its case, and a bullet or bold around it is ignored. the first
-`NEEDS:`, `REFUSED:` or `CONFLICT:` wins; the list verbs gather every line.
+`NEEDS:`, `REFUSED:` or `CONFLICT:` wins in `parse`; the list verbs gather
+every line. an answer that asks more than one question, each on a `NEEDS:`
+line of its own, has each read apart by `every_needs`, with the lines under
+it.
 a question can carry `RECOMMEND:`, the answer the step would pick, and
 `SIZE:`, what that answer costs to do. they belong to the NEEDS, CONFLICT or
 REFUSED line they follow; under a HANDOFF block's `QUESTION:` they are that
@@ -144,3 +147,18 @@ def parse(text, where=None):
         elif line.strip():
             gathering = None
     return out
+
+
+def every_needs(text):
+    """-> [Verbs] of each `NEEDS:` line of `text`, read with the lines under
+    it up to the next one, so its CITES, OPTIONS, RECOMMEND and SIZE are its
+    own; [] when there is none. the lines before the first go with the
+    first."""
+    lines = (text or "").split("\n")
+    at = [i for i, line in visible(text)
+          if (key_of(line) or ("",))[0] == "NEEDS"]
+    if not at:
+        return []
+    ends = at[1:] + [len(lines)]
+    return [parse("\n".join(lines[0 if n == 0 else a:b]))
+            for n, (a, b) in enumerate(zip(at, ends))]

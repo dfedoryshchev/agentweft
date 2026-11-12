@@ -34,10 +34,31 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
         return None, "", lead.passed(question, "the run cannot pay for "
                                      + head + " to decide it, " + waits[1])
     run.led[asked] = ""
+    out, held = lead_go(run, head, given, lead.brief(step, question), folder)
+    if held:
+        return out, "", lead.passed(question, held)
+    if lead.numbers(question):
+        return each_to_lead(run, step, question, given, where, folder, out)
+    decided, why, wrong = lead.judged(out.output, head, run.workdir,
+                                      run.start)
+    if not wrong and pick is not None:
+        decided, wrong = pick(decided)
+    if wrong:
+        out.meta["passed"] = wrong
+        return out, "", lead.passed(question, wrong)
+    run.led[asked] = decided
+    run.rule(*lead.recorded(head, step, where, question, decided, why),
+             by=rulings.LEAD)
+    return out, lead.told(head, question, decided, why), ""
+
+
+def lead_go(run, head, given, last, folder):
+    """-> (the lead's answer, why it is not held or ""): one go of the lead
+    with `last` at the end of its prompt, read by the off task check and
+    the rulings check as soon as it answers."""
     was = run.produced.get(head)
     try:
-        out = run.step(head, previous=given.get(head, EMPTY),
-                       last=lead.brief(step, question))
+        out = run.step(head, previous=given.get(head, EMPTY), last=last)
     finally:
         # the lead's decision is not its work: a step that reads what the
         # lead produced still reads its own pass
@@ -51,21 +72,46 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
     if off:
         off = and_forged(head + " " + off, forged)
         out.meta["passed"] = out.meta["off"] = off
-        return out, "", lead.passed(question, off)
+        return out, off
     if forged:
         out.meta["passed"] = forged
-        return out, "", lead.passed(question, forged)
-    decided, why, wrong = lead.judged(out.output, head, run.workdir,
-                                      run.start)
-    if not wrong and pick is not None:
-        decided, wrong = pick(decided)
+        return out, forged
+    return out, ""
+
+
+def each_to_lead(run, step, question, given, where, folder, out):
+    """`to_lead` for an ask of several numbered questions, after the lead's
+    first answer `out`: every number decided goes on record, one entry
+    each, and `step` is told them all. a lead that leaves a number neither
+    decided nor escalated is asked once more for those; any still not
+    decided sends the whole ask to the operator, with nothing recorded."""
+    head = run.lead
+    wanted = lead.numbers(question)
+    decided, escalated, whole = lead.each(out.output, wanted)
+    left = [n for n in wanted if n not in decided and n not in escalated]
+    if whole is None and left and not run.budget.ahead(1):
+        out, held = lead_go(run, head, given, lead.brief(step, question)
+                            + lead.missing(left), folder)
+        if held:
+            return out, "", lead.passed(question, held)
+        more, also, whole = lead.each(out.output, left)
+        decided.update(more)
+        escalated.update(also)
+    if whole is not None:
+        wrong = head + " escalated it: " + (whole or "it gave no reason")
+    else:
+        short = [n for n in wanted if n not in decided]
+        wrong = lead.not_decided(head, short, escalated) if short else ""
     if wrong:
         out.meta["passed"] = wrong
         return out, "", lead.passed(question, wrong)
-    run.led[asked] = decided
-    run.rule(*lead.recorded(head, step, where, question, decided, why),
-             by=rulings.LEAD)
-    return out, lead.told(head, question, decided, why), ""
+    asked = lead.parts(question)
+    for n in wanted:
+        run.rule(*lead.recorded(head, step, where, asked[n], *decided[n]),
+                 by=rulings.LEAD, question=n)
+    run.led[lead.key(question)] = "; ".join(
+        str(n) + ": " + decided[n][0] for n in wanted)
+    return out, lead.told_each(head, question, decided), ""
 
 
 def lead_pass(trail, run, out, asker, decided):

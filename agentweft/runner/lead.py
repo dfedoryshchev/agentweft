@@ -37,11 +37,76 @@ ESCALATE = "ESCALATE"
 WHY = "WHY"
 
 
+NUMBERED = re.compile(r"^NEEDS: (\d+)\. ")
+EACH = re.compile(r"^[\s*_`-]*(DECIDED|ESCALATE)\s+(\d+)[\s*_`]*:\s*(.*?)\s*$",
+                  re.I)
+
+
+def numbers(question):
+    """-> the numbers of the questions one ask holds, as `ruling.asked_of`
+    writes them for an answer with more than one NEEDS; [] for a single
+    question."""
+    found = [int(m.group(1)) for m in (
+        NUMBERED.match(line) for line in (question or "").split("\n")) if m]
+    return found if len(found) > 1 else []
+
+
+def parts(question):
+    """-> {number: the lines of that question} of a numbered ask."""
+    out, at = {}, None
+    for line in (question or "").split("\n"):
+        m = NUMBERED.match(line)
+        if m:
+            at = int(m.group(1))
+            out[at] = []
+        if at is not None:
+            out[at].append(line)
+    return dict((n, "\n".join(lines).strip()) for n, lines in out.items())
+
+
 def key(question):
     """-> what makes two questions the same one: the NEEDS line, read
-    without case or spacing."""
-    first = (question or "").split("\n")[0]
-    return " ".join(first.lower().split())
+    without case or spacing; every NEEDS line of a numbered ask."""
+    lines = (question or "").split("\n")
+    if numbers(question):
+        lines = [" ".join(line for line in lines if NUMBERED.match(line))]
+    return " ".join(lines[0].lower().split())
+
+
+def each(output, wanted):
+    """-> ({number: (the option decided, its why)}, {number: why it was
+    escalated}, why the whole ask was escalated or None) of a lead's answer
+    to a numbered ask: a `DECIDED <n>:` line with a `why:` line under it,
+    or `ESCALATE <n>: <why>`; a bare `ESCALATE:` escalates every one. a
+    number not in `wanted`, a second answer to one number and a decision
+    with no why are left out."""
+    decided, escalated = {}, {}
+    seen = verbs.visible(output)
+    for i, (_, line) in enumerate(seen):
+        head = verbs.key_of(line)
+        if head is not None and head[0] == ESCALATE:
+            return {}, {}, head[1]
+        m = EACH.match(line)
+        if not m:
+            continue
+        n = int(m.group(2))
+        if n not in wanted or n in decided or n in escalated:
+            continue
+        if m.group(1).upper() == ESCALATE:
+            escalated[n] = m.group(3)
+            continue
+        after = next((l for _, l in seen[i + 1:] if l.strip()), "")
+        why = verbs.key_of(after)
+        if m.group(3) and why is not None and why[0] == WHY and why[1]:
+            decided[n] = (m.group(3), why[1])
+    return decided, escalated, None
+
+
+def all_decided(output):
+    """-> the `DECIDED <n>:` options of a lead's answer to a numbered ask,
+    joined, "" when there is none."""
+    return "; ".join(str(n) + ": " + d for n, (d, _) in sorted(
+        each(output, range(1, 100))[0].items()))
 
 
 def read(output):
@@ -100,7 +165,42 @@ def brief(asker, question):
             " line it rests on>`. when the answer would change the spec or a"
             " test that was there before the run started, or it is not yours"
             " to decide, answer `ESCALATE: <why>` instead, and the operator"
-            " decides.\n\nwhat " + asker + " asked:\n\n" + question + "\n")
+            " decides.\n\nwhat " + asker + " asked:\n\n" + question + "\n"
+            + each_asked(numbers(question)))
+
+
+def each_asked(found):
+    """-> how a numbered ask is answered, "" for a single question."""
+    if not found:
+        return ""
+    return ("\n" + asker_count(found) + " answer each by its number: a line"
+            " `DECIDED <n>: <the option you pick>` with a line `why: <why,"
+            " with the spec line it rests on>` under it, one pair for every"
+            " number. `ESCALATE <n>: <why>` sends that one to the operator;"
+            " a bare `ESCALATE: <why>` sends them all.\n")
+
+
+def asker_count(found):
+    return "these are " + str(len(found)) + " questions, numbered " + \
+        ", ".join(str(n) for n in found) + ";"
+
+
+def missing(found):
+    """-> what a lead that left numbers undecided is told on its one more
+    go."""
+    return ("\nyour last answer left questions not decided: "
+            + ", ".join(str(n) for n in found) + ". answer each of them by"
+            " its number, as above.\n")
+
+
+def not_decided(lead, found, escalated):
+    """-> why a numbered ask goes to the operator: the numbers the lead
+    did not decide, each escalated one with its reason."""
+    said = []
+    for n in found:
+        said.append(str(n) + (" (escalated: " + (escalated[n] or "no reason")
+                              + ")" if n in escalated else ""))
+    return lead + " left questions undecided, not decided: " + ", ".join(said)
 
 
 def told(lead, question, decided, why):
@@ -109,6 +209,18 @@ def told(lead, question, decided, why):
             + "\n\nthe flow's lead, " + lead + ", decided it, and that"
             " decides it for this step:\n\nDECIDED: " + decided + "\nwhy: "
             + why + "\n")
+
+
+def told_each(lead, question, decided):
+    """-> the end of the asking step's prompt on its next go, after a
+    numbered ask: every decision under its number."""
+    lines = []
+    for n in sorted(decided):
+        lines += ["DECIDED " + str(n) + ": " + decided[n][0],
+                  "why: " + decided[n][1]]
+    return ("\n\nDECIDED. when this step last ran it asked:\n\n" + question
+            + "\n\nthe flow's lead, " + lead + ", decided each, and that"
+            " decides them for this step:\n\n" + "\n".join(lines) + "\n")
 
 
 LEAD_DECIDED = "\n\ndecided:\n\n"

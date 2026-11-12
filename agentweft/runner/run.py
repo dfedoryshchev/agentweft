@@ -294,16 +294,17 @@ class Run(object):
             return [d for d in self.decided() if not rulings.by_lead(d)]
         return kept.read(but=(rulings.LEAD,))
 
-    def rule(self, decided, why, by):
+    def rule(self, decided, why, by, question=None):
         """write a ruling to decisions.md and to the runner's own record. a
         step that asked and acts on it is held to the file as the runner
-        left it, not as it was before the step's first go."""
+        left it, not as it was before the step's first go. `question` is the
+        number of the question it decides, of an ask holding several."""
         kept = getattr(self, "kept", None)
         if kept is None:
             path = decisions.record(Path(self.workdir), decided, why)
             data = snapshot._read(path)
         else:
-            path = kept.record(decided, why, by)
+            path = kept.record(decided, why, by, question=question)
             data = kept.data
         order = getattr(self, "order", None)
         if order is not None:

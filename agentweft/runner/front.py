@@ -289,6 +289,26 @@ def stopped_on(stopped, asking=(), passes=()):
     return point(role, text, v.cites, rec, size, v.options, kind)
 
 
+def stopped_also(stopped, waits, asking=()):
+    """-> the questions after the first of a stop that waits on several
+    numbered ones (`lead.numbers`), as points beside `waits`, the first,
+    each with the recommendation its step gave it. `asking` is the passes
+    of the step it stopped at."""
+    from . import lead
+
+    said = (stopped or {}).get("question") or ""
+    if not waits or not lead.numbers(said):
+        return []
+    every = (list(asking)[-1].get("asks") or []) if asking else []
+    out = []
+    for n, text in sorted(lead.parts(said).items())[1:]:
+        v = verbs.parse(text)
+        own = every[n - 1] if n <= len(every) else verbs.Verbs()
+        out.append(point(waits["role"], parts(v.needs or text)[0], v.cites,
+                         own.recommend, own.size, v.options, "needs"))
+    return out
+
+
 def questions(passes, extra=(), asking=None, settled=()):
     """-> (the open questions as points, the ids of the doubts taken in
     as questions) from every pass, then `extra` points the runner adds.
@@ -308,13 +328,16 @@ def questions(passes, extra=(), asking=None, settled=()):
     for n, p in enumerate(passes):
         here[0] = n
         v = p["verbs"]
-        for said, kind in ((v.needs, "needs"), (v.conflict, "conflict")):
+        every = p.get("asks") or []
+        asked = [(e, e.needs, "needs") for e in every] if len(every) > 1 \
+            else [(v, v.needs, "needs")]
+        for w, said, kind in asked + [(v, v.conflict, "conflict")]:
             if not said or (asking is not None
                             and not any(p is a for a in asking)):
                 continue
             text, rec, size = parts(said)
-            add(point(p["role"], text, v.cites, rec or v.recommend,
-                      size or v.size, v.options, kind))
+            add(point(p["role"], text, w.cites, rec or w.recommend,
+                      size or w.size, w.options, kind))
         b = p["block"]
         if b.get("state") not in (handoff.PRESENT, handoff.PARTIAL):
             continue
