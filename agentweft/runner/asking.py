@@ -56,27 +56,49 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
     return out, lead.told(head, question, decided, why), ""
 
 
-IF_WRONG = re.compile(r"^\s*if\s+wrong\s*:", re.I)
+IF_WRONG = re.compile(r"\bif\s+wrong\s*:", re.I)
 ASKED_LINE = re.compile(r"^NEEDS: (?:\d+\. )?")
+WORD = re.compile(r"[a-z0-9_]+")
+CARRIED = 3
 
 
-def cited_lines(text):
-    """-> the (file, line) of every `<file>:<line>` or `<file>:<a>-<b>` in
-    `text`."""
-    out = set()
+def cites_in(text, workdir, start=None):
+    """-> [(file, first line, last line)] of each `<file>:<line>` or
+    `<file>:<a>-<b>` in `text` whose lines were all in that file when the
+    run started; a line past the end, a file that was not there and a file
+    of the runner's own cite nothing."""
+    from agentweft.guardrails.snapshot import is_runners
+
+    out = []
     for m in ruling.MARKED.finditer(text or ""):
+        rel = ruling.path_of(m.group(1))
         first = int(m.group(2))
-        out |= set((ruling.path_of(m.group(1)), n)
-                   for n in range(first, int(m.group(3) or first) + 1))
+        last = int(m.group(3) or first)
+        if is_runners(rel) or (rel, first, last) in out:
+            continue
+        lines, _ = ruling.lines_of(workdir, rel, first, last, start)
+        if lines is not None:
+            out.append((rel, first, last))
     return out
 
 
+def split_item(item):
+    """-> (what an ASSUMED item rests on, its `if wrong:` words): what it
+    cites is read off its choice and its why, never off what would follow
+    if it were wrong."""
+    m = IF_WRONG.search(item or "")
+    if not m:
+        return item or "", ""
+    return item[:m.start()], item[m.end():]
+
+
 def assumed_items(run, step):
-    """-> [(the step, its number, the item's lines, the lines it cites)] of
-    each ASSUMED item the run's other steps handed over, in the order they
-    ran. what an item cites is read off its choice and its `why:`; its `if
-    wrong:` is what would follow if it were wrong, never what it rests on."""
+    """-> [(the step, its number, the item's lines, the cites it rests on,
+    its `if wrong:` words)] of each ASSUMED item the run's other steps
+    handed over, in the order they ran, that cites a line of the place."""
     out = []
+    workdir = getattr(run, "workdir", ".")
+    start = getattr(run, "start", None)
     for owner, text in list((getattr(run, "produced", None) or {}).items()):
         if owner == step or not text:
             continue
@@ -84,47 +106,62 @@ def assumed_items(run, step):
         if block.get("state") not in (PRESENT, PARTIAL):
             continue
         for n, item in enumerate(block.get("assumed") or [], 1):
-            rests = "\n".join(l for l in item.split("\n")
-                              if not IF_WRONG.match(l))
-            found = cited_lines(rests)
+            rests, wrong = split_item(item)
+            found = cites_in(rests, workdir, start)
             if found:
-                out.append((owner, n, item, found))
+                out.append((owner, n, item, found, wrong))
     return out
 
 
-def asked_key(question):
-    """-> one question of an ask as its words, without its number."""
-    first = (question or "").split("\n")[0]
-    return " ".join(ASKED_LINE.sub("", first).lower().split())
+def word_runs(text):
+    """-> each run of CARRIED consecutive words of `text`, lower case."""
+    said = WORD.findall((text or "").lower())
+    return set(tuple(said[i:i + CARRIED])
+               for i in range(len(said) - CARRIED + 1))
+
+
+def disputes(question, wrong):
+    """whether a question carries CARRIED consecutive words of an item's
+    `if wrong:`: it asks about what follows if the item is wrong, so the
+    item cannot be its answer. words only ever send a question on to the
+    lead here, never answer one."""
+    return bool(word_runs(question) & word_runs(wrong))
 
 
 def assumed_answer(run, step, question, where):
     """-> None when no question of `question` is answered by an ASSUMED
     item, else (what `step` is told on its next go, the rest of the ask or
     "" when nothing is left for the lead). a question is answered by the
-    first ASSUMED item of another step of the run that cites a line the
-    question cites: the match is the cited line, never the words. that
-    answer is put on record in the lead's form and nobody is called. a
-    question already answered this way and asked again is left for the
-    lead."""
+    first ASSUMED item of another step of the run that cites the very cite
+    the question cites, the same line of the same file, or the same range
+    written the same way, a line the file had when the run started: the
+    match is the cite, never the words. that answer is put on record in the
+    lead's form and nobody is called. a question on a cite an item already
+    answered for this step once in the run, and one that carries the
+    item's `if wrong:` words, go to the lead."""
     told_once = getattr(run, "assumed_led", None)
     if told_once is None:
         told_once = run.assumed_led = set()
     items = assumed_items(run, step)
+    workdir = getattr(run, "workdir", ".")
+    start = getattr(run, "start", None)
     numbered = lead.parts(question) if lead.numbers(question) else None
     asks = sorted(numbered.items()) if numbered else [(None, question)]
     told, left = [], []
     for n, text in asks:
-        key = asked_key(text)
-        hit = None
-        if key not in told_once:
-            cites = cited_lines(text)
-            hit = next((i for i in items if i[3] & cites), None)
+        cites = set(cites_in(text, workdir, start))
+        hits = [i for i in items if cites & set(i[3])]
+        hit = hits[0] if hits else None
+        if hit is not None and (
+                any((step, i[0], i[1]) in told_once for i in hits)
+                or disputes(text, hit[4])):
+            hit = None
         if hit is None:
             left.append(text)
             continue
-        owner, at, item, _ = hit
-        told_once.add(key)
+        owner, at, item = hit[0], hit[1], hit[2]
+        key = " ".join(ASKED_LINE.sub("", text.split("\n")[0]).split())
+        told_once.add((step, owner, at))
         run.rule(*lead.recorded_assumed(owner, at, step, where, text, item),
                  by=rulings.ASSUMED, step=owner, item=at)
         told.append(lead.told_assumed(text, owner, at, item))

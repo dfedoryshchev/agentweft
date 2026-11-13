@@ -2,11 +2,12 @@
 cited line is told that item as its answer, by the runner, with no call to
 the lead.
 
-the match is typed: a `<file>:<line>` the question cites is a line an
-ASSUMED item of an earlier step of the run cites in its choice or its
-`why:`. the item's `if wrong:` words never decide it. a question on a line
-no ASSUMED item cites goes to the lead as before, and so does a question
-already answered once this way and asked again.
+the match is typed: a cite the question carries is the very cite an
+ASSUMED item of an earlier step of the run carries in its choice or its
+`why:`, the same line or the same range, a line the file had when the run
+started. a question on a cite no ASSUMED item carries goes to the lead as
+before, and so does a question the item already answered for this step once,
+whatever its words, and one that carries the item's `if wrong:` words.
 """
 import json
 import sys
@@ -97,3 +98,74 @@ def test_the_same_needs_asked_again_after_the_item_goes_to_the_lead(
         tmp_path, monkeypatch, [tl.DECIDED], (tl.NEEDS, tl.NEEDS, tl.WORKER))
     assert asked[:5] == ["planner.md", "tester.md", "worker.md", "worker.md",
                          "planner.md"]
+
+
+REWORDED = ("NEEDS: must mul round a float product, since the test wants an"
+            " int?" + NL + "CITES:" + NL
+            + "- TASK.md:3 - mul(a, b) returns a times b" + NL)
+
+
+def plan_citing(why, wrong="a float test would expect an int"):
+    return tl.PLAN + NL.join([
+        "", "HANDOFF", "DID:", "- planned mul", "ASSUMED:", "- " + CHOICE,
+        "  why: " + why, "  if wrong: " + wrong, "END HANDOFF", ""])
+
+
+def build_with(tmp_path, monkeypatch, plan, lead_says, worker_says):
+    answers = {"planner.md": [plan] + list(lead_says),
+               "tester.md": [tl.TESTER], "worker.md": list(worker_says),
+               "reviewer.md": [tl.OK], "reviewer-runs.md": [tl.OK]}
+    writes = {"tester.md": [("tests/test_mul.py", tl.TEST)],
+              "worker.md": [("", ""), ("", ""), ("calc.py", tl.AFTER)]}
+    return tl.run_it(tmp_path, monkeypatch, "build-feature", answers, writes)
+
+
+def test_a_reworded_needs_on_a_line_the_item_already_answered_goes_to_the_lead(
+        tmp_path, monkeypatch):
+    asked, _, _, _, project = build_with(
+        tmp_path, monkeypatch, PLAN, [tl.DECIDED],
+        (tl.NEEDS, REWORDED, tl.WORKER))
+    assert asked[:5] == ["planner.md", "tester.md", "worker.md", "worker.md",
+                         "planner.md"]
+    assert len(decisions.read(project)) == 2
+
+
+def test_an_item_on_a_range_does_not_answer_one_line_inside_it(
+        tmp_path, monkeypatch):
+    asked, _, _, _, project = build_with(
+        tmp_path, monkeypatch, plan_citing("TASK.md:1-3 say a times b"),
+        [tl.DECIDED], (ELSEWHERE, tl.WORKER))
+    assert asked[3] == "planner.md"
+    [said] = decisions.read(project)
+    assert said.decided.startswith("planner.md decided for worker.md")
+
+
+def test_the_same_range_written_the_same_way_is_answered(tmp_path,
+                                                          monkeypatch):
+    ranged = ("NEEDS: should mul round a float product to an int?" + NL
+              + "CITES:" + NL + "- TASK.md:1-3 - the spec" + NL)
+    asked, _, code, _, _ = build_with(
+        tmp_path, monkeypatch, plan_citing("TASK.md:1-3 say a times b"), [],
+        (ranged, tl.WORKER))
+    assert asked[:4] == ["planner.md", "tester.md", "worker.md", "worker.md"]
+    assert "planner.md" not in asked[1:]
+
+
+def test_a_line_the_file_does_not_have_answers_nothing(tmp_path,
+                                                       monkeypatch):
+    ghost = ("NEEDS: should mul log its inputs?" + NL + "CITES:" + NL
+             + "- TASK.md:99 - mul logs" + NL)
+    asked, _, _, _, _ = build_with(
+        tmp_path, monkeypatch, plan_citing("TASK.md:99 says it"),
+        [tl.DECIDED], (ghost, tl.WORKER))
+    assert asked[3] == "planner.md"
+
+
+def test_a_needs_that_carries_the_items_if_wrong_goes_to_the_lead(
+        tmp_path, monkeypatch):
+    wrong = ("NEEDS: a float test would expect an int here, so should mul"
+             " round?" + NL + "CITES:" + NL
+             + "- TASK.md:3 - mul(a, b) returns a times b" + NL)
+    asked, _, _, _, _ = build_with(tmp_path, monkeypatch, PLAN, [tl.DECIDED],
+                                   (wrong, tl.WORKER))
+    assert asked[3] == "planner.md"
