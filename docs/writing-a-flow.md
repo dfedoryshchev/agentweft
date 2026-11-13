@@ -384,9 +384,17 @@ by its assertion that never reaches the named line (a new branch of the
 marked function, a new keyword's error caught in the test); that, a pass, a
 test the run started with, a test that cannot run alone, a named line in a
 file that is not python, a test command whose python does not load the
-probe (`python -E`, `-I`, `-S`; before python 3.12 a test command that
-sets its own trace, as coverage does, hides the line too), or no such line
-parks on the mark as a plain `breaks` there, before any code is written.
+probe (`python -E`, `-I`, `-S`, or a runner that sets its own
+`PYTHONPATH`: the line is then never seen, and the mark parks with "ran
+where no line probe loaded"; before python 3.12 a test command that sets
+its own trace, as coverage does, hides the line too, and the mark parks as
+never reached), or no such line parks on the mark as a plain `breaks`
+there, before any code is written. the check reads only that the line ran,
+never why: a test of the new path whose run passes through a line the
+sibling path shares (a common error writer, the argument parser, the top of
+`main`) reaches the marked line on its way, and passes the check as a
+sibling's test would. the test's assert lines, printed in the handoff, are
+where that shows, for you to read.
 before the run ends, the test must pass, and it must fail again with the function holding the named code line (python, read
 by name) put back as the run found it inside the file as the run left it;
 then the runner's own line holds an `already-broken` check and the handoff

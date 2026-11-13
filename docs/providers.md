@@ -186,20 +186,33 @@ flags; a bare `claude` is found on `PATH`, outside agentweft's reach.
   (`CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CODE_OAUTH_REFRESH_TOKEN`) are taken
   out, and `ANTHROPIC_API_KEY` is the key read from `key_file` when the call
   starts, never before, never on the command line, never written into the
-  run's files. the call also gets `CLAUDE_CODE_PROMPT_CACHE_TTL=1h` and
-  `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`: on an api key the cli's prompt
-  cache lives 5 minutes unless asked for the hour, and a step waiting on a
-  gate or a sibling often waits longer (the subscription gets the hour on
-  its own); the scrub keeps the key out of the shell, hooks and MCP servers
-  the cli starts, while the cli keeps it for its own calls. both names
-  are checked against the cli's env-vars reference (the TTL needs 2.1.242 or
-  later; a `FORCE_PROMPT_CACHING_5M` named in the block's `env:` overrides
-  it).
+  run's files. the call also gets `CLAUDE_CODE_PROMPT_CACHE_TTL=1h`: on an
+  api key the cli's prompt cache lives 5 minutes unless asked for the hour,
+  and a step waiting on a gate or a sibling often waits longer (the
+  subscription gets the hour on its own). the name is checked against the
+  cli's env-vars reference (it needs 2.1.242 or later; a
+  `FORCE_PROMPT_CACHING_5M` named in the block's `env:` overrides it).
 - `inherit` (the default, and every inline block): the environment as
   before, under "what the command's process holds".
 
-`key_file` is a full path (or starts with `~`) outside the place: a key file
-inside it is refused, since every step's tools can read the place. a step
+every `claude` step on a connector, whatever its `auth`, is started with
+`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` (unless the run's own environment
+already sets the name; an `api-key` step always gets `1`): the cli then takes
+credentials out of the environment of the shell commands, hooks and stdio MCP
+servers it starts, so a key the step was handed, or one exported in your
+shell under `inherit`, does not reach a command the model runs; the cli keeps
+it for its own calls. the cli knows a credential by its name or the shape of
+its value, takes `CLAUDE_CONFIG_DIR` out too, and leaves `GITHUB_TOKEN`,
+`GH_TOKEN`, the proxy names and `GIT_CONFIG_*` in place (its env-vars
+reference, "What the subprocess environment scrub removes"); a step whose
+tests need a removed variable (a `DATABASE_URL` with a password, an
+`NPM_TOKEN`) runs on a provider block written inline, which sets nothing.
+
+`key_file` is a full path (or starts with `~`) outside the place, so that no
+run commits it, a step quotes it from the tree or a gate's command finds it
+there: a key file inside the place is refused. outside is not unreadable: a
+step's read tools are not fenced to the place, which is why the key is also
+redacted wherever it shows up (below). a step
 whose key file is missing or empty is refused before its call, with the
 path in the reason, and the run stops there; nothing falls back to another
 login. the **api** provider takes `auth: api-key` the same way, reading the
@@ -257,7 +270,9 @@ on an api key:
   (`journal.md`, "why a run stopped").
 - an `sk-ant-` key in an answer, an error or a gate's output is made
   `sk-ant-REDACTED` before the run reads it, and in every recording and
-  record file (`journal.md`, "what gets written").
+  record file (`journal.md`, "what gets written"); so is the exact value a
+  `key_file` handed in this process, whatever its shape (a gateway's bearer
+  token, a proxy's key), once it is 8 characters or longer.
 
 the prompt cache: on a subscription the cli asks for the hour-long cache on
 its own; on an api key it asks for 5 minutes unless told otherwise, and a
@@ -282,8 +297,10 @@ a carried-on step's prompt with the hour lifetime itself (above).
   above the subscription login in the cli; such a step is refused before its
   call (above), never run on it.
 - a key's shape. any non-blank text in `key_file` is handed over as the
-  key; the cli says if it is wrong. the redaction knows only the `sk-ant-`
-  shape.
+  key; the cli says if it is wrong. the redaction knows the `sk-ant-` shape
+  and the values this process handed; a key exported in your shell under
+  `inherit` is redacted only when it has the `sk-ant-` shape, and a value
+  under 8 characters is not redacted by value.
 - the gates take provider credentials out by name: a key copied into a
   variable of another name reaches them.
 

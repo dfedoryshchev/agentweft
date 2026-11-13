@@ -4,13 +4,15 @@ import json
 import sys
 
 sys.path.insert(0, ".")
+from agentweft import providers
 from agentweft.evals import recording
 from agentweft.guardrails import redact
+from agentweft.providers import connectors
 from agentweft.providers.base import Provider, Reply
 from agentweft.runner import engine, prompts, resume, state
 
 # built from pieces so no whole key sits in the source
-KEY = "sk" + "-ant-" + "api03-" + "Ab1_" * 6 + "-zz"
+KEY = "sk" + "-ant-" + "fake-" + "x" * 20
 SAID = "the value is " + KEY + " and nothing else\n"
 
 
@@ -32,6 +34,32 @@ def test_a_key_is_redacted_whatever_surrounds_it():
 def test_text_with_no_key_is_left_as_it_is():
     for text in ("", "sk-ant-", "a sk-ant- b", "task-ant-x", None):
         assert redact.redact(text) == text
+
+
+def handing(tmp_path, value):
+    path = tmp_path / "keys" / "k.txt"
+    path.parent.mkdir()
+    path.write_text(value + "\n", encoding="utf-8")
+    p = providers.build({"provider": "cli", "auth": "api-key",
+                         "key_file": str(path)})
+    assert connectors.key_of(p) == value
+
+
+def test_the_value_a_key_file_handed_is_redacted_whatever_its_shape(
+        tmp_path):
+    handed = "decoy-gateway-bearer-0001"
+    assert redact.redact("x " + handed + " y") == "x " + handed + " y"
+    handing(tmp_path, handed)
+    assert redact.redact("x " + handed + " y") == "x sk-ant-REDACTED y"
+    assert redact.redact(SAID) == "the value is sk-ant-REDACTED and nothing" \
+        " else\n"
+    left = "nothing in here\n"
+    assert redact.redact(left) is left
+
+
+def test_a_short_value_is_not_redacted_by_value(tmp_path):
+    handing(tmp_path, "abc")
+    assert redact.redact("abcdef") == "abcdef"
 
 
 def test_a_recording_keeps_no_key(tmp_path):

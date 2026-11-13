@@ -76,10 +76,10 @@ AHEAD = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX",
          "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_PROFILE",
          "ANTHROPIC_FEDERATION_RULE_ID", "ANTHROPIC_ORGANIZATION_ID")
 LOGINS = ("CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN")
+SCRUB_VAR = "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
 # an api key's cache lives 5 minutes unless asked for the hour, and a step
 # waiting on a gate or a sibling is often longer than that
-ON_KEY = {"CLAUDE_CODE_PROMPT_CACHE_TTL": "1h",
-          "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1"}
+ON_KEY = {"CLAUDE_CODE_PROMPT_CACHE_TTL": "1h", SCRUB_VAR: "1"}
 
 
 def shell_hook(denials, kept=(), tools=None, places=()):
@@ -746,6 +746,8 @@ class CliProvider(Provider):
         limit = self.output_limit()
         if limit:
             out[CAP_VAR] = str(limit)
+        if self.connector and own:
+            out.setdefault(SCRUB_VAR, "1")
         return self.credential(out)
 
     def credential(self, env):

@@ -246,8 +246,13 @@ class NoKey(Exception):
 
 
 def key_of(p):
-    """-> the key p's step is handed, read now, never kept anywhere."""
+    """-> the key p's step is handed, read now. its value is kept nowhere
+    but this process's memory, where the redaction looks for it."""
+    from agentweft.guardrails import redact
+
     why = key_refused(p)
     if why:
         raise NoKey(why)
-    return Path(p.key_file).expanduser().read_text(encoding="utf-8").strip()
+    key = Path(p.key_file).expanduser().read_text(encoding="utf-8").strip()
+    redact.handed(key)
+    return key

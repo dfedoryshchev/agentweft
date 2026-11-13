@@ -48,11 +48,14 @@ gives a planner that line.
 none of these files holds a provider key. a model can quote one (it printed
 its environment), a test can echo one into a gate's output, and a provider
 can name the key it refused; so every answer and every error a provider
-gives is made `sk-ant-REDACTED` wherever an `sk-ant-` key appears before the
-run reads it, as is every gate's detail, and `steps.jsonl`, the step files
-and `handoff.md` are passed through the same before they are written. an
-eval case's recording keeps its answers the same way. the redaction matches
-the key's shape, so a key of another provider family is not caught by it.
+gives is made `sk-ant-REDACTED` wherever an `sk-ant-` key appears, or the
+exact value a connector's `key_file` handed in this process (8 characters or
+more, whatever its shape), before the run reads it, as is every gate's
+detail, and `steps.jsonl`, the step files and `handoff.md` are passed
+through the same before they are written. an eval case's recording keeps its
+answers the same way. a key the run did not hand (one in your shell under
+`inherit`) is caught by the `sk-ant-` shape only, so a key of another
+provider family there is not caught.
 
 ## why a run stopped
 

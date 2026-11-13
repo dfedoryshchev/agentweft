@@ -309,6 +309,20 @@ def test_a_step_names_a_connector_and_each_gets_its_own_credential(
                                              errors="replace"), path
 
 
+def test_a_key_of_any_shape_the_model_echoes_is_in_no_run_file(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, [("worker", ["provider: claude-api"])],
+           tail=CLAUDE + declared_key(key_file(tmp_path)))
+    cli = fake_cli(answer("my environment says " + KEY + "\n"))
+    assert engine.main() == 0
+    assert len(cli.calls) == 1
+    written = [p for p in state.RUNS.rglob("*") if p.is_file()]
+    seen = "".join(p.read_text(encoding="utf-8", errors="replace")
+                   for p in written)
+    assert "my environment says sk-ant-REDACTED" in seen
+    assert KEY not in seen
+
+
 def test_a_step_naming_no_connector_there_is_stops_the_run(tmp_path,
                                                           monkeypatch,
                                                           fake_cli, capsys):

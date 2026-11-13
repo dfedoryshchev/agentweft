@@ -122,6 +122,26 @@ def test_a_listed_name_does_not_bring_a_stripped_credential_back(
     assert "ANTHROPIC_API_KEY" not in seen
 
 
+SCRUB = "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
+
+
+def test_every_connector_s_cli_scrubs_its_own_children(child_env, tmp_path,
+                                                       monkeypatch):
+    monkeypatch.delenv(SCRUB, raising=False)
+    key = tmp_path / "keys" / "k.txt"
+    key.parent.mkdir()
+    key.write_text("decoy-file-key\n", encoding="utf-8")
+    # the fake echoes "set" for a value with no decoy- prefix: the runner's 1
+    assert child_env(connector="mine")[SCRUB] == "set"
+    assert child_env(connector="sub", auth="subscription")[SCRUB] == "set"
+    assert SCRUB not in child_env()
+    assert SCRUB not in child_env(command="sometool", connector="mine")
+    monkeypatch.setenv(SCRUB, "decoy-held")
+    assert child_env(connector="mine")[SCRUB] == "decoy-held"
+    assert child_env(connector="keyed", auth="api-key",
+                     key_file=str(key))[SCRUB] == "set"
+
+
 def test_one_name_given_alone_is_one_name(child_env, monkeypatch):
     monkeypatch.setenv("AWS_PROFILE", "decoy-profile")
     monkeypatch.setenv("A", "decoy-letter")
