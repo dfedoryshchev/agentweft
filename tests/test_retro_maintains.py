@@ -400,6 +400,109 @@ def test_a_retro_fact_that_says_a_pinned_test_passes_without_the_change_is_refus
     assert done.refused[0][1].startswith("it restates F-0001"), done.refused
 
 
+AT_RAISE = 'seq 4 reviewer.md; evidence: pkg/a.py:5 "raise ValueError"'
+DEFECT = {"scope": ["pkg/a.py"], "kind": "defect",
+          "claim": "parse raises a bare ValueError on an empty line, so the"
+                   " caller prints a traceback",
+          "why": "the reviewer ran it with an empty line and saw the traceback",
+          "source": AT_RAISE, "anchor": "pkg/a.py:3-6"}
+TICKET = {"scope": ["tests/test_a.py"], "kind": "nice-to-do",
+          "claim": "add a test that an empty line gives one error line, not"
+                   " a traceback",
+          "why": "the reviewer found the traceback and no test shows it",
+          "source": AT_RAISE}
+
+
+def ran_block(store, record, *items):
+    done = retro.Maintained()
+    retro.execute(store, record, [("fact", "", dict(f)) for f in items], done,
+                  "run-1")
+    return done
+
+
+def test_a_defect_a_ticket_of_the_block_carries_from_its_line_is_refused(
+        tmp_path):
+    store, record = pinned_place(tmp_path)
+    put(tmp_path, "tests/test_a.py", "def test_a():" + NL + "    pass" + NL)
+    done = ran_block(store, record, DEFECT, TICKET)
+    [ticket] = facts.read(tmp_path)
+    assert ticket.kind == "nice-to-do" and done.written == [ticket.id]
+    [(what, why)] = done.refused
+    assert what == "fact on pkg/a.py"
+    assert why.startswith("it is the finding " + ticket.id + " already"
+                          " carries, cited at pkg/a.py:5"), why
+
+
+def test_a_defect_a_live_ticket_carries_from_its_line_is_refused(tmp_path):
+    store, record = pinned_place(tmp_path)
+    put(tmp_path, "tests/test_a.py", "def test_a():" + NL + "    pass" + NL)
+    ran_block(store, record, TICKET)
+    done = ran_block(store, record, DEFECT)
+    assert done.written == []
+    assert done.refused[0][1].startswith("it is the finding F-0001"), \
+        done.refused
+
+
+@pytest.mark.parametrize("ticket", [
+    dict(TICKET, source='seq 4 reviewer.md; evidence: pkg/a.py:6 "return'
+                        ' line.split()"'),
+    dict(TICKET, scope=["tests/test_gone.py"])],
+    ids=["another line", "a ticket the store refused"])
+def test_a_defect_no_written_ticket_carries_from_its_line_is_written(
+        tmp_path, ticket):
+    store, record = pinned_place(tmp_path)
+    put(tmp_path, "tests/test_a.py", "def test_a():" + NL + "    pass" + NL)
+    done = ran_block(store, record, DEFECT, ticket)
+    kinds = sorted(f.kind for f in facts.read(tmp_path))
+    assert "defect" in kinds, done.refused
+
+
+RULED = "seq 1 planner.md; evidence: decisions.md 2026-10-19 14:31"
+RESTATES = {"scope": ["pkg/a.py"], "kind": "decision", "label": "important",
+            "claim": "`parse` raises `ValueError` on an empty line and"
+                     " returns `line.split()` otherwise",
+            "why": "the lead ruled an empty line is an error the caller"
+                   " reports, never an empty list",
+            "source": RULED, "anchor": "pkg/a.py:3-6"}
+
+
+def ruled_place(tmp_path):
+    store, _ = pinned_place(tmp_path)
+    return store, factsguard.Record(tmp_path, stamps=["2026-10-19 14:31"])
+
+
+def test_a_ruled_decision_whose_claim_restates_its_lines_keeps_the_ruling(
+        tmp_path):
+    store, record = ruled_place(tmp_path)
+    done = ran_block(store, record, RESTATES)
+    [fact] = facts.read(tmp_path)
+    assert done.refused == [] and done.written == [fact.id]
+    assert fact.claim == RESTATES["why"]
+    assert fact.get("anchor") == ""
+    assert "pkg/a.py:3-6" in fact.get("why")
+    assert fact.get("source") == RULED and fact.kind == "decision"
+    assert any("kept the ruling alone" in l and "pkg/a.py:3-6" in l
+               for l in done.lines), done.lines
+
+
+@pytest.mark.parametrize("change", [
+    {"claim": "`parse` strips the line with `line.strip()` first"},
+    {"claim": "parse raises on an empty line and splits otherwise"},
+    {"kind": "why", "label": "investigation"},
+    {"source": 'seq 1 planner.md; evidence: pkg/a.py:5 "raise ValueError"'}],
+    ids=["a code span not on its lines", "no code span", "not a decision",
+         "not backed by a ruling"])
+def test_a_fact_that_does_not_restate_its_lines_under_a_ruling_is_kept_as_said(
+        tmp_path, change):
+    store, record = ruled_place(tmp_path)
+    proposed = dict(RESTATES, **change)
+    done = ran_block(store, record, proposed)
+    [fact] = facts.read(tmp_path)
+    assert done.refused == []
+    assert fact.claim == proposed["claim"]
+    assert fact.get("anchor").startswith("pkg/a.py:3-6 sha256:")
+
+
 @pytest.mark.parametrize("kind, label, claim", [
     ("defect", "none", "test_zero encodes a reading TASK.md never ruled"),
     ("why", "investigation",

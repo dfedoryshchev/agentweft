@@ -607,7 +607,16 @@ is written; a refused one is not written and its reason is kept:
    scope, for a new fact and for a re-anchor alike; the runner hashes them
    itself, and a hash written in the proposal is ignored.
 6. the same claim on the same scopes as a live fact is counted on that fact
-   (`seen: proposed 2, ...`) instead of written again.
+   (`seen: proposed 2, ...`) instead of written again. a `defect` fact whose
+   evidence quotes a line a live nice-to-do's evidence also quotes is refused
+   (`it is the finding <id> already carries, cited at <file>:<line>`): the
+   ticket takes the finding to the run that fixes it. a defect and such a
+   ticket in one block are done ticket first, so a ticket the store refuses
+   leaves the defect to be written. a `decision` whose evidence is a ruling in
+   `decisions.md`, with an anchor, whose every code span in its claim is on
+   its anchored lines, only restates that code: it is written as the ruling
+   alone, its why as the claim, with no anchor, and its why saying which
+   lines it restated, so the ruling outlives an edit of them.
 7. at most three new facts a run (`per-run cap`); a supersession is a new
    fact, and marks the one it replaces `superseded`. the one fact the
    runner writes from its own record is outside the cap and held to every

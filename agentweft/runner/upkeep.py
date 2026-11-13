@@ -46,6 +46,10 @@ the tests the red-first gate ran green without the change, outside the
 per-run cap, and a fact of the block that is that note again (one of those
 tests named as passing, green or pinning) is refused.
 
+a defect fact a live nice-to-do already carries (its evidence quotes the
+same line) is refused, and a decision backed by a ruling whose claim only
+restates its anchored code is kept as the ruling alone.
+
 a gate-issue or defect fact proposed again climbs a ladder: in two runs it
 is `important`, in three a guard is proposed for it marked `recurring`, and
 from four on the handoff lists it as hardening owed, every run, until it is
@@ -54,7 +58,9 @@ retired.
 import re
 from pathlib import Path
 
-from agentweft.guardrails.factsguard import DECAY, Proposal, seen_of
+from agentweft.guardrails.factsguard import (DECAY, EVIDENCE, STAMPED,
+                                             Proposal, evidence_lines,
+                                             seen_of)
 from agentweft.orchestrate import facts
 
 PASSES = re.compile(r"\b(?:pass(?:es|ed|ing)?|green|pin(?:s|ned|ning)?"
@@ -264,30 +270,116 @@ def restates(pinned, fields):
     return ""
 
 
+SPAN = re.compile(r"`([^`\n]+)`")
+
+
+def cite_of(source):
+    """-> (file, first line, last line) a source's evidence quotes, None
+    when it quotes none."""
+    m = facts.ANCHOR.match(evidence_lines(source))
+    if not m:
+        return None
+    return facts.norm(m["path"]), int(m["first"]), int(m["last"])
+
+
+def same_lines(one, other):
+    """whether two cites name one file and share a line."""
+    return one is not None and other is not None and one[0] == other[0] \
+        and one[1] <= other[2] and other[1] <= one[2]
+
+
+def a_kind(verb, fields, kind):
+    return verb in ("fact", "supersede") and \
+        fields.get("kind", "").strip() == kind
+
+
+def carried(store, fields):
+    """-> why a defect fact is not written: a live nice-to-do's evidence
+    cites a line its own evidence cites, so the ticket already carries the
+    finding to the run that fixes it. "" when none does."""
+    cite = cite_of(fields.get("source"))
+    if cite is None:
+        return ""
+    for f in store.read():
+        if f.status == facts.LIVE and f.kind == facts.NICE \
+                and same_lines(cite, cite_of(f.get("source"))):
+            at = cite[0] + ":" + str(cite[1]) + (
+                "-" + str(cite[2]) if cite[2] != cite[1] else "")
+            return ("it is the finding " + f.id + " already carries, cited at "
+                    + at + ": the ticket takes it to the run that fixes it")
+    return ""
+
+
+def ruling_alone(root, fields):
+    """-> (fields, "") as proposed, or (the fields kept as the ruling alone,
+    the anchor they were proposed on) for a decision whose evidence is a
+    ruling in decisions.md and whose claim only restates its anchored
+    lines: every code span of the claim is on them. what binds a later run
+    is the ruling its why carries; the code it restated says itself, and a
+    fact anchored on it would go stale at the first edit there."""
+    m = EVIDENCE.search(fields.get("source") or "")
+    anchor = facts.ANCHOR.match((fields.get("anchor") or "").strip())
+    spans = [s.strip() for s in SPAN.findall(fields.get("claim") or "")]
+    if fields.get("kind", "").strip() != "decision" or not m \
+            or not STAMPED.match(m.group(1).strip()) or not anchor \
+            or not (fields.get("why") or "").strip() \
+            or not [s for s in spans if s]:
+        return fields, ""
+    rel = facts.norm(anchor["path"])
+    first, last = int(anchor["first"]), int(anchor["last"])
+    path = Path(root) / rel
+    if facts.escapes(root, rel) or not path.is_file() or first < 1 \
+            or last < first:
+        return fields, ""
+    lines = "\n".join(facts.text_lines(path)[first - 1:last])
+    if not all(s in lines for s in spans if s):
+        return fields, ""
+    said = rel + ":" + str(first) + "-" + str(last)
+    return dict(fields, claim=" ".join(fields["why"].split()),
+                why=("kept as the ruling alone: the claim proposed with it"
+                     " restated " + said + ", which the code there says"
+                     " itself"), anchor=""), said
+
+
 def execute(store, record, items, done, run_id, today=None, pins=None):
     """do each item against `store`, noting on `done` what came of it.
     `pins` is the runner's note of the pinning tests (`Store.pinned`), the
-    store's when None."""
+    store's when None. a defect fact that a nice-to-do of the same block
+    cites the same line for is done after the rest of the block, so it is
+    held to the ticket only once the ticket is written."""
     if pins is None:
         pins = getattr(store, "pinned", None)
     found = [steps_of(fields.get("source")) for verb, _, fields in items
              if verb in ("fact", "supersede")
              and fields.get("kind", "").strip() == DEFECT]
-    for verb, value, fields in items:
+    later = [n for n, (verb, _, fields) in enumerate(items)
+             if a_kind(verb, fields, DEFECT) and any(
+                 a_kind(v, f, facts.NICE) and same_lines(
+                     cite_of(fields.get("source")), cite_of(f.get("source")))
+                 for v, _, f in items)]
+    for n in [n for n in range(len(items)) if n not in later] + later:
+        verb, value, fields = items[n]
         what = what_of(verb, value, fields)
         if verb in ("fact", "supersede"):
             if verb == "supersede":
                 fields = dict(fields, supersedes=value)
-            why = restates(pins, fields)
+            why = restates(pins, fields) or (
+                carried(store, fields) if a_kind(verb, fields, DEFECT)
+                else "")
             if why:
                 refuse(done, what, why)
                 continue
+            fields, restated = ruling_alone(store.root, fields)
             before = store.new + store.tickets_new
             fact, why = store.add(Proposal(fields), record, origin="retro")
             if fact is None:
                 refuse(done, what, why)
             else:
                 kept(store, done, fact, before, run_id)
+                if restated and fact.id in done.written:
+                    done.lines.append("- kept the ruling alone for " + fact.id
+                                      + ": its claim restated " + restated
+                                      + ", which the code there says itself")
         elif verb == "re-anchor":
             why = store.reanchor(value, fields.get("anchor"),
                                  fields.get("evidence"), record, today)
