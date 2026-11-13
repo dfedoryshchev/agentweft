@@ -106,6 +106,27 @@ def test_a_test_writing_step_is_handed_the_map_and_a_plan_step_is_not(
         in handoff[:8], handoff[:8]
 
 
+def test_a_test_writing_step_is_prompted_before_any_product_line_exists(
+        tmp_path, monkeypatch):
+    from agentweft.runner import gating
+    from agentweft.runner import run as running
+
+    place = te.a_place(tmp_path / "repo")
+    te.a_flow(tmp_path, "build", te.TESTER + te.WORKER)
+    seen = {}
+    step = running.Run.step
+
+    def spy(self, name, *args, **kwargs):
+        seen[name] = sorted(gating.added_since_start(self) or {})
+        return step(self, name, *args, **kwargs)
+
+    monkeypatch.setattr(running.Run, "step", spy)
+    code, _ = te.running(tmp_path, monkeypatch, place,
+                         te.writes_of(te.module(te.RIGHT, te.COUNT)), False)
+    assert code == 0
+    assert seen == {"tester.md": [], "worker.md": ["tests/test_report.py"]}
+
+
 def test_the_tests_line_counts_new_files_apart():
     from agentweft.runner import summary
 
