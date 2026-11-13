@@ -297,10 +297,13 @@ each step's line also says what it won (`caught`, `stopped`, `delivered`,
 before and after the step, `decisions.md`, the gates' entries, its handoff
 block, the facts the retro kept), never off what a gate or the model wrote:
 `decided` is a decision of the step's on record, the lead's own question
-included; `found` an ADJACENT defect or a QUESTION nothing settles on its
-handoff; `maintained` facts or tickets the retro wrote or refused; `held` a
+included; `found` an ADJACENT defect with a typed `fixed:` line, or a
+QUESTION whose SETTLED BY line says nothing settles it, on its handoff;
+`maintained` facts or tickets the retro wrote or refused; `held` a
 start-tests, command or project gate that ran green on it; `checked` the
-checks it made and found nothing with. `none` is a step the record shows no
+checks it made and found nothing with, counting only gates that executed
+something and passed (a format gate such as verdict, regex or length counts
+none, `journal.md`). `none` is a step the record shows no
 effect of. a reviewer whose routed case the next test writer shows red on the
 start commit reads as `caught-test-gap` in the handoff (`caught` when the
 case also fails on the code), since its line was written before the case

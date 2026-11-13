@@ -173,7 +173,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
-      "checked": 2,
+      "checked": 1,
       "cause": null,
       "why": "writes: worker.md writes tests only and changed product code: CLAUDE.md. put each back as the run found it",
       "file": "steps/001-worker.md",

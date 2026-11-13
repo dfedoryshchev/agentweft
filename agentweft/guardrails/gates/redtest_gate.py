@@ -59,7 +59,9 @@ class RedTestGate(Gate):
         said = "red" if want_red else "green"
         cmd = self.opts.get("command")
         if not cmd:
-            return self.ok(said + ", as claimed - nothing was run")
+            r = self.ok(said + ", as claimed - nothing was run")
+            r.ran = False
+            return r
         return self.ran(cmd, text, want_red, said)
 
     def ran(self, cmd, text, want_red, said):

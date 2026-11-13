@@ -38,11 +38,15 @@ class Result(object):
     place of a whole file the step named, None when it ran what was named.
     `host` is the fault the machine raised starting a process on every red,
     run twice (`hostfault.py`), "" for none: a fail with it is not the
-    step's, and the step is not sent back for it.
+    step's, and the step is not sent back for it. `ran` is False for a pass
+    that executed nothing against the step's work by design (a red-test with
+    no command takes the step's word, a quote gate given no quote held
+    nothing to its source), True for the rest.
     """
 
     __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
-                 "broke", "issue", "seconds", "began", "named", "host")
+                 "broke", "issue", "seconds", "began", "named", "host",
+                 "ran")
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
                  skipped=False, broke=False, issue=""):
@@ -58,6 +62,7 @@ class Result(object):
         self.began = None
         self.named = None
         self.host = ""
+        self.ran = True
 
     def __bool__(self):
         return self.ok

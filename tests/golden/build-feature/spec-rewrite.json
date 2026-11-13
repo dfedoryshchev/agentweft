@@ -354,7 +354,7 @@
       "ungated": false,
       "outcome": "parked",
       "won": "caught",
-      "checked": 3,
+      "checked": 1,
       "cause": "parked",
       "why": "needs a ruling: 1 line of the spec the run started with removed or rewritten, and no ruling quotes it: TASK.md:3",
       "file": "steps/003-worker.md",

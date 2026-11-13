@@ -608,7 +608,7 @@
       "ungated": false,
       "outcome": "ok",
       "won": "delivered",
-      "checked": 3,
+      "checked": 2,
       "cause": null,
       "why": null,
       "file": "steps/004-patcher.md",

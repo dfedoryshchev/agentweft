@@ -158,7 +158,7 @@
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
-      "checked": 1,
+      "checked": 0,
       "cause": null,
       "why": "writes: planner.md writes nothing and changed product code: CLAUDE.md. put each back as the run found it",
       "file": "steps/001-planner.md",

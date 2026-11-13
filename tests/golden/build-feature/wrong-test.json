@@ -512,7 +512,7 @@
       "ungated": false,
       "outcome": "ok",
       "won": "delivered",
-      "checked": 2,
+      "checked": 1,
       "cause": null,
       "why": null,
       "file": "steps/005-worker.md",

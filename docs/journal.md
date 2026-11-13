@@ -398,8 +398,13 @@ and `continued`
   these seven, since the sums are taken by them.
 - `checked` is what the pass checked whatever it won: the VERIFIED lines of
   its HANDOFF block its transcript backed, by any kind, plus the gates that
-  ran on its work (not `skipped`, not `broke`). a `none` that checked 9 is a
-  price; a `none` that checked 0 is the line to cut.
+  executed something on its work and passed: command, project, start-tests,
+  red-test, red-first, conformance, quote and already-broken, not `skipped`,
+  not `broke`, with no `issue` and no `ran: false` (a red-test with no
+  command takes the step's word, a quote gate given no quote held nothing).
+  a format gate (verdict, regex, length, reject) checks nothing, and a gate
+  that failed prevented something, which is not a check. a `none` that
+  checked 9 is a price; a `none` that checked 0 is the line to cut.
 - a gate entry that refused the work (not ok, not broke, not skipped)
   carries `prevented`, its reason; a line that stopped off task (police)
   carries `prevented` too, the stop's why.

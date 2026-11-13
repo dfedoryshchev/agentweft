@@ -12,6 +12,7 @@ from decimal import Decimal
 import pytest
 
 sys.path.insert(0, ".")
+from agentweft.guardrails.gates import base as gates_base
 from agentweft.runner import engine, handoff, spend, stops, summary, trace
 
 import test_prices
@@ -63,8 +64,19 @@ def test_a_reviewer_that_sends_the_work_back_once_caught_something(
         ("worker.md", "ok", "none"), ("reviewer.md", "ok", "none")]
 
 
-def test_an_all_pass_judge_checked_what_its_gate_ran():
-    assert won("ok", [a_gate("verdict", True, "ok")]) == "checked"
+def test_a_judge_checked_only_what_a_gate_executed():
+    assert won("ok", [a_gate("verdict", True, "ok")]) == "none"
+    assert won("ok", [a_gate("regex", True, "matched"),
+                      a_gate("length", True, "12 words")]) == "none"
+    claimed = gates_base.build({"gate": "red-test"}).run("FAILS: x\n")
+    assert claimed.ok and trace.gate_line(claimed)["ran"] is False
+    assert won("ok", [claimed]) == "none"
+    unquoted = gates_base.build({"gate": "quote", "source": "notes"}).run(
+        "no quote here\n")
+    assert unquoted.ok and trace.gate_line(unquoted)["ran"] is False
+    assert won("ok", [unquoted]) == "none"
+    assert won("ok", [a_gate("quote", True, "1 quoted, all in notes")]) \
+        == "checked"
     assert won("ok") == "none"
 
 
@@ -416,8 +428,11 @@ def test_a_reviewer_that_found_nothing_says_how_much_it_checked():
     none = a_line(block=verified("unbacked", "ran"))
     assert (none["won"], none["checked"]) == ("none", 0)
     gated = a_line(block=verified("backed"), gates=[
-        a_gate("length", True, "2 lines")])
+        a_gate("length", True, "2 lines"), a_gate("quote", True, "1 quoted")])
     assert gated["checked"] == 2
+    assert trace.checked(None, [{"gate": "command", "ok": False,
+                                 "detail": "exit 1", "prevented": "exit 1"}]) \
+        == 0
 
 
 def test_a_gate_that_refused_says_what_it_prevented():
@@ -464,15 +479,18 @@ def test_the_spend_on_passes_that_won_nothing_is_split_by_what_they_checked():
               a_pass_of("reviewer.md", 0.2, "none", 5),
               a_pass_of("reviewer-runs.md", 0.3, "none", 0),
               a_pass_of("worker.md", 0.15, "caught", 1, prevented=["writes"]),
-              a_pass_of("retro.md", 0.05, "none", 0)]
+              a_pass_of("reviewer.md", 0.2, "checked", 5),
+              a_pass_of("reviewer.md", 0.25, "held", 1),
+              a_pass_of("retro.md", 0.05, "maintained", 0)]
     said = summary.bought(passes)
     assert "- prevented: 1 refusal (writes: 1)" in said
     assert ("- USD on steps that won nothing and checked nothing: $0.3000 of"
-            " $0.8000") in said
-    assert ("- USD on steps that bought clarity, checked 5 and held 0:"
-            " $0.2000") in said
+            " $1.2500") in said
+    assert ("- USD on steps that bought clarity, checked 11 and held 1:"
+            " $0.6500") in said
+    assert "- won checked: 1 pass, 1.0s, $0.2000" in said
     assert "- upkeep, not waste: the retro $0.0500" in said
-    assert said[-1].startswith("- total: 5 passes")
+    assert said[-1].startswith("- total: 7 passes")
 
 
 def test_a_pass_whose_cost_was_not_stated_is_named_on_the_waste_lines():

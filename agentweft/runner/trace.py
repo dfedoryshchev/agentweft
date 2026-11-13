@@ -469,6 +469,8 @@ def gate_line(g):
         out["skipped"] = True
     if getattr(g, "broke", False):
         out["broke"] = True
+    if getattr(g, "ran", True) is False:
+        out["ran"] = False
     said = issue_of(g)
     if said:
         out["issue"] = said
@@ -694,33 +696,48 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
 
 def found_in(block):
     """whether a handoff block names a defect beside the change, an ADJACENT
-    item that does not say none, or asks a QUESTION its own SETTLED BY line
-    says nothing settles."""
+    item whose typed `fixed:` line reads yes or no (`summary.beside`), or
+    asks a QUESTION its own SETTLED BY line says nothing settles. a defect
+    with no `fixed:` line, or one that reads neither, and a question with no
+    SETTLED BY line found nothing the record can show."""
     from .ruling import says_none
+    from .summary import beside
 
     if not isinstance(block, dict):
         return False
     for item in block.get("adjacent") or ():
-        if isinstance(item, str) and not says_none(item.split("\n")[0]):
+        if isinstance(item, str) and not says_none(item.split("\n")[0]) \
+                and beside(item)["fixed"] is not None:
             return True
     for q in block.get("questions") or ():
         if isinstance(q, dict) and q.get("question") \
                 and not says_none(q["question"]) \
-                and says_none(q.get("settled") or "none"):
+                and q.get("settled") and says_none(q["settled"]):
             return True
     return False
 
 
+EXECUTES = ("command", "project", "start-tests", "red-test", "red-first",
+            "conformance", "quote", "already-broken")
+
+
 def checked(block, gates=()):
     """-> what a pass checked, whatever it won: the VERIFIED lines of its
-    HANDOFF block its transcript backed, by any kind, and the gates that ran
-    on its work, skipped or broken ones not counted."""
+    HANDOFF block its transcript backed, by any kind, and the gates of
+    EXECUTES that ran on its work and passed. a failed gate prevented
+    something and is not a check; a skipped or broken one, one that could
+    not do its job (`issue`), and one that ran nothing (`ran: false`, a
+    red-test taking the step's word, a quote gate given no quote) checked
+    nothing."""
     verified = (block or {}).get("verified") if isinstance(block, dict) \
         else None
     backed = sum(1 for i in verified or ()
                  if isinstance(i, dict) and i.get("backed") == "backed")
     return backed + sum(1 for g in gates or ()
-                        if not g.get("skipped") and not g.get("broke"))
+                        if g.get("gate") in EXECUTES and g.get("ok")
+                        and g.get("ran") is not False
+                        and not g.get("skipped") and not g.get("broke")
+                        and not g.get("issue"))
 
 
 def line(entry, outcome, why=None, to=None, cause=None, task_file=None,

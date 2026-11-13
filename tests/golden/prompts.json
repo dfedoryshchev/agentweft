@@ -521,7 +521,7 @@
     "planner.md go 1 d94966c9e253b97ce4fe0ad83a7f0feff97eeaee1777523a521f988ae0edc544"
   ],
   "retro/two-fails": [
-    "retro.md go 1 6c47ca2b71b9955ebc02988d164edf91a110b1ac8eceabebc9d335ebcdb5ce03",
+    "retro.md go 1 8a3d2cd96d6dd4f8b88f201b7e6a875bc9284723d65288015339bdc41806db1f",
     "reviewer.md go 1 300c145fb1e1bc37ec1069c65e9201174716e70459510aa13a648947f358d23f",
     "reviewer.md go 2 ebd03a94477f2fad54bcb6df4f936962c3a386e304f8de22b58caa40b374536d",
     "worker.md go 1 2cbca22a64ef2a16e4912a2e7af0f1231b785c8b4127e3813249839a4c20c5e4",
@@ -594,7 +594,7 @@
   "weekly-digest/capped-resume": [
     "merge.md go 1 f1d6d70c3294578131fd055ed8b5da26fc6ad07a9e7eb40b5a00158bc51478ed",
     "planner.md go 1 b94d2f5a78c59bd696686e6bcaa9dbbcd1abb361e44a4cc667709ea583e4a8b2",
-    "retro.md go 1 8b72a1ac62e3bc2dd5c8f691bcede3ac4f0a20d69fcd5884379459639497f782",
+    "retro.md go 1 7e7dc3fd7f59354fb7d135673ae4783cf2beafe8f1754cdedf8c91d019386660",
     "reviewer.md go 1 8aaffe8bef6bf0b1317b9b72aacc5f3889c03999eddcee4754cff202e0e8b166",
     "worker.md task 1 go 1 ef1e8511bd91da33b21d334964dbccbfde9a390ae76eef561e5e9101062cc9e4",
     "worker.md task 2 go 1 f3c40b1abc499a1b457e91e2e88f7bb8472836e080960a1de31edd77241c188e"
@@ -627,7 +627,7 @@
     "merge.md go 1 d65238d1efe1c435dc2f16739967b8e1e07da9f7ae1dae3083d223229df3d9b8",
     "planner.md go 1 b94d2f5a78c59bd696686e6bcaa9dbbcd1abb361e44a4cc667709ea583e4a8b2",
     "planner.md go 2 b94d2f5a78c59bd696686e6bcaa9dbbcd1abb361e44a4cc667709ea583e4a8b2",
-    "retro.md go 1 4aebf52e8ae7dee04d38d601ae3e00f468906db6dcd1e782aaa144ae4a1fc211",
+    "retro.md go 1 d8b59321d7ccf02a46715197c9e84b894f30444e5dfca464a350a16f5929aad0",
     "reviewer.md go 1 eb1a47a490cb1f38ac776067c3a4951b50a684e45f6401f955523305377f47ed",
     "worker.md task 1 go 1 ef1e8511bd91da33b21d334964dbccbfde9a390ae76eef561e5e9101062cc9e4",
     "worker.md task 2 go 1 f3c40b1abc499a1b457e91e2e88f7bb8472836e080960a1de31edd77241c188e"
@@ -641,7 +641,7 @@
   "weekly-digest/pass": [
     "merge.md go 1 d65238d1efe1c435dc2f16739967b8e1e07da9f7ae1dae3083d223229df3d9b8",
     "planner.md go 1 b94d2f5a78c59bd696686e6bcaa9dbbcd1abb361e44a4cc667709ea583e4a8b2",
-    "retro.md go 1 64266aaa0a7506d79df626f6a14aa1c92467cbe392255a40a0baa41b21383c1a",
+    "retro.md go 1 f4098c9a673f2ee1db59dcd5084e86b53efeef86bf2d103e430c3a350534c8c8",
     "reviewer.md go 1 eb1a47a490cb1f38ac776067c3a4951b50a684e45f6401f955523305377f47ed",
     "worker.md task 1 go 1 ef1e8511bd91da33b21d334964dbccbfde9a390ae76eef561e5e9101062cc9e4",
     "worker.md task 2 go 1 f3c40b1abc499a1b457e91e2e88f7bb8472836e080960a1de31edd77241c188e"
@@ -650,7 +650,7 @@
     "merge.md go 1 d65238d1efe1c435dc2f16739967b8e1e07da9f7ae1dae3083d223229df3d9b8",
     "merge.md go 2 9b6a394461c9770caa476507423e7ed35d70b27b0e311785769523f9dcd4f2a9",
     "planner.md go 1 b94d2f5a78c59bd696686e6bcaa9dbbcd1abb361e44a4cc667709ea583e4a8b2",
-    "retro.md go 1 7f53d99e47ebaba038ab298a46dc512b6af3b5eab76495adce4bc9e1b0837937",
+    "retro.md go 1 4abd07700a4bba207d1ef6eb731ec59f32aace670556fadea30c705565e9a2be",
     "reviewer.md go 1 4fed3a659c1258838e05ecb9d426a83d8aca8f6aed012e30f83d337906f01f7f",
     "reviewer.md go 2 eb1a47a490cb1f38ac776067c3a4951b50a684e45f6401f955523305377f47ed",
     "worker.md task 1 go 1 ef1e8511bd91da33b21d334964dbccbfde9a390ae76eef561e5e9101062cc9e4",
@@ -666,7 +666,7 @@
     "merge.md go 1 179543170103da344aae86759acde63a6f357eb9f92e8b1cd1f2b70215731f1a",
     "planner.md go 1 b94d2f5a78c59bd696686e6bcaa9dbbcd1abb361e44a4cc667709ea583e4a8b2",
     "planner.md go 2 e8cc663ac0659e5851808ee0301138e1a0473e42a9522b64fb232ecd70f65b6d",
-    "retro.md go 1 69559970d40a7b4005165f15cfe5183b60a6054a53aca33412d26a27912954f2",
+    "retro.md go 1 c38915f0d5df14a99c392519726a300626ead9b93f0c3ca4516bcf4c421188f6",
     "reviewer.md go 1 68fdf6304a39b7e8e10d3b3ca6e41dd6eada74aa7eb7df80b094f00660626415",
     "worker.md task 1 go 1 ef1e8511bd91da33b21d334964dbccbfde9a390ae76eef561e5e9101062cc9e4",
     "worker.md task 2 go 1 f3c40b1abc499a1b457e91e2e88f7bb8472836e080960a1de31edd77241c188e"

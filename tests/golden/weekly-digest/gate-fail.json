@@ -497,13 +497,14 @@
         {
           "gate": "quote",
           "ok": true,
-          "detail": "nothing quoted"
+          "detail": "nothing quoted",
+          "ran": false
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
-      "checked": 3,
+      "checked": 0,
       "cause": null,
       "why": "regex: matched here is|as an ai|i hope this and should not have",
       "file": "steps/004-reviewer.md",
@@ -622,13 +623,14 @@
         {
           "gate": "quote",
           "ok": true,
-          "detail": "nothing quoted"
+          "detail": "nothing quoted",
+          "ran": false
         }
       ],
       "ungated": false,
       "outcome": "gate failed",
       "won": "caught",
-      "checked": 3,
+      "checked": 0,
       "cause": "gate failed",
       "why": "regex: matched here is|as an ai|i hope this and should not have; reviewer.md was sent back 1 time already (send_backs: 1)",
       "file": "steps/005-reviewer.md",

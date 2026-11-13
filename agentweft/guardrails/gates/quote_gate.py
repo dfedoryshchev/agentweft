@@ -24,7 +24,9 @@ class QuoteGate(Gate):
         quotes = [flat(q) for q in QUOTED.findall(text or "")
                   if len(q.split()) >= QUOTE_WORDS]
         if not quotes:
-            return self.ok("nothing quoted")
+            r = self.ok("nothing quoted")
+            r.ran = False
+            return r
         said = str(self.opts.get("source") or "")
         source = substitute(said).strip()
         if not source:
