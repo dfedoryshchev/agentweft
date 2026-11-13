@@ -8,16 +8,29 @@ import os
 import tempfile
 
 
+# the provider credentials the run may hold: a gate runs the project's
+# commands and tests a model wrote, and neither is handed them
+CREDENTIAL_PREFIXES = ("ANTHROPIC_", "CLAUDE_CODE_OAUTH_")
+CREDENTIALS = ("API_KEY",)
+
+
+def stripped(env=None):
+    """-> `env` (or this process's) without the provider credentials."""
+    return {k: v for k, v in (os.environ if env is None else env).items()
+            if k.upper() not in CREDENTIALS
+            and not k.upper().startswith(CREDENTIAL_PREFIXES)}
+
+
 @contextlib.contextmanager
 def fresh_python(env=None):
     """-> the environment a gate runs the project's tests in: `env` (or this
-    process's) with python neither writing bytecode nor reading any left by
-    an earlier run."""
+    process's) without the provider credentials, with python neither writing
+    bytecode nor reading any left by an earlier run."""
     with tempfile.TemporaryDirectory(prefix="agentweft-pyc-") as empty:
         # a .pyc is trusted on source mtime in whole seconds plus size, so a
         # same-size edit within the second would run the old code
-        yield dict(os.environ if env is None else env,
-                   PYTHONDONTWRITEBYTECODE="1", PYTHONPYCACHEPREFIX=empty)
+        yield dict(stripped(env), PYTHONDONTWRITEBYTECODE="1",
+                   PYTHONPYCACHEPREFIX=empty)
 
 
 class Result(object):

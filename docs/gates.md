@@ -185,6 +185,14 @@ an earlier run left: a `.pyc` is trusted on the source's size and its mtime in
 whole seconds, and an edit of the same size within the same second would
 otherwise run the old code.
 
+the same gates, the run of the start tests and the sign-off's git start
+without the provider credentials the run may hold: every name under
+`ANTHROPIC_` and `CLAUDE_CODE_OAUTH_`, and the api provider's `API_KEY`. the
+command is the project's and the tests are a model's, so a test that prints
+its environment, or a git config that names a command of its own, never
+sees a key or a login token. every other name passes as before; a test that
+needs a provider credential of its own cannot have it from the run.
+
 a step with no gates gets its heading in `gates.md` too, with `no gates`
 under it, and its line in `steps.jsonl` says `"ungated": true` (see
 `docs/journal.md`). without it, a step missing from `gates.md` could have
