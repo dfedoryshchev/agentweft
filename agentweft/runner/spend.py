@@ -38,7 +38,7 @@ class Group(object):
 
     def add(self, run, step):
         self.runs.add(run)
-        if step.get("cached"):
+        if step.get("cached") or trace.no_call(step):
             return
         self.steps += 1
         tokens = step.get("tokens") or {}

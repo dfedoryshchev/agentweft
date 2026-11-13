@@ -45,7 +45,7 @@ def capped(line):
 
 
 def calls_of(line):
-    if line.get("cached"):
+    if line.get("cached") or line.get(CALLS) == 0:
         return 0
     return len(line.get("tasks") or ()) or 1
 

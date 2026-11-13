@@ -28,8 +28,8 @@ import pytest
 
 sys.path.insert(0, ".")
 sys.path.insert(0, "tests")
-from agentweft.guardrails import snapshot
-from agentweft.runner import asking, engine, ruling, stops, wouldpass
+from agentweft.guardrails import blocks, snapshot
+from agentweft.runner import asking, engine, ruling, spend, stops, wouldpass
 
 import test_lead as tl
 
@@ -123,6 +123,19 @@ def test_a_line_already_broken_for_a_sibling_is_fixed_test_first(
         encoding="utf-8")
     assert not (folder / asking.RECORD).exists()
     assert not (folder / asking.KEPT / "calc.py").exists()
+    lines = steps_of(folder)
+    [runner] = [l for l in lines if l["step"] == "runner"]
+    with_runner, without = spend.Group(), spend.Group()
+    for line in lines:
+        with_runner.add("r", line)
+        if line is not runner:
+            without.add("r", line)
+    assert with_runner.line("r") == without.line("r")
+    assert blocks.calls_of(runner) == 0
+    retro = (folder / "handoff.md").read_text(encoding="utf-8").split(
+        "## retro")[1]
+    assert [l for l in retro.split(NL) if l.startswith("- runner ")][0] \
+        .split(")")[0].endswith("(no call")
 
 
 def test_a_sibling_test_green_on_the_start_tree_parks_as_a_break(

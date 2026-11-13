@@ -507,6 +507,33 @@ def test_numbering_carries_on_past_a_line_cut_short(tmp_path):
     assert t.open("b.md", [], None, None).seq == 5
 
 
+def test_a_line_that_made_no_call_says_so_and_carries_no_hook_line(
+        tmp_path):
+    """the runner's own line runs no model: its spend is no calls and no
+    tokens, never an uncounted step, and the cli's hook is not its matter."""
+    import types
+
+    from agentweft.guardrails import blocks
+    from agentweft.runner import spend
+
+    cli = types.SimpleNamespace(
+        name="claude", command=["claude"], asks_for=lambda: "a-model",
+        granted=lambda: None, hook_unchecked=lambda: "cli version unread")
+    t = trace.Trail(tmp_path)
+    t.close(t.open(trace.RUNNER, [], cli, "tester.md", calls=0), "ok",
+            planned=False)
+    t.close(t.open("worker.md", [], cli, None), "ok", planned=False)
+    runner, step = [json.loads(l) for l in (tmp_path / trace.FILE).read_text(
+        encoding="utf-8").splitlines()]
+    assert runner["calls"] == 0
+    assert "shell_writes_unchecked" not in runner
+    assert step["shell_writes_unchecked"] == "not checked: cli version unread"
+    assert (blocks.calls_of(runner), blocks.capped(runner)) == (0, 0)
+    group = spend.Group()
+    group.add("r", runner)
+    assert (group.steps, group.counted, group.unreported) == (0, 0, 0)
+
+
 def gate_notes(folder):
     return (folder / "gates.md").read_text(encoding="utf-8")
 

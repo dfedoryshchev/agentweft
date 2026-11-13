@@ -555,7 +555,7 @@ def function_at(text, n):
     SyntaxError or ValueError when `text` does not parse."""
     found = []
 
-    def walk(node, chain):
+    def walk(node, names):
         for child in ast.iter_child_nodes(node):
             last = getattr(child, "end_lineno", None)
             if not hasattr(child, "lineno") or last is None:
@@ -564,7 +564,7 @@ def function_at(text, n):
                 d.lineno for d in getattr(child, "decorator_list", ())])
             if not first <= n <= last:
                 continue
-            here = chain + (child.name,) if isinstance(child, DEFS) else chain
+            here = names + (child.name,) if isinstance(child, DEFS) else names
             if isinstance(child, FUNCS):
                 found[:] = [(here, first, last, child.col_offset)]
             walk(child, here)
@@ -573,9 +573,9 @@ def function_at(text, n):
     return found[0] if found else None
 
 
-def function_named(text, chain):
+def function_named(text, names):
     """-> (first line with decorators, last line, indent) of the function
-    `chain` names in python `text`, None when it has none by that name.
+    `names` names in python `text`, None when it has none by that name.
     raises SyntaxError or ValueError when `text` does not parse."""
     def walk(node, left):
         for child in ast.iter_child_nodes(node):
@@ -595,14 +595,14 @@ def function_named(text, chain):
                 return found
         return None
 
-    return walk(ast.parse(text), chain)
+    return walk(ast.parse(text), names)
 
 
-def put_back(now, was, chain, at):
-    """-> `now` with the function `chain` names written back as `was` holds
+def put_back(now, was, names, at):
+    """-> `now` with the function `names` names written back as `was` holds
     it (`at` from `function_at`), everything else as it is, or None when
     `now` has no function by that name."""
-    found = function_named(now, chain)
+    found = function_named(now, names)
     if found is None:
         return None
     lines, old = now.split("\n"), was.split("\n")[at[1] - 1:at[2]]

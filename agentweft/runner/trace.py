@@ -292,7 +292,7 @@ class Entry(object):
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
                  "conformance", "past_end", "case", "held", "went_on",
-                 "kind")
+                 "kind", "calls")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -330,6 +330,8 @@ class Entry(object):
         self.went_on = None
         # on a park only: what parked it, ASKED or HELD, for `won`
         self.kind = None
+        # 0 on a line that ran no model (the runner's own), None otherwise
+        self.calls = None
 
 
 class Trail(object):
@@ -357,7 +359,9 @@ class Trail(object):
         return chain.head(self.lines)
 
     def open(self, step, attempts, provider, came_from, output=None,
-             fanned=False):
+             fanned=False, calls=None):
+        """`calls` is 0 for a line that runs no model: its line says so, and
+        the spend and the token cap read it as nothing spent."""
         self.seq = self.seq + 1
         kept = None
         if output is not None:
@@ -368,6 +372,7 @@ class Trail(object):
             path.write_text(redact.redact(output), encoding="utf-8")
         entry = Entry(self.seq, step, attempts, provider, came_from, kept,
                       fanned)
+        entry.calls = calls
         if self.plan is not None:
             entry.took = self.plan.opened()
         self.unclosed.append(entry)
@@ -730,6 +735,16 @@ def found_in(block):
 
 
 RUNNER = "runner"
+NO_TOKENS = {"counted": True, "input": 0, "output": 0, "cache_read": 0,
+             "cache_creation": 0}
+
+
+def no_call(line):
+    """whether a steps.jsonl line ran no model (`calls: 0`), so it spent
+    nothing and is no step of the spend."""
+    return isinstance(line, dict) and line.get("calls") == 0
+
+
 EXECUTES = ("command", "project", "start-tests", "red-test", "red-first",
             "conformance", "quote", "sibling-red", "already-broken")
 
@@ -822,7 +837,11 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "handoff": entry.handoff}
     if getattr(p, "auth_method", None):
         out["auth_method"] = p.auth_method
-    if unchecked(p):
+    if entry.calls == 0:
+        out["calls"] = 0
+        out["tokens"] = dict(NO_TOKENS)
+        out["shell_writes_denied"] = None
+    elif unchecked(p):
         out["shell_writes_unchecked"] = "not checked: " + unchecked(p)
     if said["turns"] is not None:
         out["turns"] = said["turns"]

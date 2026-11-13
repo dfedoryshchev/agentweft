@@ -272,7 +272,11 @@ and `continued`
   retry took. `{"counted": false}` and a null cost mean it reported nothing:
   not zero, unknown. a cached answer sent nothing, so it costs 0 and is not
   counted. `priced` is the same tokens through the price table, null when a
-  go was not counted or the table could not price it.
+  go was not counted or the table could not price it. the runner's own line
+  at the end of a run (`step: runner`, the `already-broken` check) ran no
+  model: it carries `calls: 0` and tokens counted as zeros, no
+  `shell_writes_unchecked`, and `python run.py spend`, the token cap and the
+  retro read it as nothing spent ("no call"), never as a step not counted.
 - `continued` is only on the line of a step that carried its own session on
   (`continue: resume`, `writing-a-flow.md`): the id of the session it carried
   on. its `tokens` and `cost` are what the call added, not the whole

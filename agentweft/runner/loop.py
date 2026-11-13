@@ -888,7 +888,7 @@ def go(leg):
         lap.to("finish")
         broken, unfixed = sibling_unfixed(run)
         if broken is not None:
-            entry = trail.open(RUNNER, [], run.provider, came_from)
+            entry = trail.open(RUNNER, [], run.provider, came_from, calls=0)
             entry.gates = [broken]
             print("  " + repr(broken))
             with open(folder / "gates.md", "a", encoding="utf-8") as gf:

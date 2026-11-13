@@ -616,7 +616,7 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
          "shell_writes_denied", "shell_trap_recoveries", "won", "fallback",
-         "thinking", "effort")
+         "thinking", "effort", "calls")
 
 
 def fallen(passes):
@@ -1765,6 +1765,8 @@ def spec_for(test, blocks):
 def _money(facts):
     if facts.get("cached"):
         return "cached"
+    if trace.no_call(facts):
+        return "no call"
     cost = facts.get("cost")
     if not isinstance(cost, (int, float)) or isinstance(cost, bool):
         return "cost not stated"
@@ -1820,7 +1822,8 @@ def retro(passes):
 
 def _tally(passes):
     seconds = round(sum(p["seconds"] or 0 for p in passes), 1)
-    costs = [(p.get("facts") or {}).get("cost") for p in passes]
+    costs = [(p.get("facts") or {}).get("cost") for p in passes
+             if not trace.no_call(p.get("facts"))]
     stated = [c for c in costs if isinstance(c, (int, float))
               and not isinstance(c, bool)]
     out = (str(len(passes)) + (" pass" if len(passes) == 1 else " passes")
@@ -1867,9 +1870,9 @@ def _cost(p):
 def _unstated(passes):
     """-> ", cost not stated on n" for the passes whose cost is not known,
     so a sum of the rest never reads as their price."""
-    n = sum(1 for p in passes if not isinstance(
-        (p.get("facts") or {}).get("cost"), (int, float))
-        or isinstance(p["facts"]["cost"], bool))
+    n = sum(1 for p in passes if not trace.no_call(p.get("facts")) and (
+        not isinstance((p.get("facts") or {}).get("cost"), (int, float))
+        or isinstance(p["facts"]["cost"], bool)))
     return ", cost not stated on " + str(n) if n else ""
 
 
