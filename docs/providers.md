@@ -194,6 +194,12 @@ from its file into the one call's environment and is never put in the
 runner's own, and a `subscription` step strips any key the run was started
 with.
 
+every step's line in `steps.jsonl` says its `connector` and `auth`, and a
+step on a `claude` connector the cli's own `authMethod`, read once per
+connector a run (`journal.md`); the run's spend line and `python run.py
+spend` split the calls the same way, so the record says which credential
+paid for each step.
+
 ## tiers
 
 naming a provider per step answers "who", and most of the time the question is
@@ -611,8 +617,9 @@ anything. a tier gets its own line, because a step asking for `high` with no
 step.
 
 for `claude` the line says the version, whether it is logged in and how
-(`claude auth status`, by its exit code and its `authMethod`; the account is
-never printed), the model a step would ask for, or the cli's default, and
+(`claude auth status --json`, started in the place with the step's
+environment, by its exit code and its `authMethod`; the account is never
+printed), the model a step would ask for, or the cli's default, and
 the effort level, or that the cli's own answers. a
 version below the floor fails the check, because every shipped reviewer
 carries a grant and would be refused. neither question makes a model call.

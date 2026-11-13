@@ -214,6 +214,7 @@ class FakeCli(object):
         self.answers = list(answers) or [(0, b"ok", b"")]
         self.calls = []
         self.asides = []
+        self.aside_kw = []
         self.version = self.VERSION
         self.auth = self.LOGGED_IN
 
@@ -224,6 +225,7 @@ class FakeCli(object):
                  ("auth", "status"): self.auth}.get(tuple(argv[1:3]))
         if aside is not None:
             self.asides.append(list(argv))
+            self.aside_kw.append(kw)
             code, out, err = aside
             if text:
                 out, err = out.decode(enc, errors), err.decode(enc, errors)

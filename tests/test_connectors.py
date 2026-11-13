@@ -10,7 +10,7 @@ sys.path.insert(0, ".")
 from agentweft import providers
 from agentweft.orchestrate import project, workflow
 from agentweft.providers import api_provider
-from agentweft.runner import engine, prompts, resume, state
+from agentweft.runner import engine, prompts, resume, spend, state, stops
 
 KEY = "decoy-key-for-tests-0001"
 CLAUDE = "provider:\n  provider: cli\n  command: claude\n  model: m-small\n"
@@ -278,3 +278,86 @@ def test_project_yml_connectors_reach_the_step(tmp_path, monkeypatch,
     cli = fake_cli(answer("done\n"))
     assert engine.main() == 0
     assert cli.calls[0]["kw"]["env"]["ANTHROPIC_API_KEY"] == KEY
+
+
+def lines():
+    return [json.loads(l) for p in state.RUNS.rglob("steps.jsonl")
+            for l in p.read_text(encoding="utf-8").split("\n") if l]
+
+
+def two_connectors(tmp_path, monkeypatch, fake_cli, third=None):
+    steps = [("worker", ["provider: claude-api"]),
+             ("reviewer", ["provider: claude-sub"])]
+    if third:
+        steps.append(("closer", ["provider: " + third]))
+    place = a_flow(tmp_path, monkeypatch, steps,
+                   tail=CLAUDE + declared_key(key_file(tmp_path)))
+    cli = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
+                   answer("closed\n"))
+    cli.auth = (0, b'{"loggedIn": true, "authMethod": "apiKey",'
+                   b' "email": "someone@example.com"}\n', b"")
+    return place, cli
+
+
+def test_every_step_line_says_its_connector_and_auth(tmp_path, monkeypatch,
+                                                     fake_cli):
+    two_connectors(tmp_path, monkeypatch, fake_cli)
+    assert engine.main() == 0
+    api, sub = lines()
+    assert (api["connector"], api["auth"], api["auth_method"]) == (
+        "claude-api", "api-key", "apiKey")
+    assert (sub["connector"], sub["auth"]) == ("claude-sub", "subscription")
+    text = "".join(p.read_text(encoding="utf-8")
+                   for p in state.RUNS.rglob("*") if p.is_file())
+    assert "someone@example.com" not in text
+
+
+def test_an_inline_block_s_line_says_inherit_and_reads_no_auth(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, [("worker", [])])
+    cli = fake_cli(answer("done\n"))
+    assert engine.main() == 0
+    [line] = lines()
+    assert (line["connector"], line["auth"]) == (None, "inherit")
+    assert "auth_method" not in line
+    assert not [a for a in cli.asides if a[1:3] == ["auth", "status"]]
+
+
+def test_the_cli_s_auth_is_read_once_per_connector_in_the_place(
+        tmp_path, monkeypatch, fake_cli):
+    place, cli = two_connectors(tmp_path, monkeypatch, fake_cli,
+                                third="claude-api")
+    assert engine.main() == 0
+    asked = [(a, kw) for a, kw in zip(cli.asides, cli.aside_kw)
+             if a[1:3] == ["auth", "status"]]
+    assert len(asked) == 2
+    assert all(a == ["claude", "auth", "status", "--json"] for a, _ in asked)
+    assert all(kw["cwd"] == str(place) for _, kw in asked)
+    api_env = [kw["env"] for a, kw in asked]
+    assert sorted("ANTHROPIC_API_KEY" in env for env in api_env) == [False,
+                                                                     True]
+    assert lines()[2]["auth_method"] == "apiKey"
+
+
+def test_an_unreadable_auth_status_leaves_the_method_out(
+        tmp_path, monkeypatch, fake_cli):
+    place, cli = two_connectors(tmp_path, monkeypatch, fake_cli)
+    cli.auth = (0, b"not json\n", b"")
+    assert engine.main() == 0
+    api, sub = lines()
+    assert "auth_method" not in api and api["auth"] == "api-key"
+
+
+def test_the_cost_lines_carry_connector_and_auth(tmp_path, monkeypatch,
+                                                 fake_cli):
+    two_connectors(tmp_path, monkeypatch, fake_cli)
+    assert engine.main() == 0
+    journal = (state.RUNS / "journal.md").read_text(encoding="utf-8")
+    [end] = [stops.read(l) for l in journal.split("\n")
+             if l.strip() and stops.read(l).kind != "running"]
+    assert end.spend.endswith(
+        "(claude-api:api-key x1, claude-sub:subscription x1)")
+    said = spend.report(state.RUNS)
+    at = said.index("per connector")
+    assert said[at + 1].startswith("  claude-api (api-key)  1 run, 1 step")
+    assert said[at + 2].startswith("  claude-sub (subscription)  1 run, 1 step")

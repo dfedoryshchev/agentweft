@@ -124,7 +124,8 @@ def report(runs):
     spent = [(text, line) for text, line in spent
              if line is not None and line.spend][-LAST:]
     out = [text for text, _ in spent]
-    flows, providers, seen = {}, {}, set()
+    flows, providers, named, seen = {}, {}, {}, set()
+    named_any = False
     for _, line in spent:
         if not line.run or line.run in seen:
             continue
@@ -134,9 +135,23 @@ def report(runs):
             flows.setdefault(line.flow, Group()).add(line.run, step)
             providers.setdefault(step.get("provider") or "?",
                                  Group()).add(line.run, step)
+            named.setdefault(connector_of(step), Group()).add(line.run, step)
+            named_any = named_any or bool(step.get("connector")) or \
+                (step.get("auth") or "inherit") != "inherit"
     if not flows:
         return out
     out = out + ["", "per flow"] + [flows[k].line(k) for k in sorted(flows)]
     out = out + ["", "per provider"] + [providers[k].line(k)
                                        for k in sorted(providers)]
+    if named_any:
+        out = out + ["", "per connector"] + [named[k].line(k)
+                                            for k in sorted(named)]
     return out
+
+
+def connector_of(step):
+    """-> a step line's connector and the credential it paid with: an
+    inline block is its provider's name, a line written before connectors
+    existed reads as inherit."""
+    return ((step.get("connector") or step.get("provider") or "?") + " ("
+            + (step.get("auth") or "inherit") + ")")

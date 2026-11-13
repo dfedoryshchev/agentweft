@@ -1139,6 +1139,21 @@ class Run(object):
     def provider_for(self, step):
         return self.by_step.get(step, self.provider)
 
+    def read_auth(self, used):
+        """puts on `used` how its provider says it logs in, asked once per
+        connector a run, by the first step on it. a block written inline is
+        not asked: it runs on whatever the run was started with, as before."""
+        name = getattr(used, "connector", None)
+        if not name:
+            return
+        with self.lock:
+            seen = getattr(self, "auth_read", None)
+            if seen is None:
+                seen = self.auth_read = {}
+            if name not in seen:
+                seen[name] = used.read_auth()
+            used.auth_method = seen[name]
+
     def continues(self, step):
         for s in self.fm.steps:
             if step_id(s) == step:
@@ -1695,6 +1710,7 @@ class Run(object):
         self.attempts.append(tried)
         used = self.by_step.get(step, self.provider)
         used.at(step, task)
+        self.read_auth(used)
         tried.effort = self.effort_for(step, used)
         used.going = tried.effort["base"] and tried.effort["asked"]
         used.terse = terse
@@ -1723,7 +1739,7 @@ class Run(object):
             from .engine import Answer
 
             refused = tried.answered(Answer("", False, e.replies, e.retries))
-            self.charge(sent, refused, used.name, used.asks_for())
+            self.charge(sent, refused, providers.connectors.label(used), used.asks_for())
             if carry and isinstance(e, Fatal):
                 self.keep_session(step, used, held, refused, carry)
             tried.replies[:0] = warm.taken(self, step)
@@ -1748,7 +1764,7 @@ class Run(object):
         if not cached:
             # a cached answer costs nothing and was counting against the cap,
             # so a flow with a redo in it hit the ceiling on work it never did
-            self.charge(sent, answer, used.name, used.asks_for())
+            self.charge(sent, answer, providers.connectors.label(used), used.asks_for())
         said = verdict(text, asked=asked)
         left = self.spec_unruled() if reviews_spec and said == "ok" else []
         if left:

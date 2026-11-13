@@ -782,6 +782,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "from": entry.came_from,
            "to": to,
            "provider": p.name,
+           "connector": getattr(p, "connector", None),
+           "auth": getattr(p, "auth", "inherit"),
            "command": p.command,
            "model": p.asks_for(),
            "model_reported": last(one, "model") if one else None,
@@ -815,6 +817,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "task_file": task_file,
            "tasks": tasks,
            "handoff": entry.handoff}
+    if getattr(p, "auth_method", None):
+        out["auth_method"] = p.auth_method
     if unchecked(p):
         out["shell_writes_unchecked"] = "not checked: " + unchecked(p)
     if said["turns"] is not None:

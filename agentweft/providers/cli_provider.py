@@ -1121,23 +1121,41 @@ class CliProvider(Provider):
 
     def login(self):
         """-> (logged in, what to say). the account itself is never repeated."""
+        code, method, why = self.auth_status()
+        if why:
+            return False, why
+        if code != 0:
+            return False, "not logged in"
+        return True, "logged in" + (" (" + method + ")" if method else "")
+
+    def auth_status(self):
+        """-> (exit code, authMethod or None, why it could not be asked or
+        ""), from `claude auth status --json` started in the place with the
+        environment a step gets. of what it prints, only `authMethod` is
+        kept: the rest names the account."""
         from .connectors import NoKey
 
         try:
-            r = subprocess.run([self.command, "auth", "status"],
+            r = subprocess.run([self.command, "auth", "status", "--json"],
                                capture_output=True, encoding="utf-8",
                                errors="replace", timeout=30,
+                               cwd=str(self.where) if self.where else None,
                                env=self.child_env())
         except NoKey as e:
-            return False, str(e)
+            return None, None, str(e)
         except (OSError, subprocess.TimeoutExpired) as e:
-            return False, "could not ask whether it is logged in: " + str(e)
-        if r.returncode != 0:
-            return False, "not logged in"
+            return None, None, "could not ask whether it is logged in: " \
+                + str(e)
         try:
             data = json.loads(r.stdout)
         except ValueError:
             data = None
         method = data.get("authMethod") if isinstance(data, dict) else None
-        return True, "logged in" + (" (" + method + ")"
-                                    if isinstance(method, str) else "")
+        return r.returncode, method.strip()[:40] if isinstance(method, str) \
+            and method.strip() else None, ""
+
+    def read_auth(self):
+        if not is_claude(self.command):
+            return None
+        code, method, why = self.auth_status()
+        return method if code == 0 and not why else None

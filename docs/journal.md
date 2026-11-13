@@ -25,7 +25,11 @@ no counts, no money` instead of adding up to nothing. `reported` there is only
 what the providers said; a go priced from its transcript is added up as
 `table-priced` and one estimated from its prompt as `estimated`, each beside
 it (a step line written before `cost_parts` existed, with goes of more than one
-kind, is `mixed, not split`).
+kind, is `mixed, not split`). when any step picked a connector or a
+credential, the same runs follow per connector, as `<connector> (<auth>)`
+(an inline block is its provider's name); the spend on the run's own line
+names each such step's calls `<connector>:<auth>` beside the inline
+provider's plain name, as in `(claude-api:api-key x2, cli x1)`.
 
 a run saves its output as `runs/<flow>-<day>-<n>.md`, and the first run of a
 day is `-1`.
@@ -155,7 +159,8 @@ and `continued`
 
     {"seq": 1, "time": "2026-01-22T09:14:03", "step": "worker.md",
      "from": null, "to": "reviewer.md",
-     "provider": "cli", "command": "claude", "model": "a-model",
+     "provider": "cli", "connector": null, "auth": "inherit",
+     "command": "claude", "model": "a-model",
      "model_reported": "a-model-1", "model_choice": null,
      "effort": {"asked": "provider default", "base": null, "raised": 0,
                 "applies": true},
@@ -192,6 +197,16 @@ and `continued`
 - `from` is the step whose output this one was handed, `to` the one the run
   went to next: null when nothing came before, and when the run ended or
   stopped here.
+- `connector` is the connector the step picked its provider by
+  (`providers.md`, "connectors"), null for a provider block written inline;
+  `auth` is the credential its process was handed: `subscription`,
+  `api-key` or `inherit` (the environment the run was started with, as for
+  every inline block). a step on a `claude` connector also carries
+  `auth_method`, after the keys above: the `authMethod` that `claude auth
+  status --json`, started in the place with the step's own environment,
+  printed, asked once per connector a run. nothing else it prints is kept
+  (the rest names the account), and the key is left out when the cli says
+  nothing readable.
 - `model` is the id the provider sends, null for one that sends none (the fake,
   or a cli command other than claude). `model_reported` is what the provider
   said answered. when the step's transcript records the cli's

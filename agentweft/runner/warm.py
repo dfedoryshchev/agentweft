@@ -98,7 +98,9 @@ class Warmer(object):
                               stop=self.stopped)
             if reply is not None:
                 error = None if reply else kind_of(reply).__name__.lower()
-                run.budget.charge("", reply, provider=used.name, error=error,
+                from agentweft.providers.connectors import label
+
+                run.budget.charge("", reply, provider=label(used), error=error,
                                   model=used.asks_for())
             with run.lock:
                 if reply is not None and hasattr(run, "warm_calls"):

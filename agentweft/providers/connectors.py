@@ -119,6 +119,16 @@ def kind(value, declared=None):
     return None
 
 
+def label(p):
+    """-> what a cost line calls p's calls: its provider's name for a block
+    written inline that inherits, else its connector and its auth."""
+    connector = getattr(p, "connector", None)
+    auth = getattr(p, "auth", INHERIT)
+    if connector is None and auth == INHERIT:
+        return p.name
+    return (connector or p.name) + ":" + auth
+
+
 def key_refused(p):
     """-> why p cannot be handed its key, "" when it can or needs none."""
     if p.auth != API_KEY:

@@ -229,6 +229,9 @@ class Recorder(Provider):
     def check(self):
         return self.inner.check()
 
+    def read_auth(self):
+        return self.inner.read_auth()
+
     def ask(self, prompt, timeout=None):
         step, task, go = self.goes.next()
         reply = self.inner.ask(prompt, timeout=timeout)

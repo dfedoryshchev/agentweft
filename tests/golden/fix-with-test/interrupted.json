@@ -97,6 +97,8 @@
       "from": null,
       "to": null,
       "provider": "cli",
+      "connector": null,
+      "auth": "inherit",
       "command": "claude",
       "model": "model-in-replay",
       "model_reported": null,

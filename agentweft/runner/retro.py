@@ -29,6 +29,7 @@ from agentweft.flow.spec import CONDITIONAL, parks_on_fallback, step_id
 from agentweft.guardrails import factsguard, police, retroedits
 from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
+from agentweft.providers import connectors
 from agentweft.roles import resolver
 
 from . import (asking, duplicates, handoff, investigate, lead, manifest,
@@ -677,6 +678,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
     used.at(STEP, None)
+    if hasattr(run, "read_auth"):
+        run.read_auth(used)
     tried.effort = run.effort_for(STEP, used)
     used.going = tried.effort["base"] and tried.effort["asked"]
     print("started " + STEP)
@@ -686,12 +689,13 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         answered = True
         said = answer[0]
         if not answer[1]:
-            run.charge(text, answer, used.name, used.asks_for())
+            run.charge(text, answer, connectors.label(used),
+                       used.asks_for())
             seen, why = policed(run, used, tried, text, folder)
     except (Outage, Fatal) as e:
         run.charge(text, tried.answered(Answer("", False, e.replies,
                                                e.retries)),
-                   used.name, used.asks_for())
+                   connectors.label(used), used.asks_for())
         why = type(e).__name__ + ": " + str(e)
     except (Exception, KeyboardInterrupt) as e:
         why = type(e).__name__ + ": " + str(e)

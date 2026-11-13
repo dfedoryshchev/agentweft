@@ -274,6 +274,8 @@ class Provider(object):
     connector = None
     auth = "inherit"
     key_file = None
+    # what the provider itself says it logs in with, None when not read
+    auth_method = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -298,6 +300,11 @@ class Provider(object):
 
     def ask(self, prompt, timeout=None):
         raise NotImplementedError
+
+    def read_auth(self):
+        """-> how the provider says it logs in, None when it has no way to
+        say or did not."""
+        return None
 
     def at(self, step, task):
         """the step about to ask, and the task when it is fanned out. only a
