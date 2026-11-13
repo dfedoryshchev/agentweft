@@ -314,19 +314,24 @@ its own entry in `decisions.md` (and in the run's `rulings.json`, with its
 number), and the step runs again with all of them. a number the lead leaves
 neither decided nor escalated (`ESCALATE <n>: <why>`) is asked once more;
 any still not decided parks the whole ask for you, the undecided numbers
-named and nothing recorded. before any of that, a question that cites the
-very cite an ASSUMED item of an earlier step of the run cites in its choice
-or its `why:` (the same line of the same file, or the same range written the
-same way, lines the file had when the run started) is answered by that item,
-with no call at all: the step runs again told the item, and `decisions.md`
-gets an entry in the lead's form, "answered by <step>'s ASSUMED <n>" (in
-`rulings.json` as `by: assumed`, with the step and the item). the match is
-the cite, never the words: a line inside an item's range, a line past the
-end of the file and a file that was not there answer nothing. it goes to the
-lead as above when it cites a line no ASSUMED item cites, when the item has
-already answered a question of this step once in the run (however the new one
-is worded), and when it carries three words in a row of the item's `if
-wrong:`, since then it asks about the item itself. an `ESCALATE:`, a decision with no `why:`, or a
+named and nothing recorded. before any of that, the runner tells a step the
+lead's own ASSUMED item when the step's question rests on the very spec line
+the item rests on, with no call at all: every spec-file cite of the question
+is a single line the item cites in its choice or its `why:`, a line the file
+had when the run started (a code-file cite in the question is where the step
+would change, and is not read). the step runs again told the item, and
+`decisions.md` gets an entry in the lead's form, "answered by <lead>'s
+ASSUMED <n>" (in `rulings.json` as `by: assumed`, with the step and the
+item). it checks the line is the same and the item is the lead's, never that
+the item answers the question: that is the lead's choice, printed on the
+handoff for you to overrule. a range on either side, a line past the end of
+the file, a file that was not there, a cite in a file that is not a spec
+file, an item of a step that is not the lead, and a flow with no lead answer
+nothing. it goes to the lead as above when a spec line of the question is not
+the item's, when the item has already answered a question of this step once
+in the run (however the new one is worded), and when it carries three words
+in a row of the item's `if wrong:`, since then it asks about the item itself.
+an `ESCALATE:`, a decision with no `why:`, or a
 second ask of the same question comes to you, and so does what the step
 acting on a decision does to a spec line or a test the run started with: a
 decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:

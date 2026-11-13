@@ -83,6 +83,24 @@ def cites_in(text, workdir, start=None):
     return out
 
 
+def spec_cites(text, workdir, start):
+    """-> the cites of `cites_in` that fall in a spec file of the run, as
+    the start snapshot typed its files; none without a snapshot."""
+    specs = getattr(start, "specs", None) or {}
+    if not specs:
+        return []
+    out = []
+    for rel, first, last in cites_in(text, workdir, start):
+        try:
+            key = (Path(start.place) / rel).resolve().relative_to(
+                Path(start.root).resolve()).as_posix()
+        except (TypeError, ValueError, OSError):
+            continue
+        if key in specs:
+            out.append((rel, first, last))
+    return out
+
+
 def split_item(item):
     """-> (what an ASSUMED item rests on, its `if wrong:` words): what it
     cites is read off its choice and its why, never off what would follow
@@ -94,23 +112,27 @@ def split_item(item):
 
 
 def assumed_items(run, step):
-    """-> [(the step, its number, the item's lines, the cites it rests on,
-    its `if wrong:` words)] of each ASSUMED item the run's other steps
-    handed over, in the order they ran, that cites a line of the place."""
+    """-> [(the lead, its number, the item's lines, the single spec lines it
+    rests on, its `if wrong:` words)] of each ASSUMED item the flow's lead
+    handed over that rests on a single line of a spec file; [] in a flow
+    with no lead and for the lead's own question. another step's item is a
+    choice nobody with the lead's role took."""
+    head = getattr(run, "lead", None)
+    text = (getattr(run, "produced", None) or {}).get(head) \
+        if head is not None and head != step else None
+    if not text:
+        return []
+    block = parse_handoff(text)
+    if block.get("state") not in (PRESENT, PARTIAL):
+        return []
     out = []
     workdir = getattr(run, "workdir", ".")
     start = getattr(run, "start", None)
-    for owner, text in list((getattr(run, "produced", None) or {}).items()):
-        if owner == step or not text:
-            continue
-        block = parse_handoff(text)
-        if block.get("state") not in (PRESENT, PARTIAL):
-            continue
-        for n, item in enumerate(block.get("assumed") or [], 1):
-            rests, wrong = split_item(item)
-            found = cites_in(rests, workdir, start)
-            if found:
-                out.append((owner, n, item, found, wrong))
+    for n, item in enumerate(block.get("assumed") or [], 1):
+        rests, wrong = split_item(item)
+        found = [c for c in spec_cites(rests, workdir, start) if c[1] == c[2]]
+        if found:
+            out.append((head, n, item, found, wrong))
     return out
 
 
@@ -133,13 +155,14 @@ def assumed_answer(run, step, question, where):
     """-> None when no question of `question` is answered by an ASSUMED
     item, else (what `step` is told on its next go, the rest of the ask or
     "" when nothing is left for the lead). a question is answered by the
-    first ASSUMED item of another step of the run that cites the very cite
-    the question cites, the same line of the same file, or the same range
-    written the same way, a line the file had when the run started: the
-    match is the cite, never the words. that answer is put on record in the
-    lead's form and nobody is called. a question on a cite an item already
-    answered for this step once in the run, and one that carries the
-    item's `if wrong:` words, go to the lead."""
+    first ASSUMED item of the lead's own (`assumed_items`) that cites every
+    spec-file cite of the question, each a single line the file had when
+    the run started: the match is the cite, never the words, and a range
+    on either side matches nothing. that answer is put on record in the
+    lead's form and nobody is called; it re-delivers the lead's own choice
+    and never checks the choice answers the question. a question on a cite
+    an item already answered for this step once in the run, and one that
+    carries the item's `if wrong:` words, go to the lead."""
     told_once = getattr(run, "assumed_led", None)
     if told_once is None:
         told_once = run.assumed_led = set()
@@ -150,8 +173,8 @@ def assumed_answer(run, step, question, where):
     asks = sorted(numbered.items()) if numbered else [(None, question)]
     told, left = [], []
     for n, text in asks:
-        cites = set(cites_in(text, workdir, start))
-        hits = [i for i in items if cites & set(i[3])]
+        cites = set(spec_cites(text, workdir, start))
+        hits = [i for i in items if cites and cites <= set(i[3])]
         hit = hits[0] if hits else None
         if hit is not None and (
                 any((step, i[0], i[1]) in told_once for i in hits)

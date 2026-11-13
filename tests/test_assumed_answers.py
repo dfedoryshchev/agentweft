@@ -1,13 +1,14 @@
-"""a step's NEEDS that an ASSUMED item of this run already answers on the same
-cited line is told that item as its answer, by the runner, with no call to
+"""a step's NEEDS resting on the very spec line an ASSUMED item of the lead's
+own rests on is told that item as its answer, by the runner, with no call to
 the lead.
 
-the match is typed: a cite the question carries is the very cite an
-ASSUMED item of an earlier step of the run carries in its choice or its
-`why:`, the same line or the same range, a line the file had when the run
-started. a question on a cite no ASSUMED item carries goes to the lead as
-before, and so does a question the item already answered for this step once,
-whatever its words, and one that carries the item's `if wrong:` words.
+the match is typed: every spec-file cite the question carries is a single
+line the lead's item carries in its choice or its `why:`, a line the file
+had when the run started. a range, a code-file line alone, another step's
+item and a flow with no lead answer nothing. a question on a spec line the
+item does not carry goes to the lead as before, and so does a question the
+item already answered for this step once, whatever its words, and one that
+carries the item's `if wrong:` words.
 """
 import json
 import sys
@@ -140,15 +141,108 @@ def test_an_item_on_a_range_does_not_answer_one_line_inside_it(
     assert said.decided.startswith("planner.md decided for worker.md")
 
 
-def test_the_same_range_written_the_same_way_is_answered(tmp_path,
-                                                          monkeypatch):
-    ranged = ("NEEDS: should mul round a float product to an int?" + NL
-              + "CITES:" + NL + "- TASK.md:1-3 - the spec" + NL)
-    asked, _, code, _, _ = build_with(
-        tmp_path, monkeypatch, plan_citing("TASK.md:1-3 say a times b"), [],
-        (ranged, tl.WORKER))
-    assert asked[:4] == ["planner.md", "tester.md", "worker.md", "worker.md"]
-    assert "planner.md" not in asked[1:]
+def test_the_same_range_written_the_same_way_goes_to_the_lead(tmp_path,
+                                                               monkeypatch):
+    """a cite is one line: an item resting on a whole section would answer
+    any question on that section, whatever it asks."""
+    logging = ("NEEDS: should mul log its inputs to stderr?" + NL + "CITES:"
+               + NL + "- TASK.md:1-3 - the spec" + NL)
+    asked, _, _, folder, _ = build_with(
+        tmp_path, monkeypatch, plan_citing("TASK.md:1-3 say a times b"),
+        [tl.DECIDED], (logging, tl.WORKER))
+    assert asked[3] == "planner.md", asked
+    assert "assumed" not in [w["by"] for w in written_or_none(folder)]
+
+
+def written_or_none(folder):
+    if not (folder / "rulings.json").exists():
+        return []
+    return written(folder)
+
+
+def test_a_question_resting_on_a_second_spec_line_goes_to_the_lead(
+        tmp_path, monkeypatch):
+    two = ("NEEDS: should mul round, and should the title line stay?" + NL
+           + "CITES:" + NL + "- TASK.md:3 - mul(a, b) returns a times b" + NL
+           + "- TASK.md:1 - # calc" + NL)
+    asked, _, _, _, _ = build_with(
+        tmp_path, monkeypatch, PLAN, [tl.DECIDED], (two, tl.WORKER))
+    assert asked[3] == "planner.md", asked
+
+
+def test_a_needs_citing_the_spec_line_and_a_code_line_is_answered(
+        tmp_path, monkeypatch):
+    """a code line in a question is where the step would change, not a line
+    that decides: only its spec lines have to be the item's."""
+    beside = (tl.NEEDS.split("OPTIONS:")[0]
+              + "- calc.py:1 - def add(a, b):" + NL)
+    asked, _, code, folder, _ = build(
+        tmp_path, monkeypatch, [], (beside, tl.WORKER))
+    assert asked == ["planner.md", "tester.md", "worker.md", "worker.md",
+                     "reviewer.md", "reviewer-runs.md", tl.RETRO]
+    assert code == stops.EXIT_OK
+    assert [w["by"] for w in written(folder)] == ["assumed"]
+
+
+def test_an_item_and_a_needs_on_a_code_line_answer_nothing(tmp_path,
+                                                           monkeypatch):
+    on_code = ("NEEDS: should mul round a float product to an int?" + NL
+               + "CITES:" + NL + "- calc.py:1 - def add(a, b):" + NL)
+    asked, _, _, folder, _ = build_with(
+        tmp_path, monkeypatch,
+        plan_citing("calc.py:1 holds add, which rounds nothing"),
+        [tl.DECIDED], (on_code, tl.WORKER))
+    assert asked[3] == "planner.md", asked
+    assert "assumed" not in [w["by"] for w in written_or_none(folder)]
+
+
+HANDED = NL.join(["", "HANDOFF", "DID:", "- wrote the mul test", "ASSUMED:",
+                  "- " + CHOICE,
+                  "  why: TASK.md:3 says a times b and nothing about rounding",
+                  "  if wrong: a float test would expect an int",
+                  "END HANDOFF", ""])
+
+
+def test_a_non_lead_steps_assumed_item_never_answers(tmp_path, monkeypatch):
+    """the tester's choice is a choice nobody with the lead's role took: the
+    question reaches the lead, who may adopt it."""
+    answers = {"planner.md": [tl.PLAN, tl.DECIDED],
+               "tester.md": [tl.TESTER + HANDED],
+               "worker.md": [tl.NEEDS, tl.WORKER],
+               "reviewer.md": [tl.OK], "reviewer-runs.md": [tl.OK]}
+    writes = {"tester.md": [("tests/test_mul.py", tl.TEST)],
+              "worker.md": [("", ""), ("calc.py", tl.AFTER)]}
+    asked, _, _, folder, _ = tl.run_it(tmp_path, monkeypatch,
+                                       "build-feature", answers, writes)
+    assert asked[3] == "planner.md", asked
+    assert "assumed" not in [w["by"] for w in written_or_none(folder)]
+
+
+def test_a_flow_with_no_lead_sends_the_question_to_the_person(tmp_path,
+                                                              monkeypatch):
+    answers = {"worker.md": [tl.TESTER + HANDED],
+               "patcher.md": [tl.NEEDS, tl.WORKER],
+               "verify.md": [tl.OK]}
+    writes = {"worker.md": [("tests/test_mul.py", tl.TEST)],
+              "patcher.md": [("", ""), ("calc.py", tl.AFTER)]}
+    asked, _, code, folder, _ = tl.run_it(tmp_path, monkeypatch,
+                                          "fix-with-test", answers, writes,
+                                          task="mul is missing from calc")
+    assert asked == ["worker.md", "patcher.md"]
+    assert code == stops.EXIT_STOP
+    assert "assumed" not in [w["by"] for w in written_or_none(folder)]
+    assert (folder / "question.md").read_text(
+        encoding="utf-8").startswith("NEEDS: should mul round")
+
+
+def test_a_line_past_the_last_newline_is_not_a_line(tmp_path):
+    from agentweft.runner import ruling
+
+    (tmp_path / "ends.md").write_text("a" + NL + "b" + NL, encoding="utf-8")
+    (tmp_path / "open.md").write_text("a" + NL + "b", encoding="utf-8")
+    assert ruling.lines_of(str(tmp_path), "ends.md", 3, 3)[0] is None
+    assert ruling.lines_of(str(tmp_path), "ends.md", 2, 2)[0] == ["a", "b"]
+    assert ruling.lines_of(str(tmp_path), "open.md", 2, 2)[0] == ["a", "b"]
 
 
 def test_a_line_the_file_does_not_have_answers_nothing(tmp_path,

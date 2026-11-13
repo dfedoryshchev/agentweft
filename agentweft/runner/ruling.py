@@ -933,11 +933,14 @@ def cite_of(m):
 
 def lines_of(workdir, rel, first, last, start=None):
     """-> (every line of `rel` as the run found it, "") or (None, why lines
-    `first` to `last` of it cannot be read)."""
+    `first` to `last` of it cannot be read). the empty piece after a last
+    newline is not a line."""
     text = as_found(workdir, rel, start)
     if text is None:
         return None, rel + " was not there when the run started"
     lines = text.split("\n")
+    if len(lines) > 1 and lines[-1] == "":
+        lines.pop()
     if not 1 <= first <= last <= len(lines):
         return None, (rel + " had " + str(len(lines)) + " lines when the run"
                       " started")
@@ -985,12 +988,12 @@ def misquote(said, workdir, start=None, who="the answer"):
     if not quote:
         return ""
     lines, why = lines_of(workdir, rel, first, last, start)
-    if lines is None:
-        return who + ' quotes "' + quote + '" from ' + cite + ", and " + why
-    if runs_to(lines, first, last, quote) is not None:
+    if lines is not None and runs_to(lines, first, last, quote) is not None:
         return ""
     if moved_to(workdir, rel, first, last, quote, start) is not None:
         return ""
+    if lines is None:
+        return who + ' quotes "' + quote + '" from ' + cite + ", and " + why
     return (who + ' quotes "' + quote + '", which is not at ' + cite
             + " as the run found it")
 
