@@ -216,13 +216,22 @@ class FakeCli(object):
         self.asides = []
         self.aside_kw = []
         self.version = self.VERSION
-        self.auth = self.LOGGED_IN
+        self.auth = self.logged_in
+
+    @classmethod
+    def logged_in(cls, kw):
+        """what `claude auth status --json` prints: `api_key` when the call's
+        environment holds a key, which the cli uses ahead of its login."""
+        if "ANTHROPIC_API_KEY" in (kw.get("env") or {}):
+            return (0, b'{"loggedIn": true, "authMethod": "api_key"}\n', b"")
+        return cls.LOGGED_IN
 
     def run(self, argv, **kw):
         text = kw.get("text") or kw.get("encoding")
         enc, errors = as_the_locale_would(kw)
+        auth = self.auth(kw) if callable(self.auth) else self.auth
         aside = {("--version",): self.version,
-                 ("auth", "status"): self.auth}.get(tuple(argv[1:3]))
+                 ("auth", "status"): auth}.get(tuple(argv[1:3]))
         if aside is not None:
             self.asides.append(list(argv))
             self.aside_kw.append(kw)

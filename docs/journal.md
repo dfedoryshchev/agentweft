@@ -66,8 +66,9 @@ list:
 - `gate failed` - a gate failed the step, or the step did not give the router
   what the flow requires of it (an output it must contain, a verdict it can
   read). the why is the gate and what it said.
-- `refused` - the step was not allowed to start (the place changed under it)
-  or its output was refused (a preflight in `refuse` mode).
+- `refused` - the step was not allowed to start (the place changed under it,
+  its key could not be read, or its cli logs in another way than its
+  connector's `auth`) or its output was refused (a preflight in `refuse` mode).
 - `parked` - the flow asked for a person, a step asked for a ruling (below), a
   preflight parked, the work ran out of redos, or files git cannot give back
   were changed.
@@ -222,7 +223,8 @@ and `continued`
   status --json`, started in the place with the step's own environment,
   printed, asked once per connector a run. nothing else it prints is kept
   (the rest names the account), and the key is left out when the cli says
-  nothing readable.
+  nothing readable. a `subscription` or `api-key` step whose `auth_method`
+  is not its own is refused before its call (`providers.md`, "connectors").
 - `model` is the id the provider sends, null for one that sends none (the fake,
   or a cli command other than claude). `model_reported` is what the provider
   said answered. when the step's transcript records the cli's

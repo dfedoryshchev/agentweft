@@ -217,6 +217,31 @@ connector a run (`journal.md`); the run's spend line and `python run.py
 spend` split the calls the same way, so the record says which credential
 paid for each step.
 
+the `authMethod` is also checked against the connector's `auth` before the
+step's first call, and a step whose cli would log in another way is refused,
+with both named:
+
+- `subscription` runs only on `claude.ai` (the `/login` subscription), or on
+  `oauth_token` while the step's environment holds `CLAUDE_CODE_OAUTH_TOKEN`
+  (a `claude setup-token` subscription token). anything else is refused:
+  `api_key` (a key in an `env` block of the person's settings, or one saved
+  by an earlier Console login), `api_key_helper` (an `apiKeyHelper`),
+  `oauth_token` with no such token (a named or federation profile), or
+  `third_party` (a cloud provider switch in the settings). the cli ranks
+  each of those above its login, and none is an environment name the strip
+  can reach.
+- `api-key` runs only on `api_key`; `claude.ai`, `oauth_token` or
+  `api_key_helper` there means the key never reached the cli.
+- a status that could not be read (not logged in, not JSON, no
+  `authMethod`) is refused too: nothing says which credential would pay.
+- `inherit` is never refused, and nothing is checked for a command other
+  than `claude`, which is handed no credential, or for the **api** provider,
+  which sends the key file's key itself.
+
+the values are the ones the cli prints today (2.1.323: `claude.ai`,
+`api_key`, `api_key_helper`, `oauth_token`, `third_party`, `none`); a value
+a later cli adds is refused until this list names it.
+
 ### on an api key
 
 three more things hold whichever connector a step runs on, and matter most
@@ -250,11 +275,12 @@ a carried-on step's prompt with the hour lifetime itself (above).
   a model of another family, and no provider declares its capabilities; a
   later provider that lacks a feature is meant to say so loudly, never to
   drop it.
-- a key helper. `subscription` takes the key and token variables out of the
-  environment, but an `apiKeyHelper` or an `env` block in the person's own
-  settings file (which a step that acts loads, `--setting-sources user`)
-  ranks above the subscription login in the cli and is not touched. the
-  step's `auth_method` on its line is how to see which won.
+- taking a key helper out. `subscription` takes the key and token
+  variables out of the environment, but an `apiKeyHelper`, an `env` block in
+  the person's own settings file (which a step that acts loads,
+  `--setting-sources user`), a saved Console key or a profile still ranks
+  above the subscription login in the cli; such a step is refused before its
+  call (above), never run on it.
 - a key's shape. any non-blank text in `key_file` is handed over as the
   key; the cli says if it is wrong. the redaction knows only the `sk-ant-`
   shape.

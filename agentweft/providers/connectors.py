@@ -11,6 +11,7 @@ its `key_file` said.
 login; `api-key` hands it the key read from `key_file` at the call, and no
 login token; `inherit` (the default) passes what the run holds, as before.
 """
+import os
 from pathlib import Path
 
 SUBSCRIPTION = "subscription"
@@ -170,6 +171,41 @@ def command_refused(p):
     return (who + " starts " + command + ", inside the place, where a step"
             " can write it: a credential goes only to a claude outside the"
             " place")
+
+
+# what `claude auth status --json` says in `authMethod` for each auth. the cli
+# ranks a key helper, an `env` block in the person's settings and a named
+# profile above its login, and none of those is an environment name to strip.
+# `oauth_token` is also a profile's, so it is the subscription only while
+# the step's environment holds the subscription's own token.
+LOGIN = "claude.ai"
+TOKEN = "oauth_token"
+TOKEN_VAR = "CLAUDE_CODE_OAUTH_TOKEN"
+KEYED = "api_key"
+
+
+def method_refused(p):
+    """-> why a step on p may not start because the cli says it logs in
+    another way than p's auth, "" when it may. `inherit` is never
+    refused; a method that could not be read is refused."""
+    if p.auth == INHERIT or not claude(getattr(p, "command", None)):
+        return ""
+    said = p.auth_method
+    if p.auth == API_KEY:
+        if said == KEYED:
+            return ""
+        fix = "the key from its key_file did not reach the cli"
+    else:
+        token = any(k.upper() == TOKEN_VAR and v.strip()
+                    for k, v in os.environ.items())
+        if said == LOGIN or (said == TOKEN and token):
+            return ""
+        fix = ("a key helper, an env block in the settings, a saved key or a"
+               " profile ranks above the login: take it out, or pick a"
+               " connector with auth: " + API_KEY)
+    return ((p.connector or p.name) + " has auth: " + p.auth + ", and `claude"
+            " auth status` says it logs in with "
+            + (said or "nothing it could read") + ": " + fix)
 
 
 def key_refused(p):

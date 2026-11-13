@@ -355,8 +355,10 @@ def two_connectors(tmp_path, monkeypatch, fake_cli, third=None):
                    tail=CLAUDE + declared_key(key_file(tmp_path)))
     cli = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"),
                    answer("closed\n"))
-    cli.auth = (0, b'{"loggedIn": true, "authMethod": "apiKey",'
-                   b' "email": "someone@example.com"}\n', b"")
+    cli.auth = lambda kw: (0, json.dumps({
+        "loggedIn": True, "email": "someone@example.com",
+        "authMethod": "api_key" if "ANTHROPIC_API_KEY" in kw["env"]
+        else "claude.ai"}).encode("utf-8"), b"")
     return place, cli
 
 
@@ -366,8 +368,9 @@ def test_every_step_line_says_its_connector_and_auth(tmp_path, monkeypatch,
     assert engine.main() == 0
     api, sub = lines()
     assert (api["connector"], api["auth"], api["auth_method"]) == (
-        "claude-api", "api-key", "apiKey")
-    assert (sub["connector"], sub["auth"]) == ("claude-sub", "subscription")
+        "claude-api", "api-key", "api_key")
+    assert (sub["connector"], sub["auth"], sub["auth_method"]) == (
+        "claude-sub", "subscription", "claude.ai")
     text = "".join(p.read_text(encoding="utf-8")
                    for p in state.RUNS.rglob("*") if p.is_file())
     assert "someone@example.com" not in text
@@ -397,16 +400,83 @@ def test_the_cli_s_auth_is_read_once_per_connector_in_the_place(
     api_env = [kw["env"] for a, kw in asked]
     assert sorted("ANTHROPIC_API_KEY" in env for env in api_env) == [False,
                                                                      True]
-    assert lines()[2]["auth_method"] == "apiKey"
+    assert lines()[2]["auth_method"] == "api_key"
 
 
-def test_an_unreadable_auth_status_leaves_the_method_out(
-        tmp_path, monkeypatch, fake_cli):
+@pytest.mark.parametrize("said", [
+    (0, b"not json\n", b""),
+    (0, b'{"loggedIn": true}\n', b""),
+    (1, b'{"loggedIn": false, "authMethod": "none"}\n', b""),
+    (0, b"", b""),
+])
+def test_an_unreadable_auth_status_refuses_the_step_before_its_call(
+        tmp_path, monkeypatch, fake_cli, said):
     place, cli = two_connectors(tmp_path, monkeypatch, fake_cli)
-    cli.auth = (0, b"not json\n", b"")
-    assert engine.main() == 0
-    api, sub = lines()
+    cli.auth = said
+    assert engine.main() != 0
+    assert cli.calls == []
+    [api] = lines()
     assert "auth_method" not in api and api["auth"] == "api-key"
+    assert api["why"].startswith("claude-api has auth: api-key, and `claude"
+                                 " auth status` says it logs in with nothing"
+                                 " it could read")
+
+
+def a_step_on(tmp_path, monkeypatch, fake_cli, connector, method,
+              more=""):
+    monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
+    a_flow(tmp_path, monkeypatch, [("worker", ["provider: " + connector])],
+           tail=CLAUDE + declared_key(key_file(tmp_path)) + more)
+    cli = fake_cli(answer("done\n"))
+    cli.auth = (0, json.dumps({"loggedIn": True, "authMethod": method})
+                .encode("utf-8"), b"")
+    return cli
+
+
+@pytest.mark.parametrize("connector, method", [
+    ("claude-sub", "api_key"), ("claude-sub", "api_key_helper"),
+    ("claude-sub", "oauth_token"), ("claude-sub", "third_party"),
+    ("claude-api", "claude.ai"), ("claude-api", "oauth_token"),
+    ("claude-api", "api_key_helper"),
+])
+def test_a_step_whose_cli_logs_in_another_way_is_refused_before_its_call(
+        tmp_path, monkeypatch, fake_cli, connector, method):
+    cli = a_step_on(tmp_path, monkeypatch, fake_cli, connector, method)
+    assert engine.main() != 0
+    assert cli.calls == []
+    auth = providers.connectors.BUILT_IN[connector]["auth"]
+    [line] = lines()
+    assert line["auth_method"] == method
+    assert line["why"].startswith(connector + " has auth: " + auth + ", and"
+                                  " `claude auth status` says it logs in"
+                                  " with " + method + ": ")
+
+
+def test_a_subscription_token_in_the_environment_is_the_subscription(
+        tmp_path, monkeypatch, fake_cli):
+    cli = a_step_on(tmp_path, monkeypatch, fake_cli, "claude-sub",
+                    "oauth_token")
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "decoy-oauth")
+    assert engine.main() == 0
+    assert len(cli.calls) == 1
+
+
+def test_the_api_provider_is_not_asked_how_it_logs_in(tmp_path):
+    p = providers.build({"provider": "api", "model": "m", "url": "http://x",
+                         "auth": "api-key",
+                         "key_file": str(key_file(tmp_path))})
+    assert p.read_auth() is None
+    assert providers.connectors.method_refused(p) == ""
+
+
+def test_a_connector_that_inherits_is_never_refused_on_its_auth(
+        tmp_path, monkeypatch, fake_cli):
+    cli = a_step_on(tmp_path, monkeypatch, fake_cli, "mine", "api_key",
+                    more="  mine:\n    provider: cli\n    model: m-small\n")
+    assert engine.main() == 0
+    [line] = lines()
+    assert (line["auth"], line["auth_method"]) == ("inherit", "api_key")
+    assert len(cli.calls) == 1
 
 
 def test_the_cost_lines_carry_connector_and_auth(tmp_path, monkeypatch,

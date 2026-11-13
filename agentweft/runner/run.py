@@ -1114,10 +1114,16 @@ class Run(object):
         previous step steering this one. a step that only sends text reads
         nothing there and is never refused for it.
 
-        a step whose provider cannot hold it to its grant is refused too.
+        a step whose provider cannot hold it to its grant is refused too, and
+        so is a step on a connector whose cli says it logs in another way
+        than the connector's `auth`.
         """
         used = self.by_step.get(step, self.provider)
         held = used.refuses()
+        if held:
+            return held
+        self.read_auth(used)
+        held = providers.connectors.method_refused(used)
         if held:
             return held
         if not used.reads_place:
