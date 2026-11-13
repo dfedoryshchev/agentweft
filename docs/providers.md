@@ -5,6 +5,11 @@ a provider answers a prompt. that is the whole interface:
     ask(prompt, timeout) -> Reply(text, detail, usage, cost, session, model, retryable)
     check() -> (ok, detail)
 
+a step picks who answers it by a provider block or by a connector's name
+("connectors" below): `claude-sub` on the subscription login, `claude-api`
+on an api key, `stub` for tests, or one a project declares. two of them can
+run side by side in one flow, and every step's line says which one paid.
+
 ## the three
 
 - **cli** (default) - shells out to a command, `claude` unless you say
@@ -199,6 +204,52 @@ step on a `claude` connector the cli's own `authMethod`, read once per
 connector a run (`journal.md`); the run's spend line and `python run.py
 spend` split the calls the same way, so the record says which credential
 paid for each step.
+
+### on an api key
+
+three more things hold whichever connector a step runs on, and matter most
+on an api key:
+
+- a gate's command, the run of the start tests and the sign-off's git start
+  without any `ANTHROPIC_` name, either login token or `API_KEY`
+  (`gates.md`), so a test the model wrote never sees the key its step was
+  handed.
+- a spent balance (`Credit balance is too low`) or a spend limit the
+  account set parks the run as a provider outage, resumable with
+  `--resume` once the balance is topped up, never a failed step
+  (`journal.md`, "why a run stopped").
+- an `sk-ant-` key in an answer, an error or a gate's output is made
+  `sk-ant-REDACTED` before the run reads it, and in every recording and
+  record file (`journal.md`, "what gets written").
+
+the prompt cache: on a subscription the cli asks for the hour-long cache on
+its own; on an api key it asks for 5 minutes unless told otherwise, and a
+step that waits longer than that between its goes (a gate, a sibling, a
+person) reads its whole prompt again at the uncached rate. so an `api-key`
+connector's call is started with `CLAUDE_CODE_PROMPT_CACHE_TTL=1h`. the
+api bills an hour's cache write above a 5-minute one; the hour keeps runs on
+the key comparable with runs on the subscription. the **api** provider marks
+a carried-on step's prompt with the hour lifetime itself (above).
+
+### what is not supported yet
+
+- other provider families. every connector today reaches one family: the
+  `claude` cli on a login or a key, the http api, or the stub. a step cannot yet pick
+  a model of another family, and no provider declares its capabilities; a
+  later provider that lacks a feature is meant to say so loudly, never to
+  drop it.
+- a key helper. `subscription` takes the key and token variables out of the
+  environment, but an `apiKeyHelper` or an `env` block in the person's own
+  settings file (which a step that acts loads, `--setting-sources user`)
+  ranks above the subscription login in the cli and is not touched. the
+  step's `auth_method` on its line is how to see which won.
+- a key's shape. any non-blank text in `key_file` is handed over as the
+  key; the cli says if it is wrong. the redaction knows only the `sk-ant-`
+  shape.
+- `auth` on a command other than `claude`: the key is handed as
+  `ANTHROPIC_API_KEY` all the same, and no `auth_method` is read.
+- the gates take provider credentials out by name: a key copied into a
+  variable of another name reaches them.
 
 ## tiers
 
