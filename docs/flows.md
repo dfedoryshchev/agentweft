@@ -175,6 +175,13 @@ test-edits check passes such a case added to a start test as `extends`
 (`gates.md`). handoff.md says what came of it under `changed:`, as `tests:
 updated <n> / added <m> / in files <files>`: python tests written into a
 test file the start commit held, and into a file the run made.
+when the run's red proof is a supplied one (a red-test gate saw a test the
+run started with, unchanged, fail, and it fails on an assertion on the start
+commit too: the handoff's `red before any product code: ... supplied`), each
+later step that writes tests is also told that test is the proof of the
+fix, named by its id, and to add a case only for a boundary or an error path
+it does not name. the runner reads that from the proof record, never from a
+step's words.
 they are capped at 2000 characters inside the brief's 8000; the ones that do
 not fit are named by id and the file they are in, for the step to open. a
 place with no facts gets the brief it got before.

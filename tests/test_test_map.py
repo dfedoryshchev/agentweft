@@ -127,6 +127,73 @@ def test_a_test_writing_step_is_prompted_before_any_product_line_exists(
     assert seen == {"tester.md": [], "worker.md": ["tests/test_report.py"]}
 
 
+PROOF = "is the proof of this fix"
+GIVEN = "tests/test_report.py::test_alphabetical"
+RED_SAID = "FAILS: assert ['a', 'b'] == ['b', 'a']" + NL + "TEST: " + GIVEN \
+    + NL
+PATCHER = ("  - role: patcher" + NL + "    prompt: worker.md" + NL
+           + "    writes: product" + NL + "    writes_tests: true" + NL
+           + "    gates:" + NL + "      - gate: red-first" + NL
+           + "        command: [\"python\", \"-m\", \"pytest\", \"-q\", \"-p\","
+           " \"no:cacheprovider\", \"--junitxml={results}\", \"{test}\"]" + NL
+           + "        results: junit" + NL)
+
+
+def patcher_prompt(tmp_path, monkeypatch, said, writes, *args):
+    """-> the prompt the patcher was sent after the step holding the red
+    test answered `said` and wrote `writes`, on a place whose start test
+    test_alphabetical fails."""
+    place = te.a_place(tmp_path / "repo", baseline=te.WRONG)
+    te.a_flow(tmp_path, "build", te.TESTER + PATCHER)
+    put(tmp_path, "flows/build/tester.md", "# tester" + NL + NL + "{TASK}"
+        + NL)
+    sent = {}
+
+    def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
+        sent.setdefault(step, prompt)
+        if step == "tester.md":
+            for rel, text in writes.items():
+                put(place, rel, text)
+            return said, False
+        return te.WORKER_SAID, False
+
+    monkeypatch.setattr(engine, "call", fake_call)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(resume, "JOURNAL", tmp_path / "runs" / "journal.md")
+    monkeypatch.setattr(sys, "argv", ["run.py", "build", "--force",
+                                      "--workdir", str(place), "--task",
+                                      "report.py lists names unsorted"]
+                        + list(args))
+    engine.main()
+    assert "worker.md" in sent, sent
+    return sent["worker.md"]
+
+
+@pytest.mark.parametrize("said,writes,args,told", [
+    (RED_SAID, {}, (), True),
+    (te.TESTER_SAID, {"tests/test_report.py": te.module(te.WRONG, te.COUNT)},
+     (), False),
+    (te.APART_SAID, {"tests/test_count.py": te.HEAD + NL + NL + te.COUNT},
+     (), False),
+    (RED_SAID, {}, ("--skip", "tests", "hotfix"), False)],
+    ids=["a start test proven red", "a test added to a start file",
+         "a new test file", "tests skipped, no gate ran"])
+def test_only_a_supplied_red_proof_tells_the_patcher_its_test_is_the_proof(
+        tmp_path, monkeypatch, said, writes, args, told):
+    prompt = patcher_prompt(tmp_path, monkeypatch, said, writes, *args)
+    assert (PROOF in prompt) is told
+    assert (testmap.supplied([GIVEN]) in prompt) is told
+
+
+def test_the_supplied_line_names_every_test_and_none_for_no_test():
+    assert testmap.supplied([]) == ""
+    one = testmap.supplied([GIVEN])
+    two = testmap.supplied([GIVEN, "tests/test_report.py::test_more"])
+    assert GIVEN in one and "the test you were given" in one
+    assert "test_more" in two and "the tests you were given" in two
+
+
 def test_the_tests_line_counts_new_files_apart():
     from agentweft.runner import summary
 

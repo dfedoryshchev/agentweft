@@ -172,3 +172,20 @@ def as_prompt(where, texts):
     """-> the end of a test-writing step's prompt, "" when no test is near."""
     found = lines(near(where, texts))
     return "\n\n" + "\n".join(found) + "\n" if found else ""
+
+
+def supplied(ids):
+    """-> what a step that writes tests is told when the red test it was
+    handed is one the run started with, unchanged, that a red-test gate saw
+    fail: that test is the proof, and only a boundary or an error path it
+    does not name earns a case. "" for no such test."""
+    if not ids:
+        return ""
+    one = len(ids) == 1
+    return ("\n\n" + ("the test" if one else "the tests") + " you were given ("
+            + ", ".join(ids) + ") " + ("was" if one else "were") + " in the"
+            " place before the run started, unchanged, and the runner saw "
+            + ("it" if one else "them") + " fail: "
+            + ("it is" if one else "they are") + " the proof of this fix. add"
+            " a case only for a boundary or an error path "
+            + ("it does" if one else "they do") + " not name.\n")

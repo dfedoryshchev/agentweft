@@ -17,7 +17,7 @@ from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   testedits, worktree)
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.gates.base import Result
-from agentweft.guardrails.gates.redtest_gate import truth
+from agentweft.guardrails.gates.redtest_gate import named_test, truth
 from agentweft.guardrails import factsguard, factsread
 from agentweft.orchestrate import decisions, facts, project, synthesise
 from agentweft.guardrails.budget import Budget
@@ -1225,6 +1225,22 @@ class Run(object):
                 return bool(s.get("writes_tests"))
         return False
 
+    def supplied(self, step):
+        """-> the tests the run's red proof holds when an earlier step's
+        red-test gate proved it on tests the run started with and left as
+        they were (`redorder`, source `supplied`): by the ids that step's
+        TEST line named in those files, else by file. [] for any other
+        proof or none."""
+        proof = getattr(getattr(self, "order", None), "proof", None) or {}
+        if proof.get("how") != "gate" or proof.get("source") != "supplied" \
+                or proof.get("step") == step:
+            return []
+        files = sorted(proof.get("tests") or {})
+        keys = set(redorder.norm(f) for f in files)
+        named = named_test(self.produced.get(proof.get("step"), "")).split()
+        ids = [i for i in named if redorder.norm(i.split("::")[0]) in keys]
+        return ids or files
+
     def writes_for(self, step):
         """tests, product or none: what this step said it writes, or "" when
         it did not say."""
@@ -1627,6 +1643,7 @@ class Run(object):
         if self.writes_for(step) == "tests" or self.writes_tests(step):
             prompt = prompt + testmap.as_prompt(self.workdir, [
                 self.task_text or "", self.produced.get(PLANNER, "")])
+            prompt = prompt + testmap.supplied(self.supplied(step))
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its

@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, ".")
 from agentweft.providers import cli_provider, fake_provider
-from agentweft.runner import engine, prompts, resume, state, stops
+from agentweft.runner import engine, prompts, resume, state, stops, testmap
 
 NL = chr(10)
 # the shipped flow looks back after every run that ends, once, last
@@ -48,13 +48,16 @@ def a_project(tmp_path):
 
 
 def run_it(tmp_path, monkeypatch, added=None, fixes=True, said=PATCHER,
-           worker_adds=None):
-    """-> (exit code, steps asked, the red-first gate line of the patcher)."""
+           worker_adds=None, sent=None):
+    """-> (exit code, steps asked, the red-first gate line of the patcher).
+    `sent` gets the first prompt each step was sent."""
     project = a_project(tmp_path)
     asked = []
 
     def fake_call(prompt, timeout=None, cap=3, step="?", provider=None):
         asked.append(step)
+        if sent is not None:
+            sent.setdefault(step, prompt)
         if step == RETRO:
             return fake_provider.NOTHING_TO_KEEP, False
         if step == "patcher.md":
@@ -92,10 +95,14 @@ def run_it(tmp_path, monkeypatch, added=None, fixes=True, said=PATCHER,
 
 def test_a_supplied_test_and_a_patch_that_adds_no_test_finish(
         tmp_path, monkeypatch):
-    code, asked, red_first = run_it(tmp_path, monkeypatch)
+    sent = {}
+    code, asked, red_first = run_it(tmp_path, monkeypatch, sent=sent)
     assert asked == ["worker.md", "patcher.md", RETRO]
     assert code == stops.EXIT_OK
     assert red_first[-1]["ok"]
+    assert "is the proof of this fix" in sent["patcher.md"]
+    assert testmap.supplied([SUPPLIED]) in sent["patcher.md"]
+    assert "is the proof of this fix" not in sent["worker.md"]
 
 
 def test_a_supplied_test_carries_a_patch_whose_new_tests_all_pass_before_it(
