@@ -556,11 +556,20 @@ def switched_said(where, fell):
             + ", not " + str(fell.get("asked")) + SWITCHED)
 
 
+def unchecked(p):
+    """-> why the hook's count on this step cannot be read, "" when it can
+    (`CliProvider.hook_unchecked`)."""
+    said = getattr(p, "hook_unchecked", None)
+    return said() if said is not None else ""
+
+
 def shell_writes_denied(p, attempts, folder):
     """-> how many shell writes the cli refused this step, None when it was
     not handed the check or no session says which refusals were its own."""
     from agentweft.guardrails import shellwrite
 
+    if unchecked(p):
+        return None
     granted = p.granted()
     refuses = getattr(p, "refuses_shell_writes", None)
     if (granted or {}).get("shell_writes") != "refused" and not (
@@ -805,6 +814,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "task_file": task_file,
            "tasks": tasks,
            "handoff": entry.handoff}
+    if unchecked(p):
+        out["shell_writes_unchecked"] = "not checked: " + unchecked(p)
     if said["turns"] is not None:
         out["turns"] = said["turns"]
     if said["thinking"] is not None:

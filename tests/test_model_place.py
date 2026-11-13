@@ -95,8 +95,8 @@ def test_the_cli_provider_starts_where_it_is_told(tmp_path, monkeypatch):
     p = providers.build({"provider": "cli"}, where=tmp_path / "there")
     assert Path(p.ask("hello", timeout=60).text.split("\n")[2]).resolve() == \
         (tmp_path / "there").resolve()
-    assert [d.resolve() for d in asked_in(log)] == \
-        [(tmp_path / "there").resolve()]
+    started = [d.resolve() for d in asked_in(log)]
+    assert started and set(started) == {(tmp_path / "there").resolve()}
 
 
 def test_the_model_runs_inside_the_runs_place(tmp_path, monkeypatch):

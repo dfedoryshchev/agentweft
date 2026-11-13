@@ -78,6 +78,21 @@ def refuse(what):
     return refused
 
 
+def version_only(what):
+    """-> a stand-in for the cli provider's subprocess.run that answers the
+    `--version` every step in a place now asks before it starts with the
+    fake cli's version, and refuses anything else as `refuse` does."""
+    refused = refuse(what)
+
+    def run(argv, *args, **kw):
+        if list(argv[1:]) == ["--version"]:
+            return types.SimpleNamespace(
+                returncode=0, stderr="",
+                stdout=FakeCli.VERSION[1].decode("utf-8"))
+        return refused(argv, *args, **kw)
+    return run
+
+
 @pytest.fixture(autouse=True, scope="session")
 def no_real_provider():
     with pytest.MonkeyPatch.context() as mp:
@@ -86,7 +101,7 @@ def no_real_provider():
         # the mcp client, the mcp server and the command gate spawn processes
         # on purpose and share that module.
         mp.setattr(cli_provider, "subprocess", types.SimpleNamespace(
-            run=refuse("the cli provider's subprocess.run"),
+            run=version_only("the cli provider's subprocess.run"),
             Popen=refuse("the cli provider's subprocess.Popen"),
             TimeoutExpired=subprocess.TimeoutExpired))
         # a go that timed out looks for its transcript among the cli's own

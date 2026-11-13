@@ -1,6 +1,7 @@
 """a step's grant, handed to `claude` as its own permission flags."""
 import json
 import sys
+import types
 
 import pytest
 
@@ -9,7 +10,7 @@ from agentweft import providers, runner
 from agentweft.flow import spec
 from agentweft.providers import cli_provider
 from agentweft.roles import resolver
-from agentweft.runner import cli, engine, prompts
+from agentweft.runner import cli, engine, prompts, trace
 
 from test_trace import a_flow, answer, folders, lines
 
@@ -171,12 +172,18 @@ def test_a_run_that_opts_in_keeps_the_cli_default_trailer(fake_cli):
     assert said == {"switchModelsOnFlag": False}
 
 
-def test_the_settings_never_switch_hooks_off(fake_cli):
-    """a hook this run installs has to keep running; the target's own are
-    kept out by which setting sources load."""
-    cli_ = fake_cli(answer("ok\n"))
+def test_the_settings_never_switch_hooks_off(fake_cli, tmp_path):
+    """a hook this run installs has to keep running: whenever one is handed,
+    granted or not, the run's own settings say hooks stay on, above the
+    place's settings files."""
+    cli_ = fake_cli(answer("ok\n"), answer("ok\n"))
     claude(grant=["read", "shell"]).ask("x")
-    assert "disableAllHooks" not in flag(cli_.calls[0]["argv"], "--settings")
+    loose = claude()
+    loose.where = tmp_path
+    loose.ask("x")
+    for call in cli_.calls:
+        said = json.loads(flag(call["argv"], "--settings"))
+        assert said["hooks"] and said["disableAllHooks"] is False
 
 
 # the version floor
@@ -208,10 +215,29 @@ def test_the_version_is_asked_once_per_provider(fake_cli):
     assert len(cli_.calls) == 2
 
 
-def test_an_ungranted_step_is_not_held_to_the_floor(fake_cli):
+def test_an_ungranted_step_is_held_to_the_floor_only_in_a_place(fake_cli,
+                                                                tmp_path):
     cli_ = fake_cli(answer("ok\n"))
     cli_.version = (0, b"2.1.200 (Claude Code)\n", b"")
     assert claude().ask("x")
+    p = claude()
+    p.where = tmp_path
+    said = p.refuses()
+    assert "2.1.200" in said and "2.1.295" in said
+    assert p.hook_unchecked() == ""
+
+
+def test_an_ungranted_step_in_a_place_on_an_unread_version_counts_nothing(
+        fake_cli, tmp_path):
+    cli_ = fake_cli(answer("ok\n"))
+    cli_.version = (0, b"something else\n", b"")
+    p = claude()
+    p.where = tmp_path
+    assert p.refuses() == ""
+    went = [types.SimpleNamespace(replies=[types.SimpleNamespace(
+        session="s-1")])]
+    assert trace.shell_writes_denied(p, went, tmp_path) is None
+    assert trace.unchecked(p) == "cli version unread"
 
 
 # a run

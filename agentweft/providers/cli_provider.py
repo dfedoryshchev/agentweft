@@ -737,13 +737,15 @@ class CliProvider(Provider):
 
     def version(self):
         """-> the cli's version, None when it could not be read. asked once
-        per provider, and only of `claude`."""
+        per provider, and only of `claude`, started in the place like every
+        other call of it, never in the runner's own folder."""
         if self.seen_version is not None or self.version_said:
             return self.seen_version
         cmd = self.command
         try:
             r = subprocess.run([cmd, "--version"], capture_output=True,
                                encoding="utf-8", errors="replace", timeout=30,
+                               cwd=str(self.where) if self.where else None,
                                env=self.child_env())
             said = (r.stdout or "").strip()
             self.seen_version = version_of(said) if r.returncode == 0 else None
@@ -753,8 +755,22 @@ class CliProvider(Provider):
         return self.seen_version
 
     def refuses(self):
-        if self.grant is None or not is_claude(self.command):
+        """-> why this step may not start, "" when it may. a granted step
+        needs a readable version at the floor or later; a step with no grant
+        that carries the run's hook (one in a place) is held to the same
+        floor when its version reads, and when it does not, its line says
+        the hook's count was not checked (`hook_unchecked`)."""
+        if not is_claude(self.command):
             return ""
+        if self.grant is None:
+            if not self.hooked():
+                return ""
+            v = self.version()
+            if v is None or v >= FLOOR:
+                return ""
+            return (self.command + " is " + dotted(v) + ", and a step in a"
+                    " place, held by the run's hook, needs " + dotted(FLOOR)
+                    + " or later")
         v = self.version()
         if v is None:
             return ("could not read the version of " + self.command + " ("
@@ -776,6 +792,14 @@ class CliProvider(Provider):
                 if self.seen_version else None,
                 "shell_writes": "refused" if self.refuses_shell_writes()
                 else None}
+
+    def hook_unchecked(self):
+        """-> why the run cannot say the hook held this step, "" when it
+        can: a step with no grant in a place whose cli version did not read."""
+        if self.grant is None and is_claude(self.command) and self.hooked() \
+                and self.version() is None:
+            return "cli version unread"
+        return ""
 
     def refuses_shell_writes(self):
         """a step granted `shell`, or granted nothing in a place (it has
@@ -881,6 +905,10 @@ class CliProvider(Provider):
             settings["hooks"] = dict(settings.get("hooks") or {},
                                      **facts_hook(self.facts_read,
                                                   self.facts_handed))
+        if settings.get("hooks"):
+            # the command line sits above the place's own settings files, so
+            # a `disableAllHooks: true` there cannot switch the run's hook off
+            settings["disableAllHooks"] = False
         if settings:
             argv = argv + ["--settings",
                            json.dumps(settings, separators=(",", ":"))]

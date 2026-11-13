@@ -305,15 +305,26 @@ and a granted step is started with:
 
 `--settings '{"disableAllHooks":true}'` is not passed on purpose: it would
 turn off a hook the run hands over itself, and the place's hooks are already
-kept out by which settings sources load. `--bare` is not passed either: it
-authenticates only by API key.
+kept out by which settings sources load. the opposite is: whenever the run
+hands a step a hook, granted or not, its `--settings` carries
+`"disableAllHooks": false`. the command line sits above the project, local
+and user settings files, so a step with no grant, which loads the place's
+own `.claude/settings.json`, cannot have the run's hook switched off by it.
+managed settings sit above the command line, so `allowManagedHooksOnly` or a
+managed `disableAllHooks` still can, and the run cannot tell. `--bare` is
+not passed either: it authenticates only by API key.
 
 the floor is `claude` 2.1.295, the first release in which `--tools` and
 `--restricted` also apply to the built-in tools that register after launch;
 below it the fence fails open. so a step with a grant asks `claude --version`
 once and is refused before it starts, with the version in the reason, when the
 cli is older or says something that is not a version. a step without a grant
-is not held to it.
+that works in a place carries the run's hook, and is held to the same floor:
+refused, with the version in the reason, when its version reads older; when
+the version does not read, it runs, and its line says `shell_writes_denied:
+null` with `shell_writes_unchecked: "not checked: cli version unread"`
+rather than a count of 0 the run could not stand behind. a step without a
+grant and no place carries no hook and is not held to it.
 
 the step's line in `steps.jsonl` keeps the grant, every flag it became (the
 command line minus the command; the prompt is on stdin) and the version
@@ -403,9 +414,10 @@ for a step granted `write` or `edit`, one known trap of those tools: they
 store the characters they are given, so a U+2028 or U+2029 meant as an escape
 has to be written as its backslash form.
 
-the hook can be switched off from outside the run: `disableAllHooks` in the
-user's own settings is not overridden here, and `allowManagedHooksOnly` in
-managed settings can block it, and the run cannot tell. a command other than `claude` is handed no
+the hook can be switched off from outside the run only by managed settings:
+the run passes `"disableAllHooks": false`, which wins over the user, project
+and local files, but a managed `disableAllHooks` or `allowManagedHooksOnly`
+can still block it, and the run cannot tell. a command other than `claude` is handed no
 hook, and its grant records `shell_writes` as `not enforced`.
 
 every flag and setting above is checked against `claude --help` and the
