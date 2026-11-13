@@ -8,8 +8,9 @@ sibling path>`; then the mark does not stop the run. the test writer names
 the sibling's test on a `SIBLING TEST:` line, and the runner shows three
 effects of it. at the test writer: the test, one this run added, is red in a
 checkout of the start commit on an assertion or on an error raised in a
-product file the run started with (`sibling-red` on its line); a missing
-name, an error raised in the test file, a pass, or a test the run did not
+product file the run started with, and that run executes the marked code
+line (`sibling-red` on its line); a missing name, an error raised in the
+test file, a marked line never reached, a pass, or a test the run did not
 add parks there, before any code is written. at the end: the test passes,
 and fails again with the function holding the marked code line put back as
 the run found it, everything else as the run left it; then the runner's own
@@ -185,6 +186,42 @@ def test_a_test_of_the_new_path_named_as_the_sibling_parks_at_the_tester(
     assert SOUND in question(folder)
 
 
+DISPATCH = ("def main(argv):" + NL + "    if argv[0] == 'add':" + NL
+            + "        return 0" + NL + "    return 2" + NL)
+WITH_VERB = ("def main(argv):" + NL + "    if argv[0] == 'add':" + NL
+             + "        return 0" + NL + "    if argv[0] == 'mul':" + NL
+             + "        return 0" + NL + "    return 2" + NL + MUL)
+CAUGHT = (tl.TEST + NL + NL + "def test_add_times():" + NL
+          + "    from calc import add" + NL + NL + "    try:" + NL
+          + "        r = add(2, 3, times=True)" + NL
+          + "    except TypeError:" + NL + "        r = None" + NL
+          + "    assert r == 6" + NL)
+
+
+@pytest.mark.parametrize("before, mark, fixed, named, tests", [
+    (DISPATCH, 'spec: breaks TASK.md:3, already at calc.py:3 "return 0"',
+     WITH_VERB, "test_main_knows_mul",
+     with_sibling("main(['mul']) == 0", "test_main_knows_mul", "main")),
+    (CORRECT, SOUND, WIDENED, "test_add_times", CAUGHT),
+], ids=["a new branch of the marked function asserted by its outcome",
+        "a new keyword's error caught in the test"])
+def test_a_sibling_test_that_never_runs_the_marked_line_parks_at_the_tester(
+        tmp_path, monkeypatch, before, mark, fixed, named, tests):
+    """red on the start commit by an assertion, but the marked line never
+    ran there: the test is about the new path, not the line the mark names."""
+    test = "tests/test_mul.py::" + named
+    at = mark.split("already at ")[1].split()[0]
+    asked, _, code, folder, _ = run(
+        tmp_path, monkeypatch, plan=plan_of(mark, "TASK.md:3 for it"),
+        before=before, fixed=fixed,
+        tester=tl.TESTER + "SIBLING TEST: " + test + NL, tests=tests)
+    assert code == stops.EXIT_STOP
+    assert asked == ["planner.md", "tester.md"]
+    assert test + " never reaches " + at + " on the start commit" \
+        in question(folder)
+    assert mark in question(folder)
+
+
 GUARDED = "def add(a, b):" + NL + "    r = a - b" + NL + "    return r" + NL
 HELPER = ("def add(a, b):" + NL + "    return _sum(a, b)" + NL + NL + NL
           + "def _sum(a, b):" + NL + "    return a + b" + NL + MUL)
@@ -208,17 +245,18 @@ def test_a_fix_inside_the_marked_function_is_shown(tmp_path, monkeypatch,
     assert "red again with `add` put back as found" in beside_first(folder)
 
 
-TWO = CORRECT + NL + NL + "def sub(a, b):" + NL + "    return a + b" + NL
-SUB_FIXED = (CORRECT + NL + NL + "def sub(a, b):" + NL + "    return a - b"
-             + NL + MUL)
+TWO = (CORRECT + NL + NL + "def sub(a, b):" + NL + "    return add(a, b)"
+       + NL)
+SUB_FIXED = (CORRECT + NL + NL + "def sub(a, b):" + NL
+             + "    return add(a, -b)" + NL + MUL)
 SUB_ID = "tests/test_mul.py::test_sub_sibling"
 
 
 def test_a_fix_in_another_function_of_the_file_parks_at_the_end(
         tmp_path, monkeypatch):
-    """the mark names add's line and the change fixes sub: the named test
-    is red on the start commit and green now, but add put back as found
-    leaves it green. the tester's `sibling-red` stays on its line; no
+    """the mark names add's line and the change fixes sub, which calls add:
+    the named test runs add's line and is red on the start commit, green
+    now, but add put back as found leaves it green. the tester's `sibling-red` stays on its line; no
     `already-broken` is written anywhere."""
     asked, _, code, folder, _ = run(
         tmp_path, monkeypatch, plan=plan_of(SOUND, "TASK.md:3 for sub"),
@@ -288,25 +326,51 @@ def git(where, *args):
                    capture_output=True)
 
 
-def test_the_red_on_the_start_commit_is_read_there_not_in_the_tree(
-        tmp_path):
-    project = tmp_path / "place"
+def started(tmp_path, cmd=("python", "-m", "pytest", "-q", "{test}"),
+            sub="."):
+    """-> a run whose start commit holds BROKEN and whose working tree holds
+    the fix and the sibling test, in the folder `sub` of the repository."""
+    repo = tmp_path / "place"
+    project = repo / sub
     (project / "tests").mkdir(parents=True)
     (project / "conftest.py").write_text("", encoding="utf-8")
     (project / "calc.py").write_text(BROKEN, encoding="utf-8")
-    git(project, "init", "-q")
-    git(project, "add", ".")
-    git(project, "commit", "-q", "-m", "start")
+    (project / "TASK.md").write_text(tl.SPEC, encoding="utf-8")
+    git(repo, "init", "-q")
+    git(repo, "add", ".")
+    git(repo, "commit", "-q", "-m", "start")
     start = snapshot.take(project)
     (project / "calc.py").write_text(FIXED, encoding="utf-8")
     (project / "tests" / "test_mul.py").write_text(
         with_sibling("add(2, 1) == 3"), encoding="utf-8")
-    cmd = ["python", "-m", "pytest", "-q", "{test}"]
-    place = types.SimpleNamespace(
+    return types.SimpleNamespace(
         start=start, workdir=str(project), fm=types.SimpleNamespace(
-            steps=[{"gates": [{"gate": "red-test", "command": cmd}]}]))
-    assert asking.sibling_red(place, SIBLING_ID) == ("assertion", "")
+            steps=[{"gates": [{"gate": "red-test", "command": list(cmd)}]}]))
+
+
+@pytest.mark.parametrize("sub", [".", "app" + chr(0xE9) + " dir"],
+                         ids=["the repository root", "a non-ascii folder"])
+def test_the_red_on_the_start_commit_is_read_there_not_in_the_tree(
+        tmp_path, sub):
+    place = started(tmp_path, sub=sub)
+    assert asking.sibling_red(place, SIBLING_ID, ["calc.py:2"]) == (
+        "assertion", "")
     assert wouldpass.alone(place, [SIBLING_ID]) is False
+
+
+@pytest.mark.parametrize("at, cmd, why", [
+    ("TASK.md:3", ("python", "-m", "pytest", "-q", "{test}"),
+     " cannot be shown to reach TASK.md:3 on the start commit: not python"),
+    ("calc.py:2", ("python", "-E", "-m", "pytest", "-q", "{test}"),
+     " ran where no line probe loaded, so nothing shows it reaches"
+     " calc.py:2"),
+], ids=["a marked line in a file that is not python",
+        "a test command whose python skips the probe"])
+def test_a_marked_line_no_probe_can_see_is_never_shown_reached(tmp_path, at,
+                                                              cmd, why):
+    place = started(tmp_path, cmd)
+    assert asking.sibling_red(place, SIBLING_ID, [at]) == (None,
+                                                           SIBLING_ID + why)
 
 
 def test_a_resume_after_the_end_park_carries_on_with_no_proof_run_again(

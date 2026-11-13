@@ -374,13 +374,20 @@ the sibling's test on a `SIBLING TEST:` line, and once its red-test gate
 passes the runner runs that test alone in a checkout of the start commit,
 with the run's test changes laid in. it must be a test this run added, and
 red there on an assertion or on an error raised in a product file the run
-started with: a `sibling-red` check on the test writer's line, the kind and
-where it was raised in its detail. red on a missing name or on an error
-raised in the test file (a new function, a new parameter) is a test of the
-new path, and that, a pass, a test the run started with, a test that cannot
-run alone, or no such line parks on the mark as a plain `breaks` there,
-before any code is written. before the run ends, the test must pass, and it
-must fail again with the function holding the named code line (python, read
+started with, and that run must execute the named code line (any line of
+the statement holding it), seen by a line probe python loads at its start
+from a folder put first on the test command's PYTHONPATH: a `sibling-red`
+check on the test writer's line, the kind and where it was raised in its
+detail. red on a missing name or on an error raised in the test file (a new
+function, a new parameter) is a test of the new path, and so is a test red
+by its assertion that never reaches the named line (a new branch of the
+marked function, a new keyword's error caught in the test); that, a pass, a
+test the run started with, a test that cannot run alone, a named line in a
+file that is not python, a test command whose python does not load the
+probe (`python -E`, `-I`, `-S`; before python 3.12 a test command that
+sets its own trace, as coverage does, hides the line too), or no such line
+parks on the mark as a plain `breaks` there, before any code is written.
+before the run ends, the test must pass, and it must fail again with the function holding the named code line (python, read
 by name) put back as the run found it inside the file as the run left it;
 then the runner's own line holds an `already-broken` check and the handoff
 lists the item first under the defects fixed beside the change, with the
@@ -388,9 +395,9 @@ test's assert lines. a function the file no longer has, a file that does not
 parse, a code line in no function, or a test that still passes with the
 function put back parks on the mark as a plain `breaks`, the effect that
 failed under the question, and no `already-broken` is written. the runner
-checks the test fails on the start commit for its outcome, passes now and
-fails again with the function put back; never that the test asserts what the
-spec line says. the file is copied under the run folder while the function
+checks the test runs the named line and fails on the start commit for its
+outcome, passes now and fails again with the function put back; never that
+the test asserts what the spec line says. the file is copied under the run folder while the function
 is put back, and a resume of a run stopped in that moment puts it back as
 the run left it. the marks a run holds live in that run only: a resume of a
 run that stopped at the end on a mark carries on with your answer as the ruling

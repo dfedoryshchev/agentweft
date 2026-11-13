@@ -633,15 +633,16 @@ class RedFirstGate(Gate):
             return "red", kind
         return "exit " + str(r.returncode), kind
 
-    def ran(self, cmd, test, where, results=None, timeout=None):
+    def ran(self, cmd, test, where, results=None, timeout=None, first=None):
         """-> (the finished process, "") for `cmd` run on one test, or on
         every test of a list, in `where`, or (None, timed out | not on PATH
         | could not start: why). `results` is the path {results} becomes; a
-        command that names one gets a throwaway path when none is given."""
+        command that names one gets a throwaway path when none is given.
+        `first` is a folder put before every other on its PYTHONPATH."""
         if results is None and any(RESULTS in str(a) for a in cmd):
             with tempfile.TemporaryDirectory(prefix="agentweft-results-") as t:
                 return self.ran(cmd, test, where, Path(t) / "results.xml",
-                                timeout)
+                                timeout, first)
         tests = list(test) if isinstance(test, (list, tuple)) else [test]
         argv = []
         for a in cmd:
@@ -653,7 +654,8 @@ class RedFirstGate(Gate):
                 argv.append(a)
         # an editable install puts the person's own tree on sys.path, and the
         # checkout without the fix would import the fixed code from there
-        path = [str(where), str(Path(where) / "src")]
+        path = ([str(first)] if first else []) + [str(where),
+                                                  str(Path(where) / "src")]
         if os.environ.get("PYTHONPATH"):
             path.append(os.environ["PYTHONPATH"])
         try:

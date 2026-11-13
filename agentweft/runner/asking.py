@@ -426,8 +426,8 @@ def sibling_proved(run, step, out):
             for g in out.meta.get("gates") or ()):
         return None
     named = sibling_named(out.output)
-    how, why = sibling_red(run, named) if named else (
-        None, step + " names no " + SIBLING + " line")
+    how, why = sibling_red(run, named, [h["at"] for _, h in waiting]) \
+        if named else (None, step + " names no " + SIBLING + " line")
     if how:
         for _, h in waiting:
             h["test"] = named
@@ -444,14 +444,18 @@ ALREADY = "already-broken"
 RUNNER = trace.RUNNER
 
 
-def sibling_red(run, test):
+def sibling_red(run, test, ats):
     """-> (how `test` failed, "") when it is a test this run added and it
     fails in a checkout of the start commit holding the run's test changes,
     on an assertion or on an exception raised in a product file the run
-    started with: it fails there on its outcome, not on reaching code that
-    is not there yet. else (None, why not): a missing name, an error raised
-    in the test file, a collection error, a pass, no start commit."""
-    from agentweft.guardrails import redorder, worktree
+    started with, and that run executed each code line of `ats` (`<file>:
+    <line>` of the place): it fails there on its outcome, on the code the
+    marks name, not on reaching code that is not there yet. else (None, why
+    not): a missing name, an error raised in the test file, a collection
+    error, a pass, no start commit, a marked line it never reached or that
+    no probe could see (a file that is not python, a python that skipped
+    the probe)."""
+    from agentweft.guardrails import reached, redorder, worktree
     from agentweft.guardrails.gates import redfirst_gate as rf
     from agentweft.guardrails.snapshot import is_test, is_tooling
 
@@ -460,6 +464,8 @@ def sibling_red(run, test):
         return None, "the run has no start commit to run " + test + " on"
     if test.split("[")[0] not in (start.new_test_ids() or ()):
         return None, test + " is not a test this run added"
+    if not ats:
+        return None, "no code line is named for " + test + " to reach"
     fm = getattr(run, "fm", None)
     cmd = redorder.test_command(fm) if fm is not None else None
     if ".py::" not in test or not cmd:
@@ -468,7 +474,11 @@ def sibling_red(run, test):
         with worktree.temporary(start.root, start.start) as tree:
             start.lay_out(tree, start.test_changes())
             where = start.place_in(tree)
-            r, why = rf.RedFirstGate(command=cmd).ran(cmd, test, where)
+            targets, blind = watched(where, ats)
+            with reached.probe([t for _, t in targets]) as (first, seen):
+                r, why = rf.RedFirstGate(command=cmd).ran(cmd, test, where,
+                                                          first=first)
+                hits = seen()
             output = r.stdout + "\n" + r.stderr if r is not None else ""
             at = rf.raised_at(output, where) if r is not None else None
     except ValueError:
@@ -481,20 +491,55 @@ def sibling_red(run, test):
         return None, (test + " does not run to an outcome on the start"
                       " commit (exit " + str(r.returncode) + ")")
     kind = rf.kind_of(output)
-    if kind == "assertion":
-        return "assertion", ""
     product = at is not None and at[0] in start.product \
         and not is_test(at[0]) and not is_tooling(at[0])
     if kind in rf.MISSES and not product:
         return None, (test + " is red on the start commit on a missing name"
                       " (" + kind + "), so it is a test of the new path")
-    if not kind or not product:
+    if kind != "assertion" and (not kind or not product):
         return None, (test + " is red on the start commit by "
                       + (kind or "an error pytest does not name")
                       + (" raised in " + at[0] if at else "")
                       + ", not in the code as the run found it")
+    if blind:
+        return None, (test + " cannot be shown to reach " + blind[0][0]
+                      + " on the start commit: " + blind[0][1])
+    if hits is None:
+        return None, (test + " ran where no line probe loaded, so nothing"
+                      " shows it reaches " + ", ".join(a for a, _ in targets))
+    missed = [a for i, (a, _) in enumerate(targets) if i not in hits]
+    if missed:
+        return None, (test + " never reaches " + ", ".join(missed)
+                      + " on the start commit, so it is not a test of the"
+                      " code the mark names")
+    if kind == "assertion":
+        return "assertion", ""
     return (kind + " raised at " + start.from_place(at[0]) + ":"
             + str(at[1])), ""
+
+
+def watched(where, ats):
+    """-> ([(the `<file>:<line>`, (its path under `where`, the lines of the
+    statement holding it))] a probe can watch, [(the `<file>:<line>`, why
+    not)] for the rest): a file that is not python, not there or not
+    parsing."""
+    from agentweft.guardrails import reached
+
+    targets, blind = [], []
+    for a in ats:
+        rel, _, n = a.rpartition(":")
+        path = Path(where) / rel
+        if not rel.endswith(".py") or not n.isdigit():
+            blind.append((a, "not python"))
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+            lines = reached.lines_of(text, int(n))
+        except (OSError, SyntaxError, ValueError):
+            blind.append((a, "the file does not read or parse there"))
+            continue
+        targets.append((a, (str(path), lines)))
+    return targets, blind
 
 
 FUNCS = (ast.FunctionDef, ast.AsyncFunctionDef)
