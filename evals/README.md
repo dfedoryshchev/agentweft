@@ -160,6 +160,11 @@ sacrifice list, which only a run of the cli does.
 - `fix-with-test/rewrites-a-start-test`: the same patch also rewrites that
   test so the suite stays green; the test-edit check holds it and the run
   parks for a ruling, `needs you: ruling`
+- `fix-with-test/supplied-test`: the bug report names the test that shows
+  the bug, the worker hands it on as found, the patch turns it green and adds
+  one test of its own, `done`
+- `build-feature/added-option`: the request adds an option, the plan adds a
+  spec line for it, the worker writes the code and the line, `done`
 - `build-feature/wrong-test`: the worker says the tester's test contradicts
   the spec, it goes back to the tester, the new test is proven red again,
   `done`
@@ -182,6 +187,9 @@ sacrifice list, which only a run of the cli does.
 
 a case with a `recording.json` beside its `case.yaml` is answered from it and
 calls nothing, so it runs offline and gives the same answers every time.
+`tests/test_eval_cases.py` replays every such case it finds under `evals/`,
+held to its `outcome` or, for a case that names none, to getting to the end,
+so a recording a prompt change left stale fails the suite.
 
     python -m agentweft.evals weekly-digest --case quiet-week --record
 

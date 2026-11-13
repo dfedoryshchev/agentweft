@@ -1,12 +1,12 @@
-"""the shipped cases of the flows that write code, replayed, and what each one
-is there to catch: take the behaviour away and its case scores worse."""
+"""every shipped recorded case, replayed, and what each one is there to catch:
+take the behaviour away and its case scores worse."""
 import sys
 
 import pytest
 
 sys.path.insert(0, ".")
 from agentweft import runner
-from agentweft.evals import harness
+from agentweft.evals import harness, recording
 from agentweft.guardrails import testedits
 from agentweft.guardrails.gates import base as gates_base
 from agentweft.guardrails.gates import command_gate, redfirst_gate
@@ -14,17 +14,19 @@ from agentweft.guardrails.gates import redtest_gate
 from agentweft.providers import fake_provider
 from agentweft.runner import ruling, wrongtest
 
-CASES = [("fix-with-test", "clean-fix", "done"),
-         ("fix-with-test", "green-without-fix", "stopped: gate failed"),
-         ("fix-with-test", "spec-conflict", "stopped: spec conflict"),
-         ("fix-with-test", "spec-declined", "refused (spec cited)"),
-         ("fix-with-test", "breaks-a-start-test", "stopped: gate failed"),
-         ("fix-with-test", "rewrites-a-start-test", "needs you: ruling"),
-         ("fix-with-test", "question-priced-on-the-other", "done"),
-         ("build-feature", "wrong-test", "done"),
-         ("build-feature", "wrong-test-after-code", "done"),
-         ("build-feature", "never-cached", "stopped: spec conflict"),
-         ("repo-audit", "two-files", "done")]
+
+def shipped():
+    """-> (flow, case) for every case under the evals tree with a recording,
+    read from the tree so a case added there is replayed without being
+    listed here."""
+    found = [(flow.name, path.name)
+             for flow in sorted(harness.ROOT.iterdir())
+             if (flow / "cases").is_dir()
+             for path in harness.cases_for(flow.name)
+             if (path / recording.FILE).is_file()]
+    if not found:
+        raise RuntimeError("no recorded case under " + str(harness.ROOT))
+    return found
 
 
 def case_of(flow, name):
@@ -49,18 +51,20 @@ def nothing_is_called(monkeypatch):
     monkeypatch.setattr(fake_provider.FakeProvider, "ask", ask)
 
 
-@pytest.mark.parametrize("flow,name,word", CASES)
+@pytest.mark.parametrize("flow,name", shipped())
 def test_a_shipped_case_replays_offline_and_keeps_every_promise(
-        flow, name, word, monkeypatch):
+        flow, name, monkeypatch):
     case = case_of(flow, name)
     assert case["recording"] is not None
-    assert case["expect"]["outcome"] == word
     assert case["expect"]["steps"]["match"] == "strict"
+    word = case["expect"].get("outcome")
+    ending = ("it ended " + word if word is not None
+              else "the run got to the end")
     nothing_is_called(monkeypatch)
     r = scored(flow, case)
     assert failed(r) == []
     assert r["passed"] == r["checked"]
-    assert "it ended " + word in [row["invariant"] for row in r["rows"]]
+    assert ending in [row["invariant"] for row in r["rows"]]
 
 
 def live(flow, name):
