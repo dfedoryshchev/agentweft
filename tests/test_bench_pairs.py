@@ -120,12 +120,16 @@ def test_a_run_2_that_breaks_a_convention_it_was_handed_is_contradicted(
     lane = row["second"]["lane"]
     assert lane["facts_attached"] == [["worker.md", "F-0001"]]
     assert lane["facts_used"] == [["worker.md", "F-0001"]]
+    assert lane["facts_cited"] == []
     assert lane["changed"] == ["pkg/b.py"]
     assert lane["convention"] == "contradicted"
     assert lane["core_correct"] is True
     assert "twin" not in row["second"]
     assert got["summary"]["lane"]["conventions"]["contradicted"] == 1
-    assert "probation holds" in capsys.readouterr().out
+    said = capsys.readouterr().out
+    assert "probation holds" in said
+    assert ("attached facts used 1 of 1 (holds), named by a step 0, false"
+            " facts 0") in said
 
 
 def test_a_run_2_that_keeps_the_convention_is_honoured(a_set, tmp_path):
@@ -224,6 +228,86 @@ def test_a_written_fact_is_read_against_the_gold_trail_and_its_false_ones():
                                            " itself")])
     assert pairs.against_gold([kept, wrong], gold) == ([0], ["F-0002"])
     assert pairs.against_gold([wrong], gold) == ([], ["F-0002"])
+
+
+RULED = ("below stays a bare integer in base units; a threshold with a unit"
+         " was declined, so such a value filters nothing")
+
+
+def answer(*block):
+    return NL.join(["thinking about F-0007 before the block", "HANDOFF"]
+                   + list(block) + ["END HANDOFF", ""])
+
+
+def test_a_handed_fact_is_cited_when_a_step_names_it_and_used_is_unchanged(
+        tmp_path):
+    from agentweft.bench import pairs
+    from agentweft.orchestrate import facts
+
+    ruled = facts.Fact("F-0007", "live", [("scope", "docs/api.md"),
+                                          ("kind", "decision"),
+                                          ("claim", RULED)])
+    other = facts.Fact("F-0003", "live", [("scope", "pkg/items.py"),
+                                          ("kind", "convention"),
+                                          ("claim", "every list leaves a"
+                                           " deleted item out of its total")])
+    said = {
+        "steps/001-planner.md": answer(
+            "DID:", "- planned the paging", "BECAUSE:",
+            "- the filter is untouched by this change",
+            "  from: facts F-0007 / docs/api.md:11", "  led to: nothing"),
+        "steps/002-tester.md": answer(
+            "DID:", "- wrote the paging tests", "ASSUMED:",
+            "- the filter stays a bare integer, as the ruling says",
+            "  why: the ruling", "  if wrong: one test changes"),
+        "steps/003-worker.md": answer(
+            "DID:", "- paged the lists: the unit, the integer, below, a"
+            " deleted total", "DOUBTS:", "- docs/api.md and pkg/items.py"),
+        "steps/004-planner.md": "DECIDED 1: F-0003 holds, the total leaves"
+                                " deleted rows out" + NL,
+        "steps/005-worker.md": "the block is missing" + NL}
+    for rel, text in said.items():
+        put(tmp_path / ("run " + chr(0xE9)) / rel, text)
+    record = [{"step": rel.split("-", 1)[1], "file": rel,
+               "facts_attached": ["F-0007"] + (
+                   ["F-0003"] if "worker" in rel or "004" in rel else [])}
+              for rel in said]
+    given = pairs.handed(record)
+    paths = ["docs/api.md", "pkg/items.py"]
+    assert pairs.used(given, [ruled, other], paths) == given
+    assert pairs.cited(record, tmp_path / ("run " + chr(0xE9)),
+                       [ruled, other]) == [
+        ["planner.md", "F-0007"], ["tester.md", "F-0007"],
+        ["planner.md", "F-0003"]]
+    added = ["    total = count(rows)  # a deleted item is out of every total"]
+    assert ["worker.md", "F-0003"] in pairs.cited(
+        record, tmp_path / ("run " + chr(0xE9)), [ruled, other], added)
+    assert pairs.cited(record, tmp_path / "nowhere", [ruled, other]) == []
+    assert pairs.cited([], tmp_path, [ruled]) == []
+
+
+def test_the_added_lines_of_a_change_are_read_from_the_files_before_and_after():
+    from agentweft.bench import pairs
+
+    before = {"pkg/a.py": "one\ntwo\n", "pkg/gone.py": "x\n"}
+    after = {"pkg/a.py": "one\nthree\ntwo\n", "pkg/new.py": "four\n"}
+    assert pairs.added_lines(before, after) == ["three", "four"]
+    assert pairs.added_lines(before, before) == []
+
+
+def test_the_cited_count_is_shown_beside_used_never_in_its_place():
+    from agentweft.bench import pairs
+
+    handed = [["worker.md", "F-%04d" % n] for n in range(1, 5)]
+    got = a_row(1, attached=handed, used=handed[:1])
+    got["second"]["lane"]["facts_cited"] = handed[:2]
+    said = pairs.probation([got])
+    assert (said["used"], said["cited"], said["used_ok"]) == (1, 2, True)
+    assert pairs.probation([a_row(1, attached=handed, used=handed)])[
+        "cited"] == 0
+    assert ("attached facts used 1 of 4 (holds), named by a step 2, false"
+            " facts 0") in "\n".join(pairs.lines(
+                {"pairs": 1, "k": 1, "probation": said}))
 
 
 def test_a_fact_the_gold_names_false_kills_the_write_path():

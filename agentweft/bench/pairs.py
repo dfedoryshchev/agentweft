@@ -32,8 +32,10 @@ runs on a copy of what run 1 left, without the store's files, with the flow's
 `lane: off`: the `twin` arm, the same run with no fact handed or on disk, so
 the two differ in the facts alone.
 """
+import difflib
 import hashlib
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -61,6 +63,15 @@ UNCHECKED = "not checked"
 VERDICTS = (HONOURED, CONTRADICTED, UNTOUCHED, UNCHECKED)
 # what a run writes that is not its change to the project
 NOT_THE_CHANGE = (".git", "__pycache__", ".pytest_cache")
+# the typed items of a step's answer that can name a fact it was handed, and
+# how many consecutive words of a fact's claim one item or added line holds
+# to name it: words shared out of order named most facts of a run by the
+# project's own nouns alone
+CITING = ("did", "because", "assumed", "doubts", "must_not_miss")
+DECIDED = re.compile(r"^\W*DECIDED\b.*$", re.M)
+CLAIM_WORDS = 3
+PATH = re.compile(r"\S*[/\\]\S*|\S+\.[A-Za-z0-9]+\b\S*")
+TOKEN = re.compile(r"[a-z0-9_]+")
 
 
 def load(folder):
@@ -110,6 +121,28 @@ def files_of(place):
         if p.is_file() and not set(rel.parts) & set(NOT_THE_CHANGE) \
                 and not facts.is_store(rel.as_posix()):
             out[rel.as_posix()] = hashlib.sha256(p.read_bytes()).hexdigest()
+    return out
+
+
+def texts_of(place):
+    """-> {path: text} of the project's own files in `place`, as `files_of`
+    picks them."""
+    place = Path(place)
+    return dict((rel, (place / rel).read_bytes().decode("utf-8", "replace"))
+                for rel in files_of(place))
+
+
+def added_lines(before, after):
+    """-> the lines the change between two `texts_of` added, file by file in
+    path order, stripped."""
+    out = []
+    for rel in sorted(after):
+        was = before.get(rel, "")
+        if was == after[rel]:
+            continue
+        out.extend(l[1:].strip() for l in difflib.unified_diff(
+            was.splitlines(), after[rel].splitlines(), lineterm="", n=0)
+            if l.startswith("+") and not l.startswith("+++"))
     return out
 
 
@@ -207,6 +240,56 @@ def used(given, found, paths):
             if id in by_id and touches(by_id[id].scopes, paths)]
 
 
+def items_said(text):
+    """-> the typed items of a step's answer a fact can be named in: its
+    handoff's CITING sections and its DECIDED lines."""
+    from agentweft.runner import handoff
+
+    block = handoff.parse(text)
+    return [i for key in CITING for i in block.get(key) or []] + \
+        DECIDED.findall(text or "")
+
+
+def runs(text):
+    """-> each run of CLAIM_WORDS consecutive words of `text`, lower case,
+    with paths and file names taken out first (a fact's scope is not its
+    claim) and at least two words `ruling.words` keeps among them."""
+    from agentweft.runner import ruling
+
+    out = set()
+    for part in PATH.sub("\n", (text or "").lower()).split("\n"):
+        said = TOKEN.findall(part)
+        for n in range(len(said) - CLAIM_WORDS + 1):
+            run = tuple(said[n:n + CLAIM_WORDS])
+            if len(ruling.words(" ".join(run))) >= 2:
+                out.add(run)
+    return out
+
+
+def names(fact, item):
+    return re.search(r"\b" + re.escape(fact.id) + r"\b", item) is not None \
+        or bool(runs(fact.claim) & runs(item))
+
+
+def cited(record, folder, found, added=()):
+    """-> the [step, id] pairs, of those `handed` lists, whose fact the step
+    names by its id or by CLAIM_WORDS consecutive words of its claim
+    (`runs`) in one of its typed items (`items_said`), or the change names in one
+    added line: a fact read, where `used` only says the change reached its
+    scope."""
+    by_id = dict((f.id, f) for f in found)
+    out = []
+    for line in record:
+        ids = [id for id in line.get("facts_attached") or [] if id in by_id]
+        if not ids:
+            continue
+        said = read(Path(folder) / line["file"]) if line.get("file") else ""
+        items = items_said(said) + list(added)
+        out.extend([line.get("step"), id] for id in ids
+                   if any(names(by_id[id], i) for i in items))
+    return out
+
+
 def steps_of(record):
     return [{"step": l.get("step"), "seconds": l.get("seconds"),
              "tokens": l.get("tokens"), "cost": l.get("cost")}
@@ -252,18 +335,21 @@ def second(flow, spec, provider, pair, place, start, tmp, arm):
 
     trail = Path(tmp) / ("trail-" + arm)
     trail.mkdir()
-    before = files_of(place)
+    before, was = files_of(place), texts_of(place)
     stopped, budget, wall = once(flow, spec, provider, pair["second"], place,
                                  trail)
     record = steps.read(trail)
     paths = changed(before, files_of(place))
     end = scorer.hidden(pair["hidden"], place)
     given = handed(record)
+    found = facts.read(place)
     money = money_of(budget)
     out = {"arm": arm, "why": stopped, "changed": paths,
            "convention": convention(pair, place, paths),
            "facts_attached": given,
-           "facts_used": used(given, facts.read(place), paths),
+           "facts_used": used(given, found, paths),
+           "facts_cited": cited(record, trail, found,
+                                added_lines(was, texts_of(place))),
            "facts_written": len(kept(record)),
            "facts_capped": capped(record),
            "usd": money.get("usd"),
@@ -391,10 +477,12 @@ def probation(rows):
     spam = len([n for n in counts if n > MOST_FACTS])
     attached = sum(len(s["facts_attached"]) for s in lanes)
     usedn = sum(len(s["facts_used"]) for s in lanes)
+    citedn = sum(len(s.get("facts_cited") or []) for s in lanes)
     false = [id for r in rows for id in r["first"]["false_facts"]]
     used_ok = None if not attached else usedn * ONE_IN >= attached
     return {"facts_per_run": counts, "most": max(counts) if counts else 0,
             "spam": spam, "attached": attached, "used": usedn,
+            "cited": citedn,
             "used_ok": used_ok, "false_facts": false, "kill": bool(false),
             "holds": not spam and used_ok is not False and not false}
 
@@ -443,7 +531,8 @@ def lines(total):
                + str(p["attached"]) + " ("
                + ("none attached" if p["used_ok"] is None else
                   "holds" if p["used_ok"] else "under one in " + str(ONE_IN))
-               + "), false facts " + str(len(p["false_facts"]))
+               + "), named by a step " + str(p.get("cited", 0))
+               + ", false facts " + str(len(p["false_facts"]))
                + (": the write path is killed until fixed" if p["kill"]
                   else ""))
     out.append("  probation " + ("holds" if p["holds"] else "fails"))
