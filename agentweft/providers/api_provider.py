@@ -141,8 +141,13 @@ class ApiProvider(Provider):
                                   httpx.RemoteProtocolError))
             return Reply("", detail=str(e)[:200], retryable=lost)
         if r.status_code >= 400:
-            return Reply("", detail=str(r.status_code) + " " + r.text[:160],
-                         retryable=again(r.status_code))
+            from agentweft.runner import errors
+
+            detail = str(r.status_code) + " " + r.text[:160]
+            if errors.classify(r.text) is errors.Outage:
+                return Reply("", detail=detail, retryable=False,
+                             outage=errors.resets(r.text))
+            return Reply("", detail=detail, retryable=again(r.status_code))
         data = r.json()
         said = dict(usage=Usage.of(data.get("usage"), requests=1),
                     model=data.get("model") or None)

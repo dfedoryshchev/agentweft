@@ -63,9 +63,16 @@ list:
   preflight parked, the work ran out of redos, or files git cannot give back
   were changed.
 - `provider outage` - the account's own limit refused the call: a session,
-  weekly or usage limit. the run parks after that one call, never retries and
-  never hands the empty answer to a gate; the why and `handoff.md` say when
-  the provider said it resets, or `unknown`.
+  weekly or usage limit, or on an api key a spent balance (`Credit balance
+  is too low`) or a spend limit or budget the account set (`You've hit your
+  monthly spend limit` and its individual, org, channel and team forms,
+  `spend limit reached`), the words the cli's errors reference lists. the
+  run parks after that one call, never retries and never hands the empty
+  answer to a gate, and `--resume` runs the step again; the why and
+  `handoff.md` say when the provider said it resets, `when the credit
+  balance is topped up` for a spent balance, or `unknown`. the cli's
+  `spend limit unavailable` and `Could not update your spend limit` are not
+  a spent limit and are read as any other failure.
 - `budget` - the call or token cap. the run parks before the step that would
   cross the call cap, or once 80% of the token cap is spent; the why opens
   with `reached` or `reaching` and how far it got (`completion 2/3 steps`),

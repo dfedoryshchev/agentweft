@@ -3,6 +3,7 @@ import datetime
 import json
 import runpy
 import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -177,6 +178,62 @@ def test_a_limit_that_names_no_reset_says_unknown(tmp_path, monkeypatch,
     assert engine.main() == 2
     [end] = ends()
     assert end.why.startswith("limit reached, resets unknown")
+
+
+@pytest.mark.parametrize("said", [
+    "Credit balance is too low",
+    "You've hit your monthly spend limit",
+    "spend limit reached",
+    "You've hit your team's shared budget",
+])
+def test_a_spent_balance_parks_as_an_outage_and_resumes(tmp_path, monkeypatch,
+                                                        fake_cli, said):
+    a_flow(tmp_path, monkeypatch, "fix", ["worker", "reviewer"])
+    no_waiting(monkeypatch)
+    cli = fake_cli(refused_by_the_limit(said, api_error_status=400))
+    assert engine.main() == 2
+    assert len(cli.calls) == 1
+    [end] = ends()
+    assert (end.status, end.cause) == (stops.PARKED + " at worker.md",
+                                       stops.OUTAGE)
+    assert said in end.why
+    [line] = steps_of(the_folder())
+    assert (line["outcome"], line["cause"]) == (stops.PARKED, stops.OUTAGE)
+    first = the_folder().name
+    cli = fake_cli(answer("done\n"), answer("VERDICT: ok\n\nfine\n"))
+    monkeypatch.setattr(sys, "argv", ["run.py", "fix", "--force", "--resume",
+                                      first])
+    assert engine.main() == 0
+    assert len(cli.calls) == 2
+
+
+def test_a_spent_balance_says_when_it_comes_back():
+    assert errors.resets("Credit balance is too low (exit 1)") == \
+        "when the credit balance is topped up"
+
+
+def test_a_spend_limit_word_that_is_no_limit_is_not_an_outage():
+    assert errors.classify("spend limit unavailable") is not errors.Outage
+    assert errors.classify("Could not update your spend limit") \
+        is not errors.Outage
+
+
+def test_the_api_provider_parks_on_a_spent_balance(monkeypatch):
+    from agentweft import providers
+    from agentweft.providers import api_provider
+
+    monkeypatch.setenv("API_KEY", "decoy-api")
+    monkeypatch.setattr(api_provider.httpx, "post",
+                        lambda *a, **k: types.SimpleNamespace(
+                            status_code=400,
+                            text='{"type":"error","error":{"type":'
+                                 '"invalid_request_error","message":"Your'
+                                 ' credit balance is too low to access the'
+                                 ' API."}}'))
+    r = providers.build({"provider": "api", "model": "m",
+                         "url": "http://x"}).ask("go", timeout=5)
+    assert errors.kind_of(r) is errors.Outage
+    assert r.outage == "when the credit balance is topped up"
 
 
 def test_a_plain_429_is_still_a_retry_not_an_outage(tmp_path, monkeypatch,

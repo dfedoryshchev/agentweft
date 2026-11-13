@@ -49,6 +49,11 @@ class Outage(Exception):
         self.retries = dict(retries or {})
 
 
+# an api key's prepaid balance ran out: nothing goes through until it is
+# topped up, so a run waits for that like for any other limit
+CREDIT = "credit balance is too low"
+TOPPED_UP = "when the credit balance is topped up"
+
 TRANSIENT_MARKERS = ("timeout", "timed out", "rate limit", "429", "connection reset",
                      "temporarily unavailable")
 # a message the provider's safeguards flagged is flagged again the same way,
@@ -59,7 +64,10 @@ FATAL_MARKERS = ("not found", "no such", "unauthorized", "invalid api key",
 # that says so in its own fields is read from those first; these are for
 # whatever cannot.
 OUTAGE_MARKERS = ("usage limit", "session limit", "weekly limit",
-                  "hit your limit", "limit reached|")
+                  "hit your limit", "limit reached|", CREDIT,
+                  "spend limit reached", "monthly spend limit",
+                  "individual spend limit", "shared budget",
+                  "group's budget")
 
 
 def classify(stderr):
@@ -110,6 +118,8 @@ EPOCH = re.compile(r"limit reached\|(\d{9,})", re.IGNORECASE)
 def resets(text):
     """-> when the limit in text says it resets, "unknown" when it does not."""
     text = (text or "").strip()
+    if CREDIT in text.lower():
+        return TOPPED_UP
     said = EPOCH.search(text)
     if said and when(int(said.group(1))):
         return when(int(said.group(1)))
