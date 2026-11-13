@@ -1,6 +1,7 @@
 """a step that asks instead of going on: an ASSUMED item of the run answers
 it, the lead decides, or the run parks."""
 import re
+from pathlib import Path
 
 from agentweft.guardrails import rulings
 
@@ -410,6 +411,94 @@ def sibling_proved(run, step, out):
          " " + why + ", so it is not shown broken there: the mark is a"
          " line the request breaks", "CITES:"]
         + ["- " + m for m, _ in waiting])
+
+
+def enclosing(lines, n):
+    """-> the lines of the block line `n` (1-based) of `lines` sits in: from
+    the nearest line above it indented less, to the last line before the
+    next one indented no deeper than that; a line at the left margin is a
+    block of its own."""
+    def depth(line):
+        return len(line) - len(line.lstrip())
+
+    at = depth(lines[n - 1])
+    head = n - 1
+    while at and head > 0:
+        head -= 1
+        if lines[head].strip() and depth(lines[head]) < at:
+            break
+    else:
+        return lines[n - 1:n]
+    end = n
+    while end < len(lines) and (not lines[end].strip()
+                                or depth(lines[end]) > depth(lines[head])):
+        end += 1
+    while end > n and not lines[end - 1].strip():
+        end -= 1
+    return lines[head:end]
+
+
+def holds(text, block):
+    """whether `text` still holds every line of `block` in a run, as the
+    same words."""
+    have = [ruling.flat(line) for line in text.split("\n")]
+    want = [ruling.flat(line) for line in block]
+    return any(have[i:i + len(want)] == want
+               for i in range(len(have) - len(want) + 1))
+
+
+def sibling_fixed(run, h):
+    """-> "" when the run's change shows the mark held in `h` fixed, else
+    why not. red on the start commit shows only that the named test fails
+    there, and every test of the new path fails there too, so the change
+    must also have touched the block of the code line the mark names, the
+    test must pass on the code as the run leaves it, and fail again with
+    that file put back as the run found it."""
+    from . import wouldpass
+
+    rel, _, n = h["at"].rpartition(":")
+    test = h["test"]
+    was = ruling.as_found(run.workdir, rel, getattr(run, "start", None))
+    now = ruling.now_of(run.workdir, rel)
+    if was is None or now is None or int(n) > len(was.split("\n")):
+        return rel + " cannot be read as the run found it and as it is now"
+    if holds(now, enclosing(was.split("\n"), int(n))):
+        return "the run left the code at " + h["at"] + " as it found it"
+    if wouldpass.alone(run, [test]) is not False:
+        return test + " does not pass on the code as the run leaves it"
+    target = Path(run.workdir) / rel
+    kept = target.read_bytes()
+    try:
+        target.write_text(was, encoding="utf-8", newline="")
+        red = wouldpass.alone(run, [test])
+    finally:
+        target.write_bytes(kept)
+    if not red:
+        return (test + " still passes with " + rel + " as the run found it,"
+                " so the change there is not what fixed it")
+    return ""
+
+
+def sibling_unfixed(run):
+    """-> "" when the run's change shows every mark a sibling test proved
+    fixed (`sibling_fixed`), else the question the run parks on: each such
+    mark is a plain `spec: breaks` for the person."""
+    left = []
+    for m, h in (getattr(run, "adjacent", None) or {}).items():
+        if h.get("test"):
+            why = sibling_fixed(run, h)
+            if why:
+                left.append((m, why))
+    if not left:
+        return ""
+    for m, _ in left:
+        run.adjacent.pop(m, None)
+    return "\n".join(
+        ["NEEDS: the plan marks a spec line already broken by the code, and"
+         " the change does not show it fixed (" + "; ".join(
+             w for _, w in left) + "): the mark is a line the request"
+         " breaks", "CITES:"]
+        + ["- " + m for m, _ in left])
 
 
 def answer_settles(run, said):

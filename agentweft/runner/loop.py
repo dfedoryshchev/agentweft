@@ -23,7 +23,7 @@ from . import worktrees
 from . import wouldpass, wrongtest
 from .asking import (asked_file, assumed_answer, goes_on, lead_decides,
                      lead_escalates, lead_pass, rides, sibling_proved,
-                     to_lead, worked_then_asked)
+                     sibling_unfixed, to_lead, worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
@@ -886,6 +886,15 @@ def go(leg):
             came_from = step
             step = nxt
         lap.to("finish")
+        unfixed = sibling_unfixed(run)
+        if unfixed:
+            print("the change does not show a sibling mark fixed")
+            return stop(stops.PARKED, "needs a ruling: "
+                        + unfixed.split(NEWLINE)[0][len("NEEDS: "):],
+                        "parked",
+                        entry=trail.open(came_from, [], used, came_from),
+                        index="PARKED  " + flow + "  at " + came_from,
+                        waiting="user", question=unfixed, kind=trace.ASKED)
         signed = signoff.check(run.workdir, run.signoff)
         if signed.state in (signoff.CONFLICT, signoff.UNCHECKED):
             cause = stops.MOVED if signed.state == signoff.CONFLICT \

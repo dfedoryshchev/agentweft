@@ -369,7 +369,12 @@ the sibling's test on a `SIBLING TEST:` line, and once its red-test gate
 passes the runner runs that test alone on the code as the run found it: red
 is the proof (an `already-broken` check on its line, the item listed first
 under the defects fixed beside the change); green, a test that cannot run
-alone, or no such line parks on the mark as a plain `breaks`. a question or
+alone, or no such line parks on the mark as a plain `breaks`. red there is
+not the whole proof, since a test of the new path is red on the start commit
+too: before the run ends, the block the named code line sits in must be
+changed, the test must pass, and it must fail again with that code file put
+back as the run found it; else the run parks on the mark as a plain
+`breaks`, the reason under the question. a question or
 a mark you already answered in this run, with
 `--answer`, is not asked again: a mark whose every cited line a mark of the
 same kind you answered cited is passed over, however it is worded around the

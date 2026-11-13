@@ -9,9 +9,14 @@ the sibling's test on a `SIBLING TEST:` line, and the runner runs it alone
 on the code as the run found it: red is the proof the line is already
 broken there, and the handoff lists it first among the defects fixed beside
 the change. green, or no such line, and the mark is a plain `breaks` that
-parks as it always did.
+parks as it always did. red alone is not enough: a test of the new path is red
+on the start commit too, so at the end the run must have changed the named
+code line's block, the test must pass, and fail again with that file put back
+as the run found it; else the run parks on the mark.
 """
 import sys
+
+import pytest
 
 sys.path.insert(0, ".")
 sys.path.insert(0, "tests")
@@ -106,3 +111,41 @@ def test_a_quote_not_on_the_cited_code_line_parks_as_today(tmp_path,
                                plan=PLAN.replace("a - b\"", "a / b\""))
     assert asked == ["planner.md"]
     assert code == stops.EXIT_STOP
+
+
+CORRECT = "def add(a, b):" + NL + "    return a + b" + NL
+SOUND = 'spec: breaks TASK.md:3, already at calc.py:2 "return a + b"'
+NEW_PATH_ID = "tests/test_mul.py::test_mul_is_there"
+MUL = NL + NL + "def mul(a, b):" + NL + "    return a * b" + NL
+
+
+def mul_beside(project):
+    (project / "calc2.py").write_text(MUL, encoding="utf-8")
+    return "def add(a, b):" + NL + "    return b + a" + NL + MUL
+
+
+@pytest.mark.parametrize("module, wrote, why", [
+    ("calc", CORRECT + MUL,
+     "the run left the code at calc.py:2 as it found it"),
+    ("calc2", mul_beside,
+     NEW_PATH_ID + " still passes with calc.py as the run found it"),
+], ids=["code line left as found", "fixed by another file"])
+def test_a_red_test_of_the_new_path_named_as_the_sibling_parks(
+        tmp_path, monkeypatch, module, wrote, why):
+    monkeypatch.setattr(tl, "BEFORE", CORRECT)
+    tests = (tl.TEST + NL + NL + "def test_mul_is_there():" + NL
+             + "    from " + module + " import mul" + NL + NL
+             + "    assert mul(2, 3) == 6" + NL)
+    answers = {"planner.md": [PLAN.replace(MARK, SOUND)],
+               "tester.md": [tl.TESTER + "SIBLING TEST: " + NEW_PATH_ID + NL],
+               "worker.md": [tl.WORKER], "reviewer.md": [tl.OK],
+               "reviewer-runs.md": [tl.OK]}
+    writes = {"tester.md": [("tests/test_mul.py", tests)],
+              "worker.md": [("calc.py", wrote)]}
+    asked, _, code, folder, _ = tl.run_it(tmp_path, monkeypatch,
+                                          "build-feature", answers, writes)
+    assert code == stops.EXIT_STOP
+    question = (folder / "question.md").read_text(encoding="utf-8")
+    assert "does not show it fixed" in question
+    assert why in question
+    assert SOUND in question
