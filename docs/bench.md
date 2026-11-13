@@ -377,7 +377,11 @@ and the cause right and the change and the fact missed scores 2 of 4. an
 answer passes only with every point; a case passes when every one of the k
 repeats scores all its items; the gold itself does on every case, and a test holds
 it there. each row keeps `reader`, None until a
-blind reader gives the change text and the fact's why 0 to 2.
+blind reader gives the change text and the fact's why 0 to 2. a case whose
+`gold.yaml` names none of these items (a `run`, `flow` and `outcome` alone),
+is empty or does not parse would pass on nothing, so it refuses the whole
+set before anything is asked: `the set is not scored, nothing ran:` and
+each such case by name, as `--pairs` refuses a set.
 
 the provider is `provider:` in the folder's `bench.yaml`; one that calls a
 real model runs only with `--live`. the scores go to `--out`, or to

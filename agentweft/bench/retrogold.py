@@ -56,9 +56,24 @@ FIELD = re.compile(r"^(failed|why|change)\s*:\s*(.*?)\s*$")
 
 
 def cases(folder):
-    """-> each case folder under `folder`, by name."""
-    return sorted(p for p in Path(folder).iterdir()
-                  if p.is_dir() and (p / GOLD).is_file())
+    """-> each case folder under `folder`, by name. raises ValueError naming
+    every case whose gold names no scored item, since such a case passes on
+    nothing, so one refuses the whole set."""
+    found = sorted(p for p in Path(folder).iterdir()
+                   if p.is_dir() and (p / GOLD).is_file())
+    empty = []
+    for case in found:
+        try:
+            gold = gold_of(case)
+        except yaml.YAMLError:
+            gold = None
+        if not isinstance(gold, dict) or not items_of(gold):
+            empty.append(case.name + ": " + GOLD + " names no scored item ("
+                         + ", ".join(ITEMS) + "), so it would pass on"
+                         " nothing")
+    if empty:
+        raise ValueError("\n".join(empty))
+    return found
 
 
 def gold_of(case):
@@ -315,7 +330,14 @@ def main(argv, valued, live_flag="--live", fake="fake"):
               " calls a real model. " + live_flag + " runs it, and it is"
               " charged")
         return 1
-    if not cases(folder):
+    try:
+        found = cases(folder)
+    except ValueError as e:
+        print("the set is not scored, nothing ran:")
+        for line in str(e).split("\n"):
+            print("  " + line)
+        return 1
+    if not found:
         print(str(folder) + ": no case (a folder with " + GOLD + ")")
         return 1
     rows = run(folder, block, k)

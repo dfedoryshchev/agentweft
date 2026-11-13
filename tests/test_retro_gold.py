@@ -348,6 +348,27 @@ def test_a_failed_call_leaves_no_view_in_the_place(tmp_path):
     assert listing(case) == before
 
 
+@pytest.mark.parametrize("gold", [
+    "run: r1\nflow: fix-with-test\noutcome: done\n", "", "- a list\n",
+    "run: [unclosed\n"])
+def test_a_case_that_names_no_scored_item_refuses_the_set_never_passes(
+        tmp_path, capsys, gold):
+    folder = a_set(tmp_path, [retrogold.answer_of(CASES / "layered")] * 7)
+    case = folder / ("itemless " + chr(0xE9))
+    (case / "record").mkdir(parents=True)
+    (case / "record" / "steps.jsonl").write_text("", encoding="utf-8")
+    (case / retrogold.GOLD).write_text(gold, encoding="utf-8")
+    with pytest.raises(ValueError) as said:
+        retrogold.cases(folder)
+    assert case.name + ": gold.yaml names no scored item" in str(said.value)
+    out = tmp_path / "scores.json"
+    assert bench.main(["--retro", str(folder), "--out", str(out)]) == 1
+    printed = capsys.readouterr().out
+    assert "the set is not scored, nothing ran:" in printed
+    assert case.name + ": gold.yaml names no scored item" in printed
+    assert not out.exists()
+
+
 def test_step_mode_on_a_real_model_runs_only_with_live(tmp_path, capsys):
     folder = a_set(tmp_path, [], live=True)
     assert bench.main(["--retro", str(folder)]) == 1
