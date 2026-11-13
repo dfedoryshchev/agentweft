@@ -163,6 +163,18 @@ step naming a connector there is not, before anything is asked, with the
 names there are. an inline block (`provider: {provider: cli, ...}`) works as
 it always did, and the flow's `provider:` may be a connector's name too.
 
+a credential goes to the `claude` cli and to the **api** provider's own
+request, and to no other command. so a built-in connector's `command` is
+never declared again, in `project.yml` or in the flow (`claude-api: {command:
+python}` is refused at load, with that reason: `project.yml` is the repo's
+file, and a step may write it for the next run), a declared connector with
+`auth: api-key` whose `command` is not `claude` is refused at load, and a
+connector with `subscription` or `api-key` whose `claude` is a path inside
+the place (`tools/claude`, `./claude.cmd`) is refused before its call: a step
+could have written it. `claude` is told by its file name (`claude`,
+`claude.cmd`, `/usr/bin/claude`), the same test the provider uses for its
+flags; a bare `claude` is found on `PATH`, outside agentweft's reach.
+
 `auth` decides the credential the step's process is handed, and no other:
 
 - `subscription`: `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are taken
@@ -246,8 +258,6 @@ a carried-on step's prompt with the hour lifetime itself (above).
 - a key's shape. any non-blank text in `key_file` is handed over as the
   key; the cli says if it is wrong. the redaction knows only the `sk-ant-`
   shape.
-- `auth` on a command other than `claude`: the key is handed as
-  `ANTHROPIC_API_KEY` all the same, and no `auth_method` is read.
 - the gates take provider credentials out by name: a key copied into a
   variable of another name reaches them.
 

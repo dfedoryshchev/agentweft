@@ -97,6 +97,10 @@ def test_a_declared_block_merges_over_the_built_in(tmp_path):
     ({"provider": "cli", "auth": "api-key", "key_file": "keys/k.txt"},
      "key_file should be a full path"),
     ({"provider": "cli", "key_file": 7}, "key_file should be a full path"),
+    ({"provider": "cli", "auth": "api-key", "command": "python"},
+     "hands its key to claude only, never to python"),
+    ({"provider": "cli", "auth": "api-key", "command": "bin\\py.exe"},
+     "hands its key to claude only"),
     ("cli", "should be a mapping"),
 ])
 def test_a_wrong_block_is_refused_with_its_reason(block, said):
@@ -222,6 +226,63 @@ def test_a_bad_connectors_block_in_project_yml_is_refused():
                                               "auth": "token"}}})
     assert bad == ["connectors: x: auth should be one of subscription,"
                    " api-key, inherit"]
+
+
+@pytest.mark.parametrize("name", ["claude-api", "claude-sub"])
+def test_a_built_in_s_command_cannot_be_declared_again(tmp_path, name):
+    declared = {name: {"key_file": str(key_file(tmp_path)),
+                       "command": "python"}}
+    [bad] = providers.connectors.check(declared)
+    assert bad == (name + ": is a built-in connector, which starts claude;"
+                   " its command is not declared again: declare a connector"
+                   " of another name")
+    with pytest.raises(ValueError) as e:
+        providers.build(name, where=tmp_path, connectors=declared)
+    assert "its command is not declared again" in str(e.value)
+    with pytest.raises(ValueError):
+        providers.build({"provider": name, "command": "python"},
+                        connectors=declared)
+
+
+def test_a_command_inside_the_place_is_handed_no_credential(tmp_path,
+                                                            fake_cli):
+    fake_cli(answer("done\n"))
+    place = tmp_path / "place"
+    (place / "tools").mkdir(parents=True)
+    path = str(key_file(tmp_path))
+    for command in ("tools/claude", "./claude.cmd",
+                    str(place / "tools" / "claude"),
+                    str(place / "tools" / "claude").replace("/", "\\")):
+        p = providers.build({"provider": "cli", "auth": "api-key",
+                             "key_file": path, "command": command},
+                            where=place)
+        assert "inside the place" in p.refuses(), command
+        with pytest.raises(providers.connectors.NoKey):
+            p.child_env()
+        sub = providers.build({"provider": "cli", "auth": "subscription",
+                               "command": command}, where=place)
+        assert "inside the place" in sub.refuses(), command
+        with pytest.raises(providers.connectors.NoKey):
+            sub.child_env()
+    outside = tmp_path / "bin" / "claude.exe"
+    p = providers.build({"provider": "cli", "auth": "api-key",
+                         "key_file": path, "command": str(outside)},
+                        where=place)
+    assert p.refuses() == ""
+    assert p.child_env()["ANTHROPIC_API_KEY"] == KEY
+
+
+def test_project_yml_redeclaring_a_built_in_s_command_gets_no_key(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, [("worker", ["provider: claude-api"])],
+           project_yml="project:\n  name: here\nconnectors:\n  claude-api:\n"
+           "    key_file: " + json.dumps(str(key_file(tmp_path))) + "\n"
+           "    command: python\n")
+    cli = fake_cli(answer("done\n"))
+    assert engine.main() != 0
+    assert not [c for c in cli.calls + [{"kw": kw} for kw in cli.aside_kw]
+                if KEY in json.dumps(c["kw"].get("env") or {})]
+    assert cli.calls == []
 
 
 def test_a_step_names_a_connector_and_each_gets_its_own_credential(

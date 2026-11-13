@@ -62,7 +62,22 @@ def check_block(name, block):
     if path is not None and not full(path):
         bad.append(at + "key_file should be a full path (or start with ~),"
                    " not " + repr(path))
+    command = whole.get("command")
+    if name in BUILT_IN and command is not None:
+        bad.append(at + "is a built-in connector, which starts claude; its"
+                   " command is not declared again: declare a connector of"
+                   " another name")
+    elif kind == "cli" and auth == API_KEY and command is not None \
+            and not claude(command):
+        bad.append(at + "hands its key to claude only, never to "
+                   + str(command))
     return bad
+
+
+def claude(command):
+    from .cli_provider import is_claude
+
+    return isinstance(command, str) and is_claude(command)
 
 
 def full(path):
@@ -129,10 +144,39 @@ def label(p):
     return (connector or p.name) + ":" + auth
 
 
+def command_refused(p):
+    """-> why p's command may not be handed the credential its auth names,
+    "" when it may: a key goes to claude only, and no credential goes to a
+    claude a step could have written, one inside the place."""
+    command = getattr(p, "command", None)
+    if p.auth == INHERIT or command is None:
+        return ""
+    who = p.connector or p.name
+    if not claude(command):
+        return (who + " hands its key to claude only, never to " + command) \
+            if p.auth == API_KEY else ""
+    if p.where is None or not ("/" in command or "\\" in command):
+        return ""
+    path = Path(command).expanduser()
+    if not path.is_absolute():
+        path = Path(p.where) / path
+    try:
+        place = Path(p.where).resolve()
+        inside = place in path.resolve().parents
+    except OSError:
+        inside = True
+    if not inside:
+        return ""
+    return (who + " starts " + command + ", inside the place, where a step"
+            " can write it: a credential goes only to a claude outside the"
+            " place")
+
+
 def key_refused(p):
     """-> why p cannot be handed its key, "" when it can or needs none."""
-    if p.auth != API_KEY:
-        return ""
+    why = command_refused(p)
+    if why or p.auth != API_KEY:
+        return why
     who = p.connector or p.name
     if not p.key_file:
         return (who + " has auth: " + API_KEY + " and no key_file: declare"

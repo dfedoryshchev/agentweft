@@ -753,11 +753,15 @@ class CliProvider(Provider):
         `subscription` strips every key, token and switch the cli would log
         in with ahead of its login; `api-key` strips those and the login
         tokens too, and hands it the key file's key. raises NoKey when the
-        key cannot be read."""
+        key cannot be read or the command may not be handed a credential
+        (`connectors.command_refused`)."""
         from . import connectors
 
         if self.auth == connectors.INHERIT:
             return env
+        refused = connectors.command_refused(self)
+        if refused:
+            raise connectors.NoKey(refused)
         gone = KEYS + AHEAD
         if self.auth == connectors.API_KEY:
             gone = gone + LOGINS
