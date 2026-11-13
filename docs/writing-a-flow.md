@@ -523,7 +523,8 @@ uncovered; the new python tests of the run that look alike, a lead the
 runner reads at no model cost (`runner/duplicates.py`: in one file, so one
 tier, their bodies share at least 80% of their tokens, every string and
 number counted as one), one line per group, and the nice-to-do that names
-two or more tests of a group is kept once a run, a second one refused; the
+two or more tests of a group is kept once a run, a second one refused,
+whether a fact, a test guard or a doc edit makes it; the
 project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many nice-to-do tickets, it may write; `why.md` when the run stopped

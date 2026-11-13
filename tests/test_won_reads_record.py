@@ -43,6 +43,10 @@ def test_a_review_that_names_an_adjacent_defect_found_it():
         " already true for `--scale` at calc/cli.py:77\nfixed: no\ntest:"
         " none"]), step="reviewer-runs.md")
     assert said["won"] == "found"
+    said = a_line(block=block_with(adjacent=[
+        "looked at the callers, all fine\nfixed: no"]),
+        step="reviewer-runs.md")
+    assert said["won"] == "found", "the typed line is read, never the defect"
 
 
 def test_a_review_that_asks_what_nothing_settles_found_it():

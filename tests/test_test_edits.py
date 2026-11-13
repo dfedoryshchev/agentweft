@@ -317,6 +317,16 @@ def test_a_case_added_to_a_start_test_extends_it_and_nothing_else_does(
         RIGHT.replace("def test", "@pytest.mark.parametrize('x', [1])" + NL
                       + "def test")))
     assert found.items == [(ID, "changed")]
+    named = PARAM.replace("])" + NL, "], ids=['sorted'])" + NL)
+    [found] = edits_from(tmp_path / "ids", module(named), module(
+        MORE.replace("])" + NL, "], ids=['sorted', 'upper'])" + NL)))
+    assert (found.items, found.extended) == ([], [(ID, 1)])
+    for n, ids in enumerate(("['upper', 'sorted']", "['sorted']",
+                             "['sorted', 'upper', 'more']")):
+        [found] = edits_from(tmp_path / ("ids" + str(n)), module(named),
+                             module(MORE.replace("])" + NL, "], ids=" + ids
+                                                 + ")" + NL)))
+        assert (found.items, found.extended) == ([(ID, "changed")], []), ids
 
 
 def test_an_extended_start_test_is_replayed_as_new_by_the_red_first_gate(

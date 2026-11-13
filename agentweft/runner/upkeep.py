@@ -286,10 +286,11 @@ def cite_of(source):
     return facts.norm(m["path"]), int(m["first"]), int(m["last"])
 
 
-def same_lines(one, other):
-    """whether two cites name one file and share a line."""
-    return one is not None and other is not None and one[0] == other[0] \
-        and one[1] <= other[2] and other[1] <= one[2]
+def covers(outer, inner):
+    """whether cite `outer` names the file of cite `inner` and every line of
+    it."""
+    return outer is not None and inner is not None and outer[0] == inner[0] \
+        and outer[1] <= inner[1] and inner[2] <= outer[2]
 
 
 def a_kind(verb, fields, kind):
@@ -299,14 +300,14 @@ def a_kind(verb, fields, kind):
 
 def carried(store, fields):
     """-> why a defect fact is not written: a live nice-to-do's evidence
-    cites a line its own evidence cites, so the ticket already carries the
-    finding to the run that fixes it. "" when none does."""
+    cites every line its own evidence cites, so the ticket already carries
+    the finding to the run that fixes it. "" when none does."""
     cite = cite_of(fields.get("source"))
     if cite is None:
         return ""
     for f in store.read():
         if f.status == facts.LIVE and f.kind == facts.NICE \
-                and same_lines(cite, cite_of(f.get("source"))):
+                and covers(cite_of(f.get("source")), cite):
             at = cite[0] + ":" + str(cite[1]) + (
                 "-" + str(cite[2]) if cite[2] != cite[1] else "")
             return ("it is the finding " + f.id + " already carries, cited at "
@@ -322,6 +323,27 @@ def merge_of(fields, groups):
         fields.get("claim"), scopes[0], groups) is not None
 
 
+class Cap(object):
+    """at most one nice-to-do a run names the new tests that look alike,
+    whatever makes it: a fact, a test guard or a doc edit."""
+
+    def __init__(self, groups):
+        self.groups = groups
+        self.by = ""
+
+    def merges(self, fields):
+        return merge_of(fields, self.groups)
+
+    def taken(self):
+        """-> why another one is refused, "" while none is written."""
+        return ("one nice-to-do a run names the new tests that look alike,"
+                " and " + self.by + " does") if self.by else ""
+
+    def took(self, fact, done):
+        if not self.by and fact.id in done.written:
+            self.by = fact.id
+
+
 FLOW_WORDS = {"otherwise", "else", "unless", "only", "then", "when"}
 
 
@@ -331,9 +353,12 @@ def said_by(claim, lines):
     closing `s` / `es` (`raises` for `raise`), or one of FLOW_WORDS, the
     branch words whose meaning the lines' own structure carries. a claim
     with any other word says more than the code, and that more is what a
-    ruling is kept for."""
-    from .ruling import WORD, words
+    ruling is kept for; so does one with a negation outside its code spans,
+    which `ruling.words` drops as filler."""
+    from .ruling import WORD, negated, words
 
+    if negated(SPAN.sub(" ", claim or "")):
+        return False
     have = {w.lower() for w in WORD.findall(lines)}
     return all(w in have or w[:-1] in have or w[:-2] in have
                or w in FLOW_WORDS for w in words(claim))
@@ -385,11 +410,10 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
              and fields.get("kind", "").strip() == DEFECT]
     later = [n for n, (verb, _, fields) in enumerate(items)
              if a_kind(verb, fields, DEFECT) and any(
-                 a_kind(v, f, facts.NICE) and same_lines(
-                     cite_of(fields.get("source")), cite_of(f.get("source")))
+                 a_kind(v, f, facts.NICE) and covers(
+                     cite_of(f.get("source")), cite_of(fields.get("source")))
                  for v, _, f in items)]
-    groups = getattr(store, "alike", None) or []
-    merging = ""
+    cap = Cap(getattr(store, "alike", None) or [])
     for n in [n for n in range(len(items)) if n not in later] + later:
         verb, value, fields = items[n]
         what = what_of(verb, value, fields)
@@ -399,11 +423,9 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
             why = restates(pins, fields) or (
                 carried(store, fields) if a_kind(verb, fields, DEFECT)
                 else "")
-            merges = a_kind(verb, fields, facts.NICE) and merge_of(
-                fields, groups)
-            if not why and merges and merging:
-                why = ("one nice-to-do a run names the new tests that look"
-                       " alike, and " + merging + " does")
+            merges = a_kind(verb, fields, facts.NICE) and cap.merges(fields)
+            if not why and merges:
+                why = cap.taken()
             if why:
                 refuse(done, what, why)
                 continue
@@ -414,8 +436,8 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
                 refuse(done, what, why)
             else:
                 kept(store, done, fact, before, run_id)
-                if merges and fact.id in done.written:
-                    merging = fact.id
+                if merges:
+                    cap.took(fact, done)
                 if restated and fact.id in done.written:
                     done.lines.append("- kept the ruling alone for " + fact.id
                                       + ": its claim restated " + restated
@@ -438,10 +460,10 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
                 done.lines.append("- retired " + value + ": "
                                   + " ".join(fields.get("why", "").split()))
         elif verb in EDITS:
-            edit(store, record, value, fields, done, what, run_id)
+            edit(store, record, value, fields, done, what, run_id, cap)
         else:
             guard(store, record, value, fields, done, what, run_id,
-                  pinned(store, value, found))
+                  pinned(store, value, found), cap)
     done.owed = owed(store)
 
 
@@ -538,10 +560,15 @@ def ticket_of(root, verb, value, fields, held=None):
 
 
 def as_ticket(store, record, verb, value, fields, done, what, head, keys,
-              run_id):
+              run_id, cap=None):
     """keep an edit or a test guard as a nice-to-do ticket once it can be
-    one, else refuse it with why and keep it in facts/PROPOSED.md."""
+    one, else refuse it with why and keep it in facts/PROPOSED.md. `cap`
+    holds the one ticket a run may write on the tests that look alike."""
     ticket, why = ticket_of(store.root, verb, value, fields, store.held)
+    merges = ticket is not None and cap is not None and cap.merges(ticket)
+    if merges and cap.taken():
+        refuse(done, what, cap.taken())
+        return
     fact = None
     if ticket is not None:
         before = store.new + store.tickets_new
@@ -550,6 +577,8 @@ def as_ticket(store, record, verb, value, fields, done, what, head, keys,
         failed(store, done, what, NO_WRITE + why, head, fields, keys)
         return
     kept(store, done, fact, before, run_id)
+    if merges:
+        cap.took(fact, done)
 
 
 def kept(store, done, fact, before, run_id):
@@ -572,15 +601,16 @@ def kept(store, done, fact, before, run_id):
                       + str(seen_of(fact)["proposed"]) + ")")
 
 
-def edit(store, record, value, fields, done, what, run_id):
+def edit(store, record, value, fields, done, what, run_id, cap=None):
     """a doc change is never made: it is kept as a nice-to-do ticket on its
     doc, or refused with why into facts/PROPOSED.md."""
     as_ticket(store, record, "edit", value, fields, done, what,
               "## edit " + (value or "no file") + " (" + run_id + ")",
-              ("now", "after", "because"), run_id)
+              ("now", "after", "because"), run_id, cap)
 
 
-def guard(store, record, value, fields, done, what, run_id, defect=""):
+def guard(store, record, value, fields, done, what, run_id, defect="",
+          cap=None):
     """a test guard is never written: it is kept as a nice-to-do ticket on
     its test file, or refused with why into facts/PROPOSED.md. a gate or
     flow-key guard is a line for a person."""
@@ -605,7 +635,7 @@ def guard(store, record, value, fields, done, what, run_id, defect=""):
                " the defect, not its fix", head, fields, keys)
         return
     as_ticket(store, record, "guard", value, fields, done, what, head, keys,
-              run_id)
+              run_id, cap)
 
 
 def failed(store, done, what, why, head, fields, keys):

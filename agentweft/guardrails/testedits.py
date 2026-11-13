@@ -326,8 +326,9 @@ def _parametrize(node):
 def extended_by(was, now):
     """-> how many cases test function `now` adds to `was`, 0 when it is not
     only that: the same name, arguments and body, the same decorators but a
-    `parametrize` whose argnames and keywords are as they were and whose
-    list keeps every case it had."""
+    `parametrize` whose argnames and other keywords are as they were and
+    whose list keeps every case it had; an `ids=` list may grow with it, one
+    id per case, every case keeping its id."""
     if ast.dump(ast.Module(body=was.body, type_ignores=[])) != ast.dump(
             ast.Module(body=now.body, type_ignores=[])) \
             or ast.dump(was.args) != ast.dump(now.args) \
@@ -342,15 +343,37 @@ def extended_by(was, now):
                 or ast.dump(old.args[0]) != ast.dump(new.args[0]) \
                 or [ast.dump(a) for a in old.args[2:]] != \
                 [ast.dump(a) for a in new.args[2:]] \
-                or [ast.dump(k) for k in old.keywords] != \
-                [ast.dump(k) for k in new.keywords]:
+                or _kept(old) != _kept(new):
             return 0
-        had = Counter(ast.dump(e) for e in old.args[1].elts)
-        has = Counter(ast.dump(e) for e in new.args[1].elts)
-        if had - has or sum(has.values()) <= sum(had.values()):
+        had = _cases(old)
+        has = _cases(new)
+        if had is None or has is None or had - has \
+                or sum(has.values()) <= sum(had.values()):
             return 0
         grew += sum(has.values()) - sum(had.values())
     return grew
+
+
+def _kept(call):
+    """-> the dumps of a parametrize's keywords but an `ids=` list."""
+    return [ast.dump(k) for k in call.keywords if not _id_list(k)]
+
+
+def _id_list(keyword):
+    return keyword.arg == "ids" and isinstance(keyword.value,
+                                               (ast.List, ast.Tuple))
+
+
+def _cases(call):
+    """-> a Counter of a parametrize's cases, each with its id when an `ids=`
+    list names them; None when that list does not give one id per case."""
+    cases = [ast.dump(e) for e in call.args[1].elts]
+    named = [k.value.elts for k in call.keywords if _id_list(k)]
+    if not named:
+        return Counter(cases)
+    if len(named[0]) != len(cases):
+        return None
+    return Counter(zip(cases, (ast.dump(e) for e in named[0])))
 
 
 def _python(name, was, now):

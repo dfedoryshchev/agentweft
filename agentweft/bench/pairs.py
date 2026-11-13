@@ -271,12 +271,11 @@ def names(fact, item):
         or bool(runs(fact.claim) & runs(item))
 
 
-def cited(record, folder, found, added=()):
+def cited(record, folder, found):
     """-> the [step, id] pairs, of those `handed` lists, whose fact the step
     names by its id or by CLAIM_WORDS consecutive words of its claim
-    (`runs`) in one of its typed items (`items_said`), or the change names in one
-    added line: a fact read, where `used` only says the change reached its
-    scope."""
+    (`runs`) in one of its typed items (`items_said`): a fact read, where
+    `used` only says the change reached its scope."""
     by_id = dict((f.id, f) for f in found)
     out = []
     for line in record:
@@ -284,9 +283,22 @@ def cited(record, folder, found, added=()):
         if not ids:
             continue
         said = read(Path(folder) / line["file"]) if line.get("file") else ""
-        items = items_said(said) + list(added)
+        items = items_said(said)
         out.extend([line.get("step"), id] for id in ids
                    if any(names(by_id[id], i) for i in items))
+    return out
+
+
+def in_change(given, found, added):
+    """-> the ids, once each, of the facts the run was handed (`given`, the
+    [step, id] pairs) that one line the change added names (`names`): the
+    change's, never a step's."""
+    by_id = dict((f.id, f) for f in found)
+    out = []
+    for _, id in given:
+        if id in by_id and id not in out \
+                and any(names(by_id[id], line) for line in added):
+            out.append(id)
     return out
 
 
@@ -348,8 +360,9 @@ def second(flow, spec, provider, pair, place, start, tmp, arm):
            "convention": convention(pair, place, paths),
            "facts_attached": given,
            "facts_used": used(given, found, paths),
-           "facts_cited": cited(record, trail, found,
-                                added_lines(was, texts_of(place))),
+           "facts_cited": cited(record, trail, found),
+           "facts_in_change": in_change(given, found,
+                                        added_lines(was, texts_of(place))),
            "facts_written": len(kept(record)),
            "facts_capped": capped(record),
            "usd": money.get("usd"),
@@ -478,11 +491,12 @@ def probation(rows):
     attached = sum(len(s["facts_attached"]) for s in lanes)
     usedn = sum(len(s["facts_used"]) for s in lanes)
     citedn = sum(len(s.get("facts_cited") or []) for s in lanes)
+    changedn = sum(len(s.get("facts_in_change") or []) for s in lanes)
     false = [id for r in rows for id in r["first"]["false_facts"]]
     used_ok = None if not attached else usedn * ONE_IN >= attached
     return {"facts_per_run": counts, "most": max(counts) if counts else 0,
             "spam": spam, "attached": attached, "used": usedn,
-            "cited": citedn,
+            "cited": citedn, "in_change": changedn,
             "used_ok": used_ok, "false_facts": false, "kill": bool(false),
             "holds": not spam and used_ok is not False and not false}
 
@@ -532,6 +546,7 @@ def lines(total):
                + ("none attached" if p["used_ok"] is None else
                   "holds" if p["used_ok"] else "under one in " + str(ONE_IN))
                + "), named by a step " + str(p.get("cited", 0))
+               + ", in the change " + str(p.get("in_change", 0))
                + ", false facts " + str(len(p["false_facts"]))
                + (": the write path is killed until fixed" if p["kill"]
                   else ""))

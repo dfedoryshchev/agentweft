@@ -128,8 +128,8 @@ def test_a_run_2_that_breaks_a_convention_it_was_handed_is_contradicted(
     assert got["summary"]["lane"]["conventions"]["contradicted"] == 1
     said = capsys.readouterr().out
     assert "probation holds" in said
-    assert ("attached facts used 1 of 1 (holds), named by a step 0, false"
-            " facts 0") in said
+    assert ("attached facts used 1 of 1 (holds), named by a step 0, in the"
+            " change 0, false facts 0") in said
 
 
 def test_a_run_2_that_keeps_the_convention_is_honoured(a_set, tmp_path):
@@ -280,8 +280,9 @@ def test_a_handed_fact_is_cited_when_a_step_names_it_and_used_is_unchanged(
         ["planner.md", "F-0007"], ["tester.md", "F-0007"],
         ["planner.md", "F-0003"]]
     added = ["    total = count(rows)  # a deleted item is out of every total"]
-    assert ["worker.md", "F-0003"] in pairs.cited(
-        record, tmp_path / ("run " + chr(0xE9)), [ruled, other], added)
+    assert pairs.in_change(given, [ruled, other], added) == [other.id]
+    assert pairs.in_change(given, [ruled, other], []) == []
+    assert pairs.in_change([], [ruled, other], added) == []
     assert pairs.cited(record, tmp_path / "nowhere", [ruled, other]) == []
     assert pairs.cited([], tmp_path, [ruled]) == []
 
@@ -301,12 +302,14 @@ def test_the_cited_count_is_shown_beside_used_never_in_its_place():
     handed = [["worker.md", "F-%04d" % n] for n in range(1, 5)]
     got = a_row(1, attached=handed, used=handed[:1])
     got["second"]["lane"]["facts_cited"] = handed[:2]
+    got["second"]["lane"]["facts_in_change"] = handed[2][1:]
     said = pairs.probation([got])
-    assert (said["used"], said["cited"], said["used_ok"]) == (1, 2, True)
+    assert (said["used"], said["cited"], said["in_change"],
+            said["used_ok"]) == (1, 2, 1, True)
     assert pairs.probation([a_row(1, attached=handed, used=handed)])[
         "cited"] == 0
-    assert ("attached facts used 1 of 4 (holds), named by a step 2, false"
-            " facts 0") in "\n".join(pairs.lines(
+    assert ("attached facts used 1 of 4 (holds), named by a step 2, in the"
+            " change 1, false facts 0") in "\n".join(pairs.lines(
                 {"pairs": 1, "k": 1, "probation": said}))
 
 

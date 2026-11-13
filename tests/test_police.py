@@ -427,6 +427,12 @@ def test_a_whole_path_inside_the_place_is_no_hit(tmp_path):
 
 
 def test_a_whole_path_in_another_case_on_a_drive_is_inside(tmp_path):
+    drive = "Q" + ":"
+    named = drive + "/Work/Place"
+    assert not police.outside(drive.lower() + "\\work\\place\\a.py", named)
+    assert not police.outside(drive + "\\WORK\\PLACE\\pkg\\a.py", named)
+    assert police.outside(drive.lower() + "\\work\\other\\a.py", named)
+    assert police.outside(drive + "/Work/Place2/a.py", named)
     place = str(tmp_path / "Place")
     if not police.DRIVE.match(place.replace("\\", "/")):
         pytest.skip("no drive letter in this folder")

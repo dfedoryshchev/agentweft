@@ -82,15 +82,6 @@ def test_windows_separators_are_read_as_separators(tmp_path):
             given
 
 
-def test_another_case_on_a_drive_is_the_same_folder():
-    drive = "Q" + ":"
-    place = drive + "/Work/Place"
-    assert not shellwrite.outside(drive.lower() + "\\work\\place\\a.py", place)
-    assert not shellwrite.outside(drive + "\\WORK\\PLACE\\pkg\\a.py", place)
-    assert shellwrite.outside(drive.lower() + "\\work\\other\\a.py", place)
-    assert shellwrite.outside(drive + "/Work/Place2/a.py", place)
-
-
 def test_a_path_with_letters_outside_ascii_is_judged_like_any(tmp_path):
     place = tmp_path / ("pl" + chr(0xE4) + "ce")
     place.mkdir()

@@ -298,7 +298,9 @@ before and after the step, `decisions.md`, the gates' entries, its handoff
 block, the facts the retro kept), never off what a gate or the model wrote:
 `decided` is a decision of the step's on record, the lead's own question
 included; `found` an ADJACENT defect with a typed `fixed:` line, or a
-QUESTION whose SETTLED BY line says nothing settles it, on its handoff;
+QUESTION whose SETTLED BY line says nothing settles it, on its handoff (the
+line is read, never the defect: an item whose words find nothing, with
+`fixed: no` under them, still reads `found`);
 `maintained` facts or tickets the retro wrote or refused; `held` a
 start-tests, command or project gate that ran green on it; `checked` the
 checks it made and found nothing with, counting only gates that executed
@@ -611,7 +613,8 @@ is written; a refused one is not written and its reason is kept:
    itself, and a hash written in the proposal is ignored.
 6. the same claim on the same scopes as a live fact is counted on that fact
    (`seen: proposed 2, ...`) instead of written again. a `defect` fact whose
-   evidence quotes a line a live nice-to-do's evidence also quotes is refused
+   evidence quotes only lines a live nice-to-do's evidence also quotes is
+   refused
    (`it is the finding <id> already carries, cited at <file>:<line>`): the
    ticket takes the finding to the run that fixes it. a defect and such a
    ticket in one block are done ticket first, so a ticket the store refuses
@@ -619,7 +622,8 @@ is written; a refused one is not written and its reason is kept:
    `decisions.md`, with an anchor, whose every code span in its claim is on
    its anchored lines and whose every other word is a name there too (less a
    closing `s`, or a branch word such as `otherwise`), only restates that
-   code: a claim saying anything more is kept as proposed. the restated one
+   code: a claim saying anything more, a `not` or `never` outside its code
+   spans among it, is kept as proposed. the restated one
    is written as the ruling
    alone, its why as the claim, with no anchor, and its why saying which
    lines it restated, so the ruling outlives an edit of them.

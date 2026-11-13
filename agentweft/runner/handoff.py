@@ -907,14 +907,19 @@ def reads(session, root=None, earlier=None):
     call by its offset and limit, a cat, head, tail or `sed -n` in a Bash
     call by its target; range "" is the whole file. paths under `root` are
     given from it. None when there is no transcript to read. `earlier` is the
-    session it was carried on from."""
+    session it was carried on from. a call is read once by its id: the
+    transcript may hold the same call again."""
     pieces = _pieces(session, earlier)
     if pieces is None:
         return None
-    out = []
+    out, seen = [], set()
     for piece in pieces:
         if piece.get("type") != "tool_use":
             continue
+        if piece.get("id") is not None:
+            if piece["id"] in seen:
+                continue
+            seen.add(piece["id"])
         given = piece.get("input") or {}
         if piece.get("name") == "Read" and isinstance(
                 given.get("file_path"), str):

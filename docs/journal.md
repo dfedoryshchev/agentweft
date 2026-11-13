@@ -749,7 +749,10 @@ print in full (`## open questions`, when there are any: each wording once
 with the roles that asked it, so a question joined to another by its spec
 line, cut to its width or past the cut is still on record), the questions a
 later step answered (`## answered in the run`, when there are any: each with
-the role that asked it and what answered it), what they doubt
+the role that asked it and what answered it; the link is a later `led to:`
+or backed VERIFIED line naming the same test, and which reading of the
+question that step took is never compared, so the led-to text is printed for
+you to read), what they doubt
 that is not a question (each once by its words), what they found beside the
 change (`## found beside the change`, only when a step found something: each
 defect once by its words, with the roles that named it, as the last of them

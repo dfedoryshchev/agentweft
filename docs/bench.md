@@ -451,9 +451,11 @@ a row per pair and repeat holds:
   not kept), the ones a step named (`facts_cited`: the step's DID, BECAUSE,
   ASSUMED, DOUBTS or MUST NOT MISS items or a `DECIDED` line name the
   fact's id or three consecutive words of its claim, paths and file names left
-  out and two of the three not fillers, or one line the change added does;
-  a fact handed for a file the change touched that nothing names is used and
-  not cited), and the convention: `honoured` or `contradicted` by its check
+  out and two of the three not fillers; a fact handed for a file the change
+  touched that nothing names is used and not cited), the ones the change
+  names (`facts_in_change`: each handed fact once, when one line the change
+  added names it the same way; the change's, never counted for a step), and
+  the convention: `honoured` or `contradicted` by its check
   when the change reached the convention's scope, `untouched` when it did
   not, `not checked` when the check could not run or ran past the suite's
   limit, never a pass
@@ -466,8 +468,8 @@ and the probation rules, set before any pair ran:
   that does is counted as spam, though the cap let only 3 through
 - at least one in 4 attached facts is used by the run it was handed to
   (`none attached` when no fact was handed, which is not judged); how many
-  a step named is printed beside it (`named by a step n`) and judges
-  nothing
+  a step named and how many the change named are printed beside it (`named
+  by a step n, in the change m`) and judge nothing
 - no fact the gold names false is written: one is printed as `the write path
   is killed until fixed`
 

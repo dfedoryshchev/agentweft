@@ -89,23 +89,31 @@ def merge(claim, rel="tests/test_calc.py"):
 
 
 def test_one_nice_to_do_a_run_names_the_alike_tests(tmp_path):
+    """whatever verb makes the ticket: a test guard on the file naming the
+    group is a second one too."""
     root = a_place(tmp_path)
     store, record = factsguard.Store(root), factsguard.Record(root)
     store.alike = [("unit", "tests/test_calc.py", GROUP)]
     done = retro.Maintained()
+    guard = ("guard", "", {
+        "kind": "test", "where": "tests/test_calc.py",
+        "what": "one test for test_add_one and test_add_two, parametrized",
+        "why": "the run wrote them one by one",
+        "source": merge("")[2]["source"]})
     retro.execute(store, record, [
         merge("merge test_add_one and test_add_two into one parametrized"
               " test"),
         merge("merge test_add_two and TestCalc::test_add_three into one"
               " parametrized test"),
+        guard,
         merge("give test_sub a case for a negative result")], done, "run-1")
     written = facts.read(root)
     assert [f.claim for f in written] == [
         "merge test_add_one and test_add_two into one parametrized test",
         "give test_sub a case for a negative result"]
-    [(_, why)] = done.refused
-    assert why == ("one nice-to-do a run names the new tests that look alike,"
-                   " and " + written[0].id + " does")
+    assert [why for _, why in done.refused] == 2 * [
+        "one nice-to-do a run names the new tests that look alike, and "
+        + written[0].id + " does"]
 
 
 def test_the_retro_is_handed_the_new_tests_that_look_alike(tmp_path,

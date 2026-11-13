@@ -160,6 +160,10 @@ def test_a_read_call_and_shell_reads_are_files_and_ranges(tmp_path,
     assert got == [("a.py", ""), ("b.py", "10-14"), ("c.py", ""),
                    ("d.py", "1-20")]
     assert handoff.reads("s-none") is None
+    kept = tmp_path / "D--a-place" / "s-1.jsonl"
+    text = kept.read_text(encoding="utf-8")
+    kept.write_text(text + text.split("\n")[0] + "\n", encoding="utf-8")
+    assert handoff.reads("s-1", root=tmp_path / "w") == got
 
 
 def said_of(tmp_path, monkeypatch, calls, item):
