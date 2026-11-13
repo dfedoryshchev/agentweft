@@ -26,6 +26,8 @@ import json
 import time
 from decimal import Decimal
 
+from agentweft.guardrails import redact
+
 from . import chain
 from .task import FILE as TASK
 
@@ -363,7 +365,7 @@ class Trail(object):
             kept = FOLDER + "/" + "%03d" % self.seq + "-" + name
             path = self.folder / kept
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(output, encoding="utf-8")
+            path.write_text(redact.redact(output), encoding="utf-8")
         entry = Entry(self.seq, step, attempts, provider, came_from, kept,
                       fanned)
         if self.plan is not None:
@@ -409,7 +411,8 @@ class Trail(object):
                 done.written[chain.FIELD] = {
                     "prev": chain.head(self.lines)["head"],
                     "files": chain.kept(self.folder)}
-                text = json.dumps(done.written, ensure_ascii=False)
+                text = redact.redact(json.dumps(done.written,
+                                                ensure_ascii=False))
                 f.write(text + "\n")
                 self.lines.append(text)
         for done, _ in ready:

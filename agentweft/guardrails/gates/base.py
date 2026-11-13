@@ -7,6 +7,8 @@ import contextlib
 import os
 import tempfile
 
+from agentweft.guardrails import redact
+
 
 # the provider credentials the run may hold: a gate runs the project's
 # commands and tests a model wrote, and neither is handed them
@@ -57,9 +59,17 @@ class Result(object):
     nothing to its source), True for the rest.
     """
 
-    __slots__ = ("gate", "ok", "detail", "unproven", "tests", "skipped",
+    __slots__ = ("gate", "ok", "_detail", "unproven", "tests", "skipped",
                  "broke", "issue", "seconds", "began", "named", "host",
                  "ran")
+
+    @property
+    def detail(self):
+        return self._detail
+
+    @detail.setter
+    def detail(self, said):
+        self._detail = redact.redact(said)
 
     def __init__(self, gate, ok, detail="", unproven=(), tests=None,
                  skipped=False, broke=False, issue=""):

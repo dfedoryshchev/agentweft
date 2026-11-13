@@ -26,6 +26,7 @@ import subprocess
 from pathlib import Path
 
 from agentweft.flow.spec import step_id
+from agentweft.guardrails.redact import redact
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_runners
 from agentweft.guardrails.snapshot import is_spec as spec_path
@@ -2007,7 +2008,7 @@ def after_retro(path, every, spend, police=None, added=1):
     elif police and not found and "## carry forward" in lines:
         put = lines.index("## carry forward")
         lines[put:put] = ["## police"] + police + [""]
-    Path(path).write_text("\n".join(lines), encoding="utf-8")
+    Path(path).write_text(redact("\n".join(lines)), encoding="utf-8")
 
 
 def wall(passes, clock):
@@ -2636,5 +2637,5 @@ def write(folder, lines):
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / FILE
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text(redact("\n".join(lines) + "\n"), encoding="utf-8")
     return path

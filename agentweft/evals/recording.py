@@ -19,6 +19,7 @@ import sys
 import threading
 from pathlib import Path
 
+from agentweft.guardrails.redact import redacted
 from agentweft.providers.base import Provider, Reply, Usage
 from agentweft.providers.fake_provider import write_into
 
@@ -133,7 +134,7 @@ def kept(reply):
         out["writes"] = dict(reply.writes)
     if getattr(reply, "kept", None) is not None:
         out["kept"] = reply.kept
-    return out
+    return redacted(out)
 
 
 def reply_of(call):

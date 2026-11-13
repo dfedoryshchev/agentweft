@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 from agentweft import providers
-from agentweft.guardrails import signoff  # noqa: F401
+from agentweft.guardrails import redact, signoff  # noqa: F401
 from agentweft.mcp import context, preflight  # noqa: F401
 
 from .config import config, steps  # noqa: F401
@@ -98,6 +98,10 @@ def call(prompt, timeout=None, cap=3, step="?", provider=None):
 
     def once():
         reply = p.ask(prompt, timeout=timeout)
+        for field in ("text", "detail"):
+            said = getattr(reply, field, None)
+            if redact.redact(said) is not said:
+                setattr(reply, field, redact.redact(said))
         heard.append(reply)
         if reply:
             return True, reply.text
