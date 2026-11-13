@@ -1,5 +1,9 @@
 """every shipped recorded case, replayed, and what each one is there to catch:
-take the behaviour away and its case scores worse."""
+take the behaviour away and its case scores worse. each case's ending is
+written here as well as in its own gold, so a case re-recorded with its gold
+rewritten to match fails until the word here is changed too, and a new
+recorded case fails until its ending is written here (None: the case names
+no outcome, and is held to getting to the end)."""
 import sys
 
 import pytest
@@ -29,6 +33,26 @@ def shipped():
     return found
 
 
+OUTCOMES = {
+    ("build-feature", "added-option"): "done",
+    ("build-feature", "never-cached"): "stopped: spec conflict",
+    ("build-feature", "wrong-test"): "done",
+    ("build-feature", "wrong-test-after-code"): "done",
+    ("fix-with-test", "breaks-a-start-test"): "stopped: gate failed",
+    ("fix-with-test", "clean-fix"): "done",
+    ("fix-with-test", "green-without-fix"): "stopped: gate failed",
+    ("fix-with-test", "question-priced-on-the-other"): "done",
+    ("fix-with-test", "rewrites-a-start-test"): "needs you: ruling",
+    ("fix-with-test", "spec-conflict"): "stopped: spec conflict",
+    ("fix-with-test", "spec-declined"): "refused (spec cited)",
+    ("fix-with-test", "supplied-test"): "done",
+    ("repo-audit", "two-files"): "done",
+    ("weekly-digest", "busy-week"): None,
+    ("weekly-digest", "quiet-week"): None,
+}
+SHIPPED = shipped()
+
+
 def case_of(flow, name):
     path = [p for p in harness.cases_for(flow) if p.name == name][0]
     return harness.load_case(path)
@@ -51,13 +75,16 @@ def nothing_is_called(monkeypatch):
     monkeypatch.setattr(fake_provider.FakeProvider, "ask", ask)
 
 
-@pytest.mark.parametrize("flow,name", shipped())
+@pytest.mark.parametrize("flow,name", sorted(set(SHIPPED) | set(OUTCOMES)))
 def test_a_shipped_case_replays_offline_and_keeps_every_promise(
         flow, name, monkeypatch):
+    assert (flow, name) in OUTCOMES, "no ending written here for this case"
+    assert (flow, name) in SHIPPED, "no recorded case by this name"
+    word = OUTCOMES[(flow, name)]
     case = case_of(flow, name)
     assert case["recording"] is not None
     assert case["expect"]["steps"]["match"] == "strict"
-    word = case["expect"].get("outcome")
+    assert case["expect"].get("outcome") == word
     ending = ("it ended " + word if word is not None
               else "the run got to the end")
     nothing_is_called(monkeypatch)

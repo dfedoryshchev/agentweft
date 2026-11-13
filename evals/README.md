@@ -189,7 +189,11 @@ a case with a `recording.json` beside its `case.yaml` is answered from it and
 calls nothing, so it runs offline and gives the same answers every time.
 `tests/test_eval_cases.py` replays every such case it finds under `evals/`,
 held to its `outcome` or, for a case that names none, to getting to the end,
-so a recording a prompt change left stale fails the suite.
+so a recording a prompt change left stale fails the suite. the test also
+writes each case's ending itself and checks the case's `outcome` against it,
+so a gold `outcome` rewritten to match a new recording fails until the test's
+word is changed as well, and a newly recorded case fails until its ending is
+written there.
 
     python -m agentweft.evals weekly-digest --case quiet-week --record
 
