@@ -489,7 +489,12 @@ at most 6 docs and 4000 characters, the ones left out at the cap named on
 one line of at most 300 characters, the ones past it counted; the test
 coverage a step named as missing (`docs/flows.md`, "the brief the run
 keeps"), each to keep as a nice-to-do when the run's tests left it
-uncovered; the project's facts that are stale or hold for those files
+uncovered; the new python tests of the run that look alike, a lead the
+runner reads at no model cost (`runner/duplicates.py`: in one file, so one
+tier, their bodies share at least 80% of their tokens, every string and
+number counted as one), one line per group, and the nice-to-do that names
+two or more tests of a group is kept once a run, a second one refused; the
+project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many nice-to-do tickets, it may write; `why.md` when the run stopped
 short; and `handoff.md`, with the steps' reasons taken out of it (the

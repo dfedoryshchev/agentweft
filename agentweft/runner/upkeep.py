@@ -48,7 +48,9 @@ tests named as passing, green or pinning) is refused.
 
 a defect fact a live nice-to-do already carries (its evidence quotes the
 same line) is refused, and a decision backed by a ruling whose claim only
-restates its anchored code is kept as the ruling alone.
+restates its anchored code is kept as the ruling alone. one nice-to-do a run
+may name two or more of the new tests that look alike (`duplicates.py`); a
+second is refused.
 
 a gate-issue or defect fact proposed again climbs a ladder: in two runs it
 is `important`, in three a guard is proposed for it marked `recurring`, and
@@ -62,6 +64,8 @@ from agentweft.guardrails.factsguard import (DECAY, EVIDENCE, STAMPED,
                                              Proposal, evidence_lines,
                                              seen_of)
 from agentweft.orchestrate import facts
+
+from . import duplicates
 
 PASSES = re.compile(r"\b(?:pass(?:es|ed|ing)?|green|pin(?:s|ned|ning)?"
                     r"|without (?:the|this|a|any) (?:change|fix))\b", re.I)
@@ -310,6 +314,14 @@ def carried(store, fields):
     return ""
 
 
+def merge_of(fields, groups):
+    """whether a nice-to-do on one test file names two or more tests of one
+    group of `groups` (`duplicates.groups`) there."""
+    scopes = [facts.norm(s) for s in fields.get("scope") or []]
+    return len(scopes) == 1 and duplicates.named_in(
+        fields.get("claim"), scopes[0], groups) is not None
+
+
 def ruling_alone(root, fields):
     """-> (fields, "") as proposed, or (the fields kept as the ruling alone,
     the anchor they were proposed on) for a decision whose evidence is a
@@ -357,6 +369,8 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
                  a_kind(v, f, facts.NICE) and same_lines(
                      cite_of(fields.get("source")), cite_of(f.get("source")))
                  for v, _, f in items)]
+    groups = getattr(store, "alike", None) or []
+    merging = ""
     for n in [n for n in range(len(items)) if n not in later] + later:
         verb, value, fields = items[n]
         what = what_of(verb, value, fields)
@@ -366,6 +380,11 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
             why = restates(pins, fields) or (
                 carried(store, fields) if a_kind(verb, fields, DEFECT)
                 else "")
+            merges = a_kind(verb, fields, facts.NICE) and merge_of(
+                fields, groups)
+            if not why and merges and merging:
+                why = ("one nice-to-do a run names the new tests that look"
+                       " alike, and " + merging + " does")
             if why:
                 refuse(done, what, why)
                 continue
@@ -376,6 +395,8 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
                 refuse(done, what, why)
             else:
                 kept(store, done, fact, before, run_id)
+                if merges and fact.id in done.written:
+                    merging = fact.id
                 if restated and fact.id in done.written:
                     done.lines.append("- kept the ruling alone for " + fact.id
                                       + ": its claim restated " + restated

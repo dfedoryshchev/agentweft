@@ -31,8 +31,8 @@ from agentweft.guardrails.budget import REACHED
 from agentweft.orchestrate import decisions, facts
 from agentweft.roles import resolver
 
-from . import (asking, handoff, investigate, lead, manifest, stops, summary,
-               trace, upkeep)
+from . import (asking, duplicates, handoff, investigate, lead, manifest,
+               stops, summary, trace, upkeep)
 from .errors import Fatal, Outage
 from .upkeep import Maintained, execute  # noqa: F401
 
@@ -396,13 +396,23 @@ def record_of(run, trail, earlier):
                              stamps=stamps)
 
 
+ALIKE_HEAD = ("new tests this run wrote that look alike, a lead read at no"
+              " model cost (in one file, their bodies share at least 80% of"
+              " their tokens, every string and number counted as one): read"
+              " them; where a group checks one behaviour, keep one nice-to-do"
+              " on its test file naming its tests, to merge them into one"
+              " parametrized test. one such ticket this run, whatever the"
+              " groups:")
+
+
 def parts(looked, rulings, changed, stale, live, cap, docs=(),
-          tickets=factsguard.TICKETS, led=()):
+          tickets=factsguard.TICKETS, led=(), alike_tests=()):
     """-> (heading, lines) for each part of the record after the failed
     attempts, gate issues and refused writes. `changed` is None outside
     git; `docs` is the docs that name what changed (`retroedits.named`);
     `led` is where the record holds what each step's reasons led to
-    (`evidence`)."""
+    (`evidence`); `alike_tests` the groups of new tests that look alike
+    (`duplicates.lines`)."""
     return [("what each step handed over, from steps.jsonl:", handed(looked)),
             ("doubts that leave a gap because other functions or places do"
              " the same, from steps.jsonl: read each function or place named"
@@ -422,6 +432,7 @@ def parts(looked, rulings, changed, stale, live, cap, docs=(),
              " the run's tests left uncovered is a nice-to-do on its test"
              " file, or on the code it tests when there is none yet; one"
              " they cover needs nothing:", coverage_named(looked)),
+            (ALIKE_HEAD, list(alike_tests)),
             ("facts marked stale, to re-anchor, retire or supersede:", stale),
             ("facts on record for the files this run changed:", live),
             ("fact checks a step's change broke or that could not run,"
@@ -484,6 +495,18 @@ def relative(run, changed):
         except ValueError:
             continue
     return out
+
+
+def alike_found(run):
+    """-> the groups of the run's new tests that look alike
+    (`duplicates.groups`), [] with no start snapshot to tell them from."""
+    start = getattr(run, "start", None)
+    if start is None or not getattr(start, "hashed", False):
+        return []
+    try:
+        return duplicates.groups(run.workdir, start.new_test_ids())
+    except (OSError, ValueError):
+        return []
 
 
 def coverage_named(lines):
@@ -642,12 +665,14 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
                                    pins_of(recorded(trail, earlier, False)),
                                    run_id)
     stale, live = kept_facts(store, changed)
+    store.alike = [] if store.off else alike_found(run)
     text = prompt(run_id, flow, outcome, folder, lines, issued, worked,
                   parts(looked, ruled(run), changed, stale, live,
                         0 if store.off else store.cap,
                         named_docs(run, changed, store),
                         0 if store.off else store.tickets,
-                        evidence(run, trail, earlier, looked)),
+                        evidence(run, trail, earlier, looked),
+                        duplicates.lines(store.alike)),
                   record=view(folder))
     used = run.by_step.get(STEP, run.provider)
     tried = trace.Attempt()
