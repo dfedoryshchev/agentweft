@@ -488,9 +488,11 @@ def test_a_ruled_decision_whose_claim_restates_its_lines_keeps_the_ruling(
 @pytest.mark.parametrize("change", [
     {"claim": "`parse` strips the line with `line.strip()` first"},
     {"claim": "parse raises on an empty line and splits otherwise"},
+    {"claim": "`line.split()` stays, and a blank line is never logged"},
     {"kind": "why", "label": "investigation"},
     {"source": 'seq 1 planner.md; evidence: pkg/a.py:5 "raise ValueError"'}],
-    ids=["a code span not on its lines", "no code span", "not a decision",
+    ids=["a code span not on its lines", "no code span",
+         "words past its code span", "not a decision",
          "not backed by a ruling"])
 def test_a_fact_that_does_not_restate_its_lines_under_a_ruling_is_kept_as_said(
         tmp_path, change):

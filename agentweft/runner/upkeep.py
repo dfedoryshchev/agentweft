@@ -322,11 +322,29 @@ def merge_of(fields, groups):
         fields.get("claim"), scopes[0], groups) is not None
 
 
+FLOW_WORDS = {"otherwise", "else", "unless", "only", "then", "when"}
+
+
+def said_by(claim, lines):
+    """whether every word of `claim` (`ruling.words`, prose and code spans
+    alike) is a name of `lines`, keywords included, as written or less a
+    closing `s` / `es` (`raises` for `raise`), or one of FLOW_WORDS, the
+    branch words whose meaning the lines' own structure carries. a claim
+    with any other word says more than the code, and that more is what a
+    ruling is kept for."""
+    from .ruling import WORD, words
+
+    have = {w.lower() for w in WORD.findall(lines)}
+    return all(w in have or w[:-1] in have or w[:-2] in have
+               or w in FLOW_WORDS for w in words(claim))
+
+
 def ruling_alone(root, fields):
     """-> (fields, "") as proposed, or (the fields kept as the ruling alone,
     the anchor they were proposed on) for a decision whose evidence is a
     ruling in decisions.md and whose claim only restates its anchored
-    lines: every code span of the claim is on them. what binds a later run
+    lines: it has a code span, every code span is on them, and every word
+    of it is a word of them (`said_by`). what binds a later run
     is the ruling its why carries; the code it restated says itself, and a
     fact anchored on it would go stale at the first edit there."""
     m = EVIDENCE.search(fields.get("source") or "")
@@ -344,7 +362,8 @@ def ruling_alone(root, fields):
             or last < first:
         return fields, ""
     lines = "\n".join(facts.text_lines(path)[first - 1:last])
-    if not all(s in lines for s in spans if s):
+    if not all(s in lines for s in spans if s) \
+            or not said_by(fields["claim"], lines):
         return fields, ""
     said = rel + ":" + str(first) + "-" + str(last)
     return dict(fields, claim=" ".join(fields["why"].split()),

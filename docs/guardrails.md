@@ -617,7 +617,10 @@ is written; a refused one is not written and its reason is kept:
    ticket in one block are done ticket first, so a ticket the store refuses
    leaves the defect to be written. a `decision` whose evidence is a ruling in
    `decisions.md`, with an anchor, whose every code span in its claim is on
-   its anchored lines, only restates that code: it is written as the ruling
+   its anchored lines and whose every other word is a name there too (less a
+   closing `s`, or a branch word such as `otherwise`), only restates that
+   code: a claim saying anything more is kept as proposed. the restated one
+   is written as the ruling
    alone, its why as the claim, with no anchor, and its why saying which
    lines it restated, so the ruling outlives an edit of them.
 7. at most three new facts a run (`per-run cap`); a supersession is a new
