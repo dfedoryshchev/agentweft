@@ -1,6 +1,8 @@
 """a step that asks instead of going on: an ASSUMED item of the run answers
 it, the lead decides, or the run parks."""
 import ast
+import hashlib
+import json
 import re
 from pathlib import Path
 
@@ -630,24 +632,71 @@ def assert_lines(workdir, test):
     return [a for a in out if a]
 
 
-KEPT = Path("tmp") / "kept"
+KEPT = Path("kept")
+RECORD = "kept.json"
 REPLACED = chr(0xFFFD)
 
 
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def keep(folder, rel, data, wrote):
+    """copy `data`, the place's `rel` before a sibling check writes `wrote`
+    over it, under the run folder `folder`, outside the tmp folder the steps
+    may write, with the runner's record of the file and of both hashes."""
+    copy = Path(folder) / KEPT / rel
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    copy.write_bytes(data)
+    (Path(folder) / RECORD).write_text(json.dumps(
+        {"rel": rel, "kept": digest(data), "wrote": digest(wrote)}),
+        encoding="utf-8")
+
+
+def unkept(folder, rel):
+    for path in (Path(folder) / RECORD, Path(folder) / KEPT / rel):
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
 def restore_kept(folder, workdir):
-    """put back each product file a sibling check rewrote and was stopped
-    in before it put it back itself, from the copy it kept under `folder`.
-    -> the paths from the place it put back."""
-    root = Path(folder) / KEPT
-    if not root.is_dir():
+    """put back the product file a sibling check rewrote and was stopped in
+    before it put it back itself, from the copy it kept under `folder`: only
+    the file the runner's record names, inside the place, from a copy that
+    is the one kept, over bytes that are the ones the check wrote. anything
+    else is left as it is and said. -> the paths from the place it put
+    back."""
+    try:
+        said = json.loads((Path(folder) / RECORD).read_text(encoding="utf-8"))
+        rel = said["rel"]
+        root = Path(workdir).resolve()
+        target = (root / rel).resolve()
+        target.relative_to(root)
+    except (OSError, ValueError, KeyError, TypeError):
         return []
-    out = []
-    for path in sorted(p for p in root.rglob("*") if p.is_file()):
-        rel = path.relative_to(root).as_posix()
-        (Path(workdir) / rel).write_bytes(path.read_bytes())
-        path.unlink()
-        out.append(rel)
-    return out
+    copy = Path(folder) / KEPT / rel
+    try:
+        data, now = copy.read_bytes(), target.read_bytes()
+    except OSError:
+        return left(rel, copy, "the copy or the file is not there")
+    if digest(data) != said.get("kept"):
+        return left(rel, copy, "the copy is not the one the check kept")
+    if digest(now) == digest(data):
+        unkept(folder, rel)
+        return []
+    if digest(now) != said.get("wrote"):
+        return left(rel, copy, "it changed after the check rewrote it")
+    target.write_bytes(data)
+    unkept(folder, rel)
+    return [rel]
+
+
+def left(rel, copy, why):
+    print(rel + " is left as it is: " + why + "; the bytes it had before a"
+          " sibling check rewrote it are kept at " + str(copy))
+    return []
 
 
 def sibling_fixed(run, h):
@@ -687,19 +736,17 @@ def sibling_fixed(run, h):
     except (SyntaxError, ValueError):
         return None, "`" + name + "` cannot be put back in " + rel
     target = Path(run.workdir) / rel
-    data = target.read_bytes()
-    kept = Path(run.folder) / KEPT / rel if getattr(run, "folder", None) \
-        else None
-    if kept is not None:
-        kept.parent.mkdir(parents=True, exist_ok=True)
-        kept.write_bytes(data)
+    data, wrote = target.read_bytes(), mutated.encode("utf-8")
+    folder = getattr(run, "folder", None)
+    if folder:
+        keep(folder, rel, data, wrote)
     try:
-        target.write_text(mutated, encoding="utf-8", newline="")
+        target.write_bytes(wrote)
         red = wouldpass.alone(run, [test])
     finally:
         target.write_bytes(data)
-        if kept is not None:
-            kept.unlink()
+        if folder:
+            unkept(folder, rel)
     if red is not True:
         return None, (test + (" still passes" if red is False
                               else " could not be run") + " with `" + name

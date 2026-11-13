@@ -397,9 +397,14 @@ function put back parks on the mark as a plain `breaks`, the effect that
 failed under the question, and no `already-broken` is written. the runner
 checks the test runs the named line and fails on the start commit for its
 outcome, passes now and fails again with the function put back; never that
-the test asserts what the spec line says. the file is copied under the run folder while the function
-is put back, and a resume of a run stopped in that moment puts it back as
-the run left it. the marks a run holds live in that run only: a resume of a
+the test asserts what the spec line says. while the function is put back,
+the file is copied to `kept/` in the run folder (outside its `tmp/`, the one
+folder there a step may write) and the runner records which file it is and
+the hashes of the copy and of what it wrote. a resume of a run stopped in
+that moment puts back only that file, only from that copy and only when the
+file still holds what the check wrote; otherwise it leaves the file and
+says where the copy is. a fresh run in the same place does not look. the
+marks a run holds live in that run only: a resume of a
 run that stopped at the end on a mark carries on with your answer as the ruling
 on it, and neither proves the mark again nor writes `already-broken`. a
 question or

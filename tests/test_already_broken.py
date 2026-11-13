@@ -121,6 +121,8 @@ def test_a_line_already_broken_for_a_sibling_is_fixed_test_first(
         ("runner", "already-broken")]
     assert "handoff missing: runner" not in (folder / "handoff.md").read_text(
         encoding="utf-8")
+    assert not (folder / asking.RECORD).exists()
+    assert not (folder / asking.KEPT / "calc.py").exists()
 
 
 def test_a_sibling_test_green_on_the_start_tree_parks_as_a_break(
@@ -396,14 +398,62 @@ def test_a_resume_after_the_end_park_carries_on_with_no_proof_run_again(
     assert "sibling-red" not in [n[1] for n in gate_names(again)]
 
 
-def test_a_rewritten_file_left_by_a_stopped_check_is_put_back(tmp_path):
-    place = tmp_path / "place"
+def stopped_mid_check(tmp_path):
+    """-> (run folder, place, the kept copy): a sibling check put BROKEN
+    over the run's FIXED calc.py and the run was killed before it put it
+    back."""
+    folder, place = tmp_path / "run", tmp_path / "place"
     place.mkdir()
-    (place / "calc.py").write_text(BROKEN, encoding="utf-8")
-    kept = tmp_path / "run" / asking.KEPT / "calc.py"
-    kept.parent.mkdir(parents=True)
-    kept.write_bytes(FIXED.encode("utf-8"))
-    assert asking.restore_kept(tmp_path / "run", str(place)) == ["calc.py"]
+    folder.mkdir()
+    (place / "calc.py").write_bytes(BROKEN.encode("utf-8"))
+    asking.keep(folder, "calc.py", FIXED.encode("utf-8"),
+                BROKEN.encode("utf-8"))
+    return folder, place, folder / asking.KEPT / "calc.py"
+
+
+def test_a_rewritten_file_left_by_a_stopped_check_is_put_back(tmp_path):
+    folder, place, kept = stopped_mid_check(tmp_path)
+    assert not (folder / "tmp").exists()
+    assert asking.restore_kept(folder, str(place)) == ["calc.py"]
     assert (place / "calc.py").read_text(encoding="utf-8") == FIXED
     assert not kept.exists()
-    assert asking.restore_kept(tmp_path / "run", str(place)) == []
+    assert not (folder / asking.RECORD).exists()
+    assert asking.restore_kept(folder, str(place)) == []
+
+
+def test_a_file_under_the_steps_scratch_is_never_put_in_the_place(tmp_path):
+    """a step may write the run's tmp folder; a copy there is not one the
+    runner kept, and no record names it."""
+    folder, place = tmp_path / "run", tmp_path / "place"
+    (folder / "tmp" / "kept").mkdir(parents=True)
+    place.mkdir()
+    (place / "TASK.md").write_text("the spec" + NL, encoding="utf-8")
+    (folder / "tmp" / "kept" / "TASK.md").write_text("written" + NL,
+                                                     encoding="utf-8")
+    assert asking.restore_kept(folder, str(place)) == []
+    assert (place / "TASK.md").read_text(encoding="utf-8") == "the spec" + NL
+
+
+@pytest.mark.parametrize("change", ["place", "copy", "record"], ids=[
+    "the place changed after the stop", "the copy is not the one kept",
+    "the record names a path out of the place"])
+def test_a_kept_copy_whose_hashes_do_not_match_is_left(tmp_path, change):
+    folder, place, kept = stopped_mid_check(tmp_path)
+    if change == "place":
+        (place / "calc.py").write_text("edited by hand" + NL,
+                                       encoding="utf-8")
+    elif change == "copy":
+        kept.write_text("not the copy" + NL, encoding="utf-8")
+    else:
+        said = json.loads((folder / asking.RECORD).read_text(
+            encoding="utf-8"))
+        said["rel"] = "../calc.py"
+        (folder / asking.RECORD).write_text(json.dumps(said),
+                                            encoding="utf-8")
+        (tmp_path / "calc.py").write_text(BROKEN, encoding="utf-8")
+    before = (place / "calc.py").read_bytes()
+    assert asking.restore_kept(folder, str(place)) == []
+    assert (place / "calc.py").read_bytes() == before
+    assert (tmp_path / "calc.py").read_text(encoding="utf-8") == BROKEN \
+        if change == "record" else True
+    assert kept.exists()
