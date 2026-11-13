@@ -307,6 +307,20 @@ def quote_of(said):
     return rel, first, last, cite, rest[:shut]
 
 
+def quoted_pipe(source, record):
+    """-> True when every `|` of `source` sits inside its evidence's quote
+    and `record` holds that quote at its line."""
+    m = EVIDENCE.search(source or "")
+    said = m.group(1).strip() if m else ""
+    quoted = quote_of(said)
+    if quoted is None or quoted[4] is None:
+        return False
+    start = CITE.match(said).end()
+    outside = source[:m.start(1)] + said[:start] + \
+        said[start + len(quoted[4]):]
+    return "|" not in outside and not record.holds(source)
+
+
 def evidence_lines(source):
     """-> `<file>:<first>-<last>` of the lines a source's evidence quotes,
     "" when it quotes none."""
@@ -834,7 +848,8 @@ class Store(object):
         if not why:
             return "it has no why"
         for key, text in p.texts():
-            if "|" in text and key != "check":
+            if "|" in text and key != "check" and not (
+                    key == "source" and quoted_pipe(text, record)):
                 return key + " holds a |, which no taught format carries"
         kind = p.get("kind").strip()
         if kind not in facts.KINDS:

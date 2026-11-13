@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-12T12:09:36",
+  "recorded": "2026-11-12T23:44:22",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -37,7 +37,7 @@
       "step": "retro.md",
       "task": null,
       "go": 1,
-      "prompt": "35f88a2db5da53f3ef5403f36a63ae5b342c0f7ddf55fce009fc9a2905824126",
+      "prompt": "2763df49a423710734fcff426e6f37df6e4791b9f2ac3ce3c84b017c2cba63d2",
       "say": "## change first\n- none\n\nFACTS\nEND FACTS\n",
       "detail": "",
       "retryable": null,

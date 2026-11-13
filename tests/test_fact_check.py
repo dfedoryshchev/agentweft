@@ -611,7 +611,7 @@ def test_the_retro_is_told_what_the_store_keeps_and_refuses():
             " refuses the fact, and so does one that reads no file") in skill
     assert ("a fact whose check cannot run, or runs and holds but is refused"
             " for its form, is kept without it, marked `unchecked:`") in skill
-    assert "never a `|` outside a check" in skill
+    assert "never a `|` outside a check or a quoted line" in skill
 
 
 def test_the_retro_is_handed_each_check_a_step_broke(tmp_path):

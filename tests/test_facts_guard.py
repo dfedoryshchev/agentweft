@@ -554,6 +554,37 @@ def test_a_claim_with_no_why_or_two_lines_or_a_pipe_is_refused(tmp_path):
         "claim holds a |, which no taught format carries"
 
 
+PAGER = 'const link = next === undefined || next === null ? "" : more;'
+TABLE = "| POST | `/things` | create a thing: `name` (unique) |"
+
+
+def test_a_source_quoting_its_line_may_carry_a_pipe_the_other_fields_not(
+        tmp_path):
+    store, record = a_store(tmp_path)
+    put(tmp_path, "web/pager.js", NL.join(["// pager", PAGER, "", ""]))
+    put(tmp_path, "docs/api.md", NL.join(["# api", "", TABLE, ""]))
+    code = 'seq 10 reviewer.md; evidence: web/pager.js:2 "' + PAGER + '"'
+    doc = 'seq 1 planner.md; evidence: docs/api.md:3 "' + TABLE + '"'
+    for source, scope in ((code, "web/pager.js"), (doc, "pkg/a.py")):
+        fact, why = store.add(proposal(scope=[scope], source=source,
+                                       claim="kept for " + scope,
+                                       anchor=""), record)
+        assert why == "", (source, why)
+        assert fact.get("source") == source
+    assert sorted(f.get("source") for f in facts.read(tmp_path)) == sorted(
+        [code, doc])
+    piped = "source holds a |, which no taught format carries"
+    for source in (code.replace("pager.js:2", "pager.js:1"),
+                   doc.replace("api.md:3", "api.md:1"),
+                   'seq 2 | worker.md; evidence: pkg/a.py:5 "raise'
+                   ' ValueError"'):
+        assert store.add(proposal(source=source), record)[1] == piped, source
+    assert store.add(proposal(why="a | b"), record)[1] == \
+        "why holds a |, which no taught format carries"
+    assert store.add(proposal(anchor="pkg/a.py:3-6 |"), record)[1] == \
+        "anchor holds a |, which no taught format carries"
+
+
 def test_a_hand_written_entry_present_at_the_start_counts(tmp_path):
     put(tmp_path, "facts/pkg/_folder.md", entry("F-0001", "pkg/", "by hand"))
     store = factsguard.Store(tmp_path)

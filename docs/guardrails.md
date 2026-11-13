@@ -570,7 +570,10 @@ is written; a refused one is not written and its reason is kept:
    or var, never a URL or a request path such as `/index.html`. the store lives in
    the repo, read on every other machine, and no line of
    `facts/PROPOSED.md` is written that holds one.
-2. a one-line claim and a why, no `|` in any field, a kind from `decision`,
+2. a one-line claim and a why, no `|` in any field but a check and the
+   quote of a source that holds at its line (a code line's `||`, a doc's
+   table line; a `|` anywhere else in the source, or in a quote that is not
+   at its line, is refused), a kind from `decision`,
    `convention`, `why`, `defect`, `gate-issue`, `nice-to-do` (below), a label from `important`,
    `wip`, `investigation`, `pins`, `critical` (on a nice-to-do only) or none. a `gate-issue` that names an OS error code
    (`WinError 87`, `Errno 22`) is refused: it is what the machine raised as
