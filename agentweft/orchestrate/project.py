@@ -42,7 +42,7 @@ from . import workflow
 
 REQUIRED = ("project",)
 KNOWN = ("project", "read_first", "standards", "coverage", "gates", "roles",
-         "fence", "spec")
+         "fence", "spec", "connectors")
 PROJECT_KNOWN = ("name", "stack")
 FENCE_KNOWN = ("skip",)
 STANDARDS_KNOWN = ("forbidden", "immediate_reject")
@@ -335,10 +335,17 @@ def _check_spec(bad, block):
                        " the place")
 
 
+def _check_connectors(bad, block):
+    from agentweft.providers import connectors
+
+    bad.extend("connectors: " + c for c in connectors.check(block))
+
+
 CHECKS = (("project", _check_project), ("read_first", _check_read_first),
           ("standards", _check_standards), ("coverage", _check_coverage),
           ("gates", _check_gates), ("roles", _check_roles),
-          ("fence", _check_fence), ("spec", _check_spec))
+          ("fence", _check_fence), ("spec", _check_spec),
+          ("connectors", _check_connectors))
 
 
 def check(raw):

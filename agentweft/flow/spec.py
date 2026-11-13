@@ -91,7 +91,8 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "send_backs", "lead", "on_stop", "spec_files", "baseline",
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
          "reviewers", "police", "network", "facts_per_run", "tickets_per_run",
-         "lane", "conformance", "small_reviewers", "on_fallback")
+         "lane", "conformance", "small_reviewers", "on_fallback",
+         "connectors")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 # `retro: conditional` runs it only after a run that had something to look
@@ -597,6 +598,14 @@ def check(raw):
             bad.append("promises: invariants should be a list")
     if raw.get("context") is not None:
         bad.extend(block("context", raw["context"], CONTEXT_KNOWN))
+    if raw.get("connectors") is not None:
+        from agentweft.providers import connectors
+
+        bad.extend("connectors: " + c
+                   for c in connectors.check(raw["connectors"]))
+    if not isinstance(raw.get("provider") or {}, (dict, str)):
+        bad.append("provider should be a provider block or a connector's"
+                   " name")
     earlier = []
     for i, step in enumerate(raw.get("steps") or []):
         if not isinstance(step, dict) or "role" not in step:
@@ -606,6 +615,9 @@ def check(raw):
         for key in step:
             if key not in STEP_KNOWN:
                 bad.append(at + unknown(key, STEP_KNOWN))
+        if not isinstance(step.get("provider") or {}, (dict, str)):
+            bad.append(at + "provider should be a provider block or a"
+                       " connector's name")
         if step["role"] == RETRO or step_id(step) == RETRO + ".md":
             bad.append(at + "retro is the runner's look-back step (`retro:"
                        " true`), so no step is called retro or reads retro.md")

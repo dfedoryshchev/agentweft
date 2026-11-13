@@ -121,6 +121,79 @@ the reviewer is not:
         provider:
           provider: api
 
+## connectors
+
+a connector is a provider block with a name, declared once and picked by
+that name on a step, beside the step's model:
+
+    steps:
+      - role: planner
+        prompt: planner.md
+        provider: claude-sub
+        model: mid
+      - role: worker
+        prompt: worker.md
+        provider: claude-api
+
+three are built in and need no declaring:
+
+    claude-sub   provider: cli, auth: subscription
+    claude-api   provider: cli, auth: api-key (needs a key_file)
+    stub         provider: fake
+
+more are declared under `connectors:` in `project.yml` or in the flow, each a
+provider block (every key the provider takes) plus `auth` and `key_file`:
+
+    connectors:
+      claude-api:
+        key_file: ~/.config/agentweft/api-key
+      cheap:
+        provider: cli
+        model: m-cheap
+
+a declaration merges over the built-in of its name, so `claude-api` needs
+only its `key_file`; the flow's declaration merges over `project.yml`'s. a
+name that is a provider's own (`cli`, `api`, `fake`) is refused, and so is a
+step naming a connector there is not, before anything is asked, with the
+names there are. an inline block (`provider: {provider: cli, ...}`) works as
+it always did, and the flow's `provider:` may be a connector's name too.
+
+`auth` decides the credential the step's process is handed, and no other:
+
+- `subscription`: `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are taken
+  out, and with them the switches the cli would log in with ahead of its
+  login (`CLAUDE_CODE_USE_BEDROCK`, `_VERTEX`, `_FOUNDRY`,
+  `ANTHROPIC_PROFILE` and the federation pair), so `claude` falls to its own
+  subscription login (`CLAUDE_CODE_OAUTH_TOKEN` stays: it is that login).
+- `api-key`: the same names and both login tokens
+  (`CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CODE_OAUTH_REFRESH_TOKEN`) are taken
+  out, and `ANTHROPIC_API_KEY` is the key read from `key_file` when the call
+  starts, never before, never on the command line, never written into the
+  run's files. the call also gets `CLAUDE_CODE_PROMPT_CACHE_TTL=1h` and
+  `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`: on an api key the cli's prompt
+  cache lives 5 minutes unless asked for the hour, and a step waiting on a
+  gate or a sibling often waits longer (the subscription gets the hour on
+  its own); the scrub keeps the key out of the shell, hooks and MCP servers
+  the cli starts, while the cli keeps it for its own calls. both names
+  are checked against the cli's env-vars reference (the TTL needs 2.1.242 or
+  later; a `FORCE_PROMPT_CACHING_5M` named in the block's `env:` overrides
+  it).
+- `inherit` (the default, and every inline block): the environment as
+  before, under "what the command's process holds".
+
+`key_file` is a full path (or starts with `~`) outside the place: a key file
+inside it is refused, since every step's tools can read the place. a step
+whose key file is missing or empty is refused before its call, with the
+path in the reason, and the run stops there; nothing falls back to another
+login. the **api** provider takes `auth: api-key` the same way, reading the
+file instead of `API_KEY`; it has no subscription login. **fake** has no
+login, so its auth is `inherit`.
+
+two connectors in one run never see each other's credential: the key is read
+from its file into the one call's environment and is never put in the
+runner's own, and a `subscription` step strips any key the run was started
+with.
+
 ## tiers
 
 naming a provider per step answers "who", and most of the time the question is
@@ -514,6 +587,10 @@ example the cloud credentials a Bedrock or Vertex login reads:
     provider:
       provider: cli
       env: [AWS_PROFILE, AWS_REGION]
+
+all of this is `auth: inherit`. a connector's `subscription` or `api-key`
+then takes the credentials out as under "connectors", a listed name
+included.
 
 `--bare` would fence the cli harder, but it reads only `ANTHROPIC_API_KEY` or
 a key helper and never the subscription login, so it is not passed.

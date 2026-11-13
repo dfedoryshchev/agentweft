@@ -68,6 +68,19 @@ EFFORT_VAR = "CLAUDE_CODE_EFFORT_LEVEL"
 # the cli has no flag for its answer's token cap, only this
 CAP_VAR = "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
 
+KEY_VAR = "ANTHROPIC_API_KEY"
+# what the cli would log in with ahead of a subscription login: a key or a
+# bearer token, a cloud provider switch, a named profile or federation
+KEYS = (KEY_VAR, "ANTHROPIC_AUTH_TOKEN")
+AHEAD = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX",
+         "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_PROFILE",
+         "ANTHROPIC_FEDERATION_RULE_ID", "ANTHROPIC_ORGANIZATION_ID")
+LOGINS = ("CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN")
+# an api key's cache lives 5 minutes unless asked for the hour, and a step
+# waiting on a gate or a sibling is often longer than that
+ON_KEY = {"CLAUDE_CODE_PROMPT_CACHE_TTL": "1h",
+          "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1"}
+
 
 def shell_hook(denials, kept=(), tools=None, places=()):
     """-> the `hooks` setting that hands every call to `tools` (Bash and
@@ -733,12 +746,33 @@ class CliProvider(Provider):
         limit = self.output_limit()
         if limit:
             out[CAP_VAR] = str(limit)
+        return self.credential(out)
+
+    def credential(self, env):
+        """-> env holding the connector's own credential and no other:
+        `subscription` strips every key, token and switch the cli would log
+        in with ahead of its login; `api-key` strips those and the login
+        tokens too, and hands it the key file's key. raises NoKey when the
+        key cannot be read."""
+        from . import connectors
+
+        if self.auth == connectors.INHERIT:
+            return env
+        gone = KEYS + AHEAD
+        if self.auth == connectors.API_KEY:
+            gone = gone + LOGINS
+        out = {k: v for k, v in env.items() if k.upper() not in gone}
+        if self.auth == connectors.API_KEY:
+            out[KEY_VAR] = connectors.key_of(self)
+            out.update(ON_KEY)
         return out
 
     def version(self):
         """-> the cli's version, None when it could not be read. asked once
         per provider, and only of `claude`, started in the place like every
         other call of it, never in the runner's own folder."""
+        from .connectors import NoKey
+
         if self.seen_version is not None or self.version_said:
             return self.seen_version
         cmd = self.command
@@ -750,7 +784,7 @@ class CliProvider(Provider):
             said = (r.stdout or "").strip()
             self.seen_version = version_of(said) if r.returncode == 0 else None
             self.version_said = said or ("exit " + str(r.returncode))
-        except (OSError, subprocess.TimeoutExpired) as e:
+        except (OSError, subprocess.TimeoutExpired, NoKey) as e:
             self.version_said = str(e) or type(e).__name__
         return self.seen_version
 
@@ -759,7 +793,11 @@ class CliProvider(Provider):
         needs a readable version at the floor or later; a step with no grant
         that carries the run's hook (one in a place) is held to the same
         floor when its version reads, and when it does not, its line says
-        the hook's count was not checked (`hook_unchecked`)."""
+        the hook's count was not checked (`hook_unchecked`). a connector
+        whose key cannot be read is refused before any of that."""
+        keyless = Provider.refuses(self)
+        if keyless:
+            return keyless
         if not is_claude(self.command):
             return ""
         if self.grant is None:
@@ -946,9 +984,15 @@ class CliProvider(Provider):
         every go, so a go that failed is never in the way of the next) or,
         with none chosen, keeps a cache warm: a session that is not kept,
         and no tool used."""
+        from .connectors import NoKey
+
         refused = self.refuses()
         if refused:
             return Reply("", detail=refused, retryable=False)
+        try:
+            env = self.child_env()
+        except NoKey as e:
+            return Reply("", detail=str(e), retryable=False)
         flags = session_flags(carry, chosen) if carry is not None else ()
         warming = carry is not None and not chosen
         argv, stdin = self.argv(prompt, flags, effort,
@@ -959,7 +1003,7 @@ class CliProvider(Provider):
                      cwd=str(self.where) if self.where else None,
                      timeout=timeout,
                      done=answered if stdin is not None else None,
-                     env=self.child_env(),
+                     env=env,
                      **({"stop": stop} if stop is not None else {}))
         except FileNotFoundError:
             return Reply("", detail=argv[0] + " is not on PATH", retryable=False)
@@ -1077,11 +1121,15 @@ class CliProvider(Provider):
 
     def login(self):
         """-> (logged in, what to say). the account itself is never repeated."""
+        from .connectors import NoKey
+
         try:
             r = subprocess.run([self.command, "auth", "status"],
                                capture_output=True, encoding="utf-8",
                                errors="replace", timeout=30,
                                env=self.child_env())
+        except NoKey as e:
+            return False, str(e)
         except (OSError, subprocess.TimeoutExpired) as e:
             return False, "could not ask whether it is logged in: " + str(e)
         if r.returncode != 0:

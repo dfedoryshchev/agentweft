@@ -80,9 +80,12 @@ def main(argv=None):
     except (FileNotFoundError, ValueError) as e:
         print("no flow " + flow + " to bench: " + str(e))
         return 1
+    from agentweft.providers import connectors
+
     provider = conf.get("provider") or spec.get("provider") or {}
-    if provider.get("provider") != FAKE and "--live" not in argv:
-        print("the set runs on " + str(provider.get("provider") or "the "
+    on = connectors.kind(provider, spec.get("connectors"))
+    if on != FAKE and "--live" not in argv:
+        print("the set runs on " + str(on or "the "
               "flow's own provider") + ", which calls a real model. --live "
               "runs it, and it is charged")
         return 1

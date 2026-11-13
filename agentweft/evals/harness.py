@@ -299,10 +299,11 @@ def produced_by(flow, spec, case, record):
     import datetime
 
     from agentweft.flow import spec as flowspec
+    from agentweft.providers import connectors
     from agentweft.runner import manifest
     from agentweft.runner.prompts import flow_path
 
-    pinned = (case.get("provider") or {}).get("provider")
+    pinned = connectors.kind(case.get("provider"), spec.get("connectors"))
     models = {}
     for line in record:
         said = answered_by(line, pinned)

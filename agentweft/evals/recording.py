@@ -160,6 +160,9 @@ class Recorder(Provider):
         self.name = inner.name
         self.command = inner.command
         self.reads_place = inner.reads_place
+        self.connector = inner.connector
+        self.auth = inner.auth
+        self.key_file = inner.key_file
         self.goes = Goes()
         self.calls = []
         self.lock = threading.Lock()

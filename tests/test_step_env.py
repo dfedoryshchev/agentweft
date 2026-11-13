@@ -91,6 +91,37 @@ def test_a_name_the_provider_lists_is_passed_through(child_env, monkeypatch):
     assert "GITHUB_TOKEN" not in seen
 
 
+def test_two_connectors_never_see_each_other_s_credential(child_env, tmp_path,
+                                                         monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "decoy-runner-key")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "decoy-runner-token")
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "decoy-oauth")
+    monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "decoy-bedrock")
+    key = tmp_path / "keys" / "k.txt"
+    key.parent.mkdir()
+    key.write_text("decoy-file-key\n", encoding="utf-8")
+    api = child_env(auth="api-key", key_file=str(key))
+    sub = child_env(auth="subscription")
+    assert api["ANTHROPIC_API_KEY"] == "decoy-file-key"
+    assert "CLAUDE_CODE_PROMPT_CACHE_TTL" in api
+    assert "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB" in api
+    for gone in ("ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
+                 "CLAUDE_CODE_USE_BEDROCK"):
+        assert gone not in api
+    for gone in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
+                 "CLAUDE_CODE_USE_BEDROCK"):
+        assert gone not in sub
+    assert "decoy-file-key" not in json.dumps(sub)
+    assert sub["CLAUDE_CODE_OAUTH_TOKEN"] == "decoy-oauth"
+
+
+def test_a_listed_name_does_not_bring_a_stripped_credential_back(
+        child_env, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "decoy-runner-key")
+    seen = child_env(auth="subscription", env=["ANTHROPIC_API_KEY"])
+    assert "ANTHROPIC_API_KEY" not in seen
+
+
 def test_one_name_given_alone_is_one_name(child_env, monkeypatch):
     monkeypatch.setenv("AWS_PROFILE", "decoy-profile")
     monkeypatch.setenv("A", "decoy-letter")

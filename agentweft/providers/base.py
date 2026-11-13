@@ -269,6 +269,11 @@ class Provider(object):
     # keeps none, else {"from": the session's id or None to start one, and
     # what it had used as a whole: "usage", "models", "cost"}
     carry = None
+    # the connector a step picked this by, None for a block written inline,
+    # and the credential its process is handed (`connectors.py`)
+    connector = None
+    auth = "inherit"
+    key_file = None
 
     def __init__(self, **opts):
         self.opts = opts
@@ -287,7 +292,9 @@ class Provider(object):
 
     def refuses(self):
         """-> why a step on this provider may not be asked at all, or ""."""
-        return ""
+        from . import connectors
+
+        return connectors.key_refused(self)
 
     def ask(self, prompt, timeout=None):
         raise NotImplementedError
@@ -349,8 +356,11 @@ def register(cls):
     return cls
 
 
-def build(config, tier="", where=None, grant=None):
+def build(config, tier="", where=None, grant=None, connectors=None):
     """the provider a step talks to, and which class of model it should ask for.
+
+    `config` is a provider block or a connector's name, and `connectors` the
+    ones the run declares beside the built-ins (`connectors.py`).
 
     the tier is not part of the provider block on purpose. the block says HOW
     to ask - which provider, which url, how many tokens - and the tier says
@@ -367,15 +377,31 @@ def build(config, tier="", where=None, grant=None):
     """
     from agentweft.runner import settings
 
-    name = settings.get("provider", flow=config or {})
+    from . import connectors as named
+
+    config = named.block_of(config, connectors)
+    name = settings.get("provider", flow=config)
+    if name not in registry and name in named.merged(connectors):
+        config = dict(named.block_of(name, connectors),
+                      **{k: v for k, v in config.items() if k != "provider"})
+        name = config["provider"]
     if name not in registry:
         raise ValueError("unknown provider: " + str(name) + ". there is: "
                          + ", ".join(sorted(registry)))
-    opts = dict(config or {})
+    bad = named.check_block(config.get("connector") or "the provider block",
+                            dict(config, provider=name)) \
+        if any(k in config for k in ("auth", "key_file")) else []
+    if bad:
+        raise ValueError("; ".join(bad))
+    opts = dict(config)
     opts.pop("provider", None)
+    own = {k: opts.pop(k, None) for k in named.OWN}
     if tier:
         opts["tier"] = tier
     p = registry[name](**opts)
     p.where = where
     p.grant = list(grant) if grant is not None else None
+    p.connector = own["connector"]
+    p.auth = own["auth"] or named.INHERIT
+    p.key_file = own["key_file"]
     return p

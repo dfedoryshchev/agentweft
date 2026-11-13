@@ -112,16 +112,20 @@ class Run(object):
                 and (fm or {}).get("max_calls") is None:
             self.budget.max_calls += 1
         self.caps = {}
+        self.project = held or project.hold(self.workdir)
+        named = providers.connectors.declared(fm, self.project)
+        self.connectors = named
         # an override replaces the per-step ones too. half a run on the pinned
         # provider and half on the flow's own is not a comparison of anything.
         if isinstance(provider, providers.Provider):
             pinned = provider
             pinned.where = self.workdir
         else:
-            pinned = providers.build(provider, where=self.workdir) \
-                if provider else None
+            pinned = providers.build(provider, where=self.workdir,
+                                     connectors=named) if provider else None
         self.provider = pinned or providers.build(fm.get("provider") or {},
-                                                  where=self.workdir)
+                                                  where=self.workdir,
+                                                  connectors=named)
         self.by_step = {}
         for s in fm.steps:
             # a step gets its own provider when it names one, and now also
@@ -136,10 +140,11 @@ class Run(object):
                 rebuild = grant is not None and \
                     not isinstance(provider, providers.Provider)
                 self.by_step[step_id(s)] = providers.build(
-                    provider, where=self.workdir, grant=grant) if rebuild \
-                    else pinned
+                    provider, where=self.workdir, grant=grant,
+                    connectors=named) if rebuild else pinned
                 continue
-            conf = dict(s.get("provider") or fm.get("provider") or {})
+            conf = providers.connectors.block_of(
+                s.get("provider") or fm.get("provider"), named)
             tier = ""
             if asked and models.is_tier(asked):
                 tier = asked
@@ -148,7 +153,7 @@ class Run(object):
             elif asked:
                 conf["model"] = asked
             p = providers.build(conf, tier=tier, where=self.workdir,
-                                grant=grant)
+                                grant=grant, connectors=named)
             if asked:
                 p.choice = {"role": s["role"], "asked": asked, "from": source,
                             "applies": p.chooses_model()}
@@ -157,7 +162,7 @@ class Run(object):
             self.by_step[retro.STEP] = pinned if isinstance(
                 provider, providers.Provider) else providers.build(
                     provider or fm.get("provider") or {}, where=self.workdir,
-                    grant=retro.GRANT)
+                    grant=retro.GRANT, connectors=named)
         # before anything takes the place's start: what heal rewrites is the
         # runner's, not a change any step made
         self.facts = factsguard.Store(self.workdir,
@@ -167,7 +172,6 @@ class Run(object):
                                       own=state.RUNS)
         self.healed = self.heal_facts()
         self.briefed = briefing.digest(self.workdir)
-        self.project = held or project.hold(self.workdir)
         bad = check_project_gates(fm.steps, self.workdir, self.project)
         if bad:
             raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))

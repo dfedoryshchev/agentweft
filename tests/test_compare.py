@@ -139,8 +139,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `on_fallback` is one more, one way: a phase reads no transcript, so it
     # never knows another model answered one of its agents.
+    #
+    # `connectors` is one more, one way: a phase names an agent and never
+    # who answers it or with which credential.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 52
+    assert len(compare.flow_only()) == 53
     assert len(compare.phase_only()) == 7
 
 

@@ -223,6 +223,10 @@ FLOW_ONLY = (
          "the run: said first and gone on from, or held for a person before "
          "the next step takes its output. a phase reads no transcript, so it "
          "never knows which model answered."),
+    Pair("flow.connectors", "",
+         "provider blocks under names a step picks beside its model, each "
+         "started with its own credential and no other. a phase names an "
+         "agent and leaves who answers it and how it logs in to the host."),
     Pair("step.writes_tests", "",
          "this step writes tests, so it is sent the brief on what to test and "
          "the levels above as values."),

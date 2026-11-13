@@ -4,6 +4,7 @@ import uuid
 
 import httpx
 
+from . import connectors
 from .base import (CUT, TERSE_SHARE, Provider, Reply, Usage, again, cap_for,
                    effort_said, env_for, model_for, register)
 
@@ -104,8 +105,18 @@ class ApiProvider(Provider):
         return self.post(marked(before + [said("user", WARM)]), timeout,
                          carry.get("effort"), WARM_TOKENS)
 
+    def key(self):
+        """-> the key a request carries: the connector's key file, read now,
+        or `API_KEY`. raises NoKey when the file cannot hand one."""
+        if self.auth == connectors.API_KEY:
+            return connectors.key_of(self)
+        return os.environ.get("API_KEY", "")
+
     def post(self, messages, timeout, effort=None, cap=None):
-        key = os.environ.get("API_KEY", "")
+        try:
+            key = self.key()
+        except connectors.NoKey as e:
+            return Reply("", detail=str(e), retryable=False)
         if not key:
             return Reply("", detail="no API_KEY set", retryable=False)
         url = self.opts.get("url") or os.environ.get("API_URL", "")
@@ -143,7 +154,10 @@ class ApiProvider(Provider):
         return Reply("".join(parts), **said)
 
     def check(self):
-        if not os.environ.get("API_KEY"):
+        refused = self.refuses()
+        if refused:
+            return False, refused
+        if self.auth != connectors.API_KEY and not os.environ.get("API_KEY"):
             return False, "no API_KEY set"
         if not self._model():
             tier = self.opts.get("tier")

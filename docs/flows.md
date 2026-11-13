@@ -257,6 +257,12 @@ which is the normal case. `tiers:` at the top of the flow gives a tier to a
 role at every step it runs, under a step's own `model`, and `--model-for` on
 the run is over both (`providers.md`, "a model per role").
 
+`provider` on a step is a provider block, or the name of a connector beside
+its `model`: `claude-sub`, `claude-api`, `stub`, or one the flow or
+`project.yml` declares under `connectors:` (`providers.md`, "connectors").
+two steps of one run may name two connectors, each started with its own
+credential.
+
 `effort` on a step is how hard its model thinks: `low`, `medium`, `high`,
 `xhigh` or `max`. `efforts:` at the top of the flow gives a level to a role,
 under a step's own `effort`, and `--effort-for` on the run is over both. a

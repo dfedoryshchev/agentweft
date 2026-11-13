@@ -298,6 +298,7 @@ def cmd_provider():
     MODEL_HIGH anywhere passes this and fails at the step.
     """
     from agentweft import providers
+    from agentweft.orchestrate import project
 
     from .config import config
     from .engine import load_env
@@ -318,14 +319,26 @@ def cmd_provider():
                 continue
             configs.append((s.get("provider") or spec.get("provider") or {},
                             s.get("model", "")))
+        try:
+            named = providers.connectors.declared(spec, project.hold())
+        except ValueError as e:
+            print("  FAIL " + name + "  " + str(e))
+            continue
         for c, tier in configs:
-            p = providers.build(c or {}, tier=tier)
-            key = p.name + " " + str(sorted(p.opts.items()))
+            try:
+                p = providers.build(c or {}, tier=tier, connectors=named)
+            except ValueError as e:
+                print("  FAIL " + name + "  " + str(e))
+                continue
+            key = p.name + " " + str(p.connector) + " " + str(p.auth) + " " \
+                + str(p.key_file) + " " + str(sorted(p.opts.items()))
             if key in seen:
                 continue
             seen[key] = True
             ok, detail = p.check()
-            print(("  ok   " if ok else "  FAIL ") + p.name
+            print(("  ok   " if ok else "  FAIL ")
+                  + (p.connector + " (" + p.name + ", " + p.auth + ")"
+                     if p.connector else p.name)
                   + (" " + tier if tier else "") + "  " + detail)
     return 0
 
