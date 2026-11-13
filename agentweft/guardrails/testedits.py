@@ -62,9 +62,10 @@ class Edit(object):
     or not read)."""
 
     __slots__ = ("path", "items", "added", "unread", "shared_by", "was",
-                 "now")
+                 "now", "extended")
 
-    def __init__(self, path, items=(), added=0, unread=False, shared_by=()):
+    def __init__(self, path, items=(), added=0, unread=False, shared_by=(),
+                 extended=()):
         self.path = path
         self.items = list(items)
         self.added = added
@@ -72,6 +73,7 @@ class Edit(object):
         self.shared_by = list(shared_by)
         self.was = None
         self.now = None
+        self.extended = list(extended)
 
 
 def _text(data):
@@ -314,6 +316,43 @@ def _named_tests(tree, name):
                     yield name + "::" + node.name + "::" + member.name, member
 
 
+def _parametrize(node):
+    return isinstance(node, ast.Call) and len(node.args) >= 2 and \
+        isinstance(node.func, ast.Attribute) and \
+        node.func.attr == "parametrize" and \
+        isinstance(node.args[1], (ast.List, ast.Tuple))
+
+
+def extended_by(was, now):
+    """-> how many cases test function `now` adds to `was`, 0 when it is not
+    only that: the same name, arguments and body, the same decorators but a
+    `parametrize` whose argnames and keywords are as they were and whose
+    list keeps every case it had."""
+    if ast.dump(ast.Module(body=was.body, type_ignores=[])) != ast.dump(
+            ast.Module(body=now.body, type_ignores=[])) \
+            or ast.dump(was.args) != ast.dump(now.args) \
+            or len(was.decorator_list) != len(now.decorator_list):
+        return 0
+    grew = 0
+    for old, new in zip(was.decorator_list, now.decorator_list):
+        if ast.dump(old) == ast.dump(new):
+            continue
+        if not (_parametrize(old) and _parametrize(new)) \
+                or len(old.args) != len(new.args) \
+                or ast.dump(old.args[0]) != ast.dump(new.args[0]) \
+                or [ast.dump(a) for a in old.args[2:]] != \
+                [ast.dump(a) for a in new.args[2:]] \
+                or [ast.dump(k) for k in old.keywords] != \
+                [ast.dump(k) for k in new.keywords]:
+            return 0
+        had = Counter(ast.dump(e) for e in old.args[1].elts)
+        has = Counter(ast.dump(e) for e in new.args[1].elts)
+        if had - has or sum(has.values()) <= sum(had.values()):
+            return 0
+        grew += sum(has.values()) - sum(had.values())
+    return grew
+
+
 def _python(name, was, now):
     old = test_ids(was, name)
     if old is None:
@@ -323,18 +362,26 @@ def _python(name, was, now):
     new = test_ids(now, name)
     if new is None:
         return Edit(name, [(name, UNPARSED)])
-    items = []
+    items, extended = [], []
+    then = dict(_named_tests(ast.parse(was), name))
+    later = dict(_named_tests(ast.parse(now), name))
     for t, code in old.items():
         if t not in new:
             items.append((t, REMOVED))
         elif new[t] != code:
-            items.append((t, CHANGED))
+            grew = extended_by(then[t], later[t]) \
+                if t in then and t in later else 0
+            if grew:
+                extended.append((t, grew))
+            else:
+                items.append((t, CHANGED))
     by = []
     if shared(was) - shared(now) or rebound(was, now) or \
             (old and added_code(was, now)):
         items.append((name, SHARED))
         by = sharing(name, was, now)
-    return Edit(name, items, len(set(new) - set(old)), shared_by=by)
+    return Edit(name, items, len(set(new) - set(old)), shared_by=by,
+                extended=extended)
 
 
 def added_only(name, was, now):
@@ -460,8 +507,9 @@ def passed(found, ruled):
     """-> the passing line for test files that only gained tests, or whose
     changes a ruling covers. `ruled` is [(test id or file, the ruling's
     stamp, the cite of the WRONG TEST claim it rests on or "")]."""
-    said = [e.path + ": " + what(e.added, e) + " added"
-            for e in found if not e.unread]
+    said = [e.path + ": " + what(e.added, e) + " added" + "".join(
+        ", " + t + " extends by " + str(n) + " case" + ("" if n == 1 else "s")
+        for t, n in e.extended) for e in found if not e.unread]
     line = "; ".join(said)
     if ruled:
         line += (". " if line else "") + "changed, each covered by a" \
@@ -469,6 +517,9 @@ def passed(found, ruled):
                 t + " (ruling " + by + ")"
                 + (" " + said_on(cite) if cite else "")
                 for t, by, cite in ruled)
+    elif any(e.extended for e in found):
+        line += "; no test the run started with lost or changed a line of" \
+            " its own"
     elif said:
         line += ", none the run started with changed"
     unread = [e.path for e in found if e.unread]

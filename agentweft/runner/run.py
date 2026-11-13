@@ -34,6 +34,7 @@ from . import (fan, levels, manifest, models, retro, ruling, warm)
 from . import settings
 from . import state
 from . import summary
+from . import testmap
 from . import trace
 from . import wrongtest
 
@@ -1623,6 +1624,9 @@ class Run(object):
         if self.writes_for(step) == "tests" and getattr(self, "coverage",
                                                         None):
             prompt = prompt + kept.steer(self.coverage)
+        if self.writes_for(step) == "tests" or self.writes_tests(step):
+            prompt = prompt + testmap.as_prompt(self.workdir, [
+                self.task_text or "", self.produced.get(PLANNER, "")])
         # the grant goes out with the role's own rules, before whatever this
         # particular call is about. it is the only half of a boundary that can
         # happen before the answer exists, and a step that was never told its

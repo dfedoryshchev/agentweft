@@ -746,7 +746,13 @@ in `gates.md`:
   started with reads or takes as a fixture. formatting and comments do not,
   and neither do other additions: a new name, on an import line of its own or
   added to one the file had, a constant or helper for the new tests, and a
-  new test method in a test class the file had.
+  new test method in a test class the file had. a test the run started with
+  whose only change is cases added to its `parametrize` list (the same
+  argnames, keywords, arguments and body, every case it had still there)
+  extends it and does not count either: it passes as `<file>: 0 tests added,
+  <id> extends by 1 case; no test the run started with lost or changed a line
+  of its own`, and red-first replays it as a test whose code changed, on the
+  start commit. a case changed or removed, or argnames changed, still counts.
   a file deleted counts for every test it held
   (`deleted with its file`).
 - test files in other languages named like one (`*.test.ts`, `*Tests.cs`,

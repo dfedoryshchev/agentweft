@@ -228,11 +228,12 @@ class Tree(object):
         `tests_added` holds the changed test files with lines removed that
         the test-edits check reads as gaining only (`added_only`), and
         `test_ids` the ids of the tests the run added or changed, by file
-        (`written`)."""
+        (`written`), and `tests_new` the test files of those the start
+        commit did not hold."""
         out = {"git": self.git, "start": self.start, "commits": [],
                "files": [], "tests_changed": [], "spec_changed": [],
-               "tests_added": [], "test_ids": {}, "ranges": {}, "names": {},
-               "status": [], "log": []}
+               "tests_added": [], "test_ids": {}, "tests_new": [],
+               "ranges": {}, "names": {}, "status": [], "log": []}
         names = {}
         if not self.git:
             return out
@@ -302,6 +303,8 @@ class Tree(object):
             ids = written(path, was, now)
             if ids:
                 out["test_ids"][path] = ids
+                if was is None:
+                    out["tests_new"].append(path)
         out["names"] = dict((p, sorted(n)) for p, n in names.items())
         return out
 
@@ -331,6 +334,22 @@ def written(path, was, now):
     if new is None or old is None:
         return []
     return [i for i, code in new.items() if old.get(i) != code]
+
+
+def tests_line(changes):
+    """-> the handoff's line on the python tests the run wrote: how many went
+    into a test file the start commit held (a new case, a new function, or a
+    change a ruling let stand), how many into a file the run made, and the
+    files; "" when it wrote none."""
+    ids = changes.get("test_ids") or {}
+    if not ids:
+        return ""
+    new = set(changes.get("tests_new") or [])
+    return ("tests: updated " + str(sum(len(v) for p, v in ids.items()
+                                        if p not in new))
+            + " / added " + str(sum(len(v) for p, v in ids.items()
+                                    if p in new))
+            + " / in files " + ", ".join(sorted(ids)) + ".")
 
 
 def tree(place):
@@ -2114,6 +2133,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     else:
         out.append("changed: not a git checkout, so what changed is not"
                    " recorded here.")
+    if tests_line(changes):
+        out.append(tests_line(changes))
     if headline:
         out.append(headline)
 

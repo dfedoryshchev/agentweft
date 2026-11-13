@@ -161,6 +161,20 @@ planner is told it may): the line goes on its line in `steps.jsonl` as
 list at the end of its prompt to steer its cases, its own cases standing,
 and the retro is handed it to keep a nice-to-do for what the run's tests
 left uncovered.
+every step that writes tests (`writes: tests` or `writes_tests: true`) is
+also handed, at the end of its prompt, the tests already near the change
+(`runner/testmap.py`), at no model cost: each test whose file mirrors a
+product file the task or the planner's answer names (`test_<name>`,
+`<name>_test`, `<name>.test`) or imports it, nearest first, by tier from its
+folder or file name (`integration`, `e2e`, else unit), python tests by id, a
+javascript test by its title, capped at 40 ids and 1500 characters with the
+rest named by file. the tester, the fix worker and the patcher are told a
+case a listed test already checks is an update of that test (a new
+parametrize case or a new function in its file, named with its id); the
+test-edits check passes such a case added to a start test as `extends`
+(`gates.md`). handoff.md says what came of it under `changed:`, as `tests:
+updated <n> / added <m> / in files <files>`: python tests written into a
+test file the start commit held, and into a file the run made.
 they are capped at 2000 characters inside the brief's 8000; the ones that do
 not fit are named by id and the file they are in, for the step to open. a
 place with no facts gets the brief it got before.

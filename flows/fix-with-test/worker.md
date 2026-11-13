@@ -5,7 +5,10 @@ here is a bug. do not fix it.
 {TASK}
 
 write a test that fails because of it, and write it into the file it goes
-in. the test must fail on the code as it stands right now - if you cannot
+in. when a test listed under "the tests already near this change" already
+checks that input, the failing case is an update of it, in its file: a new
+parametrize case, or a new test function beside it, named on a DID line with
+its id. the test must fail on the code as it stands right now - if you cannot
 make it fail, say so and stop, because then i have described the bug wrong.
 write the minimum that fails for the reason the report gives, and nothing
 more: the other cases the fix will reach are written after it is green, by

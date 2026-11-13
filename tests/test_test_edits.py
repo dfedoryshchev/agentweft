@@ -283,6 +283,71 @@ def test_code_added_beside_a_test_is_not_a_change_but_its_body_is(tmp_path):
     assert found[0].items == [(ID, "changed")]
 
 
+CASES = ("import pytest" + NL + NL + NL
+         + "@pytest.mark.parametrize('names, want', [" + NL
+         + "    (['b', 'a'], ['a', 'b']),{more}" + NL + "])" + NL
+         + "def test_alphabetical(names, want):" + NL
+         + "    assert listed(names) == want" + NL)
+PARAM = CASES.replace("{more}", "")
+MORE = CASES.replace("{more}", NL + "    (['B', 'a'], ['a', 'B']),")
+
+
+def edits_from(tmp_path, start, now):
+    place = a_place(tmp_path / "repo", start)
+    shot = snapshot.take(place)
+    (place / "tests" / "test_report.py").write_text(now, encoding="utf-8")
+    from agentweft.guardrails import testedits
+    return testedits.changes(shot)
+
+
+def test_a_case_added_to_a_start_test_extends_it_and_nothing_else_does(
+        tmp_path):
+    [found] = edits_from(tmp_path, module(PARAM), module(MORE))
+    assert (found.items, found.extended, found.added) == ([], [(ID, 1)], 0)
+    for n, now in enumerate((
+            MORE.replace("listed(names) == want", "listed(names)"),
+            MORE.replace("(['b', 'a'], ['a', 'b']),", "(['b', 'a'], ['b']),"),
+            CASES.replace("    (['b', 'a'], ['a', 'b']),{more}",
+                          "    (['B', 'a'], ['a', 'B']),"),
+            MORE.replace("'names, want'", "'names, wanted'"),
+            MORE.replace("])" + NL, "], ids=str)" + NL))):
+        [found] = edits_from(tmp_path / str(n), module(PARAM), module(now))
+        assert (found.items, found.extended) == ([(ID, "changed")], []), now
+    [found] = edits_from(tmp_path / "plain", module(RIGHT), module(
+        RIGHT.replace("def test", "@pytest.mark.parametrize('x', [1])" + NL
+                      + "def test")))
+    assert found.items == [(ID, "changed")]
+
+
+def test_an_extended_start_test_is_replayed_as_new_by_the_red_first_gate(
+        tmp_path):
+    place = a_place(tmp_path / "repo", module(PARAM))
+    shot = snapshot.take(place)
+    (place / "tests" / "test_report.py").write_text(module(MORE),
+                                                    encoding="utf-8")
+    assert shot.new_test_ids() == [ID]
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_tester_that_adds_a_case_to_a_start_test_passes_as_extends(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo", module(PARAM))
+    a_flow(tmp_path, "build", TESTER + WORKER)
+    does = {"tester.md": ({"tests/test_report.py": module(MORE)},
+                          "FAILS: assert ['B', 'a'] == ['a', 'B']" + NL
+                          + "TEST: " + ID + NL),
+            "worker.md": ({"report.py": SORTED.replace(
+                "sorted(names)", "sorted(names, key=str.lower)")},
+                WORKER_SAID)}
+    code, called = running(tmp_path, monkeypatch, place, does, commits)
+    assert called == ["tester.md", "worker.md"]
+    assert code == 0
+    gates = read(folders()[-1] / "gates.md")
+    assert ("tests/test_report.py: 0 tests added, " + ID + " extends by 1"
+            " case; no test the run started with lost or changed a line of"
+            " its own") in gates
+
+
 SHARED_ITEM = [("tests/test_report.py", "the code its tests share changed")]
 
 
