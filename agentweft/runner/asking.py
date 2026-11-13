@@ -1,11 +1,12 @@
 """a step that asks instead of going on: an ASSUMED item of the run answers
 it, the lead decides, or the run parks."""
+import ast
 import re
 from pathlib import Path
 
 from agentweft.guardrails import rulings
 
-from . import lead, ruling
+from . import lead, ruling, trace
 from .gating import (and_forged, check_step, cited_past_end, gate_why,
                      off_task, police_line)
 from .handoff import EMPTY, PARTIAL, PRESENT
@@ -393,18 +394,30 @@ def sibling_named(output):
     return ""
 
 
+def not_shown(run, marks, why):
+    """take each of `marks` off `run.adjacent` as a mark not shown broken
+    there, so it is a plain `spec: breaks` from now on. -> the question the
+    run parks on, `why` under its NEEDS line and the marks under CITES."""
+    not_broken = getattr(run, "not_broken", None)
+    if not_broken is None:
+        not_broken = run.not_broken = set()
+    for m in marks:
+        not_broken.add(m)
+        run.adjacent.pop(m, None)
+    return "\n".join(
+        ["NEEDS: the plan marks a spec line already broken by the code, and "
+         + why + ": the mark is a line the request breaks", "CITES:"]
+        + ["- " + m for m in marks])
+
+
 def sibling_proved(run, step, out):
     """-> None when nothing waits on a sibling test, else (the gate result
-    that shows each held mark's line already broken, "") or (None, the
-    question the run parks on). it is read once a test writer's red-test
-    gate passed and a mark waits on its proof: the test on the step's
-    `SIBLING TEST:` line runs alone on the code as the run found it, and
-    red proves the line is already broken there. green, a test that could
-    not run, or no such line makes each mark a plain `spec: breaks` that
-    goes to the person."""
+    `sibling-red`, "") or (None, the question the run parks on). it is read
+    once a test writer's red-test gate passed and a mark waits on its proof:
+    the test on the step's `SIBLING TEST:` line must be red on the start
+    commit for its outcome (`sibling_red`). no such line, or a test that is
+    not, makes each mark a plain `spec: breaks` that goes to the person."""
     from agentweft.guardrails.gates.base import Result
-
-    from . import wouldpass
 
     waiting = [(m, h) for m, h in (getattr(run, "adjacent", None)
                                    or {}).items() if not h["test"]]
@@ -413,115 +426,269 @@ def sibling_proved(run, step, out):
             for g in out.meta.get("gates") or ()):
         return None
     named = sibling_named(out.output)
-    red = wouldpass.alone(run, [named]) if named else None
-    if red:
+    how, why = sibling_red(run, named) if named else (
+        None, step + " names no " + SIBLING + " line")
+    if how:
         for _, h in waiting:
             h["test"] = named
-        return Result("already-broken", True, "; ".join(
-            named + " red on the start commit: " + h["spec"]
+            h["how"] = how
+        return Result(SIBLING_RED, True, "; ".join(
+            named + " red on the start commit (" + how + "): " + h["spec"]
             + " already broken at " + h["at"] for _, h in waiting)), ""
-    why = (step + " names no " + SIBLING + " line" if not named else named
-           + " passes on the code as the run found it" if red is False
-           else named + " could not be run alone")
-    not_broken = getattr(run, "not_broken", None)
-    if not_broken is None:
-        not_broken = run.not_broken = set()
-    for m, _ in waiting:
-        not_broken.add(m)
-        run.adjacent.pop(m, None)
-    return None, "\n".join(
-        ["NEEDS: the plan marks a spec line already broken by the code, and"
-         " " + why + ", so it is not shown broken there: the mark is a"
-         " line the request breaks", "CITES:"]
-        + ["- " + m for m, _ in waiting])
+    return None, not_shown(run, [m for m, _ in waiting],
+                           why + ", so it is not shown broken there")
 
 
-def enclosing(lines, n):
-    """-> the lines of the block line `n` (1-based) of `lines` sits in: from
-    the nearest line above it indented less, to the last line before the
-    next one indented no deeper than that; a line at the left margin is a
-    block of its own."""
-    def depth(line):
-        return len(line) - len(line.lstrip())
-
-    at = depth(lines[n - 1])
-    head = n - 1
-    while at and head > 0:
-        head -= 1
-        if lines[head].strip() and depth(lines[head]) < at:
-            break
-    else:
-        return lines[n - 1:n]
-    end = n
-    while end < len(lines) and (not lines[end].strip()
-                                or depth(lines[end]) > depth(lines[head])):
-        end += 1
-    while end > n and not lines[end - 1].strip():
-        end -= 1
-    return lines[head:end]
+SIBLING_RED = "sibling-red"
+ALREADY = "already-broken"
+RUNNER = trace.RUNNER
 
 
-def holds(text, block):
-    """whether `text` still holds every line of `block` in a run, as the
-    same words."""
-    have = [ruling.flat(line) for line in text.split("\n")]
-    want = [ruling.flat(line) for line in block]
-    return any(have[i:i + len(want)] == want
-               for i in range(len(have) - len(want) + 1))
+def sibling_red(run, test):
+    """-> (how `test` failed, "") when it is a test this run added and it
+    fails in a checkout of the start commit holding the run's test changes,
+    on an assertion or on an exception raised in a product file the run
+    started with: it fails there on its outcome, not on reaching code that
+    is not there yet. else (None, why not): a missing name, an error raised
+    in the test file, a collection error, a pass, no start commit."""
+    from agentweft.guardrails import redorder, worktree
+    from agentweft.guardrails.gates import redfirst_gate as rf
+    from agentweft.guardrails.snapshot import is_test, is_tooling
+
+    start = getattr(run, "start", None)
+    if start is None or not getattr(start, "start", None):
+        return None, "the run has no start commit to run " + test + " on"
+    if test.split("[")[0] not in (start.new_test_ids() or ()):
+        return None, test + " is not a test this run added"
+    fm = getattr(run, "fm", None)
+    cmd = redorder.test_command(fm) if fm is not None else None
+    if ".py::" not in test or not cmd:
+        return None, test + " could not be run alone"
+    try:
+        with worktree.temporary(start.root, start.start) as tree:
+            start.lay_out(tree, start.test_changes())
+            where = start.place_in(tree)
+            r, why = rf.RedFirstGate(command=cmd).ran(cmd, test, where)
+            output = r.stdout + "\n" + r.stderr if r is not None else ""
+            at = rf.raised_at(output, where) if r is not None else None
+    except ValueError:
+        return None, test + " could not be run on the start commit"
+    if r is None:
+        return None, test + " could not be run on the start commit: " + why
+    if r.returncode == 0:
+        return None, test + " passes on the code as the run found it"
+    if r.returncode != 1 or not redorder.failed_only(output):
+        return None, (test + " does not run to an outcome on the start"
+                      " commit (exit " + str(r.returncode) + ")")
+    kind = rf.kind_of(output)
+    if kind == "assertion":
+        return "assertion", ""
+    product = at is not None and at[0] in start.product \
+        and not is_test(at[0]) and not is_tooling(at[0])
+    if kind in rf.MISSES and not product:
+        return None, (test + " is red on the start commit on a missing name"
+                      " (" + kind + "), so it is a test of the new path")
+    if not kind or not product:
+        return None, (test + " is red on the start commit by "
+                      + (kind or "an error pytest does not name")
+                      + (" raised in " + at[0] if at else "")
+                      + ", not in the code as the run found it")
+    return (kind + " raised at " + start.from_place(at[0]) + ":"
+            + str(at[1])), ""
+
+
+FUNCS = (ast.FunctionDef, ast.AsyncFunctionDef)
+DEFS = FUNCS + (ast.ClassDef,)
+
+
+def function_at(text, n):
+    """-> (the names from the module down to the innermost function of
+    python `text` that holds line `n`, its first line with its decorators,
+    its last line, its indent), None when no function holds it. raises
+    SyntaxError or ValueError when `text` does not parse."""
+    found = []
+
+    def walk(node, chain):
+        for child in ast.iter_child_nodes(node):
+            last = getattr(child, "end_lineno", None)
+            if not hasattr(child, "lineno") or last is None:
+                continue
+            first = min([child.lineno] + [
+                d.lineno for d in getattr(child, "decorator_list", ())])
+            if not first <= n <= last:
+                continue
+            here = chain + (child.name,) if isinstance(child, DEFS) else chain
+            if isinstance(child, FUNCS):
+                found[:] = [(here, first, last, child.col_offset)]
+            walk(child, here)
+
+    walk(ast.parse(text), ())
+    return found[0] if found else None
+
+
+def function_named(text, chain):
+    """-> (first line with decorators, last line, indent) of the function
+    `chain` names in python `text`, None when it has none by that name.
+    raises SyntaxError or ValueError when `text` does not parse."""
+    def walk(node, left):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, DEFS):
+                if child.name != left[0]:
+                    continue
+                if len(left) == 1:
+                    if not isinstance(child, FUNCS):
+                        continue
+                    return (min([child.lineno] + [
+                        d.lineno for d in child.decorator_list]),
+                        child.end_lineno, child.col_offset)
+                found = walk(child, left[1:])
+            else:
+                found = walk(child, left)
+            if found:
+                return found
+        return None
+
+    return walk(ast.parse(text), chain)
+
+
+def put_back(now, was, chain, at):
+    """-> `now` with the function `chain` names written back as `was` holds
+    it (`at` from `function_at`), everything else as it is, or None when
+    `now` has no function by that name."""
+    found = function_named(now, chain)
+    if found is None:
+        return None
+    lines, old = now.split("\n"), was.split("\n")[at[1] - 1:at[2]]
+    shift = found[2] - at[3]
+    moved = [(" " * shift + l if shift > 0 else l[min(-shift, len(l) - len(
+        l.lstrip(" "))):]) if l.strip() else l for l in old]
+    return "\n".join(lines[:found[0] - 1] + moved + lines[found[1]:])
+
+
+def assert_lines(workdir, test):
+    """-> the source of each `assert` statement of the test function `test`
+    names, one flat line each, [] when it cannot be read."""
+    rel, _, name = test.partition("::")
+    try:
+        text = (Path(workdir) / rel).read_text(encoding="utf-8")
+        tree = ast.parse(text)
+    except (OSError, SyntaxError, ValueError):
+        return []
+    found = function_named(text, tuple(name.split("[")[0].split("::")))
+    if found is None:
+        return []
+    out = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assert) \
+                and found[0] <= node.lineno <= found[1]:
+            out.append(ruling.flat(ast.get_source_segment(text, node) or ""))
+    return [a for a in out if a]
+
+
+KEPT = Path("tmp") / "kept"
+REPLACED = chr(0xFFFD)
+
+
+def restore_kept(folder, workdir):
+    """put back each product file a sibling check rewrote and was stopped
+    in before it put it back itself, from the copy it kept under `folder`.
+    -> the paths from the place it put back."""
+    root = Path(folder) / KEPT
+    if not root.is_dir():
+        return []
+    out = []
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        rel = path.relative_to(root).as_posix()
+        (Path(workdir) / rel).write_bytes(path.read_bytes())
+        path.unlink()
+        out.append(rel)
+    return out
 
 
 def sibling_fixed(run, h):
-    """-> "" when the run's change shows the mark held in `h` fixed, else
-    why not. red on the start commit shows only that the named test fails
-    there, and every test of the new path fails there too, so the change
-    must also have touched the block of the code line the mark names, the
-    test must pass on the code as the run leaves it, and fail again with
-    that file put back as the run found it."""
+    """-> (the `already-broken` line for the mark held in `h`, "") when the
+    run's change shows it fixed, else (None, why not). red on the start
+    commit for its outcome shows the test exercises code that was there;
+    the test must also pass on the code as the run leaves it, and fail
+    again with the function holding the marked code line put back as the
+    run found it, everything else as the run left it."""
     from . import wouldpass
 
     rel, _, n = h["at"].rpartition(":")
     test = h["test"]
     was = ruling.as_found(run.workdir, rel, getattr(run, "start", None))
     now = ruling.now_of(run.workdir, rel)
-    if was is None or now is None or int(n) > len(was.split("\n")):
-        return rel + " cannot be read as the run found it and as it is now"
-    if holds(now, enclosing(was.split("\n"), int(n))):
-        return "the run left the code at " + h["at"] + " as it found it"
-    if wouldpass.alone(run, [test]) is not False:
-        return test + " does not pass on the code as the run leaves it"
-    target = Path(run.workdir) / rel
-    kept = target.read_bytes()
+    if was is None or now is None or REPLACED in was + now:
+        return None, "cannot read the function at " + h["at"]
     try:
-        target.write_text(was, encoding="utf-8", newline="")
+        at = function_at(was, int(n))
+    except (SyntaxError, ValueError):
+        return None, "cannot read the function at " + h["at"]
+    if at is None:
+        return None, h["at"] + " is in no function, so nothing ties it to" \
+            " the change"
+    name = ".".join(at[0])
+    if wouldpass.alone(run, [test]) is not False:
+        return None, test + " does not pass on the code as the run leaves it"
+    try:
+        mutated = put_back(now, was, at[0], at)
+    except (SyntaxError, ValueError):
+        return None, rel + " does not parse as the run leaves it"
+    if mutated is None:
+        return None, ("`" + name + "` is not a function in " + rel
+                      + " as the run leaves it")
+    try:
+        ast.parse(mutated)
+    except (SyntaxError, ValueError):
+        return None, "`" + name + "` cannot be put back in " + rel
+    target = Path(run.workdir) / rel
+    data = target.read_bytes()
+    kept = Path(run.folder) / KEPT / rel if getattr(run, "folder", None) \
+        else None
+    if kept is not None:
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        kept.write_bytes(data)
+    try:
+        target.write_text(mutated, encoding="utf-8", newline="")
         red = wouldpass.alone(run, [test])
     finally:
-        target.write_bytes(kept)
-    if not red:
-        return (test + " still passes with " + rel + " as the run found it,"
-                " so the change there is not what fixed it")
-    return ""
+        target.write_bytes(data)
+        if kept is not None:
+            kept.unlink()
+    if red is not True:
+        return None, (test + (" still passes" if red is False
+                              else " could not be run") + " with `" + name
+                      + "` put back as found, so the change there is not"
+                      " the fix")
+    return (test + " red on the start commit (" + h.get("how", "")
+            + "), green now, red again with `" + name + "` put back as"
+            " found: " + h["spec"] + " already broken at " + h["at"]
+            + "".join("\n    " + a for a in assert_lines(run.workdir,
+                                                         test))), ""
 
 
 def sibling_unfixed(run):
-    """-> "" when the run's change shows every mark a sibling test proved
-    fixed (`sibling_fixed`), else the question the run parks on: each such
-    mark is a plain `spec: breaks` for the person."""
-    left = []
-    for m, h in (getattr(run, "adjacent", None) or {}).items():
+    """-> (the `already-broken` result of every mark a sibling test proved
+    red and the change shows fixed (`sibling_fixed`) or None, the question
+    the run parks on or ""): any mark not shown fixed is a plain `spec:
+    breaks` for the person, and then nothing passes."""
+    from agentweft.guardrails.gates.base import Result
+
+    fixed, left = [], []
+    for m, h in list((getattr(run, "adjacent", None) or {}).items()):
         if h.get("test"):
-            why = sibling_fixed(run, h)
-            if why:
+            said, why = sibling_fixed(run, h)
+            if said:
+                fixed.append(said)
+            else:
                 left.append((m, why))
-    if not left:
-        return ""
-    for m, _ in left:
-        run.adjacent.pop(m, None)
-    return "\n".join(
-        ["NEEDS: the plan marks a spec line already broken by the code, and"
-         " the change does not show it fixed (" + "; ".join(
-             w for _, w in left) + "): the mark is a line the request"
-         " breaks", "CITES:"]
-        + ["- " + m for m, _ in left])
+    if left:
+        return None, not_shown(run, [m for m, _ in left],
+                               "the change does not show it fixed ("
+                               + "; ".join(w for _, w in left) + ")")
+    if not fixed:
+        return None, ""
+    return Result(ALREADY, True, "\n".join(fixed)), ""
 
 
 def answer_settles(run, said):

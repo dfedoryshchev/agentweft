@@ -325,6 +325,12 @@ def begin(unrecorded):
             inside, made = worktrees.make(fm, named, run_id, tree_base)
             unrecorded.append(made)
             named = str(inside)
+        if pick_up:
+            from .asking import restore_kept
+
+            for rel in restore_kept(state.RUNS / pick_up, started_in or named):
+                print(rel + " is put back as the run left it: " + pick_up
+                      + " stopped while a sibling check had it rewritten")
         run = Run(flow, fm, by_role, workdir=started_in or named, task=asked,
                   chosen=chosen, efforts=efforts,
                   held=project.kept(state.RUNS / pick_up, started_in)

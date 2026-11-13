@@ -726,8 +726,9 @@ def found_in(block):
     return False
 
 
+RUNNER = "runner"
 EXECUTES = ("command", "project", "start-tests", "red-test", "red-first",
-            "conformance", "quote", "already-broken")
+            "conformance", "quote", "sibling-red", "already-broken")
 
 
 def checked(block, gates=()):

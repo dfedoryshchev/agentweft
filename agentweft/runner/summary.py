@@ -1097,27 +1097,41 @@ def beside_said(found, files=None):
     return out
 
 
-BROKEN_AT = re.compile(r"^(\S+) red on the start commit: (\S+) already broken"
-                       r" at (\S+)$")
+BROKEN_AT = re.compile(r"^(\S+) red on the start commit \(([^)]*)\), green"
+                       r" now, red again with `([^`]+)` put back as found:"
+                       r" (\S+) already broken at (\S+)$")
 
 
 def already_broken(passes):
     """-> each spec line the code already broke for a sibling path that the
     run fixed test-first, as `found_beside` gives a defect: read off the
-    runner's own `already-broken` check, its test red on the start
-    commit."""
+    runner's own `already-broken` check at the end of the run, its test red
+    on the start commit, green on the change and red again with the marked
+    function put back, and the test's assert lines after it, for the person
+    to hold beside the spec line. it never says the test asserts what the
+    spec line says."""
     out = []
     for p in passes:
         for g in p.get("gates") or ():
             if g.get("gate") != "already-broken" or not g.get("ok"):
                 continue
-            for part in (g.get("detail") or "").split("; "):
+            found = None
+            for part in (g.get("detail") or "").split("\n"):
                 m = BROKEN_AT.match(part)
                 if m:
-                    out.append(({"defect": m.group(2) + " already broken at "
-                                 + m.group(3) + ", red on the start commit",
-                                 "fixed": True, "test": m.group(1)},
-                                ["runner"]))
+                    found = {"defect": m.group(4) + " already broken at "
+                             + m.group(5) + ", red on the start commit ("
+                             + m.group(2) + "), green now, red again with `"
+                             + m.group(3) + "` put back as found",
+                             "fixed": True, "test": m.group(1), "asserts": 0}
+                    out.append((found, ["runner"]))
+                elif found is not None and part.startswith("    "):
+                    found["defect"] += ("; the test asserts: "
+                                        if not found["asserts"] else "; ") \
+                        + part.strip()
+                    found["asserts"] += 1
+    for found, _ in out:
+        found.pop("asserts", None)
     return out
 
 
@@ -2409,7 +2423,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
 
     for p in every:
         state = p["block"].get("state")
-        if state == handoff.MISSING and p["step"] != RETRO:
+        if state == handoff.MISSING and p["step"] not in (RETRO,
+                                                          trace.RUNNER):
             said.append("- handoff missing: " + at(p))
         elif state in (handoff.UNREADABLE, handoff.PARTIAL):
             said.append("- handoff " + state + ": " + at(p) + " ("

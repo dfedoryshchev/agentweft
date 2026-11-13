@@ -371,15 +371,31 @@ as the run found it and whose plan carries a behaviour `fix: <file>:<line>
 for <the sibling path>`: the code already breaks the line that way, so the
 run fixes that breach test-first rather than asking. the test writer names
 the sibling's test on a `SIBLING TEST:` line, and once its red-test gate
-passes the runner runs that test alone on the code as the run found it: red
-is the proof (an `already-broken` check on its line, the item listed first
-under the defects fixed beside the change); green, a test that cannot run
-alone, or no such line parks on the mark as a plain `breaks`. red there is
-not the whole proof, since a test of the new path is red on the start commit
-too: before the run ends, the block the named code line sits in must be
-changed, the test must pass, and it must fail again with that code file put
-back as the run found it; else the run parks on the mark as a plain
-`breaks`, the reason under the question. a question or
+passes the runner runs that test alone in a checkout of the start commit,
+with the run's test changes laid in. it must be a test this run added, and
+red there on an assertion or on an error raised in a product file the run
+started with: a `sibling-red` check on the test writer's line, the kind and
+where it was raised in its detail. red on a missing name or on an error
+raised in the test file (a new function, a new parameter) is a test of the
+new path, and that, a pass, a test the run started with, a test that cannot
+run alone, or no such line parks on the mark as a plain `breaks` there,
+before any code is written. before the run ends, the test must pass, and it
+must fail again with the function holding the named code line (python, read
+by name) put back as the run found it inside the file as the run left it;
+then the runner's own line holds an `already-broken` check and the handoff
+lists the item first under the defects fixed beside the change, with the
+test's assert lines. a function the file no longer has, a file that does not
+parse, a code line in no function, or a test that still passes with the
+function put back parks on the mark as a plain `breaks`, the effect that
+failed under the question, and no `already-broken` is written. the runner
+checks the test fails on the start commit for its outcome, passes now and
+fails again with the function put back; never that the test asserts what the
+spec line says. the file is copied under the run folder while the function
+is put back, and a resume of a run stopped in that moment puts it back as
+the run left it. the marks a run holds live in that run only: a resume of a
+run that stopped at the end on a mark carries on with your answer as the ruling
+on it, and neither proves the mark again nor writes `already-broken`. a
+question or
 a mark you already answered in this run, with
 `--answer`, is not asked again: a mark whose every cited line a mark of the
 same kind you answered cited is passed over, however it is worded around the

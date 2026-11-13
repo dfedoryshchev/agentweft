@@ -24,7 +24,7 @@ COULD_NOT_RUN = MISSES + ("SyntaxError",)
 # a traceback frame as pytest prints it (`path:line: ...`, its default and
 # short styles) or as python does (`File "path", line N`)
 FRAME = re.compile(r"^(?!E\s|>)\s*(?:((?:[A-Za-z]:)?[^:\n\"]*?\.py|<[^>\n]+>)"
-                   r":\d+:(?: |$)|File \"([^\"\n]+)\", line \d+)", re.M)
+                   r":(\d+):(?: |$)|File \"([^\"\n]+)\", line (\d+))", re.M)
 FAILURE_HEADER = re.compile(r"^_{3,} .+ _{3,}$", re.M)
 INSTALLED = ("site-packages", "dist-packages")
 IMPORT_NAME = re.compile(r"cannot import name '([\w.]+)'(?: from '([\w.]+)')?")
@@ -266,8 +266,15 @@ def attribute_added(output, start, now):
 def frames(output):
     """-> the file of each traceback frame of the first failure in `output`
     that shows any, outermost first."""
+    return [f for f, _ in frames_at(output)]
+
+
+def frames_at(output):
+    """-> (the file, its line) of each traceback frame of the first failure
+    in `output` that shows any, outermost first."""
     for section in FAILURE_HEADER.split(output or ""):
-        found = [m.group(1) or m.group(2) for m in FRAME.finditer(section)]
+        found = [(m.group(1) or m.group(3), int(m.group(2) or m.group(4)))
+                 for m in FRAME.finditer(section)]
         if found:
             return found
     return []
@@ -287,8 +294,15 @@ def raised_in(output, where):
     innermost frame of `output`'s traceback that is in that repo and not in
     an installed package; None when no frame is. a relative path is read
     from `where`, the folder the test command ran in."""
+    found = raised_at(output, where)
+    return found[0] if found else None
+
+
+def raised_at(output, where):
+    """-> (the file, as `raised_in` gives it, the line) of that frame, or
+    None when no frame is in the repo."""
     top = top_of(where)
-    for f in reversed(frames(output)):
+    for f, n in reversed(frames_at(output)):
         if f.startswith("<"):
             continue
         try:
@@ -299,7 +313,7 @@ def raised_in(output, where):
         parts = rel.replace("\\", "/").split("/")
         if parts[0] == ".." or any(p in INSTALLED for p in parts):
             continue
-        return "/".join(parts)
+        return "/".join(parts), n
     return None
 
 

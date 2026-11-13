@@ -61,15 +61,18 @@ def git(where, *args):
 
 
 def run_it(tmp_path, monkeypatch, flow, answers, writes, task=TASK,
-           commits=False):
+           commits=False, start=()):
     """-> (steps asked, every prompt sent, exit code, the run's folder, the
     place). a write's text may be a function of the place; a step that
-    commits commits what it wrote."""
+    commits commits what it wrote. `start` is more (path, text) the start
+    commit holds."""
     project = tmp_path / "project"
     (project / "tests").mkdir(parents=True, exist_ok=True)
     (project / "conftest.py").write_text("", encoding="utf-8")
     (project / "calc.py").write_text(BEFORE, encoding="utf-8")
     (project / "TASK.md").write_text(SPEC, encoding="utf-8")
+    for rel, text in start:
+        (project / rel).write_text(text, encoding="utf-8")
     git(project, "init", "-q")
     git(project, "add", ".")
     git(project, "commit", "-q", "-m", "start")

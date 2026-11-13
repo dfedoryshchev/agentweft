@@ -399,7 +399,8 @@ and `continued`
 - `checked` is what the pass checked whatever it won: the VERIFIED lines of
   its HANDOFF block its transcript backed, by any kind, plus the gates that
   executed something on its work and passed: command, project, start-tests,
-  red-test, red-first, conformance, quote and already-broken, not `skipped`,
+  red-test, red-first, conformance, quote, sibling-red and already-broken
+  (the runner's own line at the end of the run), not `skipped`,
   not `broke`, with no `issue` and no `ran: false` (a red-test with no
   command takes the step's word, a quote gate given no quote held nothing).
   a format gate (verdict, regex, length, reject) checks nothing, and a gate

@@ -21,7 +21,7 @@ from . import summary
 from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
-from .asking import (asked_file, assumed_answer, goes_on, lead_decides,
+from .asking import (RUNNER, asked_file, assumed_answer, goes_on, lead_decides,
                      lead_escalates, lead_pass, rides, sibling_proved,
                      sibling_unfixed, to_lead, worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
@@ -886,7 +886,14 @@ def go(leg):
             came_from = step
             step = nxt
         lap.to("finish")
-        unfixed = sibling_unfixed(run)
+        broken, unfixed = sibling_unfixed(run)
+        if broken is not None:
+            entry = trail.open(RUNNER, [], run.provider, came_from)
+            entry.gates = [broken]
+            print("  " + repr(broken))
+            with open(folder / "gates.md", "a", encoding="utf-8") as gf:
+                gf.write("## " + RUNNER + NEWLINE + repr(broken) + NEWLINE)
+            trail.close(entry, "ok", planned=False)
         if unfixed:
             print("the change does not show a sibling mark fixed")
             return stop(stops.PARKED, "needs a ruling: "
