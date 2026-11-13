@@ -61,7 +61,7 @@ def go(leg):
     made, origin, earlier, asked = leg.made, leg.origin, leg.earlier, leg.asked
     pick_up, order, todo, start = leg.pick_up, leg.order, leg.todo, leg.start
     found, seen, out, came_from = leg.found, leg.seen, leg.out, leg.came_from
-    uncut = leg.uncut
+    uncut, ticks = leg.uncut, leg.ticks
     lap = Laps(clock)
     timings = []
     risk_text = ""
@@ -100,7 +100,7 @@ def go(leg):
                         if pick_up else 0, plan=plan)
     if fm.get("journal", True):
         ending.journal(fm["name"], stops.RUNNING, started, run=run_id,
-                       origin=origin)
+                       origin=origin, ticks=ticks)
     step = todo[0]
     used = run.provider
     wrote = set()
@@ -328,7 +328,7 @@ def go(leg):
         ending.journal(fm["name"], stops.status(cause, at), started,
                        run=run_id, cause=cause, spend=run.budget.summary(),
                        why=why, origin=origin,
-                       handoff=run_id + "/" + summary.FILE)
+                       handoff=run_id + "/" + summary.FILE, ticks=ticks)
         show(note)
         return stops.exit_code(cause)
 
@@ -913,7 +913,7 @@ def go(leg):
                                else "UNCHECKED  ") + flow + "  "
                         + signed.target)
         return finish(flow, fm, run, out, started, run_id, pick_up, leave,
-                      record, origin, signed=signed.lines())
+                      record, origin, signed=signed.lines(), ticks=ticks)
     except BaseException as e:
         cause = stops.of(e)
         if cause == stops.EXCEPTION:

@@ -2,6 +2,7 @@
 import datetime
 import re
 import sys
+import time
 
 from agentweft.guardrails import promises
 
@@ -44,11 +45,18 @@ def items(text):
 
 
 def journal(flow_name, status, started, run=None, cause=None, spend=None,
-            why=None, saved=None, origin=None, handoff=None):
+            why=None, saved=None, origin=None, handoff=None, ticks=None):
     """the only place a journal line gets written. there were three, and the
     failure one had drifted into a different column order. the shapes are in
-    `stops`, which is also what reads them back."""
-    secs = int((datetime.datetime.now() - started).total_seconds())
+    `stops`, which is also what reads them back.
+
+    `ticks` is `time.monotonic()` at the run's start; the seconds are read
+    from it, as a wall clock set back while the run went would print them
+    below zero. `started` stays the line's stamp."""
+    if ticks is None:
+        secs = int((datetime.datetime.now() - started).total_seconds())
+    else:
+        secs = int(time.monotonic() - ticks)
     text = stops.line(started, flow_name, status, secs, run, cause, spend,
                       why, saved, handoff, origin)
     runs = state.RUNS
@@ -171,7 +179,7 @@ def remember(flow, run, run_id, ended, saved=None):
 
 
 def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
-           origin=None, signed=()):
+           origin=None, signed=(), ticks=None):
     """the end of a run that got through every step. -> the exit code.
 
     what is saved and printed is the last step's answer without its HANDOFF
@@ -244,6 +252,6 @@ def finish(flow, fm, run, out, started, run_id, pick_up, leave, record=None,
             status = status + ", " + str(len(skipped)) + " promise(s) not checked"
         journal(fm["name"], status, started, run=run_id, saved=path.name,
                 spend=run.budget.summary(), origin=origin,
-                handoff=run_id + "/" + summary.FILE)
+                handoff=run_id + "/" + summary.FILE, ticks=ticks)
     show(note)
     return stops.EXIT_OK

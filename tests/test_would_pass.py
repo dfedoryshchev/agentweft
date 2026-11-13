@@ -273,7 +273,8 @@ def test_the_suite_run_that_checks_the_case_is_timed_as_a_gate(
     from agentweft.runner import begin, laps, manifest, run
 
     now = [1000.0]
-    clock = types.SimpleNamespace(time=lambda: now[0])
+    from time import monotonic
+    clock = types.SimpleNamespace(time=lambda: now[0], monotonic=monotonic)
     monkeypatch.setattr(begin, "time", clock)
     monkeypatch.setattr(laps, "time", clock)
     real = run.Run.suite_of

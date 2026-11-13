@@ -307,6 +307,7 @@ def begin(unrecorded):
                           "runs/" + pick_up + "/steps.jsonl: " + broke
                           + ", and --force was given."))
     started = datetime.datetime.now()
+    ticks = time.monotonic()
     clock = time.time()
     run_id = new_run_id(flow, started)
 
@@ -581,8 +582,8 @@ def begin(unrecorded):
                                            lead=run.lead, step=start)
             print("ruled: " + start + " runs again with the answer")
     return Leg(flow=flow, fm=fm, run=run, route=route, record=record,
-               folder=folder, run_id=run_id, started=started, clock=clock,
-               made=made, origin=origin, earlier=earlier, asked=asked,
+               folder=folder, run_id=run_id, started=started, ticks=ticks,
+               clock=clock, made=made, origin=origin, earlier=earlier, asked=asked,
                pick_up=pick_up, order=order, todo=todo, start=start,
                found=found, seen=seen, out=out, came_from=came_from,
                uncut=uncut)

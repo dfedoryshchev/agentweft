@@ -130,6 +130,40 @@ def test_the_first_saved_run_of_a_day_is_1(tmp_path, monkeypatch, capsys):
     assert (state.RUNS / ("once-" + day + "-2.md")).exists()
 
 
+def wall_set_back(monkeypatch, secs=5):
+    """the wall clock the run's end reads is `secs` behind the one its start
+    read: the system clock was set back while the run was going."""
+    class Back(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.datetime.now(tz) - datetime.timedelta(seconds=secs)
+
+    monkeypatch.setattr("agentweft.runner.ending.datetime", types.SimpleNamespace(
+        datetime=Back, date=datetime.date, timedelta=datetime.timedelta))
+
+
+def test_a_run_that_ends_says_no_negative_seconds_when_the_clock_goes_back(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "once", ["worker"], tail=FAKE)
+    wall_set_back(monkeypatch)
+    assert engine.main() == 0
+    secs = [stops.read(l).secs for l in journal()]
+    assert len(secs) == 2
+    assert not [s for s in secs if s.startswith("-")], secs
+
+
+def test_a_run_that_stops_says_no_negative_seconds_when_the_clock_goes_back(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "gated",
+           ["worker\ngates:\n  - gate: length\n    max_lines: 1", "reviewer"])
+    fake_cli(answer("one\ntwo\n"))
+    wall_set_back(monkeypatch)
+    assert engine.main() == 2
+    [end] = ends()
+    assert end.status == "failed at worker.md"
+    assert not end.secs.startswith("-"), end.secs
+
+
 def test_a_usage_limit_parks_after_one_call_with_the_reset_time(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, "fix",
