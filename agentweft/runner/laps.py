@@ -46,7 +46,7 @@ class Laps(object):
 
     def to(self, phase):
         """the phase the runner goes into now."""
-        here = time.time()
+        here = time.monotonic()
         self.laps.append((self.now, self.at, here))
         self.now, self.at = phase, here
 

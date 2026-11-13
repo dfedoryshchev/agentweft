@@ -270,13 +270,13 @@ def test_a_run_whose_only_working_pass_added_a_case_still_leads_with_it():
 
 def test_the_suite_run_that_checks_the_case_is_timed_as_a_gate(
         tmp_path, monkeypatch):
-    from agentweft.runner import begin, laps, manifest, run
+    from agentweft.runner import begin, ending, laps, manifest, run
 
     now = [1000.0]
-    from time import monotonic
-    clock = types.SimpleNamespace(time=lambda: now[0], monotonic=monotonic)
+    clock = types.SimpleNamespace(monotonic=lambda: now[0])
     monkeypatch.setattr(begin, "time", clock)
     monkeypatch.setattr(laps, "time", clock)
+    monkeypatch.setattr(ending, "time", clock)
     real = run.Run.suite_of
 
     def slow(self, step):

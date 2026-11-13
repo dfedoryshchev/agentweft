@@ -133,7 +133,7 @@ def go(leg):
             list(earlier) + ran)))
         record.data[chain.FIELD] = trail.head()
         record.save(run.budget)
-        began = time.time()
+        began = time.monotonic()
         left = leftred.check(
             run.start, fm, leftred.chosen(fm, sys.argv),
             named=leftred.named_in(run.start, stopped.get("question"))) \

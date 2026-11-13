@@ -1619,7 +1619,7 @@ class Run(object):
     def step(self, step, previous=EMPTY, extra="", task=None, last=""):
         import time as _t
 
-        began = _t.time()
+        began = _t.monotonic()
         role = self.role_for(step)
         prompt = load_prompt(self.flow, step, self.by_role[role], role)
         terse = self.verbosity_for(step) == "terse"
@@ -1801,7 +1801,7 @@ class Run(object):
         # sessions: a warm call's copy is never written to disk
         tried.replies[:0] = warm.taken(self, step)
         return Handoff(role, text, said,
-                       meta={"seconds": round(_t.time() - began, 1),
+                       meta={"seconds": round(_t.monotonic() - began, 1),
                              "cached": cached, "provider": used.name,
                              "asked": asked,
                              "allowed": declared(prompt) if asked else (),

@@ -308,7 +308,7 @@ def begin(unrecorded):
                           + ", and --force was given."))
     started = datetime.datetime.now()
     ticks = time.monotonic()
-    clock = time.time()
+    clock = ticks
     run_id = new_run_id(flow, started)
 
     def undo(code):

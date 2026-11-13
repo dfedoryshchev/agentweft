@@ -74,7 +74,9 @@ class Attempt(object):
         # lifetime
         self.lapsed = None
         self.began = datetime.datetime.now()
-        self.started = time.time()
+        # not the wall clock: the laps and the gates' spans are measured
+        # against this, and a clock set back mid-run would put them below zero
+        self.started = time.monotonic()
         self.seconds = None
         self.cached = False
         self.replies = []
@@ -82,7 +84,7 @@ class Attempt(object):
 
     def answered(self, answer):
         """-> the answer, untouched, once what came with it is noted."""
-        self.seconds = round(time.time() - self.started, 1)
+        self.seconds = round(time.monotonic() - self.started, 1)
         self.cached = bool(answer[1])
         self.replies = list(getattr(answer, "replies", ()))
         self.retries = dict(getattr(answer, "retries", None) or {})
@@ -91,7 +93,7 @@ class Attempt(object):
     def took(self):
         if self.seconds is not None:
             return self.seconds
-        return round(time.time() - self.started, 1)
+        return round(time.monotonic() - self.started, 1)
 
 
 def tokens(attempts):
@@ -434,7 +436,7 @@ class Trail(object):
             return
         if seconds is not None:
             self.gate_seconds = self.gate_seconds + seconds
-            began = time.time() - seconds if began is None else began
+            began = time.monotonic() - seconds if began is None else began
             self.gated.append((began, began + seconds))
         line = {"seq": seq, "step": step, "gate": gate, "ok": bool(ok),
                 "seconds": seconds}

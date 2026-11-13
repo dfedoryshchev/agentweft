@@ -134,12 +134,12 @@ def handed_to(run, step):
 
 
 def since(began):
-    return round(time.time() - began, 3)
+    return round(time.monotonic() - began, 3)
 
 
 def clocked(gate, text):
     """-> what `gate` said of text, with the seconds it took."""
-    began = time.time()
+    began = time.monotonic()
     r = gate(text)
     return timed(r, began)
 
@@ -200,7 +200,7 @@ def check_step(run, route, step, out, run_dir=None):
                for g in run.gates_for(step)]
     order = getattr(run, "order", None)
     if order is not None:
-        began = time.time()
+        began = time.monotonic()
         unruled = getattr(run, "spec_unruled", None)
         moved = order.after(step, run.writes_for(step),
                             ruled=(lambda: not unruled()) if unruled else None)
@@ -208,14 +208,14 @@ def check_step(run, route, step, out, run_dir=None):
             results.insert(0, timed(Result(bounds.NAME, False, moved), began))
     workdir, start = getattr(run, "workdir", "."), getattr(run, "start", None)
     covered = getattr(run, "spec_line_covered", None)
-    began = time.time()
+    began = time.monotonic()
     wrong = [w for w in (ruling.misquoted(out.output, workdir, start),
                          wrongtest.misquoted(out.output, workdir, start,
                                              covered)) if w]
     if wrong:
         results.insert(0, timed(Result("quote", False, "; ".join(wrong)),
                                 began))
-    began = time.time()
+    began = time.monotonic()
     said = ruling.conflict_of(out.output, workdir, start,
                               handed=handed_to(run, step), ruled=covered,
                               held=getattr(run, "spec_line_held", None))
@@ -226,7 +226,7 @@ def check_step(run, route, step, out, run_dir=None):
         results.insert(0, Result(rulings.GATE, False, forged))
     guarded = getattr(run, "spec_held", None)
     if guarded is not None:
-        began = time.time()
+        began = time.monotonic()
         line, spec_asks = guarded(step, all(r.ok for r in results))
         if line is not None:
             results.append(timed(line, began))
@@ -238,7 +238,7 @@ def check_step(run, route, step, out, run_dir=None):
         tries = getattr(route, "gate_tries", None)
         last = ok and tries is not None and \
             tries.get(step, 0) >= route.gate_cap(step)
-        began = time.time()
+        began = time.monotonic()
         line, test_asks = kept(step, last, out.output)
         if line is not None:
             results.append(timed(line, began))
@@ -246,7 +246,7 @@ def check_step(run, route, step, out, run_dir=None):
             out.meta["test_ruling"] = test_asks
     replayed = getattr(run, "replayed", None)
     if replayed is not None and all(r.ok for r in results):
-        began = time.time()
+        began = time.monotonic()
         line, held = replayed(step, out.output)
         if line is not None:
             results.append(timed(line, began))
@@ -254,14 +254,14 @@ def check_step(run, route, step, out, run_dir=None):
             out.meta["conflict"] = held
     conformed = getattr(run, "conformed", None)
     if callable(conformed):
-        began = time.time()
+        began = time.monotonic()
         lines, gate = conformed(step)
         if lines:
             out.meta["conformance"] = lines
         if gate is not None:
             results.append(timed(gate, began))
     kept = getattr(run, "kept", None)
-    began = time.time()
+    began = time.monotonic()
     # a gate runs code the step wrote, so a write it makes is the step's,
     # not the next one's
     ran = kept.check(step, ", in the code its gates ran") \

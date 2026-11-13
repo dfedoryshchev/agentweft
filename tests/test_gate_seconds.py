@@ -103,6 +103,42 @@ def test_steps_gates_and_runner_add_up_to_the_wall(tmp_path, monkeypatch):
 
 
 PHASE = re.compile(r"([a-z]+) (\d+(?:\.\d+)?)s")
+BELOW_ZERO = re.compile(r"(?<![\w.])-\d+(?:\.\d+)?s\b")
+
+
+def test_a_wall_clock_set_back_mid_run_moves_no_seconds(tmp_path,
+                                                        monkeypatch):
+    """the system clock goes back an hour while the first step's model is
+    answering: the step's seconds, the gates', the wall and the runner's
+    phases are read off a clock that does not move with it."""
+    real, back = time.time, [0.0]
+    monkeypatch.setattr(time, "time", lambda: real() - back[0])
+    answered = trace.Attempt.answered
+
+    def set_back(self, answer):
+        back[0] = 3600.0
+        return answered(self, answer)
+
+    monkeypatch.setattr(trace.Attempt, "answered", set_back)
+    began = real()
+    _, _, code, folder, _ = test_lead.build(tmp_path, monkeypatch,
+                                            [test_lead.DECIDED])
+    took = real() - began
+    assert code == stops.EXIT_OK
+    assert back[0] == 3600.0
+    for name in (trace.FILE, trace.GATES):
+        for t in (folder / name).read_text(encoding="utf-8").split("\n"):
+            if t.strip():
+                seconds = json.loads(t)["seconds"]
+                assert seconds is None or 0 <= seconds <= took + 1, (name, t)
+    runner = json.loads((folder / "manifest.json").read_text(
+        encoding="utf-8"))["runner"]
+    assert 0 <= runner["wall"] <= took + 1, runner
+    said = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert BELOW_ZERO.findall(said) == []
+    [found] = [WALL.match(l) for l in said.split("\n") if WALL.match(l)]
+    wall, steps, gates, rest = (float(n) for n in found.groups())
+    assert abs(steps + gates + rest - wall) < 1
 
 
 def test_the_runner_s_own_seconds_are_named_by_phase_and_add_up_to_the_wall(

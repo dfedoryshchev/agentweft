@@ -25,7 +25,7 @@ def run_fanout(run, plan):
     are still the planner's, so the plan that fed the first pass is kept and
     each of its tasks goes again with the reviewer's finding beside it.
     """
-    began = time.time()
+    began = time.monotonic()
     role = run.role_for(run.fan)
     kept = getattr(run, "plan", None)
     back = EMPTY
@@ -36,7 +36,7 @@ def run_fanout(run, plan):
     tasks = fan.tasks(plan.output)
     if not tasks:
         return Handoff(role, "", meta={
-            "tasks": 0, "seconds": round(time.time() - began, 1),
+            "tasks": 0, "seconds": round(time.monotonic() - began, 1),
             "why": run.fan + " is fanned out one task per " + fan.TASK
                    + " block, and what " + plan.role + " handed it has none"})
 
@@ -98,7 +98,7 @@ def run_fanout(run, plan):
     out = Handoff(role, "\n\n".join(p.output for p in parts),
                   verdict=fanned_verdict(parts),
                   meta={"tasks": len(tasks),
-                        "seconds": round(time.time() - began, 1),
+                        "seconds": round(time.monotonic() - began, 1),
                         "asked": any(p.meta.get("asked") for p in parts),
                         "allowed": next((p.meta["allowed"] for p in parts
                                          if p.meta.get("allowed")), ()),
