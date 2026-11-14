@@ -3,15 +3,21 @@
 a step's `provider:` is either a block, as it always was, or the name of a
 connector: one of the built-ins below, or one declared under `connectors:` in
 project.yml or in the flow. the flow's declaration wins over project.yml's,
-and both merge over a built-in of the same name, so `claude-api` needs only
-its `key_file` said.
+and both merge over a built-in of the same name.
 
 `auth` decides the credential the step's process gets and no other:
 `subscription` strips every key and auth token, so the cli falls to its own
-login; `api-key` hands it the key read from `key_file` at the call, and no
-login token; `inherit` (the default) passes what the run holds, as before.
+login; `api-key` hands it the key read at the call from the connector's
+`key_file`, else from the file `AGENTWEFT_KEY_FILE` names, and no login
+token; `inherit` (the default) passes what the run holds.
+
+where a credential comes from and where it goes is the person's to say, in
+the flow or their own environment: project.yml is the repo's file, which a
+clone ships and a step can write for the next run, so a connector it
+declares sets none of `PERSONAL` and no `auth: api-key`.
 """
 import os
+import shutil
 from pathlib import Path
 
 SUBSCRIPTION = "subscription"
@@ -26,6 +32,11 @@ BUILT_IN = {"claude-sub": {"provider": "cli", "auth": SUBSCRIPTION},
 
 # the keys a connector adds to a provider block; the rest are the provider's
 OWN = ("connector", "auth", "key_file")
+# the block's keys that pick a credential, a process handed one, or where a
+# request carrying one is sent
+PERSONAL = ("key_file", "command", "url", "env")
+# the setting that names the key file of a connector that names none
+KEY_FILE = "key_file"
 
 
 def merged(declared=None):
@@ -93,6 +104,23 @@ def check(declared):
     bad = []
     for name, block in declared.items():
         bad.extend(check_block(name, block))
+    return bad
+
+
+def check_project(declared):
+    """-> complaints about project.yml's `connectors:` block: what any
+    declaration gets, and each key that is the person's to set."""
+    bad = check(declared)
+    if bad and not isinstance(declared, dict):
+        return bad
+    for name, block in declared.items():
+        if not isinstance(block, dict):
+            continue
+        said = (["auth: " + API_KEY] if block.get("auth") == API_KEY else []) \
+            + [key for key in PERSONAL if key in block]
+        bad.extend(str(name) + ": " + key + " is the person's to set, in the"
+                   " flow or their own environment, never in the project's"
+                   " file" for key in said)
     return bad
 
 
@@ -214,17 +242,29 @@ def key_refused(p):
     if why or p.auth != API_KEY:
         return why
     who = p.connector or p.name
-    if not p.key_file:
-        return (who + " has auth: " + API_KEY + " and no key_file: declare"
-                " one under connectors:")
-    path = Path(p.key_file).expanduser()
+    named, var = key_file_of(p)
+    if not named:
+        return (who + " has auth: " + API_KEY + " and no key file: set "
+                + key_var() + " in your environment, or key_file on the"
+                " connector in your flow")
+    if var:
+        if not full(named):
+            return (who + " reads its key from " + var + ", which should be a"
+                    " full path (or start with ~), not " + repr(named))
+        dot_env = settings_file(var)
+        if dot_env and p.where is not None and inside(dot_env, p.where):
+            return (who + " reads its key from " + var + ", which " + dot_env
+                    + " sets, inside the place: that file is the project's."
+                    " set it in your own environment, or in a .env outside"
+                    " the place")
+    path = Path(named).expanduser()
     if p.where is not None:
         place = Path(p.where).resolve()
         try:
-            inside = path.resolve() == place or place in path.resolve().parents
+            within = path.resolve() == place or place in path.resolve().parents
         except OSError:
-            inside = False
-        if inside:
+            within = False
+        if within:
             return (who + " reads its key from " + str(path) + ", inside the"
                     " place, where every step's tools can read it: keep the"
                     " key file outside the place")
@@ -253,6 +293,40 @@ def key_of(p):
     why = key_refused(p)
     if why:
         raise NoKey(why)
-    key = Path(p.key_file).expanduser().read_text(encoding="utf-8").strip()
+    named, _ = key_file_of(p)
+    key = Path(named).expanduser().read_text(encoding="utf-8").strip()
     redact.handed(key)
     return key
+
+
+def key_var():
+    from agentweft.runner import settings
+
+    return settings.env_name(KEY_FILE)
+
+
+def key_file_of(p):
+    """-> (the key file p reads, the environment name it came from or None
+    when the connector names it itself); ("", None) when there is none."""
+    if p.key_file:
+        return p.key_file, None
+    said = os.environ.get(key_var(), "").strip()
+    return (said, key_var()) if said else ("", None)
+
+
+def settings_file(var):
+    """-> the `.env` that set `var`, "" when the environment had it."""
+    from agentweft.runner import settings
+
+    return settings.FROM_FILE.get(var, "")
+
+
+def inside(path, place):
+    """-> whether `path` is the place or under it; a path that cannot be
+    resolved counts as inside."""
+    try:
+        here = Path(place).resolve()
+        there = Path(path).expanduser().resolve()
+    except OSError:
+        return True
+    return there == here or here in there.parents

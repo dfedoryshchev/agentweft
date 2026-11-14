@@ -19,6 +19,9 @@ DEFAULTS = {"timeout": 300, "retries": 3, "workers": 3,
             "spec_globs": ("TASK.md", "SPEC*.md", "docs/spec*")}
 
 PREFIX = "AGENTWEFT_"
+# each name `load_env` set, and the `.env` it read it from: a `.env` in the
+# place is the project's file, not the person's
+FROM_FILE = {}
 TRUE = ("1", "true", "yes", "on")
 FALSE = ("0", "false", "no", "off")
 

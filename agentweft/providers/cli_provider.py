@@ -80,6 +80,11 @@ SCRUB_VAR = "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
 # an api key's cache lives 5 minutes unless asked for the hour, and a step
 # waiting on a gate or a sibling is often longer than that
 ON_KEY = {"CLAUDE_CODE_PROMPT_CACHE_TTL": "1h", SCRUB_VAR: "1"}
+# a step with no grant loads the place's `.claude/settings.json`, whose `env`
+# block the cli applies over the process environment even in `-p` on a folder
+# never trusted, so a repo could send the step's credential to its own host
+BASE_URL_VAR = "ANTHROPIC_BASE_URL"
+DEFAULT_BASE_URL = "https://api.anthropic.com"
 
 
 def shell_hook(denials, kept=(), tools=None, places=()):
@@ -181,6 +186,12 @@ def user_model():
     there is nothing to pass then."""
     if os.environ.get("ANTHROPIC_MODEL"):
         return ""
+    model = user_settings().get("model")
+    return model.strip() if isinstance(model, str) else ""
+
+
+def user_settings():
+    """-> the person's own settings file, {} when it cannot be read."""
     path = USER_SETTINGS
     if path is None:
         home = os.environ.get("CLAUDE_CONFIG_DIR") or str(Path.home()
@@ -189,9 +200,19 @@ def user_model():
     try:
         said = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return ""
-    model = said.get("model") if isinstance(said, dict) else None
-    return model.strip() if isinstance(model, str) else ""
+        return {}
+    return said if isinstance(said, dict) else {}
+
+
+def sent_to():
+    """-> where a call carrying a credential sends it: the `ANTHROPIC_BASE_URL`
+    the person's own settings `env` block names (the cli applies it over the
+    shell's), else the run's environment's, else the api's own host."""
+    env = user_settings().get("env")
+    said = env.get(BASE_URL_VAR) if isinstance(env, dict) else None
+    if isinstance(said, str) and said.strip():
+        return said.strip()
+    return os.environ.get(BASE_URL_VAR, "").strip() or DEFAULT_BASE_URL
 
 
 def is_claude(command):
@@ -930,6 +951,8 @@ class CliProvider(Provider):
         the whole session's usage, not this call's, which `carried_on` takes
         apart again. any other command is called the way it always was, grant
         or none: which flags it takes is not ours to guess."""
+        from . import connectors
+
         cmd = self.command
         if not is_claude(cmd):
             return [cmd, "-p", prompt], None
@@ -953,6 +976,8 @@ class CliProvider(Provider):
             # the command line sits above the place's own settings files, so
             # a `disableAllHooks: true` there cannot switch the run's hook off
             settings["disableAllHooks"] = False
+        if self.grant is None and self.auth != connectors.INHERIT:
+            settings["env"] = {BASE_URL_VAR: sent_to()}
         if settings:
             argv = argv + ["--settings",
                            json.dumps(settings, separators=(",", ":"))]

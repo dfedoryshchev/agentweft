@@ -143,37 +143,65 @@ that name on a step, beside the step's model:
 three are built in and need no declaring:
 
     claude-sub   provider: cli, auth: subscription
-    claude-api   provider: cli, auth: api-key (needs a key_file)
+    claude-api   provider: cli, auth: api-key (reads the file AGENTWEFT_KEY_FILE names)
     stub         provider: fake
 
-more are declared under `connectors:` in `project.yml` or in the flow, each a
+more are declared under `connectors:` in the flow or in `project.yml`, each a
 provider block (every key the provider takes) plus `auth` and `key_file`:
 
     connectors:
-      claude-api:
-        key_file: ~/.config/agentweft/api-key
       cheap:
         provider: cli
         model: m-cheap
+      mine:
+        provider: cli
+        auth: api-key
+        key_file: ~/.config/agentweft/other-key
 
-a declaration merges over the built-in of its name, so `claude-api` needs
-only its `key_file`; the flow's declaration merges over `project.yml`'s. a
-name that is a provider's own (`cli`, `api`, `fake`) is refused, and so is a
-step naming a connector there is not, before anything is asked, with the
-names there are. an inline block (`provider: {provider: cli, ...}`) works as
-it always did, and the flow's `provider:` may be a connector's name too.
+a declaration merges over the built-in of its name; the flow's declaration
+merges over `project.yml`'s. a name that is a provider's own (`cli`, `api`,
+`fake`) is refused, and so is a step naming a connector there is not, before
+anything is asked, with the names there are. an inline block (`provider:
+{provider: cli, ...}`) works as it always did, and the flow's `provider:` may
+be a connector's name too.
+
+where a credential comes from and where it goes is yours to say, never the
+project's. `project.yml` is the repo's file: a clone ships one, and a step
+can write it for the next run. so a connector `project.yml` declares may name
+a provider, a model, `auth: subscription` or `inherit` and the provider's
+other settings, and is refused at load, the file named, when it says `auth:
+api-key`, `key_file`, `command`, `url` (the **api** provider's endpoint) or
+`env` (which of your variables reach the model's process). those are said in
+the flow you run or in your own environment.
+
+the key file of a connector with `auth: api-key` is its own `key_file`, said
+in the flow, else the file `AGENTWEFT_KEY_FILE` names: set it in your shell,
+or in the `.env` that `agentweft init` writes where you start agentweft. a
+`.env` inside the place is the project's file, so a key file named there is
+refused before the step's call, with that `.env` named.
 
 a credential goes to the `claude` cli and to the **api** provider's own
 request, and to no other command. so a built-in connector's `command` is
-never declared again, in `project.yml` or in the flow (`claude-api: {command:
-python}` is refused at load, with that reason: `project.yml` is the repo's
-file, and a step may write it for the next run), a declared connector with
-`auth: api-key` whose `command` is not `claude` is refused at load, and a
-connector with `subscription` or `api-key` whose `claude` is a path inside
-the place (`tools/claude`, `./claude.cmd`) is refused before its call: a step
-could have written it. `claude` is told by its file name (`claude`,
-`claude.cmd`, `/usr/bin/claude`), the same test the provider uses for its
-flags; a bare `claude` is found on `PATH`, outside agentweft's reach.
+never declared again (`claude-api: {command: python}` is refused at load, with
+that reason), a declared connector with `auth: api-key` whose `command` is not
+`claude` is refused at load, and a connector with `subscription` or `api-key`
+whose `claude` is a path inside the place (`tools/claude`, `./claude.cmd`) is
+refused before its call: a step could have written it. `claude` is told by
+its file name (`claude`, `claude.cmd`, `/usr/bin/claude`), the same test the
+provider uses for its flags; a bare `claude` is found on `PATH`.
+
+a `claude` step with no grant loads the place's own `.claude/settings.json`,
+and the cli applies that file's `env` block over the environment it was
+started with, in `-p` too, on a folder nobody trusted (the cli's settings and
+permissions reference). so a step on `subscription` or `api-key` with no
+grant is started with `--settings` naming `ANTHROPIC_BASE_URL` (the command
+line ranks above every settings file but your organisation's managed ones):
+the value your own settings file's `env` block gives, else the run's
+environment's, else `https://api.anthropic.com`. a step with a grant loads
+only your settings file, or none, and is left as it is. under `inherit`
+nothing is pinned: a key exported in your shell reaches a grant-less step as
+it always did, and the place's settings can send it elsewhere, so a project
+you do not own runs on `claude-sub` or `claude-api`.
 
 `auth` decides the credential the step's process is handed, and no other:
 
@@ -184,7 +212,7 @@ flags; a bare `claude` is found on `PATH`, outside agentweft's reach.
   subscription login (`CLAUDE_CODE_OAUTH_TOKEN` stays: it is that login).
 - `api-key`: the same names and both login tokens
   (`CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CODE_OAUTH_REFRESH_TOKEN`) are taken
-  out, and `ANTHROPIC_API_KEY` is the key read from `key_file` when the call
+  out, and `ANTHROPIC_API_KEY` is the key read from the key file when the call
   starts, never before, never on the command line, never written into the
   run's files. the call also gets `CLAUDE_CODE_PROMPT_CACHE_TTL=1h`: on an
   api key the cli's prompt cache lives 5 minutes unless asked for the hour,
@@ -208,7 +236,7 @@ reference, "What the subprocess environment scrub removes"); a step whose
 tests need a removed variable (a `DATABASE_URL` with a password, an
 `NPM_TOKEN`) runs on a provider block written inline, which sets nothing.
 
-`key_file` is a full path (or starts with `~`) outside the place, so that no
+the key file is a full path (or starts with `~`) outside the place, so that no
 run commits it, a step quotes it from the tree or a gate's command finds it
 there: a key file inside the place is refused. outside is not unreadable: a
 step's read tools are not fenced to the place, which is why the key is also

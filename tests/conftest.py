@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, ".")
 from agentweft.guardrails import redact
 from agentweft.providers import cli_provider
-from agentweft.runner import handoff, state
+from agentweft.runner import handoff, settings, state
 
 
 GOLDEN = Path(__file__).resolve().parent / "golden"
@@ -320,3 +320,6 @@ def runs_and_state_of_its_own(tmp_path, monkeypatch):
     monkeypatch.setattr(state, "STATE", tmp_path / "state.json")
     # a value one test's key file handed would be redacted in the next test
     monkeypatch.setattr(redact, "HANDED", set(), raising=False)
+    # nor the key file the machine's own environment names
+    monkeypatch.delenv("AGENTWEFT_KEY_FILE", raising=False)
+    monkeypatch.setattr(settings, "FROM_FILE", {}, raising=False)

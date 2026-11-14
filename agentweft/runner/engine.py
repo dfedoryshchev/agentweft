@@ -36,14 +36,18 @@ HERE = Path(__file__).resolve().parent
 
 def load_env():
     # not worth a dependency for six lines
+    from . import settings
+
     if not os.path.exists(".env"):
         return
+    whose = str(Path(".env").resolve())
     for line in open(".env", encoding="utf-8"):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         k, v = line.split("=", 1)
         os.environ[k] = v
+        settings.FROM_FILE[k] = whose
 
 
 def console():

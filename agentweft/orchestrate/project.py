@@ -338,7 +338,7 @@ def _check_spec(bad, block):
 def _check_connectors(bad, block):
     from agentweft.providers import connectors
 
-    bad.extend("connectors: " + c for c in connectors.check(block))
+    bad.extend("connectors: " + c for c in connectors.check_project(block))
 
 
 CHECKS = (("project", _check_project), ("read_first", _check_read_first),

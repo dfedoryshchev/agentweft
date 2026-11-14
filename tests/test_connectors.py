@@ -145,8 +145,9 @@ def test_an_empty_key_file_refuses_the_step(tmp_path, fake_cli):
 def test_api_key_with_no_key_file_refuses(fake_cli):
     fake_cli(answer("done\n"))
     p = providers.build("claude-api")
-    assert p.refuses() == ("claude-api has auth: api-key and no key_file:"
-                           " declare one under connectors:")
+    assert p.refuses() == ("claude-api has auth: api-key and no key file:"
+                           " set AGENTWEFT_KEY_FILE in your environment, or"
+                           " key_file on the connector in your flow")
 
 
 def test_a_key_file_inside_the_place_is_refused(tmp_path, fake_cli):
@@ -208,16 +209,46 @@ def test_the_api_provider_refuses_on_a_missing_key_file(tmp_path,
 
 
 def test_project_yml_declares_connectors_and_the_flow_wins(tmp_path):
-    first, second = key_file(tmp_path, name="a.txt"), key_file(tmp_path,
-                                                              name="b.txt")
     held = project.Held(tmp_path / "project.yml",
-                        "project:\n  name: here\nconnectors:\n  claude-api:\n"
-                        "    key_file: " + json.dumps(str(first)) + "\n"
-                        "  cheap:\n    provider: cli\n    model: m-cheap\n")
+                        "project:\n  name: here\nconnectors:\n  cheap:\n"
+                        "    provider: cli\n    model: m-cheap\n"
+                        "  own:\n    provider: cli\n    auth: subscription\n")
     got = providers.connectors.declared({"connectors": {
-        "claude-api": {"key_file": str(second)}}}, held)
-    assert got["claude-api"]["key_file"] == str(second)
-    assert got["cheap"] == {"provider": "cli", "model": "m-cheap"}
+        "cheap": {"model": "m-flow"}}}, held)
+    assert got["cheap"] == {"provider": "cli", "model": "m-flow"}
+    assert got["own"] == {"provider": "cli", "auth": "subscription"}
+
+
+@pytest.mark.parametrize("block, said", [
+    ({"provider": "cli", "auth": "api-key"}, "auth: api-key"),
+    ({"provider": "cli", "auth": "subscription",
+      "key_file": "~/.ssh/id_any"}, "key_file"),
+    ({"provider": "cli", "command": "/opt/tools/claude"}, "command"),
+    ({"provider": "api", "url": "https://elsewhere.example"}, "url"),
+    ({"provider": "cli", "env": ["AWS_SECRET_ACCESS_KEY"]}, "env"),
+])
+def test_project_yml_may_not_say_where_a_credential_comes_from_or_goes(
+        block, said):
+    raw = {"project": {"name": "here"}, "connectors": {"mine": block}}
+    [bad] = project.check(raw)
+    assert bad == ("connectors: mine: " + said + " is the person's to set,"
+                   " in the flow or their own environment, never in the"
+                   " project's file")
+    with pytest.raises(ValueError) as e:
+        project.load(raw)
+    assert str(e.value).startswith("project.yml: connectors: mine: ")
+    assert providers.connectors.check({"mine": block}) == []
+
+
+@pytest.mark.parametrize("block", [
+    {"provider": "cli", "model": "m-cheap"},
+    {"provider": "cli", "auth": "subscription", "max_turns": 9},
+    {"provider": "cli", "auth": "inherit"},
+    {"provider": "fake"},
+])
+def test_project_yml_may_name_connectors_and_their_models(block):
+    assert project.check({"project": {"name": "here"},
+                          "connectors": {"mine": block}}) == []
 
 
 def test_a_bad_connectors_block_in_project_yml_is_refused():
@@ -347,12 +378,119 @@ def test_a_step_on_a_missing_key_file_is_refused_before_its_call(
 
 def test_project_yml_connectors_reach_the_step(tmp_path, monkeypatch,
                                                fake_cli):
-    a_flow(tmp_path, monkeypatch, [("worker", ["provider: claude-api"])],
-           project_yml="project:\n  name: here\n"
-           + declared_key(key_file(tmp_path)))
+    a_flow(tmp_path, monkeypatch, [("worker", ["provider: cheap"])],
+           project_yml="project:\n  name: here\nconnectors:\n  cheap:\n"
+           "    provider: cli\n    auth: subscription\n    model: m-cheap\n")
     cli = fake_cli(answer("done\n"))
     assert engine.main() == 0
+    argv = cli.calls[0]["argv"]
+    assert argv[argv.index("--model") + 1] == "m-cheap"
+    assert "ANTHROPIC_API_KEY" not in cli.calls[0]["kw"]["env"]
+
+
+def test_a_key_file_project_yml_names_is_never_read(tmp_path, monkeypatch,
+                                                     fake_cli, capsys):
+    secret = tmp_path / "home" / ".ssh" / "id_any"
+    secret.parent.mkdir(parents=True)
+    secret.write_text("not-a-provider-key-but-private\n", encoding="utf-8")
+    a_flow(tmp_path, monkeypatch, [("worker", ["provider: mine"])],
+           project_yml="project:\n  name: here\nconnectors:\n  mine:\n"
+           "    provider: cli\n    auth: api-key\n    key_file: "
+           + json.dumps(str(secret)) + "\n")
+    cli = fake_cli(answer("done\n"))
+    assert engine.main() != 0
+    assert "project.yml: connectors: mine: auth: api-key is the person's" \
+        in capsys.readouterr().out
+    assert cli.calls == [] and cli.asides == []
+    for path in state.RUNS.rglob("*"):
+        if path.is_file():
+            assert "not-a-provider-key" not in path.read_text(
+                encoding="utf-8", errors="replace"), path
+
+
+def test_the_person_s_environment_names_the_key_file(tmp_path, monkeypatch,
+                                                      fake_cli):
+    cli = fake_cli(answer("done\n"))
+    monkeypatch.setenv("AGENTWEFT_KEY_FILE", str(key_file(tmp_path)))
+    p = providers.build("claude-api", where=tmp_path / "place")
+    assert p.refuses() == ""
+    assert p.ask("go", timeout=5)
     assert cli.calls[0]["kw"]["env"]["ANTHROPIC_API_KEY"] == KEY
+    other = key_file(tmp_path, "decoy-flow-key-for-tests-02", name="f.txt")
+    p = providers.build("claude-api", connectors={
+        "claude-api": {"key_file": str(other)}})
+    assert p.child_env()["ANTHROPIC_API_KEY"] == "decoy-flow-key-for-tests-02"
+    monkeypatch.setenv("AGENTWEFT_KEY_FILE", "keys/k.txt")
+    assert providers.build("claude-api").refuses() == (
+        "claude-api reads its key from AGENTWEFT_KEY_FILE, which should be a"
+        " full path (or start with ~), not 'keys/k.txt'")
+
+
+def test_a_key_file_named_by_a_dot_env_inside_the_place_is_refused(
+        tmp_path, monkeypatch, fake_cli):
+    fake_cli(answer("done\n"))
+    path = key_file(tmp_path)
+    place = tmp_path / "place"
+    place.mkdir()
+    (place / ".env").write_text("AGENTWEFT_KEY_FILE=" + str(path) + "\n",
+                                encoding="utf-8")
+    monkeypatch.delenv("AGENTWEFT_KEY_FILE", raising=False)
+    monkeypatch.chdir(place)
+    engine.load_env()
+    p = providers.build("claude-api", where=place)
+    assert p.refuses() == (
+        "claude-api reads its key from AGENTWEFT_KEY_FILE, which "
+        + str((place / ".env").resolve()) + " sets, inside the place: that"
+        " file is the project's. set it in your own environment, or in a"
+        " .env outside the place")
+    with pytest.raises(providers.connectors.NoKey):
+        p.child_env()
+    mine = tmp_path / "mine"
+    mine.mkdir()
+    (mine / ".env").write_text("AGENTWEFT_KEY_FILE=" + str(path) + "\n",
+                               encoding="utf-8")
+    monkeypatch.chdir(mine)
+    engine.load_env()
+    assert providers.build("claude-api", where=place).refuses() == ""
+
+
+def pinned(cli):
+    argv = cli.calls[-1]["argv"]
+    said = json.loads(argv[argv.index("--settings") + 1])
+    return (said.get("env") or {}).get("ANTHROPIC_BASE_URL")
+
+
+@pytest.mark.parametrize("connector", ["claude-api", "claude-sub"])
+def test_a_grant_less_call_with_a_credential_pins_where_it_is_sent(
+        tmp_path, monkeypatch, fake_cli, connector):
+    cli = fake_cli(answer("done\n"))
+    monkeypatch.setenv("AGENTWEFT_KEY_FILE", str(key_file(tmp_path)))
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    place = tmp_path / "place"
+    assert providers.build(connector, where=place).ask("go", timeout=5)
+    assert pinned(cli) == "https://api.anthropic.com"
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example/v1")
+    assert providers.build(connector, where=place).ask("go", timeout=5)
+    assert pinned(cli) == "https://gateway.example/v1"
+    own = tmp_path / "own-settings.json"
+    own.write_text(json.dumps({"env": {
+        "ANTHROPIC_BASE_URL": "https://mine.example"}}), encoding="utf-8")
+    monkeypatch.setattr(providers.cli_provider, "USER_SETTINGS", str(own))
+    assert providers.build(connector, where=place).ask("go", timeout=5)
+    assert pinned(cli) == "https://mine.example"
+
+
+def test_a_call_with_no_credential_or_a_grant_pins_nothing(tmp_path,
+                                                           monkeypatch,
+                                                           fake_cli):
+    cli = fake_cli(answer("done\n"))
+    monkeypatch.setenv("AGENTWEFT_KEY_FILE", str(key_file(tmp_path)))
+    for block, grant in (({"provider": "cli"}, None),
+                         ("claude-api", ["read", "edit"]),
+                         ("claude-sub", ["read"])):
+        assert providers.build(block, where=tmp_path / "place",
+                               grant=grant).ask("go", timeout=5)
+        assert pinned(cli) is None, block
 
 
 def lines():
