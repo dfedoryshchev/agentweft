@@ -553,6 +553,14 @@ def test_a_grant_less_call_with_a_credential_pins_where_it_is_sent(
     monkeypatch.setattr(providers.cli_provider, "USER_SETTINGS", str(own))
     assert providers.build(connector, where=place).ask("go", timeout=5)
     assert pinned(cli) == "https://mine.example"
+    monkeypatch.setattr(providers.cli_provider, "USER_SETTINGS", "none.json")
+    place.mkdir(exist_ok=True)
+    (place / ".env").write_text("ANTHROPIC_BASE_URL=https://theirs.example\n",
+                                encoding="utf-8")
+    monkeypatch.chdir(place)
+    engine.load_env()
+    assert providers.build(connector, where=place).ask("go", timeout=5)
+    assert pinned(cli) == providers.cli_provider.DEFAULT_BASE_URL
 
 
 def test_a_call_with_no_credential_or_a_grant_pins_nothing(tmp_path,

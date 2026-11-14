@@ -204,7 +204,8 @@ permissions reference). so a step on `subscription` or `api-key` with no
 grant is started with `--settings` naming `ANTHROPIC_BASE_URL` (the command
 line ranks above every settings file but your organisation's managed ones):
 the value your own settings file's `env` block gives, else the run's
-environment's, else the api's own host. a step with a grant loads
+environment's (unless a `.env` inside the place set it), else the api's own
+host. a step with a grant loads
 only your settings file, or none, and is left as it is. under `inherit`
 nothing is pinned: a key exported in your shell reaches a grant-less step as
 it always did, and the place's settings can send it elsewhere, so a project
