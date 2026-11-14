@@ -15,8 +15,10 @@ SAID = "sk-ant-REDACTED"
 # a key of another shape (a gateway's bearer token, a proxy's key) is
 # redacted by its value: each value a key file handed, this process
 HANDED = set()
-# shorter than this, a value is ordinary text more often than a key
-SHORTEST = 8
+# shorter than this, a value is ordinary text more often than a key, and
+# redacting it would blank a word out of every later line of the process: a
+# key file holding less is refused (`connectors.key_refused`)
+SHORTEST = 20
 lock = threading.Lock()
 
 

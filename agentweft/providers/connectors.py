@@ -307,6 +307,12 @@ def key_refused(p):
                 + type(e).__name__)
     if not text.strip():
         return str(path) + " is empty, and " + who + " reads its key from it"
+    from agentweft.guardrails.redact import SHORTEST
+
+    if len(text.strip()) < SHORTEST:
+        return (str(path) + " holds " + str(len(text.strip())) + " characters,"
+                " and a key is " + str(SHORTEST) + " or more: " + who
+                + " reads its key from it")
     return ""
 
 

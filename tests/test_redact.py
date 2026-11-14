@@ -3,6 +3,8 @@ never written into a recording or the run's record."""
 import json
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft import providers
 from agentweft.evals import recording
@@ -57,9 +59,20 @@ def test_the_value_a_key_file_handed_is_redacted_whatever_its_shape(
     assert redact.redact(left) is left
 
 
-def test_a_short_value_is_not_redacted_by_value(tmp_path):
-    handing(tmp_path, "abc")
-    assert redact.redact("abcdef") == "abcdef"
+def test_a_key_file_too_short_to_be_a_key_is_never_handed(tmp_path):
+    path = tmp_path / "keys" / "k.txt"
+    path.parent.mkdir()
+    path.write_text("password1-is-19char\n", encoding="utf-8")
+    p = providers.build({"provider": "cli", "auth": "api-key",
+                         "key_file": str(path)})
+    assert p.refuses() == (str(path) + " holds 19 characters, and a key is"
+                           " 20 or more: cli reads its key from it")
+    with pytest.raises(connectors.NoKey):
+        connectors.key_of(p)
+    assert redact.redact("password1-is-19char") == "password1-is-19char"
+    path.write_text("password1-is-20chars\n", encoding="utf-8")
+    assert connectors.key_of(p) == "password1-is-20chars"
+    assert redact.redact("x password1-is-20chars") == "x sk-ant-REDACTED"
 
 
 def test_a_recording_keeps_no_key(tmp_path):

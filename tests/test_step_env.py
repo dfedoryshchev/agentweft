@@ -99,10 +99,10 @@ def test_two_connectors_never_see_each_other_s_credential(child_env, tmp_path,
     monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "decoy-bedrock")
     key = tmp_path / "keys" / "k.txt"
     key.parent.mkdir()
-    key.write_text("decoy-file-key\n", encoding="utf-8")
+    key.write_text("decoy-file-key-for-tests\n", encoding="utf-8")
     api = child_env(auth="api-key", key_file=str(key))
     sub = child_env(auth="subscription")
-    assert api["ANTHROPIC_API_KEY"] == "decoy-file-key"
+    assert api["ANTHROPIC_API_KEY"] == "decoy-file-key-for-tests"
     assert "CLAUDE_CODE_PROMPT_CACHE_TTL" in api
     assert "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB" in api
     for gone in ("ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
@@ -111,7 +111,7 @@ def test_two_connectors_never_see_each_other_s_credential(child_env, tmp_path,
     for gone in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
                  "CLAUDE_CODE_USE_BEDROCK"):
         assert gone not in sub
-    assert "decoy-file-key" not in json.dumps(sub)
+    assert "decoy-file-key-for-tests" not in json.dumps(sub)
     assert sub["CLAUDE_CODE_OAUTH_TOKEN"] == "decoy-oauth"
 
 
@@ -130,7 +130,7 @@ def test_every_connector_s_cli_scrubs_its_own_children(child_env, tmp_path,
     monkeypatch.delenv(SCRUB, raising=False)
     key = tmp_path / "keys" / "k.txt"
     key.parent.mkdir()
-    key.write_text("decoy-file-key\n", encoding="utf-8")
+    key.write_text("decoy-file-key-for-tests\n", encoding="utf-8")
     # the fake echoes "set" for a value with no decoy- prefix: the runner's 1
     assert child_env(connector="mine")[SCRUB] == "set"
     assert child_env(connector="sub", auth="subscription")[SCRUB] == "set"

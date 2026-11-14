@@ -163,13 +163,14 @@ def test_a_key_file_inside_the_place_is_refused(tmp_path, fake_cli):
 def test_a_key_written_after_the_check_is_read_at_call_time(tmp_path,
                                                             fake_cli):
     cli = fake_cli(answer("done\n"))
-    path = key_file(tmp_path, "decoy-first")
+    path = key_file(tmp_path, "decoy-first-key-for-tests")
     p = providers.build("claude-api", connectors={
         "claude-api": {"key_file": str(path)}})
     assert p.refuses() == ""
-    path.write_text("decoy-second", encoding="utf-8")
+    path.write_text("decoy-second-key-for-tests", encoding="utf-8")
     assert p.ask("go", timeout=5)
-    assert cli.calls[0]["kw"]["env"]["ANTHROPIC_API_KEY"] == "decoy-second"
+    assert cli.calls[0]["kw"]["env"]["ANTHROPIC_API_KEY"] == \
+        "decoy-second-key-for-tests"
 
 
 def test_the_key_is_never_on_the_command_line(tmp_path, fake_cli):
@@ -542,7 +543,7 @@ def test_a_grant_less_call_with_a_credential_pins_where_it_is_sent(
     monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
     place = tmp_path / "place"
     assert providers.build(connector, where=place).ask("go", timeout=5)
-    assert pinned(cli) == "https://api.anthropic.com"
+    assert pinned(cli) == providers.cli_provider.DEFAULT_BASE_URL
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example/v1")
     assert providers.build(connector, where=place).ask("go", timeout=5)
     assert pinned(cli) == "https://gateway.example/v1"

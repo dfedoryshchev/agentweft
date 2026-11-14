@@ -204,7 +204,7 @@ permissions reference). so a step on `subscription` or `api-key` with no
 grant is started with `--settings` naming `ANTHROPIC_BASE_URL` (the command
 line ranks above every settings file but your organisation's managed ones):
 the value your own settings file's `env` block gives, else the run's
-environment's, else `https://api.anthropic.com`. a step with a grant loads
+environment's, else the api's own host. a step with a grant loads
 only your settings file, or none, and is left as it is. under `inherit`
 nothing is pinned: a key exported in your shell reaches a grant-less step as
 it always did, and the place's settings can send it elsewhere, so a project
@@ -227,21 +227,34 @@ you do not own runs on `claude-sub` or `claude-api`.
   subscription gets the hour on its own). the name is checked against the
   cli's env-vars reference (it needs 2.1.242 or later; a
   `FORCE_PROMPT_CACHING_5M` named in the block's `env:` overrides it).
-- `inherit` (the default, and every inline block): the environment as
-  before, under "what the command's process holds".
+- `inherit` (the default, and every inline block that says no `auth`): the
+  credentials the run holds, under "what the command's process holds"; a
+  named connector on `inherit` also gets the subprocess scrub (below), an
+  inline block does not.
 
-every `claude` step on a connector, whatever its `auth`, is started with
-`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` (unless the run's own environment
-already sets the name; an `api-key` step always gets `1`): the cli then takes
-credentials out of the environment of the shell commands, hooks and stdio MCP
-servers it starts, so a key the step was handed, or one exported in your
-shell under `inherit`, does not reach a command the model runs; the cli keeps
-it for its own calls. the cli knows a credential by its name or the shape of
-its value, takes `CLAUDE_CONFIG_DIR` out too, and leaves `GITHUB_TOKEN`,
-`GH_TOKEN`, the proxy names and `GIT_CONFIG_*` in place (its env-vars
-reference, "What the subprocess environment scrub removes"); a step whose
-tests need a removed variable (a `DATABASE_URL` with a password, an
-`NPM_TOKEN`) runs on a provider block written inline, which sets nothing.
+which `claude` steps are started with `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`:
+
+- a step on a named connector (a built-in or one declared under
+  `connectors:`), whatever its `auth`, `inherit` included; when the run's own
+  environment already sets the name, its value is kept.
+- a step whose `auth` is `api-key`, named or written inline, always gets `1`.
+- a provider block written inline with `subscription` or `inherit`, and the
+  flow's default provider when it names no connector, get nothing: they run
+  as they did before connectors.
+
+the cli then takes credentials out of the environment of the shell commands,
+hooks and stdio MCP servers it starts, so a key the step was handed, or one
+exported in your shell, does not reach a command the model runs; the cli
+keeps it for its own calls. the cli knows a credential by its name or the
+shape of its value, takes `CLAUDE_CONFIG_DIR` out too, and leaves
+`GITHUB_TOKEN`, `GH_TOKEN`, the proxy names and `GIT_CONFIG_*` in place (its
+env-vars reference, "What the subprocess environment scrub removes"). so
+`claude-sub` and an inline block with the same settings do not give the
+model's shell the same environment: under the connector a test that reads a
+`DATABASE_URL` with a password, an `NPM_TOKEN`, or a nested `claude` that
+needs `CLAUDE_CONFIG_DIR` loses it. the inline block is left without the
+scrub on purpose: it is how a step whose tests need those variables keeps
+them, and an inline block that carries a key still gets the scrub.
 
 the key file is a full path (or starts with `~`) outside the place, so that no
 run commits it, a step quotes it from the tree or a gate's command finds it
@@ -306,8 +319,12 @@ on an api key:
 - an `sk-ant-` key in an answer, an error or a gate's output is made
   `sk-ant-REDACTED` before the run reads it, and in every recording and
   record file (`journal.md`, "what gets written"); so is the exact value a
-  `key_file` handed in this process, whatever its shape (a gateway's bearer
-  token, a proxy's key), once it is 8 characters or longer.
+  key file handed in this process, whatever its shape (a gateway's bearer
+  token, a proxy's key). a key file holding fewer than 20 characters is
+  refused before the step's call: every key shape known here is far longer,
+  and a value that short is a word often enough that redacting it would blank
+  it out of every later line of the process, while leaving it unredacted
+  would write a secret into the record.
 
 the prompt cache: on a subscription the cli asks for the hour-long cache on
 its own; on an api key it asks for 5 minutes unless told otherwise, and a
@@ -331,11 +348,19 @@ a carried-on step's prompt with the hour lifetime itself (above).
   `--setting-sources user`), a saved Console key or a profile still ranks
   above the subscription login in the cli; such a step is refused before its
   call (above), never run on it.
-- a key's shape. any non-blank text in `key_file` is handed over as the
-  key; the cli says if it is wrong. the redaction knows the `sk-ant-` shape
-  and the values this process handed; a key exported in your shell under
-  `inherit` is redacted only when it has the `sk-ant-` shape, and a value
-  under 8 characters is not redacted by value.
+- a key's shape. any text of 20 characters or more in the key file is
+  handed over as the key; the cli says if it is wrong. the redaction knows
+  the `sk-ant-` shape and the values this process handed; a key exported in
+  your shell under `inherit` is redacted only when it has the `sk-ant-`
+  shape.
+- which key paid. `auth_method: api_key` says the cli used an api key, not
+  which one: an `env` block setting `ANTHROPIC_API_KEY` in a settings file
+  the step loads (yours, or the place's for a step with no grant) can
+  replace the key the step was handed (the cli applies such a block over the
+  environment it starts with), and the cli prints no key id. the step line's
+  `claude-api:api-key` is the credential agentweft handed; the Console's
+  usage page for the key is the truth of what paid. nothing of yours is sent
+  elsewhere that way: another key pays, to the host the base url pin names.
 - the gates take provider credentials out by name: a key copied into a
   variable of another name reaches them.
 
@@ -726,8 +751,9 @@ working. any other command gets none of those: its login is not ours to
 guess. the same environment answers `--version` and `claude auth status`, so
 the check says what a step will see.
 
-a name the command needs beyond that is listed in the provider block, for
-example the cloud credentials a Bedrock or Vertex login reads:
+a name the command needs beyond that is listed in the provider block in the
+flow (a connector `project.yml` declares may not list one), for example the
+cloud credentials a Bedrock or Vertex login reads:
 
     provider:
       provider: cli
