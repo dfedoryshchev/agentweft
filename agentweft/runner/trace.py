@@ -839,6 +839,8 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "handoff": entry.handoff}
     if getattr(p, "auth_method", None):
         out["auth_method"] = p.auth_method
+    if getattr(p, "command_path", None):
+        out["command_path"] = p.command_path
     if entry.calls == 0:
         out["calls"] = 0
         out["tokens"] = dict(NO_TOKENS)

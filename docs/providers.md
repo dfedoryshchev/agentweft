@@ -185,10 +185,17 @@ request, and to no other command. so a built-in connector's `command` is
 never declared again (`claude-api: {command: python}` is refused at load, with
 that reason), a declared connector with `auth: api-key` whose `command` is not
 `claude` is refused at load, and a connector with `subscription` or `api-key`
-whose `claude` is a path inside the place (`tools/claude`, `./claude.cmd`) is
-refused before its call: a step could have written it. `claude` is told by
-its file name (`claude`, `claude.cmd`, `/usr/bin/claude`), the same test the
-provider uses for its flags; a bare `claude` is found on `PATH`.
+whose `claude` lies inside the place (`tools/claude`, `./claude.cmd`) or in
+agentweft's runs folder (a run's `tmp` is the steps' scratch, and it outlives
+the run) is refused before its call: a step could have written it. a bare
+`claude` is judged where `PATH` finds it, once per run, and the file found is
+the step line's `command_path` (`journal.md`), so a `PATH` that moved shows.
+`claude` is told by its file name (`claude`, `claude.cmd`, `/usr/bin/claude`),
+the same test the provider uses for its flags, so a wrapper named `claude`
+outside both folders is handed the credential like the cli; and the lookup
+is python's `shutil.which` over `PATH`, which on Windows can differ from the
+system's own search for a bare name; a `command` written as a full path
+outside both folders is the one exact way to say which file starts.
 
 a `claude` step with no grant loads the place's own `.claude/settings.json`,
 and the cli applies that file's `env` block over the environment it was

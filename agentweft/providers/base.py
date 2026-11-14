@@ -276,6 +276,9 @@ class Provider(object):
     key_file = None
     # what the provider itself says it logs in with, None when not read
     auth_method = None
+    # the file a command handed a credential starts, resolved, None when not
+    # looked for (`connectors.started`)
+    command_path = None
 
     def __init__(self, **opts):
         self.opts = opts

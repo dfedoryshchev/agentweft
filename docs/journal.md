@@ -228,6 +228,10 @@ and `continued`
   (the rest names the account), and the key is left out when the cli says
   nothing readable. a `subscription` or `api-key` step whose `auth_method`
   is not its own is refused before its call (`providers.md`, "connectors").
+  a `subscription` or `api-key` step also carries `command_path`: the file
+  its `claude` starts, resolved, found once per run on `PATH` when the
+  command is a bare name, so a `PATH` that changed between runs shows; it is
+  left out when nothing was found.
 - `model` is the id the provider sends, null for one that sends none (the fake,
   or a cli command other than claude). `model_reported` is what the provider
   said answered. when the step's transcript records the cli's

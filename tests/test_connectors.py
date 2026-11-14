@@ -303,6 +303,80 @@ def test_a_command_inside_the_place_is_handed_no_credential(tmp_path,
     assert p.child_env()["ANTHROPIC_API_KEY"] == KEY
 
 
+def test_a_claude_in_a_run_s_folder_is_handed_no_credential(tmp_path,
+                                                           fake_cli):
+    fake_cli(answer("done\n"))
+    place = tmp_path / "place"
+    place.mkdir()
+    written = state.RUNS / "earlier-run" / "tmp" / "claude.cmd"
+    written.parent.mkdir(parents=True)
+    written.write_text("@echo off\n", encoding="utf-8")
+    path = str(key_file(tmp_path))
+    for command in (str(written), str(written).replace("/", "\\")):
+        for block in ({"provider": "cli", "auth": "api-key", "key_file": path,
+                       "command": command},
+                      {"provider": "cli", "auth": "subscription",
+                       "command": command}):
+            p = providers.build(block, where=place)
+            assert p.refuses() == (
+                "cli starts " + command + ", in agentweft's"
+                " runs folder, where a step can write it: a credential goes"
+                " only to a claude outside the place and the runs folder")
+            with pytest.raises(providers.connectors.NoKey):
+                p.child_env()
+    inherit = providers.build({"provider": "cli", "command": str(written)},
+                              where=place)
+    assert inherit.refuses() == "" and inherit.command_path is None
+
+
+def test_a_bare_claude_is_found_once_and_judged_where_it_lies(tmp_path,
+                                                              monkeypatch,
+                                                              fake_cli):
+    cli = fake_cli(answer("done\n"))
+    place = tmp_path / "place"
+    place.mkdir()
+    found = []
+    monkeypatch.setattr(providers.connectors.shutil, "which",
+                        lambda command: found.append(command) or lies[0])
+    path = str(key_file(tmp_path))
+    for where, said in ((place / "node_modules" / ".bin" / "claude.exe",
+                         "inside the place"),
+                        (state.RUNS / "r-1" / "tmp" / "claude",
+                         "in agentweft's runs folder")):
+        lies = [str(where)]
+        p = providers.build("claude-api", where=place, connectors={
+            "claude-api": {"key_file": path}})
+        assert said in p.refuses()
+        assert str(where) in p.refuses()
+        assert not p.ask("go", timeout=5) and cli.calls == []
+    lies = [str(tmp_path / "bin" / "claude.exe")]
+    found.clear()
+    p = providers.build("claude-api", where=place, connectors={
+        "claude-api": {"key_file": path}})
+    assert p.refuses() == "" and p.ask("go", timeout=5)
+    assert p.ask("go", timeout=5) and found == ["claude"]
+    assert p.command_path == str((tmp_path / "bin" / "claude.exe").resolve())
+    lies = [None]
+    nowhere = providers.build("claude-sub", where=place)
+    assert nowhere.refuses() == "" and nowhere.command_path is None
+
+
+def test_the_step_line_says_which_claude_it_started(tmp_path, monkeypatch,
+                                                    fake_cli):
+    outside = tmp_path / "bin" / "claude.exe"
+    monkeypatch.setattr(providers.connectors.shutil, "which",
+                        lambda command: str(outside))
+    two_connectors(tmp_path, monkeypatch, fake_cli, third="plain")
+    with open(tmp_path / "flows" / "two" / "flow.yaml", "a",
+              encoding="utf-8") as f:
+        f.write("  plain:\n    provider: cli\n")
+    assert engine.main() == 0
+    api, sub, plain = lines()
+    assert api["command_path"] == sub["command_path"] == str(
+        outside.resolve())
+    assert plain["auth"] == "inherit" and "command_path" not in plain
+
+
 def test_project_yml_redeclaring_a_built_in_s_command_gets_no_key(
         tmp_path, monkeypatch, fake_cli):
     a_flow(tmp_path, monkeypatch, [("worker", ["provider: claude-api"])],

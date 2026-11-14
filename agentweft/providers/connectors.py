@@ -176,7 +176,9 @@ def label(p):
 def command_refused(p):
     """-> why p's command may not be handed the credential its auth names,
     "" when it may: a key goes to claude only, and no credential goes to a
-    claude a step could have written, one inside the place."""
+    claude a step could have written: one inside the place, or in
+    agentweft's runs folder, whose runs' `tmp` the steps write and which
+    outlives each run. a bare `claude` is judged where PATH finds it."""
     command = getattr(p, "command", None)
     if p.auth == INHERIT or command is None:
         return ""
@@ -184,21 +186,48 @@ def command_refused(p):
     if not claude(command):
         return (who + " hands its key to claude only, never to " + command) \
             if p.auth == API_KEY else ""
-    if p.where is None or not ("/" in command or "\\" in command):
+    path = started(p)
+    if path is None:
         return ""
-    path = Path(command).expanduser()
-    if not path.is_absolute():
-        path = Path(p.where) / path
+    from agentweft.runner import state
+
+    if p.where is not None and inside(path, p.where):
+        return (who + " starts " + shown(command, path) + ", inside the"
+                " place, where a step can write it: a credential goes only to"
+                " a claude outside the place")
+    if inside(path, state.RUNS):
+        return (who + " starts " + shown(command, path) + ", in agentweft's"
+                " runs folder, where a step can write it: a credential goes"
+                " only to a claude outside the place and the runs folder")
+    return ""
+
+
+def started(p):
+    """-> the file p's command starts, as a resolved path, found once per
+    provider (a run builds its own), put on `p.command_path` for its step
+    line; None when PATH has no such command. a path that cannot be
+    resolved is kept as written, and `inside` counts it as inside."""
+    if p.command_path is not None:
+        return p.command_path
+    command = p.command
+    if "/" in command or "\\" in command:
+        path = Path(command).expanduser()
+        if not path.is_absolute() and p.where is not None:
+            path = Path(p.where) / path
+    else:
+        found = shutil.which(command)
+        if not found:
+            return None
+        path = Path(found)
     try:
-        place = Path(p.where).resolve()
-        inside = place in path.resolve().parents
+        p.command_path = str(path.resolve())
     except OSError:
-        inside = True
-    if not inside:
-        return ""
-    return (who + " starts " + command + ", inside the place, where a step"
-            " can write it: a credential goes only to a claude outside the"
-            " place")
+        p.command_path = str(path)
+    return p.command_path
+
+
+def shown(command, path):
+    return command if command == path else command + " (" + path + ")"
 
 
 # what `claude auth status --json` says in `authMethod` for each auth. the cli
