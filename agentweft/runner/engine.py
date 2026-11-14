@@ -46,6 +46,8 @@ def load_env():
         if not line or line.startswith("#"):
             continue
         k, v = line.split("=", 1)
+        if k not in settings.FROM_FILE and k in os.environ:
+            settings.BEFORE[k] = os.environ[k]
         os.environ[k] = v
         settings.FROM_FILE[k] = whose
 

@@ -306,6 +306,117 @@ def test_init_answers_reach_the_run(place, monkeypatch, fake_cli):
     assert not snapshot.is_spec("TASK.md")
 
 
+def test_a_dot_env_in_the_place_cannot_loosen_the_run(tmp_path, monkeypatch,
+                                                      fake_cli, capsys):
+    from test_connectors import a_flow
+
+    work = a_flow(tmp_path, monkeypatch,
+                  [("worker", ["tools: [read, edit]"])])
+    (work / ".env").write_text("AGENTWEFT_PERMISSION_MODE=bypassPermissions\n"
+                               "AGENTWEFT_TIMEOUT=120\n", encoding="utf-8")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    cli_ = fake_cli(answer("done\n"))
+    assert engine.main() != 0
+    assert cli_.calls == []
+    said = capsys.readouterr().out
+    assert ("AGENTWEFT_PERMISSION_MODE is set by "
+            + str((work / ".env").resolve()) + ", inside the place: it loosens"
+            " a guard, which is yours to set, in your own environment or a"
+            " .env outside the place") in said
+    assert "AGENTWEFT_TIMEOUT" not in said
+
+
+@pytest.mark.parametrize("name, value, why", [
+    ("AGENTWEFT_PERMISSION_MODE", "bypassPermissions", "loosens a guard"),
+    ("AGENTWEFT_MAX_CALLS", "0", "loosens a guard"),
+    ("AGENTWEFT_MAX_TURNS", "0", "loosens a guard"),
+    ("PRICES", "cheap.yaml", "loosens a guard"),
+    ("AGENTWEFT_KEY_FILE", "~/.ssh/id_any",
+     "picks a credential or where one is sent"),
+    ("AGENTWEFT_PROVIDER", "api", "picks a credential or where one is sent"),
+    ("API_KEY", "decoy-api-key-for-tests",
+     "picks a credential or where one is sent"),
+    ("API_URL", "https://elsewhere.example",
+     "picks a credential or where one is sent"),
+    ("ANTHROPIC_BASE_URL", "https://elsewhere.example",
+     "picks a credential or where one is sent"),
+    ("CLAUDE_CODE_SUBPROCESS_ENV_SCRUB", "0",
+     "picks a credential or where one is sent"),
+    ("claude_config_dir", "decoy-config-folder",
+     "picks a credential or where one is sent"),
+    ("PATH", "bin", "picks which program runs or where its traffic goes"),
+    ("HTTPS_PROXY", "http://elsewhere.example",
+     "picks which program runs or where its traffic goes"),
+    ("NODE_EXTRA_CA_CERTS", "ca.pem",
+     "picks which program runs or where its traffic goes"),
+    ("AGENTWEFT_COMMITS", "squash", "makes a decision that is yours"),
+    ("AGENTWEFT_CO_AUTHOR", "true", "makes a decision that is yours"),
+    ("AGENTWEFT_SOMETHING_NEW", "1", "is a setting agentweft has not"
+     " classed as a preference"),
+])
+def test_what_a_place_s_dot_env_may_not_set(tmp_path, monkeypatch, name,
+                                            value, why):
+    work = tmp_path / "work"
+    work.mkdir()
+    (work / ".env").write_text(name + "=" + value + "\n", encoding="utf-8")
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    engine.load_env()
+    assert settings.from_the_place(work) == [
+        name + " is set by " + str((work / ".env").resolve()) + ", inside the"
+        " place: it " + why + ", which is yours to set, in your own"
+        " environment or a .env outside the place"]
+    assert settings.from_the_place(tmp_path / "elsewhere") == []
+
+
+def test_preferences_in_a_place_s_dot_env_still_work(tmp_path, monkeypatch):
+    work = tmp_path / "work"
+    work.mkdir()
+    (work / ".env").write_text(
+        "AGENTWEFT_TIMEOUT=120\nAGENTWEFT_RETRIES=1\nAGENTWEFT_WORKERS=2\n"
+        "AGENTWEFT_TESTS_E2E=true\nAGENTWEFT_TESTS_INTEGRATION=off\n"
+        "AGENTWEFT_SPEC_GLOBS=docs/rfc*\nMODEL=sonnet\nMODEL_HIGH=opus\n"
+        "EFFORT_LOW=low\nDATABASE_URL=sqlite://\nPYTHONIOENCODING=utf-8\n",
+        encoding="utf-8")
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    engine.load_env()
+    assert settings.from_the_place(work) == []
+    assert settings.get("timeout") == 120
+    assert snapshot.is_spec("docs/rfc-1.md")
+
+
+def test_a_place_s_dot_env_may_hold_a_setting_no_looser_than_yours(
+        tmp_path, monkeypatch):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    monkeypatch.setattr(sys, "argv", ["agentweft", "init", "--yes"])
+    assert cli.entrypoint() == 0
+    with open(work / ".env", "a", encoding="utf-8") as f:
+        f.write("AGENTWEFT_MAX_TURNS=10\nAGENTWEFT_MAX_TOKENS=0\n")
+    os.environ["AGENTWEFT_MAX_TOKENS"] = "50000"
+    engine.load_env()
+    [said] = settings.from_the_place(work)
+    assert said.startswith("AGENTWEFT_MAX_TOKENS is set by ")
+    assert "it loosens a guard" in said
+    settings.FROM_FILE.pop("AGENTWEFT_MAX_TOKENS")
+    assert settings.from_the_place(work) == []
+    assert settings.class_of("AGENTWEFT_MAX_CALLS", "26") == settings.LOOSENS
+    assert settings.class_of("AGENTWEFT_MAX_CALLS", "many") == \
+        settings.LOOSENS
+    assert settings.class_of("AGENTWEFT_PERMISSION_MODE", "dontAsk") is None
+
+
+def test_every_setting_is_classed():
+    for key in settings.DEFAULTS:
+        assert settings.class_of(settings.env_name(key)) is not None \
+            or settings.env_name(key) in settings.PREFERENCES, key
+
+
 def test_with_nothing_set_the_defaults_stand(place, fake_cli):
     assert providers.build({}).name == "cli"
     cli_ = fake_cli(answer("ok\n"))

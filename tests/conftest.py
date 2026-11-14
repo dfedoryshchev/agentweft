@@ -323,3 +323,4 @@ def runs_and_state_of_its_own(tmp_path, monkeypatch):
     # nor the key file the machine's own environment names
     monkeypatch.delenv("AGENTWEFT_KEY_FILE", raising=False)
     monkeypatch.setattr(settings, "FROM_FILE", {}, raising=False)
+    monkeypatch.setattr(settings, "BEFORE", {}, raising=False)
