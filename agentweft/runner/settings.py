@@ -34,6 +34,9 @@ PREFIX = "AGENTWEFT_"
 # the names a `.env` inside the place set that its project.yml declares
 # under `env:`, for the gates' child only (`gates/base.fresh_python`)
 PLACE_ENV = {}
+# whether agentweft started in the run's place or under it, as `load_env`
+# decided; None before it has
+STARTED_IN_PLACE = None
 # 0 is no cap
 CAPS = ("max_calls", "max_tokens", "max_turns")
 TRUE = ("1", "true", "yes", "on")

@@ -82,6 +82,21 @@ def test_the_start_tests_run_sees_no_credential(tmp_path, monkeypatch):
     assert seen and all(code == 0 and held(env) for env, code in seen)
 
 
+def test_the_hidden_suite_and_an_mcp_server_see_no_credential(tmp_path,
+                                                             monkeypatch):
+    from agentweft.bench import scorer
+    from agentweft.mcp import client
+
+    handed = []
+    monkeypatch.setattr(scorer, "bounded",
+                        lambda argv, where, env, limit: handed.append(env))
+    scorer.pytest(tmp_path, ["t.py"], env={"TASK_REPO": "r"})
+    seen = spy(monkeypatch, client)
+    client.Client([sys.executable, "-c", CHECK])._session([])
+    assert held(handed[0]) and handed[0]["TASK_REPO"] == "r"
+    assert seen and all(code == 0 and held(env) for env, code in seen)
+
+
 def test_the_sign_off_s_git_sees_no_credential(tmp_path, monkeypatch):
     seen = spy(monkeypatch, signoff)
     signoff._git(tmp_path, "--version")

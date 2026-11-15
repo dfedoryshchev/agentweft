@@ -28,10 +28,13 @@ class Client(object):
         """one process, several messages, replies in order. servers are cheap
         to start and holding one open across a whole run is a thing to get
         wrong later, not now."""
+        from agentweft.guardrails.gates.base import stripped
+
         payload = "".join(transport.dumps(m) for m in messages)
         try:
             r = subprocess.run(self.command, input=payload, capture_output=True,
-                               text=True, timeout=self.timeout, cwd=self.cwd)
+                               text=True, timeout=self.timeout, cwd=self.cwd,
+                               env=stripped())
         except FileNotFoundError:
             return [{"error": {"message": self.command[0] + " is not on PATH"}}]
         except subprocess.TimeoutExpired:

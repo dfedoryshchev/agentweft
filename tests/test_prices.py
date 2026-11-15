@@ -145,6 +145,25 @@ def test_a_table_of_your_own_is_read_over_the_shipped_one(tmp_path,
     assert prices.load().source == "https://other.invalid/prices"
 
 
+def test_a_price_table_inside_the_place_is_never_the_caps(tmp_path,
+                                                        monkeypatch):
+    monkeypatch.delenv("PRICES", raising=False)
+    place = tmp_path / "place"
+    place.mkdir()
+    (place / "prices.yaml").write_text(TABLE, encoding="utf-8")
+    monkeypatch.chdir(place)
+    engine.load_env(place)
+    assert prices.load().source == prices.load(prices.SHIPPED).source
+    yours = tmp_path / "yours.yaml"
+    yours.write_text(TABLE.replace("example.invalid", "other.invalid"),
+                     encoding="utf-8")
+    monkeypatch.setenv("PRICES", str(yours))
+    assert prices.load().source == "https://other.invalid/prices"
+    monkeypatch.delenv("PRICES")
+    engine.load_env(tmp_path / "elsewhere")
+    assert prices.load().source == "https://example.invalid/prices"
+
+
 def test_an_edit_to_the_table_is_read_without_a_restart(tmp_path):
     path = tmp_path / "prices.yaml"
     path.write_text(TABLE, encoding="utf-8")
@@ -419,8 +438,10 @@ def a_flow(tmp_path, monkeypatch, name, steps, model):
                                  encoding="utf-8")
     (d / "instructions.md").write_text("the " + name + " flow.\n",
                                        encoding="utf-8")
+    # the run's place is the folder it starts in, so the table is the
+    # person's, named in their environment
     (tmp_path / "prices.yaml").write_text(TABLE, encoding="utf-8")
-    monkeypatch.delenv("PRICES", raising=False)
+    monkeypatch.setenv("PRICES", str(tmp_path / "prices.yaml"))
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(prompts, "FLOW_ROOT", ["flows"])
     monkeypatch.setattr(sys, "argv", ["run.py", name, "--force"])

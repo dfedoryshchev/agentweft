@@ -186,11 +186,19 @@ CACHE = {}
 
 
 def where_from(path=None):
+    """-> the table: the one named, else `PRICES`, else `./prices.yaml`
+    unless agentweft started in the run's place (a cheaper table there
+    would loosen the money cap, and the place is the project's), else the
+    shipped one."""
+    from agentweft.runner import settings
+
     if path:
         return Path(path)
     if os.environ.get("PRICES"):
         return Path(os.environ["PRICES"])
     own = Path("prices.yaml")
+    if settings.STARTED_IN_PLACE:
+        return SHIPPED
     return own if own.is_file() else SHIPPED
 
 

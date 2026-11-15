@@ -58,7 +58,9 @@ def pytest(where, targets, env=None, timeout=None):
     ini = where / ".bench-pytest.ini"
     ini.write_text("[pytest]\n", encoding="utf-8")
     report = where / ".bench-report.xml"
-    run_env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    from agentweft.guardrails.gates.base import stripped
+
+    run_env = dict(stripped(), PYTHONDONTWRITEBYTECODE="1")
     run_env.update(env or {})
     limit = timeout or TIMEOUT
     try:

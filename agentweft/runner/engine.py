@@ -43,6 +43,7 @@ def load_env(place="."):
     # not worth a dependency for this
     from . import settings
 
+    settings.STARTED_IN_PLACE = settings.inside(".", place)
     if not os.path.exists(".env"):
         return
     whose = str(Path(".env").resolve())

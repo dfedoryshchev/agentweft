@@ -239,9 +239,12 @@ the lead's line is written first.
 
 the tokens go through a price table, `prices.yaml`: USD per million tokens,
 per model. the copy that ships is `agentweft/guardrails/prices.yaml`, and its
-header says the page it was copied from and the day. a `prices.yaml` in the
-directory you run from is read instead, and `PRICES=<path>` names one
-anywhere. a table with a rate missing, negative or not a number is refused
+header says the page it was copied from and the day. `PRICES=<path>` in your
+environment names one anywhere; else a `prices.yaml` in the directory you run
+from is read instead, unless that directory is the run's place or inside it
+(`--workdir`, else where agentweft starts): a table there is the project's,
+and a cheaper one would loosen the money cap, so the shipped table stands.
+a table with a rate missing, negative or not a number is refused
 with the model and the rate named.
 
     claude-opus-5-5:

@@ -35,7 +35,9 @@ run reads them:
   commits after each step, `squash` makes one commit per task
 - the files that are the spec, as globs from the top of the project
 - whether to keep a price table of your own, `prices.yaml`. one already
-  there is never written over, `--force` or not
+  there is never written over, `--force` or not. a run reads it only when
+  agentweft starts outside the run's place, or when `PRICES` in your
+  environment names it (`guardrails.md`, "what it cost in money")
 
 `agentweft init --yes` takes every default and asks nothing. an `.env` that is
 already there is left alone; `--force` rewrites the keys init asks about and
@@ -125,8 +127,9 @@ that reads stdin, writes nothing down, and prints what came back.
 
 the last runs, one line each, then the same runs per flow and per provider:
 tokens, the money the price table gives them, and what the provider said they
-cost. the table is `agentweft/guardrails/prices.yaml`, dated; a `prices.yaml`
-where you run wins over it. `python rollup.py` is the wider view, and takes
+cost. the table is `agentweft/guardrails/prices.yaml`, dated; `PRICES=<path>`
+in your environment, or a `prices.yaml` where you run when that folder is not
+the run's place, wins over it. `python rollup.py` is the wider view, and takes
 `--flow x` and `--failed`.
 
 ## next

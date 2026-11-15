@@ -185,8 +185,9 @@ an earlier run left: a `.pyc` is trusted on the source's size and its mtime in
 whole seconds, and an edit of the same size within the same second would
 otherwise run the old code.
 
-the same gates, the run of the start tests and the sign-off's git start
-without the provider credentials the run may hold: every name under
+the same gates, the run of the start tests, the sign-off's git, the bench's
+hidden suite and an MCP server a flow reads from start without the provider
+credentials the run may hold: every name under
 `ANTHROPIC_` and `CLAUDE_CODE_OAUTH_`, and the api provider's `API_KEY`. the
 command is the project's and the tests are a model's, so a test that prints
 its environment, or a git config that names a command of its own, never
