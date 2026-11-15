@@ -30,7 +30,9 @@ def valued(argv, flag):
 def main(argv=None):
     from agentweft.runner import state
     from agentweft.runner.config import config
+    from agentweft.runner.engine import console
 
+    console()
     argv = list(sys.argv[1:] if argv is None else argv)
     if "--compare" in argv:
         return compared(argv)

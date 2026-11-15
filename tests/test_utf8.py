@@ -200,6 +200,40 @@ def test_python_m_agentweft_step_prints_it_whole_too(tmp_path, monkeypatch):
     the_step_answer_printed(tmp_path, monkeypatch, m.entrypoint)
 
 
+def printed_on_cp1252(monkeypatch, start):
+    raw = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout",
+                        io.TextIOWrapper(raw, encoding="cp1252"))
+    monkeypatch.delenv("PYTHONIOENCODING", raising=False)
+    assert start() == 1
+    sys.stdout.flush()
+    return raw.getvalue().replace(b"\r\n", b"\n")
+
+
+def test_python_m_agentweft_bench_prints_outside_cp1252_whole(tmp_path,
+                                                              monkeypatch):
+    from agentweft.bench import __main__ as bench
+
+    monkeypatch.chdir(tmp_path)
+    said = SAID + " " + chr(0x2192)
+    out = printed_on_cp1252(monkeypatch, lambda: bench.main([said]))
+    assert out == (said + ": no such folder\n").encode("utf-8")
+
+
+def test_python_m_agentweft_evals_prints_outside_cp1252_whole(monkeypatch):
+    from agentweft.evals import __main__ as evals
+
+    said = SAID + " " + chr(0x2192)
+
+    def refused(_):
+        raise ValueError(said)
+
+    monkeypatch.setattr(evals.history, "place", refused)
+    monkeypatch.setattr(sys, "argv", ["agentweft.evals", "wide"])
+    out = printed_on_cp1252(monkeypatch, evals.main)
+    assert out == (said + "\n").encode("utf-8")
+
+
 def test_a_piped_run_on_an_ascii_locale_prints_utf8():
     import subprocess
     env = dict(os.environ, LC_ALL="C", LANG="C", PYTHONUTF8="0",

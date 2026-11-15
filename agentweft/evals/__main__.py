@@ -4,11 +4,13 @@ import time
 from agentweft.bench import history
 from agentweft.bench.__main__ import valued
 from agentweft.runner.config import config
+from agentweft.runner.engine import console
 
 from . import harness, recording
 
 
 def main():
+    console()
     if len(sys.argv) < 2:
         print("usage: python -m agentweft.evals <flow> [--case <name>]"
               " [--record] [--no-save] [--accept] [--scores <file>]")
