@@ -80,9 +80,9 @@ SCRUB_VAR = "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
 # an api key's cache lives 5 minutes unless asked for the hour, and a step
 # waiting on a gate or a sibling is often longer than that
 ON_KEY = {"CLAUDE_CODE_PROMPT_CACHE_TTL": "1h", SCRUB_VAR: "1"}
-# a step with no grant loads the place's `.claude/settings.json`, whose `env`
-# block the cli applies over the process environment even in `-p` on a folder
-# never trusted, so a repo could send the step's credential to its own host
+# every step loads only the person's settings, but a settings `env` block the
+# cli did load would be applied over the process environment, so a credential
+# a step is handed is also pinned to where the person sends it
 BASE_URL_VAR = "ANTHROPIC_BASE_URL"
 DEFAULT_BASE_URL = "https://api.anthropic.com"
 
@@ -989,6 +989,13 @@ class CliProvider(Provider):
                            json.dumps(settings, separators=(",", ":"))]
         if self.grant is not None:
             argv = argv + fence(self.grant)
+        else:
+            # in `-p` the cli runs a place's hooks, `env`, key helper and
+            # every `.mcp.json` server without asking, trusted or not
+            argv = argv + ["--setting-sources", "user"]
+        if self.brief_file:
+            argv = argv + ["--append-system-prompt-file",
+                           str(self.brief_file)]
         if tools_used and self.turns:
             argv = argv + ["--max-turns", str(self.turns)]
         model = self.asks_for()

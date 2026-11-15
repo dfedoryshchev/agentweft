@@ -197,19 +197,15 @@ is python's `shutil.which` over `PATH`, which on Windows can differ from the
 system's own search for a bare name; a `command` written as a full path
 outside both folders is the one exact way to say which file starts.
 
-a `claude` step with no grant loads the place's own `.claude/settings.json`,
-and the cli applies that file's `env` block over the environment it was
-started with, in `-p` too, on a folder nobody trusted (the cli's settings and
-permissions reference). so a step on `subscription` or `api-key` with no
-grant is started with `--settings` naming `ANTHROPIC_BASE_URL` (the command
-line ranks above every settings file but your organisation's managed ones):
-the value your own settings file's `env` block gives, else the run's
-environment's (unless a `.env` inside the place set it), else the api's own
-host. a step with a grant loads
-only your settings file, or none, and is left as it is. under `inherit`
-nothing is pinned: a key exported in your shell reaches a grant-less step as
-it always did, and the place's settings can send it elsewhere, so a project
-you do not own runs on `claude-sub` or `claude-api`.
+every `claude` step loads your own settings only, never the place's (below,
+"a grant reaches the cli"). as a belt beside that, a step on `subscription`
+or `api-key` with no grant is started with `--settings` naming
+`ANTHROPIC_BASE_URL` (the command line ranks above every settings file but
+your organisation's managed ones): the value your own settings file's `env`
+block gives, else the run's environment's, else the api's own host. a step
+with a grant loads only your settings file, or none, and is left as it is.
+under `inherit` nothing is pinned: a key exported in your shell reaches the
+step as it always did, and your own settings decide where it goes.
 
 `auth` decides the credential the step's process is handed, and no other:
 
@@ -345,8 +341,8 @@ a carried-on step's prompt with the hour lifetime itself (above).
   drop it.
 - taking a key helper out. `subscription` takes the key and token
   variables out of the environment, but an `apiKeyHelper`, an `env` block in
-  the person's own settings file (which a step that acts loads,
-  `--setting-sources user`), a saved Console key or a profile still ranks
+  the person's own settings file (which every step but one that only looks
+  loads, `--setting-sources user`), a saved Console key or a profile still ranks
   above the subscription login in the cli; such a step is refused before its
   call (above), never run on it.
 - a key's shape. any text of 20 characters or more in the key file is
@@ -355,13 +351,11 @@ a carried-on step's prompt with the hour lifetime itself (above).
   your shell under `inherit` is redacted only when it has the `sk-ant-`
   shape.
 - which key paid. `auth_method: api_key` says the cli used an api key, not
-  which one: an `env` block setting `ANTHROPIC_API_KEY` in a settings file
-  the step loads (yours, or the place's for a step with no grant) can
-  replace the key the step was handed (the cli applies such a block over the
-  environment it starts with), and the cli prints no key id. the step line's
-  `claude-api:api-key` is the credential agentweft handed; the Console's
-  usage page for the key is the truth of what paid. nothing of yours is sent
-  elsewhere that way: another key pays, to the host the base url pin names.
+  which one: an `env` block setting `ANTHROPIC_API_KEY` in your own settings
+  file can replace the key the step was handed (the cli applies such a block
+  over the environment it starts with), and the cli prints no key id. the
+  step line's `claude-api:api-key` is the credential agentweft handed; the
+  Console's usage page for the key is the truth of what paid.
 - the gates take provider credentials out by name: a key copied into a
   variable of another name reaches them.
 
@@ -543,17 +537,54 @@ and a granted step is started with:
   default while every step that acts runs on that model: such a step is
   passed it as `--model`, unless the flow or `MODEL` named one already or
   `ANTHROPIC_MODEL` is set, which the cli reads itself.
-- for a grant that acts, `--setting-sources user`: the user's own settings
-  load and the place's `.claude/settings.json` and `settings.local.json`, with
-  their hooks, `env` and key helper, do not.
+- for a grant that acts, `--setting-sources user` (below).
+
+a step with no grant gets none of the fence: the host's own defaults decide
+its tools and what it may write (for a person whose settings say
+`acceptEdits` and an allow list, those; for a new install, the cli's default,
+which denies writes in `-p`). it is started with `--setting-sources user`
+too.
+
+### what a place may hand the cli
+
+in `-p` the cli shows no trust dialog, and on a folder nobody trusted it
+still runs the project's settings hooks, applies its `env` block, runs its
+`apiKeyHelper` and other helper commands, a project skill's hooks, and
+connects every server in its `.mcp.json` without asking (the cli's
+permissions reference, "What runs before you trust a folder", whose first
+remedy is this flag). a place is a folder a clone or a step wrote, never the
+person, so every `claude` step, granted or not, loads only the user source:
+
+- `--setting-sources user` on every step that acts or has no grant;
+  `--restricted` on a step that only looks reads no settings file at all.
+- what still loads: your own settings file under `~/.claude` or
+  `CLAUDE_CONFIG_DIR` (its hooks, `env`, `apiKeyHelper`, user-scope MCP
+  servers, your skills) and your organisation's managed settings. those are
+  yours.
+- what never loads from the place: `.claude/settings.json`,
+  `settings.local.json`, their hooks, `env` and helpers, `.mcp.json`, project
+  skills, commands and subagents, and the instruction files the cli read
+  from the project source.
+- the instruction files come back as text: when the run starts, the place's
+  root `CLAUDE.md`, `.claude/CLAUDE.md` and every `.md` under
+  `.claude/rules/` are read once, in that order, each under its path, into
+  `<run>/brief/place.md` beside the run's record, and every `claude` step in
+  the run is passed it with `--append-system-prompt-file` (appended to the
+  cli's own system prompt). a file that cannot be read is named there as
+  `unreadable: <path>`, and the step still runs. a place with none of them
+  passes no such flag.
+- what a step wrote to one of those files after the start is not handed:
+  the brief is the start's, and the briefing guard (`guardrails.md`) refuses
+  a step whose model would start after one changed.
+- not handed, and not loaded either: `AGENTS.md` (the cli never read it),
+  `CLAUDE.local.md`, and a `CLAUDE.md` in a subfolder, which the cli loaded
+  when a tool opened a file under it. a step may still Read any of them.
 
 `--settings '{"disableAllHooks":true}'` is not passed on purpose: it would
-turn off a hook the run hands over itself, and the place's hooks are already
-kept out by which settings sources load. the opposite is: whenever the run
+turn off a hook the run hands over itself. the opposite is: whenever the run
 hands a step a hook, granted or not, its `--settings` carries
-`"disableAllHooks": false`. the command line sits above the project, local
-and user settings files, so a step with no grant, which loads the place's
-own `.claude/settings.json`, cannot have the run's hook switched off by it.
+`"disableAllHooks": false`, and the command line sits above the user
+settings file, so your own settings cannot switch the run's hook off either.
 managed settings sit above the command line, so `allowManagedHooksOnly` or a
 managed `disableAllHooks` still can, and the run cannot tell. `--bare` is
 not passed either: it authenticates only by API key.

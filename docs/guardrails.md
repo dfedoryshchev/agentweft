@@ -818,6 +818,15 @@ own digest, `--resume` included, so a file a step wrote before a park is
 something the person who carried the run on has let through. `.git/` is not
 walked, and nothing above the place is looked at.
 
+the cli itself reads none of the place's files as settings or instructions:
+every `claude` step loads the person's settings only (`providers.md`, "what
+a place may hand the cli"). the place's root `CLAUDE.md`, `.claude/CLAUDE.md`
+and `.claude/rules/*.md` are read once at the start, beside this digest, and
+handed to every step as text from `<run>/brief/place.md`; `AGENTS.md`,
+`CLAUDE.local.md`, a subfolder's `CLAUDE.md`, `.claude/settings.json`, its
+hooks and `.mcp.json` are never loaded. the guard still watches all of them:
+a step writing one is writing what a later reader, or a later run, takes in.
+
 ## the scope fence
 
     # project.yml

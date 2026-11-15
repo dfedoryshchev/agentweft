@@ -178,6 +178,14 @@ class Recorder(Provider):
     def where(self, value):
         self.inner.where = value
 
+    @property
+    def brief_file(self):
+        return self.inner.brief_file
+
+    @brief_file.setter
+    def brief_file(self, value):
+        self.inner.brief_file = value
+
     def at(self, step, task):
         self.goes.at(step, task)
         self.inner.at(step, task)

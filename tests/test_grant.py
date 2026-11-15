@@ -2,6 +2,7 @@
 import json
 import sys
 import types
+from pathlib import Path
 
 import pytest
 
@@ -75,14 +76,19 @@ def test_a_grant_of_nothing_takes_every_tool_away(fake_cli):
     assert "--restricted" in argv
 
 
-def test_a_step_with_no_grant_keeps_the_hosts_own_default(fake_cli):
+def test_a_step_with_no_grant_loads_only_the_persons_settings(fake_cli,
+                                                               tmp_path):
     cli_ = fake_cli(answer("ok\n"))
     claude().ask("x")
-    argv = cli_.calls[0]["argv"]
-    for name in ("--tools", "--allowedTools", "--permission-mode",
-                 "--restricted", "--setting-sources"):
-        assert name not in argv, name
-    assert cli_.asides == []
+    in_a_place = claude()
+    in_a_place.where = tmp_path
+    in_a_place.ask("x")
+    for call in cli_.calls:
+        argv = call["argv"]
+        for name in ("--tools", "--allowedTools", "--permission-mode",
+                     "--restricted"):
+            assert name not in argv, name
+        assert flag(argv, "--setting-sources") == "user"
 
 
 def test_the_model_flag_stays_last(fake_cli):
@@ -261,6 +267,91 @@ def test_the_run_record_keeps_the_grant_and_what_was_passed(
     assert said["argv"][:4] == ["-p", "--output-format", "json", "--settings"]
     assert flag(said["argv"], "--permission-mode") == "dontAsk"
     assert second["grant"] is None
+
+
+NL = chr(10)
+# a CJK word: a rule file in any script reaches the step as it was written
+WORD = chr(0x6f22) + chr(0x5b57)
+
+
+def instruction_files(place):
+    (place / "CLAUDE.md").write_text("run the suite with make test." + NL,
+                                     encoding="utf-8")
+    rules = place / ".claude" / "rules"
+    rules.mkdir(parents=True)
+    (rules / "a.md").write_text("stdlib only, " + WORD + NL, encoding="utf-8")
+
+
+def test_the_place_s_instruction_files_reach_every_step_as_text(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "briefed",
+           ["worker", "reviewer\ntools: [read]"])
+    instruction_files(tmp_path)
+    cli_ = fake_cli(answer("did it\n"), answer("VERDICT: ok\n\nfine\n"))
+    engine.main()
+    assert len(cli_.calls) == 2
+    handed = {flag(c["argv"], "--append-system-prompt-file")
+              for c in cli_.calls}
+    assert len(handed) == 1 and None not in handed
+    [path] = handed
+    [folder] = folders(tmp_path)
+    assert Path(path).parent.resolve() == (folder / "brief").resolve()
+    text = Path(path).read_text(encoding="utf-8")
+    assert text.index("## CLAUDE.md") < text.index("make test") \
+        < text.index("## .claude/rules/a.md") < text.index(WORD)
+    worker, reviewer = (c["argv"] for c in cli_.calls)
+    assert flag(worker, "--setting-sources") == "user"
+    assert "--restricted" in reviewer
+    # the model flag stays last
+    assert worker[-2] == "--model"
+
+
+def test_a_place_with_no_instruction_files_is_handed_none(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "plain", ["worker"])
+    cli_ = fake_cli(answer("did it\n"))
+    engine.main()
+    assert "--append-system-prompt-file" not in cli_.calls[0]["argv"]
+    assert not (folders(tmp_path)[0] / "brief").exists()
+
+
+def test_the_brief_is_what_the_files_said_when_the_run_started(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "late", ["worker"])
+    instruction_files(tmp_path)
+    (tmp_path / ".claude" / "CLAUDE.md").write_text("second." + NL,
+                                                    encoding="utf-8")
+    run = engine.Run("late", runner.config("late"), {"worker": ""})
+    (tmp_path / "CLAUDE.md").write_text("written by a step." + NL,
+                                        encoding="utf-8")
+    folder = tmp_path / "runs" / "one"
+    folder.mkdir(parents=True)
+    run.keep_in(folder)
+    text = Path(run.provider.brief_file).read_text(encoding="utf-8")
+    assert "make test" in text and "written by a step" not in text
+    assert text.index("## CLAUDE.md") < text.index("## .claude/CLAUDE.md") \
+        < text.index("## .claude/rules/a.md")
+
+
+def test_an_instruction_file_that_cannot_be_read_is_said_not_skipped(
+        tmp_path, monkeypatch):
+    a_flow(tmp_path, monkeypatch, "unread", ["worker"])
+    instruction_files(tmp_path)
+    real = Path.read_bytes
+
+    def read_bytes(self):
+        if self.name == "CLAUDE.md":
+            raise OSError("locked")
+        return real(self)
+
+    monkeypatch.setattr(Path, "read_bytes", read_bytes)
+    run = engine.Run("unread", runner.config("unread"), {"worker": ""})
+    folder = tmp_path / "runs" / "one"
+    folder.mkdir(parents=True)
+    run.keep_in(folder)
+    text = Path(run.provider.brief_file).read_text(encoding="utf-8")
+    assert "unreadable: CLAUDE.md" in text and "make test" not in text
+    assert "stdlib only" in text
 
 
 def test_a_run_on_an_old_cli_stops_refused_at_the_granted_step(

@@ -544,6 +544,8 @@ def test_a_grant_less_call_with_a_credential_pins_where_it_is_sent(
     place = tmp_path / "place"
     assert providers.build(connector, where=place).ask("go", timeout=5)
     assert pinned(cli) == providers.cli_provider.DEFAULT_BASE_URL
+    argv = cli.calls[-1]["argv"]
+    assert argv[argv.index("--setting-sources") + 1] == "user"
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://gateway.example/v1")
     assert providers.build(connector, where=place).ask("go", timeout=5)
     assert pinned(cli) == "https://gateway.example/v1"

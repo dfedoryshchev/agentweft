@@ -254,6 +254,9 @@ class Provider(object):
     command = None
     grant = None
     denials = None
+    # the place's instruction files as the run started on them, written under
+    # the run's folder (`guardrails/briefing.py`), None when it has none
+    brief_file = None
     # where the run's facts index and its on-read log are, {"place",
     # "index", "log"}, None when the place has no facts to hand on a read
     facts_read = None

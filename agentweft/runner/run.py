@@ -175,6 +175,7 @@ class Run(object):
                                       own=state.RUNS)
         self.healed = self.heal_facts()
         self.briefed = briefing.digest(self.workdir)
+        self.handed = briefing.handed(self.workdir, self.briefed)
         bad = check_project_gates(fm.steps, self.workdir, self.project)
         if bad:
             raise ValueError(flow + "/flow.yaml is wrong: " + "; ".join(bad))
@@ -411,15 +412,18 @@ class Run(object):
 
     def keep_in(self, folder):
         """every provider of this run notes a refused shell write in folder,
-        and hands a file's facts on a read from the index written there."""
+        hands a file's facts on a read from the index written there, and
+        passes the place's instruction files from the brief written there."""
         index = self.facts_index(folder)
         read = {"place": Path(self.workdir).resolve().as_posix(),
                 "index": index.as_posix(),
                 "log": (Path(folder) / factsread.FILE).as_posix()} \
             if index is not None else None
+        brief = briefing.write(folder, getattr(self, "handed", ()))
         for p in list(self.by_step.values()) + [self.provider]:
             p.denials = folder / shellwrite.FILE
             p.facts_read = read
+            p.brief_file = brief
 
     def read_facts(self, tried, used):
         """the facts the on-read hook handed in `tried`'s sessions join the
