@@ -404,6 +404,9 @@ def cmd_worktree():
 def command(name):
     """-> the exit code of one of COMMANDS. `--flows` is read here, so it
     names the folder for every command and not only for a run."""
+    from .engine import console
+
+    console()
     if "--flows" in sys.argv:
         i = sys.argv.index("--flows")
         if len(sys.argv) <= i + 1:

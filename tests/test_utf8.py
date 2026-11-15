@@ -166,6 +166,40 @@ def test_a_piped_console_gets_utf8_bytes(monkeypatch):
         (SAID + "\n").encode("utf-8")
 
 
+def the_step_answer_printed(tmp_path, monkeypatch, start):
+    a_flow(tmp_path, monkeypatch)
+    said = SAID + " " + chr(0x2192)
+    monkeypatch.setattr(sys, "argv", ["run.py", "step", "wide", "worker"])
+    monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+
+    class Out:
+        output = said
+
+    monkeypatch.setattr(engine.Run, "step", lambda self, *a, **k: Out())
+    raw = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout",
+                        io.TextIOWrapper(raw, encoding="cp1252"))
+    monkeypatch.delenv("PYTHONIOENCODING", raising=False)
+    assert start() == 0
+    sys.stdout.flush()
+    assert raw.getvalue().replace(b"\r\n", b"\n") == \
+        (said + "\n").encode("utf-8")
+
+
+def test_the_step_command_prints_an_answer_outside_cp1252_whole(
+        tmp_path, monkeypatch):
+    """the answer of `step` is paid for before it is printed and written
+    nowhere else, so a print that raises loses it."""
+    the_step_answer_printed(tmp_path, monkeypatch,
+                            lambda: cli.command("step"))
+
+
+def test_python_m_agentweft_step_prints_it_whole_too(tmp_path, monkeypatch):
+    import agentweft.__main__ as m
+
+    the_step_answer_printed(tmp_path, monkeypatch, m.entrypoint)
+
+
 def test_a_piped_run_on_an_ascii_locale_prints_utf8():
     import subprocess
     env = dict(os.environ, LC_ALL="C", LANG="C", PYTHONUTF8="0",
