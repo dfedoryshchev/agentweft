@@ -37,6 +37,13 @@ OWN = ("connector", "auth", "key_file")
 PERSONAL = ("key_file", "command", "url", "env")
 # the setting that names the key file of a connector that names none
 KEY_FILE = "key_file"
+# every key a connector in project.yml may set, by the provider it runs on:
+# which provider and model, a subscription or inherited login, and the
+# provider's own tuning. a key a provider grows is refused there until listed
+PROJECT_CONNECTOR_KEYS = {
+    "cli": ("provider", "model", "tier", "effort", "auth", "max_turns"),
+    "api": ("provider", "model", "tier", "effort", "auth", "max_tokens"),
+    "fake": ("provider", "replies", "reply", "file", "default", "auth")}
 
 
 def merged(declared=None):
@@ -109,18 +116,35 @@ def check(declared):
 
 def check_project(declared):
     """-> complaints about project.yml's `connectors:` block: what any
-    declaration gets, and each key that is the person's to set."""
+    declaration gets, and each key off `PROJECT_CONNECTOR_KEYS` for its
+    provider, `auth: api-key`, or a `max_turns` looser than the run's own."""
+    from agentweft.runner import settings
+
     bad = check(declared)
     if bad and not isinstance(declared, dict):
         return bad
     for name, block in declared.items():
         if not isinstance(block, dict):
             continue
-        said = (["auth: " + API_KEY] if block.get("auth") == API_KEY else []) \
-            + [key for key in PERSONAL if key in block]
-        bad.extend(str(name) + ": " + key + " is the person's to set, in the"
-                   " flow or their own environment, never in the project's"
-                   " file" for key in said)
+        at = str(name) + ": "
+        listed = PROJECT_CONNECTOR_KEYS.get(
+            dict(BUILT_IN.get(name) or {}, **block).get("provider"), ())
+        persons = (["auth: " + API_KEY] if block.get("auth") == API_KEY
+                   else []) + [key for key in PERSONAL if key in block]
+        bad.extend(at + key + " is the person's to set, in the flow or their"
+                   " own environment, never in the project's file"
+                   for key in persons)
+        bad.extend(at + str(key) + " is not a key project.yml may set on a"
+                   " connector" for key in block
+                   if key not in listed and key not in PERSONAL)
+        turns = block.get("max_turns")
+        if "max_turns" in listed and turns is not None and not (
+                isinstance(turns, int) and not isinstance(turns, bool)
+                and settings.no_looser("max_turns", str(turns),
+                                       os.environ.get(settings.env_name(
+                                           "max_turns")))):
+            bad.append(at + "max_turns: " + str(turns) + " is looser than the"
+                       " run's own runaway guard")
     return bad
 
 

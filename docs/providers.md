@@ -167,12 +167,14 @@ be a connector's name too.
 
 where a credential comes from and where it goes is yours to say, never the
 project's. `project.yml` is the repo's file: a clone ships one, and a step
-can write it for the next run. so a connector `project.yml` declares may name
-a provider, a model, `auth: subscription` or `inherit` and the provider's
-other settings, and is refused at load, the file named, when it says `auth:
-api-key`, `key_file`, `command`, `url` (the **api** provider's endpoint) or
-`env` (which of your variables reach the model's process). those are said in
-the flow you run or in your own environment.
+can write it for the next run. so a connector `project.yml` declares may set
+only a listed key: a provider, a model or tier, an effort, `auth:
+subscription` or `inherit`, and the provider's tuning (`max_turns` no looser
+than yours, `max_tokens`, the stub's canned answers; `orchestrate.md`). any
+other key is refused at load, the file and the key named; `auth: api-key`,
+`key_file`, `command`, `url` (the **api** provider's endpoint) and `env`
+(which of your variables reach the model's process) are said in the flow you
+run or in your own environment.
 
 the key file of a connector with `auth: api-key` is its own `key_file`, said
 in the flow, else the file `AGENTWEFT_KEY_FILE` names: set it in your shell,

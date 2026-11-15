@@ -108,6 +108,25 @@ flow uses it. a flow with nothing to add to a role does not need a file for it.
   printed beside what the provider said it cost; a model the table does not
   list says it has no price instead of costing nothing.
 
+## a repo you did not write
+
+a run works in a folder a clone or a step wrote, never in something you
+vouched for, so the folder may give the run text and tests, and a few listed
+preferences, and nothing else. the models read its `CLAUDE.md` and
+`.claude/rules/` as text agentweft hands them; `claude` itself loads only
+your own settings, so the repo's settings hooks, `env` block, key helper and
+`.mcp.json` servers never start. its `.env` may set a preference or the
+variables its `project.yml` says its tests read, which reach only the
+gates; anything else, a credential, a `PATH`, a git or python steering name,
+stops the run before any process starts. its `project.yml` connectors may
+pick a model, never a key, a command or a host. agentweft's own git runs
+with the repo's fsmonitor and hooks off, and no step's edit tool writes into
+`.git`. what it can still do: run its own code in its tests (the gates run
+them, without your provider credentials), and put words in front of a model,
+which is the review's lane, not a setting. details and the floors:
+`docs/providers.md` "what a place may hand the cli", `docs/quickstart.md`,
+`docs/gates.md`.
+
 ## docs
 
 - `docs/quickstart.md` - `agentweft init`, a green run, then a real task

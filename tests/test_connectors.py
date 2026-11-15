@@ -220,36 +220,55 @@ def test_project_yml_declares_connectors_and_the_flow_wins(tmp_path):
     assert got["own"] == {"provider": "cli", "auth": "subscription"}
 
 
+PERSONS = (" is the person's to set, in the flow or their own environment,"
+           " never in the project's file")
+OFF_LIST = " is not a key project.yml may set on a connector"
+
+
 @pytest.mark.parametrize("block, said", [
-    ({"provider": "cli", "auth": "api-key"}, "auth: api-key"),
+    ({"provider": "cli", "auth": "api-key"}, "auth: api-key" + PERSONS),
     ({"provider": "cli", "auth": "subscription",
-      "key_file": "~/.ssh/id_any"}, "key_file"),
-    ({"provider": "cli", "command": "/opt/tools/claude"}, "command"),
-    ({"provider": "api", "url": "https://elsewhere.example"}, "url"),
-    ({"provider": "cli", "env": ["AWS_SECRET_ACCESS_KEY"]}, "env"),
+      "key_file": "~/.ssh/id_any"}, "key_file" + PERSONS),
+    ({"provider": "cli", "command": "/opt/tools/claude"}, "command" + PERSONS),
+    ({"provider": "api", "url": "https://elsewhere.example"}, "url" + PERSONS),
+    ({"provider": "cli", "env": ["AWS_SECRET_ACCESS_KEY"]}, "env" + PERSONS),
+    ({"provider": "cli", "co_author": True}, "co_author" + OFF_LIST),
+    ({"provider": "cli", "permission_mode": "bypassPermissions"},
+     "permission_mode" + OFF_LIST),
+    ({"provider": "fake", "max_turns": 9}, "max_turns" + OFF_LIST),
+    ({"provider": "cli", "max_turns": 0},
+     "max_turns: 0 is looser than the run's own runaway guard"),
 ])
-def test_project_yml_may_not_say_where_a_credential_comes_from_or_goes(
-        block, said):
+def test_project_yml_sets_only_the_listed_connector_keys(block, said):
     raw = {"project": {"name": "here"}, "connectors": {"mine": block}}
     [bad] = project.check(raw)
-    assert bad == ("connectors: mine: " + said + " is the person's to set,"
-                   " in the flow or their own environment, never in the"
-                   " project's file")
+    assert bad == "connectors: mine: " + said
     with pytest.raises(ValueError) as e:
         project.load(raw)
     assert str(e.value).startswith("project.yml: connectors: mine: ")
-    assert providers.connectors.check({"mine": block}) == []
 
 
-@pytest.mark.parametrize("block", [
-    {"provider": "cli", "model": "m-cheap"},
-    {"provider": "cli", "auth": "subscription", "max_turns": 9},
-    {"provider": "cli", "auth": "inherit"},
-    {"provider": "fake"},
-])
-def test_project_yml_may_name_connectors_and_their_models(block):
+SAMPLE = {"provider": None, "model": "m-cheap", "tier": "high",
+          "effort": "low", "auth": "inherit", "max_turns": 9,
+          "max_tokens": 1000, "replies": {}, "reply": "VERDICT: ok\n",
+          "file": "answers.txt", "default": "VERDICT: ok\n"}
+
+
+@pytest.mark.parametrize("kind, key", sorted(
+    (kind, key) for kind, keys in
+    providers.connectors.PROJECT_CONNECTOR_KEYS.items() for key in keys))
+def test_every_key_on_the_connector_list_passes(kind, key):
+    block = {"provider": kind}
+    if key != "provider":
+        block[key] = SAMPLE[key]
     assert project.check({"project": {"name": "here"},
                           "connectors": {"mine": block}}) == []
+    assert providers.build(dict(block)).name == kind
+
+
+def test_a_project_connector_may_ask_for_the_subscription():
+    assert project.check({"project": {"name": "here"}, "connectors": {
+        "mine": {"provider": "cli", "auth": "subscription"}}}) == []
 
 
 def test_a_bad_connectors_block_in_project_yml_is_refused():

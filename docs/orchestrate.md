@@ -311,11 +311,16 @@ declares and no flow names is still not run. a `fence:` block
 turns on the scope fence for every run (see `docs/guardrails.md`), and a
 `spec:` list names the files that are the spec, in place of `TASK.md`,
 `SPEC*.md` and `docs/spec*` (see `docs/gates.md`). a `connectors:` block
-names provider blocks a step can pick by name, merged under the flow's own;
-it may not say where a credential comes from or goes (`auth: api-key`,
-`key_file`, `command`, `url`, `env` are refused at load: they are the
-person's, in the flow or their own environment; see `docs/providers.md`,
-"connectors"). an `env:` list names the variables the project's own tests
+names provider blocks a step can pick by name, merged under the flow's own,
+and each may set only the keys `PROJECT_CONNECTOR_KEYS` lists for its
+provider: `provider`, `model`, `tier`, `effort`, `auth` (`subscription` or
+`inherit`), and the provider's tuning (`max_turns` for `cli`, no looser
+than the run's own runaway guard; `max_tokens` for `api`; the canned
+answers for `fake`). any other key is refused at load, naming it; where a
+credential comes from or goes (`auth: api-key`, `key_file`, `command`,
+`url`, `env`) is the person's, in the flow or their own environment (see
+`docs/providers.md`, "connectors"), and a key a provider grows later is
+refused here until the list names it. an `env:` list names the variables the project's own tests
 read (`env: [DATABASE_URL]`): a `.env` inside the place may set those, and
 they reach the gates that run the tests and nothing else, never agentweft's
 own environment or the model's process; a name that steers a program
