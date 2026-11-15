@@ -34,22 +34,42 @@ from .run import Run, replays  # noqa: F401
 HERE = Path(__file__).resolve().parent
 
 
-def load_env():
-    # not worth a dependency for six lines
+def load_env(place="."):
+    """`.env` in the folder agentweft starts in, applied to its own
+    environment: whole when that folder is outside `place`, the run's place,
+    and only what `settings.sorted_out` allows when it is the place or under
+    it. raises ValueError, before anything is applied, for a line that is
+    not NAME=value or a name refused."""
+    # not worth a dependency for this
     from . import settings
 
     if not os.path.exists(".env"):
         return
     whose = str(Path(".env").resolve())
-    for line in open(".env", encoding="utf-8"):
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        k, v = line.split("=", 1)
-        if k not in settings.FROM_FILE and k in os.environ:
-            settings.BEFORE[k] = os.environ[k]
+    pairs = []
+    with open(".env", encoding="utf-8") as f:
+        for n, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            k, eq, v = line.partition("=")
+            if not eq or not k:
+                raise ValueError(whose + " line " + str(n)
+                                 + " is not NAME=value")
+            pairs.append((k, v))
+    keep, aside = settings.sorted_out(pairs, whose, place)
+    for k, v in keep:
         os.environ[k] = v
-        settings.FROM_FILE[k] = whose
+    settings.PLACE_ENV.update(aside)
+
+
+def given_place(argv):
+    """-> the place `--workdir` names, else the folder agentweft started in:
+    a place a flow file or a carried-on run names is not known yet, and a
+    `.env` there is read as the project's."""
+    if "--workdir" in argv and argv.index("--workdir") + 1 < len(argv):
+        return argv[argv.index("--workdir") + 1]
+    return "."
 
 
 def console():
@@ -149,7 +169,11 @@ def run_flow(unrecorded):
         from .cli import cmd_help
 
         return cmd_help()
-    load_env()
+    try:
+        load_env(given_place(sys.argv))
+    except ValueError as e:
+        print(str(e))
+        return 1
     leg = begin.begin(unrecorded)
     if not isinstance(leg, Leg):
         return leg

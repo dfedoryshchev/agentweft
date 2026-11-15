@@ -315,7 +315,14 @@ names provider blocks a step can pick by name, merged under the flow's own;
 it may not say where a credential comes from or goes (`auth: api-key`,
 `key_file`, `command`, `url`, `env` are refused at load: they are the
 person's, in the flow or their own environment; see `docs/providers.md`,
-"connectors"). no role takes its
+"connectors"). an `env:` list names the variables the project's own tests
+read (`env: [DATABASE_URL]`): a `.env` inside the place may set those, and
+they reach the gates that run the tests and nothing else, never agentweft's
+own environment or the model's process; a name that steers a program
+(`GIT_*`, `PYTHON*`, `PATH`, the classes in `docs/quickstart.md`) is refused
+even when listed. `roles: <name>: tools:` is checked and applied nowhere yet;
+when it is, it may only narrow the flow's grant (take `shell` away from a
+reviewer, never add it), since the file is the repo's. no role takes its
 pre-work from it, and a reject rule with no pattern is still only a sentence.
 the rest is the format and a loader that refuses a word it has no name for, the way `flow.yaml`
 has for months - `project.yml: roles: architect: no such tool shel. there is:

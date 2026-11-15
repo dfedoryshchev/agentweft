@@ -42,7 +42,8 @@ from . import workflow
 
 REQUIRED = ("project",)
 KNOWN = ("project", "read_first", "standards", "coverage", "gates", "roles",
-         "fence", "spec", "connectors")
+         "fence", "spec", "connectors", "env")
+ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 PROJECT_KNOWN = ("name", "stack")
 FENCE_KNOWN = ("skip",)
 STANDARDS_KNOWN = ("forbidden", "immediate_reject")
@@ -179,6 +180,11 @@ class Project(object):
         if self.raw.get("spec") is None:
             return None
         return list(self.raw["spec"])
+
+    def env(self):
+        """-> the variables the project's own tests read, which a `.env`
+        inside the place may set for the gates' child only."""
+        return list(self.raw.get("env") or [])
 
 
 def _strings(bad, where, value):
@@ -341,11 +347,20 @@ def _check_connectors(bad, block):
     bad.extend("connectors: " + c for c in connectors.check_project(block))
 
 
+def _check_env(bad, block):
+    if not isinstance(block, list):
+        bad.append("env: should be a list")
+        return
+    for name in block:
+        if not isinstance(name, str) or not ENV_NAME.match(name):
+            bad.append("env: " + str(name) + " should be a variable name")
+
+
 CHECKS = (("project", _check_project), ("read_first", _check_read_first),
           ("standards", _check_standards), ("coverage", _check_coverage),
           ("gates", _check_gates), ("roles", _check_roles),
           ("fence", _check_fence), ("spec", _check_spec),
-          ("connectors", _check_connectors))
+          ("connectors", _check_connectors), ("env", _check_env))
 
 
 def check(raw):

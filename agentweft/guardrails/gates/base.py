@@ -26,13 +26,19 @@ def stripped(env=None):
 @contextlib.contextmanager
 def fresh_python(env=None):
     """-> the environment a gate runs the project's tests in: `env` (or this
-    process's) without the provider credentials, with python neither writing
-    bytecode nor reading any left by an earlier run."""
+    process's) without the provider credentials, plus the names the place's
+    `.env` set that its project.yml declares under `env:`
+    (`settings.PLACE_ENV`), with python neither writing bytecode nor reading
+    any left by an earlier run."""
+    from agentweft.runner import settings
+
     with tempfile.TemporaryDirectory(prefix="agentweft-pyc-") as empty:
+        out = stripped(env)
+        out.update(settings.PLACE_ENV)
         # a .pyc is trusted on source mtime in whole seconds plus size, so a
         # same-size edit within the second would run the old code
-        yield dict(stripped(env), PYTHONDONTWRITEBYTECODE="1",
-                   PYTHONPYCACHEPREFIX=empty)
+        out.update(PYTHONDONTWRITEBYTECODE="1", PYTHONPYCACHEPREFIX=empty)
+        yield out
 
 
 class Result(object):

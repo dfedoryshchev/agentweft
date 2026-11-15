@@ -10,11 +10,16 @@ environment is `AGENTWEFT_<KEY>`, which is what `agentweft init` writes to
 
 `.env` is read where agentweft is started, which can be the place itself,
 and a place's files are the project's: a clone ships them and a step can
-write them for the next run. so a name that loosens a guard or picks a
-credential, a destination or a decision of the person's is refused when a
-`.env` inside the place set it (`from_the_place`); a preference is not.
+write them for the next run. so a `.env` inside the place may set a
+preference, a model or effort name, or one of these settings at the value the
+run would use anyway or a tighter cap; a name its project.yml declares under
+`env:` is kept for the gates' child, which runs the project's own tests, and
+never reaches agentweft's own environment; anything else refuses the run
+before any process starts (`sorted_out`). a `.env` outside the place is the
+person's, and every name in it is applied.
 """
 import os
+import re
 from pathlib import Path
 
 DEFAULTS = {"timeout": 300, "retries": 3, "workers": 3,
@@ -26,11 +31,9 @@ DEFAULTS = {"timeout": 300, "retries": 3, "workers": 3,
             "spec_globs": ("TASK.md", "SPEC*.md", "docs/spec*")}
 
 PREFIX = "AGENTWEFT_"
-# each name `load_env` set, and the `.env` it read it from: a `.env` in the
-# place is the project's file, not the person's
-FROM_FILE = {}
-# the value each of those names held before the file set it
-BEFORE = {}
+# the names a `.env` inside the place set that its project.yml declares
+# under `env:`, for the gates' child only (`gates/base.fresh_python`)
+PLACE_ENV = {}
 # 0 is no cap
 CAPS = ("max_calls", "max_tokens", "max_turns")
 TRUE = ("1", "true", "yes", "on")
@@ -61,36 +64,109 @@ STEERING = ("PATH", "PATHEXT", "HOME", "USERPROFILE", "HOMEDRIVE",
             "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC", "SHELL",
             "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
             "XDG_RUNTIME_DIR", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
-            "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE")
+            "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "NODE_OPTIONS",
+            "BASH_ENV", "ENV")
+# git, python and the loader read these to pick the program or the code a
+# process runs
+STEERING_UNDER = ("GIT_", "PYTHON", "LD_", "DYLD_")
+# a model or effort, alone or per tier (`MODEL_HIGH`), the names `init` writes
+TIERED = ("MODEL", "EFFORT")
+NOT_READ = ("is not a preference agentweft reads; declare it under `env:` in"
+            " project.yml if the project's tests read it")
+NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def env_name(key):
     return PREFIX + key.upper()
 
 
-def class_of(name, value=None):
-    """-> why `name` set to `value` is the person's to set, None for a
-    preference, a name agentweft does not read (a project's own variable,
-    for its own tests), or one of agentweft's settings at its default or
-    tighter: `agentweft init --yes` writes the defaults where it is started,
-    which is often the place."""
+def allowed(name, value):
+    """-> whether a `.env` inside the place may set `name` to `value` in
+    agentweft's own environment: a preference, a model or effort name, or
+    one of agentweft's settings at what the run would use without the file or
+    tighter (`agentweft init --yes` writes the defaults where it is started,
+    which is often the place)."""
+    from agentweft.flow import spec
+
     upper = name.upper()
-    if upper in PREFERENCES:
-        return None
+    if upper in PREFERENCES or upper == "PYTHONIOENCODING":
+        return True
+    if upper in TIERED or any(upper == word + "_" + tier.upper()
+                              for word in TIERED for tier in spec.TIERS):
+        return True
     key = upper[len(PREFIX):].lower() if upper.startswith(PREFIX) else None
-    if value is not None and key in DEFAULTS \
-            and no_looser(key, value, BEFORE.get(name)):
-        return None
+    return key in DEFAULTS and no_looser(key, value, os.environ.get(name))
+
+
+def class_of(name):
+    """-> what setting `name` would do that is the person's to decide, None
+    for a name agentweft has no class for."""
+    upper = name.upper()
     if upper in PERSONS:
         return PERSONS[upper]
     for prefix, why in PERSONS_UNDER.items():
         if upper.startswith(prefix):
             return why
-    if upper in STEERING:
+    if upper in STEERING or upper.startswith(STEERING_UNDER):
         return STEERS
     if upper.startswith(PREFIX):
         return UNCLASSED
     return None
+
+
+def refusal(name, whose):
+    why = class_of(name)
+    said = name + " is set by " + whose + ", inside the place: it "
+    if why is None:
+        return said + NOT_READ
+    return (said + why + ", which is yours to set, in your own environment"
+            " or a .env outside the place")
+
+
+def inside(folder, place):
+    """-> whether `folder` is the place or under it; one that cannot be
+    resolved counts as inside."""
+    try:
+        here = Path(place).resolve()
+        there = Path(folder).resolve()
+    except OSError:
+        return True
+    return there == here or here in there.parents
+
+
+def declared(place):
+    """-> the names the place's project.yml lists under `env:`, upper case."""
+    from agentweft.orchestrate import project
+
+    held = project.hold(place)
+    if held.text is None:
+        return set()
+    return set(n.upper() for n in held.read().env())
+
+
+def sorted_out(pairs, whose, place):
+    """-> (the (name, value) pairs for agentweft's own environment, {name:
+    value} for the gates' child only), for the lines of the `.env` `whose`
+    read from the folder agentweft started in. raises ValueError naming
+    `whose` and every name refused, so nothing is applied from a file with
+    one."""
+    if not inside(Path(whose).parent, place):
+        return list(pairs), {}
+    keep, aside, refused, listed = [], {}, [], None
+    for name, value in pairs:
+        if allowed(name, value):
+            keep.append((name, value))
+            continue
+        if class_of(name) is None and NAME.match(name):
+            if listed is None:
+                listed = declared(place)
+            if name.upper() in listed:
+                aside[name] = value
+                continue
+        refused.append(refusal(name, whose))
+    if refused:
+        raise ValueError("; ".join(dict.fromkeys(refused)))
+    return keep, aside
 
 
 def no_looser(key, text, before=None):
@@ -106,27 +182,6 @@ def no_looser(key, text, before=None):
             return said == base
         return base == 0 or 0 < said <= base
     return said == base
-
-
-def from_the_place(place):
-    """-> a reason for each name a `.env` inside `place` set that is the
-    person's to set; [] when there is none."""
-    try:
-        here = Path(place).resolve()
-    except OSError:
-        here = Path(place)
-    out = []
-    for name, whose in sorted(FROM_FILE.items()):
-        why = class_of(name, os.environ.get(name))
-        if why is None:
-            continue
-        there = Path(whose)
-        if there != here and here not in there.parents:
-            continue
-        out.append(name + " is set by " + whose + ", inside the place: it "
-                   + why + ", which is yours to set, in your own environment"
-                   " or a .env outside the place")
-    return out
 
 
 def parsed(key, text):

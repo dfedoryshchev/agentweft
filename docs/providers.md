@@ -177,8 +177,9 @@ the flow you run or in your own environment.
 the key file of a connector with `auth: api-key` is its own `key_file`, said
 in the flow, else the file `AGENTWEFT_KEY_FILE` names: set it in your shell,
 or in the `.env` that `agentweft init` writes where you start agentweft. a
-`.env` inside the place is the project's file, so a key file named there is
-refused before the step's call, with that `.env` named.
+`.env` inside the place is the project's file, so a key file named there
+refuses the run before any process starts, with that `.env` named
+(`quickstart.md`).
 
 a credential goes to the `claude` cli and to the **api** provider's own
 request, and to no other command. so a built-in connector's `command` is

@@ -204,20 +204,15 @@ def user_settings():
     return said if isinstance(said, dict) else {}
 
 
-def sent_to(where=None):
+def sent_to():
     """-> where a call carrying a credential sends it: the `ANTHROPIC_BASE_URL`
     the person's own settings `env` block names (the cli applies it over the
-    shell's), else the run's environment's unless a `.env` inside the place
-    `where` set it, else the api's own host."""
-    from . import connectors
-
+    shell's), else the run's environment's (a `.env` inside the place cannot
+    set it, `settings.sorted_out`), else the api's own host."""
     env = user_settings().get("env")
     said = env.get(BASE_URL_VAR) if isinstance(env, dict) else None
     if isinstance(said, str) and said.strip():
         return said.strip()
-    dot_env = connectors.settings_file(BASE_URL_VAR)
-    if dot_env and where is not None and connectors.inside(dot_env, where):
-        return DEFAULT_BASE_URL
     return os.environ.get(BASE_URL_VAR, "").strip() or DEFAULT_BASE_URL
 
 
@@ -983,7 +978,7 @@ class CliProvider(Provider):
             # a `disableAllHooks: true` there cannot switch the run's hook off
             settings["disableAllHooks"] = False
         if self.grant is None and self.auth != connectors.INHERIT:
-            settings["env"] = {BASE_URL_VAR: sent_to(self.where)}
+            settings["env"] = {BASE_URL_VAR: sent_to()}
         if settings:
             argv = argv + ["--settings",
                            json.dumps(settings, separators=(",", ":"))]

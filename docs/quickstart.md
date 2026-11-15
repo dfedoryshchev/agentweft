@@ -44,32 +44,33 @@ the same name in the environment and leave it out of `.env`, which wins when
 both have it. a flow file that sets `max_calls`, `max_tokens` or `tests_e2e`
 itself wins over either.
 
-a `.env` inside the place a run works on is the project's file (a clone ships
-one, a step can write one), so a run refuses to start when such a `.env` sets
-a name that loosens a guard or picks a credential, a destination or a
-decision of yours, and names the file and the setting:
+`.env` is read in the folder agentweft starts in. when that folder is the
+place the run works on, or inside it, the `.env` is the project's file (a
+clone ships one, a step can write one), and it may set only:
 
-- loosens a guard: `AGENTWEFT_PERMISSION_MODE`, `AGENTWEFT_MAX_CALLS`,
-  `AGENTWEFT_MAX_TOKENS`, `AGENTWEFT_MAX_TURNS`, `PRICES`
-- picks a credential or where one is sent: `AGENTWEFT_KEY_FILE`,
-  `AGENTWEFT_PROVIDER`, `API_KEY`, `API_URL`, and every `ANTHROPIC_*` and
-  `CLAUDE_*` name
-- picks which program runs or where its traffic goes: `PATH`, `PATHEXT`, the
-  home and config folder names, `SHELL`, `COMSPEC`, the proxy names,
-  `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`
-- makes a decision that is yours: `AGENTWEFT_COMMITS`, `AGENTWEFT_CO_AUTHOR`
-- any other `AGENTWEFT_*` name not listed as a preference below
+- the preferences: `AGENTWEFT_TIMEOUT`, `_RETRIES`, `_WORKERS`,
+  `_TESTS_E2E`, `_TESTS_INTEGRATION`, `_SPEC_GLOBS` (`project.yml`'s `spec:`
+  is the project's too), `MODEL`, `MODEL_<TIER>`, `EFFORT`, `EFFORT_<TIER>`,
+  `PYTHONIOENCODING`
+- any other of agentweft's own settings at what the run would have used
+  anyway (the value in your environment, else the default), or a cap tighter
+  than that: `agentweft init --yes` in the project folder writes the
+  defaults there, and the quick start runs on them
+- the names `env:` in `project.yml` declares (the variables the project's own
+  tests read, `orchestrate.md`): those reach the gates that run the tests,
+  never agentweft's own environment, its git or the model's process
 
-one of agentweft's own settings set to what the run would have used anyway
-(the value it replaced in your environment, else the default), or a cap
-tighter than that, is let through: `agentweft init --yes` in the project
-folder writes the defaults there. the preferences work from any `.env`:
-`AGENTWEFT_TIMEOUT`, `_RETRIES`, `_WORKERS`, `_TESTS_E2E`,
-`_TESTS_INTEGRATION`, `_SPEC_GLOBS` (`project.yml`'s `spec:` is the
-project's too), `MODEL`, `MODEL_<TIER>`, `EFFORT`, `EFFORT_<TIER>`, and any
-name agentweft does not read (the project's own variables, for its own
-tests). keep the rest in your shell, or run agentweft from a folder of your
-own with `--workdir`.
+anything else refuses the run before any process starts, with the file and
+the name: a looser guard, a credential or where one is sent, `PATH`, a home
+folder, a proxy, every `GIT_*`, `PYTHON*`, `LD_*` and `DYLD_*` name,
+`NODE_OPTIONS`, `BASH_ENV`, and any name agentweft does not read and
+`project.yml` does not declare. a line that is not `NAME=value` refuses too.
+the place is the folder `--workdir` names, else the one agentweft starts in
+(a place a flow file or a carried-on run names is not known that early, so
+a `.env` beside you is read as the project's). a `.env` in a folder of your
+own, outside the place, is yours: every name in it is applied. so keep the
+rest in your shell, or run agentweft from a folder of your own with
+`--workdir`.
 
 it ends by printing the next two commands. installed with `-e` and run
 anywhere else, it adds `--flows` and the clone's folder to each, so both work

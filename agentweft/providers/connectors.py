@@ -280,12 +280,6 @@ def key_refused(p):
         if not full(named):
             return (who + " reads its key from " + var + ", which should be a"
                     " full path (or start with ~), not " + repr(named))
-        dot_env = settings_file(var)
-        if dot_env and p.where is not None and inside(dot_env, p.where):
-            return (who + " reads its key from " + var + ", which " + dot_env
-                    + " sets, inside the place: that file is the project's."
-                    " set it in your own environment, or in a .env outside"
-                    " the place")
     path = Path(named).expanduser()
     if p.where is not None:
         place = Path(p.where).resolve()
@@ -347,13 +341,6 @@ def key_file_of(p):
         return p.key_file, None
     said = os.environ.get(key_var(), "").strip()
     return (said, key_var()) if said else ("", None)
-
-
-def settings_file(var):
-    """-> the `.env` that set `var`, "" when the environment had it."""
-    from agentweft.runner import settings
-
-    return settings.FROM_FILE.get(var, "")
 
 
 def inside(path, place):

@@ -147,10 +147,11 @@ def test_a_run_that_breaks_after_its_last_step_writes_one_end_line(
 
 def test_the_env_file_is_read_as_utf8(tmp_path, monkeypatch, cp1252):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("AW_SAID", "")
-    (tmp_path / ".env").write_bytes(("AW_SAID=" + SAID + "\n").encode("utf-8"))
+    monkeypatch.setenv("MODEL_HIGH", "")
+    (tmp_path / ".env").write_bytes(("MODEL_HIGH=" + SAID + "\n")
+                                    .encode("utf-8"))
     engine.load_env()
-    assert os.environ["AW_SAID"] == SAID
+    assert os.environ["MODEL_HIGH"] == SAID
 
 
 def test_a_piped_console_gets_utf8_bytes(monkeypatch):

@@ -511,13 +511,15 @@ def test_a_key_file_named_by_a_dot_env_inside_the_place_is_refused(
                                 encoding="utf-8")
     monkeypatch.delenv("AGENTWEFT_KEY_FILE", raising=False)
     monkeypatch.chdir(place)
-    engine.load_env()
+    with pytest.raises(ValueError) as e:
+        engine.load_env(place)
+    assert str(e.value) == (
+        "AGENTWEFT_KEY_FILE is set by " + str((place / ".env").resolve())
+        + ", inside the place: it picks a credential or where one is sent,"
+        " which is yours to set, in your own environment or a .env outside"
+        " the place")
     p = providers.build("claude-api", where=place)
-    assert p.refuses() == (
-        "claude-api reads its key from AGENTWEFT_KEY_FILE, which "
-        + str((place / ".env").resolve()) + " sets, inside the place: that"
-        " file is the project's. set it in your own environment, or in a"
-        " .env outside the place")
+    assert "no key file" in p.refuses()
     with pytest.raises(providers.connectors.NoKey):
         p.child_env()
     mine = tmp_path / "mine"
@@ -525,7 +527,7 @@ def test_a_key_file_named_by_a_dot_env_inside_the_place_is_refused(
     (mine / ".env").write_text("AGENTWEFT_KEY_FILE=" + str(path) + "\n",
                                encoding="utf-8")
     monkeypatch.chdir(mine)
-    engine.load_env()
+    engine.load_env(place)
     assert providers.build("claude-api", where=place).refuses() == ""
 
 
@@ -560,7 +562,9 @@ def test_a_grant_less_call_with_a_credential_pins_where_it_is_sent(
     (place / ".env").write_text("ANTHROPIC_BASE_URL=https://theirs.example\n",
                                 encoding="utf-8")
     monkeypatch.chdir(place)
-    engine.load_env()
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    with pytest.raises(ValueError):
+        engine.load_env(place)
     assert providers.build(connector, where=place).ask("go", timeout=5)
     assert pinned(cli) == providers.cli_provider.DEFAULT_BASE_URL
 

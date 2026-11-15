@@ -95,9 +95,6 @@ class Run(object):
         self.task_text = task
         self.by_role = by_role
         self.workdir = where(fm, workdir)
-        refused = settings.from_the_place(self.workdir)
-        if refused:
-            raise ValueError("; ".join(refused))
         self.timeout = int(settings.get("timeout", flow=fm))
         self.retries = int(settings.get("retries", flow=fm))
         self.fan = fanout_step(flow)

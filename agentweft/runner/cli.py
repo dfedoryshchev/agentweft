@@ -199,13 +199,6 @@ def cmd_step():
     from .engine import Run, load_env
     from .handoff import Handoff
 
-    load_env()
-    flow, name = sys.argv[2], sys.argv[3]
-    try:
-        asked = task.given(sys.argv)
-    except ValueError as e:
-        print(str(e))
-        return 1
     workdir = None
     if "--workdir" in sys.argv:
         i = sys.argv.index("--workdir")
@@ -213,6 +206,17 @@ def cmd_step():
             print("--workdir needs a directory")
             return 1
         workdir = sys.argv[i + 1]
+    try:
+        load_env(workdir or ".")
+    except ValueError as e:
+        print(str(e))
+        return 1
+    flow, name = sys.argv[2], sys.argv[3]
+    try:
+        asked = task.given(sys.argv)
+    except ValueError as e:
+        print(str(e))
+        return 1
     spec = config(flow)
     try:
         chosen = models.parse(models.pairs(sys.argv))
@@ -303,7 +307,11 @@ def cmd_provider():
     from .config import config
     from .engine import load_env
 
-    load_env()
+    try:
+        load_env()
+    except ValueError as e:
+        print(str(e))
+        return 1
     if not flows():
         print(missing())
         return 1

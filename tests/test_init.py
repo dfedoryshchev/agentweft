@@ -2,7 +2,9 @@
 import builtins
 import hashlib
 import os
+import re
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 
@@ -293,7 +295,9 @@ def test_init_answers_reach_the_run(place, monkeypatch, fake_cli):
         .replace("AGENTWEFT_PROVIDER=cli", "AGENTWEFT_PROVIDER=fake")
         + "AGENTWEFT_SPEC_GLOBS=docs/rfc*\n",
         encoding="utf-8")
-    engine.load_env()
+    # answers looser than the defaults are the person's, read from a folder
+    # the run's place is not in (`--workdir` elsewhere)
+    engine.load_env(place.parent / "elsewhere")
     assert providers.build({}).name == "fake"
     cli_ = fake_cli(answer("ok\n"))
     providers.build({"provider": "cli", "command": "claude"},
@@ -328,7 +332,28 @@ def test_a_dot_env_in_the_place_cannot_loosen_the_run(tmp_path, monkeypatch,
     assert "AGENTWEFT_TIMEOUT" not in said
 
 
+STEERS = "picks which program runs or where its traffic goes"
+NOT_READ = ("is not a preference agentweft reads; declare it under `env:` in"
+            " project.yml if the project's tests read it")
+
+
+def refused(work, name, why):
+    return (name + " is set by " + str((work / ".env").resolve())
+            + ", inside the place: it " + why
+            + ("" if why == NOT_READ else ", which is yours to set, in your"
+               " own environment or a .env outside the place"))
+
+
 @pytest.mark.parametrize("name, value, why", [
+    ("GIT_CONFIG_COUNT", "1", STEERS),
+    ("GIT_CONFIG_KEY_0", "core.fsmonitor", STEERS),
+    ("GIT_CONFIG_VALUE_0", "python x.py", STEERS),
+    ("GIT_DIR", "x", STEERS), ("GIT_SSH_COMMAND", "x", STEERS),
+    ("GIT_EXEC_PATH", "x", STEERS), ("PYTHONPATH", "x", STEERS),
+    ("PYTHONSTARTUP", "x", STEERS), ("NODE_OPTIONS", "x", STEERS),
+    ("BASH_ENV", "x", STEERS), ("LD_PRELOAD", "x", STEERS),
+    ("DYLD_INSERT_LIBRARIES", "x", STEERS),
+    ("DATABASE_URL", "sqlite://", NOT_READ),
     ("AGENTWEFT_PERMISSION_MODE", "bypassPermissions", "loosens a guard"),
     ("AGENTWEFT_MAX_CALLS", "0", "loosens a guard"),
     ("AGENTWEFT_MAX_TURNS", "0", "loosens a guard"),
@@ -360,15 +385,135 @@ def test_what_a_place_s_dot_env_may_not_set(tmp_path, monkeypatch, name,
                                             value, why):
     work = tmp_path / "work"
     work.mkdir()
-    (work / ".env").write_text(name + "=" + value + "\n", encoding="utf-8")
+    (work / ".env").write_text("AGENTWEFT_TIMEOUT=120\n" + name + "=" + value
+                               + "\n", encoding="utf-8")
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.delenv(name, raising=False)
+    monkeypatch.delenv("AGENTWEFT_TIMEOUT", raising=False)
+    monkeypatch.chdir(work)
+    with pytest.raises(ValueError) as e:
+        engine.load_env(work)
+    assert str(e.value) == refused(work, name, why)
+    # refused whole: not even the preference beside it was applied
+    assert name not in os.environ and "AGENTWEFT_TIMEOUT" not in os.environ
+
+
+def test_a_place_env_that_steers_git_refuses_before_any_process(
+        tmp_path, monkeypatch, capsys):
+    from test_connectors import a_flow
+
+    work = a_flow(tmp_path, monkeypatch, [("worker", [])])
+    (work / ".env").write_text("GIT_CONFIG_COUNT=1\n"
+                               "GIT_CONFIG_KEY_0=core.fsmonitor\n"
+                               "GIT_CONFIG_VALUE_0=python x.py\n",
+                               encoding="utf-8")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
     monkeypatch.setattr(os, "environ", dict(os.environ))
     monkeypatch.chdir(work)
-    engine.load_env()
-    assert settings.from_the_place(work) == [
-        name + " is set by " + str((work / ".env").resolve()) + ", inside the"
-        " place: it " + why + ", which is yours to set, in your own"
-        " environment or a .env outside the place"]
-    assert settings.from_the_place(tmp_path / "elsewhere") == []
+    started = []
+
+    def no_process(argv, *a, **kw):
+        started.append(argv)
+        raise OSError("no process in this test")
+
+    monkeypatch.setattr(subprocess, "run", no_process)
+    monkeypatch.setattr(subprocess, "Popen", no_process)
+    assert engine.main() == 1
+    assert started == []
+    said = capsys.readouterr().out
+    for name in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"):
+        assert refused(work, name, STEERS) in said
+        assert name not in os.environ
+
+
+def test_a_name_project_yml_declares_reaches_the_tests_only(
+        tmp_path, monkeypatch, fake_cli):
+    from agentweft.guardrails.gates import base
+    from test_connectors import a_flow
+
+    work = a_flow(tmp_path, monkeypatch, [("worker", [])],
+                  project_yml="project:\n  name: p\nenv: [DATABASE_URL]\n")
+    (work / ".env").write_text("DATABASE_URL=sqlite://\n", encoding="utf-8")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.chdir(work)
+    cli_ = fake_cli(answer("done\n"))
+    assert engine.main() == 0
+    assert len(cli_.calls) == 1
+    assert "DATABASE_URL" not in os.environ
+    assert "DATABASE_URL" not in cli_.calls[0]["kw"]["env"]
+    with base.fresh_python() as env:
+        assert env["DATABASE_URL"] == "sqlite://"
+
+
+def test_a_name_project_yml_declares_cannot_steer_a_program(tmp_path,
+                                                            monkeypatch):
+    from test_connectors import a_flow
+
+    work = a_flow(tmp_path, monkeypatch, [("worker", [])],
+                  project_yml="project:\n  name: p\nenv: [GIT_DIR]\n")
+    (work / ".env").write_text("GIT_DIR=x\n", encoding="utf-8")
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    with pytest.raises(ValueError) as e:
+        engine.load_env(work)
+    assert str(e.value) == refused(work, "GIT_DIR", STEERS)
+
+
+@pytest.mark.parametrize("env, said", [
+    ("DATABASE_URL", "env: should be a list"),
+    (["DATABASE URL"], "env: DATABASE URL should be a variable name"),
+    ([3], "env: 3 should be a variable name"),
+])
+def test_project_yml_env_is_a_list_of_names(env, said):
+    from agentweft.orchestrate import project
+
+    assert said in project.check({"project": {"name": "p"}, "env": env})
+
+
+def test_the_provider_check_refuses_a_place_env_before_any_process(
+        place, monkeypatch, fake_cli, capsys):
+    (place / ".env").write_text("PATH=bin\n", encoding="utf-8")
+    cli_ = fake_cli(answer("ok\n"))
+    assert agentweft(monkeypatch, "provider", "--flows",
+                     str(REPO / "examples")) == 1
+    assert cli_.asides == [] and cli_.calls == []
+    assert refused(place, "PATH", STEERS) in capsys.readouterr().out
+    assert os.environ.get("PATH") != "bin"
+
+
+def test_a_dot_env_outside_the_place_may_set_anything(tmp_path, monkeypatch,
+                                                      fake_cli):
+    from test_connectors import a_flow
+
+    work = a_flow(tmp_path, monkeypatch, [("worker", ["tools: [read]"])])
+    (tmp_path / ".env").write_text(
+        "AGENTWEFT_PERMISSION_MODE=acceptEdits\nGIT_DIR_IGNORED_NAME=x\n",
+        encoding="utf-8")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.setattr(sys, "argv", sys.argv + ["--workdir", str(work)])
+    cli_ = fake_cli(answer("done\n"))
+    assert engine.main() == 0
+    argv = cli_.calls[0]["argv"]
+    assert argv[argv.index("--permission-mode") + 1] == "acceptEdits"
+    assert os.environ["GIT_DIR_IGNORED_NAME"] == "x"
+
+
+@pytest.mark.parametrize("text", ["JUSTANAME\n", "=value\n"])
+@pytest.mark.parametrize("inside", [True, False])
+def test_a_dot_env_line_that_is_not_name_equals_value_is_refused(
+        tmp_path, monkeypatch, text, inside):
+    work = tmp_path / "work"
+    work.mkdir()
+    (work / ".env").write_text("# a note\n\n" + text, encoding="utf-8")
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    with pytest.raises(ValueError) as e:
+        engine.load_env(work if inside else tmp_path / "elsewhere")
+    assert str(e.value) == (str((work / ".env").resolve()) + " line 3 is"
+                            " not NAME=value")
 
 
 def test_preferences_in_a_place_s_dot_env_still_work(tmp_path, monkeypatch):
@@ -378,13 +523,13 @@ def test_preferences_in_a_place_s_dot_env_still_work(tmp_path, monkeypatch):
         "AGENTWEFT_TIMEOUT=120\nAGENTWEFT_RETRIES=1\nAGENTWEFT_WORKERS=2\n"
         "AGENTWEFT_TESTS_E2E=true\nAGENTWEFT_TESTS_INTEGRATION=off\n"
         "AGENTWEFT_SPEC_GLOBS=docs/rfc*\nMODEL=sonnet\nMODEL_HIGH=opus\n"
-        "EFFORT_LOW=low\nDATABASE_URL=sqlite://\nPYTHONIOENCODING=utf-8\n",
+        "EFFORT_LOW=low\nPYTHONIOENCODING=utf-8\n",
         encoding="utf-8")
     monkeypatch.setattr(os, "environ", dict(os.environ))
     monkeypatch.chdir(work)
-    engine.load_env()
-    assert settings.from_the_place(work) == []
+    engine.load_env(work)
     assert settings.get("timeout") == 120
+    assert os.environ["MODEL_HIGH"] == "opus"
     assert snapshot.is_spec("docs/rfc-1.md")
 
 
@@ -399,22 +544,53 @@ def test_a_place_s_dot_env_may_hold_a_setting_no_looser_than_yours(
     with open(work / ".env", "a", encoding="utf-8") as f:
         f.write("AGENTWEFT_MAX_TURNS=10\nAGENTWEFT_MAX_TOKENS=0\n")
     os.environ["AGENTWEFT_MAX_TOKENS"] = "50000"
-    engine.load_env()
-    [said] = settings.from_the_place(work)
-    assert said.startswith("AGENTWEFT_MAX_TOKENS is set by ")
-    assert "it loosens a guard" in said
-    settings.FROM_FILE.pop("AGENTWEFT_MAX_TOKENS")
-    assert settings.from_the_place(work) == []
-    assert settings.class_of("AGENTWEFT_MAX_CALLS", "26") == settings.LOOSENS
-    assert settings.class_of("AGENTWEFT_MAX_CALLS", "many") == \
-        settings.LOOSENS
-    assert settings.class_of("AGENTWEFT_PERMISSION_MODE", "dontAsk") is None
+    with pytest.raises(ValueError) as e:
+        engine.load_env(work)
+    assert str(e.value) == refused(work, "AGENTWEFT_MAX_TOKENS",
+                                   "loosens a guard")
+    os.environ["AGENTWEFT_MAX_TOKENS"] = "0"
+    engine.load_env(work)
+    assert os.environ["AGENTWEFT_MAX_TURNS"] == "10"
+    assert not settings.allowed("AGENTWEFT_MAX_CALLS", "26")
+    assert not settings.allowed("AGENTWEFT_MAX_CALLS", "many")
+    assert settings.allowed("AGENTWEFT_PERMISSION_MODE", "dontAsk")
 
 
-def test_every_setting_is_classed():
-    for key in settings.DEFAULTS:
-        assert settings.class_of(settings.env_name(key)) is not None \
-            or settings.env_name(key) in settings.PREFERENCES, key
+def text_of(value):
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, tuple):
+        return ",".join(value)
+    return str(value)
+
+
+def test_every_setting_is_a_preference_or_held_to_no_looser():
+    for key, value in settings.DEFAULTS.items():
+        name = settings.env_name(key)
+        if name in settings.PREFERENCES:
+            continue
+        assert settings.allowed(name, text_of(value)), key
+        assert not settings.allowed(name, "something-else-entirely"), key
+
+
+def test_load_env_is_the_one_writer_of_the_run_s_environment():
+    writes = re.compile(r"os\.environ\s*\[[^\]]*\]\s*=(?!=)"
+                        r"|os\.environ\.(update|setdefault|pop|clear)\("
+                        r"|os\.putenv\(")
+    found = {}
+    for path in sorted((REPO / "agentweft").rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        hits = len(writes.findall(text))
+        if hits:
+            found[path.relative_to(REPO).as_posix()] = hits
+    # the eval harness sets and puts back its own inbox for the case it
+    # replays, not a run
+    assert found == {"agentweft/runner/engine.py": 1,
+                     "agentweft/evals/harness.py": 3}
+    engine_text = (REPO / "agentweft" / "runner" / "engine.py").read_text(
+        encoding="utf-8")
+    body = engine_text.split("def load_env(", 1)[1].split("\ndef ", 1)[0]
+    assert writes.search(body)
 
 
 def test_with_nothing_set_the_defaults_stand(place, fake_cli):
