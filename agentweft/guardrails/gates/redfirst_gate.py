@@ -189,9 +189,12 @@ def defines(path, name):
 def py_files(root):
     """-> the .py files git sees under `root`, tracked or not ignored: what
     the replay's checkout lays out."""
+    from agentweft.guardrails import owngit
+
     try:
-        out = subprocess.run(["git", "-C", str(root), "ls-files", "-co",
-                              "--exclude-standard", "-z", "--", "*.py"],
+        out = subprocess.run(owngit.argv("-C", str(root), "ls-files", "-co",
+                                         "--exclude-standard", "-z", "--",
+                                         "*.py"),
                              capture_output=True, text=True, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         return []

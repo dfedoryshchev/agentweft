@@ -191,7 +191,24 @@ without the provider credentials the run may hold: every name under
 command is the project's and the tests are a model's, so a test that prints
 its environment, or a git config that names a command of its own, never
 sees a key or a login token. every other name passes as before; a test that
-needs a provider credential of its own cannot have it from the run.
+needs a provider credential of its own cannot have it from the run. the
+gates' environment also carries the names `env:` in `project.yml` declares
+that the place's `.env` set (`orchestrate.md`), and only the gates' does.
+
+every git agentweft runs itself (the snapshot, the fence, the sign-off, the
+commit modes, the replay's worktree, the brief's ignore check) starts as
+`git -c core.fsmonitor=false -c core.hooksPath=<null device>`: a place's
+`.git/config` is the place's, and git would run its `core.fsmonitor`
+command on a status and its hooks on a commit or a checkout as you, with
+the run's environment. the command line ranks above every config file.
+the edit tools of a step in a place are kept out of `.git` (`--keep-all`,
+`providers.md`), and a shell write into it is refused like any other. that
+is two walls, neither whole: a program that writes git's config as a side
+effect (`git config`, run by a step with a shell) is not seen by the hook,
+and `include.path`, `credential.helper`, `core.sshCommand`, `diff.external`
+or a `filter.*` driver written that way would still run on agentweft's
+next git. a git too old to take `-c` fails the call, which every site
+already reports as git failing.
 
 a step with no gates gets its heading in `gates.md` too, with `no gates`
 under it, and its line in `steps.jsonl` says `"ungated": true` (see

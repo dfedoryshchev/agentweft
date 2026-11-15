@@ -182,9 +182,12 @@ def untracked(where):
 def ignored(top, rel):
     """whether git ignores `rel` under `top` now. an answer git could not
     give counts as ignored."""
+    from agentweft.guardrails import owngit
+
     try:
-        done = subprocess.run(["git", "-C", str(top), "check-ignore", "-q",
-                               "--", rel], capture_output=True, timeout=30)
+        done = subprocess.run(owngit.argv("-C", str(top), "check-ignore",
+                                          "-q", "--", rel),
+                              capture_output=True, timeout=30)
     except (OSError, subprocess.SubprocessError):
         return True
     return done.returncode != 1

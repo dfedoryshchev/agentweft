@@ -31,8 +31,10 @@ LOOSE = ("??", "!!")
 
 
 def _git(place, *args):
+    from agentweft.guardrails import owngit
+
     try:
-        r = subprocess.run(["git", "-C", str(place)] + list(args),
+        r = subprocess.run(owngit.argv("-C", str(place), *args),
                            capture_output=True, encoding="utf-8")
     except FileNotFoundError:
         raise ValueError("a fence needs git, and git is not on PATH")

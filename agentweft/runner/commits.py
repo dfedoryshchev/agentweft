@@ -24,7 +24,6 @@ and the committer are whoever git config names in the place, and with no
 user.name or user.email there the run refuses before its first step.
 """
 import json
-import os
 import subprocess
 from pathlib import Path
 
@@ -51,11 +50,12 @@ def mode(fm):
 
 
 def _git(where, *args, given=None):
-    # a hooks path with nothing in it: --no-verify alone still runs
+    # the hooks path is off (`owngit`) because --no-verify alone still runs
     # post-checkout, prepare-commit-msg, post-commit and reference-transaction
+    from agentweft.guardrails import owngit
+
     try:
-        r = subprocess.run(["git", "-C", str(where), "-c",
-                            "core.hooksPath=" + os.devnull] + list(args),
+        r = subprocess.run(owngit.argv("-C", str(where), *args),
                            input=given, capture_output=True,
                            encoding="utf-8", errors="replace")
     except (FileNotFoundError, OSError):

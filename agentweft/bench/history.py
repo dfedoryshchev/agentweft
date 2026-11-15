@@ -35,8 +35,10 @@ def place(given=None):
 
 
 def git(*args):
+    from agentweft.guardrails import owngit
+
     try:
-        done = subprocess.run(["git"] + list(args), capture_output=True,
+        done = subprocess.run(owngit.argv(*args), capture_output=True,
                               encoding="utf-8", errors="replace", timeout=30)
     except (OSError, subprocess.TimeoutExpired):
         return None

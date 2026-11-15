@@ -652,11 +652,13 @@ of the three traps above (`journal.md`).
 a `claude` step in a place granted `write` or `edit`, or granted nothing
 (which has every tool), gets the same hook on Write, Edit, MultiEdit (an
 older name the cli still maps onto Edit) and NotebookEdit, added to the
-matcher, with `--keep <place>/decisions.md` and `--place <place>` among its
-`args`. for those tools it reads `file_path` (`notebook_path` for
-NotebookEdit) and refuses a call on a kept file, so a step cannot write the
-ruling that lets its own change stand ("the rulings only the runner writes"
-in `guardrails.md`), and a call outside the place and outside the run's own
+matcher, with `--keep <place>/decisions.md`, `--keep-all <place>/.git` and
+`--place <place>` among its `args`. for those tools it reads `file_path`
+(`notebook_path` for NotebookEdit) and refuses a call on a kept file, so a
+step cannot write the ruling that lets its own change stand ("the rulings
+only the runner writes" in `guardrails.md`), a call on the place's `.git`
+or anything under it (its config and hooks run as you on agentweft's next
+git, `gates.md`), and a call outside the place and outside the run's own
 `runs/<run-id>/tmp/` ("the scope fence" in `guardrails.md`); every other path goes
 through. a step in no place, or granted tools that hold neither `shell` nor
 `write` nor `edit`, gets no hook.

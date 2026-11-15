@@ -50,8 +50,10 @@ NEGATED = re.compile(r"\b(not|never|no|nobody|without)\W+(\w+\W+){0,2}$",
 
 
 def _git(place, *args):
+    from agentweft.guardrails import owngit
+
     try:
-        r = subprocess.run(["git", "-C", str(place)] + list(args),
+        r = subprocess.run(owngit.argv("-C", str(place), *args),
                            capture_output=True, encoding="utf-8",
                            errors="replace")
     except (FileNotFoundError, OSError):

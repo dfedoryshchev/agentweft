@@ -81,12 +81,14 @@ def committed(place):
     its history: a place outside git would pass that gate without running."""
     import subprocess
 
+    from agentweft.guardrails import owngit
+
     who = ["-c", "user.name=evals", "-c", "user.email=evals@localhost",
            "-c", "commit.gpgsign=false", "-c", "core.autocrlf=false"]
     for args in (["init", "-q"], ["add", "-A"],
                  ["commit", "-q", "--allow-empty", "-m", "the case's place"]):
         try:
-            r = subprocess.run(["git", "-C", str(place)] + who + args,
+            r = subprocess.run(owngit.argv("-C", str(place), *(who + args)),
                                capture_output=True, encoding="utf-8")
         except FileNotFoundError:
             return "a case with a place needs git, and git is not on PATH"

@@ -42,11 +42,13 @@ def _git(place, *args, env=None, stdin=None):
     """-> (exit code, stdout, stderr); exit None when git is not there. the
     place's git config can name commands of its own, so git is started
     without the provider credentials."""
+    from agentweft.guardrails import owngit
     from agentweft.guardrails.gates.base import stripped
 
     try:
-        r = subprocess.run(["git", "--no-optional-locks", "-C", str(place)]
-                           + list(args), capture_output=True, input=stdin,
+        r = subprocess.run(owngit.argv("--no-optional-locks", "-C",
+                                       str(place), *args),
+                           capture_output=True, input=stdin,
                            env=stripped(env))
     except OSError as e:
         return None, "", str(e)

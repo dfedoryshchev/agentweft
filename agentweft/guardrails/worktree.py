@@ -28,8 +28,10 @@ REASON = "agentweft pid "
 
 
 def _git(root, *args):
+    from agentweft.guardrails import owngit
+
     try:
-        r = subprocess.run(["git", "-C", str(root)] + list(args),
+        r = subprocess.run(owngit.argv("-C", str(root), *args),
                            capture_output=True, encoding="utf-8",
                            errors="replace")
     except OSError:

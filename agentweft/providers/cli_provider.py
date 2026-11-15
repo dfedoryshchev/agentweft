@@ -87,12 +87,13 @@ BASE_URL_VAR = "ANTHROPIC_BASE_URL"
 DEFAULT_BASE_URL = "https://api.anthropic.com"
 
 
-def shell_hook(denials, kept=(), tools=None, places=()):
+def shell_hook(denials, kept=(), tools=None, places=(), whole=()):
     """-> the `hooks` setting that hands every call to `tools` (Bash and
     PowerShell when not given) to the shell-write check before it runs
     (`guardrails/shellwrite.py`). each of `kept` is a file no tool may write,
     or a folder, written ending in `/`, no tool may write inside. `places`
     are the spellings of the place an edit tool may not write outside of.
+    each of `whole` is a path no tool may write, nor anything under it.
 
     the exec form, `args`, spawns python with no shell between, so no quoting
     differs by platform. `-I` keeps the script's own folder off the import
@@ -108,6 +109,8 @@ def shell_hook(denials, kept=(), tools=None, places=()):
                        + ("/" if folder else "")]
     for place in places:
         args = args + [shellwrite.PLACE, Path(place).as_posix()]
+    for path in whole:
+        args = args + [shellwrite.KEEP_ALL, Path(path).as_posix()]
     return {"PreToolUse": [{"matcher": "|".join(tools or shellwrite.TOOLS),
                             "hooks": [{"type": "command",
                                        "command": Path(sys.executable)
@@ -888,6 +891,13 @@ class CliProvider(Provider):
         return [place / decisions.FILE,
                 (place / facts.FOLDER).as_posix() + "/"]
 
+    def kept_whole(self):
+        """-> the paths no tool of this step may write, nor anything under
+        them: the place's `.git`, folder or file, when there is a place."""
+        if self.where is None:
+            return []
+        return [Path(self.where).resolve() / ".git"]
+
     def places(self):
         """-> the place as the step was handed it and as it resolves, each
         once: a write in either spelling is inside."""
@@ -968,7 +978,8 @@ class CliProvider(Provider):
             edits = "Write" in hooked
             settings["hooks"] = shell_hook(
                 self.denials, self.kept_files() if edits else [], hooked,
-                self.places() if edits else [])
+                self.places() if edits else [],
+                self.kept_whole() if edits else [])
         if tools_used and self.facts_read and self.facts_handed is not None:
             settings["hooks"] = dict(settings.get("hooks") or {},
                                      **facts_hook(self.facts_read,

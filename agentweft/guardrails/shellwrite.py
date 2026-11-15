@@ -34,7 +34,9 @@ the runner passes decisions.md and facts/ in the place (any other file there
 is the project's own). a ruling there lets a change stand and a fact tells
 the next step its way, so a step writing either would be ruling on its own
 work (`guardrails/rulings.py` and `guardrails/factsguard.py` catch whatever
-gets past).
+gets past). each `--keep-all <path>` is a path no tool may write, nor any
+file under it: the runner passes the place's `.git`, whose config and hooks
+git runs as the person (`guardrails/owngit.py`).
 
 the module runs as a script, by path, in a process of its own, so nothing at
 its top level may import from the package.
@@ -54,6 +56,7 @@ TOOLS = ("Bash", "PowerShell")
 # MultiEdit is an older name the cli still maps onto Edit
 EDITORS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 KEEP = "--keep"
+KEEP_ALL = "--keep-all"
 PLACE = "--place"
 SCRATCH = "tmp"
 
@@ -84,6 +87,10 @@ KEPT = ("refused: `{0}` is the run's record of rulings, and only the runner"
 KEPT_FACTS = ("refused: `{0}` is in the project's facts, and only the runner"
               " writes them. say what you found in your handoff block, on a"
               " DECIDED or DOUBTS line.")
+KEPT_GIT = ("refused: `{0}` is in the place's `.git/`, which no step writes:"
+            " its config and hooks run as the person on the runner's next"
+            " git. change the project's files; if the repo's git needs"
+            " changing, say so on a NEEDS: line and stop.")
 OUTSIDE = ("refused: `{0}` is outside the place this step works in, and"
            " nothing outside it is the step's to change. write the project's"
            " files inside the place{1}.")
@@ -317,18 +324,20 @@ def note(path, data, hit, more=None):
 
 def arguments(argv):
     """-> (the denials file or None, [the files no tool may write], [the
-    place's spellings])."""
-    denials, kept, places = None, [], []
+    place's spellings], [the paths no tool may write, nor anything under
+    them])."""
+    denials, kept, places, whole = None, [], [], []
+    into = {KEEP: kept, PLACE: places, KEEP_ALL: whole}
     i = 0
     while i < len(argv):
-        if argv[i] in (KEEP, PLACE) and i + 1 < len(argv):
-            (kept if argv[i] == KEEP else places).append(argv[i + 1])
+        if argv[i] in into and i + 1 < len(argv):
+            into[argv[i]].append(argv[i + 1])
             i = i + 2
             continue
         if denials is None:
             denials = argv[i]
         i = i + 1
-    return denials, kept, places
+    return denials, kept, places, whole
 
 
 DRIVE = re.compile(r"^[A-Za-z]:/")
@@ -408,10 +417,24 @@ def edited(data, kept):
     return "", ""
 
 
+def held(data, whole):
+    """-> the path an edit tool call writes when it is one of `whole` or
+    under one, "" for one that is neither."""
+    given = data["tool_input"]
+    path = given.get("file_path") or given.get("notebook_path")
+    if not isinstance(path, str) or not path:
+        raise TypeError("no file path")
+    cwd = data.get("cwd") or os.getcwd()
+    for top in whole:
+        if same(path, top, cwd) or inside(path, top, cwd):
+            return path
+    return ""
+
+
 def decide(argv, raw):
     """-> (exit code, what to print on stderr) for one PreToolUse call. 0 lets
     it run, 2 refuses it."""
-    denials, kept, places = arguments(argv)
+    denials, kept, places, whole = arguments(argv)
     scratch = scratch_of(denials)
     more = None
     try:
@@ -425,6 +448,9 @@ def decide(argv, raw):
                     if scratch else ""
                 said = OUTSIDE.format(snippet(hit), tail)
             else:
+                hit = held(data, whole) if whole else ""
+                said = KEPT_GIT.format(snippet(hit))
+            if not hit:
                 hit, under = edited(data, kept) if kept else ("", "")
                 said = (KEPT_FACTS if under.endswith(("/", "\\"))
                         else KEPT).format(snippet(hit))

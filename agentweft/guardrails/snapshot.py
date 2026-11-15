@@ -46,8 +46,10 @@ def is_test(path):
 
 
 def _git(place, *args, text=True):
+    from agentweft.guardrails import owngit
+
     try:
-        r = subprocess.run(["git", "-C", str(place)] + list(args),
+        r = subprocess.run(owngit.argv("-C", str(place), *args),
                            capture_output=True, text=False)
     except (FileNotFoundError, OSError):
         return None

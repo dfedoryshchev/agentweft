@@ -114,9 +114,12 @@ def _sha(path):
 
 
 def _listed(place):
+    from agentweft.guardrails import owngit
+
     try:
-        r = subprocess.run(["git", "-C", str(place), "ls-files", "-z",
-                            "--cached", "--others", "--exclude-standard"],
+        r = subprocess.run(owngit.argv("-C", str(place), "ls-files", "-z",
+                                       "--cached", "--others",
+                                       "--exclude-standard"),
                            capture_output=True)
     except OSError:
         return None
