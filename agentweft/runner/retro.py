@@ -166,12 +166,18 @@ def workarounds(lines):
         if folder not in read:
             read[folder] = refusals(folder / shellwrite.FILE)
         for said in read[folder]:
-            if said.get("session") in sessions:
-                out.append("- seq " + str(line.get("seq")) + " "
-                           + str(line.get("step")) + " went on after the"
-                           " shell write `" + stops.flat(str(
-                               said.get("refused") or said.get("command")))
-                           + "` was refused")
+            if said.get("session") not in sessions:
+                continue
+            head = ("- seq " + str(line.get("seq")) + " "
+                    + str(line.get("step")) + " went on after the")
+            if said.get("unread"):
+                out.append(head + " call `" + stops.flat(str(
+                    said.get("command"))) + "`, which the shell-write check"
+                    " could not read, was refused")
+            else:
+                out.append(head + " shell write `" + stops.flat(str(
+                    said.get("refused") or said.get("command")))
+                    + "` was refused")
     return out
 
 

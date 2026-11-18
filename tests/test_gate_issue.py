@@ -145,3 +145,18 @@ def test_a_step_that_went_on_after_a_refused_shell_write_is_a_workaround(
     assert retro.workarounds(lines) == [
         "- seq 3 worker.md went on after the shell write `echo x > a.txt`"
         " was refused"]
+
+
+def test_a_call_the_hook_could_not_read_is_not_called_a_shell_write(
+        tmp_path):
+    folder = tmp_path / "run"
+    folder.mkdir()
+    with open(folder / shellwrite.FILE, "w", encoding="utf-8") as f:
+        f.write(json.dumps({"session": "s-1", "tool": "Bash",
+                            "command": "echo 'open", "refused": "",
+                            "unread": "ValueError"}) + "\n")
+    lines = [({"seq": 2, "step": "tester.md", "outcome": "ok",
+               "session": "s-1", "tasks": None}, folder)]
+    assert retro.workarounds(lines) == [
+        "- seq 2 tester.md went on after the call `echo 'open`, which the"
+        " shell-write check could not read, was refused"]

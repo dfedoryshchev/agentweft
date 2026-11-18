@@ -1,0 +1,42 @@
+{
+ "read": [
+  {
+   "what": "a tester's probe of how argv carries each awkward character",
+   "command": "python -c \"\nimport subprocess,sys\nfor a in ['\\t','\\r','\\n',' ','\\\"','SECTION SIGN','']:\n    print(repr(subprocess.run([sys.executable,'-c','import sys;print(ascii(sys.argv[1:]))',a,'x'],capture_output=True,text=True).stdout))\n\"; python -m gradebook report --help | head -30; sed -n 125,175p TASK.md"
+  },
+  {
+   "what": "a worker's probe of the parser on odd paths, a quote among them",
+   "command": "python -I -c \"\nimport sys; sys.path.insert(0,'.')\nfrom logsift.parse import parse_line\nfor t in ['/a\\\"b', '/a\\u2028b', '/a\\x0cb', '/a\\x85b', '/caf\\u00e9', '/a\\tb', '/a\\x1cb']:\n    line='10.0.0.1 - - [12/Oct/2026:09:15:02 +0000] \\\"GET '+t+' HTTP/1.1\\\" 200 1 1'\n    print(repr(t), parse_line(line) is not None, len(line.splitlines()))\n\""
+  },
+  {
+   "what": "a reviewer's run of an option value holding a newline",
+   "command": "printf '' | python -m logsift filter --ip=\"$(printf 'x\\ny')\" 2>&1 | od -c | head -3"
+  }
+ ],
+ "refused": [
+  {
+   "what": "a patcher appending test cases through heredocs",
+   "command": "cat >> tests/test_report.py <<'EOF'\n\n\ndef test_letter_from_rounded_half(make):\n    c = make(scores=\"id,assessment,score\\ns1,hw,1\\n\", roster=\"id,name\\ns1,Ana\\n\",\n             config={\"assessments\": [{\"name\": \"hw\", \"max\": 800, \"weight\": 1}], \"grades\": [[\"P\", 0.13], [\"F\", 0]]})\nEOF\ncat >> tests/test_stats.py <<'EOF'\n\n\ndef test_stats_mean_half_rounds_up(make):\n    c = make(scores=\"id,assessment,score\\ns1,hw,0.02\\ns2,hw,0.03\\n\",\n             config={\"assessments\": [{\"name\": \"hw\", \"max\": 10, \"weight\": 1}], \"grades\": [[\"A\", 0]]})\nEOF\ncat >> tests/test_commands.py <<'EOF'\n\n\ndef test_student_percent_half_rounds_up(make):\n    c = make(roster=\"id,name\\ns1,Ana\\n\", scores=\"id,assessment,score\\ns1,hw,1\\n\",\n             config={\"assessments\": [{\"name\": \"hw\", \"max\": 800, \"weight\": 1}], \"grades\": [[\"A\", 90], [\"F\", 0]]})\nEOF\npython -m pytest -q 2>&1 | tail -3"
+  },
+  {
+   "what": "a worker rewriting product files from a python heredoc",
+   "command": "python - <<'EOF'\nimport re\ndef sub(path, old, new):\n    s = open(path, encoding=\"utf-8\").read()\n    assert s.count(old) == 1, (path, old)\n    open(path, \"w\", encoding=\"utf-8\", newline=\"\").write(s.replace(old, new))\nEOF\ngit diff --stat"
+  },
+  {
+   "what": "a reviewer's python -c writing a probe input",
+   "command": "git diff --numstat HEAD~1 -- TASK.md tests/test_delimiter.py && d=$(mktemp -d) && printf 'id;name\\ns1;Ann\\n' | python -c \"import sys;open(sys.argv[1],'wb').write(sys.stdin.buffer.read())\" \"$d/r.csv\" 2>&1; echo rc=$?"
+  },
+  {
+   "what": "a tester copying a test into a worktree outside the place",
+   "command": "rm -rf /d/tmp/redchk && git worktree add -q /d/tmp/redchk HEAD && cp tests/test_delimiter.py /d/tmp/redchk/tests/ && cd /d/tmp/redchk && python -m pytest -q tests/test_delimiter.py::test_quoting_in_scores_with_delimiter 2>&1 | tail -4"
+  },
+  {
+   "what": "a patcher's perl -i over two test files",
+   "command": "perl -CSD -i -pe 's/\\x{2028}/\\\\u2028/g; s/\\x{2029}/\\\\u2029/g' tests/test_filter.py tests/test_parse.py"
+  },
+  {
+   "what": "a tester appending tests through a heredoc",
+   "command": "cat >> tests/test_filter.py <<'EOF'\n\n\n# --- filter --since / --until -------------------------------------------------\n# UTC times of the LOG lines: 08:15:02, 08:16:40, 08:20:00, 09:01:59 on 2026-10-12.\n\nEOF"
+  }
+ ]
+}

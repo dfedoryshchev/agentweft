@@ -16,10 +16,14 @@ model. every refusal is one json line in the run's `tool-denials.jsonl`, whose
 path is the hook's one argument.
 
 it reads the shell's own write syntax and the few programs whose whole job is
-writing (`tee`, `cp`, `sed -i`, ...). a program that writes files as a side
-effect of something else is not seen. anything the hook cannot read, a call it
-cannot parse or an error of its own, is refused too: a check that crashes and
-lets the call through is no check.
+writing (`tee`, `cp`, `sed -i`, ...), in each command and in each command a
+`$(...)` or backquotes run. it reads quotes as the shell does: a `\\"` inside
+double quotes, a `$'...'` and a quote inside a substitution do not end a
+word. a program that writes files as a side effect of something else is not
+seen. anything the hook cannot read, a quote left open, input that is not a
+call or an error of its own, is refused too, and its line in the denials file
+says `unread` with the error's kind: a check that crashes and lets the call
+through is no check, and a refusal nobody can count is no record.
 
 the same hook also stands on Write, Edit, MultiEdit and NotebookEdit for a
 step that has them in a place: one granted `write` or `edit`, or one granted
@@ -46,7 +50,6 @@ import json
 import os
 import posixpath
 import re
-import shlex
 import sys
 import tempfile
 
@@ -122,49 +125,168 @@ def heredocs(command):
     return "\n".join(kept), bodies
 
 
-def flatten(command):
-    """-> the command on one line: an unquoted newline becomes `;`, a comment
-    and a backslash-newline go."""
-    out = []
-    quote = None
-    i = 0
-    n = len(command)
+PUNCTUATION = "();<>|&"
+
+
+def single_end(text, i):
+    """-> the index of the `'` that closes a quote opened before `i`."""
+    end = text.find("'", i)
+    if end < 0:
+        raise ValueError("no closing quotation")
+    return end
+
+
+def ansi_end(text, i):
+    """-> the index of the `'` that closes a `$'...'`, where a backslash
+    escapes the next character."""
+    while i < len(text):
+        if text[i] == "\\":
+            i = i + 2
+            continue
+        if text[i] == "'":
+            return i
+        i = i + 1
+    raise ValueError("no closing quotation")
+
+
+def tick_end(text, i):
+    while i < len(text):
+        if text[i] == "\\":
+            i = i + 2
+            continue
+        if text[i] == "`":
+            return i
+        i = i + 1
+    raise ValueError("no closing backquote")
+
+
+def double_end(text, i, inner):
+    """-> the index of the `"` that closes a quote opened before `i`; each
+    command substituted inside it joins `inner`."""
+    while i < len(text):
+        c = text[i]
+        if c == "\\":
+            i = i + 2
+            continue
+        if c == '"':
+            return i
+        if c == "$" and text[i + 1:i + 2] == "(":
+            end = paren_end(text, i + 2)
+            inner.append(text[i + 2:end])
+            i = end + 1
+            continue
+        if c == "`":
+            end = tick_end(text, i + 1)
+            inner.append(text[i + 1:end])
+            i = end + 1
+            continue
+        i = i + 1
+    raise ValueError("no closing quotation")
+
+
+def paren_end(text, i):
+    """-> the index of the `)` that closes a `$(` opened before `i`."""
+    depth = 1
+    while i < len(text):
+        c = text[i]
+        if c == "\\":
+            i = i + 2
+            continue
+        if c == "'":
+            i = single_end(text, i + 1) + 1
+            continue
+        if c == "$" and text[i + 1:i + 2] == "'":
+            i = ansi_end(text, i + 2) + 1
+            continue
+        if c == '"':
+            i = double_end(text, i + 1, []) + 1
+            continue
+        if c == "`":
+            i = tick_end(text, i + 1) + 1
+            continue
+        if c == "(":
+            depth = depth + 1
+        elif c == ")":
+            depth = depth - 1
+            if depth == 0:
+                return i
+        i = i + 1
+    raise ValueError("no closing parenthesis")
+
+
+def tokens(text, inner):
+    """-> the words and operators of a command, each word with its quotes as
+    written. an unquoted newline is `;`, a comment and a backslash-newline
+    go, and each command substituted by `$(...)` or backquotes joins
+    `inner`. raises ValueError on a quote or a substitution left open."""
+    out, word = [], []
+
+    def flush():
+        if word:
+            out.append("".join(word))
+            del word[:]
+
+    i, n = 0, len(text)
     while i < n:
-        c = command[i]
-        if quote:
-            out.append(c)
-            if c == "\\" and quote == '"' and i + 1 < n:
-                out.append(command[i + 1])
-                i = i + 1
-            elif c == quote:
-                quote = None
-        elif c in "'\"":
-            quote = c
-            out.append(c)
-        elif c == "\\" and i + 1 < n:
-            if command[i + 1] != "\n":
-                out.append(c + command[i + 1])
+        c = text[i]
+        if c in " \t":
+            flush()
             i = i + 1
         elif c == "\n":
-            out.append(" ; ")
-        elif c == "#" and (not out or out[-1][-1:] in (" ", "\t", ";")):
-            while i + 1 < n and command[i + 1] != "\n":
+            flush()
+            out.append(";")
+            i = i + 1
+        elif c == "#" and not word:
+            while i < n and text[i] != "\n":
                 i = i + 1
+        elif c == "\\":
+            if text[i + 1:i + 2] != "\n":
+                word.append(text[i:i + 2])
+            i = i + 2
+        elif c == "'":
+            end = single_end(text, i + 1)
+            word.append(text[i:end + 1])
+            i = end + 1
+        elif c == "$" and text[i + 1:i + 2] == "'":
+            end = ansi_end(text, i + 2)
+            word.append(text[i:end + 1])
+            i = end + 1
+        elif c == '"':
+            end = double_end(text, i + 1, inner)
+            word.append(text[i:end + 1])
+            i = end + 1
+        elif c == "$" and text[i + 1:i + 2] == "(":
+            end = paren_end(text, i + 2)
+            inner.append(text[i + 2:end])
+            word.append(text[i:end + 1])
+            i = end + 1
+        elif c == "`":
+            end = tick_end(text, i + 1)
+            inner.append(text[i + 1:end])
+            word.append(text[i:end + 1])
+            i = end + 1
+        elif c in PUNCTUATION:
+            flush()
+            end = i
+            while end < n and text[end] in PUNCTUATION:
+                end = end + 1
+            out.append(text[i:end])
+            i = end
         else:
-            out.append(c)
-        i = i + 1
-    return "".join(out)
+            word.append(c)
+            i = i + 1
+    flush()
+    return out
 
 
 def segments(command):
-    """-> ([[word]] one list per simple command, [heredoc bodies]).
-    raises ValueError on a command the shell could not run either."""
+    """-> ([[word]] one list per simple command, those inside a `$(...)` or
+    backquotes too, [heredoc bodies]). raises ValueError on a quote or a
+    substitution left open, which the shell could not run either."""
     body, bodies = heredocs(command.replace("\r\n", "\n"))
-    lex = shlex.shlex(flatten(body), posix=False, punctuation_chars=True)
-    lex.whitespace_split = True
-    lex.commenters = ""
+    inner = []
     out, now = [], []
-    for token in lex:
+    for token in tokens(body, inner):
         if token in SEPARATORS or (set(token) <= set(";&|()")
                                    and ">" not in token):
             if now:
@@ -174,6 +296,10 @@ def segments(command):
             now.append(token)
     if now:
         out.append(now)
+    for text in inner:
+        more, found = segments(text)
+        out = out + more
+        bodies = bodies + found
     return out, bodies
 
 
@@ -311,11 +437,15 @@ def snippet(text, most=120):
 def note(path, data, hit, more=None):
     if not path:
         return
+    data = data if isinstance(data, dict) else {}
+    given = data.get("tool_input")
+    given = given if isinstance(given, dict) else {}
+    command = given.get("command")
     line = {"time": datetime.datetime.now().isoformat(timespec="seconds"),
             "session": data.get("session_id"),
             "tool": data.get("tool_name"),
-            "command": snippet((data.get("tool_input") or {}).get("command")
-                               or "", 500),
+            "command": snippet(command if isinstance(command, str) else "",
+                               500),
             "refused": hit}
     line.update(more or {})
     with open(path, "a", encoding="utf-8") as f:
@@ -442,6 +572,7 @@ def decide(argv, raw):
     denials, kept, places, whole = arguments(argv)
     scratch = scratch_of(denials)
     more = None
+    data = None
     try:
         data = json.loads(raw)
         tool = data.get("tool_name")
@@ -468,6 +599,10 @@ def decide(argv, raw):
         else:
             return 0, ""
     except Exception as e:
+        try:
+            note(denials, data, "", {"unread": type(e).__name__})
+        except Exception:
+            pass
         return 2, UNREAD.format(type(e).__name__)
     if not hit:
         return 0, ""

@@ -210,6 +210,82 @@ def test_an_error_inside_the_check_refuses_the_call(monkeypatch):
     assert code == 2 and "Write" in said
 
 
+CALLS = json.loads((Path(__file__).parent / "shell_calls.json").read_text(
+    encoding="utf-8").replace("SECTION SIGN", "\xa7"))
+
+
+def lines_of(denials):
+    if not denials.is_file():
+        return []
+    return [json.loads(l) for l in denials.read_text("utf-8").splitlines()]
+
+
+@pytest.mark.parametrize("call", CALLS["read"], ids=lambda c: c["what"])
+def test_a_recorded_command_the_shell_runs_and_that_writes_nothing_passes(
+        call, tmp_path):
+    denials = tmp_path / "tool-denials.jsonl"
+    got = check().decide([str(denials)], bash(call["command"], cwd=tmp_path))
+    assert got == (0, ""), call["what"]
+    assert lines_of(denials) == []
+
+
+@pytest.mark.parametrize("call", CALLS["refused"], ids=lambda c: c["what"])
+def test_a_recorded_shell_write_stays_refused_and_noted(call, tmp_path):
+    denials = tmp_path / "tool-denials.jsonl"
+    code, said = check().decide([str(denials)],
+                                bash(call["command"], cwd=tmp_path))
+    assert code == 2, call["what"]
+    assert "Write tool" in said
+    [line] = lines_of(denials)
+    assert line["refused"] and "unread" not in line
+
+
+@pytest.mark.parametrize("command", [
+    "echo \"$(cat > notes.txt)\"",
+    "x=$(echo hi > out.txt)",
+    "echo `tee log.txt < a`",
+    "printf '%s' \"a\\\"b\" > calc.py",
+    "echo $'it\\'s' > calc.py",
+    "echo x > work\\out.txt",
+])
+def test_a_write_inside_a_substitution_or_after_an_escaped_quote_is_seen(
+        command, tmp_path):
+    code, said = check().decide([], bash(command, cwd=tmp_path))
+    assert code == 2, command
+    assert "Write tool" in said
+
+
+@pytest.mark.parametrize("command", [
+    "echo \"a \\\"quoted\\\" word\" | grep -c quoted",
+    "echo \"$(git rev-parse HEAD)\" \"`date`\"",
+    "printf %s $'tab\\there' | od -c",
+    "type notes\\a.txt",
+    "echo \"caf\xe9 \\\"x\\\"\" | head -1",
+])
+def test_quotes_escapes_and_substitutions_that_write_nothing_pass(command,
+                                                                  tmp_path):
+    assert check().decide([], bash(command, cwd=tmp_path)) == (0, ""), command
+
+
+def test_a_call_the_check_cannot_read_is_noted_as_unread(tmp_path):
+    sw = check()
+    denials = tmp_path / sw.FILE
+    code, said = sw.decide([str(denials)], bash("echo 'unclosed",
+                                                session="s-9"))
+    assert code == 2 and "could not read" in said
+    code, _ = sw.decide([str(denials)], "this is not json")
+    assert code == 2
+    first, second = lines_of(denials)
+    assert first["session"] == "s-9" and first["unread"] == "ValueError"
+    assert first["command"] == "echo 'unclosed" and not first["refused"]
+    assert second["session"] is None and second["unread"] == "JSONDecodeError"
+    assert sw.denied(tmp_path, {"s-9"}) == 1
+
+
+def test_an_unreadable_call_with_no_denials_file_is_still_refused():
+    assert check().decide([], bash("echo 'unclosed"))[0] == 2
+
+
 def test_another_tool_is_not_its_business():
     code, _ = check().decide([], json.dumps({"tool_name": "Edit",
                                              "tool_input": {}}))

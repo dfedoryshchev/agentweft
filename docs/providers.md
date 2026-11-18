@@ -643,14 +643,19 @@ duplicated descriptor such as `2>&1`, the temp dir and the run's own
 `python -c` or python heredoc that opens a file to write or calls
 `write_text`, and PowerShell's `Set-Content`, `Add-Content`, `Out-File` and
 `WriteAllText`. the reason names Write and Edit, and a step that cannot make
-the change with them says so on a `NEEDS:` line. a call it cannot read, and
-an error of its own, are refused too: a check that crashes and lets the call
-through is no check. it catches the shell's write syntax and the programs
-whose job is writing, not every program that writes a file on the way to
-something else.
+the change with them says so on a `NEEDS:` line. it reads each command a
+`$(...)` or backquotes run as well, and reads quotes as the shell does, so a
+`\"` inside double quotes, a `$'...'` or a quote inside a substitution never
+turns a read into a refusal. a call it cannot read (a quote left open, input
+that is not a call) and an error of its own are refused too: a check that
+crashes and lets the call through is no check. it catches the shell's write
+syntax and the programs whose job is writing, not every program that writes a
+file on the way to something else.
 
 each refusal is one json line in `runs/<run-id>/tool-denials.jsonl`, with the
-session, the tool, the command and the part that writes. the step's line in
+session, the tool, the command and the part that writes; a call it could not
+read has an empty part that writes and `unread` with the error's kind. the
+step's line in
 `steps.jsonl` counts its own as `shell_writes_denied`, and counts as
 `shell_trap_recoveries` the model's messages in its transcript that name one
 of the three traps above (`journal.md`).

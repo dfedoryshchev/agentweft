@@ -345,8 +345,8 @@ and `continued`
   timed out, summed over every go; null for a provider that starts no process
   (the fake, the api) and when it could not be told.
 - `shell_writes_denied` is how many calls the hook refused this step, shell
-  commands that write a file among them (`providers.md`, a shell step writes
-  files with the write tool), counted from `runs/<run-id>/tool-denials.jsonl`
+  commands that write a file and calls it could not read among them
+  (`providers.md`, a shell step writes files with the write tool), counted from `runs/<run-id>/tool-denials.jsonl`
   by the step's sessions; null for a step that was not handed the check (one
   granted no `shell`, or granted nothing outside a place), and when no
   session says which refusals were its own.
