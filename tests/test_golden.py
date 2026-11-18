@@ -238,7 +238,14 @@ MUL_SETTLED = ("\nHANDOFF\nDID:\n- planned mul in calc.py\n"
                "RECOMMEND: keep: return the product as it is\n"
                'SETTLED BY: TASK.md:3 "mul(a, b) returns a times b"\n'
                "SIZE: none\nEND HANDOFF\n")
-ADD_SPEC = "# calc\n\ncalc only adds; it has no other operation\n"
+MUL_UNSETTLED = MUL_SETTLED.replace(
+    'SETTLED BY: TASK.md:3 "mul(a, b) returns a times b"', "SETTLED BY: none")
+MUL_ON_A_TEST = ("\nHANDOFF\nDID:\n- planned mul in calc.py\n"
+                 "QUESTION: may test_add.py:5 change to cover mul too?\n"
+                 "SETTLED BY: none\n"
+                 "RECOMMEND: yes, add a mul case beside it\n"
+                 "SIZE: one test\nEND HANDOFF\n")
+ADD_SPEC ="# calc\n\ncalc only adds; it has no other operation\n"
 ADD_CONFLICT = ('CONFLICT: TASK.md:3 "calc only adds; it has no other'
                 ' operation"\nrequest: ' + FEATURE + "\n")
 
@@ -505,6 +512,19 @@ CASES = {
             "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
             "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
             "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "lead-decides-unsettled"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "answers": {
+            "planner.md": [MUL_PLAN + MUL_UNSETTLED],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "lead-asks-on-a-start-test"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC,
+                  "test_add.py": ADD_TEST},
+        "args": ["--task", FEATURE], "answers": {
+            "planner.md": [MUL_PLAN + MUL_ON_A_TEST]}},
     ("fix-with-test", "suite-red"): {
         "place": {"calc.py": BUGGY + NEG, "test_neg.py": NEG_TEST},
         "args": ["--task", BUG], "task": BUG,

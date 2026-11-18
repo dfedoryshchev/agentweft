@@ -74,56 +74,76 @@ an answer still lets no spec line change. a cite of
 sits, not a spec line, so it is passed over and is never a line a ruling
 covers. a mark on any other line, or citing no spec line, still fails it.
 
-the lead's own `QUESTION:` is decided by its `RECOMMEND:` only on typed
-lines: a `SETTLED BY: <file>:<line> "<the line>"` under it whose quote,
-three words or more (a heading marker, a list dash or a table bar is no
-word), is at that line of the place as the run found it, the
-cited lines one paragraph, and no `spec: breaks` or `spec: contradicts`
-mark in the plan; anything else, the SETTLED BY line missing, empty,
-misquoted, a heading or a one-word line, or a range across a blank line
-included, parks the run at the lead for a person (`writing-a-flow.md`,
-section 8). the request the run was handed is cited by name, `SETTLED BY:
-the request "<its words>"`, and settles when the words, three or more, are
-in the request as the run holds it (the `--task` text, with an answer that
-amended it after a spec conflict), spaces aside; a run handed no request
-has none to cite. the request as given and each amending answer are
-checked apart, never across the words the runner joins them with, and those
-words are no one's and settle nothing. the floor below covers the request
-too: any three of its words settle any question, since the check reads the
-words, not whether they answer it. every file the runner itself writes into the place,
-decisions.md and the facts store, stays refused as a place line, and the
-run folder's `task.md` is no file of the place. the floor: the check proves the line is there and says the
-quote, never that the line answers the question, so a planner that cites a
-line that is there but settles nothing, or names a clash only in a
-question's words and marks nothing, is decided by the lead; then the
-spec-files check and the start-tests replay hold what the build changes,
-and if neither does, the handoff's first line under the one decision is
-that decision with the line it was settled by, for the person to read and
-overrule. a second floor: an `ASSUMED:` item is never checked by a gate and
+the lead's own `QUESTION:` is the lead's to decide: its `RECOMMEND:` is
+put on record as the lead's decision, every later step is handed it, and
+the handoff lists it first under the one decision for the person to
+overrule (`writing-a-flow.md`, section 8). it parks the run for a person
+only on a risk the runner finds on the page, each read off a typed line or
+a file, never off the question's words:
+
+- a `spec: breaks` or `spec: contradicts` mark on a line no answer of the
+  run already ruled on: a ruling that lets it change, a `request:` answer
+  to the runner's own question that holds it, or a mark of the same kind on
+  the same lines in a question already answered. every such mark goes in
+  one stop, and a mark whose cite cannot be read parks too. an `already
+  at` mark whose quote is on that code line, with its `fix:` behaviour, is
+  fixed test-first instead, the recommendation deciding how; a plain
+  `breaks` of that same spec line on the same page is the same breach on
+  the new path and is fixed with it.
+- the question, a line it cites or its `SETTLED BY:` names a test file the
+  run started with (the start snapshot types the file; with no snapshot,
+  the snapshot's own path rule on the place as it is). it parks as the
+  test question, naming the test whose code holds a cited line, and an
+  `override:` answer naming that test lets the change to it stand at the
+  test-edits check, so a recommendation never designs around a start test
+  unasked.
+- a `SPLIT:` line under the question: `the request "<its words>" reads as
+  <one>, or as <the other>`, or the same with `TASK.md:<line> "<the
+  line>"`. any such line parks; the stop says whether the quote, three
+  words or more, is in the request or on that one spec line as the run
+  found it.
+- `RECOMMEND: none`, or a recommendation that leaves the answer to the
+  person (`The person names a date`): these words only ever send a
+  question up.
+
+the `SETTLED BY:` line is the reason recorded beside the decision, never
+its gate. the record names it when it quotes a line of the place as the run
+found it (three words or more, a heading marker, a list dash or a table bar
+no word, the cited lines one paragraph; a quoted code line may hold `"`),
+the person's answer of this run in decisions.md (below), the request by
+name, `the request "<its words>"`, three words or more of the request as
+the run holds it (the request as given and each amending answer apart),
+or else an answer that handed the call back. any other reason, missing,
+misquoted or a heading, leaves the decision standing, and its record says
+no spec mark, start test or split sent it up. every file the runner itself
+writes into the place, decisions.md and the facts store, is never a place
+line, and the run folder's `task.md` is no file of the place. the floor: a
+gap two readings of which change what is built, that the lead does not type
+as a SPLIT and that names no start test, is decided and listed first; no
+check reads whether a recommendation is right, only the person reading the
+handoff's first lines, and the spec-files check and the start-tests replay
+hold what the build changes. a second floor: an `ASSUMED:` item is never checked by a gate and
 never parks. the template tells a step that a gap two readings of which
 would change an output a test checks is a QUESTION even when a like line
 points to one, and only a choice no tested output turns on is ASSUMED, but
 nothing reads which one a step chose: a real gap filed as ASSUMED goes
 ahead, shown only among that step's ASSUMED lines. on a resume, an answered mark is matched by the lines
-it cites and its kind, never by its words, and a reworded question is
-settled only by a SETTLED BY line quoting the answer in the entry `--answer`
-wrote in this run (its digest among the runner's own records of what it
-wrote): the lines of the person's answer, never the entry's heading, the
-question it repeats or its closing line. an answer line quoted whole settles
-however short (a one-word answer), any other quote of it needs three words.
-the floor holds here too: the check proves the cited line is from the
-answer, not that it answers the question, so a new question quoting the
-answer is decided by the lead and shown on the handoff with that line. in
-a flow that names a lead, an answer that starts `yours:` hands the call
-back (a flow with no lead offers no hand-back, and such an answer is read
-as any other), read off its first word
-and never off what the rest says: from then on in the run, and in a leg
-that carries it on, every QUESTION of the lead's own with a `RECOMMEND:`
-that no line settles is decided by that recommendation, settled by the
-line of decisions.md the answer starts on and shown on the handoff with its
-words. it lifts no `spec: breaks` or `spec: contradicts` mark on a line the
-person was not asked about, and a question with no `RECOMMEND:` still
-parks; a conflict's answer is `override:` or `request:` and never `yours:`.
+it cites and its kind, never by its words, and a reworded question names
+the person's answer as its reason by a SETTLED BY line quoting it in the
+entry `--answer` wrote in this run (its digest among the runner's own
+records of what it wrote), cited by line number or by the entry's stamp
+(`decisions.md:2026-11-15 11:40 "<words>"`, the colon may be left out):
+the lines of the person's answer, never the entry's heading, the question
+it repeats or its closing line. an answer line quoted whole counts however
+short (a one-word answer), any other quote of it needs three words. in a
+flow that names a lead, an answer that starts `yours:` hands the call back
+(a flow with no lead offers no hand-back, and such an answer is read as any
+other), read off its first word and never off what the rest says: a later
+decision of the lead's with no other reason names the line of decisions.md
+the answer starts on. it lifts no `spec: breaks` or `spec: contradicts`
+mark on a line the person was not asked about, and a question with no
+`RECOMMEND:` still parks; a conflict's answer is `override:` or `request:`
+and never `yours:`.
 any other answer decides its own question only. the step that runs again is
 told which marks of its question the answer took, and of a hand-back, that
 the call is its to make; only the lead is told its later questions are

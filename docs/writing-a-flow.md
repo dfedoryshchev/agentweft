@@ -338,38 +338,45 @@ decision is judged by what that step changes, not by the files it names. pick th
 build-feature leads with its planner, and fix-with-test, whose first step
 writes the test, has `lead: none`. the lead also decides a ticket the retro
 marks critical (section 10). a `QUESTION:` the lead's own handoff asks is
-never left open. when the context settles it, a line under it says where,
+never left open: its `RECOMMEND:` is the lead's decision, on record in
+`decisions.md` as the lead's, handed to every later step, and listed first
+under the handoff's one decision as decided by the lead, for you to
+overrule. a line under it says what settles it, kept as the decision's
+reason and never its gate,
 
     SETTLED BY: TASK.md:12 "the line, word for word"
 
 (the shared handoff template asks every step for this line under each
-`QUESTION:`, `none` when nothing it was given answers it; only the lead's
-is read, and the template tells the lead that a question nothing settles
-stops the run, and every step that a gap two readings of which would change
-an output a test checks is a QUESTION, even when a like line points to one;
-a question the request's own words answer is settled by them, cited by name
-as `SETTLED BY: the request "<its words>"`, its words three or more and in
-the request as the run holds it; the files the runner writes into the
-place, `decisions.md` and the facts store, are never cited as a place line),
-and when that line is in the place and says what the quote says (three
-words of it or more, where a heading marker, a list dash or a table bar is no
-word, the cited lines one paragraph), the `RECOMMEND:` is the
-lead's decision: on record in `decisions.md` as the lead's, handed to every
-later step, and listed first under the handoff's one decision as decided by
-the lead, with the line it was settled by, for you to overrule. the runner
-checks the line is there and says the quote, not that it answers the
-question: that is what the settled-by line is shown for. it rules no spec line and no test: what the step
-acting on it changes is held as above. a question with no such line (a gap
-the spec and the request leave), with a SETTLED BY line that names no line
-of the place or misquotes it, or with no `RECOMMEND:`, parks the run at the
-lead for you, and so does every question of a plan that marks a behaviour
-`spec: breaks <file>:<line>` or `spec: contradicts <file>:<line>`: the park
-lists the mark under the question. a `spec: breaks` mark parks the run with
-no question too, but one in the second form, `spec: breaks <file>:<line>,
+`QUESTION:`, `none` when nothing it was given answers it; a question the
+request's own words answer cites them by name as `SETTLED BY: the request
+"<its words>"`; the files the runner writes into the place, `decisions.md`
+and the facts store, are never cited as a place line, but your answer in
+it is, by its line or its entry's stamp). the record names that line when
+it is in the place and says what the quote says (three words of it or
+more, the cited lines one paragraph), and says nothing sent the question
+up when it does not; the runner never checks that a line answers the
+question. the decision rules no spec line and no test: what the step acting
+on it changes is held as above. the question parks the run at the lead for
+you only on a risk the runner finds on the page: a plan that marks a
+behaviour `spec: breaks <file>:<line>` or `spec: contradicts
+<file>:<line>` on a line no answer of the run already ruled on (every such
+mark listed in one park, under the question), a question, cite or SETTLED
+BY naming a test the run started with (the test question, naming the test,
+where an `override:` naming it lets the change stand), a `SPLIT:` line
+under it giving two readings of the request's words or of one spec line
+(`SPLIT: the request "<its words>" reads as <one>, or as <the other>`), or
+`RECOMMEND: none` (a recommendation that leaves the answer to you, such as
+`The person names a date`, counts as none). a gap two readings of which
+would change what is built and that the lead does not type as a SPLIT is
+decided and listed first. a `spec: breaks` mark parks the run with no
+question too, but one in the second form, `spec: breaks <file>:<line>,
 already at <code file>:<line> "<quote>"`, whose quote is on that code line
 as the run found it and whose plan carries a behaviour `fix: <file>:<line>
 for <the sibling path>`: the code already breaks the line that way, so the
-run fixes that breach test-first rather than asking. the test writer names
+run fixes that breach test-first rather than asking, the lead's
+recommendation deciding how, and a plain `spec: breaks` of the same spec
+line on the same page is that breach on the new path, fixed with it. the
+test writer names
 the sibling's test on a `SIBLING TEST:` line, and once its red-test gate
 passes the runner runs that test alone in a checkout of the start commit,
 with the run's test changes laid in. it must be a test this run added, and
@@ -421,21 +428,18 @@ a mark you already answered in this run, with
 same kind you answered cited is passed over, however it is worded around the
 cite, and a mark on a line you were not asked about still parks; a question
 asked again in the same words is passed over, and one asked in other words is
-settled when its SETTLED BY line quotes your answer in `decisions.md`, the
-entry `--answer` wrote in this run: a line of your answer itself, never the
-entry's heading or the question it repeats. a line of your answer quoted
-whole settles however short, so a one-word answer can; any other quote of it
-needs three words. the runner checks the cited line is from your answer, not
-that it answers the new question: a new question quoting your answer is
-decided by the lead, and the handoff shows the line it was settled by. a
-reworded question with no such line, or one that quotes any other entry, is
-asked again. in a flow that names a lead, the park offers a second form: an
-answer that starts `yours:` hands the call back: the step
-that asked makes it, and every later question of the lead's own in the run
-that has a `RECOMMEND:` is decided by it, with the line of `decisions.md`
-your answer starts on shown as what settled it. a mark on a line you were
-not asked about still parks, and any other answer decides only the question
-it was given to. how it reads in a run is in
+the lead's to decide like any other, its record naming your answer as the
+reason when its SETTLED BY line quotes your answer in `decisions.md`, the
+entry `--answer` wrote in this run, by line or by the entry's stamp: a line
+of your answer itself, never the entry's heading or the question it
+repeats. a line of your answer quoted whole counts however short, so a
+one-word answer can; any other quote of it needs three words. a mark on a
+line a `request:` answer of yours held is passed over too. in a flow that
+names a lead, the park offers a second form: an answer that starts `yours:`
+hands the call back: the step that asked makes it, and a later decision of
+the lead's with no other reason names the line of `decisions.md` your
+answer starts on. a mark on a line you were not asked about still parks,
+and any other answer decides only the question it was given to. how it reads in a run is in
 [the journal](journal.md#when-a-step-asks-for-a-ruling).
 
 ## 9. say how hard a step thinks and how much it says

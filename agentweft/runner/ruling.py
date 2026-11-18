@@ -736,22 +736,47 @@ def settles(said, workdir, start=None):
     line, even whole), a range across a blank line, and a file of the
     runner's own. it checks the line is there and says the quote, never that
     the line answers the question."""
+    return settled_by(said, workdir, start)[0]
+
+
+def settled_by(said, workdir, start=None):
+    """-> (the cite `settles` reads, the quote it read there), or ("", "").
+    a quoted code line may hold `"` itself, so each `"` after the opening
+    one is tried as the quote's end (`readings`)."""
     from agentweft.guardrails.snapshot import is_runners
 
-    m = FIRST_QUOTE.match((said or "").strip())
-    if not m:
-        return ""
-    rel, first, last, quote, cite = cite_of(m)
-    rel = path_of(rel)
-    cite = rel + cite[cite.rindex(":"):]
-    if quote_words(quote) < QUOTE_WORDS or is_runners(rel) \
-            or cited(cite, (), workdir) is None:
-        return ""
-    lines, _ = lines_of(workdir, rel, first, last, start)
-    if lines is None or runs_to(lines, first, last, quote) is None \
-            or not all(line.strip() for line in lines[first - 1:last]):
-        return ""
-    return cite
+    for rel, first, last, quote, cite in readings(said):
+        rel = path_of(rel)
+        cite = rel + cite[cite.rindex(":"):]
+        if quote_words(quote) < QUOTE_WORDS or is_runners(rel) \
+                or cited(cite, (), workdir) is None:
+            continue
+        lines, _ = lines_of(workdir, rel, first, last, start)
+        if lines is None or runs_to(lines, first, last, quote) is None \
+                or not all(line.strip() for line in lines[first - 1:last]):
+            continue
+        return cite, quote
+    return "", ""
+
+
+QUOTE_OPENS = re.compile(r"""^[`'"]?([^\s:`'"]+):(\d+)(?:-(\d+))?[`'"]?\s+""")
+
+
+def readings(said):
+    """-> (the file, first line, last line, the quote, the cite as written)
+    for each way `said`, `<file>:<line> "<quote>"` and whatever follows on
+    its line, reads: the quote ending at its first closing `"`, then at
+    each later `"` of the line."""
+    said = (said or "").strip()
+    m = QUOTE_OPENS.match(said)
+    if not m or said[m.end():m.end() + 1] != '"':
+        return []
+    rel, first = m.group(1), int(m.group(2))
+    last = int(m.group(3) or first)
+    cite = rel + ":" + str(first) + ("-" + str(last) if last != first else "")
+    body = said[m.end() + 1:].split("\n")[0]
+    return [(rel, first, last, flat(body[:i]), cite)
+            for i, ch in enumerate(body) if ch == '"']
 
 
 THE_REQUEST = "the request"

@@ -3,16 +3,17 @@
 each file under tests/lead_questions/ is an excerpt of a planner answer a
 build-feature run gave, the lines the route reads kept word for word: the
 plan lines around the question and the handoff's question. none was written
-with a `SETTLED BY:` line or a `spec: breaks` mark, so as recorded each one
-is a question the context leaves open and goes to the person. the same
-answer with the typed line the planner is now taught is decided by the lead
-when the line it cites settles it, and goes to the person, with the marked
-line beside the question, when the plan marks a spec line broken.
+with a `SETTLED BY:` line or a `spec: breaks` mark. each has a
+recommendation and names no test the run started with, so as recorded each
+is the lead's decision; with the typed line the planner is taught, the line
+it cites is the reason on the decision's record. it goes to the person,
+with the marked line beside the question, when the plan marks a spec line
+broken, and when a SPLIT line gives two readings.
 
 the files named in LEGS are the planner's answer on the leg that carried a
 park on after the person answered it: a new question, and for the newline
-park the answered mark kept. as answered in the bench's words the new
-question still goes to the person; answered `yours:` it is the lead's.
+park the answered mark kept. answered in the bench's words or `yours:`, the
+new question is the lead's; `yours:` is the reason its record names.
 """
 import sys
 import types
@@ -107,12 +108,18 @@ def routed(tmp_path, name, text=None, request=None):
 
 
 @pytest.mark.parametrize("name", sorted(QUESTION))
-def test_a_recorded_question_with_no_settling_line_goes_to_the_person(
+def test_a_recorded_question_with_a_recommendation_and_no_risk_is_the_lead_s(
         tmp_path, name):
     said, ruled = routed(tmp_path, name)
-    assert said.startswith("NEEDS: " + QUESTION[name]), said
-    assert "RECOMMEND: " in said
-    assert ruled == []
+    assert said == ""
+    asked = [l for l in recorded(name).split(NL) if l.startswith("QUESTION")]
+    assert len(ruled) == len(asked)
+    assert QUESTION[name] in ruled[0][1]
+    assert all(by == rulings.LEAD and NO_REASON in why
+               for _, why, by in ruled)
+
+
+NO_REASON = "no spec mark, start test or split on it goes to the person"
 
 
 def test_the_section_question_its_spec_line_settles_is_the_lead_s(tmp_path):
@@ -161,12 +168,22 @@ def in_the_new_shape(text):
                  LAST + NL + "SIZE: a TASK.md edit only")
 
 
-def test_the_invert_questions_its_lines_settle_are_the_lead_s_and_the_gap_parks(
+def test_the_invert_questions_are_the_lead_s_their_lines_the_reasons(
         tmp_path):
     said, ruled = routed(tmp_path, "invert-window",
                          in_the_new_shape(recorded("invert-window")))
-    assert said.startswith("NEEDS: " + OFFSET[0][len("QUESTION: "):]), said
-    assert ruled == []
+    assert said == ""
+    whys = [why for _, why, _ in ruled]
+    assert len(whys) == 3
+    assert OFFSET[0][len("QUESTION: "):] in whys[1] and NO_REASON in whys[1]
+    assert ", which " + NEGATED[len("SETTLED BY: "):] + " settles" in whys[0]
+
+
+OFFSET_REQUEST = ("T is `YYYY-MM-DDTHH:MM:SS` followed by `Z` or an offset"
+                  " `+HH:MM` / `-HH:MM`")
+OFFSET_SPLIT = ('SPLIT: the request "an offset `+HH:MM` / `-HH:MM`" reads as'
+                " any two digits each, or as hours 00 to 23 and minutes 00 to"
+                " 59")
 
 
 def test_the_offset_gap_two_readings_split_goes_to_the_person(tmp_path,
@@ -176,12 +193,15 @@ def test_the_offset_gap_two_readings_split_goes_to_the_person(tmp_path,
     rule = ("when two readings would change an output a test checks, it is a"
             " QUESTION, even when a similar line points to one")
     assert rule in composed(monkeypatch, "planner.md")
+    assert "SPLIT: the request" in composed(monkeypatch, "planner.md")
     offset = [l for l in recorded("invert-window").split(NL)
               if l.startswith(OFFSET[0])]
     assert "TASK.md:48" in offset[0] and "+24:00" in offset[0]
-    said, ruled = routed(tmp_path, "invert-window",
-                         in_the_new_shape(recorded("invert-window")))
+    text = typed(in_the_new_shape(recorded("invert-window")), offset[0],
+                 offset[0] + NL + OFFSET_SPLIT)
+    said, ruled = routed(tmp_path, "invert-window", text, OFFSET_REQUEST)
     assert said.startswith("NEEDS: " + OFFSET[0][len("QUESTION: "):]), said
+    assert OFFSET_SPLIT + " (the quote is in the request)" in said.split(NL)
     assert "RECOMMEND: reject offsets outside 00-23 / 00-59" in said
     assert ruled == []
 
@@ -259,21 +279,24 @@ def test_the_target_question_the_request_settles_is_the_lead_s(tmp_path):
 @pytest.mark.parametrize("settled", [
     'task.md:2 "' + KEY_RULE + '"', 'decisions.md:1 "' + KEY_RULE + '"',
     'the request "the key is the first N segments"'])
-def test_the_target_question_citing_no_words_of_the_request_goes_to_the_person(
+def test_the_target_question_citing_no_words_of_the_request_has_no_reason(
         tmp_path, settled):
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "decisions.md").write_text(KEY_RULE + NL, encoding="utf-8")
     said, ruled = routed(tmp_path, "depth-key", target_settled_by(settled),
                          DEPTH)
-    assert said.startswith("NEEDS: Is a target that does not start with")
-    assert ruled == []
+    assert said == ""
+    [(_, why, by)] = ruled
+    assert NO_REASON in why and " settles, and " not in why
+    assert by == rulings.LEAD
 
 
-def test_a_request_cite_on_a_run_handed_no_request_settles_nothing(tmp_path):
+def test_a_request_cite_on_a_run_handed_no_request_is_no_reason(tmp_path):
     said, ruled = routed(tmp_path, "depth-key",
                          target_settled_by('the request "' + KEY_RULE + '"'))
-    assert said.startswith("NEEDS: Is a target that does not start with")
-    assert ruled == []
+    assert said == ""
+    [(_, why, _)] = ruled
+    assert NO_REASON in why
 
 
 CANNED = ("No one is available to answer questions during this run. Make the"
@@ -332,12 +355,13 @@ def on_the_leg(tmp_path, name, answer, text=None):
 
 
 @pytest.mark.parametrize("name", sorted(LEGS))
-def test_a_leg_the_bench_s_words_answered_parks_on_its_new_question(
+def test_a_leg_the_bench_s_words_answered_has_its_new_question_decided(
         tmp_path, name):
     said, ruled = on_the_leg(tmp_path, name, CANNED)
-    assert said.startswith("NEEDS: " + LEG_QUESTION[name]), said
-    assert "- spec: breaks TASK.md:11" not in said.split(NL)
-    assert ruled == []
+    assert said == ""
+    [(_, why, by)] = ruled
+    assert LEG_QUESTION[name] in why and NO_REASON in why
+    assert by == rulings.LEAD
 
 
 @pytest.mark.parametrize("name", sorted(LEGS))

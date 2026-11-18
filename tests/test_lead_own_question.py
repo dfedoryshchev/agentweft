@@ -1,17 +1,17 @@
 """a QUESTION the lead's own handoff asks is decided or goes to the person.
 
 the lead is the step that decides what other steps ask. its own QUESTION is
-decided by its RECOMMEND only when the context settles it: a `SETTLED BY:
-<file>:<line> "<the line>"` line under it names a line of the place and
-quotes it as the run found it. the decision is put on record in
-decisions.md as the lead's, every later step gets it, and the handoff lists
-it first under the one decision. a question no line settles (a gap in the
-requirements), one with no RECOMMEND, and every question of a plan that
-marks a spec line `spec: breaks` or `spec: contradicts` park the run at the
-lead for the person; a `spec: breaks` mark parks it with no question too.
-a SETTLED BY line that is empty, names no line of the place, or quotes what
-the line does not say settles nothing. `QUESTION: none` asks nothing, and a
-QUESTION of a step that is not the lead rides on the handoff as before.
+decided by its RECOMMEND: the decision is put on record in decisions.md as
+the lead's, every later step gets it, and the handoff lists it first under
+the one decision. a `SETTLED BY: <file>:<line> "<the line>"` line under it
+that names a line of the place and quotes it as the run found it is the
+reason on that record; one that is empty, names no line of the place, or
+quotes what the line does not say is no reason, and the decision stands.
+one with no RECOMMEND, and every question of a plan that marks a spec line
+`spec: breaks` or `spec: contradicts`, park the run at the lead for the
+person; a `spec: breaks` mark parks it with no question too. `QUESTION:
+none` asks nothing, and a QUESTION of a step that is not the lead rides on
+the handoff as before.
 """
 import sys
 from pathlib import Path
@@ -97,6 +97,27 @@ def parks(place, monkeypatch, planner):
     return (folder(place) / "question.md").read_text(encoding="utf-8")
 
 
+# a question with no recommendation is the shape that parks with nothing on
+# the page but itself
+PARK = "none"
+NO_REASON = "no spec mark, start test or split on it goes to the person"
+
+
+def no_reason(place, code):
+    """the run went on and the lead's last decision names no reason."""
+    assert code == stops.EXIT_OK
+    led = [d for d in decisions.read(place)
+           if d.decided.startswith("planner.md decided for planner.md: ")]
+    assert NO_REASON in led[-1].why, led[-1].why
+
+
+def decided(place, monkeypatch, planner):
+    a_flow(place, monkeypatch)
+    asked = answering(monkeypatch, planner)
+    no_reason(place, run(monkeypatch))
+    assert [s for s, _ in asked] == ["planner.md", "worker.md"]
+
+
 @pytest.mark.parametrize("settled", [
     SETTLES, 'docs\\api.md:1 "' + CAFE + '"'])
 def test_a_lead_question_a_line_of_the_place_settles_is_its_decision(
@@ -128,23 +149,28 @@ def test_a_settling_quote_inside_one_paragraph_settles(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("settled", [
     'TASK.md:1-3 "the list is cached"', 'TASK.md:2-3 "the list is cached"'])
-def test_a_settling_range_across_a_blank_line_settles_nothing(
+def test_a_settling_range_across_a_blank_line_is_no_reason(
         tmp_path, monkeypatch, settled):
     a_flow(tmp_path, monkeypatch)
     (tmp_path / "TASK.md").write_text(NL.join([
         "# task", "", "the list is cached", ""]), encoding="utf-8")
     asked = answering(monkeypatch, block(ASK, REC, settled))
-    assert run(monkeypatch) == stops.EXIT_STOP
-    assert [s for s, _ in asked] == ["planner.md"]
+    no_reason(tmp_path, run(monkeypatch))
+    assert [s for s, _ in asked] == ["planner.md", "worker.md"]
 
 
-def test_a_lead_question_no_line_settles_parks(tmp_path, monkeypatch):
-    question = parks(tmp_path, monkeypatch, block(ASK, REC))
-    assert ASK in question and REC in question
+def test_a_lead_question_no_line_settles_is_its_decision(tmp_path,
+                                                         monkeypatch):
+    decided(tmp_path, monkeypatch, block(ASK, REC))
+    first = decision(folder(tmp_path)).strip().split(NL)
+    assert first[0] == "- decided by the lead: " + ASK
+    assert REC in first[1]
 
 
-def test_a_lead_question_with_no_recommendation_parks(tmp_path, monkeypatch):
-    assert ASK in parks(tmp_path, monkeypatch, block(ASK, None, SETTLES))
+@pytest.mark.parametrize("rec", [None, PARK])
+def test_a_lead_question_with_no_recommendation_parks(tmp_path, monkeypatch,
+                                                      rec):
+    assert ASK in parks(tmp_path, monkeypatch, block(ASK, rec, SETTLES))
 
 
 @pytest.mark.parametrize("settled", [
@@ -155,10 +181,9 @@ def test_a_lead_question_with_no_recommendation_parks(tmp_path, monkeypatch):
     'nowhere.md:1 "the list is cached"', '../TASK.md:2 "the list is cached"',
     'decisions.md:1 "the list is cached"', "the spec says so",
     '"the list is cached"'])
-def test_a_settling_line_that_says_nothing_checkable_settles_nothing(
+def test_a_settling_line_that_says_nothing_checkable_is_no_reason(
         tmp_path, monkeypatch, settled):
-    question = parks(tmp_path, monkeypatch, block(ASK, REC, settled))
-    assert ASK in question and REC in question
+    decided(tmp_path, monkeypatch, block(ASK, REC, settled))
 
 
 @pytest.mark.parametrize("spec", ["breaks TASK.md:2", "contradicts TASK.md:2",
@@ -182,7 +207,8 @@ def test_a_mark_that_a_spec_line_is_broken_parks_with_no_question(
 @pytest.mark.parametrize("spec", ["breaks TASK.md:2", "allows TASK.md:2"])
 def test_a_question_the_person_answered_is_not_asked_again_on_the_resume(
         tmp_path, monkeypatch, spec):
-    planner = block(ASK, REC, spec=spec)
+    planner = block(ASK, PARK if spec.startswith("allows") else REC,
+                    spec=spec)
     parks(tmp_path, monkeypatch, planner)
     asked = answering(monkeypatch, planner)
     monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--resume",
@@ -247,7 +273,7 @@ REWORDED = ASK.replace("should", "must")
 
 def test_a_reworded_question_the_person_s_answer_settles_is_not_asked_again(
         tmp_path, monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, asked = resumed(tmp_path, monkeypatch, lambda text: block(
         REWORDED, REC, answer_line(text)))
     assert code == stops.EXIT_OK
@@ -256,26 +282,29 @@ def test_a_reworded_question_the_person_s_answer_settles_is_not_asked_again(
     assert first[0] == "- decided by the lead: " + REWORDED
 
 
-def test_a_reworded_question_that_cites_no_answer_is_asked_again(
+def test_a_reworded_question_that_cites_no_answer_is_decided_with_no_reason(
         tmp_path, monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, _ = resumed(tmp_path, monkeypatch, block(REWORDED, REC))
-    assert code == stops.EXIT_STOP
+    no_reason(tmp_path, code)
 
 
-def test_a_new_question_on_the_resume_still_parks(tmp_path, monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+@pytest.mark.parametrize("again, rec", [
+    ("which status code does a stale read return?",
+     "return 200 with the cached body"),
+    (ASK + " (and the detail view?)", REC)])
+def test_a_new_question_on_the_resume_is_the_lead_s(tmp_path, monkeypatch,
+                                                    again, rec):
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
+    code, _ = resumed(tmp_path, monkeypatch, block(again, rec))
+    no_reason(tmp_path, code)
+
+
+def test_a_new_question_on_the_resume_with_no_recommendation_parks(
+        tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, _ = resumed(tmp_path, monkeypatch, block(
-        "which status code does a stale read return?",
-        "return 200 with the cached body"))
-    assert code == stops.EXIT_STOP
-
-
-def test_a_question_extended_with_a_new_clause_still_parks(tmp_path,
-                                                           monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
-    code, _ = resumed(tmp_path, monkeypatch,
-                      block(ASK + " (and the detail view?)", REC))
+        "which status code does a stale read return?", PARK))
     assert code == stops.EXIT_STOP
 
 
@@ -284,12 +313,12 @@ def test_a_question_extended_with_a_new_clause_still_parks(tmp_path,
     lambda text: answer_line(text).replace(":", ":1", 1),
     lambda text: decisions.FILE + ':1 "# decisions"',
     lambda text: answer_line(text).replace(decisions.FILE, "TASK.md")])
-def test_a_decisions_cite_that_is_not_the_person_s_answer_settles_nothing(
+def test_a_decisions_cite_that_is_not_the_person_s_answer_is_no_reason(
         tmp_path, monkeypatch, cite):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, _ = resumed(tmp_path, monkeypatch,
                       lambda text: block(REWORDED, REC, cite(text)))
-    assert code == stops.EXIT_STOP
+    no_reason(tmp_path, code)
 
 
 def entry_line(text, has, quote):
@@ -310,17 +339,17 @@ NEW = "which status code does a stale read return?"
     ("write through", "a write through the client"),
     ("RECOMMEND: ", REC),
     ("answered by ", None), ("answered:", None)])
-def test_a_decisions_cite_of_the_entry_outside_the_answer_settles_nothing(
+def test_a_decisions_cite_of_the_entry_outside_the_answer_is_no_reason(
         tmp_path, monkeypatch, has, quote):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, _ = resumed(tmp_path, monkeypatch, lambda text: block(
         NEW, "return 200", entry_line(text, has, quote)))
-    assert code == stops.EXIT_STOP
+    no_reason(tmp_path, code)
 
 
 def test_a_new_question_quoting_the_person_s_answer_is_the_lead_s_to_decide(
         tmp_path, monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, asked = resumed(tmp_path, monkeypatch, lambda text: block(
         NEW, "return 200 with the cached body", answer_line(text)))
     assert code == stops.EXIT_OK
@@ -330,7 +359,7 @@ def test_a_new_question_quoting_the_person_s_answer_is_the_lead_s_to_decide(
 def test_a_quote_of_several_lines_of_the_answer_settles(tmp_path,
                                                         monkeypatch):
     said = "clear it" + NL + "on every write"
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
 
     def planner(text):
         lines = text.split(NL)
@@ -341,12 +370,12 @@ def test_a_quote_of_several_lines_of_the_answer_settles(tmp_path,
     assert code == stops.EXIT_OK
 
 
-def test_an_answer_too_short_to_quote_in_part_settles_only_whole(
+def test_an_answer_too_short_to_quote_in_part_is_a_reason_only_whole(
         tmp_path, monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, _ = resumed(tmp_path, monkeypatch, lambda text: block(
         REWORDED, REC, answer_line(text).replace('"clear it"', '"clear"')))
-    assert code == stops.EXIT_STOP
+    no_reason(tmp_path, code)
 
 
 @pytest.mark.parametrize("settled", [
@@ -359,21 +388,20 @@ def test_a_marker_is_not_a_word_of_a_settling_quote(tmp_path, monkeypatch,
         "## list cache", "- list cache", "| list | cache |", "--- list cache",
         ""]), encoding="utf-8")
     asked = answering(monkeypatch, block(ASK, REC, settled))
-    assert run(monkeypatch) == stops.EXIT_STOP
-    assert [s for s, _ in asked] == ["planner.md"]
+    no_reason(tmp_path, run(monkeypatch))
+    assert [s for s, _ in asked] == ["planner.md", "worker.md"]
 
 
-def test_an_answer_given_to_another_run_settles_nothing(tmp_path,
-                                                         monkeypatch):
-    parks(tmp_path, monkeypatch, block(ASK, REC))
+def test_an_answer_given_to_another_run_is_no_reason(tmp_path, monkeypatch):
+    parks(tmp_path, monkeypatch, block(ASK, PARK))
     code, _ = resumed(tmp_path, monkeypatch, block(ASK, REC))
     assert code == stops.EXIT_OK
     text = (tmp_path / decisions.FILE).read_text(encoding="utf-8")
     answering(monkeypatch, block(REWORDED, REC, answer_line(text)))
-    assert run(monkeypatch) == stops.EXIT_STOP
+    no_reason(tmp_path, run(monkeypatch))
 
 
-def test_a_decisions_cite_of_an_entry_the_lead_wrote_settles_nothing(
+def test_a_decisions_cite_of_an_entry_the_lead_wrote_is_no_reason(
         tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch)
     answering(monkeypatch, block(ASK, REC, SETTLES))
@@ -382,17 +410,16 @@ def test_a_decisions_cite_of_an_entry_the_lead_wrote_settles_nothing(
     n = next(i for i, l in enumerate(text.split(NL), 1) if REC in l)
     answering(monkeypatch, block(REWORDED, REC, decisions.FILE + ":" + str(n)
                                  + ' "' + REC + '"'))
-    assert run(monkeypatch) == stops.EXIT_STOP
+    no_reason(tmp_path, run(monkeypatch))
 
 
-def test_a_clash_named_only_in_the_question_s_words_parks(tmp_path,
-                                                          monkeypatch):
+def test_a_clash_named_only_in_the_question_s_words_is_decided_the_floor(
+        tmp_path, monkeypatch):
     monkeypatch.setenv("AGENTWEFT_SPEC_GLOBS", "TASK.md,docs")
     clash = ("TASK.md says the list is never cached, and the request asks"
              " for a cache. build the cache?")
-    question = parks(tmp_path, monkeypatch,
-                     block(clash, "build the cache the request asks for"))
-    assert "build the cache the request asks for" in question
+    decided(tmp_path, monkeypatch,
+            block(clash, "build the cache the request asks for"))
 
 
 def test_a_lead_question_of_none_asks_nothing(tmp_path, monkeypatch):
@@ -442,8 +469,10 @@ def test_the_handoff_question_carries_its_settling_line_and_what_it_costs(
     slot = said.find(SLOT, asked)
     assert 0 <= asked < slot < said.find("RECOMMEND: <the answer you would"
                                          " pick", asked)
-    assert ("for the step the flow names as its lead, a question nothing"
-            " you were given settles stops the run") in said
+    assert ("for the step the flow names as its lead, its own prompt says"
+            " which of its questions stop the run") in said
+    assert "SETTLED BY line is the reason kept with it" in " ".join(
+        said.split())
     assert "for any other step it does not stop the work" in said
     assert "none when you have none. it does not stop the work" not in said
     assert "you are this flow's lead" in said
@@ -511,13 +540,12 @@ def test_a_lead_question_the_request_settles_is_its_decision(tmp_path,
     'task.md:1 "add a cache: clear the cached list"',
     'decisions.md:1 "clear the cached list on every write"',
     'request.md:1 "clear the cached list on every write"'])
-def test_a_request_cite_that_is_not_the_request_s_words_settles_nothing(
+def test_a_request_cite_that_is_not_the_request_s_words_is_no_reason(
         tmp_path, monkeypatch, settled):
     code, asked = given_the_request(tmp_path, monkeypatch,
                                     block(ASK, REC, settled))
-    assert code == stops.EXIT_STOP
-    assert asked == ["planner.md"]
-    assert decisions.read(tmp_path) == []
+    no_reason(tmp_path, code)
+    assert asked == ["planner.md", "worker.md"]
 
 
 AMEND = "request: keep the spec and add a flag for it"

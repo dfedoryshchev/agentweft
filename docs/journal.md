@@ -425,7 +425,7 @@ and `continued`
     it (`cause` `conflict`, `refused`, `declined` or `parked`); a park for
     the budget or an outage, a crash and no answer bought nothing.
   - `ruling`: it parked on a question the runner sent to the person (the
-    step's own, or the lead's own its context did not settle), with the
+    step's own, or the lead's own on a risk its page carries), with the
     place as it found it: the cost of asking, neither a defect caught nor
     waste. a park the line does not say the kind of (an older line) is
     `none`, never a win.
@@ -711,8 +711,9 @@ it answers, in order:
   found it)`), or the tests the run started with run again; `no gates ran`
   is only for a run that checked nothing.
 - **the one decision**: the open questions, from a `QUESTION:` line in a
-  step's HANDOFF block (which stops the run only from the flow's lead,
-  when nothing settles it), a `NEEDS:` or
+  step's HANDOFF block (which stops the run only from the flow's lead, and
+  only on a spec mark, a start test, a SPLIT line or no recommendation), a
+  `NEEDS:` or
   `CONFLICT:` line (which do), a doubt that is a question, what the
   investigator leaves to you, and a spec or test change nobody ruled on. two
   are one when they cite the same spec line (`TASK.md:12`, or `TASK.md:3`
@@ -724,11 +725,11 @@ it answers, in order:
   line under the `QUESTION:` or `NEEDS:`; a doubt from an older block that
   carries them after a pipe is still read); the
   first is in full, the rest one line each under
-  `also open:`. a question of its own the lead decided, settled by a line of
-  the place (`writing-a-flow.md`, section 8), comes first, before anything
-  else: `- decided by the lead: <the question>`, its decision on the line
-  under it, yours to overrule, and `settled by <file>:<line> "<the quote>"`
-  under that, the line it was decided on. any other question the lead decided, and one
+  `also open:`. a question of its own the lead decided
+  (`writing-a-flow.md`, section 8) comes first, before anything else: `-
+  decided by the lead: <the question>`, its decision on the line under it,
+  yours to overrule, and, when its SETTLED BY line was read, `settled by
+  <file>:<line> "<the quote>"` under that, the reason it was decided on. any other question the lead decided, and one
   an `--answer` settled, is under
   the rulings, not here, so a finished run needs nothing: the same question
   in any step's block or doubts, on the leg it was asked in or a later one,

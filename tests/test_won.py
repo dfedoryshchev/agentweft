@@ -171,7 +171,8 @@ def test_the_lead_s_own_question_sent_to_the_person_is_a_ruling(
     import test_lead_own_question as own
 
     own.parks(tmp_path, monkeypatch, own.block(
-        own.ASK, own.REC, settled and own.SETTLES, spec=spec))
+        own.ASK, own.PARK if settled is None else own.REC,
+        settled and own.SETTLES, spec=spec))
     [parked] = [l for l in lines_of(own.folder(tmp_path))
                 if l["outcome"] == "parked"]
     assert (parked["step"], parked["won"]) == ("planner.md", "ruling")

@@ -22,7 +22,7 @@ from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
 from .asking import (RUNNER, asked_file, assumed_answer, goes_on, lead_decides,
-                     lead_escalates, lead_pass, rides, sibling_proved,
+                     lead_parks, lead_pass, rides, sibling_proved,
                      sibling_unfixed, to_lead, worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
@@ -568,8 +568,8 @@ def go(leg):
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")
             said = run.asked(step, out) if honest else None
-            own = lead_escalates(run, step, out) if honest and not said \
-                else ""
+            own, own_asked = lead_parks(run, step, out) \
+                if honest and not said else ("", None)
             if own:
                 said = (ruling.ASKED, own)
             checked = None
@@ -637,7 +637,7 @@ def go(leg):
                             "parked", entry,
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=question, worked=worked,
-                            kind=trace.ASKED)
+                            asked=own_asked, kind=trace.ASKED)
 
             lap.to("checks")
             failed, blocked = checked if went_on else check_step(

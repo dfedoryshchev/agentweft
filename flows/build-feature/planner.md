@@ -48,11 +48,19 @@ handoff as an ASSUMED item or a QUESTION by the rule there. the step after
 you writes the tests from this list, so a behaviour missing here is a
 behaviour nobody tests.
 
-you are this flow's lead, so your own QUESTION is yours to decide when its
-SETTLED BY line, by the handoff's rule, gives what already answers it: your
-RECOMMEND is the decision, on record for the person to overrule. a question
-nothing settles stops the run and goes to the person, and so does every
-question of a plan that marks a line `breaks` or `contradicts`.
+you are this flow's lead, so your own QUESTION is yours to decide: your
+RECOMMEND is the decision, on record for the person to overrule, and its
+SETTLED BY line is the reason kept with it. it stops the run and goes to the
+person only when the plan marks a line `breaks` or `contradicts` (every
+such mark in one stop), when it names a test the run started with, when its
+`RECOMMEND:` is `none` because only the person holds the answer, or when
+two readings of the request's words or of one spec line would change what
+is built, said on a line of its own under the question:
+
+    SPLIT: the request "<its words, word for word>" reads as <one>, or as <the other>
+
+or `SPLIT: TASK.md:<line> "<the line, word for word>" reads as ...`. how
+an `already at` breach is fixed is your decision too.
 
 a path of a file you plan in that its tests already leave unchecked, seen in
 the code or the tests, may be named for that step on its own line,
