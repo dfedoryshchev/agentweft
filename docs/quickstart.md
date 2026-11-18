@@ -36,7 +36,7 @@ run reads them:
 - the files that are the spec, as globs from the top of the project
 - whether to keep a price table of your own, `prices.yaml`. one already
   there is never written over, `--force` or not. a run reads it only when
-  agentweft starts outside the run's place, or when `PRICES` in your
+  agentweft starts outside the run's place and its repo, or when `PRICES` in your
   environment names it (`guardrails.md`, "what it cost in money")
 
 `agentweft init --yes` takes every default and asks nothing. an `.env` that is
@@ -47,8 +47,9 @@ both have it. a flow file that sets `max_calls`, `max_tokens` or `tests_e2e`
 itself wins over either.
 
 `.env` is read in the folder agentweft starts in. when that folder is the
-place the run works on, or inside it, the `.env` is the project's file (a
-clone ships one, a step can write one), and it may set only:
+place the run works on, inside it, or anywhere in the git repo the place is
+in (the root above a `--workdir packages/app`), the `.env` is the project's
+file (a clone ships one, a step can write one), and it may set only:
 
 - the preferences: `AGENTWEFT_TIMEOUT`, `_RETRIES`, `_WORKERS`,
   `_TESTS_E2E`, `_TESTS_INTEGRATION`, `_SPEC_GLOBS` (`project.yml`'s `spec:`
@@ -70,7 +71,8 @@ folder, a proxy, every `GIT_*`, `PYTHON*`, `LD_*` and `DYLD_*` name,
 the place is the folder `--workdir` names, else the one agentweft starts in
 (a place a flow file or a carried-on run names is not known that early, so
 a `.env` beside you is read as the project's). a `.env` in a folder of your
-own, outside the place, is yours: every name in it is applied. so keep the
+own, outside the place and outside its repo, is yours: every name in it is
+applied. so keep the
 rest in your shell, or run agentweft from a folder of your own with
 `--workdir`.
 
@@ -128,8 +130,8 @@ that reads stdin, writes nothing down, and prints what came back.
 the last runs, one line each, then the same runs per flow and per provider:
 tokens, the money the price table gives them, and what the provider said they
 cost. the table is `agentweft/guardrails/prices.yaml`, dated; `PRICES=<path>`
-in your environment, or a `prices.yaml` where you run when that folder is not
-the run's place, wins over it. `python rollup.py` is the wider view, and takes
+in your environment, or a `prices.yaml` where you run when that folder is
+neither the run's place nor in its repo, wins over it. `python rollup.py` is the wider view, and takes
 `--flow x` and `--failed`.
 
 ## next

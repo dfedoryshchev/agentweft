@@ -10,13 +10,13 @@ environment is `AGENTWEFT_<KEY>`, which is what `agentweft init` writes to
 
 `.env` is read where agentweft is started, which can be the place itself,
 and a place's files are the project's: a clone ships them and a step can
-write them for the next run. so a `.env` inside the place may set a
-preference, a model or effort name, or one of these settings at the value the
-run would use anyway or a tighter cap; a name its project.yml declares under
-`env:` is kept for the gates' child, which runs the project's own tests, and
-never reaches agentweft's own environment; anything else refuses the run
-before any process starts (`sorted_out`). a `.env` outside the place is the
-person's, and every name in it is applied.
+write them for the next run. so a `.env` inside the place, or inside the repo
+the place is in, may set a preference, a model or effort name, or one of these
+settings at the value the run would use anyway or a tighter cap; a name its
+project.yml declares under `env:` is kept for the gates' child, which runs the
+project's own tests, and never reaches agentweft's own environment; anything
+else refuses the run before any process starts (`sorted_out`). a `.env`
+outside both is the person's, and every name in it is applied.
 """
 import os
 import re
@@ -34,8 +34,8 @@ PREFIX = "AGENTWEFT_"
 # the names a `.env` inside the place set that its project.yml declares
 # under `env:`, for the gates' child only (`gates/base.fresh_python`)
 PLACE_ENV = {}
-# whether agentweft started in the run's place or under it, as `load_env`
-# decided; None before it has
+# whether agentweft started in the run's place, under it, or in the repo it is
+# in, as `load_env` decided; None before it has
 STARTED_IN_PLACE = None
 # 0 is no cap
 CAPS = ("max_calls", "max_tokens", "max_turns")
@@ -117,13 +117,15 @@ def class_of(name):
     return None
 
 
-def refusal(name, whose):
+def refusal(name, whose, in_place=True):
     why = class_of(name)
-    said = name + " is set by " + whose + ", inside the place: it "
+    said = name + " is set by " + whose + (
+        ", inside the place: it " if in_place
+        else ", in the repo the place is in: it ")
     if why is None:
         return said + NOT_READ
     return (said + why + ", which is yours to set, in your own environment"
-            " or a .env outside the place")
+            " or a .env outside the " + ("place" if in_place else "repo"))
 
 
 def inside(folder, place):
@@ -135,6 +137,29 @@ def inside(folder, place):
     except OSError:
         return True
     return there == here or here in there.parents
+
+
+def repo_of(place):
+    """-> the nearest folder at or above `place` that holds a `.git`, None
+    when there is none or it cannot be resolved."""
+    try:
+        here = Path(place).resolve()
+    except OSError:
+        return None
+    for folder in [here] + list(here.parents):
+        if (folder / ".git").exists():
+            return folder
+    return None
+
+
+def the_projects(folder, place):
+    """-> whether a file in `folder` is the project's: `folder` is the place
+    or under it, or inside the repo the place is in (a `--workdir` below the
+    repo's root leaves the root's files the clone's all the same)."""
+    if inside(folder, place):
+        return True
+    top = repo_of(place)
+    return top is not None and inside(folder, top)
 
 
 def declared(place):
@@ -153,8 +178,10 @@ def sorted_out(pairs, whose, place):
     read from the folder agentweft started in. raises ValueError naming
     `whose` and every name refused, so nothing is applied from a file with
     one."""
-    if not inside(Path(whose).parent, place):
+    folder = Path(whose).parent
+    if not the_projects(folder, place):
         return list(pairs), {}
+    in_place = inside(folder, place)
     keep, aside, refused, listed = [], {}, [], None
     for name, value in pairs:
         if allowed(name, value):
@@ -166,7 +193,7 @@ def sorted_out(pairs, whose, place):
             if name.upper() in listed:
                 aside[name] = value
                 continue
-        refused.append(refusal(name, whose))
+        refused.append(refusal(name, whose, in_place))
     if refused:
         raise ValueError("; ".join(dict.fromkeys(refused)))
     return keep, aside

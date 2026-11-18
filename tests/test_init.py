@@ -426,6 +426,37 @@ def test_a_place_env_that_steers_git_refuses_before_any_process(
         assert name not in os.environ
 
 
+def test_a_dot_env_above_the_place_in_its_repo_is_the_projects(
+        tmp_path, monkeypatch, capsys):
+    from test_connectors import a_flow
+
+    repo = a_flow(tmp_path, monkeypatch, [("worker", [])])
+    (repo / ".git").mkdir()
+    app = repo / "packages" / "app"
+    app.mkdir(parents=True)
+    (repo / ".env").write_text("GIT_CONFIG_COUNT=1\n", encoding="utf-8")
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(tmp_path / "flows")])
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(repo)
+    monkeypatch.setattr(sys, "argv", ["run.py", "two", "--force",
+                                      "--workdir", str(app)])
+    started = []
+
+    def no_process(argv, *a, **kw):
+        started.append(argv)
+        raise OSError("no process in this test")
+
+    monkeypatch.setattr(subprocess, "run", no_process)
+    monkeypatch.setattr(subprocess, "Popen", no_process)
+    assert engine.main() == 1
+    assert started == []
+    said = capsys.readouterr().out
+    assert ("GIT_CONFIG_COUNT is set by " + str((repo / ".env").resolve())
+            + ", in the repo the place is in: it " + STEERS) in said
+    assert "GIT_CONFIG_COUNT" not in os.environ
+    assert settings.STARTED_IN_PLACE is True
+
+
 def test_a_name_project_yml_declares_reaches_the_tests_only(
         tmp_path, monkeypatch, fake_cli):
     from agentweft.guardrails.gates import base

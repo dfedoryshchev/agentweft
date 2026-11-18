@@ -37,13 +37,14 @@ HERE = Path(__file__).resolve().parent
 def load_env(place="."):
     """`.env` in the folder agentweft starts in, applied to its own
     environment: whole when that folder is outside `place`, the run's place,
-    and only what `settings.sorted_out` allows when it is the place or under
-    it. raises ValueError, before anything is applied, for a line that is
-    not NAME=value or a name refused."""
+    and outside the repo the place is in, and only what
+    `settings.sorted_out` allows when it is either. raises ValueError, before
+    anything is applied, for a line that is not NAME=value or a name
+    refused."""
     # not worth a dependency for this
     from . import settings
 
-    settings.STARTED_IN_PLACE = settings.inside(".", place)
+    settings.STARTED_IN_PLACE = settings.the_projects(".", place)
     if not os.path.exists(".env"):
         return
     whose = str(Path(".env").resolve())

@@ -187,9 +187,9 @@ CACHE = {}
 
 def where_from(path=None):
     """-> the table: the one named, else `PRICES`, else `./prices.yaml`
-    unless agentweft started in the run's place (a cheaper table there
-    would loosen the money cap, and the place is the project's), else the
-    shipped one."""
+    unless agentweft started in the run's place or the repo it is in (a
+    cheaper table there would loosen the money cap, and those files are the
+    project's), else the shipped one."""
     from agentweft.runner import settings
 
     if path:
