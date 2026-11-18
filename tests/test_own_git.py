@@ -88,6 +88,36 @@ def test_no_edit_tool_writes_inside_the_place_s_git_folder(
                                         cwd=tmp_path)) == (0, "")
 
 
+def git_bash(path):
+    p = Path(path).as_posix()
+    return "/" + p[0].lower() + p[2:]
+
+
+SPELLINGS = {
+    "git bash": git_bash,
+    "upper case": lambda p: p.replace(".git", ".GIT").replace(
+        "decisions.md", "DECISIONS.md"),
+    "climbs back in": lambda p: p.replace(
+        os.sep + ".git" + os.sep, os.sep + ".git" + os.sep + ".."
+        + os.sep + ".git" + os.sep).replace(
+        os.sep + "decisions.md", os.sep + "x" + os.sep + ".."
+        + os.sep + "decisions.md"),
+}
+
+
+@pytest.mark.parametrize("kind", sorted(SPELLINGS))
+@pytest.mark.parametrize("rel", [".git/config", "decisions.md"])
+def test_every_spelling_of_a_kept_path_is_kept(fake_cli, tmp_path, kind,
+                                               rel):
+    if sys.platform != "win32":
+        pytest.skip("drive letters and case-blind paths are windows'")
+    (tmp_path / ".git").mkdir()
+    argv = the_hook(fake_cli, tmp_path)
+    path = SPELLINGS[kind](str((tmp_path / rel).resolve()))
+    code, _ = shellwrite.decide(argv, edit(path, cwd=tmp_path))
+    assert code == 2, path
+
+
 def test_a_shell_redirect_into_the_git_folder_is_refused(fake_cli, tmp_path):
     argv = the_hook(fake_cli, tmp_path)
     data = json.dumps({"session_id": "s-1", "tool_name": "Bash",

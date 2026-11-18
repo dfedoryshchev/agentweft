@@ -203,7 +203,9 @@ commit modes, the replay's worktree, the brief's ignore check) starts as
 command on a status and its hooks on a commit or a checkout as you, with
 the run's environment. the command line ranks above every config file.
 the edit tools of a step in a place are kept out of `.git` (`--keep-all`,
-`providers.md`), and a shell write into it is refused like any other. that
+`providers.md`), in any spelling the outside fence reads as the same path
+(case, `..`, a link, Git Bash's drive form `/d/...`), and a shell write
+into it is refused like any other. that
 is two walls, neither whole: a program that writes git's config as a side
 effect (`git config`, run by a step with a shell) is not seen by the hook,
 and `include.path`, `credential.helper`, `core.sshCommand`, `diff.external`

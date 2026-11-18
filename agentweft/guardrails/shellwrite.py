@@ -388,7 +388,12 @@ def fenced(data, places, scratch):
 
 
 def full(p, cwd):
-    return os.path.normcase(os.path.realpath(os.path.join(cwd, p)))
+    """-> `p` as one comparable path. beside a working folder with a drive
+    letter, Git Bash's `/d/...` is that drive, as `outside` reads it."""
+    said = p
+    if DRIVE.match(str(cwd).replace("\\", "/")):
+        said = SHELL_DRIVE.sub(r"\1:", p.replace("\\", "/"))
+    return os.path.normcase(os.path.realpath(os.path.join(cwd, said)))
 
 
 def same(path, other, cwd):
