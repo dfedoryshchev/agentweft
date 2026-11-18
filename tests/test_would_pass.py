@@ -111,8 +111,18 @@ def test_a_reviewer_whose_case_fails_on_the_code_caught_it(tmp_path,
         "reviewer.md", "routed", "none")
     assert said[4]["step"] == "tester.md"
     assert said[4]["case"] == {"seq": reviewer["seq"], "step": "reviewer.md",
-                               "red": True}
+                               "red": True, "won": "caught"}
     assert won_of(folder)[3] == ("reviewer.md", "caught")
+    assert handed_won(folder)[0] == "caught"
+
+
+def handed_won(folder):
+    """-> what the run's own handoff says each reviewer.md pass won."""
+    note = (folder / "handoff.md").read_text(encoding="utf-8")
+    part = note.split("## retro")[1]
+    return [l.split(", won ")[1].split(":")[0].split(",")[0]
+            for l in part.split(NL) if l.startswith("- reviewer.md ")
+            and ", won " in l]
 
 
 def test_a_reviewer_whose_case_passes_on_the_code_caught_a_test_gap(
@@ -129,8 +139,9 @@ def test_a_reviewer_whose_case_passes_on_the_code_caught_a_test_gap(
     assert (reviewer["step"], reviewer["outcome"], reviewer["won"]) == (
         "reviewer.md", "routed", "none")
     assert said[4]["case"] == {"seq": reviewer["seq"], "step": "reviewer.md",
-                               "red": False}
+                               "red": False, "won": "caught-test-gap"}
     assert won_of(folder)[3] == ("reviewer.md", "caught-test-gap")
+    assert handed_won(folder)[0] == "caught-test-gap"
 
 
 def test_a_red_suite_alone_is_not_a_catch_the_case_has_to_fail_itself():

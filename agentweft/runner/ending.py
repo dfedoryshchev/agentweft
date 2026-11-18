@@ -128,10 +128,11 @@ def next_run_path(flow):
 def passes(trail, run, fm):
     """-> every pass the trail closed, in the shape the handoff is built
     from: its gates with their commands, its block, its outcome."""
-    out = []
+    out, seqs = [], []
     for entry, outcome in trail.closed:
         if outcome == trace.WARM:
             continue
+        seqs.append(entry.seq)
         said = ""
         if entry.file and (trail.folder / entry.file).is_file():
             said = (trail.folder / entry.file).read_text(encoding="utf-8")
@@ -149,9 +150,12 @@ def passes(trail, run, fm):
                                   facts=summary.facts_of(entry.written or {},
                                                          run.workdir),
                                   writes=summary.writes_of(fm, entry.step),
-                                  case=entry.case,
-                                  went_on=entry.went_on or ""))
-    return out
+                                  case=(entry.written or {}).get("case")
+                                  or entry.case,
+                                  went_on=entry.went_on or "",
+                                  leads=entry.step == getattr(run, "lead",
+                                                             None)))
+    return summary.routes(out, seqs)
 
 
 def show(note):

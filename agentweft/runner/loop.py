@@ -579,6 +579,9 @@ def go(leg):
             went_on = False
             answered = assumed_answer(run, step, said[1], run_id) \
                 if said and not own else None
+            if said and step in before:
+                entry.changed = before[step] != snapshot.fingerprint(
+                    run.workdir, own=state.RUNS)
             if answered and not answered[1]:
                 print(step + " runs again with the ASSUMED items that answer"
                       " it")

@@ -438,9 +438,25 @@ and `continued`
     checked the work.
   - `decided`: the lead's go whose decision is on record in `decisions.md`;
     the pass that asked is `none`, it runs again.
-  - `none`: anything else, an all-pass judge among them.
-  the retro in `handoff.md` sums seconds and money by it. `won` keeps to
-  these seven, since the sums are taken by them.
+  - `built-then-asked`: a pass that changed the place and then asked
+    (`outcome` `asked`): work no gate has held yet, and the price of a
+    question asked late.
+  - `caught-test-gap`: a reviewer whose routed case passed on the code and
+    was shown red on the start commit by the test writer's red-test gate. the
+    reviewer's own line was written before that, so the test writer's line
+    keeps it on its `case` (`"won": "caught-test-gap"`, or `caught` when the
+    case failed on the code), and the handoff and the retro read the
+    reviewer's pass by it.
+  - `found`, `maintained`, `held`: the pass named an adjacent defect or a
+    question nothing settles; the retro wrote or refused facts or tickets; a
+    start-tests, command or project gate ran green on it.
+  - `gate-checked`: it found nothing, and an executing gate passed it.
+  - `said-checked`: it found nothing, and the only checks it made were the
+    VERIFIED lines of its own handoff its transcript backed: nothing but its
+    own word checked it.
+  - `none`: anything else, an all-pass judge among them. a line written
+    before the two kinds of check were told apart says `checked`.
+  the retro in `handoff.md` sums seconds and money by it.
 - `checked` is what the pass checked whatever it won: the VERIFIED lines of
   its HANDOFF block its transcript backed, by any kind, plus the gates that
   executed something on its work and passed: command, project, start-tests,
@@ -451,6 +467,7 @@ and `continued`
   a format gate (verdict, regex, length, reject) checks nothing, and a gate
   that failed prevented something, which is not a check. a `none` that
   checked 9 is a price; a `none` that checked 0 is the line to cut.
+  `checked_said` is how many of them were its own backed VERIFIED lines.
 - a gate entry that refused the work (not ok, not broke, not skipped)
   carries `prevented`, its reason; a line that stopped off task (police)
   carries `prevented` too, the stop's why.
@@ -917,8 +934,12 @@ five sections are written by the runner alone:
   then the money and seconds summed by what each pass won, `won none` always
   among them; `prevented: k refusals (<gate>: n, ...)` when a gate or police
   refused anything; `USD on steps that won nothing and checked nothing: $x of
-  $y` (the waste) and `USD on steps that won nothing and checked n: $z` (a
-  price, not waste), each ending `, cost not stated on k` when k of its passes
+  $y` (the waste), `USD on steps checked only by their own word that found
+  nothing: $w` (said-checked passes: a sanity check no program confirmed,
+  printed apart so it can be proved or cut), `USD on the lead's plan, checked
+  only by its own word: $p` (the lead's said-checked pass), and `USD on steps
+  that bought clarity, checked n and held h: $z` (held and gate-checked
+  passes: a price, not waste), each ending `, cost not stated on k` when k of its passes
   did not state one; `upkeep, not waste:` the retro's spend, never counted
   in the waste (police makes no model call, so it costs nothing here); and
   the total, which is the sum
@@ -957,12 +978,15 @@ five sections are written by the runner alone:
     - worker.md 12.0s ($0.2500), won none, checked 0: no events
     - reviewer.md 4.1s ($0.2500), won caught: sent back
     - worker.md 9.3s ($0.2500), won none, checked 0: no events
-    - reviewer.md 3.9s ($0.2500), won none, checked 3: no events
+    - reviewer.md 3.9s ($0.2500), won said-checked 3: no events
     - reviewer.md sent the work back: notes.md still says three
     - won caught: 1 pass, 4.1s, $0.2500
-    - won none: 3 passes, 25.2s, $0.7500
+    - won said-checked: 1 pass, 3.9s, $0.2500
+    - won none: 2 passes, 21.3s, $0.5000
     - USD on steps that won nothing and checked nothing: $0.5000 of $1.0000
-    - USD on steps that won nothing and checked 3: $0.2500
+    - USD on steps checked only by their own word that found nothing: $0.2500
+    - USD on the lead's plan, checked only by its own word: $0.0000
+    - USD on steps that bought clarity, checked 0 and held 0: $0.0000
     - total: 4 passes, 29.3s, $1.0000
     - wall 41.0s: steps 29.3s, gates 9.2s, runner 2.5s
 
@@ -1359,8 +1383,10 @@ true when a suite gate of the step that wrote the code failed with the case
 in and the new tests, run on their own with the flow's pytest, failed too;
 false when the suite passed or they did not fail, a file that does not
 collect among them; null when they could not run on their own, as tests in
-another language), and the handoff and the retro read the reviewer's pass
-as `caught` only when `red` is true. the steps after
+another language), and `won`, what the reviewer's pass bought: `caught`
+when `red` is true, `caught-test-gap` when it is false and the test writer's
+red-test gate showed the case red on the start commit, absent otherwise. the
+handoff and the retro read the reviewer's pass by it. the steps after
 it go again in the flow's order, the one that wrote the code told the case
 may pass already, so the suite holds the code to the case too. the case has
 to be a test: when no test id is new since the reviewer named it and none

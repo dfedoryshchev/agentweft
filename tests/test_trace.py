@@ -36,7 +36,7 @@ KEYS = ["seq", "time", "step", "from", "to", "provider", "connector", "auth",
         "model_reported", "model_choice", "effort", "verbosity", "grant", "tokens", "cost", "priced", "cost_from",
         "cost_parts", "budget", "session", "seconds", "cached",
         "retries", "background_killed", "shell_writes_denied",
-        "shell_trap_recoveries", "gates", "ungated", "outcome", "won", "checked", "cause", "why", "file",
+        "shell_trap_recoveries", "gates", "ungated", "outcome", "won", "checked", "checked_said", "cause", "why", "file",
         "task_file", "tasks", "handoff", "chain"]
 
 # an en dash, a CJK word and a Cyrillic letter: cp1252 has the first under

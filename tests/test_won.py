@@ -76,7 +76,7 @@ def test_a_judge_checked_only_what_a_gate_executed():
     assert unquoted.ok and trace.gate_line(unquoted)["ran"] is False
     assert won("ok", [unquoted]) == "none"
     assert won("ok", [a_gate("quote", True, "1 quoted, all in notes")]) \
-        == "checked"
+        == "gate-checked"
     assert won("ok") == "none"
 
 
@@ -95,7 +95,7 @@ def test_the_pass_that_wrote_the_red_proof_proved():
                step="tester.md", proved=True) == "proved"
     assert won("ok", [a_gate("red-test", True,
                              "red, as claimed - nothing was run")],
-               step="worker.md") == "checked"
+               step="worker.md") == "gate-checked"
 
 
 def test_a_lead_whose_decision_is_on_record_decided():
@@ -347,7 +347,7 @@ def test_a_won_from_the_words_alone_is_none():
     assert won("decided", to="worker.md", step="lead.md") == "none"
     assert won("ok", [a_gate("command", True, "exit 0")]) == "held"
     assert won("ok", [a_gate("red-test", True, "red, exit 1")],
-               step="worker.md") == "checked"
+               step="worker.md") == "gate-checked"
 
 
 def test_a_pass_whose_work_is_in_the_place_and_a_gate_passed_delivered():
@@ -424,7 +424,7 @@ def verified(*backed):
 def test_a_reviewer_that_found_nothing_says_how_much_it_checked():
     five = a_line(block=verified("backed", "backed", "backed", "backed",
                                  "backed", "unbacked", "unchecked"))
-    assert (five["won"], five["checked"]) == ("checked", 5)
+    assert (five["won"], five["checked"]) == ("said-checked", 5)
     none = a_line(block=verified("unbacked", "ran"))
     assert (none["won"], none["checked"]) == ("none", 0)
     gated = a_line(block=verified("backed"), gates=[

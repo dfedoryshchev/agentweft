@@ -25,7 +25,7 @@ import shlex
 import subprocess
 from pathlib import Path
 
-from agentweft.flow.spec import step_id
+from agentweft.flow.spec import lead_of, step_id
 from agentweft.guardrails.redact import redact
 from agentweft.guardrails.snapshot import TEST_PATH, is_test  # noqa: F401
 from agentweft.guardrails.snapshot import is_runners
@@ -594,7 +594,7 @@ def redo_why(said):
 
 
 def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
-           facts=None, writes="", case=None, went_on=""):
+           facts=None, writes="", case=None, went_on="", leads=False):
     """one pass of one step, the shape `build` reads. `facts` is what its
     steps.jsonl line holds for the retro and the files its transcript shows
     it read (`facts_of`); `writes` is what the flow says the step writes
@@ -603,7 +603,8 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
     the DECIDED line of a lead's pass whose decision the runner put on
     record (outcome `decided`), "" for any other pass, and `would` its
     WOULD PASS and CATCH lines (`wouldpass.read`). `went_on` is the question
-    the run went on past, the pass's work green, "" when there was none."""
+    the run went on past, the pass's work green, "" when there was none.
+    `leads` says the pass is the flow's lead's, whose work is the plan."""
     ruled = lead.read(said)[0] or lead.all_decided(said) \
         if outcome == "decided" else None
     return {"step": step, "role": role, "seconds": seconds, "writes": writes,
@@ -613,7 +614,8 @@ def a_pass(step, role, seconds, block, gates, ungated, outcome, said,
             "ruled": ruled or "",
             "would": wouldpass.read(said),
             "redo_why": redo_why(said) if outcome == "redo" else "",
-            "facts": facts or {}, "case": case, "went_on": went_on or ""}
+            "facts": facts or {}, "case": case, "went_on": went_on or "",
+            "lead": bool(leads)}
 
 
 RETRO = ("cost", "cost_from", "cached", "retries", "background_killed",
@@ -672,6 +674,7 @@ def facts_of(line, root=None):
     out["conformance"] = line.get("conformance") or []
     out["past_end"] = line.get("past_end") or []
     out["checked"] = line.get("checked")
+    out["checked_said"] = line.get("checked_said")
     out["prevented"] = [g.get("gate") or "a gate" for g in line.get("gates")
                         or [] if isinstance(g, dict) and g.get("prevented")]
     if line.get("prevented"):
@@ -748,23 +751,22 @@ def _passes_in(folder, roles, fm):
             continue
         out.append(line_pass(line, folder, roles, fm, root))
         seqs.append(line.get("seq"))
-    for n, case in enumerate(cases(path, every=True)):
-        if not case or case.get("seq") not in seqs:
+    return routes(out, seqs)
+
+
+def routes(passes, seqs):
+    """-> `passes`, each reviewer's pass a test writer's case was routed from
+    marked with what that case won (`trace.routed`, kept on the test
+    writer's line as the case's `won`, read off its gates for a line
+    written before it was kept). `seqs` is the seq of each pass, in order."""
+    for p in passes:
+        case = p.get("case")
+        if not isinstance(case, dict) or case.get("seq") not in seqs:
             continue
-        if case.get("red"):
-            out[seqs.index(case["seq"])]["facts"]["won"] = "caught"
-        elif case.get("red") is False and red_on_start(out[n]):
-            out[seqs.index(case["seq"])]["facts"]["won"] = "caught-test-gap"
-    return out
-
-
-def red_on_start(p):
-    """whether the red-test gate of a test writer's pass ran and passed:
-    the case it added for a reviewer was shown red on the code as the run
-    found it."""
-    return any(g.get("gate") == "red-test" and g.get("ok")
-               and not g.get("skipped") and not g.get("broke")
-               and not g.get("issue") for g in p.get("gates") or ())
+        got = case.get("won") or trace.routed(case, p.get("gates"))
+        if got:
+            passes[seqs.index(case["seq"])]["facts"]["won"] = got
+    return passes
 
 
 def line_pass(line, folder, roles, fm, root=None):
@@ -783,7 +785,8 @@ def line_pass(line, folder, roles, fm, root=None):
                   facts=facts_of(line, root), writes=writes_of(fm, step),
                   case=line.get("case")
                   if isinstance(line.get("case"), dict) else None,
-                  went_on=line.get("went_on") or "")
+                  went_on=line.get("went_on") or "",
+                  leads=step is not None and step == lead_of(fm))
 
 
 def cases(path, every=False):
@@ -1853,8 +1856,9 @@ def won_words(p):
                 + " (" + str(len(kept.get("refused") or [])) + " refused)")
     if f["won"] == "none" and f.get("checked") is not None:
         return ", won none, checked " + str(f["checked"])
-    if f["won"] == "checked" and f.get("checked"):
-        return ", won checked " + str(f["checked"])
+    if f["won"] in ("checked", "gate-checked", trace.SAID) \
+            and f.get("checked"):
+        return ", won " + f["won"] + " " + str(f["checked"])
     return ", won " + f["won"]
 
 
@@ -1881,9 +1885,11 @@ def _unstated(passes):
 def bought(passes):
     """the spend and seconds of every pass summed by what it won, `none`
     always among them; what the gates and police refused; the spend on
-    passes that won nothing, split by whether they checked anything, with
-    the retro's upkeep beside it and never in it; then the total, which is
-    the sum of the steps."""
+    passes that won nothing and checked nothing, on passes only their own
+    word checked that found nothing, and on the lead's plan checked by its
+    own word alone, each apart, then what bought clarity, with the retro's
+    upkeep beside them and never in them; then the total, which is the sum
+    of the steps."""
     groups = {}
     for p in passes:
         groups.setdefault((p.get("facts") or {}).get("won") or "not recorded",
@@ -1914,6 +1920,15 @@ def bought(passes):
     out.append("- USD on steps that won nothing and checked nothing: $%.4f of"
                " $%.4f" % (sum(_cost(p) for p in waste),
                           sum(_cost(p) for p in passes)) + _unstated(waste))
+    said = [p for p in passes if p not in upkeep
+            and (p.get("facts") or {}).get("won") == trace.SAID]
+    word = [p for p in said if not p.get("lead")]
+    plan = [p for p in said if p.get("lead")]
+    out.append("- USD on steps checked only by their own word that found"
+               " nothing: $%.4f" % sum(_cost(p) for p in word)
+               + _unstated(word))
+    out.append("- USD on the lead's plan, checked only by its own word: $%.4f"
+               % sum(_cost(p) for p in plan) + _unstated(plan))
     out.append("- USD on steps that bought clarity, checked "
                + str(sum(p["facts"].get("checked") or 0 for p in price))
                + " and held " + str(sum(1 for p in price
