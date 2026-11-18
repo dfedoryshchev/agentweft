@@ -148,7 +148,7 @@ def test_a_guard_for_a_defect_the_block_files_is_a_proposal_never_a_test(
         encoding="utf-8")
     assert "refused: " + why in proposed
     assert "code:" in proposed
-    assert [f.kind for f in factsguard.Store(tmp_path).read()] == ["defect"]
+    assert [f.kind for f in factsguard.Store(tmp_path).read()] == []
 
 
 @pytest.mark.parametrize("head", ["F-0001", "F-1", "f-0001"])

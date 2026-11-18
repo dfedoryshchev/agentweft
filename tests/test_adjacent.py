@@ -143,9 +143,10 @@ def test_every_step_is_asked_for_what_it_found_beside_the_change():
     assert "|" not in text.split("END HANDOFF")[0]
 
 
-def test_the_retro_keeps_a_defect_left_not_fixed_as_a_defect_fact():
+def test_the_retro_keeps_a_defect_left_not_fixed_as_a_ticket_at_its_line():
     from agentweft.roles import resolver
 
     skill = resolver.skill("retro")
     assert "found beside the change" in skill
-    assert "`defect` fact" in skill
+    assert "is a `nice-to-do` on the product file" in skill
+    assert "`defect` fact" not in skill

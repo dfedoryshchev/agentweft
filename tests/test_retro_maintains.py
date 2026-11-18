@@ -448,18 +448,28 @@ def test_a_defect_a_live_ticket_carries_from_its_line_is_refused(tmp_path):
                                  ' "return line.split()"')),
     (DEFECT, dict(TICKET, scope=["tests/test_gone.py"])),
     (dict(DEFECT, source='seq 4 reviewer.md; evidence: pkg/a.py:5-6 "raise'
-                         ' ValueError"'), TICKET)],
+                         ' ValueError"'), TICKET),
+    (DEFECT, dict(TICKET, source='seq 6 reviewer-runs.md; evidence:'
+                                 ' tests/test_a.py:1 "def test_a():"')),
+    (DEFECT, dict(TICKET, source='seq 2 patcher.md; evidence: TASK.md:2'
+                                 ' "an empty line is skipped"'))],
     ids=["another line", "a ticket the store refused",
-         "a ticket on one line of the defect's range"])
-def test_a_defect_no_written_ticket_carries_from_its_line_is_written(
+         "a ticket on one line of the defect's range",
+         "a ticket cited at its test file", "a ticket cited at the spec"])
+def test_a_defect_no_ticket_carries_is_refused_as_a_fact_naming_its_line(
         tmp_path, defect, ticket):
-    """a ticket carries a defect only when its lines cover every line the
-    defect cites."""
+    """a defect is ticket material, never a fact: whatever ticket the block
+    carries, the defect itself is refused, with the product line its ticket
+    is to cite."""
     store, record = pinned_place(tmp_path)
     put(tmp_path, "tests/test_a.py", "def test_a():" + NL + "    pass" + NL)
+    put(tmp_path, "TASK.md", "# a" + NL + "an empty line is skipped" + NL)
     done = ran_block(store, record, defect, ticket)
     kinds = sorted(f.kind for f in facts.read(tmp_path))
-    assert "defect" in kinds, done.refused
+    assert "defect" not in kinds, kinds
+    [why] = [w for what, w in done.refused if what == "fact on pkg/a.py"]
+    assert why.startswith("a defect is not kept as a fact"), why
+    assert "pkg/a.py:5" in why, why
 
 
 RULED = "seq 1 planner.md; evidence: decisions.md 2026-10-19 14:31"
@@ -512,7 +522,6 @@ def test_a_fact_that_does_not_restate_its_lines_under_a_ruling_is_kept_as_said(
 
 
 @pytest.mark.parametrize("kind, label, claim", [
-    ("defect", "none", "test_zero encodes a reading TASK.md never ruled"),
     ("why", "investigation",
      "test_zero encodes a reading of the spec no ruling made"),
 ])

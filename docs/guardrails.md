@@ -616,13 +616,14 @@ is written; a refused one is not written and its reason is kept:
    scope, for a new fact and for a re-anchor alike; the runner hashes them
    itself, and a hash written in the proposal is ignored.
 6. the same claim on the same scopes as a live fact is counted on that fact
-   (`seen: proposed 2, ...`) instead of written again. a `defect` fact whose
-   evidence quotes only lines a live nice-to-do's evidence also quotes is
-   refused
-   (`it is the finding <id> already carries, cited at <file>:<line>`): the
-   ticket takes the finding to the run that fixes it. a defect and such a
-   ticket in one block are done ticket first, so a ticket the store refuses
-   leaves the defect to be written. a `decision` whose evidence is a ruling in
+   (`seen: proposed 2, ...`) instead of written again. a `defect` fact is
+   refused: an open defect is work for a later run, not a reason it keeps.
+   one whose evidence quotes only lines a live nice-to-do's evidence also
+   quotes says so
+   (`it is the finding <id> already carries, cited at <file>:<line>`); any
+   other names the product line its evidence cites, the line a nice-to-do on
+   that file is to cite (`a defect is not kept as a fact ...`). a defect and
+   a ticket in one block are done ticket first. a `decision` whose evidence is a ruling in
    `decisions.md`, with an anchor, whose every code span in its claim is on
    its anchored lines and whose every other word is a name there too (less a
    closing `s`, or a branch word such as `otherwise`), only restates that

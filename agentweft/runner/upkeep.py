@@ -46,8 +46,10 @@ the tests the red-first gate ran green without the change, outside the
 per-run cap, and a fact of the block that is that note again (one of those
 tests named as passing, green or pinning) is refused.
 
-a defect fact a live nice-to-do already carries (its evidence quotes the
-same line) is refused, and a decision backed by a ruling whose claim only
+a defect fact is refused: a live nice-to-do that already carries it (its
+evidence quotes the same line) is named, and with none the refusal names the
+product line a ticket is to cite, since an open defect is work for a later
+run, not a reason it keeps. a decision backed by a ruling whose claim only
 restates its anchored code is kept as the ruling alone. one nice-to-do a run
 may name two or more of the new tests that look alike (`duplicates.py`); a
 second is refused.
@@ -315,6 +317,20 @@ def carried(store, fields):
     return ""
 
 
+def not_a_fact(fields):
+    """-> why a defect fact no ticket carries is refused all the same: an
+    open defect is not a reason a later run keeps, it is work for one. it
+    names the line the ticket is to cite."""
+    cite = cite_of(fields.get("source"))
+    at = (cite[0] + ":" + str(cite[1]) + ("-" + str(cite[2])
+                                          if cite[2] != cite[1] else "")
+          if cite is not None else "the line it is at")
+    return ("a defect is not kept as a fact, only the reason a later run"
+            " needs is: write it as a nice-to-do on the file it is in,"
+            " its evidence " + at + ", the product line, which takes it to"
+            " the run that fixes it")
+
+
 def merge_of(fields, groups):
     """whether a nice-to-do on one test file names two or more tests of one
     group of `groups` (`duplicates.groups`) there."""
@@ -421,8 +437,8 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
             if verb == "supersede":
                 fields = dict(fields, supersedes=value)
             why = restates(pins, fields) or (
-                carried(store, fields) if a_kind(verb, fields, DEFECT)
-                else "")
+                carried(store, fields) or not_a_fact(fields)
+                if a_kind(verb, fields, DEFECT) else "")
             merges = a_kind(verb, fields, facts.NICE) and cap.merges(fields)
             if not why and merges:
                 why = cap.taken()

@@ -524,7 +524,8 @@ and line (the part is there only when a step wrote such a line); and each
 defect it found beside the change (its
 ADJACENT items, `docs/journal.md`, "what each step hands over") with whether
 it was fixed and by which test, a defect left not fixed being the retro's
-`defect` fact; for each reason a step gave (its BECAUSE items) whose `led
+`nice-to-do` on the product file, its evidence the line the defect is at
+(a `defect` fact is refused); for each reason a step gave (its BECAUSE items) whose `led
 to:` the record holds, by seq and step, only where the runner found it: a
 test id, the diff of a file and its lines, `decisions.md <stamp>`, the
 step's own TRIED, ASSUMED, QUESTION, WOULD PASS or CATCH lines, or the
