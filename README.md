@@ -119,7 +119,8 @@ your own settings, so the repo's settings hooks, `env` block, key helper and
 variables its `project.yml` says its tests read, which reach only the
 gates; anything else, a credential, a `PATH`, a git or python steering name,
 stops the run before any process starts. its `project.yml` connectors may
-pick a model, never a key, a command or a host. agentweft's own git runs
+pick a model and its effort, never a key, a command, a host, a built-in
+connector's login or the stub's canned answers. agentweft's own git runs
 with the repo's fsmonitor and hooks off, and no step's edit tool writes into
 `.git`. what it can still do: run its own code in its tests (the gates run
 them, without your provider credentials), and put words in front of a model,

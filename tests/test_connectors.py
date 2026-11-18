@@ -223,6 +223,9 @@ def test_project_yml_declares_connectors_and_the_flow_wins(tmp_path):
 PERSONS = (" is the person's to set, in the flow or their own environment,"
            " never in the project's file")
 OFF_LIST = " is not a key project.yml may set on a connector"
+STUB = ("provider: fake is the stub, which a flow picks, never the"
+        " project's file")
+BUILT_IN = " is not a key project.yml may set on a built-in connector"
 
 
 @pytest.mark.parametrize("block, said", [
@@ -235,7 +238,7 @@ OFF_LIST = " is not a key project.yml may set on a connector"
     ({"provider": "cli", "co_author": True}, "co_author" + OFF_LIST),
     ({"provider": "cli", "permission_mode": "bypassPermissions"},
      "permission_mode" + OFF_LIST),
-    ({"provider": "fake", "max_turns": 9}, "max_turns" + OFF_LIST),
+    ({"provider": "fake", "reply": "VERDICT: ok\n"}, STUB),
     ({"provider": "cli", "max_turns": 0},
      "max_turns: 0 is looser than the run's own runaway guard"),
 ])
@@ -248,10 +251,49 @@ def test_project_yml_sets_only_the_listed_connector_keys(block, said):
     assert str(e.value).startswith("project.yml: connectors: mine: ")
 
 
+@pytest.mark.parametrize("name, block, said", [
+    ("claude-sub", {"provider": "fake", "auth": "inherit",
+                    "reply": "VERDICT: ok\n"},
+     ["provider" + BUILT_IN, "auth" + BUILT_IN, "reply" + BUILT_IN]),
+    ("claude-sub", {"provider": "fake", "auth": "inherit",
+                    "file": "~/.ssh/id_any"},
+     ["provider" + BUILT_IN, "auth" + BUILT_IN, "file" + BUILT_IN]),
+    ("claude-api", {"auth": "subscription"}, ["auth" + BUILT_IN]),
+    ("claude-api", {"auth": "inherit"}, ["auth" + BUILT_IN]),
+    ("claude-sub", {"provider": "cli"}, ["provider" + BUILT_IN]),
+    ("stub", {"reply": "VERDICT: ok\n"}, ["reply" + BUILT_IN]),
+    ("stub", {"model": "m-cheap"}, ["model" + BUILT_IN]),
+])
+def test_project_yml_never_redefines_what_a_built_in_connector_runs_on(
+        name, block, said):
+    raw = {"project": {"name": "here"}, "connectors": {name: block}}
+    assert project.check(raw) == ["connectors: " + name + ": " + s
+                                  for s in said]
+    with pytest.raises(ValueError):
+        project.load(raw)
+
+
+@pytest.mark.parametrize("name", ["claude-sub", "claude-api"])
+def test_project_yml_may_tune_a_built_in_claude_connector(name):
+    block = {"model": "m-cheap", "tier": "high", "effort": "low",
+             "max_turns": 9}
+    assert project.check({"project": {"name": "here"},
+                          "connectors": {name: block}}) == []
+
+
+def test_a_built_in_redefined_in_project_yml_stops_the_run_before_its_call(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, [("worker", ["provider: claude-sub"])],
+           project_yml="project:\n  name: here\nconnectors:\n  claude-sub:\n"
+           "    provider: fake\n    auth: inherit\n    reply: done\n")
+    cli_ = fake_cli(answer("done\n"))
+    assert engine.main() != 0
+    assert cli_.calls == []
+
+
 SAMPLE = {"provider": None, "model": "m-cheap", "tier": "high",
           "effort": "low", "auth": "inherit", "max_turns": 9,
-          "max_tokens": 1000, "replies": {}, "reply": "VERDICT: ok\n",
-          "file": "answers.txt", "default": "VERDICT: ok\n"}
+          "max_tokens": 1000}
 
 
 @pytest.mark.parametrize("kind, key", sorted(

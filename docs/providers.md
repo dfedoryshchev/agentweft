@@ -168,10 +168,14 @@ be a connector's name too.
 where a credential comes from and where it goes is yours to say, never the
 project's. `project.yml` is the repo's file: a clone ships one, and a step
 can write it for the next run. so a connector `project.yml` declares may set
-only a listed key: a provider, a model or tier, an effort, `auth:
-subscription` or `inherit`, and the provider's tuning (`max_turns` no looser
-than yours, `max_tokens`, the stub's canned answers; `orchestrate.md`). any
-other key is refused at load, the file and the key named; `auth: api-key`,
+only a listed key: a provider (`cli` or `api`; the stub is a flow's, never
+the project's), a model or tier, an effort, `auth: subscription` or
+`inherit`, and the provider's tuning (`max_turns` no looser than yours,
+`max_tokens`; `orchestrate.md`). on a built-in's name (`claude-sub`,
+`claude-api`, `stub`) it may set only `model`, `tier`, `effort` and
+`max_turns`, where the built-in takes them: what a built-in runs on and which
+login it uses stay as shipped. any other key is refused at load, the file and
+the key named; `auth: api-key`,
 `key_file`, `command`, `url` (the **api** provider's endpoint) and `env`
 (which of your variables reach the model's process) are said in the flow you
 run or in your own environment.

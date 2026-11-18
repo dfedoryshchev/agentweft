@@ -14,7 +14,8 @@ token; `inherit` (the default) passes what the run holds.
 where a credential comes from and where it goes is the person's to say, in
 the flow or their own environment: project.yml is the repo's file, which a
 clone ships and a step can write for the next run, so a connector it
-declares sets none of `PERSONAL` and no `auth: api-key`.
+declares sets none of `PERSONAL`, no `auth: api-key` and never the stub, and
+on a built-in's name it sets only `PROJECT_BUILT_IN_KEYS`.
 """
 import os
 import shutil
@@ -39,11 +40,14 @@ PERSONAL = ("key_file", "command", "url", "env")
 KEY_FILE = "key_file"
 # every key a connector in project.yml may set, by the provider it runs on:
 # which provider and model, a subscription or inherited login, and the
-# provider's own tuning. a key a provider grows is refused there until listed
+# provider's own tuning. a key a provider grows is refused there until listed.
+# the stub is not here: its answers would stand in for a model's
 PROJECT_CONNECTOR_KEYS = {
     "cli": ("provider", "model", "tier", "effort", "auth", "max_turns"),
-    "api": ("provider", "model", "tier", "effort", "auth", "max_tokens"),
-    "fake": ("provider", "replies", "reply", "file", "default", "auth")}
+    "api": ("provider", "model", "tier", "effort", "auth", "max_tokens")}
+# what project.yml may set on a built-in's name: which model it asks for and
+# how hard, never what it runs on or which login it uses
+PROJECT_BUILT_IN_KEYS = ("model", "tier", "effort", "max_turns")
 
 
 def merged(declared=None):
@@ -116,8 +120,9 @@ def check(declared):
 
 def check_project(declared):
     """-> complaints about project.yml's `connectors:` block: what any
-    declaration gets, and each key off `PROJECT_CONNECTOR_KEYS` for its
-    provider, `auth: api-key`, or a `max_turns` looser than the run's own."""
+    declaration gets, each key off `PROJECT_CONNECTOR_KEYS` for its provider
+    (off `PROJECT_BUILT_IN_KEYS` on a built-in's name), the stub, `auth:
+    api-key`, or a `max_turns` looser than the run's own."""
     from agentweft.runner import settings
 
     bad = check(declared)
@@ -127,16 +132,26 @@ def check_project(declared):
         if not isinstance(block, dict):
             continue
         at = str(name) + ": "
-        listed = PROJECT_CONNECTOR_KEYS.get(
-            dict(BUILT_IN.get(name) or {}, **block).get("provider"), ())
-        persons = (["auth: " + API_KEY] if block.get("auth") == API_KEY
-                   else []) + [key for key in PERSONAL if key in block]
-        bad.extend(at + key + " is the person's to set, in the flow or their"
-                   " own environment, never in the project's file"
-                   for key in persons)
-        bad.extend(at + str(key) + " is not a key project.yml may set on a"
-                   " connector" for key in block
-                   if key not in listed and key not in PERSONAL)
+        kind = dict(BUILT_IN.get(name) or {}, **block).get("provider")
+        listed = PROJECT_CONNECTOR_KEYS.get(kind, ())
+        if name in BUILT_IN:
+            listed = tuple(k for k in PROJECT_BUILT_IN_KEYS if k in listed)
+            bad.extend(at + str(key) + " is not a key project.yml may set on"
+                       " a built-in connector" for key in block
+                       if key not in listed)
+        elif kind == "fake":
+            bad.append(at + "provider: fake is the stub, which a flow picks,"
+                       " never the project's file")
+            continue
+        else:
+            persons = (["auth: " + API_KEY] if block.get("auth") == API_KEY
+                       else []) + [key for key in PERSONAL if key in block]
+            bad.extend(at + key + " is the person's to set, in the flow or"
+                       " their own environment, never in the project's file"
+                       for key in persons)
+            bad.extend(at + str(key) + " is not a key project.yml may set on"
+                       " a connector" for key in block
+                       if key not in listed and key not in PERSONAL)
         turns = block.get("max_turns")
         if "max_turns" in listed and turns is not None and not (
                 isinstance(turns, int) and not isinstance(turns, bool)
