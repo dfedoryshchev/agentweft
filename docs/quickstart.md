@@ -46,10 +46,12 @@ the same name in the environment and leave it out of `.env`, which wins when
 both have it. a flow file that sets `max_calls`, `max_tokens` or `tests_e2e`
 itself wins over either.
 
-`.env` is read in the folder agentweft starts in. when that folder is the
-place the run works on, inside it, or anywhere in the git repo the place is
-in (the root above a `--workdir packages/app`), the `.env` is the project's
-file (a clone ships one, a step can write one), and it may set only:
+`.env` is read in the folder agentweft starts in, and judged by that folder
+(a `.env` that is a link counts where it sits, not where it points). when
+that folder is the place the run works on, inside it, or anywhere in the git
+repo the place is in (the root above a `--workdir packages/app`), the `.env`
+is the project's file (a clone ships one, a step can write one), and it may
+set only:
 
 - the preferences: `AGENTWEFT_TIMEOUT`, `_RETRIES`, `_WORKERS`,
   `_TESTS_E2E`, `_TESTS_INTEGRATION`, `_SPEC_GLOBS` (`project.yml`'s `spec:`

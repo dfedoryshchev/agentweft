@@ -47,7 +47,9 @@ def load_env(place="."):
     settings.STARTED_IN_PLACE = settings.the_projects(".", place)
     if not os.path.exists(".env"):
         return
-    whose = str(Path(".env").resolve())
+    # judged where it sits: a `.env` in the place that links out of it is
+    # still the place's file, whatever the link points at
+    whose = str(Path(".").resolve() / ".env")
     pairs = []
     with open(".env", encoding="utf-8") as f:
         for n, line in enumerate(f, 1):

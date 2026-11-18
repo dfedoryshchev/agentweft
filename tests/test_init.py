@@ -457,6 +457,48 @@ def test_a_dot_env_above_the_place_in_its_repo_is_the_projects(
     assert settings.STARTED_IN_PLACE is True
 
 
+def a_place_whose_env_links_out(tmp_path, monkeypatch):
+    work = tmp_path / "work"
+    work.mkdir()
+    outside = tmp_path / "runs" / "an-earlier-run" / "tmp"
+    outside.mkdir(parents=True)
+    (outside / "x.env").write_text("GIT_DIR=/nowhere\n", encoding="utf-8")
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    monkeypatch.chdir(work)
+    return work, outside / "x.env"
+
+
+def test_a_dot_env_link_is_judged_where_it_sits_not_where_it_points(
+        tmp_path, monkeypatch):
+    work, target = a_place_whose_env_links_out(tmp_path, monkeypatch)
+    (work / ".env").write_text(target.read_text(encoding="utf-8"),
+                               encoding="utf-8")
+    real = Path.resolve
+
+    def as_a_link(self, *a, **kw):
+        if self.name == ".env":
+            return real(target, *a, **kw)
+        return real(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "resolve", as_a_link)
+    with pytest.raises(ValueError) as e:
+        engine.load_env(".")
+    assert "GIT_DIR is set by " + str(real(work) / ".env") in str(e.value)
+    assert "GIT_DIR" not in os.environ or os.environ["GIT_DIR"] != "/nowhere"
+
+
+def test_a_dot_env_symlink_out_of_the_place_is_still_the_places(
+        tmp_path, monkeypatch):
+    work, target = a_place_whose_env_links_out(tmp_path, monkeypatch)
+    try:
+        os.symlink(str(target), str(work / ".env"))
+    except (OSError, NotImplementedError):
+        pytest.skip("no right to make a symlink here")
+    with pytest.raises(ValueError):
+        engine.load_env(".")
+    assert os.environ.get("GIT_DIR") != "/nowhere"
+
+
 def test_a_name_project_yml_declares_reaches_the_tests_only(
         tmp_path, monkeypatch, fake_cli):
     from agentweft.guardrails.gates import base
