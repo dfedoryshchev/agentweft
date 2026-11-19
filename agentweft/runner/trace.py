@@ -682,7 +682,8 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
     none is a pass the record shows no effect of.
     """
     from .investigate import STEP
-    from .stops import CONFLICT, DECLINED, OFF_TASK, PARKED, REFUSED
+    from .stops import (CONFLICT, DECLINED, NO_CHANGE, OFF_TASK, PARKED,
+                        REFUSED)
 
     failed = [g for g in gates or () if not g.get("ok")]
     if any(not g.get("broke") for g in failed):
@@ -699,7 +700,7 @@ def won(outcome, cause=None, gates=(), to=None, proved=False, changed=None,
         return "delivered" if changed else "ruling"
     if cause == PARKED and kind != HELD:
         return "none"
-    if cause in (CONFLICT, REFUSED, DECLINED, PARKED):
+    if cause in (CONFLICT, REFUSED, DECLINED, PARKED, NO_CHANGE):
         return "delivered" if changed else "stopped"
     if decided:
         return "decided"

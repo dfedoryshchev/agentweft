@@ -13,7 +13,8 @@ from agentweft.guardrails import signoff
 from agentweft.guardrails.gates import redtest_gate
 from agentweft.mcp import server
 from agentweft.providers import cli_provider
-from agentweft.runner import cli, engine, errors, prompts, resume, state, stops
+from agentweft.runner import (cli, engine, errors, prompts, resume, ruling,
+                              state, stops)
 
 REPO = Path(__file__).resolve().parent.parent
 CLAUDE = "provider:\n  provider: cli\n  command: claude\n  model: m-small\n"
@@ -395,7 +396,7 @@ def test_the_list_is_the_one_the_rollup_counts():
                             "provider outage", "budget", "exception",
                             "interrupt", "no answer", "declined", "conflict",
                             "overlap", "target moved", "merge unchecked",
-                            "off task")
+                            "off task", "no change")
 
 
 def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
@@ -463,6 +464,12 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
         monkeypatch.setattr(police, "check", lambda *a, **kw: [police.Hit(
             police.NET, 'Bash "pip install leftpad" installs a package')])
         fake_cli(answer("worked\n"))
+    elif cause == "no change":
+        a_flow(tmp_path, monkeypatch, "f", ["worker", "reviewer"], tail=FAKE)
+        monkeypatch.setattr(engine.Run, "asked", lambda self, step, out: (
+            ruling.NO_CHANGE, "worker.md wrote no failing test and changed"
+            " nothing, under the ruling of a request") if step == "worker.md"
+            else None)
     return engine.main()
 
 
@@ -470,7 +477,8 @@ def run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause):
 def test_each_cause_is_a_stop_the_runner_makes(cause, tmp_path, monkeypatch,
                                                fake_cli, capsys):
     code = run_to_a_stop(tmp_path, monkeypatch, fake_cli, cause)
-    assert code == {"interrupt": 130, "declined": 0}.get(cause, 2)
+    assert code == {"interrupt": 130, "declined": 0,
+                    "no change": 0}.get(cause, 2)
     [end] = ends()
     assert end.cause == cause
     assert end.why and end.spend and end.run == the_folder().name
@@ -498,7 +506,8 @@ OUTCOME = {"gate failed": "stopped: gate failed",
            "overlap": "stopped: tasks overlap",
            "target moved": "stopped: target moved",
            "merge unchecked": "stopped: merge unchecked",
-           "off task": "stopped: off task"}
+           "off task": "stopped: off task",
+           "no change": "done: no change"}
 
 
 def test_every_cause_has_exactly_one_outcome():

@@ -204,6 +204,18 @@ NO_RED_ASKS = ("add(1, 2) is 3 on this code, so no test was written.\n"
                " report about another input?\nRECOMMEND: close the report as"
                " not seen on this code\nEND HANDOFF\n")
 
+NOTHING_TO_TEST = ("the code already does it, so no test was written.\n\n"
+                   "FAILS: none\nTEST: none written\n\nHANDOFF\nDID:\n"
+                   "- wrote no test: the code already does the ask\n"
+                   "QUESTION: none\nEND HANDOFF\n")
+MUL_HELD = ("mul is already there, so no test can fail.\n\nFAILS: none\n"
+            "TEST: none written\n\nHANDOFF\nDID:\n- wrote no test\n"
+            "QUESTION: calc.py:6 already returns a * b. should the run close"
+            " as already done?\nRECOMMEND: close the run as already done\n"
+            "END HANDOFF\n")
+MUL_CLOSED = ("DECIDED: close the run as already done\n"
+              "why: calc.py:6 already multiplies, so there is nothing to"
+              " build\n")
 NEG = "\n\ndef neg(a):\n    return -a\n"
 NEG_TEST = "from calc import neg\n\n\ndef test_neg():\n    assert neg(2) == -2\n"
 FIXED_NEG_BROKEN = FIXED + "\n\ndef neg(a):\n    return a\n"
@@ -615,6 +627,17 @@ CASES = {
         "place": {"calc.py": BUGGY, "TASK.md": SUB_SPEC},
         "args": ["--task", BUG], "task": BUG, "ends": ["declined"],
         "answers": {"worker.md": [ADD_DECLINES]}},
+    ("fix-with-test", "no-change"): {
+        "place": {"calc.py": FIXED}, "args": ["--task", BUG], "task": BUG,
+        "ends": ["no change", "parked"],
+        "legs": [[], ["--resume", LAST, "--answer",
+                      "close it: add already adds on this code"]],
+        "answers": {"worker.md": [NO_RED_ASKS, NOTHING_TO_TEST]}},
+    ("build-feature", "no-change"): {
+        "place": {"calc.py": WITH_MUL, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "ends": ["no change"],
+        "answers": {"planner.md": [MUL_PLAN, MUL_CLOSED],
+                    "tester.md": [MUL_HELD, NOTHING_TO_TEST]}},
     ("fix-with-test", "conflict"): {
         "place": {"calc.py": BUGGY, "TASK.md": SUB_SPEC},
         "args": ["--task", BUG], "task": BUG, "ends": ["conflict"],
@@ -1297,6 +1320,9 @@ def cannot(flow):
         out[stops.OVERLAP] = "the flow has no fanned-out step"
     if spec.get("police") not in (True, "on"):
         out[stops.OFF_TASK] = "the flow does not turn the police on"
+    if not any(g.get("gate") == "red-test" and g.get("red")
+               for s in spec["steps"] for g in s.get("gates") or ()):
+        out[stops.NO_CHANGE] = "no step of the flow is held to a red test"
     return out
 
 
@@ -1306,7 +1332,8 @@ def ends_of(got):
     out = set(s["cause"] for s in got["steps"] if s.get("cause"))
     for line in got["handoff"]:
         head = HEAD.match(line)
-        if head and head.group(1).startswith(stops.DONE):
+        if head and head.group(1).startswith(stops.DONE) and \
+                not head.group(1).startswith(stops.outcome(stops.NO_CHANGE)):
             out.add(stops.DONE)
     return out
 

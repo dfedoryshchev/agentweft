@@ -406,11 +406,15 @@ turns only that gate off: the order checks still want a red proof.
   question. one that asks nothing, says `TEST: none` and changed no file
   of the place, with no step before it in the leg changing one either,
   after an answer this run was given with `--answer` that is no
-  `override:` (a `request:`, or a plain answer to its question), ends the
-  run `refused at <step>`, outcome `refused (spec cited)`, exit 0, with
-  that ruling as the reason: the request was answered and there is nothing
-  to build. an `override:` never ends a run this way, and an entry there
-  when the run started is not its answer. otherwise the gate fails it as
+  `override:` (a `request:`, or a plain answer to its question), or after
+  the flow's lead decided the question the step parked on here (read from
+  the runner's own wording of it in the lead's entry), ends the run
+  `stopped at <step>`, cause `no change`, outcome `done: no change`, exit
+  0, in the leg it is in, with that ruling or decision as the reason: the
+  request was answered and there is nothing to build. an `override:` never
+  ends a run this way, an entry there when the run started is not its
+  answer, and a step that writes no `TEST:` line at all is not read as
+  saying none. otherwise the gate fails it as
   before. a run that skips tests never parks or ends this way.
 - **red-first** - `command: [...]` with `{test}` in it, `expect` (default 1),
   `timeout`, `results` (`junit`, with `{results}` in the command). goes on

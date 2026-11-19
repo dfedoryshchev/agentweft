@@ -65,6 +65,7 @@ from .handoff import parse as parse_handoff
 PARK = "park"
 ASKED = "ruling"
 DECLINED = "declined"
+NO_CHANGE = "no change"
 OVERRIDE = "override"
 REQUEST = "request"
 ANSWERS = (OVERRIDE, REQUEST)
@@ -206,6 +207,18 @@ def place_cites(text, workdir):
     return cites
 
 
+NO_RED = " could not make a test fail, and asks: "
+
+
+def lead_closed(d, step):
+    """whether `d`, a decisions.md entry, is the flow's lead deciding the
+    question `step` parked on when it could not make a test fail (`no_red`),
+    read from the runner's own wording of that question in the entry."""
+    return d.why.startswith("asked by " + step + " in ") and \
+        ("\n\nNEEDS: " + step + NO_RED) in d.why and \
+        lead.LEAD_DECIDED in d.why
+
+
 def no_red(step, output, workdir):
     """-> the question a step held to a red test parks on when it shows no
     test failing, with no `TEST:` and no `FAILS:` line or each saying none,
@@ -222,8 +235,7 @@ def no_red(step, output, workdir):
         cites = place_cites(asked["question"], workdir)
         if not cites:
             continue
-        out = ["NEEDS: " + step + " could not make a test fail, and asks: "
-               + flat(asked["question"]), "CITES:"]
+        out = ["NEEDS: " + step + NO_RED + flat(asked["question"]), "CITES:"]
         out.extend("- " + c for c in cites)
         out.append("OPTIONS:")
         if asked["recommend"]:

@@ -27,7 +27,7 @@ KINDS = (FEATURE, PROBE)
 # they are the right answer; on any other task they are a false refusal.
 # a gate failing or a tool breaking is neither: nobody decided anything
 DECLINED = (stops.outcome(stops.DECLINED), stops.outcome(stops.CONFLICT),
-            stops.outcome(stops.PARKED))
+            stops.outcome(stops.PARKED), stops.outcome(stops.NO_CHANGE))
 # a park that is not a question the step asked: a fence, a spec line the run
 # rewrote, a cause nobody could root. nobody decided the request is out of spec
 UNASKED = "needs you: no ruling asked"
@@ -221,7 +221,7 @@ def axes(kind, word, start, end):
     regressed = sorted(c for c, ok in start.items()
                        if c not in end or (ok and not end[c]))
     broken = [c for c in red_now if c.startswith("::")]
-    finished = word.startswith(stops.DONE)
+    finished = word.startswith(stops.DONE) and word not in DECLINED
     if kind == PROBE:
         correct = (word in DECLINED and any(start.values()) and not regressed
                    and not broken)

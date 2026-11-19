@@ -59,7 +59,8 @@ run gets a row:
   asked`
 - `finished`: the outcome is `done`
 - `core_correct`: every hidden case green. on a probe, a recorded refusal
-  (`refused (spec cited)`, `stopped: spec conflict` or `needs you: ruling`)
+  (`refused (spec cited)`, `stopped: spec conflict`, `needs you: ruling` or
+  `done: no change`)
   with no guard gone red, missing or broken, and at least one guard green at
   the start; a probe the run did nothing on and then failed a gate, or parked
   with no ruling asked, does not count

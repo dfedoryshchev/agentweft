@@ -3,8 +3,9 @@ ask, ends with no change, not a failed gate.
 
 a step held to a red test that shows none failing, names no test, changed
 nothing, and runs under a ruling this run was given with --answer that is no
-`override:`, ends the run as refused with that ruling cited: the request was
-answered and there is nothing to build. no send-back is spent on it. without
+`override:`, or under the lead's decision of the question it parked on, ends
+the run `done: no change` with that ruling cited: the request was answered
+and there is nothing to build. no send-back is spent on it. without
 such a ruling, with an `override:`, with a test named or a file changed, the
 red-test gate judges the answer as it always has.
 
@@ -86,10 +87,10 @@ def test_a_request_ruling_and_no_test_ends_with_no_change(tmp_path,
     assert asked.count("worker.md") == 1, \
         "a send-back was spent on a run the ruling had turned down"
     assert "patcher.md" not in asked
-    assert outcome(folder) == stops.outcome(stops.DECLINED), gates(folder)
+    assert outcome(folder) == stops.outcome(stops.NO_CHANGE), gates(folder)
     assert code == stops.EXIT_OK
     line = end(tmp_path)
-    assert line.cause == stops.DECLINED
+    assert line.cause == stops.NO_CHANGE
     [ruled] = decisions.read(place)
     assert ruled.at.strftime(stops.STAMP) in line.why
     assert "changed nothing" in line.why
@@ -111,7 +112,7 @@ def test_an_answer_the_step_makes_its_call_on_ends_with_no_change(
         tmp_path, monkeypatch, first, "No one is available to answer. Make"
         " the call yourself and say which calls you made.", [again])
     assert asked.count("worker.md") == 1
-    assert outcome(folder) == stops.outcome(stops.DECLINED), \
+    assert outcome(folder) == stops.outcome(stops.NO_CHANGE), \
         (folder / "why.md").read_text(encoding="utf-8")
     [ruled] = decisions.read(place)
     assert ruled.at.strftime(stops.STAMP) in end(tmp_path).why
@@ -159,7 +160,7 @@ def test_a_step_that_changed_a_file_is_still_judged(tmp_path, monkeypatch):
     asked, code, folder = carried(tmp_path, monkeypatch, first, DECLINE,
                                   [handoff(NOTHING)], edits)
     assert asked.count("worker.md") == 2
-    assert outcome(folder) != stops.outcome(stops.DECLINED)
+    assert outcome(folder) != stops.outcome(stops.NO_CHANGE)
 
 
 def test_an_answer_with_no_test_line_is_still_judged(tmp_path, monkeypatch):
@@ -202,8 +203,58 @@ def test_a_build_feature_tester_with_nothing_to_build_ends_with_no_change(
                         "--answer", "request: keep the alphabetical order")
     assert asked.count("tester.md") == 1
     assert "worker.md" not in asked
-    assert outcome(folders(tmp_path)[-1]) == stops.outcome(stops.DECLINED)
+    assert outcome(folders(tmp_path)[-1]) == stops.outcome(stops.NO_CHANGE)
     assert code == stops.EXIT_OK
+
+
+ALREADY = "the report lists students alphabetically, as it already does"
+NONE_SAID = ("FAILS: none - the report already sorts" + NL
+             + "TEST: none written" + NL + NL)
+ASKED_LEAD = handoff(NONE_SAID, "QUESTION: report.py:2 already sorts the"
+                     " names. should the run close as already done?" + NL
+                     + "RECOMMEND: close the run as already done" + NL)
+CLOSE = ("DECIDED: close the run as already done" + NL
+         + "why: report.py:2 already sorts, so there is nothing to build" + NL)
+
+
+def lead_closes(tmp_path, monkeypatch, edits=None):
+    feature_place(tmp_path)
+    asked, _, code = go(tmp_path, monkeypatch, "build-feature",
+                        plain({"planner.md": [PLAN, CLOSE],
+                               "tester.md": [ASKED_LEAD, handoff(NONE_SAID)]}),
+                        edits or (lambda s, n: None), "--task", ALREADY)
+    return asked, code, folders(tmp_path)[-1]
+
+
+def test_a_lead_decision_that_nothing_is_to_change_ends_with_no_change(
+        tmp_path, monkeypatch):
+    asked, code, folder = lead_closes(tmp_path, monkeypatch)
+    assert asked.count("tester.md") == 2
+    assert "worker.md" not in asked
+    assert len(folders(tmp_path)) == 1
+    assert outcome(folder) == "done: no change", gates(folder)
+    assert code == stops.EXIT_OK
+    line = end(tmp_path)
+    assert line.cause == stops.NO_CHANGE
+    [ruled] = decisions.read(tmp_path / "project")
+    assert "close the run as already done" in ruled.decided
+    assert ruled.at.strftime(stops.STAMP) in line.why
+    told = (folder / "handoff.md").read_text(encoding="utf-8")
+    assert "done: no change" in told
+
+
+def test_a_lead_decision_never_ends_a_run_that_changed_a_file(tmp_path,
+                                                             monkeypatch):
+    place = tmp_path / "project"
+
+    def edits(step, n):
+        if step == "tester.md" and n == 1:
+            (place / "report.py").write_text(
+                (place / "report.py").read_text(encoding="utf-8")
+                + NL + "# seen" + NL, encoding="utf-8")
+    asked, code, folder = lead_closes(tmp_path, monkeypatch, edits)
+    assert outcome(folder) != "done: no change"
+    assert end(tmp_path).cause != stops.NO_CHANGE
 
 
 def test_a_question_that_says_none_parks_nothing(tmp_path):

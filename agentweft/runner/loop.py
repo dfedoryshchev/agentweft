@@ -266,7 +266,7 @@ def go(leg):
             kept = manifest.NOT_RUN
         elif question:
             kept = manifest.RULING
-        elif cause == stops.DECLINED:
+        elif cause in (stops.DECLINED, stops.NO_CHANGE):
             kept = manifest.PASSED
         else:
             kept = manifest.PARKED if parked else manifest.FAILED
@@ -295,6 +295,8 @@ def go(leg):
                   else "parked at " + at + ", waiting for a ruling")
         elif cause == stops.DECLINED:
             needs = park.refused(at, why, done)
+        elif cause == stops.NO_CHANGE:
+            needs = park.no_change(at, why, done)
         elif waiting:
             again = cause == stops.OUTAGE or rerun
             left = (resume.remaining if again or handed else resume.after)(
@@ -577,6 +579,9 @@ def go(leg):
             if said and said[0] == ruling.DECLINED:
                 print("refused at " + step + ": " + said[1])
                 return stop(stops.DECLINED, said[1], "refused", entry)
+            if said and said[0] == ruling.NO_CHANGE:
+                print("no change at " + step + ": " + said[1])
+                return stop(stops.NO_CHANGE, said[1], "no change", entry)
             went_on = False
             answered = assumed_answer(run, step, said[1], run_id) \
                 if said and not own else None

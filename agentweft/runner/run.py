@@ -1362,8 +1362,8 @@ class Run(object):
         a red test that shows none failing and asks a question citing a line,
         that question (`ruling.no_red`): the step parks with its reason
         before the red-test gate, rather than failing it. such a step that
-        asks nothing ends the run as refused on the ruling it was given
-        (`ruled_no_change`), when there is one."""
+        asks nothing ends the run with no change on the ruling or the lead's
+        decision it was given (`ruled_no_change`), when there is one."""
         said = ruling.asked_of(out.output, self.workdir, out.verdict,
                                out.meta.get("allowed"),
                                getattr(self, "start", None))
@@ -1373,7 +1373,7 @@ class Run(object):
                 return ruling.ASKED, question
             ended = self.ruled_no_change(step, out.output)
             if ended:
-                return ruling.DECLINED, ended
+                return ruling.NO_CHANGE, ended
         return said
 
     def ruled_no_change(self, step, output):
@@ -1382,11 +1382,12 @@ class Run(object):
         failure, and neither it nor any step
         before it in this leg changed a file of the place, after an answer
         given with --answer to this run, or a leg before it, that is no
-        `override:`. the request was answered, the spec holds or the code
-        already does the ask, so there is nothing to build. an `override:`
-        lets the request win, so a run holding one never ends this way, and
-        an entry this run did not write (one there when it started) is never
-        its answer."""
+        `override:`, or after the flow's lead decided the question `step`
+        parked on when it could not make a test fail (`ruling.lead_closed`).
+        the request was answered, the spec holds or the code already does the
+        ask, so there is nothing to build. an `override:` lets the request
+        win, so a run holding one never ends this way, and an entry this run
+        did not write (one there when it started) is never its answer."""
         if not ruling.unnamed(output, "TEST", missing=False) \
                 or not ruling.unnamed(output, "FAILS"):
             return None
@@ -1399,9 +1400,19 @@ class Run(object):
             return None
         given = set(w.get("sha256") for w in kept.written
                     if w.get("by") == "answer")
-        answers = [d for d in kept.read() if rulings.digest(d) in given]
-        if not answers or any(ruling.kind_of(ruling.answered(d) or d.decided)
-                              == ruling.OVERRIDE for d in answers):
+        led = set(w.get("sha256") for w in kept.written
+                  if w.get("by") == rulings.LEAD)
+        entries = kept.read()
+        answers = [d for d in entries if rulings.digest(d) in given]
+        if any(ruling.kind_of(ruling.answered(d) or d.decided)
+               == ruling.OVERRIDE for d in answers):
+            return None
+        closed = [d for d in entries if rulings.digest(d) in led
+                  and ruling.lead_closed(d, step)]
+        if closed:
+            return (step + " wrote no failing test and changed nothing, under"
+                    " the lead's decision of " + summary.stamp(closed[-1]))
+        if not answers:
             return None
         return (step + " wrote no failing test and changed nothing, under"
                 " the ruling of " + summary.stamp(answers[-1]))

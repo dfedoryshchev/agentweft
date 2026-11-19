@@ -72,6 +72,13 @@
     "planner.md go 2 a80c43223cc024733af052cb23ca08442c44985a35fb0c2029ec28d59d9b8c28",
     "retro.md go 1 3551563f4d4c936a9a19e624340d7f9f2d7fd6415bc6e804a5b2f53ba8647817"
   ],
+  "build-feature/no-change": [
+    "planner.md go 1 a80c43223cc024733af052cb23ca08442c44985a35fb0c2029ec28d59d9b8c28",
+    "planner.md go 2 238f051c8a05954bfa275b8b904ef731656fb2705380be7ad3b2bffb09cb37e3",
+    "retro.md go 1 f7b64364b98eb627307029113ff8c0fc5450ddaac7a8ecc7cbc8326fbf8eda1f",
+    "tester.md go 1 e0d6ecf838987248299e3037789760ec7a2e72c94667843a18241b37edcc296e",
+    "tester.md go 2 3a892a8554a2ebfce412497ff9a8ae9ed222d9f24b76f35e8c4de1f7c0498a37"
+  ],
   "build-feature/outage-resume": [
     "planner.md go 1 a80c43223cc024733af052cb23ca08442c44985a35fb0c2029ec28d59d9b8c28",
     "planner.md go 2 a80c43223cc024733af052cb23ca08442c44985a35fb0c2029ec28d59d9b8c28",
@@ -262,6 +269,11 @@
     "retro.md go 1 5b1ac82f6b62d0b431eedb6dae9642ac5e824bdcf0f35b5c8e4ca5231d411d8c",
     "worker.md go 1 e3ae8e90d048b2069c46ecfe90a5c99dcb4dac1dae52260844b0819b59ded791",
     "worker.md go 2 e3ae8e90d048b2069c46ecfe90a5c99dcb4dac1dae52260844b0819b59ded791"
+  ],
+  "fix-with-test/no-change": [
+    "retro.md go 1 885ba760b7bebec536ef545484f59a6f3f05d2622711946d8d3f0c48b9a77082",
+    "worker.md go 1 e3ae8e90d048b2069c46ecfe90a5c99dcb4dac1dae52260844b0819b59ded791",
+    "worker.md go 2 4219840a6a2e9aeddeb405e1c3b1137fe4580591c7b8c3f4f66defcfcfaf95c7"
   ],
   "fix-with-test/no-red-asks": [
     "worker.md go 1 e3ae8e90d048b2069c46ecfe90a5c99dcb4dac1dae52260844b0819b59ded791"

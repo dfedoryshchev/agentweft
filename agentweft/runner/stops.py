@@ -58,9 +58,14 @@ MOVED = "target moved"
 UNCHECKED = "merge unchecked"
 # carrying on goes past the step: the person has looked at what it did
 OFF_TASK = "off task"
+# a step held to a red test wrote none and changed nothing under a ruling or
+# a lead's decision of this run: there is nothing to build, and the run ends
+# on it as done
+NO_CHANGE = "no change"
 
 CAUSES = (GATE, REFUSED, PARKED, OUTAGE, BUDGET, EXCEPTION, INTERRUPT,
-          NO_ANSWER, DECLINED, CONFLICT, OVERLAP, MOVED, UNCHECKED, OFF_TASK)
+          NO_ANSWER, DECLINED, CONFLICT, OVERLAP, MOVED, UNCHECKED, OFF_TASK,
+          NO_CHANGE)
 
 # the run waits for someone on these: a person for a park or a cap, the
 # provider's limit for an outage
@@ -85,7 +90,8 @@ OUTCOME = {GATE: "stopped: gate failed",
            OVERLAP: "stopped: tasks overlap",
            MOVED: "stopped: target moved",
            UNCHECKED: "stopped: merge unchecked",
-           OFF_TASK: "stopped: off task"}
+           OFF_TASK: "stopped: off task",
+           NO_CHANGE: "done: no change"}
 OUTCOMES = (DONE,) + tuple(sorted(set(OUTCOME.values())))
 
 EXIT_OK = 0
@@ -111,7 +117,7 @@ def status(cause, step):
     """-> the journal's third column for a stop."""
     if checked(cause) == DECLINED:
         return "refused at " + step
-    if cause in (CONFLICT, MOVED, UNCHECKED):
+    if cause in (CONFLICT, MOVED, UNCHECKED, NO_CHANGE):
         return "stopped at " + step
     return ("parked at " if cause in WAITING else "failed at ") + step
 
@@ -131,7 +137,7 @@ def done(unproven=0):
 
 
 def exit_code(cause):
-    if checked(cause) == DECLINED:
+    if checked(cause) in (DECLINED, NO_CHANGE):
         return EXIT_OK
     return EXIT_INTERRUPT if cause == INTERRUPT else EXIT_STOP
 

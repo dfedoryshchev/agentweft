@@ -149,6 +149,7 @@ cause maps to:
 | `target moved` | `stopped: target moved` |
 | `merge unchecked` | `stopped: merge unchecked` |
 | `off task` | `stopped: off task` |
+| `no change` | `done: no change` |
 
 the map is `OUTCOME` in `agentweft/runner/stops.py`, with no default: a cause
 with no outcome is refused where the outcome is read. a step that will not do
@@ -1321,9 +1322,10 @@ the spec says no, and nothing is owed. the steps after it do not run. a
 refusal that cites nothing, or a line that is not there, is read as a question
 and parks for a ruling instead. the runner refusing to START a step is a
 different thing, the `refused` cause, and that is a stop. a step held to a
-red test that wrote none and changed nothing, after your `request:` or a plain
-answer to its question, ends the same way with that ruling as the reason
-(`docs/gates.md`, red-test).
+red test that wrote none and changed nothing, after your `request:`, a plain
+answer to its question or the flow's lead deciding it, ends `stopped at
+<step>`, cause `no change`, outcome `done: no change`, exit 0, with that
+ruling or decision as the reason (`docs/gates.md`, red-test).
 
 a step can say a test it was given is wrong, on lines of its own:
 

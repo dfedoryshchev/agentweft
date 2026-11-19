@@ -173,8 +173,8 @@ def begin(unrecorded):
     question = found.question if found else None
     if found:
         ended = found.data.get("stopped") or {}
-        if ended.get("cause") == stops.DECLINED:
-            print(pick_up + " ended " + stops.status(stops.DECLINED,
+        if ended.get("cause") in (stops.DECLINED, stops.NO_CHANGE):
+            print(pick_up + " ended " + stops.status(ended["cause"],
                                                      ended.get("step"))
                   + ": " + str(ended.get("why"))
                   + ". that is its answer; there is nothing to pick up")

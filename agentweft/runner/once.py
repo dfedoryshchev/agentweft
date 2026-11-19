@@ -233,6 +233,9 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
         if said and said[0] == ruling.DECLINED:
             note("refused", said[1], stops.DECLINED, output=out.output)
             return out.output, run.budget, ""
+        if said and said[0] == ruling.NO_CHANGE:
+            note("no change", said[1], stops.NO_CHANGE, output=out.output)
+            return out.output, run.budget, ""
         if said:
             mine = run.taken()
             head, decided, question = to_lead(

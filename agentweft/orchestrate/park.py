@@ -232,6 +232,23 @@ def refused(step, cite, done):
     return out
 
 
+def no_change(step, why, done):
+    """the section for a run that ends with nothing to change: a step held to
+    a red test wrote none and changed nothing under a ruling or the lead's
+    decision of this run. nothing is owed: the run ends on it."""
+    out = ["no change at   " + step, ""]
+    out.append(why + ".")
+    out.append("")
+    out.append("nothing failed and nothing was changed. the run ends here, and")
+    out.append("that is its answer. to have the work done anyway, start a new run")
+    out.append("whose task says what to change.")
+    out.append("")
+    out.append("ran")
+    for name, seconds in done:
+        out.append("  " + name.ljust(16) + str(seconds) + "s")
+    return out
+
+
 def stopped(step, cause, done, left, command, why, handed=None):
     out = ["cause          " + str(cause)]
     out.append(("stopped before " if handed else "stopped at     ") + step)

@@ -1547,6 +1547,9 @@ def left_undone(stopped, needs, changes):
     if stopped["cause"] == stops.DECLINED:
         return ("not done: the work the task asked for; " + at
                 + " declined it, and the run ends on that")
+    if stopped["cause"] == stops.NO_CHANGE:
+        return ("not done: nothing, by decision; " + at + " found nothing to"
+                " change, and the run ends on that")
     left = park.left_of(needs)
     out = "not done: the run stopped at " + at
     if left:
@@ -2260,7 +2263,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if stopped and not (found and found[0]["kind"] in front.WAITS):
         carry = carry_on(needs, command)
         stop = (ended(stopped), front.DECLINED
-                if stopped["cause"] == stops.DECLINED else front.CARRY,
+                if stopped["cause"] in (stops.DECLINED, stops.NO_CHANGE)
+                else front.CARRY,
                 front.advice(stopped, carry[1].strip()
                              if carry[0] == CARRY_ON else ""))
     view = front.view(out, found, why, not_done,
