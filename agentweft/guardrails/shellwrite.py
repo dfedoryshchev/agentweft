@@ -16,11 +16,15 @@ model. every refusal is one json line in the run's `tool-denials.jsonl`, whose
 path is the hook's one argument.
 
 it reads the shell's own write syntax and the few programs whose whole job is
-writing (`tee`, `cp`, `sed -i`, ...), in each command and in each command a
-`$(...)` or backquotes run. it reads quotes as the shell does: a `\\"` inside
-double quotes, a `$'...'` and a quote inside a substitution do not end a
-word. a program that writes files as a side effect of something else is not
-seen. anything the hook cannot read, a quote left open, input that is not a
+writing (`tee`, `cp`, `sed -i`, ...), in each command, in each command a
+`$(...)` or backquotes run, and in the command a shell is handed by `-c` or
+by a heredoc (`bash -c '...'`, `sh <<EOF`). it reads quotes as the shell
+does: a `\\"` inside double quotes, a `$'...'` and a quote inside a
+substitution do not end a word, a `<<` inside quotes or an arithmetic
+`$((...))` opens no heredoc, and operators written together (`;>`, `)>`)
+are read one by one. a program that writes files as a side effect of
+something else is not seen, and neither is a command `eval` builds or a
+script file a shell runs. anything the hook cannot read, a quote left open, input that is not a
 call or an error of its own, is refused too, and its line in the denials file
 says `unread` with the error's kind: a check that crashes and lets the call
 through is no check, and a refusal nobody can count is no record.
@@ -107,12 +111,16 @@ def heredocs(command):
     """-> (the command with every heredoc body taken out, [the bodies])."""
     lines = command.split("\n")
     kept, bodies = [], []
+    state = [None, 0]
     i = 0
     while i < len(lines):
         line = lines[i]
         kept.append(line)
         i = i + 1
+        bare_at = open_at(line, state)
         for m in HEREDOC.finditer(line):
+            if m.start() not in bare_at:
+                continue
             word, dash = m.group(3), m.group(1)
             body = []
             while i < len(lines):
@@ -125,7 +133,57 @@ def heredocs(command):
     return "\n".join(kept), bodies
 
 
+def open_at(line, state):
+    """-> the indices of `line` that stand outside any quote, arithmetic
+    `$((...))` or comment, where a `<<` opens a heredoc. `state`, [the
+    open quote or None, the arithmetic's paren depth], carries a quote or
+    an arithmetic across lines and is updated."""
+    out = set()
+    i, n = 0, len(line)
+    while i < n:
+        c, quote = line[i], state[0]
+        if quote == "'":
+            state[0] = None if c == "'" else quote
+        elif quote in ('"', "$'"):
+            if c == "\\":
+                i = i + 1
+            elif c == quote[-1]:
+                state[0] = None
+        elif c == "\\":
+            i = i + 1
+        elif c == "'" or c == '"':
+            state[0] = c
+        elif line.startswith("$'", i):
+            state[0] = "$'"
+            i = i + 1
+        elif line.startswith("$((", i):
+            state[1] = state[1] + 2
+            i = i + 2
+        elif state[1] and c in "()":
+            state[1] = state[1] + (1 if c == "(" else -1)
+        elif c == "#" and not state[1] and (i == 0 or line[i - 1] in
+                                            " \t;&|("):
+            break
+        elif not state[1]:
+            out.add(i)
+        i = i + 1
+    return out
+
+
 PUNCTUATION = "();<>|&"
+# longest first, so `;>` is a separator then a redirect, never one word
+OPERATORS = ("&>>", "<<<", ";;", "&&", "||", "|&", ">>", ">|", "&>", ">&",
+             "<&", "<<", "<>", "<(", ">(")
+ARITH_WORDS = re.compile(r"[A-Za-z_]\w*\s+[A-Za-z_$]")
+
+
+def arithmetic(inner):
+    """whether the text inside a `$(...)` is an arithmetic `((...))`: the
+    shell reads `$((x << 2))` as numbers, never as a command that writes.
+    a body holding one word right after another (`cd a`) or a `;` is read
+    as a command instead."""
+    return inner.startswith("(") and inner.endswith(")") \
+        and ";" not in inner and not ARITH_WORDS.search(inner)
 
 
 def single_end(text, i):
@@ -172,7 +230,8 @@ def double_end(text, i, inner):
             return i
         if c == "$" and text[i + 1:i + 2] == "(":
             end = paren_end(text, i + 2)
-            inner.append(text[i + 2:end])
+            if not arithmetic(text[i + 2:end]):
+                inner.append(text[i + 2:end])
             i = end + 1
             continue
         if c == "`":
@@ -257,7 +316,8 @@ def tokens(text, inner):
             i = end + 1
         elif c == "$" and text[i + 1:i + 2] == "(":
             end = paren_end(text, i + 2)
-            inner.append(text[i + 2:end])
+            if not arithmetic(text[i + 2:end]):
+                inner.append(text[i + 2:end])
             word.append(text[i:end + 1])
             i = end + 1
         elif c == "`":
@@ -267,11 +327,9 @@ def tokens(text, inner):
             i = end + 1
         elif c in PUNCTUATION:
             flush()
-            end = i
-            while end < n and text[end] in PUNCTUATION:
-                end = end + 1
-            out.append(text[i:end])
-            i = end
+            op = next((o for o in OPERATORS if text.startswith(o, i)), c)
+            out.append(op)
+            i = i + len(op)
         else:
             word.append(c)
             i = i + 1
@@ -413,7 +471,47 @@ def writes_in(words, bodies, cwd, scratch=None):
             code = list(bodies)
         if any(PY_WRITE.search(c) for c in code):
             return cut(words, 2) + " <code that writes a file>"
+    if name in SHELLS:
+        code = [unquoted(args[k + 1]) for k, a in enumerate(plain)
+                if SHELL_C.match(a) and k + 1 < len(args)]
+        if not code and "<<" in words:
+            code = list(bodies)
+        for text in code:
+            hit = writes(text, cwd, scratch)
+            if hit:
+                return hit
     return ""
+
+
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+SHELL_C = re.compile(r"^-[A-Za-z]*c[A-Za-z]*$")
+
+
+def unquoted(word):
+    """-> one shell word as the program it is handed to receives it: its
+    quotes taken off, each escape read."""
+    out, i, n = [], 0, len(word)
+    while i < n:
+        c = word[i]
+        if c == "'":
+            end = single_end(word, i + 1)
+            out.append(word[i + 1:end])
+            i = end + 1
+        elif word.startswith("$'", i):
+            end = ansi_end(word, i + 2)
+            out.append(word[i + 2:end])
+            i = end + 1
+        elif c == '"':
+            end = double_end(word, i + 1, [])
+            out.append(re.sub(r'\\([\\"$`\n])', r"\1", word[i + 1:end]))
+            i = end + 1
+        elif c == "\\":
+            out.append(word[i + 1:i + 2])
+            i = i + 2
+        else:
+            out.append(c)
+            i = i + 1
+    return "".join(out)
 
 
 def writes(command, cwd=None, scratch=None):

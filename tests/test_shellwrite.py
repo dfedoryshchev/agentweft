@@ -267,6 +267,44 @@ def test_quotes_escapes_and_substitutions_that_write_nothing_pass(command,
     assert check().decide([], bash(command, cwd=tmp_path)) == (0, ""), command
 
 
+@pytest.mark.parametrize("command", [
+    "echo a;>out.txt",
+    "(echo a)>out.txt",
+    "(cd sub && echo x)>out.txt",
+    "true&&>out.txt",
+    "echo a|>out.txt",
+    "echo \"<<EOF\"\necho hi > out.txt",
+    "echo '<<EOF'\necho hi > out.txt",
+    "echo $((x<<y))\necho hi > out.txt",
+    "bash -c 'echo a > out.txt'",
+    "sh -c \"echo a > out.txt\"",
+    "bash -lc 'cd sub && tee log.txt < a'",
+    "zsh -c 'sed -i s/a/b/ calc.py'",
+    "bash <<'EOF'\necho a > out.txt\nEOF",
+    "sh -c 'echo \"$(cat > notes.txt)\"'",
+])
+def test_a_write_behind_joined_operators_a_quoted_marker_or_a_shell_c_is_seen(
+        command, tmp_path):
+    code, said = check().decide([], bash(command, cwd=tmp_path))
+    assert code == 2, command
+    assert "Write tool" in said
+
+
+@pytest.mark.parametrize("command", [
+    "echo a; ls -la",
+    "(cd sub && ls)|head -3",
+    "echo \"<<EOF\" | grep -c EOF",
+    "bash -c 'git status 2>&1 | head -3'",
+    "sh -c \"echo a > /dev/null\"",
+    "bash -c 'python -m pytest -q'",
+    "echo $(( 3 > 2 ))",
+    "test $(( a << 2 )) -gt 3 && echo ok",
+])
+def test_joined_operators_quoted_markers_and_shell_c_that_write_nothing_pass(
+        command, tmp_path):
+    assert check().decide([], bash(command, cwd=tmp_path)) == (0, ""), command
+
+
 def test_a_call_the_check_cannot_read_is_noted_as_unread(tmp_path):
     sw = check()
     denials = tmp_path / sw.FILE

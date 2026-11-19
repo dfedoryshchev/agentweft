@@ -644,9 +644,14 @@ duplicated descriptor such as `2>&1`, the temp dir and the run's own
 `write_text`, and PowerShell's `Set-Content`, `Add-Content`, `Out-File` and
 `WriteAllText`. the reason names Write and Edit, and a step that cannot make
 the change with them says so on a `NEEDS:` line. it reads each command a
-`$(...)` or backquotes run as well, and reads quotes as the shell does, so a
-`\"` inside double quotes, a `$'...'` or a quote inside a substitution never
-turns a read into a refusal. a call it cannot read (a quote left open, input
+`$(...)` or backquotes run as well, and the command a shell is handed by
+`-c` or a heredoc (`bash -c '...'`, `sh <<EOF`). it reads quotes as the
+shell does, so a `\"` inside double quotes, a `$'...'` or a quote inside a
+substitution never turns a read into a refusal, a `<<` inside quotes or an
+arithmetic `$((...))` opens no heredoc, an arithmetic `$((3 > 2))` writes
+nothing, and operators written together (`;>`, `)>`) are read one by one.
+a command `eval` builds and a script file a shell runs are not read. a call
+it cannot read (a quote left open, input
 that is not a call) and an error of its own are refused too: a check that
 crashes and lets the call through is no check. it catches the shell's write
 syntax and the programs whose job is writing, not every program that writes a
