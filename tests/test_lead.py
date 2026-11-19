@@ -507,7 +507,8 @@ def test_the_lead_s_own_decision_acted_on_by_a_red_start_test_stops(
     import test_spec_files as sf
     gone = "tests/test_report.py::test_alphabetical"
     code, called, folder = own_decided(
-        tmp_path, monkeypatch, "give the order given; " + gone + " gives way",
+        tmp_path, monkeypatch, "give the order given; the alphabetical order"
+        " gives way",
         {"report.py": "def report(names):" + NL + "    return list(names)"
          + NL, "tests/test_count.py": sf.COUNT})
     assert called == ["planner.md", "tester.md", "worker.md"]

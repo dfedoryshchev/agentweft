@@ -85,14 +85,21 @@ a file, never off the question's words:
   run already ruled on: a ruling that lets it change, a `request:` answer
   to the runner's own question that holds it, or a mark of the same kind on
   the same lines in a question already answered. every such mark goes in
-  one stop, and a mark whose cite cannot be read parks too. an `already
+  one stop, and a mark whose cite cannot be read parks too. so does a
+  behaviour's `spec` line in none of the five taught forms (`allows`, `adds
+  to`, `nothing in the spec`, `contradicts`, `breaks`): no colon, bold, or
+  another verb (`break`, `broken`, `violates`) parks it as a mark, with or
+  without a question. an `already
   at` mark whose quote is on that code line, with its `fix:` behaviour, is
   fixed test-first instead, the recommendation deciding how; a plain
   `breaks` of that same spec line on the same page is the same breach on
   the new path and is fixed with it.
-- the question, a line it cites or its `SETTLED BY:` names a test file the
-  run started with (the start snapshot types the file; with no snapshot,
-  the snapshot's own path rule on the place as it is). it parks as the
+- the question, a line it cites, its `SETTLED BY:` or its `RECOMMEND:`
+  names a test file the run started with. the start snapshot types the
+  file, and a name matches it however it is spelt: a bare file name (by its
+  last parts), `./`, either separator, an absolute path, any case. with no
+  hashed snapshot, any name the snapshot's path rule takes for a test, in
+  any case, counts. it parks as the
   test question, naming the test whose code holds a cited line, and an
   `override:` answer naming that test lets the change to it stand at the
   test-edits check, so a recommendation never designs around a start test
@@ -102,9 +109,19 @@ a file, never off the question's words:
   line>"`. any such line parks; the stop says whether the quote, three
   words or more, is in the request or on that one spec line as the run
   found it.
-- `RECOMMEND: none`, or a recommendation that leaves the answer to the
-  person (`The person names a date`): these words only ever send a
-  question up.
+- a line of the block that opens with a key a question carries
+  (`QUESTION`, `SETTLED BY`, `SPLIT`, `RECOMMEND`, `SIZE`), with a capital,
+  that the block's reader does not take as that key: bulleted, or with
+  `-`, `=` or nothing for its colon. the reader drops such a line, so it
+  parks, said `(not read: ...)` under CITES.
+- a `RECOMMEND:` that holds no choice to record: its words, markdown,
+  brackets and quotes taken off, empty, `nothing`, opening with a
+  placeholder (`none`, `n/a`, `tbd`, `unknown`, `no recommendation`, `-`,
+  `?`), ending as a question, or handing the answer to someone else in any
+  sentence (`The person names a date`, `ask the user`, `the owner's call`,
+  `up to the operator`). these words only ever send a question up; any
+  other recommendation, however short (`escape it`), is the lead's
+  decision.
 
 the `SETTLED BY:` line is the reason recorded beside the decision, never
 its gate. the record names it when it quotes a line of the place as the run

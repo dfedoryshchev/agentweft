@@ -332,9 +332,41 @@ def answered_marks(answered):
     for lines in answered:
         for line in lines:
             mark = line.strip().lstrip("-").strip()
-            if ruling.BREAKS.match(mark) or ruling.CONTRADICTS.match(mark):
+            if ruling.BREAKS.match(mark) or ruling.CONTRADICTS.match(mark) \
+                    or unread_spec(mark):
                 out |= ruling.mark_lines(mark)
     return out
+
+
+SPEC_KEY = re.compile(r"^[\s>*_`+\-]*spec(?=[\s*_`:])[\s*_`]*(:?)[\s*_`]*(.*?)"
+                      r"\s*$", re.I)
+SPEC_VERB = re.compile(r"^(?:allows|adds\s+to|nothing|contradicts?|breaks?|"
+                       r"broken|violates?|conflicts?)\b", re.I)
+# the forms planner.md teaches that mark nothing; the two that mark are read
+# by ruling.BREAKS and ruling.CONTRADICTS
+QUIET = re.compile(r"^(?:allows\s+\S|adds\s+to\s+\S|nothing\s+in\s+the\s+spec"
+                   r"\b)", re.I)
+
+
+def unread_spec(line):
+    """whether `line` opens as a behaviour's `spec` line and reads as none of
+    the five forms the plan is taught: no colon, bold, a verb off the list
+    or out of its form. such a line parks like a mark, never passes."""
+    m = SPEC_KEY.match(line or "")
+    if not m or ruling.BREAKS.match(line) or ruling.CONTRADICTS.match(line):
+        return False
+    if not m.group(1):
+        said = m.group(2)
+        return bool(SPEC_VERB.match(said) or ruling.MARKED.search(said))
+    plain = re.match(r"^\s*(?:-\s*)?spec:\s*(.*)$", line.strip(), re.I)
+    return not (plain and QUIET.match(plain.group(1)))
+
+
+def unread_specs(output):
+    """-> the lines of `output` that `unread_spec` finds, as written."""
+    from . import verbs
+    return [line.strip().lstrip("-").strip() for _, line in
+            verbs.visible(output) if unread_spec(line)]
 
 
 def marked(run, step, out, answered=()):
@@ -374,6 +406,10 @@ def marked(run, step, out, answered=()):
         if any(ruling.mark_ruled(m, run.workdir, start, r) for r in ruled):
             continue
         found.append(m)
+    for m in unread_specs(out.output):
+        cited = ruling.mark_lines(m)
+        if not (cited and cited <= put):
+            found.append(m)
     return found
 
 
@@ -988,57 +1024,139 @@ def lead_questions(run, step, out, answered=()):
 
 UNASKED = "NEEDS: the plan marks a line of the spec broken and asks nothing" \
     " about it"
-PERSON_HOLDS = re.compile(r"^\W*(?:the\s+(?:person|operator|user|owner)|you)"
-                          r"\s+(?:names?|decides?|chooses?|picks?|gives?|"
-                          r"says?|sets?|confirms?)\b", re.I)
+UNREAD = "NEEDS: the plan holds a line the runner cannot read in any form it" \
+    " was taught"
+UNREAD_SAID = " (not read: not in the form taught for it)"
+ASK_KEY = re.compile(r"^\s*(?:[-*+]\s*)?[*_`]*\s*(QUESTION|SETTLED\s+BY|SPLIT|"
+                     r"RECOMMEND|SIZE)\b[*_`]*\s*(?:[:=]|-\s|$)", re.I)
+ASK_BARE = re.compile(r"^\s*(?:[-*+]\s*)?[*_`]*\s*(QUESTION|SETTLED BY|SPLIT|"
+                      r"RECOMMEND|SIZE)[*_`]*\s+\S")
+
+
+def unread_asking(output):
+    """-> each line of the answer's HANDOFF block that opens with a key a
+    QUESTION carries (QUESTION, SETTLED BY, SPLIT, RECOMMEND, SIZE), written
+    with a capital, that the block's reader does not take as that key: a
+    bulleted one, one with `-` or `=` or nothing for its colon. the reader
+    drops such a line, so a risk it would have typed is lost; it parks
+    instead."""
+    from . import verbs
+    from .handoff import ASKING, bounds
+
+    shown = verbs.visible(output)
+    span, _ = bounds(shown)
+    if span is None:
+        return []
+    out = []
+    for _, line in shown[span[0] + 1:span[1]]:
+        m = ASK_KEY.match(line) or ASK_BARE.match(line)
+        if not m or not m.group(1)[0].isupper():
+            continue
+        head = verbs.key_of(line)
+        if head is not None and head[0] in ASKING and not head[2]:
+            continue
+        out.append(line.strip())
+    return out
+WHO = r"(?:the\s+)?(?:person|operator|user|owner|maintainer|you|they)"
+PERSON_HOLDS = re.compile(
+    r"^\W*" + WHO + r"\s+(?:(?:must|should|will|can|could|needs?\s+to|has\s+to"
+    r"|have\s+to|to)\s+)?(?:names?|decides?|chooses?|picks?|gives?|says?|"
+    r"sets?|confirms?|answers?|rules?|tells?)\b", re.I)
+HANDED_ON = re.compile(r"\bask\s+" + WHO + r"\b|\b" + WHO + r"'s\s+(?:call|"
+                       r"choice|decision)\b|\bup\s+to\s+" + WHO + r"\b", re.I)
+NO_CHOICE = re.compile(r"^(?:none|n/a|na|tbd|tbc|unknown|unsure|unclear|"
+                       r"undecided|no\s+recommendation|not\s+sure|nothing\s+to"
+                       r"\s+recommend|-+|\?+)(?:$|[^a-z0-9/])")
 
 
 def no_recommendation(rec):
-    """whether a RECOMMEND leaves the lead nothing to decide by: none, or an
-    answer only the person holds ("the person names a date"). these words
-    only ever send a question on to the person, never decide one."""
-    said = (rec or "").strip(" .`").lower()
-    return said in ("", "-", "n/a", "na", "nothing") \
-        or bool(re.match(r"none\b", said)) or bool(PERSON_HOLDS.match(rec))
+    """whether a RECOMMEND holds no choice the program can record as the
+    lead's decision. its words, markdown, brackets and quotes taken off,
+    record no choice when they are empty, are `nothing`, open with a
+    placeholder for one (`none`, `tbd`, `unknown`, `-`, ...), are a
+    question, or hand the answer to someone else in any sentence ("the
+    person names a date", "ask the user", "the owner's call"). these only
+    ever send a question on to the person, never decide one."""
+    said = re.sub(r"[*_`~\"()\[\]<>{}]|(?<!\w)'|'(?!\w)", " ", rec or "")
+    said = " ".join(said.split()).strip(" .,;:!").lower()
+    if not said or said == "nothing" or NO_CHOICE.match(said) \
+            or said.endswith("?") or HANDED_ON.search(said):
+        return True
+    return any(PERSON_HOLDS.match(s) for s in re.split(r"[.;:!?\n]", said))
 
 
 def start_tests(run, texts):
     """-> the test files the run started with that `texts` name, each as a
     path from the place, and the test ids of the lines they cite there:
     the start snapshot types a file as a test (`snapshot.is_test` on the
-    place as it is when the run has none), never a word."""
-    from agentweft.guardrails.snapshot import is_runners, is_test, test_ids
+    place as it is when the run has none), never a word. a name matches a
+    start test however it is spelt: a bare file name, `./`, either
+    separator, an absolute path, any case. with no hashed snapshot to read,
+    any name the snapshot's path rule would take for a test, in any case,
+    is taken as one."""
+    from agentweft.guardrails.snapshot import is_runners
 
     start = getattr(run, "start", None)
-    root = Path(run.workdir).resolve()
+    known = start_paths(start) if getattr(start, "hashed", False) else None
     files, ids = [], []
     for text in texts:
         names = [(m.group(1), int(m.group(2)))
                  for m in ruling.MARKED.finditer(text or "")]
         names += [(n, None) for n in ruling.NAME.findall(text or "")]
         for name, line in names:
-            rel = ruling.path_of(name.split("::")[0])
+            rel = re.sub(r":\d+(?:-\d+)?$", "",
+                         ruling.path_of(name.split("::")[0]))
             if not rel or is_runners(rel):
                 continue
-            if getattr(start, "hashed", False):
-                try:
-                    key = (Path(start.place) / rel).resolve().relative_to(
-                        Path(start.root).resolve()).as_posix()
-                except (TypeError, ValueError, OSError):
+            found = test_named(rel, known)
+            for path in found:
+                if path not in files:
+                    files.append(path)
+                if line is None:
                     continue
-                if key not in start.tests:
-                    continue
-            elif start is not None or not is_test(rel) \
-                    or not (root / rel).is_file():
-                continue
-            if rel not in files:
-                files.append(rel)
-            if line is not None:
-                source = ruling.as_found(run.workdir, rel, start)
-                found = test_at(source, rel, line) if source else None
-                if found and found not in ids:
-                    ids.append(found)
+                source = ruling.as_found(run.workdir, path, start)
+                at = test_at(source, path, line) if source else None
+                if at and at not in ids:
+                    ids.append(at)
     return files, ids
+
+
+def start_paths(start):
+    """-> the start snapshot's test files as paths from the place."""
+    out = []
+    try:
+        place = Path(start.place).resolve()
+        root = Path(start.root).resolve()
+    except (TypeError, OSError):
+        return out
+    for key in start.tests:
+        try:
+            out.append((root / key).relative_to(place).as_posix())
+        except ValueError:
+            out.append(key)
+    return out
+
+
+def test_named(rel, known):
+    """-> the start tests of `known` the name `rel` spells, by its last
+    parts and in any case; with `known` None, [rel] when the path rule takes
+    it for a test file in any case, else []."""
+    from agentweft.guardrails.snapshot import is_test
+
+    said = re.sub(r"^[A-Za-z]:", "", rel.replace("\\", "/"))
+    parts = [p for p in said.casefold().split("/") if p not in ("", ".")]
+    if not parts:
+        return []
+    if known is None:
+        whole = "/".join(parts)
+        return [rel] if is_test(said) or is_test(whole) else []
+    out = []
+    for path in known:
+        have = [p for p in path.casefold().split("/") if p]
+        n = min(len(have), len(parts))
+        if n and have[-n:] == parts[-n:]:
+            out.append(path)
+    return out
 
 
 def test_at(source, rel, n):
@@ -1121,15 +1239,18 @@ def lead_parks(run, step, out):
     answered = answered_here(run)
     marks = marked(run, step, out, answered)
     questions = lead_questions(run, step, out, answered)
-    if marks and questions:
+    unread = [line + UNREAD_SAID for line in unread_asking(out.output)] \
+        if step == getattr(run, "lead", None) else []
+    if (marks or unread) and questions:
         asked, rec, cites, size, _, _ = questions[0]
-        return asked_as(asked, marks + cites, rec, size), None
-    breaks = [m for m in marks if ruling.BREAKS.match(m)]
-    if breaks:
-        return "\n".join([UNASKED, "CITES:"] + ["- " + m for m in breaks]), \
-            None
+        return asked_as(asked, marks + unread + cites, rec, size), None
+    alone = [m for m in marks if not ruling.CONTRADICTS.match(m)] + unread
+    if alone:
+        head = UNASKED if all(ruling.BREAKS.match(m) for m in alone) \
+            else UNREAD
+        return "\n".join([head, "CITES:"] + ["- " + m for m in alone]), None
     for asked, rec, cites, size, settled, split in questions:
-        files, ids = start_tests(run, [asked, settled] + cites)
+        files, ids = start_tests(run, [asked, settled, rec] + cites)
         if files:
             named = ids or files
             return "\n".join(
