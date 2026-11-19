@@ -211,6 +211,21 @@ def begin(unrecorded):
               " request win, --answer \"request: <what to do instead>\" keeps"
               " the spec")
         return 1
+    if answer is not None and found is not None and \
+            ruling.held_edits(found.data.get("stopped")) and \
+            not ruling.decides_edits(answer):
+        again = resume_command(flow, pick_up, found.data.get("caps"))
+        print(pick_up + " parked on tests " + str(ended.get("step"))
+              + " changed, and the answer neither lets the change stand nor"
+              " puts them back, so it decides nothing and the run stays"
+              " parked. it asked:")
+        print("")
+        print(question)
+        print("")
+        print("answer it with")
+        print("  " + again + park.STANDS)
+        print("  " + again + park.PUT_BACK)
+        return stops.EXIT_STOP
     try:
         asked = task.settle(flow, task.places(flow_path(flow), fm),
                             task.given(sys.argv),

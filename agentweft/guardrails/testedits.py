@@ -466,6 +466,30 @@ def _source_of(source, name, test):
     return ""
 
 
+def _read_parts(tree, name, test, members=False):
+    """-> [the test `test`'s node, then each statement at the top of `tree`
+    that binds a name it reads or takes as a fixture, itself or through what
+    those read, then with `members` the other members of the test class it
+    is in], or [] when the test is not there."""
+    node = next((n for t, n in _named_tests(tree, name) if t == test), None)
+    if node is None:
+        return []
+    graph = _graph(tree)
+    seen, todo = set(), list(_reads(node))
+    while todo:
+        n = todo.pop()
+        if n not in seen:
+            seen.add(n)
+            todo.extend(graph.get(n, ()))
+    parts = [node] + [top for top in tree.body if top is not node and any(
+        bound in seen for bound, _ in _bound(top))]
+    for top in tree.body if members else ():
+        if isinstance(top, ast.ClassDef) and node in top.body:
+            parts.extend(m for m in top.body
+                         if m is not node and not _is_test_func(m))
+    return parts
+
+
 def read_by(source, name, test):
     """-> the code of the test `test` (an id under `name`) in `source`, and
     of each statement at the top of the file that binds a name it reads or
@@ -476,21 +500,27 @@ def read_by(source, name, test):
         tree = ast.parse(source)
     except SyntaxError:
         return ""
-    node = next((n for t, n in _named_tests(tree, name) if t == test), None)
-    if node is None:
+    parts = _read_parts(tree, name, test)
+    if not parts:
         return ""
-    graph = _graph(tree)
-    seen, todo = set(), list(_reads(node))
-    while todo:
-        n = todo.pop()
-        if n not in seen:
-            seen.add(n)
-            todo.extend(graph.get(n, ()))
-    parts = [node] + [top for top in tree.body if top is not node and any(
-        bound in seen for bound, _ in _bound(top))]
     return "\n\n".join(textwrap.dedent(
         ast.get_source_segment(source, part, padded=True) or "")
         for part in parts)
+
+
+def code_of(source, name, test):
+    """-> the test `test` (an id under `name`, a case's `[...]` left off) in
+    `source` as its syntax tree reads, with the code at the top of the file
+    it reads and the other members of its test class: what decides how it
+    runs from inside its file. formatting and comments are not in it. ""
+    when the test is not there or the source does not parse."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return ""
+    plain = test.split("[", 1)[0]
+    return "\n".join(ast.dump(p) for p in _read_parts(tree, name, plain,
+                                                      members=True))
 
 
 def claimable(test, how):

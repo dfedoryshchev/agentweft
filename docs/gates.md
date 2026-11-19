@@ -735,8 +735,16 @@ handoff's "tests and checks":
   fixed was not the bug the run fixed.
 
 a run picked up with `--resume` keeps its snapshot and its proof, and reads
-the proved test files again: one whose content is not what was proved drops
-the proof, and a product step after it is refused saying which file moved.
+the proved tests again. the proof keeps each python test its red was shown
+on (the ids the gate ran) by its syntax tree, with the code at the top of
+its file that it reads and the other members of its test class, so a step
+that changed other tests in the same file (start tests a test-edits park
+then asks about) leaves the proof standing while the proving test is as it
+was. a proved test whose own code, or code it reads in its file, changed,
+one that is gone, or a file that no longer parses drops the proof, and so
+does any change to a proved file read whole: a test file in another
+language, a proof whose gate named only the file, a carried proof. a product
+step after a dropped proof is refused saying which file moved.
 
 ## the tests the run started with, after product code
 
@@ -836,7 +844,16 @@ in `gates.md`:
 - a change fails the step like a gate, naming each test, and the step goes
   again with that at the end of its prompt. on its last go (the flow's
   `send_backs`, once by default) the run parks for a ruling instead, cause
-  `parked`, with each test cited in `question.md`.
+  `parked`, with each test cited in `question.md`. two answers decide that
+  park: `override:` (below), and one that says to put the tests back (`put
+  them back`, `restore`, `revert`, `undo`, `as they were`), which sends the
+  step again to do so. any other answer, a `yours:` or a `request:`
+  included, decides nothing: the step would run again with the tests still
+  changed and the check would park on them once more, so `--resume` takes
+  no leg, prints the question with the two answers, and the run stays
+  parked. the park is known by what the runner wrote in the leg's
+  `manifest.json` (`stopped.runner.held`), never by the question's words; a
+  lead question that cites a start test (above) keeps its own answers.
 - unless a ruling in `decisions.md` covers the test: an `override:` answer to
   the question this run (or any leg before it) parked on for these edits
   covers every test and file that question cites. the runner knows that

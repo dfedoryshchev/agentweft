@@ -24,7 +24,8 @@ commit plus the test files changed but not committed when the run started
 (`--continue HEAD` for those alone), once each of them is seen failing in the
 place as it starts. neither is assumed: a carried test whose content moved
 since, or one that does not fail, carries nothing. a resumed run re-reads the
-proved test files too, and a moved one drops the proof.
+proved tests too: a python test the gate named by its code and the code of
+its file it reads, any other proved file whole. a moved one drops the proof.
 
 the proof is kept as runs/<id>/red-proof.json beside the start snapshot, so
 a run picked up later has both.
@@ -35,7 +36,7 @@ import posixpath
 import re
 from pathlib import Path
 
-from agentweft.guardrails import worktree
+from agentweft.guardrails import testedits, worktree
 from agentweft.guardrails import writes as bounds
 from agentweft.guardrails.snapshot import _git, _sha, is_test
 
@@ -197,9 +198,12 @@ class Order(object):
                 # run writes comes after it, even one this step wrote
                 ids = [] if source == "supplied" else (
                     self.start.new_test_ids() if self.start.start else None)
+                proved = named.split() if named else [
+                    t["test"] for t in r.tests if t["before"] == "red"]
                 self.proof = {"how": "gate", "step": step, "gate": r.gate,
                               "source": source, "tests": dict(found),
-                              "ids": ids}
+                              "ids": ids,
+                              "nodes": self.nodes(dict(found), proved)}
                 self.lost = ""
                 return True
         return False
@@ -244,9 +248,55 @@ class Order(object):
                 "supplied, red at the start"
         return {}, ""
 
+    def nodes(self, files, proved):
+        """-> {proved test file: {test id: sha256 of its code}} for each
+        python file in `files` whose every proved test in `proved` is read
+        by `testedits.code_of`. a file left out is held by its whole
+        content, as is every file of a proof with no tests named."""
+        by_key = dict((norm(f), f) for f in files)
+        wanted = {}
+        for test in proved:
+            path, sep, rest = (test or "").partition("::")
+            f = by_key.get(norm(path))
+            if f is not None:
+                wanted.setdefault(f, []).append(
+                    f + "::" + rest if sep else "")
+        out = {}
+        for f, tests in sorted(wanted.items()):
+            if not f.endswith(".py") or "" in tests:
+                continue
+            try:
+                source = (self.start.place / f).read_bytes().decode("utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            codes = dict((t, testedits.code_of(source, f, t)) for t in tests)
+            if all(codes.values()):
+                out[f] = dict((t, _sha(c.encode("utf-8")))
+                              for t, c in sorted(codes.items()))
+        return out
+
+    def held_by_tests(self, f):
+        """whether proved test file `f` still holds every proved test of it
+        as it was proved, read by the proof's `nodes`. False when the proof
+        named none in `f`, the file cannot be read or a test is gone."""
+        held = (self.proof.get("nodes") or {}).get(f)
+        if not isinstance(held, dict) or not held:
+            return False
+        try:
+            source = (self.start.place / f).read_bytes().decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            return False
+        for test, sha in held.items():
+            code = testedits.code_of(source, f, test)
+            if not code or _sha(code.encode("utf-8")) != sha:
+                return False
+        return True
+
     def recheck(self):
-        """drop a proof whose proved test files are not the content it
-        proved, saying why in `lost`. -> the why, "" when it holds."""
+        """drop a proof whose proved tests are not what it proved, saying why
+        in `lost`: each proved python test read by its code and the code of
+        its file it reads, any other proved file by its whole content.
+        -> the why, "" when it holds."""
         if not self.proof or self.start is None:
             return ""
         moved = []
@@ -255,7 +305,7 @@ class Order(object):
                 now = _sha((self.start.place / f).read_bytes())
             except OSError:
                 now = None
-            if now != sha:
+            if now != sha and not self.held_by_tests(f):
                 moved.append(f)
         if moved:
             self.lost = ("the tests its red proof was shown on are not as"

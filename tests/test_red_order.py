@@ -3,6 +3,8 @@ skip tests. each run here is in a repo whose steps commit nothing."""
 import json
 import subprocess
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, ".")
@@ -349,6 +351,72 @@ def test_a_red_test_named_with_a_backslash_is_a_proof(tmp_path):
     said = "TEST: .\\tests\\test_calc.py" + NL
     assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
                         said)
+
+
+ACCENT = chr(0x41f) + chr(0x435) + chr(0x442) + chr(0x440) + chr(0x43e)
+HELPED = ("from calc import add" + NL + NL + "WANT = 3" + NL + NL + NL
+          + "def test_old_sum():" + NL + "    assert add(0, 0) == 0" + NL
+          + NL + NL + "def test_add():" + NL + "    name = '" + ACCENT + "'"
+          + NL + "    assert add(1, 2) == WANT, name" + NL)
+
+
+def proved_on(tmp_path, said):
+    place = a_repo(tmp_path / "repo")
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
+    path = place / "tests" / "test_calc.py"
+    path.write_text(HELPED, encoding="utf-8")
+    assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
+                        said)
+    return order, path
+
+
+@pytest.mark.parametrize("said", [
+    "TEST: tests/test_calc.py::test_add" + NL,
+    "TEST: .\\tests\\test_calc.py::test_add" + NL])
+def test_a_proof_holds_while_its_own_test_is_as_it_was_shown(tmp_path,
+                                                             said):
+    order, path = proved_on(tmp_path, said)
+    assert list(order.proof["nodes"]) == ["tests/test_calc.py"]
+    path.write_text(HELPED.replace("add(0, 0) == 0", "add(0, 1) == 1")
+                    + NL + "# a note" + NL, encoding="utf-8")
+    assert order.recheck() == ""
+    assert order.proof is not None
+
+
+@pytest.mark.parametrize("now", [
+    HELPED.replace("WANT = 3", "WANT = 4"),
+    HELPED.replace("add(1, 2) == WANT", "add(1, 2) >= 0"),
+    HELPED.replace("def test_add():", "def test_sum():"),
+    HELPED + NL + "def broken(:" + NL,
+    None])
+def test_a_proof_whose_own_test_or_what_it_reads_moved_is_dropped(tmp_path,
+                                                                 now):
+    order, path = proved_on(tmp_path, "TEST: tests/test_calc.py::test_add"
+                            + NL)
+    if now is None:
+        path.unlink()
+    else:
+        path.write_text(now, encoding="utf-8")
+    assert order.recheck() == ("the tests its red proof was shown on are not"
+                               " as they were: tests/test_calc.py")
+    assert order.proof is None
+
+
+def test_a_proof_naming_only_its_file_is_held_by_the_whole_file(tmp_path):
+    order, path = proved_on(tmp_path, "TEST: tests/test_calc.py" + NL)
+    assert order.proof["nodes"] == {}
+    path.write_text(HELPED.replace("add(0, 0) == 0", "add(0, 1) == 1"),
+                    encoding="utf-8")
+    assert "tests/test_calc.py" in order.recheck()
+
+
+def test_a_proof_kept_before_tests_were_named_is_held_by_its_file(tmp_path):
+    order, path = proved_on(tmp_path, "TEST: tests/test_calc.py::test_add"
+                            + NL)
+    del order.proof["nodes"]
+    path.write_text(HELPED.replace("add(0, 0) == 0", "add(0, 1) == 1"),
+                    encoding="utf-8")
+    assert "tests/test_calc.py" in order.recheck()
 
 
 def test_a_spec_is_read_from_the_place_and_a_star_stays_in_its_folder(

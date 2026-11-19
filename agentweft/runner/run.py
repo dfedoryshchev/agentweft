@@ -1029,7 +1029,8 @@ class Run(object):
         return line, ("needs a ruling: " + line.detail,
                       ruling.question_of_test_edits(step, left, tags,
                                                     groups),
-                      ruling.edits_asked(test for test, _ in left))
+                      ruling.edits_asked((test for test, _ in left),
+                                         held=True))
 
     def ruled_lines(self):
         """-> [(spec file, its line number as the run found it, the line)]

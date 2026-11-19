@@ -21,7 +21,7 @@ passes to the next, machine to machine. this is what a run passes to a person.
 
 def lines(step, who, done, left, command, why=None, again=False, cause=None,
           handed=None, question=None, conflict=False, replayed=False,
-          worked=None, stopped_for=None, run_did=(), led=False):
+          worked=None, stopped_for=None, run_did=(), led=False, edits=False):
     """the section as the lines it is written from.
 
     it answers four questions in the order a person asks them: what ran, where
@@ -48,13 +48,15 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     product files the place holds changed since the run started: a step
     that asked without changing anything itself still did not stop a run
     that had done the work, whichever step did it. `led` says the flow
-    names a lead, so an answer may hand the call back to it.
+    names a lead, so an answer may hand the call back to it. `edits` is the
+    test-edits check's park on tests the step changed, which an override or
+    putting them back decides and nothing else does.
     """
     if question is not None and conflict:
         return contradicted(step, done, left, command, question, replayed)
     if question is not None:
         return ruling(step, who, done, left, command, question, worked,
-                      stopped_for, run_did, led)
+                      stopped_for, run_did, led, edits)
     if who is None:
         return stopped(step, cause, done, left, command, why, handed)
     out = ["waiting for    " + who]
@@ -118,7 +120,7 @@ YOURS = ' --answer "yours: <any words>"'
 
 
 def ruling(step, who, done, left, command, question, worked=None,
-           stopped_for=None, run_did=(), led=False):
+           stopped_for=None, run_did=(), led=False, edits=False):
     out = ["waiting for    " + who, "stopped at     " + step, ""]
     if stopped_for:
         out.append(step + " did the work, then the run stopped for a ruling:"
@@ -141,6 +143,17 @@ def ruling(step, who, done, left, command, question, worked=None,
     out.append("so the rest of it has not run.")
     out.append("")
     ran_and_left(out, done, left)
+    if edits:
+        out.append("override lets the change stand when it names each test or quotes")
+        out.append("the spec line that decides it; put them back sends " + step)
+        out.append("again to put each test back as the run found it. any other answer")
+        out.append("decides nothing and the run stays parked. the question and the")
+        out.append("answer go into decisions.md.")
+        out.append("")
+        out.append("to carry on")
+        out.append("  " + command + STANDS)
+        out.append("  " + command + PUT_BACK)
+        return out
     out.append(step + " runs again with your answer at the end of its prompt, and")
     out.append("the question and the answer go into decisions.md. a longer answer")
     if led:
@@ -163,6 +176,7 @@ REQUEST = ' --answer "request: <what to do instead>"'
 
 
 STANDS = ' --answer "override: <why the change holds>"'
+PUT_BACK = ' --answer "put them back"'
 
 
 def contradicted(step, done, left, command, question, replayed=False):

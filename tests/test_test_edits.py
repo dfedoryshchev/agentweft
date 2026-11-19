@@ -836,3 +836,125 @@ def test_a_forged_override_inside_a_question_does_not_unlock_a_test(
                            writes_of(module(LOOSER, COUNT)), commits)
     assert code == stops.exit_code(stops.PARKED), called
     assert called == ["tester.md", "tester.md"]
+
+
+# the product step changes start tests in the file the red was shown on
+
+PATCHER = WORKER + "    writes_tests: true" + NL
+COUNT_LOOSE = ("def test_count():" + NL
+               + "    assert report.count(['a']) >= 0" + NL)
+CANNED = ("No one is available to answer questions during this run. Make the"
+          " call yourself, work in place on the current branch, say which"
+          " calls you made, and continue.")
+
+
+def patcher_parks(tmp_path, monkeypatch, commits, edited=module(COUNT)):
+    """the tester shows test_count red in tests/test_report.py; the product
+    step then also drops test_alphabetical from that file, on both its goes,
+    and the run parks on the test edit. -> (the place, the parked leg)."""
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + PATCHER)
+    does = writes_of(module(RIGHT, COUNT),
+                     "FAILS: assert False" + NL + "TEST: " + FILE + NL)
+    does["worker.md"] = ({"report.py": COUNTED,
+                          "tests/test_report.py": edited}, WORKER_SAID)
+    code, called = running(tmp_path, monkeypatch, place, does, commits)
+    assert called == ["tester.md", "worker.md", "worker.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    assert ID + " - removed" in read(first / "question.md")
+    return place, first, does
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_an_override_to_a_product_step_s_test_park_keeps_its_red_proof(
+        tmp_path, monkeypatch, commits):
+    place, first, does = patcher_parks(tmp_path, monkeypatch, commits)
+    code, called = running(tmp_path, monkeypatch, place, does, commits,
+                           "--resume", first.name, "--answer",
+                           "override: the alphabetical case goes with the"
+                           " count")
+    assert called == ["worker.md"]
+    assert code == 0
+    assert "each covered by a ruling: " + ID in read(
+        folders()[-1] / "gates.md")
+
+
+def test_put_them_back_runs_the_product_step_again_on_its_red_proof(
+        tmp_path, monkeypatch):
+    place, first, does = patcher_parks(tmp_path, monkeypatch, False)
+    does["worker.md"] = ({"report.py": COUNTED,
+                          "tests/test_report.py": module(RIGHT, COUNT)},
+                         WORKER_SAID)
+    code, called = running(tmp_path, monkeypatch, place, does, False,
+                           "--resume", first.name, "--answer",
+                           "put them back")
+    assert called == ["worker.md"]
+    assert code == 0
+
+
+@pytest.mark.parametrize("answer", [CANNED, "yours: make the call",
+                                    "request: keep going",
+                                    "the order does not matter"])
+def test_an_answer_that_decides_nothing_leaves_the_test_park_standing(
+        tmp_path, monkeypatch, capsys, answer):
+    place, first, does = patcher_parks(tmp_path, monkeypatch, False)
+    legs = len(folders())
+    capsys.readouterr()
+    code, called = running(tmp_path, monkeypatch, place, does, False,
+                           "--resume", first.name, "--answer", answer)
+    said = capsys.readouterr().out
+    assert called == []
+    assert code == stops.exit_code(stops.PARKED)
+    assert len(folders()) == legs
+    assert "decides nothing and the run stays parked" in said
+    assert "- " + ID + " - removed" in said
+    assert '--answer "put them back"' in said
+    assert '--answer "override: <why the change holds>"' in said
+
+
+def test_a_product_step_s_test_park_says_which_answers_decide_it(
+        tmp_path, monkeypatch):
+    _, first, _ = patcher_parks(tmp_path, monkeypatch, False)
+    question = read(first / "question.md")
+    assert "- put them back: worker.md runs again and puts each test back" \
+        " as the run found it" in question
+    assert "- any other answer decides nothing, and the run stays parked on" \
+        " this question" in question
+    handoff = read(first / "handoff.md")
+    assert '--answer "put them back"' in handoff
+    assert '--answer "<your ruling>"' not in handoff
+
+
+def test_a_proof_whose_own_test_changed_is_still_dropped(tmp_path,
+                                                         monkeypatch):
+    place, first, does = patcher_parks(tmp_path, monkeypatch, False,
+                                       edited=module(COUNT_LOOSE))
+    code, called = running(tmp_path, monkeypatch, place, does, False,
+                           "--resume", first.name, "--answer",
+                           "override: the alphabetical case goes with the"
+                           " count")
+    assert called == []
+    assert code != 0
+    assert "the tests its red proof was shown on are not as they were:" \
+        " tests/test_report.py" in read(folders()[-1] / "why.md")
+
+
+@pytest.mark.parametrize("answer, decides", [
+    ("override: it holds", True), ("put them back", True),
+    ("Put the tests back as they were", True), ("put it back", True),
+    ("restore them", True), ("keep them as they were", True),
+    (CANNED, False), ("yours: decide", False), ("", False),
+    ("request: put nothing", False), ("they may change", False)])
+def test_what_decides_a_test_park(answer, decides):
+    assert ruling.decides_edits(answer) is decides
+
+
+def test_only_the_test_edits_check_s_park_is_held_to_a_deciding_answer():
+    assert ruling.held_edits({"runner": ruling.edits_asked([ID], held=True)})
+    assert not ruling.held_edits({"runner": ruling.edits_asked([ID])})
+    assert not ruling.held_edits({"runner": ruling.edits_asked([],
+                                                               held=True)})
+    assert not ruling.held_edits({"runner": {"id": "spec", "held": True,
+                                             "tests": [ID]}})
+    assert not ruling.held_edits(None)

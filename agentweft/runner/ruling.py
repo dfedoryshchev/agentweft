@@ -1691,10 +1691,36 @@ EDITS_ASKED = " the run started with. may "
 TEST_EDITS = "test-edits"
 
 
-def edits_asked(tests):
+def edits_asked(tests, held=False):
     """-> what the runner writes in a leg's record of its stop when it parks
-    the leg on its own test-edit question: its id and the tests it named."""
-    return {"id": TEST_EDITS, "tests": list(tests)}
+    the leg on its own test-edit question: its id and the tests it named.
+    `held` is a park of the test-edits check on tests a step changed, whose
+    answer has to decide it (`decides_edits`)."""
+    out = {"id": TEST_EDITS, "tests": list(tests)}
+    if held:
+        out["held"] = True
+    return out
+
+
+def held_edits(stopped):
+    """whether a leg's record of its stop is the test-edits check's park on
+    tests a step changed, read from what the runner wrote, never from the
+    question's words."""
+    said = (stopped or {}).get("runner") or {}
+    return said.get("held") is True and bool(asked_edits(stopped))
+
+
+PUT_BACK = re.compile(r"\b(?:put\b[^.;\n]{0,40}?\bback|restore|revert|undo)\b"
+                      r"|\bas (?:they|it) (?:were|was)\b", re.I)
+
+
+def decides_edits(answer):
+    """whether an answer to the test-edits check's park decides it: an
+    `override:` lets the change stand, and one that says to put the tests
+    back sends the step again to do so. any other answer decides nothing:
+    the step would run again with the tests still changed and the check
+    would park on them once more."""
+    return kind_of(answer) == OVERRIDE or bool(PUT_BACK.search(answer or ""))
 
 
 def asked_edits(stopped):
@@ -1822,8 +1848,10 @@ def question_of_test_edits(step, left, found=None, groups=()):
     out.extend(["OPTIONS:",
                 "- override: <why the change holds>. name each test above, or"
                 " quote the spec line that decides it, and the change stands",
-                "- anything else is told to " + step + ", which runs again:"
-                " to keep the tests as they were, say put them back"])
+                "- put them back: " + step + " runs again and puts each test"
+                " back as the run found it",
+                "- any other answer decides nothing, and the run stays parked"
+                " on this question"])
     return "\n".join(out)
 
 
