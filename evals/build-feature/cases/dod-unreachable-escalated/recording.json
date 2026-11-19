@@ -1,0 +1,70 @@
+{
+  "recorded": "2026-11-19T16:13:52",
+  "provider": "fake",
+  "asked": null,
+  "calls": [
+    {
+      "step": "planner.md",
+      "task": null,
+      "go": 1,
+      "prompt": "589335e108f4e82542a974dc3ddb13dd39d73e5f1845ff166e58cc6f105154cd",
+      "say": "- div(6, 3) is 2 | calc.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "planner.md",
+      "task": null,
+      "go": 2,
+      "prompt": "a9d10ab4d99a5a36bc051a1be0379d22bd6c6420add7f168cd26e07ce0ac6dc1",
+      "say": "ESCALATE: the request wants an error and TASK.md:4 rules out raising one; which gives is the operator's call\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    },
+    {
+      "step": "tester.md",
+      "task": null,
+      "go": 1,
+      "prompt": "a0a3337b51bf08b4c9a0f65f35acf4b03b8cc4ecf3ff31d650a6d95318623c69",
+      "say": "FAILS: ImportError: cannot import name 'div' from 'calc'\nTEST: tests/test_div.py\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null,
+      "writes": {
+        "tests/test_div.py": "def test_div():\n    from calc import div\n\n    assert div(6, 3) == 2\n"
+      }
+    },
+    {
+      "step": "worker.md",
+      "task": null,
+      "go": 1,
+      "prompt": "ee5248df08ac2187ca46851ced0e8b5a0bd0d0028c4032e25e0de800323b5a4e",
+      "say": "NEEDS: the request makes a division by 0 an error, and TASK.md:4 says no function in calc raises. what does div(a, 0) do?\n",
+      "detail": "",
+      "retryable": null,
+      "outage": null,
+      "model": null,
+      "session": null,
+      "cost": null,
+      "usage": null,
+      "models": null
+    }
+  ]
+}

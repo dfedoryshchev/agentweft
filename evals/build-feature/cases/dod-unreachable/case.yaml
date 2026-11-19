@@ -1,0 +1,68 @@
+task: calc gets div(a, b), which divides a by b, and a division by 0 is an error
+place: place
+provider:
+  provider: fake
+  replies:
+    planner.md:
+      - |
+        - div(6, 3) is 2 | calc.py
+      - |
+        DECIDED: div(a, 0) returns None
+        why: TASK.md:4 says no function in calc raises, so the error is the value None, not an exception
+    tester.md:
+      - say: |
+          FAILS: ImportError: cannot import name 'div' from 'calc'
+          TEST: tests/test_div.py
+        writes:
+          tests/test_div.py: |
+            def test_div():
+                from calc import div
+
+                assert div(6, 3) == 2
+    worker.md:
+      - |
+        NEEDS: the request makes a division by 0 an error, and TASK.md:4 says no function in calc raises. what does div(a, 0) do?
+      - say: |
+          - calc.py: div(a, b) added, None for b == 0
+          - tests/test_div_zero.py: div(1, 0) is None
+        writes:
+          calc.py: |
+            def add(a, b):
+                return a + b
+
+
+            def div(a, b):
+                if b == 0:
+                    return None
+                return a / b
+          tests/test_div_zero.py: |
+            from calc import div
+
+
+            def test_div_by_zero_is_none():
+                assert div(1, 0) is None
+    reviewer.md:
+      - |
+        VERDICT: ok
+
+        - calc.py: div(a, b) added, None for b == 0
+    reviewer-runs.md:
+      - |
+        VERDICT: ok
+
+        - calc.py: div(a, b) added, None for b == 0
+expect:
+  invariants: all
+  outcome: done
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> tester.md
+      - tester.md ok -> worker.md  PASS red-test
+      - worker.md asked -> planner.md
+      - planner.md decided -> worker.md
+      - worker.md ok -> reviewer.md  PASS command  PASS red-first
+      - reviewer.md ok -> reviewer-runs.md
+      - reviewer-runs.md ok
+      - retro.md ok
+  calls: 8

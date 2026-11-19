@@ -10,6 +10,11 @@ here are the failing tests. now write the code that makes them pass.
 - if the request itself asks for what a line of TASK.md rules out, the tests
   that encode it are not ones to make green: answer the `CONFLICT:` line from
   the instructions.
+- if the tests you were given cannot all go green without breaking what a
+  line of the spec says, or the request's logic does not hold together, do
+  not edit your way round it: answer `NEEDS: <the question>`, citing the
+  `<file>:<line>` it turns on, and stop. the flow's lead decides it, or
+  sends it on to the operator.
 - if the request asks for the spec to describe what you built, add new lines
   under the line it extends. never rewrite or remove a line the spec has: a
   rewritten line stops the run for a ruling.

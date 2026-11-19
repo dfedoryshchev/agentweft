@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T13:25:31",
+  "recorded": "2026-11-19T16:24:28",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -85,7 +85,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "58a62ac97e2febac40282ffc2d42e88fa9063b60aa4a4ebcb65ded7e25bbf2d7",
+      "prompt": "3dc40a6aee7fa077ff305280ad97739a731e0cb1aee2e52a250d1a234927f168",
       "say": "- roster.py: fields takes a delimiter, the comma by default\n- TASK.md: a new line under the comma line describes the option\n",
       "detail": "",
       "retryable": null,

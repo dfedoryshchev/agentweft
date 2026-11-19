@@ -69,6 +69,32 @@ def test_nothing_else_is_let_go():
         plain.encode("utf-8")).hexdigest()
 
 
+def handed(stamp, ruled="div(a, 0) returns None"):
+    return ("# reviewer\n\nreview it.\n\nrulings on record, in decisions.md:\n"
+            "- " + stamp + " planner.md decided for worker.md: " + ruled + "\n"
+            "- " + stamp + " answer: keep it\n\nwhat worker produced:\n")
+
+
+def test_the_rulings_header_is_what_the_runner_writes():
+    from agentweft.runner import handoff
+
+    assert recording.RULINGS_SAID.pattern.replace("\\", "") in \
+        Path(handoff.__file__).read_text(encoding="utf-8")
+
+
+def test_the_minute_a_ruling_was_recorded_is_not_part_of_the_hash():
+    assert recording.digest(handed("2026-11-19 16:10")) == recording.digest(
+        handed("2027-01-02 09:59:31"))
+
+
+def test_a_ruling_handed_on_hashes_its_words_and_nothing_outside_the_list():
+    assert recording.digest(handed("2026-11-19 16:10")) != recording.digest(
+        handed("2026-11-19 16:10", "div(a, 0) raises"))
+    outside = "# worker\n\nthe log of 2026-11-19 16:10 says so.\n"
+    assert recording.digest(outside) != recording.digest(
+        outside.replace("16:10", "16:11"))
+
+
 BUGGY = "def add(a, b):\n    return a - b\n"
 TEST = "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
 RED = "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n"

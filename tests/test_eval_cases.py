@@ -35,6 +35,8 @@ def shipped():
 
 OUTCOMES = {
     ("build-feature", "added-option"): "done",
+    ("build-feature", "dod-unreachable"): "done",
+    ("build-feature", "dod-unreachable-escalated"): "needs you: ruling",
     ("build-feature", "never-cached"): "stopped: spec conflict",
     ("build-feature", "wrong-test"): "done",
     ("build-feature", "wrong-test-after-code"): "done",
@@ -174,6 +176,30 @@ def test_a_red_proof_run_beside_the_code_drops_the_after_code_case(
     assert r["passed"] < r["checked"]
     assert any(f.startswith("it ended done - it ended stopped: gate failed")
                for f in failed(r))
+
+
+def test_without_the_lead_the_unreachable_done_case_drops(monkeypatch):
+    from agentweft.runner import loop, once
+
+    for module in (loop, once):
+        monkeypatch.setattr(module, "to_lead",
+                            lambda run, step, question, *a, **k:
+                            (None, "", question))
+    r = scored("build-feature", live("build-feature", "dod-unreachable"))
+    assert r["passed"] < r["checked"]
+    assert any(f.startswith("it ended done") for f in failed(r))
+
+
+def test_the_build_feature_worker_is_taught_to_ask_when_done_is_out_of_reach():
+    """the worker's own prompt names the way up, so a worker that cannot go
+    green inside the spec asks instead of editing round it; the recorded
+    cases above hash this prompt, so they go stale without it too."""
+    text = " ".join((runner.flow_path("build-feature") / "worker.md")
+                    .read_text(encoding="utf-8").split())
+    assert ("cannot all go green without breaking what a line of the spec"
+            " says, or the request's logic does not hold together") in text
+    assert "answer `NEEDS: <the question>`, citing the `<file>:<line>`" in text
+    assert "the flow's lead decides it, or sends it on to the operator" in text
 
 
 def row(expect, stopped="", record=()):

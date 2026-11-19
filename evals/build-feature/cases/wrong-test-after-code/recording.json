@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T13:26:12",
+  "recorded": "2026-11-19T16:25:41",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -103,7 +103,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "eabea64b1bea36c6757fd551f99385f233f0ba6c74a6f8a4ceb0ee8f8d1b21c0",
+      "prompt": "a6e784ef119d5e9f8e5784c2a97c57dc525fd570dffb406972cfafe059bc8be1",
       "say": "WRONG TEST: tests/test_mul.py::test_mul\nwhy: it wants mul(2, 3) to be 5\nspec: TASK.md:3 \"mul(a, b) returns a times b\"\n",
       "detail": "",
       "retryable": null,
@@ -121,7 +121,7 @@
       "step": "worker.md",
       "task": null,
       "go": 2,
-      "prompt": "4c213b34ecd96956cfa077839e2925193d2c6cf60921578810a74038ff862257",
+      "prompt": "b35ec3e9b986e29a963fd1885e2d3358ef31ad18ff6faec62d48833c1bfcd3f2",
       "say": "- calc.py: mul(a, b) added\n",
       "detail": "",
       "retryable": null,

@@ -1,0 +1,34 @@
+task: calc gets div(a, b), which divides a by b, and a division by 0 is an error
+place: place
+provider:
+  provider: fake
+  replies:
+    planner.md:
+      - |
+        - div(6, 3) is 2 | calc.py
+      - |
+        ESCALATE: the request wants an error and TASK.md:4 rules out raising one; which gives is the operator's call
+    tester.md:
+      - say: |
+          FAILS: ImportError: cannot import name 'div' from 'calc'
+          TEST: tests/test_div.py
+        writes:
+          tests/test_div.py: |
+            def test_div():
+                from calc import div
+
+                assert div(6, 3) == 2
+    worker.md:
+      - |
+        NEEDS: the request makes a division by 0 an error, and TASK.md:4 says no function in calc raises. what does div(a, 0) do?
+expect:
+  invariants: all
+  outcome: "needs you: ruling"
+  steps:
+    match: strict
+    path:
+      - planner.md ok -> tester.md
+      - tester.md ok -> worker.md  PASS red-test
+      - worker.md parked
+      - planner.md escalated
+  calls: 4

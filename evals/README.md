@@ -171,6 +171,12 @@ sacrifice list, which only a run of the cli does.
 - `build-feature/wrong-test-after-code`: the worker writes the code, then
   says the test contradicts the spec; the tester's new test is red on the
   start commit though the code would pass it, and the run goes on, `done`
+- `build-feature/dod-unreachable`: the request makes a division by 0 an
+  error and a spec line says nothing raises; the worker cannot go green
+  inside the spec, asks, the planner as lead decides, the worker builds on
+  the decision, `done`
+- `build-feature/dod-unreachable-escalated`: the same question, and the lead
+  sends it on, so the run waits for the operator, `needs you: ruling`
 - `build-feature/never-cached`: the request asks for a cache and a spec line
   says the list is never cached; the planner marks the behaviour `spec:
   contradicts` and answers the CONFLICT line, `stopped: spec conflict`. it
@@ -214,7 +220,9 @@ pointed at) and the python that ran it become `<place>`, `<trail>` and
 duration `<secs>s`. in the run's record the retro is handed (its lines and
 why.md) a backslash becomes a slash, a number of seconds `<secs>s`, a date
 or time `<time>` and a commit id `<sha>`: a test run's seconds and a fresh
-commit differ every run. nothing else in the prompt is touched, so an edit to it
+commit differ every run. in the rulings a step is handed, the time each one
+was recorded becomes `<time>`, since a lead's decision is recorded at the
+minute the case ran. nothing else in the prompt is touched, so an edit to it
 still makes the recording stale.
 
 a replay stops the case, and the command exits 1 without saving the scores,

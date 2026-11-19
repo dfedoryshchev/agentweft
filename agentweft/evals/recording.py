@@ -31,6 +31,8 @@ DURATION = re.compile(r"(?<= in )\d+(?:\.\d+)?s\b")
 # the head of the run's record the retro is handed: what follows quotes the
 # run's own lines and files, its seconds and times with them
 RECORD_SAID = re.compile(r"\nwhy each failed attempt failed, from steps\.jsonl:\n")
+RULINGS_SAID = re.compile(r"rulings on record, in decisions\.md:")
+RULING_LINE = re.compile(r"^- (\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})?) ")
 SECONDS = re.compile(r"\b\d+(?:\.\d+)?s\b")
 STAMP = re.compile(r"\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?")
 # the commit the case's place starts from is made fresh each run
@@ -60,8 +62,9 @@ def neutral(prompt, place=None, trail=None):
     the case's lines go to, which the retro is pointed at, is `<trail>`, and
     in the run's record the retro is handed (its lines and why.md) a
     backslash is a slash, a number of seconds `<secs>s`, a date or time
-    `<time>` and a commit id `<sha>`. the words the step was given are left
-    as they are."""
+    `<time>` and a commit id `<sha>`. in the rulings a step is handed, the
+    time each was recorded is `<time>` (`ruled_at`). the words the step was
+    given are left as they are."""
     text = (prompt or "").replace("\r\n", "\n")
     for where, name in ((sys.executable, "<python>"), (trail, "<trail>"),
                         (place, "<place>")):
@@ -71,7 +74,7 @@ def neutral(prompt, place=None, trail=None):
     head, said, tail = text.partition(GATE_SAID)
     if said:
         tail = DURATION.sub("<secs>s", tail.replace("\\", "/"))
-    text = head + said + tail
+    text = ruled_at(head + said + tail)
     at = RECORD_SAID.search(text)
     if at:
         said = text[at.start():].replace("\\", "/")
@@ -80,6 +83,23 @@ def neutral(prompt, place=None, trail=None):
             said = pattern.sub(name, said)
         text = text[:at.start()] + said
     return text
+
+
+def ruled_at(text):
+    """-> `text` with the time each ruling was recorded, in the list of
+    rulings a step is handed, as `<time>`: a lead's decision is recorded at
+    the minute the case ran, so every later prompt would differ by it."""
+    lines = text.split("\n")
+    inside = False
+    for n, line in enumerate(lines):
+        if RULINGS_SAID.fullmatch(line):
+            inside = True
+            continue
+        if inside and line.startswith("- "):
+            lines[n] = RULING_LINE.sub("- <time> ", line)
+            continue
+        inside = False
+    return "\n".join(lines)
 
 
 def digest(prompt, place=None, trail=None):
