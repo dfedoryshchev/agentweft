@@ -444,7 +444,20 @@ after every step the runner reads them against how the run found them:
   answer names to change by its exact path (`journal.md`, the conflict's
   answers), and `gates.md` lists each of those lines under it with who named
   the file: `docs/api.md:3 (ruling <when> <heading>; docs/api.md named to
-  change by the request)`. a line of a file nobody named still parks.
+  change by the request)`. a line of a file nobody named still parks,
+  unless it only restates the ruled change: when every line the
+  `override:` named was rewritten by one and the same one-word
+  replacement (`qty` to `quantity`, a word standing on its own), another
+  line whose new text is exactly its old text with that word replaced
+  passes too, listed under the same ruling as `docs/consumers.md:7 (ruling
+  <when> <heading>; the same replacement `qty` to `quantity` as the ruled
+  lines)`, and the handoff opens its decision with `the consumer contract
+  changed: <lines> ...`, since whoever reads those lines reads a changed
+  shape. a line changed any other way, or removed, keeps its question. at
+  plan time a `spec: breaks` or `spec: contradicts` mark on a line that
+  holds the word a request's one `` `a` to `b` `` rename names, under such
+  an `override:` whose named lines all hold it, is not asked again: this
+  check holds the edit to the replacement.
   any other answer goes to the step, which runs again; an answer starting
   `request:` never rules one.
   the check waits for the step's other gates to pass, since a failed one

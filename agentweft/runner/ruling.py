@@ -1966,6 +1966,52 @@ def spec_line_ruled(decided, line, asked=None, rel=None, request="",
     return None
 
 
+PIECES = re.compile(r"\w+|\W+")
+RENAME = re.compile(r"`(\w+)`\s+to\s+`(\w+)`")
+
+
+def replacement(was, now):
+    """-> (a, b) when `now` is `was` with one word, `a`, replaced by
+    another, `b`, wherever it changed, and nothing else changed; else
+    None."""
+    old, new = PIECES.findall(was or ""), PIECES.findall(now or "")
+    if len(old) != len(new):
+        return None
+    pairs = {(o, n) for o, n in zip(old, new) if o != n}
+    if len(pairs) != 1:
+        return None
+    a, b = next(iter(pairs))
+    return (a, b) if re.fullmatch(r"\w+", a) and re.fullmatch(r"\w+", b) \
+        else None
+
+
+def replaced(line, a, b):
+    """-> `line` with every `a` that stands as a word of its own turned into
+    `b`."""
+    return re.sub(r"(?<!\w)" + re.escape(a) + r"(?!\w)", b, line or "")
+
+
+def holds_word(line, a):
+    return replaced(line, a, "") != (line or "")
+
+
+def renames(request):
+    """-> [(a, b)] for each `a` to `b` the request as given names, a word in
+    code spans each, in its order."""
+    return [m.groups() for m in RENAME.finditer(given(request))]
+
+
+def override_lines(d, asked):
+    """-> the spec lines, as the run found them, of the runner's question
+    `d` answers with `override:` (`answers_lines`), () for any other
+    entry."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if not found or kind_of(found[1]) != OVERRIDE or not m:
+        return ()
+    return tuple((asked or {}).get(m.group(1), ()))
+
+
 def question_of_spec_lines(step, left):
     """-> the question a removed or rewritten spec line parks the run on.
     `left` is [(path, line number, the line as the run found it, what is

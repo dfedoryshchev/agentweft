@@ -83,8 +83,11 @@ a file, never off the question's words:
 
 - a `spec: breaks` or `spec: contradicts` mark on a line no answer of the
   run already ruled on: a ruling that lets it change, a `request:` answer
-  to the runner's own question that holds it, or a mark of the same kind on
-  the same lines in a question already answered. every such mark goes in
+  to the runner's own question that holds it, an `override:` whose one
+  `` `a` to `b` `` rename in the request the line restates (it holds `a`,
+  as every line that override named does; the spec-files check then holds
+  the edit to that replacement, `guardrails.md`), or a mark of the same
+  kind on the same lines in a question already answered. every such mark goes in
   one stop, and a mark whose cite cannot be read parks too. so does a
   behaviour's `spec` line in none of the five taught forms (`allows`, `adds
   to`, `nothing in the spec`, `contradicts`, `breaks`): no colon, bold, or

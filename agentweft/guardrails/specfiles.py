@@ -10,7 +10,9 @@
   against.
 - `additions`: a step may add lines. a line the run started with that is
   removed or rewritten stops the run for a ruling, each line quoted as it
-  was and as it is now, unless a ruling in decisions.md quotes that line.
+  was and as it is now, unless a ruling in decisions.md quotes that line,
+  or the line changed by exactly the one-word replacement the lines an
+  `override:` answer named were rewritten by (`Run.ruled_replacement`).
 
 the files are read by content: the start snapshot's hashes say which spec
 files changed, and the text they had is read from the start commit (or from
@@ -19,6 +21,7 @@ that commits its edit is read the same as one that leaves it in the work
 tree, and a commit cannot make an edit look like the start.
 """
 import difflib
+import re
 
 from agentweft.guardrails.gates.base import Result
 from agentweft.guardrails.snapshot import _read, changed
@@ -205,6 +208,46 @@ def read_only(step, found):
 
 def lines(n):
     return str(n) + " line" + ("" if n == 1 else "s")
+
+
+SAME = "the same replacement "
+SAME_AS = " as the ruled lines"
+
+
+def same_replacement(a, b):
+    """-> how the spec-files line says a line changed by the replacement the
+    ruled lines made, `a` to `b`."""
+    return SAME + "`" + a + "` to `" + b + "`" + SAME_AS
+
+
+SAME_LINE = re.compile("; " + re.escape(SAME) + r"`(\w+)` to `(\w+)`"
+                       + re.escape(SAME_AS) + r"\)")
+RULED_AT = " (ruling "
+CITE_END = re.compile(r"(\S+?:\d+)$")
+
+
+def replaced_lines(detail):
+    """-> [(the ruling's stamp, a, b, ["path:line"])] read from a passing
+    spec-files line (`passed`): the lines it let change by the replacement
+    the ruled lines made, grouped by ruling and replacement, in order. the
+    stamp is read back from the marker to its own `(ruling `, since a
+    ruling's heading may hold any text."""
+    detail = detail or ""
+    out = []
+    for m in SAME_LINE.finditer(detail):
+        before = detail[:m.start()]
+        at = before.rfind(RULED_AT)
+        cite = CITE_END.search(before[:at]) if at != -1 else None
+        if cite is None:
+            continue
+        key = (before[at + len(RULED_AT):], m.group(1), m.group(2))
+        for got in out:
+            if got[:3] == key:
+                got[3].append(cite.group(1))
+                break
+        else:
+            out.append(key + ([cite.group(1)],))
+    return out
 
 
 def passed(found, ruled):

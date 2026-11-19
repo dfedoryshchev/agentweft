@@ -398,6 +398,18 @@ def spec_held_by(gates, decided):
     return out
 
 
+def spread_lines(gates):
+    """-> [(the ruling's stamp, a, b, ["path:line"])] for the spec lines the
+    last passing spec-files check let change by the replacement the ruled
+    lines made (`specfiles.replaced_lines`), [] for none."""
+    out = []
+    for g in gates or ():
+        if isinstance(g, dict) and g.get("gate") == specfiles.NAME \
+                and g.get("ok"):
+            out = specfiles.replaced_lines(g.get("detail") or "")
+    return out
+
+
 def stamp(d):
     return d.at.strftime(stops.STAMP) + " " + d.decided
 
@@ -2270,7 +2282,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     view = front.view(out, found, why, not_done,
                       front.gaps(found, changes.get("spec_changed", []),
                                  lead=not stop), stop=stop,
-                      led=lead_own_decisions(decided, every, run_id))
+                      led=lead_own_decisions(decided, every, run_id),
+                      spread=spread_lines(gates))
     out[:] = view
     out.append("")
     out.extend(front.pointer(run_id))

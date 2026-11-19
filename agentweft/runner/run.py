@@ -583,11 +583,19 @@ class Run(object):
         decided = self.spec_rulings()
         asked = self.runner_asked(ruling.asked_lines)
         specs, request = self.spec_paths(), self.request()
+        made = self.ruled_replacement(found)
         left, ruled = [], []
         for rel, was, now in found:
             for n, line, there in specfiles.lost(was, now):
                 d = ruling.spec_line_ruled(decided, line, asked, rel,
                                            request, specs)
+                same = self.spec_line_replaced(line, there, made) \
+                    if d is None else None
+                if same is not None:
+                    ruled.append((rel, n, summary.stamp(same[0]) + "; "
+                                  + specfiles.same_replacement(same[1],
+                                                               same[2])))
+                    continue
                 if d is None:
                     left.append((rel, n, line, there))
                     continue
@@ -660,10 +668,18 @@ class Run(object):
         decided = self.spec_rulings()
         asked = self.runner_asked(ruling.asked_lines)
         specs, request = self.spec_paths(), self.request()
-        return [rel + ":" + str(n) for rel, was, now in found
-                for n, line in specfiles.moved(was, now, mode)
-                if ruling.spec_line_ruled(decided, line, asked, rel,
-                                          request, specs) is None]
+        by = self.ruled_replacement(found)
+        out = []
+        for rel, was, now in found:
+            standing = dict(((n, line), there) for n, line, there
+                            in specfiles.lost(was, now))
+            for n, line in specfiles.moved(was, now, mode):
+                if ruling.spec_line_ruled(decided, line, asked, rel, request,
+                                          specs) is None and \
+                        self.spec_line_replaced(line, standing.get(
+                            (n, line)), by) is None:
+                    out.append(rel + ":" + str(n))
+        return out
 
     def request(self):
         return getattr(self, "task_text", None) or ""
@@ -682,6 +698,63 @@ class Run(object):
         return ruling.spec_line_ruled(
             self.spec_rulings(), line, self.runner_asked(ruling.asked_lines),
             rel, self.request(), self.spec_paths())
+
+    def spec_line_restated(self, rel, line):
+        """-> the `override:` answer to the runner's own spec-lines question
+        that `line`, a spec line as the run found it, restates the rename
+        of: the request as given names one rename, `a` to `b` in code
+        spans (`ruling.renames`), and `line` and every line that question
+        named hold `a` as a word of their own; else None. a plan mark on
+        such a line is not a question of its own: the spec-files check
+        still holds the edit to that one replacement (`spec_held`)."""
+        found = ruling.renames(self.request())
+        if len(found) != 1 or not ruling.holds_word(line, found[0][0]):
+            return None
+        asked = self.runner_asked(ruling.asked_lines)
+        for d in self.spec_rulings():
+            lines = ruling.override_lines(d, asked)
+            if lines and all(ruling.holds_word(l, found[0][0])
+                             for l in lines):
+                return d
+        return None
+
+    def ruled_replacement(self, found=None):
+        """-> (the ruling, a, b) when every spec line an `override:` answer
+        to the runner's own spec-lines question named was rewritten by the
+        run, each the same one-word replacement of `a` by `b`
+        (`ruling.replacement`); else None. `found` is
+        `specfiles.changes`, read now when None."""
+        if found is None:
+            found = specfiles.changes(getattr(self, "start", None))
+        asked = self.runner_asked(ruling.asked_lines)
+        lost = [(line, there) for _, was, now in found or ()
+                for _, line, there in specfiles.lost(was, now)]
+        for d in self.spec_rulings():
+            named = {ruling.flat(l) for l in ruling.override_lines(d, asked)}
+            made = [(line, there) for line, there in lost
+                    if ruling.flat(line) in named]
+            if not named or len(made) != len(named):
+                continue
+            pairs = {ruling.replacement(line, there) for line, there in made}
+            if len(pairs) == 1 and None not in pairs:
+                a, b = next(iter(pairs))
+                return d, a, b
+        return None
+
+    @staticmethod
+    def spec_line_replaced(line, there, by):
+        """-> `by`, the ruled replacement (the ruling, a, b) as
+        `ruled_replacement` reads it, when `there`, what stands in for
+        `line` now, is `line` with each `a` that stands alone replaced by
+        `b`, and `line` holds one; else None. a removed line, or one
+        changed any other way, is never this."""
+        if by is None or there is None:
+            return None
+        _, a, b = by
+        if not ruling.holds_word(line, a) or \
+                ruling.replaced(line, a, b).rstrip() != there.rstrip():
+            return None
+        return by
 
     def spec_line_held(self, rel, line):
         """-> the `request:` answer to the runner's own question that named

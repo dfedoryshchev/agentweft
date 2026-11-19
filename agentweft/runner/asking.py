@@ -373,7 +373,8 @@ def marked(run, step, out, answered=()):
     """-> the `spec: breaks` and `spec: contradicts` marks of the lead's own
     answer, as written, but those on lines an answer of the run already
     ruled on: a ruling that lets them change (`ruling.mark_ruled`), a
-    `request:` answer that holds them (`spec_line_held`), or a mark of the
+    `request:` answer that holds them (`spec_line_held`), an `override:`
+    whose rename each restates (`spec_line_restated`), or a mark of the
     same kind in a question of `answered` (`answered_here`) that already
     put every cited line to the person, however the mark is worded around
     its cite. a spec line the code already breaks for a sibling path
@@ -385,7 +386,8 @@ def marked(run, step, out, answered=()):
         return []
     start = getattr(run, "start", None)
     ruled = [r for r in (getattr(run, "spec_line_covered", None),
-                         getattr(run, "spec_line_held", None))
+                         getattr(run, "spec_line_held", None),
+                         getattr(run, "spec_line_restated", None))
              if r is not None]
     put = answered_marks(answered)
     every = ruling.broken(out.output)
