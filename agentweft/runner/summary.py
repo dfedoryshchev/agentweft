@@ -1930,7 +1930,9 @@ def bought(passes):
     out.append("- USD on the lead's plan, checked only by its own word: $%.4f"
                % sum(_cost(p) for p in plan) + _unstated(plan))
     out.append("- USD on steps that bought clarity, checked "
-               + str(sum(p["facts"].get("checked") or 0 for p in price))
+               + str(sum((p["facts"].get("checked") or 0)
+                         - (p["facts"].get("checked_said") or 0)
+                         for p in price))
                + " and held " + str(sum(1 for p in price
                                         if p["facts"]["won"] == "held"))
                + ": $%.4f" % sum(_cost(p) for p in price) + _unstated(price))

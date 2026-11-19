@@ -170,7 +170,14 @@ def workarounds(lines):
                 continue
             head = ("- seq " + str(line.get("seq")) + " "
                     + str(line.get("step")) + " went on after the")
-            if said.get("unread"):
+            tool = str(said.get("tool"))
+            if tool in shellwrite.EDITORS:
+                out.append(head + " " + tool + " call" + (
+                    " to `" + stops.flat(str(said.get("refused"))) + "`"
+                    if said.get("refused") else "") + (
+                    ", which the edit-tool check could not read,"
+                    if said.get("unread") else "") + " was refused")
+            elif said.get("unread"):
                 out.append(head + " call `" + stops.flat(str(
                     said.get("command"))) + "`, which the shell-write check"
                     " could not read, was refused")

@@ -160,3 +160,21 @@ def test_a_call_the_hook_could_not_read_is_not_called_a_shell_write(
     assert retro.workarounds(lines) == [
         "- seq 2 tester.md went on after the call `echo 'open`, which the"
         " shell-write check could not read, was refused"]
+
+
+def test_a_refused_edit_tool_call_is_named_as_that_tool_s_call(tmp_path):
+    folder = tmp_path / "run"
+    folder.mkdir()
+    with open(folder / shellwrite.FILE, "w", encoding="utf-8") as f:
+        f.write(json.dumps({"session": "s-1", "tool": "Edit", "command": "",
+                            "refused": "", "unread": "TypeError"}) + "\n")
+        f.write(json.dumps({"session": "s-1", "tool": "Write", "command": "",
+                            "refused": "../elsewhere/a.py", "path":
+                            "../elsewhere/a.py", "outside": True}) + "\n")
+    lines = [({"seq": 2, "step": "worker.md", "outcome": "ok",
+               "session": "s-1", "tasks": None}, folder)]
+    assert retro.workarounds(lines) == [
+        "- seq 2 worker.md went on after the Edit call, which the edit-tool"
+        " check could not read, was refused",
+        "- seq 2 worker.md went on after the Write call to"
+        " `../elsewhere/a.py` was refused"]

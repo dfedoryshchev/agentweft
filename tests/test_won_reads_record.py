@@ -196,3 +196,11 @@ def test_the_waste_line_prints_none_said_checked_and_plan_only_apart():
         in said
     assert any(l.startswith("- USD on steps that bought clarity, checked 3"
                             " and held 1: $0.2529") for l in said), said
+
+
+def test_bought_clarity_counts_the_gates_never_the_pass_s_own_word():
+    gated = a_spend("gate-checked", 0.2000, checked=5)
+    gated["facts"]["checked_said"] = 4
+    said = summary.bought([gated])
+    assert any(l.startswith("- USD on steps that bought clarity, checked 1"
+                            " and held 0: $0.2000") for l in said), said
