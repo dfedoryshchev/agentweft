@@ -61,6 +61,9 @@ class Kept(object):
         self.found = [digest(d) for d in decisions.read(self.root)]
         self.written = []
         self.folder = None
+        # what the run holds beside its rulings that a resumed leg carries
+        # on (`runner/asking.keep_state`)
+        self.state = {}
         self.lock = threading.Lock()
         # the other runner-only records in the place, each checked with this
         # one (`guardrails/factsguard.py`)
@@ -164,6 +167,7 @@ class Kept(object):
             self.found = []
             self.save()
             return
+        self.state = data.get("state") if "state" in data else {}
         taken = set(w["sha256"] for w in earlier)
         self.found = [f for f in self.found if f not in taken]
         self.written = earlier + self.written
@@ -177,6 +181,8 @@ class Kept(object):
         if self.folder is None:
             return
         self.folder.mkdir(parents=True, exist_ok=True)
+        data = {"found": self.found, "written": self.written}
+        if self.state:
+            data["state"] = self.state
         (self.folder / FILE).write_text(
-            json.dumps({"found": self.found, "written": self.written},
-                       indent=2) + "\n", encoding="utf-8")
+            json.dumps(data, indent=2) + "\n", encoding="utf-8")

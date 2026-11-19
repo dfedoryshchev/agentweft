@@ -13,14 +13,17 @@ the decision goes into decisions.md as the lead's, and the step that asked
 runs again with it at the end of its prompt. the lead can also answer
 `ESCALATE: <why>`, and the question parks for the operator, the way a NEEDS
 always has. so does a decision with no `why:`, and a question the lead has
-already decided once in the run: one round each. a decision is not judged by
-the files it names: a lead decides inside the spec and the tests it was
-given, never over them, so its entry is never the ruling that lets a spec
-line or a start test change, even when it names the test, and the step
-acting on it is held by the spec files check, the test-edits check and the
-start-tests replay like any other. a CONFLICT stop
-never comes here; which of the request and the spec holds is the
-operator's.
+already decided once in the run: one round each. the question and the
+decision are read first by the reader the lead's own question goes through
+(`asking.risk_of`): a question that names a test the run started with, or
+carries a SPLIT line, goes to the operator with no lead call, and a decision
+that names a start test goes up as the test question before any step acts
+on it. a lead decides inside the spec and the tests it was given, never
+over them, so its entry is never the ruling that lets a spec line or a
+start test change, and the step acting on it is held by the spec files
+check, the test-edits check and the start-tests replay like any other. a
+CONFLICT stop never comes here; which of the request and the spec holds is
+the operator's.
 
 the lines are read by `verbs`, so the decision is never split on a `|`, and
 one inside a code fence or a `>` quote is not a decision.
@@ -168,6 +171,41 @@ def brief(asker, question):
             " the operator"
             " decides.\n\nwhat " + asker + " asked:\n\n" + question + "\n"
             + each_asked(numbers(question)))
+
+
+def finding_brief(asker, question):
+    """-> the end of the lead's prompt for what a step found beside the
+    change: each finding by its number, its three answers last."""
+    return ("\n\nFINDINGS FOR THE LEAD. " + asker + " found beside the change"
+            " what may be a line of the spec the code already broke when the"
+            " run started, on a path the request does not touch, or it"
+            " answers a question you decided otherwise. this flow's lead"
+            " decides each before the operator is asked; do not do " + asker
+            + "'s work.\n\nanswer each by its number with one of:\n- a line"
+            " `FIX <n>: <spec file>:<line> for <the path it is broken on>`"
+            " and under it a line `spec: breaks <spec file>:<line>, already"
+            " at <file>:<line> \"<the code line, word for word>\"`, when the"
+            " code breaks that spec line there: the run shows it broken with"
+            " a test and fixes it, so the line holds for the old path and the"
+            " new\n- a line `DECIDED <n>: <what stands>` with a line `why:"
+            " <why, with the spec line it rests on>` under it, when it is no"
+            " breach, or your decision stands\n- `ESCALATE <n>: <why>` when"
+            " only the operator can decide it; a bare `ESCALATE: <why>`"
+            " sends them all.\n\nwhat " + asker + " found:\n\n" + question
+            + "\n")
+
+
+def sibling_wanted(lead, marks):
+    """-> what the test writer is told when the lead marked a later step's
+    finding as a spec line the code already broke."""
+    return ("\n\nMARKED BY THE LEAD. the flow's lead, " + lead + ", marks"
+            " what a later step found as a line of the spec the code already"
+            " broke when the run started:\n\n" + "\n".join(
+                "- " + m for m in marks) + "\n\nwrite a test that fails on"
+            " that code line as the run found it, for its outcome, and keep"
+            " the tests you wrote. name it on its own line, `SIBLING TEST:"
+            " <file>::<name>`; one that passes now shows the line is not"
+            " broken there, and the run asks.\n")
 
 
 def each_asked(found):

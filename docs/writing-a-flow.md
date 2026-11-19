@@ -418,10 +418,39 @@ folder there a step may write) and the runner records which file it is and
 the hashes of the copy and of what it wrote. a resume of a run stopped in
 that moment puts back only that file, only from that copy and only when the
 file still holds what the check wrote; otherwise it leaves the file and
-says where the copy is. a fresh run in the same place does not look. the
-marks a run holds live in that run only: a resume of a
-run that stopped at the end on a mark carries on with your answer as the ruling
-on it, and neither proves the mark again nor writes `already-broken`. a
+says where the copy is. a fresh run in the same place does not look. a mark
+still held when the run ends with no test of the run that showed it broken
+parks as a plain `breaks` too, never passes. the marks a run holds, the
+marks taken off as not shown broken, the ASSUMED items that answered a step
+and the findings put to the lead are kept in the run's `rulings.json` and
+carried by a resume: a mark proved before a park is shown fixed on the
+resumed leg, a resume of a run that stopped at the end on a mark carries on
+with your answer as the ruling on it and neither proves the mark again nor
+writes `already-broken`, and a carried record that cannot be read parks
+the resumed run at its end.
+
+a step other than the lead that finds such a line is heard too. an ADJACENT
+item of its handoff, not shown fixed by a test, that cites a single line of a
+spec file and a single line of a product file, both as the run found them,
+goes to the lead once its gates passed, all of that step's items in one
+numbered ask with the two lines printed as found, once per spec line and
+code line in a run; so does a DOUBTS line that names a question the lead
+decided by its first words. the lead answers each with `FIX <n>: <spec
+line> for <the path>` and the `spec: breaks ..., already at ...` mark under
+it, `DECIDED <n>:` with a `why:`, or `ESCALATE <n>:`. a mark whose quote is on
+the code line and whose two lines are the finding's sends the run back to the
+step held to a red test for the sibling test, and is then shown and fixed as a
+planned one is; a decision goes on record as the lead's; an escalation, a
+mark read any other way and an answer in no taught form park. a lead the run
+cannot pay for leaves the finding in the handoff and the run goes on. an item
+that cites no spec line stays under "found beside the change" with no call.
+
+a question another step asks the lead, and the lead's decision of it, are
+read by the reader the lead's own question goes through: a NEEDS that names a
+test the run started with, or carries a typed `SPLIT:` line beside it (one in
+no taught form parks unread), goes to you with no lead call, and a decision
+that names a start test comes to you as the test question, the decision its
+recommendation, before any step acts on it. a
 question or
 a mark you already answered in this run, with
 `--answer`, is not asked again: a mark whose every cited line a mark of the

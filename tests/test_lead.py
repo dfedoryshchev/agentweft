@@ -268,7 +268,7 @@ def test_in_range_cites_of_the_lead_and_the_retro_are_no_flag(tmp_path,
     assert all(l.get("past_end") is None for l in steps_of(folder))
 
 
-def test_a_decision_that_names_a_start_test_and_changes_nothing_stands(
+def test_a_decision_that_names_a_start_test_goes_up_as_the_test_question(
         tmp_path, monkeypatch):
     project = tmp_path / "project"
     (project / "tests").mkdir(parents=True)
@@ -284,10 +284,11 @@ def test_a_decision_that_names_a_start_test_and_changes_nothing_stands(
               "worker.md": [("", ""), ("calc.py", AFTER)]}
     asked, _, code, folder, _ = run_it(tmp_path, monkeypatch,
                                        "build-feature", answers, writes)
-    assert asked == ["planner.md", "tester.md", "worker.md", "planner.md",
-                     "worker.md", "reviewer.md", "reviewer-runs.md", RETRO]
-    assert code == stops.EXIT_OK
-    assert not (folder / "question.md").exists()
+    assert asked == ["planner.md", "tester.md", "worker.md", "planner.md"]
+    assert code == stops.EXIT_STOP
+    question = (folder / "question.md").read_text(encoding="utf-8")
+    assert "- tests/test_add.py - a test the run started with" in question
+    assert "RECOMMEND: keep, and leave tests/test_add.py" in question
 
 
 def test_escalate_parks_for_the_operator(tmp_path, monkeypatch):
@@ -457,8 +458,8 @@ def test_a_decision_acted_on_by_turning_a_start_test_red_stops_at_the_replay(
     gone = "tests/test_report.py::test_alphabetical"
     code, called, folder, _ = acted_on(
         tmp_path, monkeypatch,
-        "DECIDED: give the order given; " + gone + ' gives way to "'
-        + sf.LINE + '"' + NL + "why: the spec says the order given" + NL,
+        "DECIDED: give the order given; the alphabetical order gives way to"
+        ' "' + sf.LINE + '"' + NL + "why: the spec says the order given" + NL,
         {"report.py": "def report(names):" + NL + "    return list(names)"
          + NL, "tests/test_count.py": sf.COUNT})
     assert called == ["planner.md", "tester.md", "worker.md", "planner.md",

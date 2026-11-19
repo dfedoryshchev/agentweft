@@ -15,13 +15,22 @@ from .handoff import EMPTY, PARTIAL, PRESENT
 from .handoff import parse as parse_handoff
 
 
-def to_lead(run, step, question, given, where, folder=None, pick=None):
+def to_lead(run, step, question, given, where, folder=None, pick=None,
+            output=None):
     """-> (the lead's Handoff or None, the end of `step`'s next prompt when
     the lead decided or "", the question as the operator gets it when it
     did not). a flow with no lead, and the lead's own question, go to the
     operator as they were asked. `pick` reads the decision as one of fixed
     options, -> (the option, "") or (None, why it is none), before anything
     is recorded.
+
+    the question and the lead's decision are read by the reader the lead's
+    own question goes through (`risk_of`): a question that names a test the
+    run started with, or carries a SPLIT line beside it (`output`, the
+    asking step's answer), goes to the operator with no lead call, and a
+    decision that names a start test goes up as the test question before
+    any step acts on it. what the run's record keeps of such a question is
+    left on `run.lead_held` for the park.
 
     the lead's go is read by the off task check as soon as it answers, like
     any step's: what it found goes on the lead's own line (`meta["police"]`),
@@ -31,6 +40,13 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
     head = getattr(run, "lead", None)
     if head is None or head == step:
         return None, "", question
+    if pick is None:
+        held, record = needs_risk(run, step, question, output)
+        if held:
+            run.lead_held = record
+            print(step + "'s question holds a risk only the operator can"
+                  " settle, so " + head + " is not asked")
+            return None, "", held
     asked = lead.key(question)
     if asked in run.led:
         return None, "", lead.again(question, head, run.led[asked])
@@ -54,6 +70,14 @@ def to_lead(run, step, question, given, where, folder=None, pick=None):
     if wrong:
         out.meta["passed"] = wrong
         return out, "", lead.passed(question, wrong)
+    if pick is None:
+        held, record = decided_risk(run, step, question, decided, why)
+        if held:
+            run.lead_held = record
+            out.meta["passed"] = (head + " decided it on a test the run"
+                                  " started with, which only the operator"
+                                  " lets change")
+            return out, "", held
     run.led[asked] = decided
     run.rule(*lead.recorded(head, step, where, question, decided, why),
              by=rulings.LEAD)
@@ -189,6 +213,7 @@ def assumed_answer(run, step, question, where):
         owner, at, item = hit[0], hit[1], hit[2]
         key = " ".join(ASKED_LINE.sub("", text.split("\n")[0]).split())
         told_once.add((step, owner, at))
+        keep_state(run)
         run.rule(*lead.recorded_assumed(owner, at, step, where, text, item),
                  by=rulings.ASSUMED, step=owner, item=at)
         told.append(lead.told_assumed(text, owner, at, item))
@@ -259,11 +284,229 @@ def each_to_lead(run, step, question, given, where, folder, out):
         return out, "", lead.passed(question, wrong)
     asked = lead.parts(question)
     for n in wanted:
+        files, ids = start_tests(run, list(decided[n]))
+        if files:
+            run.lead_held = ruling.edits_asked(ids + files)
+            wrong = (head + " decided " + str(n) + " on " + ", ".join(
+                ids or files) + ", a test the run started with, which only"
+                " the operator lets change")
+            out.meta["passed"] = wrong
+            return out, "", lead.passed(question, wrong)
+    for n in wanted:
         run.rule(*lead.recorded(head, step, where, asked[n], *decided[n]),
                  by=rulings.LEAD, question=n)
     run.led[lead.key(question)] = "; ".join(
         str(n) + ": " + decided[n][0] for n in wanted)
     return out, lead.told_each(head, question, decided), ""
+
+
+FOUND_LINE = re.compile(r"^\s*(fixed|test)\s*:\s*(.*?)\s*$", re.I)
+FIX_N = re.compile(r"^[\s*_`-]*FIX\s+(\d+)[\s*_`]*:\s*(.*?)\s*$", re.I)
+
+
+def split_found(item):
+    """-> (what an ADJACENT item says, whether it says it is fixed, the test
+    it names or "")."""
+    said, fixed, test = [], False, ""
+    for line in (item or "").split("\n"):
+        m = FOUND_LINE.match(line)
+        if m and m.group(1).lower() == "fixed":
+            fixed = m.group(2).lower().strip(" .`*").startswith("yes")
+        elif m:
+            test = "" if ruling.says_none(m.group(2)) else m.group(2)
+        else:
+            said.append(line)
+    return "\n".join(said), fixed, test
+
+
+def held_pairs(run):
+    """-> the (spec line, code line) of every mark the run already holds or
+    has taken off as not shown broken: a finding on one is no news."""
+    out = set(tuple(k) for k in getattr(run, "found", None) or ())
+    for h in (getattr(run, "adjacent", None) or {}).values():
+        out.add((h["spec"], h["at"]))
+    for m in getattr(run, "not_broken", None) or ():
+        held = ruling.already_at(m, run.workdir, getattr(run, "start", None))
+        if held:
+            out.add(held)
+    return out
+
+
+def findings(run, step, out):
+    """-> [(what a non-lead step found, the (spec line, code line) pairs it
+    puts to the lead)]: each ADJACENT item of its handoff not shown fixed by
+    a test that cites a single line of a spec file and a single line of a
+    product file, both as the run found them (the start snapshot types the
+    files, never a word), on a pair no earlier finding or mark of the run
+    holds; and each DOUBTS line that names a question the lead decided in
+    this run by its first words, which disputes that decision. [] for the
+    lead's own answer and a flow with no lead."""
+    from agentweft.guardrails.snapshot import is_test
+
+    head = getattr(run, "lead", None)
+    if head is None or head == step or \
+            out.block.get("state") not in (PRESENT, PARTIAL):
+        return []
+    start = getattr(run, "start", None)
+    known = held_pairs(run)
+    found = []
+    for item in out.block.get("adjacent") or []:
+        said, fixed, test = split_found(item)
+        if fixed and test:
+            continue
+        specs = [c for c in spec_cites(said, run.workdir, start)
+                 if c[1] == c[2]]
+        code = [c for c in cites_in(said, run.workdir, start)
+                if c[1] == c[2] and c not in specs and not is_test(c[0])]
+        pairs = [(s[0] + ":" + str(s[1]), c[0] + ":" + str(c[1]))
+                 for s in specs for c in code]
+        new = [p for p in pairs if p not in known]
+        if new:
+            found.append((said, new))
+            known |= set(new)
+    for doubt in out.block.get("doubts") or []:
+        flat = " ".join(doubt.lower().split())
+        for key in getattr(run, "led", None) or {}:
+            words = ASKED_LINE.sub("", key.replace("needs:", "NEEDS:", 1)
+                                   ).split()[:CARRIED + 1]
+            pair = ("dispute", key)
+            if len(words) > CARRIED and " ".join(words) in flat \
+                    and pair not in known:
+                found.append((doubt + "\n(disputes the lead's decision: "
+                              + run.led[key] + ")", [pair]))
+                known.add(pair)
+    return found
+
+
+def finding_question(run, found):
+    """-> the findings as one ask, each a NEEDS line under its number with
+    the two lines it cites printed as the run found them."""
+    start = getattr(run, "start", None)
+    parts = []
+    for n, (said, pairs) in enumerate(found, 1):
+        lines = ["NEEDS: " + str(n) + ". " + ruling.flat(said)]
+        cites = []
+        for pair in pairs:
+            for cite in pair:
+                rel, _, at = cite.rpartition(":")
+                if not at.isdigit() or cite in cites:
+                    continue
+                cites.append(cite)
+                text, _ = ruling.lines_of(run.workdir, rel, int(at), int(at),
+                                          start)
+                if text is not None:
+                    lines.append("- " + cite + ' "' + ruling.flat(
+                        text[int(at) - 1]) + '"')
+        if len(lines) > 1:
+            lines.insert(1, "CITES:")
+        parts.append("\n".join(lines))
+    return "\n".join(parts)
+
+
+def lead_fixes(output, wanted):
+    """-> {number: (the `FIX <n>:` line's words, the mark on the line under
+    it)} of a lead's answer to findings; a FIX with no mark under it holds
+    an empty mark."""
+    from . import verbs
+
+    seen = verbs.visible(output)
+    out = {}
+    for i, (_, line) in enumerate(seen):
+        m = FIX_N.match(line)
+        if not m or int(m.group(1)) not in wanted or int(m.group(1)) in out:
+            continue
+        after = next((l.strip() for _, l in seen[i + 1:] if l.strip()), "")
+        out[int(m.group(1))] = (m.group(2), after if ruling.BREAKS.match(
+            after) else "")
+    return out
+
+
+def finding_pass(run, step, found, given, where, folder):
+    """-> (the lead's Handoff or None, what follows, the question as the
+    operator gets it): the findings of `step` (`findings`) go to the lead in
+    one numbered ask, once per (spec line, code line) per run. for each the
+    lead answers `FIX <n>: <spec line> for <the path>` with its mark under
+    it, `DECIDED <n>:` with a why, or `ESCALATE <n>:`. a mark whose quote is
+    on the code line and whose two lines are the finding's is held on
+    `run.adjacent` to be shown red by a sibling test and fixed ("fix"); a
+    decision goes on record as the lead's (""); an escalation, a mark
+    that is not read that way and a finding answered in no taught form park
+    them all ("park"). a lead the run cannot pay for, or that was cut, does
+    not decide: each finding stays printed beside the change and the run
+    goes on (None, "", "")."""
+    head = run.lead
+    question = finding_question(run, found)
+    pairs = set(p for _, ps in found for p in ps)
+    run.found = set(getattr(run, "found", None) or ()) | pairs
+    keep_state(run)
+    waits = run.budget.ahead(1)
+    if head in (getattr(run, "cut", None) or {}) or waits:
+        print("the run could not pay for " + head + " to decide what " + step
+              + " found beside the change; it stays in the handoff")
+        return None, "", ""
+    out, held = lead_go(run, head, given, lead.finding_brief(step, question),
+                        folder)
+    if held:
+        return out, "park", lead.passed(question, held)
+    wanted = list(range(1, len(found) + 1))
+    decided, escalated, whole = lead.each(out.output, wanted)
+    fixes = lead_fixes(out.output, wanted)
+    start = getattr(run, "start", None)
+    wrong, marks = [], {}
+    for n in wanted:
+        if whole is not None or n in escalated:
+            wrong.append(str(n) + " escalated: " + (
+                (whole if whole is not None else escalated[n])
+                or "no reason"))
+        elif n in fixes:
+            mark = fixes[n][1]
+            held_at = ruling.already_at(mark, run.workdir, start)
+            named = (fixes[n][0].split() or [""])[0].strip("`'\",")
+            if held_at is None or held_at not in found[n - 1][1] or \
+                    ruling.path_of(named) != held_at[0]:
+                wrong.append(str(n) + " is marked " + (mark or "with no mark")
+                             + ", which is a plain `spec: breaks`: its quote"
+                             " is not on the code line it names, or its lines"
+                             " are not the finding's")
+            else:
+                marks[mark] = held_at
+        elif n not in decided:
+            wrong.append(str(n) + " was answered in no form the lead is"
+                         " taught")
+    if wrong:
+        why = head + " did not settle what " + step + " found: " + \
+            "; ".join(wrong)
+        out.meta["passed"] = why
+        return out, "park", lead.passed(question, why)
+    asked = lead.parts(question) if len(found) > 1 else {1: question}
+    for n in sorted(decided):
+        if n in fixes:
+            continue
+        run.rule(*lead.recorded(head, step, where, asked[n], *decided[n]),
+                 by=rulings.LEAD, question=n if len(found) > 1 else None)
+        print(head + ", the flow's lead, decided what " + step + " found: "
+              + decided[n][0])
+    adjacent = getattr(run, "adjacent", None)
+    if adjacent is None:
+        adjacent = run.adjacent = {}
+    for mark, (spec, at) in marks.items():
+        adjacent.setdefault(mark, {"spec": spec, "at": at, "test": None})
+        print(head + ", the flow's lead, marks what " + step + " found as a"
+              " spec line already broken: " + mark)
+    keep_state(run)
+    return out, "fix" if marks else "", ""
+
+
+def test_writer(run, route, step):
+    """-> the step at or before `step` in the flow that is held to a red
+    test, the last such one: it writes the sibling test of a mark."""
+    order = list(route.order)
+    if step not in order:
+        return None
+    for s in reversed(order[:order.index(step) + 1]):
+        if run.wants_red(s):
+            return s
+    return None
 
 
 def lead_pass(trail, run, out, asker, decided):
@@ -433,9 +676,70 @@ def adjacent_fix(run, out, mark):
     adjacent = getattr(run, "adjacent", None)
     if adjacent is None:
         adjacent = run.adjacent = {}
-    adjacent.setdefault(mark, {"spec": held[0], "at": held[1],
-                               "test": None})
+    if mark not in adjacent:
+        adjacent[mark] = {"spec": held[0], "at": held[1], "test": None}
+        keep_state(run)
     return True
+
+
+STATE = ("adjacent", "not_broken", "assumed_led", "found")
+
+
+def keep_state(run):
+    """write what the run holds of its sibling marks into the runner's own
+    record of the run (`rulings.Kept.state`), so a resumed leg carries them
+    on: the marks waiting on or shown by a sibling test (`run.adjacent`),
+    the marks not shown broken (`run.not_broken`), the ASSUMED items that
+    answered a step (`run.assumed_led`) and the findings put to the lead
+    (`run.found`). nothing is written for a run that holds none."""
+    kept = getattr(run, "kept", None)
+    if kept is None or not hasattr(kept, "state"):
+        return
+    state = {}
+    adjacent = getattr(run, "adjacent", None)
+    if adjacent:
+        state["adjacent"] = dict((m, dict(h)) for m, h in adjacent.items())
+    for name in STATE[1:]:
+        held = getattr(run, name, None)
+        if held:
+            state[name] = sorted([list(k) if isinstance(k, tuple) else k
+                                  for k in held], key=json.dumps)
+    kept.state = state
+    kept.save()
+
+
+def carry_state(run):
+    """take what the leg this run picks up held (`keep_state`) back onto
+    `run`. a record whose state is there but cannot be read leaves
+    `run.state_unread` saying so, and the run parks at its end rather than
+    pass a mark it may have lost (`sibling_unfixed`)."""
+    kept = getattr(run, "kept", None)
+    state = getattr(kept, "state", None) if kept is not None else None
+    if not state:
+        return
+    try:
+        if not isinstance(state, dict):
+            raise ValueError("not a table")
+        adjacent = state.get("adjacent") or {}
+        if not isinstance(adjacent, dict) or not all(
+                isinstance(h, dict) and isinstance(h.get("spec"), str)
+                and isinstance(h.get("at"), str) for h in adjacent.values()):
+            raise ValueError("its marks are not in the form written")
+        held = dict((name, state.get(name) or []) for name in STATE[1:])
+        if not all(isinstance(v, list) for v in held.values()) or not all(
+                isinstance(k, str) for k in held["not_broken"]) or not all(
+                isinstance(k, list) for k in held["assumed_led"]
+                + held["found"]):
+            raise ValueError("its lists are not in the form written")
+    except ValueError as e:
+        run.state_unread = ("the marks the run picked up held could not be"
+                            " read (" + str(e) + ")")
+        print(run.state_unread)
+        return
+    run.adjacent = dict((m, dict(h)) for m, h in adjacent.items())
+    run.not_broken = set(held["not_broken"])
+    run.assumed_led = set(tuple(k) for k in held["assumed_led"])
+    run.found = set(tuple(k) for k in held["found"])
 
 
 def sibling_named(output):
@@ -458,7 +762,8 @@ def not_shown(run, marks, why):
         not_broken = run.not_broken = set()
     for m in marks:
         not_broken.add(m)
-        run.adjacent.pop(m, None)
+        (getattr(run, "adjacent", None) or {}).pop(m, None)
+    keep_state(run)
     return "\n".join(
         ["NEEDS: the plan marks a spec line already broken by the code, and "
          + why + ": the mark is a line the request breaks", "CITES:"]
@@ -487,6 +792,7 @@ def sibling_proved(run, step, out):
         for _, h in waiting:
             h["test"] = named
             h["how"] = how
+        keep_state(run)
         return Result(SIBLING_RED, True, "; ".join(
             named + " red on the start commit (" + how + "): " + h["spec"]
             + " already broken at " + h["at"] for _, h in waiting)), ""
@@ -816,17 +1122,31 @@ def sibling_unfixed(run):
     """-> (the `already-broken` result of every mark a sibling test proved
     red and the change shows fixed (`sibling_fixed`) or None, the question
     the run parks on or ""): any mark not shown fixed is a plain `spec:
-    breaks` for the person, and then nothing passes."""
+    breaks` for the operator, and then nothing passes. a mark no test of
+    the run showed broken is one, and so is a run whose carried marks could
+    not be read (`carry_state`)."""
     from agentweft.guardrails.gates.base import Result
 
-    fixed, left = [], []
+    unread = getattr(run, "state_unread", "")
+    if unread:
+        return None, ("NEEDS: " + unread + ", so the run cannot show a"
+                      " spec line it held as already broken fixed")
+    fixed, left, untested = [], [], []
     for m, h in list((getattr(run, "adjacent", None) or {}).items()):
-        if h.get("test"):
-            said, why = sibling_fixed(run, h)
-            if said:
-                fixed.append(said)
-            else:
-                left.append((m, why))
+        if not h.get("test"):
+            untested.append(m)
+            continue
+        said, why = sibling_fixed(run, h)
+        if said:
+            fixed.append(said)
+        else:
+            left.append((m, why))
+    if untested:
+        return None, not_shown(
+            run, untested + [m for m, _ in left],
+            "no test of the run showed it broken there" + (
+                ", or the change does not show it fixed (" + "; ".join(
+                    w for _, w in left) + ")" if left else ""))
     if left:
         return None, not_shown(run, [m for m, _ in left],
                                "the change does not show it fixed ("
@@ -1252,33 +1572,119 @@ def lead_parks(run, step, out):
             else UNREAD
         return "\n".join([head, "CITES:"] + ["- " + m for m in alone]), None
     for asked, rec, cites, size, settled, split in questions:
-        files, ids = start_tests(run, [asked, settled, rec] + cites)
-        if files:
-            named = ids or files
-            return "\n".join(
-                [asked, "CITES:"]
-                + ["- " + t + " - a test the run started with" for t in named]
-                + ["- " + c for c in cites if c.split(":")[0] not in files]
-                + (["RECOMMEND: " + rec] if rec else [])
-                + (["SIZE: " + size] if size else [])
-                + ["OPTIONS:",
-                   "- override: <why the change holds>. name each test above,"
-                   " and the change to it stands",
-                   "- anything else is told to " + step + ", which plans"
-                   " again with the tests as they are"]), \
-                ruling.edits_asked(ids + files)
-        if split and not ruling.says_none(split):
-            where = split_checked(run, split)
-            said = asked_as(asked, cites, rec, size).split("\n")
-            said.insert(1, "SPLIT: " + split + (
-                " (the quote is in the request)" if where == ruling.THE_REQUEST
-                else " (the quote is on " + where + ")" if where
-                else " (not checked: no quote of the request or of one spec"
-                " line, then reads as <one>, or as <another>)"))
-            return "\n".join(said), None
+        said = risk_of(run, step, asked, cites, rec, size,
+                       [asked, settled, rec] + cites, split)
+        if said[0]:
+            return said
         if no_recommendation(rec):
             return asked_as(asked, cites, rec, size), None
     return "", None
+
+
+def risk_of(run, step, asked, cites, rec, size, texts, split):
+    """-> (the question as the operator gets it, what the run's record keeps
+    of it or None) when the program finds a typed risk the team cannot
+    settle, else ("", None). the one reader every entry of a question goes
+    through: the lead's own question (`lead_parks`), another step's NEEDS
+    before the lead is called and the lead's decision of it after
+    (`to_lead`).
+    - TEST: `texts` name a test the run started with (`start_tests`): the
+      test question, an `override:` naming the test letting it change;
+    - SPLIT: a typed `SPLIT:` line that is not none, its quote checked where
+      it can be (`split_checked`)."""
+    files, ids = start_tests(run, texts)
+    if files:
+        named = ids or files
+        return "\n".join(
+            [asked, "CITES:"]
+            + ["- " + t + " - a test the run started with" for t in named]
+            + ["- " + c for c in cites if c.split(":")[0] not in files]
+            + (["RECOMMEND: " + rec] if rec else [])
+            + (["SIZE: " + size] if size else [])
+            + ["OPTIONS:",
+               "- override: <why the change holds>. name each test above,"
+               " and the change to it stands",
+               "- anything else is told to " + step + ", which plans"
+               " again with the tests as they are"]), \
+            ruling.edits_asked(ids + files)
+    if split and not ruling.says_none(split):
+        where = split_checked(run, split)
+        said = asked_as(asked, cites, rec, size).split("\n")
+        said.insert(1, "SPLIT: " + split + (
+            " (the quote is in the request)" if where == ruling.THE_REQUEST
+            else " (the quote is on " + where + ")" if where
+            else " (not checked: no quote of the request or of one spec"
+            " line, then reads as <one>, or as <another>)"))
+        return "\n".join(said), None
+    return "", None
+
+
+def parts_of(question):
+    """-> (its first line, the items under its CITES) of a NEEDS question as
+    `ruling.question_of` writes it."""
+    lines = (question or "").split("\n")
+    cites, under = [], False
+    for line in lines[1:]:
+        if line.strip() in ("CITES:", "OPTIONS:"):
+            under = line.strip() == "CITES:"
+            continue
+        if under and line.startswith("- "):
+            cites.append(line[2:].strip())
+    return lines[0], cites
+
+
+def splits_beside(output):
+    """-> (the typed `SPLIT:` lines of `output` outside its HANDOFF block,
+    the lines there that open with the key in no form it is taught): a
+    split beside a NEEDS is that question's; one in the block is an open
+    question of the step's handoff, which never stops the work."""
+    from . import verbs
+    from .handoff import bounds
+
+    shown = verbs.visible(output or "")
+    span, _ = bounds(shown)
+    typed, unread = [], []
+    for n, (_, line) in enumerate(shown):
+        if span is not None and span[0] <= n <= span[1]:
+            continue
+        m = ASK_KEY.match(line) or ASK_BARE.match(line)
+        if not m or m.group(1).upper() != "SPLIT" \
+                or not m.group(1)[0].isupper():
+            continue
+        head = verbs.key_of(line)
+        if head is not None and head[0] == "SPLIT" and not head[2] \
+                and head[3]:
+            if not ruling.says_none(head[1]):
+                typed.append(head[1])
+        else:
+            unread.append(line.strip())
+    return typed, unread
+
+
+def needs_risk(run, step, question, output):
+    """-> (the question as the operator gets it, the record or None) when a
+    non-lead step's NEEDS holds a typed risk the lead could not settle, so
+    no lead is called (`risk_of`, and a SPLIT line beside it in no taught
+    form, which parks unread); ("", None) when it goes to the lead."""
+    asked, cites = parts_of(question)
+    typed, unread = splits_beside(output)
+    if unread:
+        return "\n".join([question.rstrip("\n")] + [
+            "UNREAD: " + u + UNREAD_SAID for u in unread]), None
+    return risk_of(run, step, asked, cites, "", "", [question],
+                   typed[0] if typed else "")
+
+
+def decided_risk(run, step, question, decided, why):
+    """-> (the question as the operator gets it, the record or None) when
+    the lead's decision of another step's question names a test the run
+    started with: it goes up as the test question, the lead's decision its
+    recommendation, before any step acts on it; ("", None) else."""
+    asked, cites = parts_of(question)
+    files, _ = start_tests(run, [decided, why])
+    if not files:
+        return "", None
+    return risk_of(run, step, asked, cites, decided, "", [decided, why], "")
 
 
 def asked_as(asked, cites, rec, size):

@@ -390,10 +390,11 @@ def test_a_marked_line_no_probe_can_see_is_never_shown_reached(tmp_path, at,
 
 def test_a_resume_after_the_end_park_carries_on_with_no_proof_run_again(
         tmp_path, monkeypatch):
-    """the held marks live in the run's memory: a resume answered on the
-    mark it stopped on runs the last step again and finishes, and neither
-    proves the mark nor writes `already-broken`. what the person answered is
-    the ruling on it."""
+    """the mark the run stopped on at its end is carried as not shown
+    broken: a resume answered on it runs the last step again and finishes,
+    and neither
+    proves the mark nor writes `already-broken`. what the operator answered
+    is the ruling on it."""
     asked, _, code, folder, _ = run(
         tmp_path, monkeypatch, plan=plan_of(SOUND, "TASK.md:3 for sub"),
         before=TWO, fixed=SUB_FIXED,

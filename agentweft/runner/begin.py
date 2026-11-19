@@ -526,7 +526,9 @@ def begin(unrecorded):
     run.folder = folder
     run.keep_in(folder)
     if pick_up:
+        from .asking import carry_state
         run.kept.carry(state.RUNS / pick_up)
+        carry_state(run)
     run.kept.keep_in(folder)
     run.facts.keep_in(folder)
     run.committer.keep_in(folder)

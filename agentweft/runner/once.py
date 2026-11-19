@@ -240,7 +240,8 @@ def steps_of(flow, fm, run, route, trail, kept, state, note):
             mine = run.taken()
             head, decided, question = to_lead(
                 run, step, said[1], given, "a run of " + flow,
-                folder=Path(trail) if trail is not None else None)
+                folder=Path(trail) if trail is not None else None,
+                output=out.output)
             theirs = run.taken()
             run.attempts = mine
             off = head.meta.get("off") if head is not None else ""

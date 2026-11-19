@@ -13,7 +13,8 @@ from agentweft.orchestrate import decisions, park
 from .config import steps
 from .handoff import EMPTY
 from . import investigate
-from . import (chain, leftred, manifest, resume, retro, ruling, upkeep, warm)
+from . import (chain, lead, leftred, manifest, resume, retro, ruling, upkeep,
+               warm)
 from . import ending
 from . import state
 from . import stops
@@ -21,9 +22,10 @@ from . import summary
 from . import trace
 from . import worktrees
 from . import wouldpass, wrongtest
-from .asking import (RUNNER, asked_file, assumed_answer, goes_on, lead_decides,
-                     lead_parks, lead_pass, rides, sibling_proved,
-                     sibling_unfixed, to_lead, worked_then_asked)
+from .asking import (RUNNER, asked_file, assumed_answer, finding_pass,
+                     findings, goes_on, lead_decides, lead_parks, lead_pass,
+                     rides, sibling_proved, sibling_unfixed, test_writer,
+                     to_lead, worked_then_asked)
 from .ending import (FLAG_OF, cap_of, finish, passes, remember,
                      resume_command, show, write_index)
 from .fanout import run_fanout
@@ -601,8 +603,11 @@ def go(leg):
             if answered:
                 said = (said[0], answered[1])
             if said:
+                run.lead_held = None
                 head, decided, question = to_lead(run, step, said[1], given,
-                                                  run_id, folder=step_dir)
+                                                  run_id, folder=step_dir,
+                                                  output=out.output)
+                own_asked = own_asked or run.lead_held
                 if decided and answered:
                     decided = answered[0] + decided
                 if head is not None:
@@ -759,6 +764,44 @@ def go(leg):
                             index="PARKED  " + flow + "  at " + step,
                             waiting="user", question=proof[1],
                             kind=trace.ASKED)
+
+            found = findings(run, step, out) if honest else []
+            if found:
+                head, how, question = finding_pass(run, step, found, given,
+                                                   run_id, step_dir)
+                if head is not None:
+                    lead_pass(trail, run, head, step, how != "park")
+                if how == "park":
+                    print(run.lead + " did not settle what " + step
+                          + " found beside the change")
+                    return stop(stops.PARKED, "needs a ruling: "
+                                + question.split(NEWLINE)[0][
+                                    len("NEEDS: "):],
+                                "parked", entry,
+                                index="PARKED  " + flow + "  at " + step,
+                                waiting="user", question=question,
+                                kind=trace.ASKED)
+                writer = test_writer(run, route, step) if how == "fix" \
+                    else None
+                if writer:
+                    print(run.lead + " marks what " + step + " found as a"
+                          " spec line already broken, sent to " + writer
+                          + " for its test")
+                    if step in before:
+                        entry.changed = before[step] != snapshot.fingerprint(
+                            run.workdir, own=state.RUNS)
+                    trail.close(entry, trace.ROUTED, why=run.lead + " marks"
+                                " what " + step + " found, back to " + writer
+                                + " for its test", to=writer)
+                    record.mark(step, manifest.REDO, run_id, out.output)
+                    record.save(run.budget)
+                    run.gate_said[writer] = lead.sibling_wanted(
+                        run.lead, [m for m, h in run.adjacent.items()
+                                   if not h["test"]])
+                    out = given.get(writer, EMPTY)
+                    came_from = step
+                    step = writer
+                    continue
 
             unproven = investigate.unrooted(step, out.output)
             if unproven:

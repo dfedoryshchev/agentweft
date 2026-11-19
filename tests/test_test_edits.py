@@ -792,19 +792,22 @@ GIVEN_ORDER = "def report(names):" + NL + "    return list(names)" + NL \
 
 @pytest.mark.parametrize("product", [COUNTED, GIVEN_ORDER])
 @pytest.mark.parametrize("commits", [False, True])
-def test_a_lead_decision_naming_a_start_test_never_lets_it_change(
+def test_a_lead_decision_around_a_start_test_never_lets_it_change(
         tmp_path, monkeypatch, commits, product):
     """the worker asks, the lead decides to loosen a test the run started
-    with, and the worker does: held by the test-edits check and left to the
-    operator, whether the test as it was still passes or not."""
+    with without naming it, and the worker does: held by the test-edits
+    check and left to the operator, whether the test as it was still passes
+    or not. a decision that names the test goes up before the worker acts
+    (tests/test_finding_rung.py)."""
     place = a_place(tmp_path / "repo")
     a_flow(tmp_path, "build", PLANNER + TESTER + WORKER + "lead: planner"
            + NL)
     (tmp_path / "flows" / "build" / "planner.md").write_text(
         "# planner" + NL + NL + "plan it." + NL, encoding="utf-8")
     does = {"planner.md": [({}, WORKER_SAID),
-                           ({}, "DECIDED: loosen " + ID + " to check the"
-                            " length only" + NL + "why: the order is not"
+                           ({}, "DECIDED: loosen the alphabetical order"
+                            " check to the length only" + NL + "why: the"
+                            " order is not"
                             " the count's business" + NL)],
             "tester.md": ({"tests/test_report.py": module(RIGHT, COUNT)},
                           TESTER_SAID),
