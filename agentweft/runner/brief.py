@@ -44,7 +44,7 @@ FACTS_HEAD = ("facts for the files you are handed, kept by the runner across"
 OPEN_HEAD = ("open on these files, kept by the runner across runs: questions no"
              " ruling has settled and tests that pass without the change they"
              " came with. not a rule to hold to: do not settle one quietly; an"
-             " answer of yours is a DOUBTS line that names it.")
+             " answer to one is a DOUBTS line that names it.")
 TROUBLE_HEAD = ("known trouble on these files, kept by the runner across runs:"
                 " defects found beside a change and left as they were, and"
                 " gates that could not do their job here. not a rule to hold"

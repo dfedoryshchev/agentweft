@@ -153,6 +153,6 @@ def for_the_person(text):
         if lines:
             out.append(label + ", seen on the way and not done in this run:"
                        if label == "RELATED" else
-                       label + ", for you to make:")
+                       label + ", for the operator to make:")
             out.extend(lines)
     return "\n".join(out)

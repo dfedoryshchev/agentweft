@@ -193,7 +193,7 @@ def begin(unrecorded):
             else:
                 print("  " + again + park.ANSWER)
                 if lead_of(fm):
-                    print("  " + again + park.YOURS)
+                    print("  " + again + park.YOU_DECIDE)
             return stops.EXIT_STOP
     if answer is not None and question is None:
         print(pick_up + " is not waiting for a ruling, so --answer has nothing"
@@ -201,7 +201,7 @@ def begin(unrecorded):
         return 1
     # only a conflict's answer is read for override: or request:, since a free
     # answer to any other question may well start with "request:" and mean
-    # nothing by it; a free answer is read for yours: alone
+    # nothing by it; a free answer is read for a hand-back alone
     conflicted = answer is not None and \
         (found.data.get("stopped") or {}).get("cause") == stops.CONFLICT
     kind = ruling.kind_of(answer) if conflicted else None

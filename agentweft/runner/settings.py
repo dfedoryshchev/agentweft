@@ -45,7 +45,7 @@ FALSE = ("0", "false", "no", "off")
 LOOSENS = "loosens a guard"
 CREDENTIAL = "picks a credential or where one is sent"
 STEERS = "picks which program runs or where its traffic goes"
-DECIDES = "makes a decision that is yours"
+DECIDES = "makes a decision that is the operator's"
 UNCLASSED = "is a setting agentweft has not classed as a preference"
 
 PREFERENCES = ("AGENTWEFT_TIMEOUT", "AGENTWEFT_RETRIES", "AGENTWEFT_WORKERS",
@@ -124,8 +124,9 @@ def refusal(name, whose, in_place=True):
         else ", in the repo the place is in: it ")
     if why is None:
         return said + NOT_READ
-    return (said + why + ", which is yours to set, in your own environment"
-            " or a .env outside the " + ("place" if in_place else "repo"))
+    return (said + why + ", which is the operator's to set, in their own"
+            " environment or a .env outside the "
+            + ("place" if in_place else "repo"))
 
 
 def inside(folder, place):

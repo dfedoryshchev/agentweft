@@ -33,8 +33,8 @@ SUITE = "suite: "
 SPEC_REF = re.compile(r"[\w./-]+\.md:\d+(?:-\d+)?")
 WORD = re.compile(r"[a-z0-9]+")
 MORE = "more in the full record below"
-CARRY = ("what it needs from you and the command to carry on are under"
-         " needs you, below.")
+CARRY = ("what it needs from the operator and the command to carry on are"
+         " under needs you, below.")
 DECLINED = ("nothing carries it on; the step's reason is under needs you,"
             " below.")
 # the causes whose stop says what to do whatever its reason; on any other a
@@ -420,7 +420,7 @@ def _list(items, most, width, indent="- "):
 
 LED = "- decided by the lead: "
 LED_SO = ("  its decision: {rec} (on record in decisions.md; it rules no spec"
-          " line or test, and is yours to overrule)")
+          " line or test, and is the operator's to overrule)")
 LED_BY = "  settled by "
 
 

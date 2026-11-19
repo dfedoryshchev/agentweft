@@ -78,7 +78,8 @@ CROSSED = {
         "now and it is still not checked: the checker knows three shapes and "
         "no exit line in the file is any of them.",
     "phase.gate":
-        "where it stops on purpose and waits for a person. the phase side had "
+        "where it stops on purpose and waits for the operator. the phase side "
+        "had "
         "the word first and nothing read it; the flow side does it - the "
         "runner writes a handoff and returns, and --resume carries on past "
         "the step it parked on. two words for it because `gate` on a step was "
@@ -111,11 +112,11 @@ FLOW_ONLY = (
          "rounds."),
     Pair("flow.send_backs", "",
          "how many times a verdict or a failed gate sends the work back before "
-         "the run stops for a person. a phase's `loop` counts rounds, not "
+         "the run stops for the operator. a phase's `loop` counts rounds, not "
          "trips back, so it stays where it is."),
     Pair("flow.lead", "",
          "the step a question goes to before the operator: it decides inside "
-         "the spec, and anything over it still comes to a person. a "
+         "the spec, and anything over it still comes to the operator. a "
          "workflow's `lead` is the same word for something else, the prompt "
          "that runs the whole thing, so they are not a pair."),
     Pair("flow.on_stop", "",
@@ -162,7 +163,7 @@ FLOW_ONLY = (
          "own paths in their prompts."),
     Pair("flow.worktree", "",
          "whether a run works in a checkout of its own, made from a commit, "
-         "so the person's tree is never touched. a phase has no word for a "
+         "so the operator's tree is never touched. a phase has no word for a "
          "place, so it has none for a second one either."),
     Pair("flow.tiers", "",
          "a tier per role, under a step's own `model`. a phase has no word "
@@ -220,7 +221,8 @@ FLOW_ONLY = (
          "it names whatever the change is."),
     Pair("flow.on_fallback", "",
          "what a step another model answered than the one it asked does to "
-         "the run: said first and gone on from, or held for a person before "
+         "the run: said first and gone on from, or held for the operator "
+         "before "
          "the next step takes its output. a phase reads no transcript, so it "
          "never knows which model answered."),
     Pair("flow.connectors", "",

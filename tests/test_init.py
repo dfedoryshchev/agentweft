@@ -327,8 +327,8 @@ def test_a_dot_env_in_the_place_cannot_loosen_the_run(tmp_path, monkeypatch,
     said = capsys.readouterr().out
     assert ("AGENTWEFT_PERMISSION_MODE is set by "
             + str((work / ".env").resolve()) + ", inside the place: it loosens"
-            " a guard, which is yours to set, in your own environment or a"
-            " .env outside the place") in said
+            " a guard, which is the operator's to set, in their own"
+            " environment or a .env outside the place") in said
     assert "AGENTWEFT_TIMEOUT" not in said
 
 
@@ -340,8 +340,8 @@ NOT_READ = ("is not a preference agentweft reads; declare it under `env:` in"
 def refused(work, name, why):
     return (name + " is set by " + str((work / ".env").resolve())
             + ", inside the place: it " + why
-            + ("" if why == NOT_READ else ", which is yours to set, in your"
-               " own environment or a .env outside the place"))
+            + ("" if why == NOT_READ else ", which is the operator's to set,"
+               " in their own environment or a .env outside the place"))
 
 
 @pytest.mark.parametrize("name, value, why", [
@@ -376,8 +376,8 @@ def refused(work, name, why):
      "picks which program runs or where its traffic goes"),
     ("NODE_EXTRA_CA_CERTS", "ca.pem",
      "picks which program runs or where its traffic goes"),
-    ("AGENTWEFT_COMMITS", "squash", "makes a decision that is yours"),
-    ("AGENTWEFT_CO_AUTHOR", "true", "makes a decision that is yours"),
+    ("AGENTWEFT_COMMITS", "squash", "makes a decision that is the operator's"),
+    ("AGENTWEFT_CO_AUTHOR", "true", "makes a decision that is the operator's"),
     ("AGENTWEFT_SOMETHING_NEW", "1", "is a setting agentweft has not"
      " classed as a preference"),
 ])

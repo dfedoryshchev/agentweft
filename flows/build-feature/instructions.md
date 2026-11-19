@@ -36,4 +36,4 @@ and any file the request names.
 
   when it rules out several lines, answer a CONFLICT line for each of them,
   the request under the first. the run stops there and one question, naming
-  every line, goes to a person.
+  every line, goes to the operator.

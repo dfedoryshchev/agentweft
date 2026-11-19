@@ -44,11 +44,11 @@
     "left",
     "  worker.md",
     "  reviewer.md",
-    "worker.md runs again with your answer at the end of its prompt, and",
-    "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>.",
+    "worker.md runs again with the operator's answer at the end of its",
+    "prompt, and the question and the answer go into decisions.md. a",
+    "longer answer can come from a file: --answer-file <path>.",
     "to carry on",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\"",
+    "  python run.py code-review --resume code-review-<run> --force --answer \"<the ruling>\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -84,7 +84,7 @@
     "- record: runs/code-review-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 1 lines, head <hash> (python run.py verify code-review-<run>)",
     "to carry on",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\""
+    "  python run.py code-review --resume code-review-<run> --force --answer \"<the ruling>\""
   ],
   "files": [
     "code-review-<run>/budget-plan.md",
@@ -220,11 +220,11 @@
     "left",
     "  worker.md",
     "  reviewer.md",
-    "worker.md runs again with your answer at the end of its prompt, and",
-    "the question and the answer go into decisions.md. a longer answer",
-    "can come from a file: --answer-file <path>.",
+    "worker.md runs again with the operator's answer at the end of its",
+    "prompt, and the question and the answer go into decisions.md. a",
+    "longer answer can come from a file: --answer-file <path>.",
     "to carry on",
-    "  python run.py code-review --resume code-review-<run> --force --answer \"<your ruling>\"",
+    "  python run.py code-review --resume code-review-<run> --force --answer \"<the ruling>\"",
     "handoff: <tmp>/runs/code-review-<run>/handoff.md"
   ],
   "prompts": [

@@ -289,7 +289,7 @@ with both named:
 - `subscription` runs only on `claude.ai` (the `/login` subscription), or on
   `oauth_token` while the step's environment holds `CLAUDE_CODE_OAUTH_TOKEN`
   (a `claude setup-token` subscription token). anything else is refused:
-  `api_key` (a key in an `env` block of the person's settings, or one saved
+  `api_key` (a key in an `env` block of the operator's settings, or one saved
   by an earlier Console login), `api_key_helper` (an `apiKeyHelper`),
   `oauth_token` with no such token (a named or federation profile), or
   `third_party` (a cloud provider switch in the settings). the cli ranks
@@ -348,7 +348,7 @@ a carried-on step's prompt with the hour lifetime itself (above).
   drop it.
 - taking a key helper out. `subscription` takes the key and token
   variables out of the environment, but an `apiKeyHelper`, an `env` block in
-  the person's own settings file (which every step but one that only looks
+  the operator's own settings file (which every step but one that only looks
   loads, `--setting-sources user`), a saved Console key or a profile still ranks
   above the subscription login in the cli; such a step is refused before its
   call (above), never run on it.
@@ -538,7 +538,7 @@ and a granted step is started with:
 - for a grant that only looks (no `write`, `edit` or `shell`), `--restricted`:
   the command and code running tools and WebFetch are gone unless `--tools`
   names them, the file tools stay inside the working directories, and no user,
-  project or local settings file is read. so a model the person's own
+  project or local settings file is read. so a model the operator's own
   settings file names (`model` in `~/.claude/settings.json`, or under
   `CLAUDE_CONFIG_DIR`) would not reach it, and it would run on the cli's
   default while every step that acts runs on that model: such a step is
@@ -547,7 +547,7 @@ and a granted step is started with:
 - for a grant that acts, `--setting-sources user` (below).
 
 a step with no grant gets none of the fence: the host's own defaults decide
-its tools and what it may write (for a person whose settings say
+its tools and what it may write (for an operator whose settings say
 `acceptEdits` and an allow list, those; for a new install, the cli's default,
 which denies writes in `-p`). it is started with `--setting-sources user`
 too.

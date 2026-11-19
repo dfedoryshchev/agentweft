@@ -879,7 +879,7 @@ def escalated(run, folder, store, done, run_id):
         lines.append("- " + id + " (" + ", ".join(fact.scopes) + "): "
                      + fact.claim)
         if head is None:
-            lines.append("  the flow has no lead, so it is yours: "
+            lines.append("  the flow has no lead, so it is the operator's: "
                          + lead.NOW + " or " + LATER_WORDS)
             done.escalated.append({"id": id, "decided": None})
             continue
@@ -895,7 +895,8 @@ def escalated(run, folder, store, done, run_id):
             why = (out.meta.get("passed") if out is not None else "") \
                 or passed.split("\n\n")[-1]
             lines.append("  not decided by the lead (" + why + "), so it is"
-                         " yours: " + lead.NOW + " or " + LATER_WORDS)
+                         " the operator's: " + lead.NOW + " or "
+                         + LATER_WORDS)
             continue
         store.change(id, (lambda f: f.put("label", "important"))
                      if decided == lead.NOW else (lambda f: f.drop("label")))

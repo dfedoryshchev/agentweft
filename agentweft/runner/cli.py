@@ -120,7 +120,7 @@ init      asks the provider, a model per tier, the permission mode, the
 --force   ignore the schedule
 --resume  pick up a run that did not finish, read from its own manifest: the
           one named, or the newest of that flow. one that died starts again
-          at the step that died; one that parked for a person carries on at
+          at the step that died; one that waits for the operator carries on at
           the step after it. it keeps the task, the models, the place and what
           the run had spent; a flow edited since then needs --force, and
           so does a run whose record no longer holds (see verify)
@@ -129,8 +129,8 @@ init      asks the provider, a model per tier, the permission mode, the
 --worktree  the run works in a git worktree of its own, made from HEAD (or
           the commit named) under runs/worktrees/<run-id>, and never touches
           the tree it was started from. the flow's `worktree` does the same.
-          the worktree is left for you; the handoff says where it is, how to
-          bring the change back and how to remove it. a resumed run carries
+          the worktree is left for the operator; the handoff says where it is,
+          how to bring the change back and how to remove it. a resumed run carries
           on in the same one
 --task    what this run is for: a bug, a feature, a question. it goes where
           the flow wrote {TASK}, and a flow without one refuses it. a flow

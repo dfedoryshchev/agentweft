@@ -22,7 +22,7 @@ from test_stops import the_folder
 NL = chr(10)
 README = ("# pkg" + NL + NL + "parse returns a list of words." + NL + NL
           + "run it with --words." + NL)
-CHANGES = "## the retro's changes (unstaged, yours to stage)"
+CHANGES = "## the retro's changes (unstaged, the operator's to stage)"
 
 
 def sha(data):
@@ -82,7 +82,7 @@ def test_an_edit_whose_now_is_not_in_the_file_is_a_proposal_line(
     assert (tmp_path / "README.md").read_text(encoding="utf-8") == README
     note = handoff()
     assert changes_of(note) == [
-        "- facts/PROPOSED.md: what could not be kept, kept for you"]
+        "- facts/PROPOSED.md: what could not be kept, kept for the operator"]
     why = upkeep.NO_WRITE + '"parse returns a dict" is not in README.md'
     assert "- refused a doc change to README.md: " + why in note
     proposed = (tmp_path / "facts" / "PROPOSED.md").read_text(
@@ -274,8 +274,8 @@ def test_under_wip_the_retros_changes_are_one_retro_commit_after_the_tasks(
     assert not (place / "tests" / "test_order_guard.py").exists()
     assert git(place, "status", "--porcelain") == ""
     note = (folders()[-1] / "handoff.md").read_text(encoding="utf-8")
-    assert ("## the retro's changes (in their own commit, yours to review)"
-            in note)
+    assert ("## the retro's changes (in their own commit, the operator's to"
+            " review)" in note)
     assert "- " + head(place)[:12] + " retro: kept 1 fact current" in note
 
 

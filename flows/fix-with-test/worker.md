@@ -31,7 +31,7 @@ out. write no test. answer these two lines, each on its own:
     CONFLICT: <file>:<line> "<the spec line, word for word>"
     request: <the report's words>
 
-the run stops there and the question goes to a person.
+the run stops there and the question goes to the operator.
 
 the order of two errors the spec does not fix is yours; follow the code's
 convention and say so under ASSUMED.

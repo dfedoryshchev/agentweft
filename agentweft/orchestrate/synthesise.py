@@ -54,7 +54,7 @@ UNCHECKED = (
      "in prose, which is the reason the reports go to a model at all."),
     ("do not average them",
      "a judgement that split the difference is spelled like one that did not."),
-    ("the loop runs at most five times before it is a person's problem",
+    ("the loop runs at most five times before it is the operator's problem",
      "that is `phase.loop`, and it does not carry over to a flow's "
      "`send_backs`. "
      "`workflow.RESIDUE` is where that is written down."),

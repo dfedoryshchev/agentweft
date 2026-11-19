@@ -100,7 +100,7 @@ def parks(place, monkeypatch, planner):
 # a question with no recommendation is the shape that parks with nothing on
 # the page but itself
 PARK = "none"
-NO_REASON = "no spec mark, start test or split on it goes to the person"
+NO_REASON = "no spec mark, start test or split on it goes to the operator"
 
 
 def no_reason(place, code):
@@ -452,7 +452,7 @@ def test_the_planner_is_taught_the_settling_line_and_the_broken_mark(
     assert taught in said and "|" not in taught
     assert "spec: breaks TASK.md:<line>" in said
     assert " ".join(said.split()).count(
-        "the person's answer to it in this run, as its line in decisions.md")\
+        "the operator's answer to it in this run, as its line in decisions.md")\
         == 1
 
 

@@ -23,7 +23,7 @@ and what TASK.md says about it, each on its own line:
   for an input the plan reaches, though the request does not set out to
   change it: the request's own words, or another line of the spec, make it
   false there. it is no conflict and has no CONFLICT line; it goes to the
-  person, so ask your QUESTION about it.
+  operator, so ask your QUESTION about it.
 - `spec: breaks TASK.md:<line>, already at <file>:<line> "<the code line's
   words>"` says the code already breaks that line the same way for a
   sibling path, quoted from where it does. the run fixes that breach
@@ -49,11 +49,11 @@ you writes the tests from this list, so a behaviour missing here is a
 behaviour nobody tests.
 
 you are this flow's lead, so your own QUESTION is yours to decide: your
-RECOMMEND is the decision, on record for the person to overrule, and its
+RECOMMEND is the decision, on record for the operator to overrule, and its
 SETTLED BY line is the reason kept with it. it stops the run and goes to the
-person only when the plan marks a line `breaks` or `contradicts` (every
+operator only when the plan marks a line `breaks` or `contradicts` (every
 such mark in one stop), when it names a test the run started with, when its
-`RECOMMEND:` is `none` because only the person holds the answer, or when
+`RECOMMEND:` is `none` because only the operator holds the answer, or when
 two readings of the request's words or of one spec line would change what
 is built, said on a line of its own under the question:
 

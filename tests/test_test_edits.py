@@ -895,7 +895,7 @@ def test_put_them_back_runs_the_product_step_again_on_its_red_proof(
 
 
 @pytest.mark.parametrize("answer", [CANNED, "yours: make the call",
-                                    "request: keep going",
+                                    "you decide", "request: keep going",
                                     "the order does not matter"])
 def test_an_answer_that_decides_nothing_leaves_the_test_park_standing(
         tmp_path, monkeypatch, capsys, answer):
@@ -924,7 +924,7 @@ def test_a_product_step_s_test_park_says_which_answers_decide_it(
         " this question" in question
     handoff = read(first / "handoff.md")
     assert '--answer "put them back"' in handoff
-    assert '--answer "<your ruling>"' not in handoff
+    assert '--answer "<the ruling>"' not in handoff
 
 
 def test_a_proof_whose_own_test_changed_is_still_dropped(tmp_path,
@@ -971,7 +971,8 @@ def test_a_start_test_the_product_step_s_change_turns_red_parks_on_its_first_go(
     ("override: it holds", True), ("put them back", True),
     ("Put the tests back as they were", True), ("put it back", True),
     ("restore them", True), ("keep them as they were", True),
-    (CANNED, False), ("yours: decide", False), ("", False),
+    (CANNED, False), ("yours: decide", False), ("you decide", False),
+    ("", False),
     ("request: put nothing", False), ("they may change", False)])
 def test_what_decides_a_test_park(answer, decides):
     assert ruling.decides_edits(answer) is decides

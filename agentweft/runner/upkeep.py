@@ -86,8 +86,9 @@ CLIMBS = ("gate-issue", "defect")
 SECTION = "## the retro's proposals"
 NO_WRITE = ("the retro changes no file in the tree, and this cannot be a"
             " nice-to-do ticket on one file: ")
-CHANGES = "## the retro's changes (unstaged, yours to stage)"
-COMMITTED = "## the retro's changes (in their own commit, yours to review)"
+CHANGES = "## the retro's changes (unstaged, the operator's to stage)"
+COMMITTED = ("## the retro's changes (in their own commit, the operator's to"
+             " review)")
 DONE_HEAD = "## what the runner did with the FACTS block"
 
 
@@ -731,7 +732,7 @@ def files_changed(done, touched, root):
         if name == facts.INDEX:
             why = "the live facts, listed again"
         elif name == facts.PROPOSED:
-            why = "what could not be kept, kept for you"
+            why = "what could not be kept, kept for the operator"
         else:
             try:
                 found = facts.parse((root / rel).read_text(

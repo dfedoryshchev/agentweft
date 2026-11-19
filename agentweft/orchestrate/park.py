@@ -115,8 +115,8 @@ def left_of(lines):
     return [] if out == ["nothing"] else out
 
 
-ANSWER =' --answer "<your ruling>"'
-YOURS = ' --answer "yours: <any words>"'
+ANSWER = ' --answer "<the ruling>"'
+YOU_DECIDE = ' --answer "you decide"'
 
 
 def ruling(step, who, done, left, command, question, worked=None,
@@ -154,20 +154,20 @@ def ruling(step, who, done, left, command, question, worked=None,
         out.append("  " + command + STANDS)
         out.append("  " + command + PUT_BACK)
         return out
-    out.append(step + " runs again with your answer at the end of its prompt, and")
-    out.append("the question and the answer go into decisions.md. a longer answer")
+    out.append(step + " runs again with the operator's answer at the end of its")
+    out.append("prompt, and the question and the answer go into decisions.md. a")
     if led:
-        out.append("can come from a file: --answer-file <path>. an answer that")
-        out.append("starts yours: hands the call back: the step makes it, and the")
-        out.append("flow's lead decides each later question of its own by its")
-        out.append("recommendation.")
+        out.append("longer answer can come from a file: --answer-file <path>. an")
+        out.append("answer that opens with you decide hands the call back: the step")
+        out.append("makes it, and the flow's lead decides each later question of its")
+        out.append("own by its recommendation.")
     else:
-        out.append("can come from a file: --answer-file <path>.")
+        out.append("longer answer can come from a file: --answer-file <path>.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command + ANSWER)
     if led:
-        out.append("  " + command + YOURS)
+        out.append("  " + command + YOU_DECIDE)
     return out
 
 

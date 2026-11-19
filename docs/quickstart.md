@@ -73,7 +73,7 @@ folder, a proxy, every `GIT_*`, `PYTHON*`, `LD_*` and `DYLD_*` name,
 the place is the folder `--workdir` names, else the one agentweft starts in
 (a place a flow file or a carried-on run names is not known that early, so
 a `.env` beside you is read as the project's). a `.env` in a folder of your
-own, outside the place and outside its repo, is yours: every name in it is
+own, outside the place and outside its repo, is the operator's: every name in it is
 applied. so keep the
 rest in your shell, or run agentweft from a folder of your own with
 `--workdir`.

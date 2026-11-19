@@ -95,7 +95,7 @@ KEPT_FACTS = ("refused: `{0}` is in the project's facts, and only the runner"
               " writes them. say what you found in your handoff block, on a"
               " DECIDED or DOUBTS line.")
 KEPT_GIT = ("refused: `{0}` is in the place's `.git/`, which no step writes:"
-            " its config and hooks run as the person on the runner's next"
+            " its config and hooks run as the operator on the runner's next"
             " git. change the project's files; if the repo's git needs"
             " changing, say so on a NEEDS: line and stop.")
 OUTSIDE = ("refused: `{0}` is outside the place this step works in, and"

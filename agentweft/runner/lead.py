@@ -163,8 +163,9 @@ def brief(asker, question):
             " " + asker + "'s work.\n\nanswer with a line `DECIDED: <the"
             " option you pick>` and under it a line `why: <why, with the spec"
             " line it rests on>`. when the answer would change the spec or a"
-            " test that was there before the run started, or it is not yours"
-            " to decide, answer `ESCALATE: <why>` instead, and the operator"
+            " test that was there before the run started, or only the"
+            " operator can decide it, answer `ESCALATE: <why>` instead, and"
+            " the operator"
             " decides.\n\nwhat " + asker + " asked:\n\n" + question + "\n"
             + each_asked(numbers(question)))
 

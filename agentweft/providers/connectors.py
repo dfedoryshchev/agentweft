@@ -146,7 +146,7 @@ def check_project(declared):
         else:
             persons = (["auth: " + API_KEY] if block.get("auth") == API_KEY
                        else []) + [key for key in PERSONAL if key in block]
-            bad.extend(at + key + " is the person's to set, in the flow or"
+            bad.extend(at + key + " is the operator's to set, in the flow or"
                        " their own environment, never in the project's file"
                        for key in persons)
             bad.extend(at + str(key) + " is not a key project.yml may set on"

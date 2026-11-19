@@ -73,7 +73,7 @@ list:
 - `refused` - the step was not allowed to start (the place changed under it,
   its key could not be read, or its cli logs in another way than its
   connector's `auth`) or its output was refused (a preflight in `refuse` mode).
-- `parked` - the flow asked for a person, a step asked for a ruling (below), a
+- `parked` - the flow asked for the operator, a step asked for a ruling (below), a
   preflight parked, the work ran out of redos, or files git cannot give back
   were changed.
 - `provider outage` - the account's own limit refused the call: a session,
@@ -425,7 +425,7 @@ and `continued`
     edit, a preflight, the redo cap, a fallback), with the place as it found
     it (`cause` `conflict`, `refused`, `declined` or `parked`); a park for
     the budget or an outage, a crash and no answer bought nothing.
-  - `ruling`: it parked on a question the runner sent to the person (the
+  - `ruling`: it parked on a question the runner sent to the operator (the
     step's own, or the lead's own on a risk its page carries), with the
     place as it found it: the cost of asking, neither a defect caught nor
     waste. a park the line does not say the kind of (an older line) is
@@ -692,7 +692,7 @@ record below`, and when that is not enough the heading and the lines under it
 are cut to width too (a long task line or stop reason is in full below). the
 `suite:` line, the question under the one decision, each question
 under `also open:`, the lead's own decisions and every recommendation are
-never cut: a decision cut short is one the person cannot make from the top.
+never cut: a decision cut short is one the operator cannot make from the top.
 it answers, in order:
 
 - **what came of it**: the heading, the run's outcome, then on a stop where
@@ -729,7 +729,7 @@ it answers, in order:
   `also open:`. a question of its own the lead decided
   (`writing-a-flow.md`, section 8) comes first, before anything else: `-
   decided by the lead: <the question>`, its decision on the line under it,
-  yours to overrule, and, when its SETTLED BY line was read, `settled by
+  the operator's to overrule, and, when its SETTLED BY line was read, `settled by
   <file>:<line> "<the quote>"` under that, the reason it was decided on. any other question the lead decided, and one
   an `--answer` settled, is under
   the rulings, not here, so a finished run needs nothing: the same question
@@ -876,7 +876,7 @@ otherwise the entry that names it; a `request:` answer rules nothing, so it
 is never the entry named, whichever run wrote it; an add-only test change
 says so, and so does a python test file whose removed lines leave every test it started with and the code they share as they were (the test-edits check's reading: a name added to an import line, formatting), and a spec file with lines added and none
 removed in a flow with `spec_files: additions`, which allows exactly that:
-it is not owed a ruling and is not in the one decision. a step that claims a person agreed, approved or
+it is not owed a ruling and is not in the one decision. a step that claims the operator agreed, approved or
 ruled ("the user approved", "as agreed") with none on record is printed under "rulings" as "authority
 claimed, no ruling on record"; an open question ("nobody has ruled", "not
 approved yet") is not a claim. a VERIFIED claim the transcript does not show
@@ -1088,7 +1088,7 @@ without them resume could tell you where it died and nothing more.
   into the new run's folder, so the order and the red-first replay compare
   against the place as the first run found it (`docs/gates.md`).
 - a place whose HEAD or changed files are not what they were at the stop is
-  named before anything runs. it is not refused: the person carrying on may
+  named before anything runs. it is not refused: the operator carrying on may
   have changed it on purpose.
 - a fanned-out step writes each task to `tasks.jsonl` as it finishes. if the
   step died part way, the resume runs only the tasks with nothing written, and
@@ -1165,7 +1165,7 @@ section:
 the two ways of stopping deserve: a run that died starts again AT the step that
 died, because that step produced nothing, and a run that parked carries on AT
 THE STEP AFTER the one it parked on, because that step finished and the only
-thing missing was the person.
+thing missing was the operator.
 
 the file the handoff points at is the whole gate. the next step is handed
 whatever is in it at the moment you carry on, so reading it and leaving it
@@ -1226,7 +1226,7 @@ and ends with the command that answers it:
     python run.py fix-with-test --resume <run-id> --answer "numbers"
 
 `--answer-file <path>` takes a longer answer from a file, and in a flow that
-names a lead an answer that starts `yours:` hands the call back
+names a lead an answer that opens with `you decide` hands the call back
 (`writing-a-flow.md`, section 8). the resume runs the
 step that asked again, AT that step and not after it, on what it was handed
 before, with the question and the answer at the very end of its prompt. the
@@ -1264,7 +1264,7 @@ answer and puts it in the block as a doubt, `<question> assumed:
 its gates, and the handoff lists the doubt; the answer as the step gave it,
 question and all, is kept beside its step file as `<step>.asked.md`. a
 recommended answer that counts lines of code, no `RECOMMEND:`, or a `CITES:`
-line (a gap in the spec, which a person rules on) parks as above; so does a
+line (a gap in the spec, which the operator rules on) parks as above; so does a
 stop question whose only `RECOMMEND:` and `SIZE:` belong to a `QUESTION:` in
 the block. the order two errors are reported in,
 when the spec fixes neither, is the usual case: the step follows the code's
@@ -1365,7 +1365,7 @@ answer cover nothing. a start test changed with no claim is never listed
 under a ruling by the run alone: the run parks on the test-edits question,
 one question naming every such test with what the run found about each (red
 or green as found, a word of a ruled line its code reads, a rewrite red on the
-start product), and the person's `override:` to it lists each test it named
+start product), and the operator's `override:` to it lists each test it named
 `(named in the override to the test-edits question)`.
 
 a reviewer step with `on_missed: <role>` names, under its verdict, the
@@ -1696,7 +1696,7 @@ beside the entries and hold none: `facts/INDEX.md`, which the runner renders
 after every write it makes, a line per live fact by scope and the stale ones
 apart, and `facts/PROPOSED.md`, the retro's guards and doc changes that
 could not be kept as a nice-to-do ticket, each with why, and the guards a
-recurring fact is owed, for a person. no other file of the tree is changed
+recurring fact is owed, for the operator. no other file of the tree is changed
 for the retro (`docs/writing-a-flow.md`, section 10). every `.md` file
 under `facts/` is the store's, those two names included; any other file
 there is the project's own and the runner leaves it alone.

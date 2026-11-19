@@ -506,7 +506,7 @@ the answer of an `--answer` entry is read after the last `answered:` line,
 and only in a body that ends the way the runner ends one (`answered by <who>,
 with --answer`). a step's question comes before the runner's marker, so an
 `answered:` line and an `override:` a step wrote into its own question are
-read as the question, never as the person's answer.
+read as the question, never as the operator's answer.
 
 after every step the file is compared with what the runner last wrote, and
 again once the step's gates have run, since a gate runs code the step wrote:
@@ -529,7 +529,7 @@ question goes to the operator. a stop runs the tests the run changed, and
 that is code a step wrote too, so the file is checked once more after them:
 a change there is put back, and why.md and the handoff say "decisions.md was
 changed by the tests the stop ran". entries already there when the run started
-count: between runs the file is the person's, and a ruling written by hand
+count: between runs the file is the operator's, and a ruling written by hand
 is theirs.
 
 before it gets that far, a `claude` step in a place granted `write` or
@@ -840,11 +840,11 @@ what was there at the start is what the run was pointed at, and it is not
 questioned. a step on the `api` or `fake` provider sends text and reads
 nothing in the place, so it is never refused for this. every start takes its
 own digest, `--resume` included, so a file a step wrote before a park is
-something the person who carried the run on has let through. `.git/` is not
+something the operator who carried the run on has let through. `.git/` is not
 walked, and nothing above the place is looked at.
 
 the cli itself reads none of the place's files as settings or instructions:
-every `claude` step loads the person's settings only (`providers.md`, "what
+every `claude` step loads the operator's settings only (`providers.md`, "what
 a place may hand the cli"). the place's root `CLAUDE.md`, `.claude/CLAUDE.md`
 and `.claude/rules/*.md` are read once at the start, beside this digest, and
 handed to every step as text from `<run>/brief/place.md`; `AGENTS.md`,
@@ -870,7 +870,7 @@ again and compares. one of those files changed, removed or now tracked (a
 `git add` is as much a hazard for a `.env` as an edit) and the run parks:
 `fenced at <step>` and the files on stdout, the files again in the handoff, a
 `PARKED` line in the index, `parked at <step>` in the journal. `--resume`
-carries on after that step, and takes a fresh list, so what the person has
+carries on after that step, and takes a fresh list, so what the operator has
 looked at and let through is the new starting point. a scored run stops with
 `fenced at <step>` as its reason.
 
@@ -919,7 +919,7 @@ a run that got through every step and changed files in a git repo is signed
 off only if its change still merges onto the branch it is for. the branch is
 the one `--target` names (a local or remote-tracking branch). without it, a
 run in a worktree of its own (`--worktree`) is for the branch checked out in
-the person's tree, which moves as the person keeps working; any other run is
+the operator's tree, which moves as the operator keeps working; any other run is
 for the upstream of the branch checked out, since the branch itself cannot
 move without HEAD moving with it. a branch with no upstream and no
 `--target`, or a detached HEAD, has nothing to check against, and the
@@ -932,7 +932,7 @@ work tree with a commit, is refused before the first step.
 
 the run's change is HEAD now with every file that differs from what the
 tree held at the start. a file that was already loose when the run started
-and still holds those bytes is the person's, not the run's, and is left out.
+and still holds those bytes is the operator's, not the run's, and is left out.
 
 - not moved: nothing more is said.
 - moved, and the change merges onto the new head with no conflict: the run
@@ -957,7 +957,7 @@ end, as above.
 
 the check is read only. it asks `git merge-tree --write-tree`, with an index
 and an object folder of its own in a temporary folder (the repo's objects
-read through an alternate), removed after. the person's tree, index, HEAD,
+read through an alternate), removed after. the operator's tree, index, HEAD,
 branches and object store are as they were, and nothing is staged or
 committed in them. anything more than that is not done, and the run stops,
 cause `merge unchecked`, outcome `stopped: merge unchecked`, `stopped at
@@ -1079,7 +1079,7 @@ a passage read twice is one line. it is not a verdict on the text, and it
 only names what the tripwire's reader parses: an address with no command,
 package, host or file to write in it is not listed.
 
-`--resume` carries on after the step, as it does after the fence: the person
+`--resume` carries on after the step, as it does after the fence: the operator
 has looked at what it did and let it through. a hit in a lead's answer stops
 the run at the step that asked it, once that step has gone again. a step whose transcript cannot be found is
 said, `police: <step> left no transcript to read`, and its line reads

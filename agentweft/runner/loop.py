@@ -629,7 +629,8 @@ def go(leg):
                     entry.went_on = said[1].split(NEWLINE)[0]
                     print(step + " did the work with every gate green and"
                           " asked what changes no code: the run goes on, and"
-                          " the question waits for you in the handoff")
+                          " the question waits for the operator in the"
+                          " handoff")
             if said and not went_on:
                 worked = worked_then_asked(run, route, step, out,
                                            run_dir=step_dir, checked=checked)

@@ -116,7 +116,7 @@ RESIDUE = (
             "flow side has no word for that plural - `fanout` is one role in "
             "many copies, which is the other kind of many."),
     Missing(("phase.loop",),
-            "how many times round before it becomes a person's problem. a "
+            "how many times round before it becomes the operator's problem. a "
             "flow's `send_backs` is the nearest word, but it counts trips "
             "back rather than rounds, and nothing translates one into the "
             "other when a phase loads as a flow."),

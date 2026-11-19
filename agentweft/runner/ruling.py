@@ -1336,14 +1336,21 @@ def kind_of(answer):
     return None
 
 
+YOU_DECIDE = "you decide"
+HANDS_BACK_WORDS = re.compile(r"\s*you\s+decide(?!\w)", re.I)
+# the word a hand-back opened with before, still read so answers already
+# given replay
 YOURS = "yours"
 
 
 def handed_back(answer):
-    """whether the answer starts with the word YOURS and a colon: the person
-    hands the call back, and the flow's lead decides each later question of
-    its own by its recommendation. never one of ANSWERS: a conflict's answer
-    says which side holds."""
+    """whether the answer opens with the words YOU_DECIDE (any case, with or
+    without a colon and more words), or the older YOURS and a colon: the
+    operator hands the call back, and the flow's lead decides each later
+    question of its own by its recommendation. never one of ANSWERS: a
+    conflict's answer says which side holds."""
+    if HANDS_BACK_WORDS.match(answer or ""):
+        return True
     m = re.match(r"\s*(\w+)\s*:", answer or "")
     return bool(m) and m.group(1).lower() == YOURS
 
@@ -2102,9 +2109,9 @@ MAKE_IT = ("this answer hands the call back: make it yourself, and say which"
            " call you made.")
 HANDS_BACK = (MAKE_IT + " every later QUESTION of the flow's lead in this"
               " run that has a RECOMMEND is decided by it, settled by this"
-              " answer and on record for the person to overrule, so ask it as"
-              " before, with its RECOMMEND. a mark on a spec line the person"
-              " was not asked about still goes to the person.")
+              " answer and on record for the operator to overrule, so ask it"
+              " as before, with its RECOMMEND. a mark on a spec line the"
+              " operator was not asked about still goes to the operator.")
 
 
 def took(question):
@@ -2117,7 +2124,7 @@ def took(question):
         return ""
     return ("the marks it lists are answered by it: " + "; ".join(found)
             + ". a plan that marks those lines again still settles its other"
-            " questions; a mark on any other line still goes to the person.")
+            " questions; a mark on any other line still goes to the operator.")
 
 
 def handing_back(answer, lead, step):

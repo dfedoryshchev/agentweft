@@ -54,7 +54,7 @@ none runs now.
   fixed positions instead of one reviewer trying to hold both.
 - **`gate: user`** is where it parks. there are two, deliberately: after planning
   and before delivery. everything between them runs without asking.
-- **`loop`** caps how many times a phase repeats before it is a person's problem.
+- **`loop`** caps how many times a phase repeats before it is the operator's problem.
 - **`sequential`** is for phases whose agents cannot run at once, because they
   share something outside the process.
 - **the agent's own file** carries the rest of what a seat is, in frontmatter:
@@ -91,7 +91,7 @@ say so. opening the second file is what the tier needed and it is where the two
 words that grew the phase-only column came from.
 
 **`gate` means two opposite things.** on a step it is a program that fails the
-run. on a phase it is a person the run waits for. one of them is a check and
+run. on a phase it is the operator the run waits for. one of them is a check and
 the other is a stop, and they are the same five letters in two files i keep
 open at once.
 
@@ -322,7 +322,7 @@ only `model`, `tier`, `effort` and `max_turns` (`PROJECT_BUILT_IN_KEYS`),
 where the built-in's provider takes them, never its provider or its `auth`.
 any other key is refused at load, naming it; where a
 credential comes from or goes (`auth: api-key`, `key_file`, `command`,
-`url`, `env`) is the person's, in the flow or their own environment (see
+`url`, `env`) is the operator's, in the flow or their own environment (see
 `docs/providers.md`, "connectors"), and a key a provider grows later is
 refused here until the list names it. an `env:` list names the variables the project's own tests
 read (`env: [DATABASE_URL]`): a `.env` inside the place may set those, and

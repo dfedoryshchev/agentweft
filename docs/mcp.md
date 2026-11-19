@@ -96,7 +96,7 @@ why `hot blast radius: <files>`. `park` stops it
 the way a `pause:` does: the step's output stays in `runs/<id>/<step>`, the
 handoff names each hot file with its score, the step's line in `steps.jsonl`
 says `parked`, the journal says `parked at <step>`, and `--resume` carries on
-after that step with whatever that file holds by then. so a person owns the
+after that step with whatever that file holds by then. so the operator owns the
 risky edit, rather than the agent making it or declining it. any other `mode`
 is refused when the flow loads.
 

@@ -307,10 +307,10 @@ written. `off` is the default and the flow exactly as it was. `cause` asks for
 `file:function` a line, no code), `FEEDS:` (the commands and callers the
 change feeds), `RELATED:` (other defects seen on the way), `ROOTED: yes|no`,
 `RULED OUT:` and `REPRO:` (the command actually run). `plan` asks for all of
-that plus `TESTS:` per affected command and `DECISIONS:` for the person. the
+that plus `TESTS:` per affected command and `DECISIONS:` for the operator. the
 step is granted `[read, grep, shell]`, must produce `CAUSE:`, and stops the
 run there when no site has a file and a function or there is no `ROOTED:`
-line. `ROOTED: no, <what is unknown>` parks the run for a person instead of
+line. `ROOTED: no, <what is unknown>` parks the run for the operator instead of
 fixing a guess; editing that step's output and resuming is how to hand it the
 missing piece. every step after it is handed the labelled lines and nothing
 else, in place of the raw answer. `RELATED:` and `DECISIONS:` never reach the
@@ -508,7 +508,7 @@ anyway). without the key or the flag a run works in the place, as above.
 - **reviewer** did not write the output and says so in its prompt. it can
   answer `VERDICT: redo`, and then the work is done again - through the same
   steps, fanout included - and handed back to the reviewer. twice at most: a
-  redo after that parks the run at the reviewer for a person, the same park a
+  redo after that parks the run at the reviewer for the operator, the same park a
   `pause` gives (see `journal.md`), with the reason in its `handoff.md`.
   the verdict is the first line of the answer, read whatever its case and
   without a closing full stop. a step whose prompt carries the verdict block

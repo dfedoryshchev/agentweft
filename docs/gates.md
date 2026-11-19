@@ -76,8 +76,8 @@ covers. a mark on any other line, or citing no spec line, still fails it.
 
 the lead's own `QUESTION:` is the lead's to decide: its `RECOMMEND:` is
 put on record as the lead's decision, every later step is handed it, and
-the handoff lists it first under the one decision for the person to
-overrule (`writing-a-flow.md`, section 8). it parks the run for a person
+the handoff lists it first under the one decision for the operator to
+overrule (`writing-a-flow.md`, section 8). it stops the run for the operator
 only on a risk the runner finds on the page, each read off a typed line or
 a file, never off the question's words:
 
@@ -130,7 +130,7 @@ the `SETTLED BY:` line is the reason recorded beside the decision, never
 its gate. the record names it when it quotes a line of the place as the run
 found it (three words or more, a heading marker, a list dash or a table bar
 no word, the cited lines one paragraph; a quoted code line may hold `"`),
-the person's answer of this run in decisions.md (below), the request by
+the operator's answer of this run in decisions.md (below), the request by
 name, `the request "<its words>"`, three words or more of the request as
 the run holds it (the request as given and each amending answer apart),
 or else an answer that handed the call back. any other reason, missing,
@@ -140,7 +140,7 @@ writes into the place, decisions.md and the facts store, is never a place
 line, and the run folder's `task.md` is no file of the place. the floor: a
 gap two readings of which change what is built, that the lead does not type
 as a SPLIT and that names no start test, is decided and listed first; no
-check reads whether a recommendation is right, only the person reading the
+check reads whether a recommendation is right, only the operator reading the
 handoff's first lines, and the spec-files check and the start-tests replay
 hold what the build changes. a second floor: an `ASSUMED:` item is never checked by a gate and
 never parks. the template tells a step that a gap two readings of which
@@ -149,21 +149,22 @@ points to one, and only a choice no tested output turns on is ASSUMED, but
 nothing reads which one a step chose: a real gap filed as ASSUMED goes
 ahead, shown only among that step's ASSUMED lines. on a resume, an answered mark is matched by the lines
 it cites and its kind, never by its words, and a reworded question names
-the person's answer as its reason by a SETTLED BY line quoting it in the
+the operator's answer as its reason by a SETTLED BY line quoting it in the
 entry `--answer` wrote in this run (its digest among the runner's own
 records of what it wrote), cited by line number or by the entry's stamp
 (`decisions.md:2026-11-15 11:40 "<words>"`, the colon may be left out):
-the lines of the person's answer, never the entry's heading, the question
+the lines of the operator's answer, never the entry's heading, the question
 it repeats or its closing line. an answer line quoted whole counts however
 short (a one-word answer), any other quote of it needs three words. in a
-flow that names a lead, an answer that starts `yours:` hands the call back
-(a flow with no lead offers no hand-back, and such an answer is read as any
-other), read off its first word and never off what the rest says: a later
+flow that names a lead, an answer that opens with `you decide` (any case,
+with or without a colon and more words) hands the call back (a flow with
+no lead offers no hand-back, and such an answer is read as any other), read
+off its first two words and never off what the rest says: a later
 decision of the lead's with no other reason names the line of decisions.md
 the answer starts on. it lifts no `spec: breaks` or `spec: contradicts`
-mark on a line the person was not asked about, and a question with no
+mark on a line the operator was not asked about, and a question with no
 `RECOMMEND:` still parks; a conflict's answer is `override:` or `request:`
-and never `yours:`.
+and never `you decide`.
 any other answer decides its own question only. the step that runs again is
 told which marks of its question the answer took, and of a hand-back, that
 the call is its to make; only the lead is told its later questions are
@@ -542,7 +543,7 @@ place, with the fix, and has to pass; one that does not is failed with the
 end of what it printed under it in `gates.md`, so the step sent back and the
 person reading see why. both runs put the folder they run in,
 and its `src/`, at the front of `PYTHONPATH`, so a project installed in
-editable mode imports the tree being run and not the person's fixed one.
+editable mode imports the tree being run and not the operator's fixed one.
 
 without `results`, "on its own" is literal: one process per new test, once
 without the fix and once with it, so 2N processes for N new tests. a command
@@ -567,8 +568,8 @@ failure in the file, not the `expect` exit.
 the checkout is removed in a `finally`. it is locked while it exists, with
 the run's pid as the reason, and the next run's start removes any that a
 killed run left: named `agentweft-replay-*`, and unlocked or locked by a pid
-that is no longer running. a replay a live run holds, a worktree a person
-locked, and every other worktree are left alone. the person's checkout is
+that is no longer running. a replay a live run holds, a worktree the operator
+locked, and every other worktree are left alone. the operator's checkout is
 never stashed, checked out or reset.
 
 a run started with `--worktree` (`docs/flows.md`) works in a worktree of its
@@ -866,7 +867,7 @@ in `gates.md`:
   not break still goes back first. two answers decide that
   park: `override:` (below), and one that says to put the tests back (`put
   them back`, `restore`, `revert`, `undo`, `as they were`), which sends the
-  step again to do so. any other answer, a `yours:` or a `request:`
+  step again to do so. any other answer, a `you decide` or a `request:`
   included, decides nothing: the step would run again with the tests still
   changed and the check would park on them once more, so `--resume` takes
   no leg, prints the question with the two answers, and the run stays
@@ -987,7 +988,7 @@ in `gates.md`:
   run alone, however much its change looks like the ruled edit's: it fails,
   and on the last go parks on this check's question, one question naming
   every such test. the question carries what the run found, as evidence for
-  the person that decides nothing: each python test is `red as found` or
+  the operator that decides nothing: each python test is `red as found` or
   `green as found` against the product now, `reads <word> of <file>:<n>
   (ruled)` when its code as the run found it shares a word with a spec line
   a ruling lets change and the run's edit rewrote, and `rewrite red on the

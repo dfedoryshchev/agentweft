@@ -232,7 +232,7 @@ pins, the unique kills and the tests with no kill of their own.
 the strict 0-3 handoff score is 3 on every run once the runner writes what
 changed, how it was checked and one doubt on every path, so it tells no two
 runs apart. `--ladder` scores a run's `handoff.md` on ten points instead, each
-a line a person picking the run up cold needs, each held by a program, never
+a line the operator picking the run up cold needs, each held by a program, never
 a model:
 
     python -m agentweft.bench --ladder runs/fix-with-test-2026-01-05-213305

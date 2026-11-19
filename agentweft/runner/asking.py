@@ -1322,7 +1322,7 @@ def lead_decides(run, step, out, where):
             + line + ' "' + quote + '"' + lead.SETTLES + step
             + lead.SETTLES_END if line else
             "the recommendation of " + step + "'s own handoff; no spec mark,"
-            " start test or split on it goes to the person, so " + step
+            " start test or split on it goes to the operator, so " + step
             + lead.SETTLES_END), by=rulings.LEAD)
         # the handoff was made before the ruling was on record, and the
         # next step reads the rulings off it

@@ -87,8 +87,8 @@ def test_with_no_lead_a_critical_ticket_is_yours_and_nothing_is_ruled(
     assert fact.label == "critical"
     note = handoff()
     assert "- " + fact.id + " (pkg/a.py): " in note
-    assert ("the flow has no lead, so it is yours: re-iterate now or accept it"
-            " as later") in note
+    assert ("the flow has no lead, so it is the operator's: re-iterate now or"
+            " accept it as later") in note
 
 
 def test_a_lead_that_escalates_leaves_the_ticket_critical_and_yours(

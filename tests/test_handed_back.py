@@ -1,16 +1,19 @@
 """an answer that hands the call back, and the marks an answer already took.
 
-the person answers the question of a run that waits with `--answer`. in a
+the operator answers the question of a run that waits with `--answer`. in a
 flow that names a lead, and only there, the park offers a second form: an
-answer that starts `yours:` hands the call back: a later QUESTION of the
+answer that opens with `you decide` (or, as answers given before read, the
+older `yours:`) hands the call back: a later QUESTION of the
 lead's own decided with no other reason names the line of decisions.md the
 hand-back stands on, and is listed first on the handoff with those words.
 any other answer is the reason of no question but its own, whatever its
-words say. a hand-back does not lift a mark on a spec line the person was
+words say. a hand-back does not lift a mark on a spec line the operator was
 never asked about, and a question with no RECOMMEND still parks. the step
 that runs again is told which marks of its question the answer took.
 """
 import sys
+
+import pytest
 
 sys.path.insert(0, ".")
 from agentweft.orchestrate import decisions
@@ -20,7 +23,9 @@ from test_lead_own_question import (ASK, NL, NO_REASON, PARK, REC, a_flow,
 
 NEW = "which status code does a stale read return?"
 STALE = "return 200 with the cached body"
-YOURS = "yours: make the call yourself"
+YOURS = "you decide: make the call yourself"
+OLD_WORD = "yours: make the call yourself"
+YOU_DECIDE = '--answer "you decide"'
 
 
 def resumed(tmp_path, monkeypatch, planner, answer):
@@ -45,17 +50,18 @@ def answer_cite(tmp_path, answer):
     return decisions.FILE + ":" + str(n) + ' "' + answer + '"'
 
 
+@pytest.mark.parametrize("answer", [YOURS, "You decide.", OLD_WORD])
 def test_a_new_question_after_a_hand_back_is_the_lead_s_to_decide(
-        tmp_path, monkeypatch):
+        tmp_path, monkeypatch, answer):
     parks(tmp_path, monkeypatch, block(ASK, PARK))
-    code, asked = resumed(tmp_path, monkeypatch, block(NEW, STALE), YOURS)
+    code, asked = resumed(tmp_path, monkeypatch, block(NEW, STALE), answer)
     assert code == stops.EXIT_OK
     assert [s for s, _ in asked] == ["planner.md", "worker.md"]
     entry = decisions.read(tmp_path)[-1]
     assert entry.decided == "planner.md decided for planner.md: " + STALE
     first = decision(folder(tmp_path)).strip().split(NL)
     assert first[0] == "- decided by the lead: " + NEW
-    assert first[2] == "  settled by " + answer_cite(tmp_path, YOURS)
+    assert first[2] == "  settled by " + answer_cite(tmp_path, answer)
 
 
 def test_an_answer_that_does_not_start_yours_is_no_reason_for_a_new_question(
@@ -120,12 +126,13 @@ def test_the_step_that_runs_again_is_told_it_has_the_call(tmp_path,
 def test_a_park_offers_the_hand_back(tmp_path, monkeypatch, capsys):
     parks(tmp_path, monkeypatch, block(ASK, PARK))
     text = (folder(tmp_path) / "handoff.md").read_text(encoding="utf-8")
-    assert '--answer "yours: <any words>"' in text
+    assert YOU_DECIDE in text and "yours" not in text
     capsys.readouterr()
     monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--resume",
                                       folder(tmp_path).name])
     assert engine.main() == stops.EXIT_STOP
-    assert '--answer "yours: <any words>"' in capsys.readouterr().out
+    said = capsys.readouterr().out
+    assert YOU_DECIDE in said and "yours" not in said
 
 
 def lead_less(tmp_path):
@@ -145,12 +152,12 @@ def test_a_flow_with_no_lead_offers_no_hand_back(tmp_path, monkeypatch,
     answering(monkeypatch, block("none"), worker)
     assert run(monkeypatch) == stops.EXIT_STOP
     text = (folder(tmp_path) / "handoff.md").read_text(encoding="utf-8")
-    assert "yours:" not in text and "flow's lead" not in text, text
+    assert YOU_DECIDE not in text and "flow's lead" not in text, text
     capsys.readouterr()
     monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--resume",
                                       folder(tmp_path).name])
     assert engine.main() == stops.EXIT_STOP
-    assert "yours:" not in capsys.readouterr().out
+    assert YOU_DECIDE not in capsys.readouterr().out
     _, asked = resumed(tmp_path, monkeypatch, block("none"), YOURS)
     told = " ".join(dict(asked)["worker.md"].split())
     assert YOURS in told
@@ -186,10 +193,12 @@ def test_a_golden_of_a_flow_with_no_lead_shows_no_hand_back():
     from pathlib import Path
 
     golden = Path(__file__).resolve().parent / "golden"
-    assert "yours:" not in (golden / "fix-with-test" / "ruling-resume.json"
-                            ).read_text(encoding="utf-8")
-    assert "yours:" in (golden / "build-feature" / "escalated-resume.json"
-                        ).read_text(encoding="utf-8")
+    assert YOU_DECIDE.replace('"', '\\"') not in (
+        golden / "fix-with-test" / "ruling-resume.json").read_text(
+            encoding="utf-8")
+    assert YOU_DECIDE.replace('"', '\\"') in (
+        golden / "build-feature" / "escalated-resume.json").read_text(
+            encoding="utf-8")
 
 
 def test_a_conflict_is_not_handed_back(tmp_path, monkeypatch, capsys):

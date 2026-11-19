@@ -119,7 +119,7 @@ def test_a_recorded_question_with_a_recommendation_and_no_risk_is_the_lead_s(
                for _, why, by in ruled)
 
 
-NO_REASON = "no spec mark, start test or split on it goes to the person"
+NO_REASON = "no spec mark, start test or split on it goes to the operator"
 
 
 def test_the_section_question_its_spec_line_settles_is_the_lead_s(tmp_path):

@@ -28,7 +28,7 @@ one line each, a file and a function, no code. the steps after you read the
 code for themselves. FEEDS is one line per command or caller, each of which a
 test can reach.
 
-RELATED is not fixed in this run. it goes to the person who started it.
+RELATED is not fixed in this run. it goes to the operator who started it.
 
 ROOTED is `no, <what you could not find out>` when something the fix depends
 on is still unknown, or the fix hangs on a decision only that person can

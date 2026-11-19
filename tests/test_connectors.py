@@ -220,7 +220,7 @@ def test_project_yml_declares_connectors_and_the_flow_wins(tmp_path):
     assert got["own"] == {"provider": "cli", "auth": "subscription"}
 
 
-PERSONS = (" is the person's to set, in the flow or their own environment,"
+PERSONS = (" is the operator's to set, in the flow or their own environment,"
            " never in the project's file")
 OFF_LIST = " is not a key project.yml may set on a connector"
 STUB = ("provider: fake is the stub, which a flow picks, never the"
@@ -535,7 +535,7 @@ def test_a_key_file_project_yml_names_is_never_read(tmp_path, monkeypatch,
            + json.dumps(str(secret)) + "\n")
     cli = fake_cli(answer("done\n"))
     assert engine.main() != 0
-    assert "project.yml: connectors: mine: auth: api-key is the person's" \
+    assert "project.yml: connectors: mine: auth: api-key is the operator's" \
         in capsys.readouterr().out
     assert cli.calls == [] and cli.asides == []
     for path in state.RUNS.rglob("*"):
@@ -577,7 +577,8 @@ def test_a_key_file_named_by_a_dot_env_inside_the_place_is_refused(
     assert str(e.value) == (
         "AGENTWEFT_KEY_FILE is set by " + str((place / ".env").resolve())
         + ", inside the place: it picks a credential or where one is sent,"
-        " which is yours to set, in your own environment or a .env outside"
+        " which is the operator's to set, in their own environment or a .env"
+        " outside"
         " the place")
     p = providers.build("claude-api", where=place)
     assert "no key file" in p.refuses()

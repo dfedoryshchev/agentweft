@@ -435,8 +435,8 @@ of your answer itself, never the entry's heading or the question it
 repeats. a line of your answer quoted whole counts however short, so a
 one-word answer can; any other quote of it needs three words. a mark on a
 line a `request:` answer of yours held is passed over too. in a flow that
-names a lead, the park offers a second form: an answer that starts `yours:`
-hands the call back: the step that asked makes it, and a later decision of
+names a lead, the park offers a second form: an answer that opens with `you
+decide` hands the call back: the step that asked makes it, and a later decision of
 the lead's with no other reason names the line of `decisions.md` your
 answer starts on. a mark on a line you were not asked about still parks,
 and any other answer decides only the question it was given to. how it reads in a run is in
@@ -554,7 +554,7 @@ project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many nice-to-do tickets, it may write; `why.md` when the run stopped
 short; and `handoff.md`, with the steps' reasons taken out of it (the
-person's copy keeps them in full). for every pass in full it is pointed at
+operator's copy keeps them in full). for every pass in full it is pointed at
 `runs/<run-id>/retro-view/steps.jsonl`, a copy of the run's steps.jsonl
 with no BECAUSE item on any line and each answer file a line names copied
 beside it with the BECAUSE section of every block in it taken out, and the
@@ -592,7 +592,7 @@ names a `defect` fact on record by its id, or the `seq <n> <step>` a
 leading zeros and a step's `.md` set aside: `seq 08 Reviewer-runs` is
 `seq 8 reviewer-runs.md`, `F-2` is `F-0002`), passes on the tree only by
 holding the defect, so it goes to `facts/PROPOSED.md` with that reason. a
-gate or `flow.yaml` key guard is a line for a person. `facts/PROPOSED.md`
+gate or `flow.yaml` key guard is a line for the operator. `facts/PROPOSED.md`
 keeps nothing else but the guards a recurring fact is owed. the runner
 renders `facts/INDEX.md`, a line per live fact and the stale ones apart.
 
@@ -612,10 +612,10 @@ yours. the runner changes nothing in the
 tree for it either way; the lead's go is its own line after the retro's.
 
 none of it is staged. under `commits: none` the handoff ends on "the
-retro's changes (unstaged, yours to stage)": a line per store file with
+retro's changes (unstaged, the operator's to stage)": a line per store file with
 why. under `commits: wip` or `squash`, on a run whose steps all passed, they
 are one commit of their own after the task's, `retro: kept <n> facts
-current`, and the section says "in their own commit, yours to review" with
+current`, and the section says "in their own commit, the operator's to review" with
 its sha; a run that stopped short leaves them unstaged and says so, since
 the leg that carries it on commits after it, and that leg takes the store
 files as it finds them as the runner's, nothing for a step commit.
@@ -674,7 +674,7 @@ the handoff's spend and chain leave it out while the journal line and
 `manifest.json` count it, and a resumed run's handoff counts it among the
 passes it picked up.
 
-a run that stops to wait (for a ruling, a person, the provider's limit, the
+a run that stops to wait (for a ruling, the operator, the provider's limit, the
 budget or an interrupt), or one at its call cap, holds its retro and prints
 `retro not run:` and why. under `retro: true` or `conditional` the steps
 leave the retro one

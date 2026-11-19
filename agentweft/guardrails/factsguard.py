@@ -1491,7 +1491,7 @@ def tidy_refusal(root, p):
     if snapshot.is_runners(scopes[0]):
         return scopes[0] + " is the runner's to write, never a nice-to-do's"
     if snapshot.is_spec(scopes[0]):
-        return (scopes[0] + " is a spec file, the person's word: a change to"
+        return (scopes[0] + " is a spec file, the operator's word: a change to"
                 " it is theirs to make")
     claim = p.get("claim")
     said = QUOTED.sub(" ", claim) if DOC_EDIT.match(claim) else claim
