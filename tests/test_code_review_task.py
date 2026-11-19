@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
+from agentweft.guardrails import budget
 from agentweft.runner import cli, prompts, task
 from agentweft.runner.config import config
 
@@ -81,4 +82,47 @@ def test_show_says_where_code_review_takes_its_diff(monkeypatch, capsys):
 def test_the_code_review_caps_are_the_flow_s_own(monkeypatch):
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
     fm = config("code-review")
-    assert (fm.raw["max_calls"], fm.raw["max_tokens"]) == (7, 60000)
+    assert (fm.raw["max_calls"], fm.raw["max_tokens"]) == (7, 160000)
+
+
+def spent(fm, *steps):
+    b = budget.Budget(fm.raw["max_calls"], fm.raw["max_tokens"])
+    b.retro = True
+    counted = dict.fromkeys(budget.SPLIT, 0)
+    for step in steps:
+        for k, v in step.items():
+            counted[k] += v
+    return b.restore({"counted": counted, "counted_calls": len(steps),
+                      "calls": len(steps)})
+
+
+# `input` holds the cache reads, as a provider reports it
+WORKER_BIG = {"input": 861918, "output": 8920, "cache_read": 800310,
+              "cache_creation": 61584}
+WORKER = {"input": 139239, "output": 5772, "cache_read": 105142,
+          "cache_creation": 34091}
+REVIEWER = {"input": 418579, "output": 7401, "cache_read": 360571,
+            "cache_creation": 57992}
+
+
+def test_a_review_s_worker_at_its_measured_size_leaves_the_reviewer_room(
+        monkeypatch):
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
+    b = spent(config("code-review"), WORKER_BIG)
+    assert b.capped == 70528
+    assert b.ahead() is None
+
+
+def test_a_measured_review_leaves_its_retro_room(monkeypatch):
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
+    b = spent(config("code-review"), WORKER, REVIEWER)
+    assert b.capped == 105278
+    assert b.ahead(retro=True) is None
+
+
+def test_the_code_review_cap_still_stops_a_runaway(monkeypatch):
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
+    b = spent(config("code-review"), WORKER_BIG, WORKER_BIG)
+    word, why = b.ahead()
+    assert word in (budget.REACHED, budget.REACHING)
+    assert why.startswith("token cap: 141056 of ")

@@ -138,9 +138,9 @@
       "cost_parts": null,
       "budget": {
         "spent": 120,
-        "planned": 49200,
-        "buffer": 55080,
-        "risk": "ok, 49080 left to the buffer"
+        "planned": 131200,
+        "buffer": 147080,
+        "risk": "ok, 131080 left to the buffer"
       },
       "session": "worker-1",
       "seconds": "<seconds>",
@@ -249,8 +249,8 @@
       "cost_parts": null,
       "budget": {
         "spent": 120,
-        "planned": 4800,
-        "buffer": 55080,
+        "planned": 12800,
+        "buffer": 147080,
         "risk": "ok"
       },
       "session": "reviewer-1",
@@ -328,8 +328,8 @@
       "cost_parts": null,
       "budget": {
         "spent": 240,
-        "planned": 49200,
-        "buffer": 54960,
+        "planned": 131200,
+        "buffer": 146960,
         "risk": "over by 120, drawn from the buffer"
       },
       "session": "worker-2",
@@ -439,9 +439,9 @@
       "cost_parts": null,
       "budget": {
         "spent": 240,
-        "planned": 4800,
-        "buffer": 59520,
-        "risk": "ok, 4560 left to the buffer"
+        "planned": 12800,
+        "buffer": 159520,
+        "risk": "ok, 12560 left to the buffer"
       },
       "session": "reviewer-2",
       "seconds": "<seconds>",

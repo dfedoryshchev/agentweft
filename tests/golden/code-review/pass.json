@@ -124,9 +124,9 @@
       "cost_parts": null,
       "budget": {
         "spent": 120,
-        "planned": 49200,
-        "buffer": 55080,
-        "risk": "ok, 49080 left to the buffer"
+        "planned": 131200,
+        "buffer": 147080,
+        "risk": "ok, 131080 left to the buffer"
       },
       "session": "worker-1",
       "seconds": "<seconds>",
@@ -235,9 +235,9 @@
       "cost_parts": null,
       "budget": {
         "spent": 120,
-        "planned": 4800,
-        "buffer": 59760,
-        "risk": "ok, 4680 left to the buffer"
+        "planned": 12800,
+        "buffer": 159760,
+        "risk": "ok, 12680 left to the buffer"
       },
       "session": "reviewer-1",
       "seconds": "<seconds>",

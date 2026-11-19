@@ -120,8 +120,8 @@
       "cost_parts": null,
       "budget": {
         "spent": 0,
-        "planned": 49200,
-        "buffer": 6000,
+        "planned": 131200,
+        "buffer": 16000,
         "risk": "ok"
       },
       "session": null,
