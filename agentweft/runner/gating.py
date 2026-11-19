@@ -144,6 +144,29 @@ def clocked(gate, text):
     return timed(r, began)
 
 
+AS_FOUND = "red as found: "
+
+
+def as_found(run, result):
+    """-> `result`, or a pass in its place when it is a failed command gate
+    whose own output named every red it counted (`failing`) and each of
+    them was red when the run started (`Run.red_at_start`): the red is not
+    the step's, and the pass lists each one. a fail the gate caused, one
+    on the host, or one with any red the run did not find red stays a
+    fail."""
+    check = getattr(run, "red_at_start", None)
+    named = getattr(result, "failing", None)
+    if result.ok or result.gate != "command" or not named or result.broke \
+            or result.host or result.issue or check is None \
+            or not check(named):
+        return result
+    out = Result(result.gate, True, result.detail.partition(":")[0] + ", "
+                 + AS_FOUND + ", ".join(named)
+                 + " (each red when the run started)")
+    out.seconds, out.began = result.seconds, result.began
+    return out
+
+
 def timed(result, began):
     """-> `result`, a check the runner made itself, with the seconds since
     `began`, so it has its line in gates.jsonl like any gate."""
@@ -196,7 +219,7 @@ def check_step(run, route, step, out, run_dir=None):
     if found:
         out.meta["past_end"] = found
     held = getattr(run, "held", lambda g, s: g.run)
-    results = [clocked(held(g, step), without(out.output))
+    results = [as_found(run, clocked(held(g, step), without(out.output)))
                for g in run.gates_for(step)]
     order = getattr(run, "order", None)
     if order is not None:
@@ -239,7 +262,7 @@ def check_step(run, route, step, out, run_dir=None):
         last = ok and tries is not None and \
             tries.get(step, 0) >= route.gate_cap(step)
         began = time.monotonic()
-        line, test_asks = kept(step, last, out.output)
+        line, test_asks = kept(step, last, out.output, ok=ok)
         if line is not None:
             results.append(timed(line, began))
         if test_asks and "spec_ruling" not in out.meta:

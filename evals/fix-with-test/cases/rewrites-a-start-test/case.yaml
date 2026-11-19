@@ -40,6 +40,5 @@ expect:
     match: strict
     path:
       - worker.md ok -> patcher.md  PASS red-test
-      - patcher.md gate failed -> patcher.md  PASS red-test  PASS red-first  PASS command  FAIL test-edits
       - patcher.md parked  PASS red-test  PASS red-first  PASS command  FAIL test-edits
-  calls: 3
+  calls: 2

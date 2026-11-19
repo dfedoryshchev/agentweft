@@ -491,6 +491,30 @@ class Run(object):
                 starttests.TIMEOUT, now=False)
         return baseline.outcomes(found), ""
 
+    def red_at_start(self, tests):
+        """whether every one of `tests`, test ids a suite run named red, was
+        a start test red (failed or an error, never flaky) when the run
+        started, read from the outcomes the start-tests replay keeps, else
+        from the run's suite baseline or one run on the start state. False
+        for no tests, a run that skips tests or has no start to read, or
+        outcomes it cannot read."""
+        start = getattr(self, "start", None)
+        order = getattr(self, "order", None)
+        if not tests or start is None or not start.hashed or not start.start \
+                or order is None or order.skip:
+            return False
+        green = self.start_green
+        if "found" not in green:
+            before, _ = self.known_at_start()
+            if before is None:
+                return False
+            green["found"] = before
+            green["passed"] = [t for t, (s, _) in before.items()
+                               if s == "PASSED"]
+        red = {t for t, (s, _) in green["found"].items()
+               if s in starttests.RED}
+        return all(t in red for t in tests)
+
     def replayed(self, step, output=""):
         """-> (the start tests' line for the record or None, (why, question)
         when a test green at the start is red now and no ruling covers it,
@@ -995,12 +1019,17 @@ class Run(object):
             (unruled if d is None else held).add(edit.path)
         return held - unruled
 
-    def tests_held(self, step, last=False, output=""):
+    def tests_held(self, step, last=False, output="", ok=False):
         """-> (the line for the record when a test file the run started with
         changed, else None; (why, question, what the run's record keeps of
         the question) when it changed in a way no ruling covers and this is
-        the step's `last` go, else None). a step
-        with a go left fails like a gate and goes back. the lead's decisions
+        the step's `last` go, or its other gates passed (`ok`) and one of
+        the python start tests it changed is green as found and red against
+        its product now (`forced`), else None). a step with a go left whose
+        changes the product does not force fails like a gate and goes back:
+        putting those back costs nothing. one the product forces would only
+        leave the start test red when put back, so the run parks on it now,
+        the tests named. the lead's decisions
         are not read: one that names the test does not let it change. a test
         changed, or a file the check reads whole, that `output` or another
         answer of this run names on a WRONG TEST line quoting spec lines a
@@ -1023,7 +1052,9 @@ class Run(object):
         line = testedits.held(step, left, any(
             ruling.kind_of(ruling.answered(d)) == ruling.OVERRIDE
             for d in decided))
-        if not last:
+        if not last and not (ok and any(
+                "::" in test and test.partition("::")[0].endswith(".py")
+                and self.forced(test) for test, _ in left)):
             return line, None
         tags, groups = self.evidence(left)
         return line, ("needs a ruling: " + line.detail,

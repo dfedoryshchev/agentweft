@@ -140,4 +140,33 @@ class CommandGate(Gate):
         out = self.fail("exit " + str(r.returncode) + ": "
                         + tail(r.stderr or r.stdout) + said)
         out.host = hostfault.of_run(r.stdout + "\n" + r.stderr)
+        out.failing = red_named(r.stdout)
         return out
+
+
+SUMMARY = re.compile(r"^=+ short test summary info =+$")
+RED_LINE = re.compile(r"^(FAILED|ERROR) (\S+)(?: - .*)?$")
+COUNTS = re.compile(r"^=*\s*((?:\d+ \w+(?:, )?)+) in [\d.]+s\b")
+COUNTED = re.compile(r"(\d+) (failed|errors?)\b")
+
+
+def red_named(output):
+    """-> the test ids a pytest run's short summary names FAILED or ERROR,
+    in its order, when they are every red its closing count line counts;
+    None for no summary, no count line, a count it does not match, or no
+    red at all."""
+    lines = (output or "").splitlines()
+    named, seen = [], False
+    for line in lines:
+        if SUMMARY.match(line.strip()):
+            seen = True
+            continue
+        m = RED_LINE.match(line.strip()) if seen else None
+        if m and m.group(2) not in named:
+            named.append(m.group(2))
+    counts = next((COUNTS.match(line.strip()) for line in reversed(lines)
+                   if COUNTS.match(line.strip())), None)
+    if not named or counts is None:
+        return None
+    reds = sum(int(n) for n, _ in COUNTED.findall(counts.group(1)))
+    return named if reds == len(named) else None

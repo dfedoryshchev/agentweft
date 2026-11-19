@@ -62,12 +62,14 @@ class Result(object):
     step's, and the step is not sent back for it. `ran` is False for a pass
     that executed nothing against the step's work by design (a red-test with
     no command takes the step's word, a quote gate given no quote held
-    nothing to its source), True for the rest.
+    nothing to its source), True for the rest. `failing` is the test ids a
+    failed command's own output named red, every one it counted, None when
+    it named none or not all of them.
     """
 
     __slots__ = ("gate", "ok", "_detail", "unproven", "tests", "skipped",
                  "broke", "issue", "seconds", "began", "named", "host",
-                 "ran")
+                 "ran", "failing")
 
     @property
     def detail(self):
@@ -92,6 +94,7 @@ class Result(object):
         self.named = None
         self.host = ""
         self.ran = True
+        self.failing = None
 
     def __bool__(self):
         return self.ok

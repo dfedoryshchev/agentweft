@@ -387,7 +387,8 @@ pytest run.
 the edit itself is caught at the step that makes it, too: after every step a
 test file the run started with is compared per test function against how the
 run found it, and a test removed or changed, or its file deleted, fails the
-step like a gate and parks the run for a ruling on its last go. a test added
+step like a gate and parks the run for a ruling on its last go, or on its
+first when the step's product leaves the test as found red. a test added
 beside the others passes. a ruling that names the test, quotes the spec line
 that decides it, or answers `override:` to that park lets the change stand;
 one that only names the file does not (`docs/gates.md`, "the tests the run

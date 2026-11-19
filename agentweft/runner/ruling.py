@@ -1839,8 +1839,8 @@ def edit_ruled(decided, test, workdir, start=None, asked=None):
 
 
 def question_of_test_edits(step, left, found=None, groups=()):
-    """-> the question a step that still changes tests the run started with
-    on its last go parks the run on. `left` is [(test id or file, how it
+    """-> the question a step that changes tests the run started with parks
+    the run on (`Run.tests_held`). `left` is [(test id or file, how it
     changed)]; `found` the tags the run read for each, in that order, and
     `groups` [(how many, what they share)], shown after the question for
     more than one: evidence for the person, deciding nothing."""

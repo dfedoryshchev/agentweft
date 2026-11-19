@@ -815,7 +815,8 @@ def test_a_lead_decision_naming_a_start_test_never_lets_it_change(
                            WORKER_SAID)]}
     code, called = running(tmp_path, monkeypatch, place, does, commits)
     assert called == ["planner.md", "tester.md", "worker.md", "planner.md",
-                      "worker.md", "worker.md"]
+                      "worker.md"] + (["worker.md"] if product == COUNTED
+                                      else [])
     assert code == stops.exit_code(stops.PARKED)
     folder = folders()[-1]
     gates = read(folder / "gates.md")
@@ -938,6 +939,32 @@ def test_a_proof_whose_own_test_changed_is_still_dropped(tmp_path,
     assert code != 0
     assert "the tests its red proof was shown on are not as they were:" \
         " tests/test_report.py" in read(folders()[-1] / "why.md")
+
+
+REVERSED = "def report(names):" + NL \
+    + "    return sorted(names, reverse=True)" + NL + NL + NL \
+    + "def count(names):" + NL + "    return len(names)" + NL
+NEWEST_FIRST = ("def test_alphabetical():" + NL
+                + "    assert listed(['a', 'b']) == ['b', 'a']" + NL)
+
+
+@pytest.mark.parametrize("commits", [False, True])
+def test_a_start_test_the_product_step_s_change_turns_red_parks_on_its_first_go(
+        tmp_path, monkeypatch, commits):
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + PATCHER)
+    does = writes_of(module(RIGHT, COUNT),
+                     "FAILS: assert False" + NL + "TEST: " + FILE + NL)
+    does["worker.md"] = ({"report.py": REVERSED,
+                          "tests/test_report.py": module(NEWEST_FIRST, COUNT)},
+                         WORKER_SAID)
+    code, called = running(tmp_path, monkeypatch, place, does, commits)
+    assert called == ["tester.md", "worker.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    question = read(first / "question.md")
+    assert "- " + ID + " - changed; red as found" in question
+    assert ID + " (changed)" in read(first / "gates.md")
 
 
 @pytest.mark.parametrize("answer, decides", [

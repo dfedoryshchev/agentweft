@@ -365,7 +365,14 @@ turns only that gate off: the order checks still want a red proof.
   itself and not only what the step said about it. a `cold:` block gives it
   a shorter command for a change the risk map says is small (below). a
   command that is not on PATH, or cannot be started (not executable, not a
-  program), fails the gate and says so; it is not a tool fault.
+  program), fails the gate and says so; it is not a tool fault. a step is
+  failed only by tests that were green when the run started: a failed
+  command whose output is a pytest run naming every red its count line
+  counts, each one a start test red when the run started (the suite as the
+  run found it, below), passes as `exit 1, red as found: <ids> (each red
+  when the run started)`. one red the run did not find red (a test the step
+  turned red, one the run added, a flaky one), a count the names do not
+  match, or an output with no summary to read keeps the fail.
 - **red-test** - `marker` (default `FAILS:`) has to be in the output, or with
   `red: false` has to be gone from it. with `command: [...]` that is only the
   claim: the step names its test on a `TEST:` line, as a file or as
@@ -848,7 +855,12 @@ in `gates.md`:
 - a change fails the step like a gate, naming each test, and the step goes
   again with that at the end of its prompt. on its last go (the flow's
   `send_backs`, once by default) the run parks for a ruling instead, cause
-  `parked`, with each test cited in `question.md`. two answers decide that
+  `parked`, with each test cited in `question.md`. it parks on the first go
+  too when the step's other gates passed and a python test it changed is
+  green as the run found it but red against the step's product now: put
+  back, that test could only fail the suite, so the question comes before
+  the send-back would leave the suite red. a changed test the product does
+  not break still goes back first. two answers decide that
   park: `override:` (below), and one that says to put the tests back (`put
   them back`, `restore`, `revert`, `undo`, `as they were`), which sends the
   step again to do so. any other answer, a `yours:` or a `request:`
