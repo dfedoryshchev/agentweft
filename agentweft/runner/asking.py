@@ -232,7 +232,10 @@ def assumed_answer(run, step, question, where):
 def lead_go(run, head, given, last, folder):
     """-> (the lead's answer, why it is not held or ""): one go of the lead
     with `last` at the end of its prompt, read by the off task check and
-    the rulings check as soon as it answers."""
+    the rulings check as soon as it answers. a lead that is no step of the
+    route goes once through `consult.lead_go`, held to writing nothing."""
+    if getattr(run, "lead_off", False) and head == run.lead:
+        return consult.lead_go(run, last)
     was = run.produced.get(head)
     try:
         out = run.step(head, previous=given.get(head, EMPTY), last=last)

@@ -596,7 +596,7 @@ def begin(unrecorded):
                   + start)
         else:
             run.ruled[start] = ruling.told(question, answer, kind, files,
-                                           lead=run.lead, step=start)
+                                           lead=lead_of(fm), step=start)
             print("ruled: " + start + " runs again with the answer")
     return Leg(flow=flow, fm=fm, run=run, route=route, record=record,
                folder=folder, run_id=run_id, started=started, ticks=ticks,

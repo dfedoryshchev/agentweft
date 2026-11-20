@@ -291,7 +291,7 @@ def go(leg):
                                question=question, conflict=conflict,
                                replayed=replayed, worked=worked,
                                stopped_for=stopped_for, run_did=did,
-                               led=bool(run.lead),
+                               led=bool(run.lead) and not run.lead_off,
                                edits=ruling.held_edits({"runner": asked}))
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")

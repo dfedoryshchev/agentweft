@@ -105,6 +105,9 @@ LANES = ("project", "off")
 # so and goes on, fail is a gate that sends the step back
 CONFORMANCE = ("warn", "fail")
 NO_LEAD = "none"
+# the library roles a flow may name as `lead:` when no step of its route plays
+# that role: such a lead runs only when a step asks it something
+OFF_ROUTE = ("architect", "ba")
 # whether the run commits as it goes (`runner/commits.py`)
 COMMITS = ("none", "wip", "squash")
 # when the run reads the state of the suite it started from
@@ -737,23 +740,36 @@ def lead_of(raw):
     return step_id(named[0]) if named else None
 
 
+def off_lead(raw):
+    """-> the step name a lead that is no step of the route answers under
+    (`architect.md`), when `lead:` names a library role of OFF_ROUTE that no
+    step plays, else None."""
+    said = raw.get("lead") if hasattr(raw, "get") else None
+    if said not in OFF_ROUTE or lead_of(raw) is not None:
+        return None
+    return said + ".md"
+
+
 def check_lead(raw):
-    """`lead:` is a step or a role of the flow, or `none`, and never the
-    fanned step: one decision cannot come from N copies."""
+    """`lead:` is a step or a role of the flow, a library role of OFF_ROUTE,
+    or `none`, and never the fanned step: one decision cannot come from N
+    copies."""
     if "lead" not in raw:
         return []
     said = raw["lead"]
     if not isinstance(said, str) or not said.strip():
         return ["lead should be a step of the flow, or " + NO_LEAD]
-    if said == NO_LEAD:
+    if said == NO_LEAD or off_lead(raw):
         return []
     steps = [s for s in raw.get("steps") or [] if isinstance(s, dict)
              and "role" in s]
     found = lead_of(raw)
     if found is None:
         names = [step_name(s) for s in steps]
-        return ["lead names no step of the flow: " + said + meant(said, names)
-                + ". there is: " + ", ".join(names + [NO_LEAD])]
+        return ["lead names no step of the flow: " + said
+                + meant(said, names + list(OFF_ROUTE)) + ". there is: "
+                + ", ".join(names + [NO_LEAD]) + ", or a role that is no"
+                " step: " + ", ".join(OFF_ROUTE)]
     if any(step_id(s) == found and s.get("fanout") for s in steps):
         return ["lead: " + said + " is fanned out, and a question needs one"
                 " step to decide it"]

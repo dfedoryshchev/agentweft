@@ -1308,8 +1308,9 @@ the lines they quote. a question gets one round
 with the lead, so
 the same `NEEDS:` asked again after the lead decided it parks too. the
 question in `question.md` then says why the lead did not decide it. a flow
-with `lead: none` or no `lead:` (fix-with-test), and a question the lead
-itself asks, park at once. a spec conflict never goes to the lead: which of
+with `lead: none` or no `lead:`, and a question the lead itself asks, park
+at once; fix-with-test's lead is the architect role, which no step plays and
+which runs only when a step asks. a spec conflict never goes to the lead: which of
 the request and the spec holds is yours.
 
 a step can also decline:

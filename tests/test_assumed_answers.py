@@ -218,8 +218,8 @@ def test_a_non_lead_steps_assumed_item_never_answers(tmp_path, monkeypatch):
     assert "assumed" not in [w["by"] for w in written_or_none(folder)]
 
 
-def test_a_flow_with_no_lead_sends_the_question_to_the_person(tmp_path,
-                                                              monkeypatch):
+def test_a_flow_whose_lead_is_no_step_reads_no_assumed_item(tmp_path,
+                                                            monkeypatch):
     answers = {"worker.md": [tl.TESTER + HANDED],
                "patcher.md": [tl.NEEDS, tl.WORKER],
                "verify.md": [tl.OK]}
@@ -228,7 +228,7 @@ def test_a_flow_with_no_lead_sends_the_question_to_the_person(tmp_path,
     asked, _, code, folder, _ = tl.run_it(tmp_path, monkeypatch,
                                           "fix-with-test", answers, writes,
                                           task="mul is missing from calc")
-    assert asked == ["worker.md", "patcher.md"]
+    assert asked == ["worker.md", "patcher.md", "architect.md"]
     assert code == stops.EXIT_STOP
     assert "assumed" not in [w["by"] for w in written_or_none(folder)]
     assert (folder / "question.md").read_text(

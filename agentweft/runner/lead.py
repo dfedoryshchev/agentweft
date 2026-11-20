@@ -1,7 +1,10 @@
 """a step's question, and the flow's lead step that decides it before the
 operator is asked.
 
-a flow names its lead in flow.yaml, `lead: <step>`, or `lead: none`. a
+a flow names its lead in flow.yaml, `lead: <step>`, or `lead: none`, or a
+library role no step of its route plays (`lead: architect`): such a lead has
+no page of its own, raises no question, and runs only when a step asks it
+something, handed the request and where the spec is (`off_route`). a
 `NEEDS:` from any other step goes to the lead first, with the question, its
 CITES and its OPTIONS at the very end of the lead's prompt. the lead answers
 on lines of its own:
@@ -155,6 +158,19 @@ def judged(output, lead, workdir, start):
         return None, "", (lead + " decided " + decided + " with no why: line"
                           " under it")
     return decided, why, ""
+
+
+def off_route(task, globs):
+    """-> the head of the prompt of a lead that is no step of the route: it
+    has read nothing of the run, so it is handed the request and where the
+    spec is."""
+    return ("you are this flow's lead. you run no step of it: a step comes"
+            " to you only when it cannot go on without a decision. read"
+            " the spec and the code the question needs, and nothing else;"
+            " change no file.\n\nthe request:\n\n" + ((task or "").strip()
+                                                       or "(none given)")
+            + "\n\nthe spec is " + ", ".join(globs) + " in the place, as far"
+            " as it holds them.\n")
 
 
 def brief(asker, question):

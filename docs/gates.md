@@ -156,9 +156,10 @@ records of what it wrote), cited by line number or by the entry's stamp
 the lines of the operator's answer, never the entry's heading, the question
 it repeats or its closing line. an answer line quoted whole counts however
 short (a one-word answer), any other quote of it needs three words. in a
-flow that names a lead, an answer that opens with `you decide` (any case,
-with or without a colon and more words) hands the call back (a flow with
-no lead offers no hand-back, and such an answer is read as any other), read
+flow whose lead is one of its steps, an answer that opens with `you decide`
+(any case, with or without a colon and more words) hands the call back (a
+flow with no lead, or with a lead that is no step, offers no hand-back, and
+such an answer is read as any other), read
 off its first two words and never off what the rest says: a later
 decision of the lead's with no other reason names the line of decisions.md
 the answer starts on. it lifts no `spec: breaks` or `spec: contradicts`

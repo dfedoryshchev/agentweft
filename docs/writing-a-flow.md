@@ -304,8 +304,15 @@ run parks for you. `lead` names a step that is asked first:
     lead: planner
 
 it is a step or a role of the flow (a role means its first step), or `none`,
-which is the same as leaving it out. a fanned-out step cannot lead, and a name
-that is no step is refused when the flow loads. the lead decides with
+which is the same as leaving it out, or `architect` or `ba` when no step of
+the flow plays that role. a fanned-out step cannot lead, and any other name
+that is no step is refused when the flow loads. a lead that is no step runs
+only when a step asks: it has no page of its own and raises no question, it
+answers under its role's name (`architect.md`) with read and grep alone, a
+file it changes sends the question to you, and since it has read nothing of
+the run its prompt holds the request and where the spec is. its go is read
+by the reader below and priced on its own line; the off task check does not
+read it. the lead decides with
 `DECIDED: <option>` and a `why:` line under it, and the step that asked runs
 again with the decision. an answer that asks several questions, each on a
 `NEEDS:` line of its own, has every one handed to the lead, numbered; the
@@ -336,7 +343,9 @@ second ask of the same question comes to you, and so does what the step
 acting on a decision does to a spec line or a test the run started with: a
 decision is judged by what that step changes, not by the files it names. pick the step that already reads the spec for the whole flow:
 build-feature leads with its planner, and fix-with-test, whose first step
-writes the test, has `lead: none`. the lead also decides a ticket the retro
+writes the test and no step reads the whole spec, names `lead: architect`, a
+lead asked only when a step asks. a CONFLICT line and a question that names a
+test the run started with never reach it. the lead also decides a ticket the retro
 marks critical (section 10). a `QUESTION:` the lead's own handoff asks is
 never left open: its `RECOMMEND:` is the lead's decision, on record in
 `decisions.md` as the lead's, handed to every later step, and listed first

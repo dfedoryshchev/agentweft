@@ -1,7 +1,7 @@
 name: fix-with-test
 retro: true
 investigate: off
-lead: none
+lead: architect
 steps:
   - role: worker
     prompt: worker.md

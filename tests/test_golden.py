@@ -204,6 +204,12 @@ NO_RED_ASKS = ("add(1, 2) is 3 on this code, so no test was written.\n"
                "QUESTION: calc.py:2 already adds, so add(1, 2) is 3. was the"
                " report about another input?\nRECOMMEND: close the report as"
                " not seen on this code\nEND HANDOFF\n")
+# fix-with-test's lead, the architect role, which no step of its route plays
+FIX_LEAD = "architect.md"
+FIX_LEAD_CLOSES = ("DECIDED: close the report as not seen on this code\nwhy:"
+                   " calc.py:2 adds, so add(1, 2) is 3 as the report wants\n")
+FIX_LEAD_ESCALATES = ("ESCALATE: only the report's writer knows which input"
+                      " they ran\n")
 
 NOTHING_TO_TEST = ("the code already does it, so no test was written.\n\n"
                    "FAILS: none\nTEST: none written\n\nHANDOFF\nDID:\n"
@@ -379,7 +385,7 @@ CASES = {
     ("fix-with-test", "no-red-asks"): {"place": {"calc.py": FIXED},
                                         "args": ["--task", BUG], "task": BUG,
                                         "answers": {
-        "worker.md": [NO_RED_ASKS]}},
+        "worker.md": [NO_RED_ASKS], FIX_LEAD: [FIX_LEAD_ESCALATES]}},
     ("fix-with-test", "start-test-edited"): {
         "place": {"calc.py": BUGGY, "test_calc.py": KEPT_TEST},
         "args": ["--task", BUG], "task": BUG,
@@ -659,7 +665,13 @@ CASES = {
         "ends": ["no change", "parked"],
         "legs": [[], ["--resume", LAST, "--answer",
                       "close it: add already adds on this code"]],
-        "answers": {"worker.md": [NO_RED_ASKS, NOTHING_TO_TEST]}},
+        "answers": {"worker.md": [NO_RED_ASKS, NOTHING_TO_TEST],
+                    FIX_LEAD: [FIX_LEAD_ESCALATES]}},
+    ("fix-with-test", "lead-closes"): {
+        "place": {"calc.py": FIXED}, "args": ["--task", BUG], "task": BUG,
+        "ends": ["no change"],
+        "answers": {"worker.md": [NO_RED_ASKS, NOTHING_TO_TEST],
+                    FIX_LEAD: [FIX_LEAD_CLOSES]}},
     ("build-feature", "no-change"): {
         "place": {"calc.py": WITH_MUL, "TASK.md": MUL_SPEC},
         "args": ["--task", FEATURE], "ends": ["no change"],
@@ -822,6 +834,10 @@ for _flow in shipped():
         if _path == "no-verdict" and (_flow, "gate-fail") in CASES:
             continue
         CASES[(_flow, _path)] = _case
+# a question with no typed risk meets fix-with-test's lead first; this one
+# sends it on, so the path stays the operator's ruling
+CASES[("fix-with-test", "ruling-resume")]["answers"][FIX_LEAD] = [
+    FIX_LEAD_ESCALATES]
 
 
 class Script(object):
@@ -1005,9 +1021,10 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
     if case.get("task"):
         # fix-with-test names worker.md for its task; the steps after it work
         # from what the worker handed on, a carried-on session already holds
-        # it, and the retro looks back at the whole run
+        # it, and the retro looks back at the whole run; its lead, no step
+        # of the route, has read nothing else of the run, so it gets the task
         for step, _, _, prompt in script.prompts:
-            if step == retro.STEP:
+            if step == retro.STEP or step == FIX_LEAD:
                 continue
             fresh = not prompt.startswith(prompts.CARRIED_ON)
             assert (case["task"] in prompt) == (

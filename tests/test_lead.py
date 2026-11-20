@@ -343,12 +343,14 @@ def test_a_conflict_never_goes_to_the_lead(tmp_path, monkeypatch):
         encoding="utf-8")
 
 
-def test_fix_with_test_has_no_lead_and_parks_at_once(tmp_path, monkeypatch):
+def test_fix_with_test_asks_its_lead_and_a_lead_with_no_answer_parks(
+        tmp_path, monkeypatch):
     answers = {"worker.md": [NEEDS]}
     asked, _, code, folder, _ = run_it(tmp_path, monkeypatch,
                                        "fix-with-test", answers, {},
                                        task="mul is missing from calc")
-    assert asked == ["worker.md"]
+    assert asked[:2] == ["worker.md", "architect.md"]
+    assert "worker.md" not in asked[2:]
     assert code == stops.EXIT_STOP
     assert (folder / "question.md").read_text(
         encoding="utf-8").startswith("NEEDS: should mul round")
@@ -356,7 +358,7 @@ def test_fix_with_test_has_no_lead_and_parks_at_once(tmp_path, monkeypatch):
 
 def test_the_shipped_flows_name_their_lead():
     assert config("build-feature").get("lead") == "planner"
-    assert config("fix-with-test").get("lead") == "none"
+    assert config("fix-with-test").get("lead") == "architect"
 
 
 def base(**more):
@@ -370,8 +372,8 @@ def test_lead_names_a_step_of_the_flow_or_none():
     assert spec.check(base(lead="planner")) == []
     assert spec.check(base(lead="planner.md")) == []
     assert spec.check(base(lead="none")) == []
-    [said] = spec.check(base(lead="architect"))
-    assert said.startswith("lead names no step of the flow: architect")
+    [said] = spec.check(base(lead="judge"))
+    assert said.startswith("lead names no step of the flow: judge")
 
 
 def test_a_fanned_step_cannot_lead():

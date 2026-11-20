@@ -10,7 +10,7 @@ from .config import asks_for_verdict, declared, fanout_step, verdict, where
 from agentweft import providers
 from agentweft.flow.spec import (RESUME, REVIEWER, brief_on,
                                  check_project_gates, grant_of, lead_of,
-                                 step_id, step_name, steps_named)
+                                 off_lead, step_id, step_name, steps_named)
 from agentweft.guardrails import (baseline, boundary, briefing, defaults,
                                   fence, gates, redorder, rulings,
                                   shellwrite, snapshot, specfiles, starttests,
@@ -163,8 +163,11 @@ class Run(object):
                 provider, providers.Provider) else providers.build(
                     provider or fm.get("provider") or {}, where=self.workdir,
                     grant=retro.GRANT, connectors=named)
-        if consult.cap_of(fm):
+        off = off_lead(fm)
+        if consult.cap_of(fm) or off:
             for role in consult.ROLES:
+                if not consult.cap_of(fm) and consult.step_of(role) != off:
+                    continue
                 self.by_step[consult.step_of(role)] = pinned if isinstance(
                     provider, providers.Provider) else providers.build(
                         provider or fm.get("provider") or {},
@@ -220,8 +223,10 @@ class Run(object):
         self.code_by = {}
         self.start_green = {}
         # the step a question goes to before the operator, and what it
-        # decided, by question
-        self.lead = lead_of(fm)
+        # decided, by question; `lead_off` when the lead is a library role
+        # that no step of the route plays
+        self.lead = lead_of(fm) or off
+        self.lead_off = self.lead is not None and self.lead == off
         self.led = {}
         self.kept = rulings.Kept(self.workdir)
         self.kept.also.append(self.facts)

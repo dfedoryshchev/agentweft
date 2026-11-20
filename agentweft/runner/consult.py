@@ -28,9 +28,11 @@ question; 0, the default, turns the rung off.
 """
 import re
 
+from agentweft.flow.spec import OFF_ROUTE
+
 from . import lead, ruling, trace
 
-ROLES = ("architect", "ba")
+ROLES = OFF_ROUTE
 GRANT = ["read", "grep"]
 ASKED = re.compile(r"^(architect|ba)\s+(\S.*)$")
 FROM = re.compile(r"^\s*[-*]?\s*from\s*:\s*(.*?)\s*$", re.I)
@@ -301,10 +303,12 @@ def told(role, asked, said, found):
             " holds no choice. it is not consulted on again.\n")
 
 
-def call(run, role, text):
+def call(run, role, text, leads=False):
     """-> (what the consult said, why it gave nothing or ""): one read-only
     call under the role's own step name, priced on the run like any step,
-    the place held to `writes: none`."""
+    the place held to `writes: none`. `leads` is the flow's lead that is no
+    step of its route: its go goes on the lead's own trail line, so it joins
+    the run's attempts instead of a consult line."""
     from agentweft.guardrails import snapshot
     from agentweft.providers import connectors
     from . import engine, state
@@ -313,13 +317,16 @@ def call(run, role, text):
     name = step_of(role)
     used = run.by_step.get(name, run.provider)
     tried = trace.Attempt()
+    if leads:
+        run.attempts.append(tried)
     used.at(name, None)
     if hasattr(run, "read_auth"):
         run.read_auth(used)
     tried.effort = run.effort_for(name, used)
     used.going = tried.effort["base"] and tried.effort["asked"]
     was = snapshot.fingerprint(run.workdir, own=state.RUNS)
-    print("started " + name + ", consulted by " + run.lead)
+    print("started " + name + (", the flow's lead" if leads
+                               else ", consulted by " + run.lead))
     said, why = "", ""
     try:
         answer = tried.answered(ask(run, text, name, used))
@@ -336,8 +343,26 @@ def call(run, role, text):
         why = name + " changed a file, and a consult writes none"
     if not why and not said.strip():
         why = "nothing came out of " + name
-    run.consult_tried = (name, tried, used, said)
+    if not leads:
+        run.consult_tried = (name, tried, used, said)
     return said, why
+
+
+def lead_go(run, last):
+    """-> (the off-route lead's answer as a Handoff, why it is not held or
+    ""): one read-only go of the role the flow names as `lead:`, handed the
+    request, where the spec is, and `last`."""
+    from agentweft.guardrails import snapshot
+    from .handoff import Handoff
+
+    role = run.lead[:-len(".md")]
+    said, why = call(run, role, lead.off_route(
+        getattr(run, "task_text", None), snapshot.spec_globs()) + last,
+        leads=True)
+    out = Handoff(role, said, meta={"police": None})
+    if why:
+        out.meta["passed"] = why
+    return out, why
 
 
 def ask(run, text, name, used):
