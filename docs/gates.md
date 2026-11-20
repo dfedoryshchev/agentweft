@@ -170,7 +170,9 @@ the lead is handed them; a page that now answers one of them otherwise says
 so on a line `DEPARTS: <the question's first words> - <the new answer> -
 <why>`, which goes on record beside the recommendation it had when its
 first words name exactly one of those questions, and is listed first on the
-head ("departs from the recommendation it stopped on"). a DEPARTS line in
+head ("departs from the recommendation it stopped on"); one whose new
+answer or why names a test the run started with goes up as the test
+question instead, the new answer its recommendation. a DEPARTS line in
 another form, or naming none of them, is said and recorded as nothing. a
 decision the hand-back settles is listed on the head as "decided under the
 operator's hand-back". a question of that page with no recommendation has

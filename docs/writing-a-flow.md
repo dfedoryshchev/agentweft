@@ -451,7 +451,9 @@ line>" -> "<the line as it should read>"` when the code is right and the spec
 line is out of date, or `ESCALATE <n>:`. a mark whose quote is on
 the code line and whose two lines are the finding's sends the run back to the
 step held to a red test for the sibling test, and is then shown and fixed as a
-planned one is; a decision goes on record as the lead's; a stale line that is
+planned one is; a decision goes on record as the lead's, unless it or its
+why names a test the run started with, which sends it up as the test
+question with the decision as its recommendation; a stale line that is
 the finding's spec line, reads as quoted when the run started and gets a new
 text is listed on the head among the questions, with the line and the text
 proposed, and the run goes on without waiting on it; an escalation, a

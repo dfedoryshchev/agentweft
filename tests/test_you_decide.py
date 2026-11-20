@@ -133,6 +133,26 @@ def test_a_departure_on_a_typed_line_goes_on_record_and_is_listed_first(
     assert TIME_LEG in lines[1]
 
 
+def test_a_departure_naming_a_start_test_goes_up_as_the_test_question(
+        tmp_path, monkeypatch):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_times.py").write_text(
+        "def test_years():" + NL + "    assert True" + NL, encoding="utf-8")
+    stopped(tmp_path, monkeypatch)
+    leg = page((TIME_Q, TIME_LEG), extra=[
+        "DEPARTS: is a time outside the years - " + TIME_LEG
+        + " - tests/test_times.py::test_years goes to the new range"])
+    code, asked, _ = resumed(tmp_path, monkeypatch, leg)
+    assert code == stops.EXIT_STOP
+    assert [s for s, _ in asked] == ["planner.md"]
+    assert not [d for d in decisions.read(tmp_path) if d.decided.startswith(
+        "planner.md departs for planner.md: ")]
+    said = (folder(tmp_path) / "question.md").read_text(encoding="utf-8")
+    assert TIME_Q in said
+    assert "- tests/test_times.py - a test the run started with" in said
+    assert "RECOMMEND: " + TIME_LEG in said
+
+
 def test_a_departs_line_that_names_no_question_it_had_is_not_a_departure(
         tmp_path, monkeypatch, capsys):
     stopped(tmp_path, monkeypatch)

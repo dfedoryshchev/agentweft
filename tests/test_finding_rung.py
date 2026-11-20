@@ -13,6 +13,8 @@ import json
 import sys
 import types
 
+import pytest
+
 sys.path.insert(0, ".")
 sys.path.insert(0, "tests")
 from agentweft.guardrails import rulings
@@ -197,7 +199,7 @@ SIBLING_TESTER = tl.TESTER + "SIBLING TEST: " + ab.SIBLING_ID + NL
 
 
 def found_by_the_worker(tmp_path, monkeypatch, lead_says, item=FOUND_ITEM,
-                        reviewer=tl.OK, left=LEFT):
+                        reviewer=tl.OK, left=LEFT, start=()):
     monkeypatch.setattr(tl, "BEFORE", ab.BROKEN)
     answers = {"planner.md": [tl.PLAN] + list(lead_says),
                "tester.md": [tl.TESTER, SIBLING_TESTER],
@@ -207,7 +209,8 @@ def found_by_the_worker(tmp_path, monkeypatch, lead_says, item=FOUND_ITEM,
                             ("tests/test_mul.py",
                              ab.with_sibling("add(2, 1) == 3"))],
               "worker.md": [("calc.py", left), ("calc.py", ab.FIXED)]}
-    return tl.run_it(tmp_path, monkeypatch, "build-feature", answers, writes)
+    return tl.run_it(tmp_path, monkeypatch, "build-feature", answers, writes,
+                     start=start)
 
 
 def test_a_workers_finding_on_a_spec_line_is_marked_by_the_lead_and_fixed(
@@ -281,6 +284,27 @@ def test_a_finding_the_lead_decides_is_recorded_and_the_run_goes_on(
     assert code == stops.EXIT_OK
     assert "planner.md decided for worker.md: leave add as it is" in (
         project / "decisions.md").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("decided", [
+    "DECIDED 1: leave add as it is, and loosen tests/test_add.py::test_add"
+    + NL + "why: not this task" + NL,
+    "DECIDED 1: leave add as it is" + NL + "why: tests/test_add.py::test_add"
+    " can go to the length" + NL,
+], ids=["in the decision", "in the why"])
+def test_a_finding_decided_on_a_start_test_parks_as_the_test_question(
+        tmp_path, monkeypatch, decided):
+    asked, _, code, folder, project = found_by_the_worker(
+        tmp_path, monkeypatch, [decided],
+        start=[("tests/test_add.py", START_TEST)])
+    assert asked == ["planner.md", "tester.md", "worker.md", "planner.md"]
+    assert code == stops.EXIT_STOP
+    said = ab.question(folder)
+    assert "- tests/test_add.py - a test the run started with" in said
+    assert "RECOMMEND: leave add as it is" in said
+    record = project / "decisions.md"
+    assert "planner.md decided for worker.md" not in (
+        record.read_text(encoding="utf-8") if record.is_file() else "")
 
 
 def test_a_finding_the_lead_escalates_parks(tmp_path, monkeypatch):

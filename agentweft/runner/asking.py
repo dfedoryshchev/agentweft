@@ -469,7 +469,9 @@ def finding_pass(run, step, found, given, where, folder):
     `run.adjacent` to be shown red by a sibling test and fixed ("fix"); a
     decision goes on record as the lead's (""); an escalation, a mark
     that is not read that way and a finding answered in no taught form park
-    them all ("park"). a lead the run cannot pay for, or that was cut, does
+    them all ("park"), and a decision that names a test the run started
+    with goes up as the test question (`decided_risk`), what the record
+    keeps of it on `run.lead_held`. a lead the run cannot pay for, or that was cut, does
     not decide: each finding stays printed beside the change and the run
     goes on (None, "", "")."""
     head = run.lead
@@ -528,6 +530,16 @@ def finding_pass(run, step, found, given, where, folder):
         out.meta["passed"] = why
         return out, "park", lead.passed(question, why)
     asked = lead.parts(question) if len(found) > 1 else {1: question}
+    for n in sorted(decided):
+        if n in fixes or n in stales:
+            continue
+        said, record = decided_risk(run, step, asked[n], *decided[n])
+        if said:
+            run.lead_held = record
+            out.meta["passed"] = (head + " decided " + str(n) + " on a test"
+                                  " the run started with, which only the"
+                                  " operator lets change")
+            return out, "park", said
     held_stale = getattr(run, "stale", None)
     if held_stale is None:
         held_stale = run.stale = []
@@ -1628,7 +1640,10 @@ def lead_parks(run, step, out, consulting=()):
     - a typed `SPLIT:` line: two readings of the request's words or of one
       spec line, the quote checked where it can be (`split_checked`), any
       SPLIT line parking;
-    - no recommendation (`no_recommendation`).
+    - no recommendation (`no_recommendation`);
+    - a DEPARTS line after a hand-back whose new answer or why names a test
+      the run started with (`departing`): the test question, the new
+      answer its recommendation.
     a question or mark already put to the person in this run and answered
     is not asked again. the lead's own question has no one above it.
     `consulting` holds the questions, by `lead.key`, a consult is about to
@@ -1662,6 +1677,10 @@ def lead_parks(run, step, out, consulting=()):
             return said
         if no_recommendation(rec) and lead.key(asked) not in consulting:
             return asked_as(asked, cites, rec, size), None
+    for _, asked, _, now, why in departing(run, out):
+        said = risk_of(run, step, asked, [], now, "", [now, why], "")
+        if said[0]:
+            return said
     return "", None
 
 
@@ -1941,6 +1960,30 @@ def hand_back_pick(run, kind, step, question):
     return said, ""
 
 
+def departs_key(stood, words):
+    """-> the one key of `stood` a DEPARTS line's first words open, or
+    None for none or more than one."""
+    start = "needs: " + " ".join(words.lower().split())
+    named = [k for k in stood if k.startswith(start)]
+    return named[0] if len(named) == 1 else None
+
+
+def departing(run, out):
+    """-> [(key, the question, the recommendation it had, the new answer,
+    the why)] for each DEPARTS line of `out` that `departures` would put on
+    record, so `lead_parks` reads the new answer for risks first."""
+    stood = getattr(run, "stood", None) or {}
+    found = lead.departs_of(out.output) if stood else []
+    if not found or not handed_back(run):
+        return []
+    said = []
+    for d in found:
+        key = departs_key(stood, d[0]) if d[0] is not None else None
+        if key is not None:
+            said.append((key, stood[key][0], stood[key][1], d[1], d[2]))
+    return said
+
+
 def departures(run, step, out, where):
     """each DEPARTS line of the lead's page on the leg after a hand-back
     that names, by its first words, exactly one question `stopped_decided`
@@ -1957,15 +2000,14 @@ def departures(run, step, out, where):
                   " nothing: " + said[-1])
             continue
         words, now, why = said
-        start = "needs: " + " ".join(words.lower().split())
-        named = [k for k in stood if k.startswith(start)]
-        if len(named) != 1:
+        key = departs_key(stood, words)
+        if key is None:
             print("a DEPARTS line names no question of the page the run"
                   " stopped on, or more than one, recorded as nothing:"
                   " DEPARTS: " + words)
             continue
-        asked, was = stood.pop(named[0])
-        run.led[named[0]] = now
+        asked, was = stood.pop(key)
+        run.led[key] = now
         run.rule(*lead.departed(step, where, asked, was, now, why,
                                 settled[0] + ' "' + settled[1] + '"'),
                  by=rulings.LEAD)

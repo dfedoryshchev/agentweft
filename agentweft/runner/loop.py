@@ -802,6 +802,7 @@ def go(leg):
 
             found = findings(run, step, out) if honest else []
             if found:
+                run.lead_held = None
                 head, how, question = finding_pass(run, step, found, given,
                                                    run_id, step_dir)
                 if head is not None:
@@ -815,7 +816,7 @@ def go(leg):
                                 "parked", entry,
                                 index="PARKED  " + flow + "  at " + step,
                                 waiting="user", question=question,
-                                kind=trace.ASKED)
+                                asked=run.lead_held, kind=trace.ASKED)
                 writer = test_writer(run, route, step) if how == "fix" \
                     else None
                 if writer:
