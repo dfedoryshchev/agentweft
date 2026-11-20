@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T13:27:52",
+  "recorded": "2026-11-20T16:58:24",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -22,7 +22,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "2434d7c222b6605b4604dbcd084e75707270884aeef85a9fb298caf0e2b3257c",
+      "prompt": "bd29a8da63dd9d71cf8c50645304c78daa0db0658ad22457fa2cd01a06241402",
       "say": "REFUSED: SPEC.md:3 \"add(a, b) returns a minus b, the ledger import depends on it\" is what the report calls the bug\n",
       "detail": "",
       "retryable": null,

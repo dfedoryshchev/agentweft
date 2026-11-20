@@ -60,6 +60,13 @@ KNOWN = set(KEYS.values())
 ASKING = {"QUESTION": "question", "RECOMMEND": "recommend", "SIZE": "size",
           "SETTLED BY": "settled", "SPLIT": "split", "CONSULT": "consult"}
 
+# the three checks a NOT VERIFIED line names by key, so a gate of the run
+# that made the check answers the line, never its words
+SUITE_NOT_RUN = "suite not run"
+RED_NOT_SHOWN = "red without the change not shown"
+GREEN_NOT_SHOWN = "green with the change not shown"
+NOT_SHOWN = (SUITE_NOT_RUN, RED_NOT_SHOWN, GREEN_NOT_SHOWN)
+
 MISSING = "missing"
 PRESENT = "present"
 UNREADABLE = "unreadable"
@@ -107,6 +114,16 @@ def empty(state=MISSING, why=None):
     out["questions"] = []
     out["other"] = {}
     return out
+
+
+def not_shown(item):
+    """-> (the key, what follows it) of a NOT VERIFIED item that opens with
+    one of NOT_SHOWN and a colon, in any case; None for any other item."""
+    text = (item or "").lstrip()
+    for key in NOT_SHOWN:
+        if text[:len(key) + 1].lower() == key + ":":
+            return key, text[len(key) + 1:].strip()
+    return None
 
 
 def bounds(shown):

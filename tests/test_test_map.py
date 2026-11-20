@@ -102,8 +102,9 @@ def test_a_test_writing_step_is_handed_the_map_and_a_plan_step_is_not(
         + "- tests/test_report.py::test_alphabetical" + NL in sent["tester.md"]
     assert testmap.HEAD not in sent["worker.md"]
     handoff = te.read(te.folders()[-1] / "handoff.md").split(NL)
-    assert "tests: updated 1 / added 0 / in files tests/test_report.py." \
-        in handoff[:8], handoff[:8]
+    assert ("tests: added 1 to files the run started with / added 0 in new"
+            " files / changed 0 the run started with / in files"
+            " tests/test_report.py.") in handoff[:8], handoff[:8]
 
 
 def test_a_test_writing_step_is_prompted_before_any_product_line_exists(
@@ -203,5 +204,6 @@ def test_the_tests_line_counts_new_files_apart():
         "tests/test_b.py": ["tests/test_b.py::test_y",
                             "tests/test_b.py::test_z"]},
         "tests_new": ["tests/test_b.py"]}) == (
-        "tests: updated 1 / added 2 / in files tests/test_a.py,"
+        "tests: added 1 to files the run started with / added 2 in new"
+        " files / changed 0 the run started with / in files tests/test_a.py,"
         " tests/test_b.py.")

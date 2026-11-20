@@ -231,12 +231,16 @@ class Tree(object):
         `tests_added` holds the changed test files with lines removed that
         the test-edits check reads as gaining only (`added_only`), and
         `test_ids` the ids of the tests the run added or changed, by file
-        (`written`), and `tests_new` the test files of those the start
-        commit did not hold."""
+        (`written`), `tests_new` the test files of those the start
+        commit did not hold and `tests_edited` the ids among them the start
+        commit held with other code (`edited`). `tests_changed` holds only
+        test files the start commit held: one the run wrote and committed is
+        none the run started with."""
         out = {"git": self.git, "start": self.start, "commits": [],
                "files": [], "tests_changed": [], "spec_changed": [],
                "tests_added": [], "test_ids": {}, "tests_new": [],
-               "ranges": {}, "names": {}, "status": [], "log": []}
+               "tests_edited": {}, "ranges": {}, "names": {}, "status": [],
+               "log": []}
         names = {}
         if not self.git:
             return out
@@ -265,6 +269,11 @@ class Tree(object):
                              if self.start else "")
         uncommitted = _numstat(_git(self.place, "diff", "--numstat", "HEAD",
                                     "--", ".") if self.start else "")
+        listed = _git(self.place, "ls-tree", "-r", "--name-only",
+                      "--full-tree", self.start) if self.start else None
+        # a listing git could not give counts every test file as one the
+        # run started with, so a changed one still owes its ruling
+        held = set(_lines(listed)) if listed is not None else None
         untracked = []
         for code, path in _porcelain(self.place):
             if code != "??":
@@ -290,7 +299,8 @@ class Tree(object):
                 out["files"].append((path, a, d, how))
                 if kind == "untracked":
                     continue
-                if is_test_file(path, self.root, self.place):
+                if is_test_file(path, self.root, self.place) and (
+                        held is None or path in held):
                     out["tests_changed"].append((path, a, d))
                 if is_spec(path, self.root, self.place):
                     out["spec_changed"].append((path, a, d))
@@ -308,6 +318,9 @@ class Tree(object):
                 out["test_ids"][path] = ids
                 if was is None:
                     out["tests_new"].append(path)
+                changed = edited(path, was, now)
+                if changed:
+                    out["tests_edited"][path] = changed
         out["names"] = dict((p, sorted(n)) for p, n in names.items())
         return out
 
@@ -339,20 +352,30 @@ def written(path, was, now):
     return [i for i, code in new.items() if old.get(i) != code]
 
 
+def edited(path, was, now):
+    """-> the ids of `written` tests that `was` held too, with other code:
+    tests the run started with and changed, never ones it added."""
+    old = {} if was is None else test_ids(was, path)
+    return [i for i in written(path, was, now) if old and i in old]
+
+
 def tests_line(changes):
-    """-> the handoff's line on the python tests the run wrote: how many went
-    into a test file the start commit held (a new case, a new function, or a
-    change a ruling let stand), how many into a file the run made, and the
-    files; "" when it wrote none."""
+    """-> the handoff's line on the python tests the run wrote: how many it
+    added to test files the start commit held, how many went into files the
+    run made, how many tests the run started with it changed (each listed
+    under the rulings), and the files; "" when it wrote none."""
     ids = changes.get("test_ids") or {}
     if not ids:
         return ""
     new = set(changes.get("tests_new") or [])
-    return ("tests: updated " + str(sum(len(v) for p, v in ids.items()
-                                        if p not in new))
-            + " / added " + str(sum(len(v) for p, v in ids.items()
-                                    if p in new))
-            + " / in files " + ", ".join(sorted(ids)) + ".")
+    changed = changes.get("tests_edited") or {}
+    old = sum(len(v) for p, v in ids.items() if p not in new)
+    ruled = sum(len(changed.get(p) or []) for p in ids if p not in new)
+    return ("tests: added " + str(old - ruled) + " to files the run started"
+            " with / added " + str(sum(len(v) for p, v in ids.items()
+                                       if p in new))
+            + " in new files / changed " + str(ruled) + " the run started"
+            " with / in files " + ", ".join(sorted(ids)) + ".")
 
 
 def tree(place):
@@ -1591,8 +1614,14 @@ def left_undone(stopped, needs, changes):
                 " change, and the run ends on that")
     left = park.left_of(needs)
     out = "not done: the run stopped at " + at
+    if left is not None and at not in left \
+            and "stopped after  " + at not in (needs or ()):
+        out = out + ", which runs again when carried on"
+        if left == []:
+            out = out + ","
     if left:
-        out = out + "; left to run: " + ", ".join(left)
+        out = out + "; left to run" + (" after it" if at not in left
+                                       else "") + ": " + ", ".join(left)
     elif left == []:
         return (out + " with no step left to run after it; what carries it"
                 " on is under needs you")
@@ -2267,6 +2296,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     found = front.clusters(([waits] if waits else [])
                            + front.stopped_also(stopped, waits, asking)
                            + [p for p, by in later if not by])
+    front.argued(found, every)
     later = [(p, by) for p, by in later if by]
     if last and stopped:
         why = [(last["role"] + " handed over this before the stop, not taken"
@@ -2302,7 +2332,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     for n, (role, b) in enumerate(blocks):
         if _present(b):
             for i in b["not_verified"]:
-                by = answered_by(i, n, every, on_record)
+                by = gate_answered(i, n, every) or answered_by(
+                    i, n, every, on_record)
                 if by:
                     settled_later[(n, i)] = by
                     continue
@@ -2672,6 +2703,47 @@ def answered_by(text, asked, passes, record):
                     and names & named_tests(item["claim"]):
                 return pass_label(passes, n) + ": verified: " + item["claim"]
     return ""
+
+
+def gate_answered(text, asked, passes):
+    """-> the gate of the run that answered a NOT VERIFIED item keyed on one
+    of `handoff.NOT_SHOWN`, "" when none did. `asked` is the place of the
+    pass that said it in `passes`; only that pass's gates and later ones
+    count. the suite line is the last command gate's, which must have
+    passed; a red or green line is the newest red-first replay's, which must
+    have passed and run every test the item names (any test when it names
+    none); a green line is also the last command gate's when it passed."""
+    found = handoff.not_shown(text)
+    if found is None or asked is None:
+        return ""
+    key, rest = found
+    names = named_tests(rest)
+    later = list(enumerate(passes))[asked:]
+    suite = next(((n, g) for n, p in reversed(later)
+                  for g in reversed(p["gates"]) if g["gate"] == "command"
+                  and not g.get("skipped")), None)
+    by_suite = ("the command gate on " + pass_label(passes, suite[0]) + ": "
+                + suite[1]["detail"] + (" (" + suite[1]["command"] + ")"
+                                        if suite[1].get("command") else "")
+                if suite and suite[1]["ok"] else "")
+    if key == handoff.SUITE_NOT_RUN:
+        return by_suite
+    replayed = next(((n, g) for n, p in reversed(later)
+                     for g in reversed(p["gates"])
+                     if g["gate"] == "red-first" and not g.get("skipped")
+                     and not g["detail"].startswith("not replayed")), None)
+    tests = [t for t in (replayed[1].get("tests") or [])
+             if isinstance(t, dict) and t.get("test")] \
+        if replayed and replayed[1]["ok"] else []
+    red = key == handoff.RED_NOT_SHOWN
+    held = [t["test"] for t in tests
+            if (t.get("before") == "red" if red else t.get("after") == "green")
+            and (not names or names & named_tests(t["test"]))]
+    if held and (not names or names <= named_tests(" ".join(held))):
+        return ("the red-first gate on " + pass_label(passes, replayed[0])
+                + ": " + ", ".join(held) + (" red without the change" if red
+                                            else " green with the change"))
+    return "" if red else by_suite
 
 
 def lead_own_decisions(decided, passes, run_id):

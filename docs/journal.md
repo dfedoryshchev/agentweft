@@ -611,6 +611,7 @@ with a block, after the work:
       saw: <an excerpt of the output, one line per excerpt>
     NOT VERIFIED:
     - <what it did not check> - <why>
+    - suite not run: <why>, or red without the change not shown: <test>, or green with the change not shown: <test>
     ASSUMED:
     - <a choice the spec does not make>
       why: <reason>
@@ -709,7 +710,9 @@ it answers, in order:
   on a supplied test reads `0 written first (the supplied test is the proof:
   tests/test_bug.py)`. the same line closes "tests and checks", where the
   replay's own gate line gives the counts and each test follows on a line of
-  its own. a conflict stop counts its
+  its own, and the console prints the replay's gate line in the same counts
+  once the run holds its red proof (`PASS red-first - <the counts>; each test
+  is in gates.md`; `gates.md` keeps the gate's own line). a conflict stop counts its
   quote check (`1 check passed (the quote at TASK.md:3 is there as the run
   found it)`), or the tests the run started with run again; `no gates ran`
   is only for a run that checked nothing.
@@ -731,7 +734,12 @@ it answers, in order:
   `also open:`. a question of its own the lead decided
   (`writing-a-flow.md`, section 8) comes first, before anything else: `-
   decided by the lead: <the question>`, its decision on the line under it,
-  the operator's to overrule, and, when its SETTLED BY line was read, `settled by
+  the operator's to overrule, then the rung of the ladder that took it,
+  read off the reason the runner recorded (`rung: the lead, planner.md, on a
+  question of its own page`; `rung: the lead, planner.md, after asking the
+  architect`, with what the architect would answer otherwise when it said;
+  `rung: the operator's you decide, then the lead, planner.md, took` or
+  `departed from the recommendation the run stopped on`), and, when its SETTLED BY line was read, `settled by
   <file>:<line> "<the quote>"` under that, the reason it was decided on. any other question the lead decided, and one
   an `--answer` settled, is under
   the rulings, not here, so a finished run needs nothing: the same question
@@ -763,7 +771,12 @@ it answers, in order:
   the question and recommended an answer (its own `RECOMMEND:`, or the one
   its block gives a question), that one comes first, as `recommendation
   (<lead>, the flow's lead): ...`, and the asker's own follows on a line of
-  its own, `<role>'s recommendation: ...`. a conflict stop whose step
+  its own, `<role>'s recommendation: ...`. an open item a later step argued
+  with a DOUBTS line that names it the way the block teaches (opening with
+  its first words, five of them or the whole of a shorter question, copied)
+  shows the newest such step's answer, as `recommendation (<role>, the
+  latest step that argued it): ...`, and the first raiser's on a line of its
+  own when the two differ. a conflict stop whose step
   recommends in its block, on a question citing a line the conflict cites,
   shows that recommendation, and the conflict's options after it.
 - **why**: what the last working step did (on a stop, "handed over this
@@ -787,15 +800,24 @@ it answers, in order:
   defect a step fixed beside the change with the test that shows it (`also
   fixed beside the change:`, `no test names it` when none did).
 - **not done**: on a stop, first a line of its own that says plainly what
-  is left, read from the record: `- not done: the run stopped at <step>;
-  left to run: <the steps its needs section lists>`, then what git says of
+  is left, read from the record: `- not done: the run stopped at <step>,
+  which runs again when carried on; left to run after it: <the steps its
+  needs section lists>` (a step the run stopped before, which never ran,
+  reads `left to run: <step>, ...`), then what git says of
   the tree (`nothing in the tree changed`, or the files it changed are `not
   taken as done`); a refusal that cites the spec says `the work the task
   asked for` is not done, and a stop with no step left after it points at
   needs you. a finished run has no such line. then what was not verified (a
   line a later step answered, by the same typed link as a question, is left
   out here and kept in the full record's `## not verified` with ` - answered
-  by ...` after it), the gates' unproven checks, and the
+  by ...` after it; so is a line keyed on one of the three standard checks
+  that a gate of the run, on its step or a later one, made: `suite not run:`
+  by the last command gate when it passed, `red without the change not
+  shown:` by the newest red-first replay when it passed and ran every test
+  the line names, `green with the change not shown:` by that replay or the
+  last command gate, ` - answered by the command gate on patcher.md, pass 2
+  of the run: exit 0 (<command>)`; the key is read where the line opens,
+  never from its words), the gates' unproven checks, and the
   doubts left as they are, each once: by its words, or by the spec line it
   cites, with the roles that raised it, and how many times when one role
   raised it again after a send-back, so a doubt that was not fixed says so;
@@ -868,7 +890,8 @@ the suite line repeats), each gate skipped by name with its reason (`- regex
 skipped: <reason> (--skip)`, also on the suite line), the rulings on record
 (the entries of `decisions.md` in the place that the runner wrote or found
 there when the run started),
-the spend. a pre-existing test whose lines were removed or changed, and a
+the spend. a pre-existing test (a test file the start commit held; one the
+run wrote, committed or not, never is) whose lines were removed or changed, and a
 spec file (`TASK.md` or `SPEC*.md` at the top of the place, or a file under
 `docs/spec*` there, or what the project's `spec:` list names; a `*` never
 crosses a `/`) changed at all, each name the

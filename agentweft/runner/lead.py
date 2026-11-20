@@ -369,7 +369,30 @@ def own(d):
     option, why, _ = read(decided)
     by = SETTLED_BY.search(why or "")
     return (m.group(2), asked.split("\n")[0], option or "",
-            by.group(1) if by else "", departs)
+            by.group(1) if by else "", departs,
+            rung(m.group(1), why or "", departs))
+
+
+CONSULTED = re.compile(r"'s own handoff after asking the (\S+?)(?: \(the \S+"
+                       r" would answer otherwise: (.*?)\))?(?:, which |; )")
+
+
+def rung(lead, why, departs):
+    """-> which rung of the ladder took a decision of the lead's, read off
+    the why line the runner wrote for it: the lead on its own page, the lead
+    after a consult (and what the consulted role would answer otherwise),
+    or the lead under the operator's hand-back, taking or departing from
+    the recommendation the run stopped on."""
+    if departs or HANDED in why:
+        return ("the operator's you decide, then the lead, " + lead + ", "
+                + ("departed from" if departs else "took")
+                + " the recommendation the run stopped on")
+    m = CONSULTED.search(why)
+    if m:
+        return ("the lead, " + lead + ", after asking the " + m.group(1)
+                + (", who would answer otherwise: " + m.group(2)
+                   if m.group(2) else ""))
+    return "the lead, " + lead + ", on a question of its own page"
 
 
 DEPARTS_FOR = " departs for "

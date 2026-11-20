@@ -73,7 +73,7 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
         out.append("nothing failed. " + step + " finished and its checks passed. the flow")
         out.append("asks for " + who + " here, so the rest of it has not run.")
     out.append("")
-    ran_and_left(out, done, left)
+    ran_and_left(out, done, left, None if handed else step)
     if handed:
         out.append(step + " has not run. it was handed what " + handed + " produced, and")
         out.append("carrying on runs it on that: the go-ahead for the files named above.")
@@ -90,12 +90,17 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     return out
 
 
-def ran_and_left(out, done, left):
+def ran_and_left(out, done, left, step=None):
+    """the steps that ran, then the steps left to run: `step`, where the
+    run stopped, is not left once it ran; the lines after the block say it
+    runs again."""
     out.append("ran")
     for name, seconds in done:
         out.append("  " + name.ljust(16) + str(seconds) + "s")
     out.append("")
     out.append("left")
+    ran = set(name for name, _ in done)
+    left = [name for name in left or [] if name != step or name not in ran]
     for name in left or ["nothing"]:
         out.append("  " + name)
     out.append("")
@@ -143,7 +148,7 @@ def ruling(step, who, done, left, command, question, worked=None,
         out.append("its gates ran on what it changed, and failed: " + worked)
     out.append("so the rest of it has not run.")
     out.append("")
-    ran_and_left(out, done, left)
+    ran_and_left(out, done, left, step)
     if edits:
         out.append("override lets the change stand when it names each test or quotes")
         out.append("the spec line that decides it; put them back sends " + step)
@@ -200,7 +205,7 @@ def contradicted(step, done, left, command, question, replayed=False,
     out.append("")
     out.append("nothing failed, and the rest of it has not run.")
     out.append("")
-    ran_and_left(out, done, left)
+    ran_and_left(out, done, left, step)
     if replayed:
         out.append("say which one holds. override lets the change stand when it")
         out.append("names each test or quotes the spec line that decides it; "
@@ -269,7 +274,7 @@ def stopped(step, cause, done, left, command, why, handed=None):
         out.append(why)
     out.append("so the rest of it has not run.")
     out.append("")
-    ran_and_left(out, done, left)
+    ran_and_left(out, done, left, None if handed else step)
     if handed:
         out.append(step + " has not run. carrying on starts at it, on what "
                    + handed + " produced.")

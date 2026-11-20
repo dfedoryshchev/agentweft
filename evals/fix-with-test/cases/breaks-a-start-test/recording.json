@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T13:26:30",
+  "recorded": "2026-11-20T16:57:10",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 1,
-      "prompt": "fc5156b3c9d299c93b8b0231b748e2bfc68fe2e0f7d7899462361c21a6a2584b",
+      "prompt": "f1cdc276b06553183c372efde4b98c50ec9358fbac1ab6522faea3a8d1c73224",
       "say": "TEST: tests/test_add.py\n\ncalc.py: add and sub share one body now\n",
       "detail": "",
       "retryable": null,
@@ -25,7 +25,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 2,
-      "prompt": "85b74e09e5bfbcdad4081f5887841238e56df00391a0ef8c68d7ebe41b10d226",
+      "prompt": "377242500661ed15e0811cfa444f507eee8b816a6c8ca72553ecff0412f25d64",
       "say": "TEST: tests/test_add.py\n\ncalc.py: add and sub share one body now\n",
       "detail": "",
       "retryable": null,
@@ -58,7 +58,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "2434d7c222b6605b4604dbcd084e75707270884aeef85a9fb298caf0e2b3257c",
+      "prompt": "bd29a8da63dd9d71cf8c50645304c78daa0db0658ad22457fa2cd01a06241402",
       "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
       "detail": "",
       "retryable": null,

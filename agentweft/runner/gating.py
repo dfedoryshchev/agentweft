@@ -40,6 +40,19 @@ def shown(step, results, output):
     return out
 
 
+def printed(r, proof):
+    """-> gate result `r` as the console prints it: a passing red-first
+    replay, given the run's red proof `proof`, in the classes the handoff
+    counts it by (`summary.red_counts`); any other result as it reads."""
+    if r.gate != "red-first" or not r.ok or not r.tests:
+        return repr(r)
+    from .summary import red_counts
+
+    counted = red_counts({"tests": r.tests}, proof)
+    return "PASS red-first - " + counted + "; each test is in gates.md" \
+        if counted else repr(r)
+
+
 def forged_first(run, step, out):
     """-> what `step` did to decisions.md, "" for nothing, put on `out` as a
     failed rulings gate. read before a fence or an empty answer can stop the
@@ -349,8 +362,9 @@ def check_step(run, route, step, out, run_dir=None):
         if isinstance(getattr(run, "produced", None), dict) \
                 and step in run.produced:
             run.produced[step] = out.output
+    proof = getattr(getattr(run, "order", None), "proof", None)
     for r in results:
-        print("  " + repr(r))
+        print("  " + printed(r, proof))
     if isinstance(getattr(run, "proven", None), dict):
         run.proven[step] = shown(step, results, out.output)
     if run_dir is not None:

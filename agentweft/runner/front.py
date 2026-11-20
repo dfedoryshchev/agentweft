@@ -381,6 +381,56 @@ def unprinted(found, printed=()):
     return out
 
 
+NAMED_BY = 5
+NAMED_LEAST = 3
+
+
+def named(doubt, question):
+    """-> what a DOUBTS line answers to `question` when it names it the way
+    the handoff template teaches, opening with its first words copied
+    (NAMED_BY of them, or all of a shorter question, never under
+    NAMED_LEAST), else None. a question quoted whole has its quote taken
+    off what is answered."""
+    words = norm(question).split()[:NAMED_BY]
+    said = (doubt or "").strip()
+    if len(words) < NAMED_LEAST or norm(said).split()[:len(words)] != words:
+        return None
+    if said[:1] in "\"'`" and said[0] in said[1:]:
+        said = said[1:].split(said[0], 1)[1]
+    return said.strip().lstrip(":-").strip() or None
+
+
+def argued(found, passes):
+    """each open item in `found` that a later step argued with a DOUBTS
+    line naming it (`named`) takes the newest such step's answer as its
+    recommendation, said as that step's, with the first raiser's beside it
+    when the two differ. an item a stop waits on, or whose recommendation
+    is already the lead's, keeps its own; a doubt that is itself a question
+    is a wording of the item, never an answer to it."""
+    for c in found:
+        if c["kind"] in WAITS or c.get("by"):
+            continue
+        latest = None
+        for p in passes:
+            b = p["block"]
+            if b.get("state") not in (handoff.PRESENT, handoff.PARTIAL):
+                continue
+            for item in b["doubts"]:
+                if is_question(*parts(item)[:2]):
+                    continue
+                answer = next((a for a in (named(parts(item)[0], w["text"])
+                                           for w in c["said"]) if a), None)
+                if answer:
+                    latest = (p["role"], answer)
+        if latest is None or norm(latest[1]) == norm(c["rec"]):
+            continue
+        if c["rec"]:
+            c["beside"] = (c["roles"][0], c["rec"], c["size"])
+        c["rec"], c["size"] = latest[1], ""
+        c["by"] = latest[0] + ", the latest step that argued it"
+    return found
+
+
 def doubts(passes, taken=(), by_line=True):
     """-> the doubts that are not questions, made one: [(text, who)], `who`
     the roles that raised it and how many times when a role raised it more
@@ -424,6 +474,8 @@ LED_SO = ("  its decision: {rec} (on record in decisions.md; it rules no spec"
 LED_BY = "  settled by "
 LED_HANDED = "- decided under the operator's hand-back: "
 LED_DEPARTS = "- departs from the recommendation it stopped on: "
+RUNG = "  rung: "
+HANDED_RUNG = "the operator's you decide"
 QUOTED = re.compile(r'^\S+:\d+ "(.*)"$')
 
 
@@ -498,13 +550,18 @@ def _decision(found, most, width, stop=None, led=(), spread=(), stale=(),
     for stamp, a, b, cites in spread:
         out.append(SPREAD.format(cites=", ".join(cites), a=a, b=b,
                                  stamp=stamp))
-    for question, rec, by, *departs in sorted(
+    for question, rec, by, *rest in sorted(
             led, key=lambda d: not (len(d) > 3 and d[3])):
-        out.append(LED_DEPARTS + question if departs and departs[0] else
+        out.append(LED_DEPARTS + question if rest and rest[0] else
                    LED_HANDED + question if handed(by) else LED + question)
         out.append(LED_SO.format(rec=rec))
         if by:
             out.append(LED_BY + by)
+        rung = rest[1] if len(rest) > 1 else ""
+        if rung and handed(by) and not rung.startswith(HANDED_RUNG):
+            rung = HANDED_RUNG + ", then " + rung
+        if rung:
+            out.append(RUNG + rung)
     out.extend(stale_lines(stale))
     out.extend(broken_lines(broken))
     if (led or stale or broken) and not stop and not found:

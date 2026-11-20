@@ -79,15 +79,23 @@ def test_a_run_at_eighty_percent_of_its_token_cap_parks_reaching(
         tmp_path, monkeypatch):
     a_flow(tmp_path, monkeypatch, "near", THREE,
            tail="max_tokens: 12000" + NL)
-    # forty thousand characters are ten thousand estimated tokens: past 80%
-    # of the cap before the prompt is counted, under the cap with it
-    asked = asking(monkeypatch, lambda step, prompt: "x" * 40000)
+    # four characters are an estimated token: the answer is sized from the
+    # prompt it is sent, past 80% of the cap before the prompt is counted
+    # and under the cap with it
+    sized = []
+
+    def answer(step, prompt):
+        sized.append(48000 - len(prompt) - 400)
+        return "x" * sized[-1]
+
+    asked = asking(monkeypatch, answer)
     assert run(monkeypatch, "near", "--force") == stops.EXIT_STOP
     assert asked == ["a.md"]
     [first] = folders(tmp_path)
     note = (first / "handoff.md").read_text(encoding="utf-8")
     assert "reaching" in note and "completion 1/3" in note
     assert last_line(tmp_path).cause == stops.BUDGET
+    assert sized[0] > 12000 * 4 * 0.8
 
 
 def test_a_budget_park_is_not_carried_on_without_a_raised_cap(

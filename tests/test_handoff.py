@@ -1676,9 +1676,9 @@ def test_a_park_says_in_a_line_of_its_own_what_is_left_to_run():
                         worked="")
     lines = stopped_build({"cause": stops.PARKED, "why": "which one?",
                            "at": "worker.md"}, needs, CHANGED)
-    assert ("- not done: the run stopped at worker.md; left to run:"
-            " worker.md, reviewer.md; the 2 files it changed are not taken"
-            " as done") in not_done_of(lines)
+    assert ("- not done: the run stopped at worker.md, which runs again when"
+            " carried on; left to run after it: reviewer.md; the 2 files it"
+            " changed are not taken as done") in not_done_of(lines)
 
 
 def test_a_gate_stop_with_nothing_changed_says_so_and_what_is_left():
@@ -1689,9 +1689,9 @@ def test_a_gate_stop_with_nothing_changed_says_so_and_what_is_left():
     lines = stopped_build({"cause": stops.GATE, "why": "regex failed",
                            "at": "worker.md"}, needs,
                           dict(CHANGED, files=[]))
-    assert ("- not done: the run stopped at worker.md; left to run:"
-            " worker.md, reviewer.md; nothing in the tree changed") \
-        in not_done_of(lines)
+    assert ("- not done: the run stopped at worker.md, which runs again when"
+            " carried on; left to run after it: reviewer.md; nothing in the"
+            " tree changed") in not_done_of(lines)
 
 
 def test_a_stop_at_the_last_step_and_a_declined_one_say_what_is_not_done():
