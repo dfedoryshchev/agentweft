@@ -62,6 +62,14 @@ is built, said on a line of its own under the question:
 or `SPLIT: TASK.md:<line> "<the line, word for word>" reads as ...`. how
 an `already at` breach is fixed is your decision too.
 
+when the answer turns on code or stored data you have not read, or on what
+the request's words mean where you are not sure yours is the only reading,
+you may ask the architect or the business analyst once, on a line of its
+own under the question, `CONSULT: architect <the one thing you need>` or
+`CONSULT: ba <the one thing you need>`. never for a question you can answer
+from a line you read, nor for one that names a test, marks a spec line or
+has a SPLIT line: those go to the operator as they are.
+
 a path of a file you plan in that its tests already leave unchecked, seen in
 the code or the tests, may be named for that step on its own line,
 `coverage: <file> - <what no test checks>`. it steers that step and is kept

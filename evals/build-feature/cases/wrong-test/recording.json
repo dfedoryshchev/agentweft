@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T16:25:04",
+  "recorded": "2026-11-19T17:03:16",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "02996a3a1bf50b5ba25990deaf8cc210c81616b5cb27539fd5dab117b7b533f3",
+      "prompt": "64a618653d7e6cc3b7431ef49e3251411d1e28516da84b98ee7bbc85da3fabfd",
       "say": "- mul(2, 3) is 6 | calc.py\n",
       "detail": "",
       "retryable": null,

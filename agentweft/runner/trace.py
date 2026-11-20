@@ -294,7 +294,7 @@ class Entry(object):
                  "fanned", "gates", "ungated", "handoff", "written", "took",
                  "proved", "changed", "decided", "police", "facts",
                  "conformance", "past_end", "case", "held", "went_on",
-                 "kind", "calls")
+                 "kind", "calls", "consulted")
 
     def __init__(self, seq, step, attempts, provider, came_from, file, fanned):
         self.written = None
@@ -334,6 +334,8 @@ class Entry(object):
         self.kind = None
         # 0 on a line that ran no model (the runner's own), None otherwise
         self.calls = None
+        # on a consult's line only: what the runner did with its answer
+        self.consulted = None
 
 
 class Trail(object):
@@ -625,7 +627,7 @@ def shell_trap_recoveries(attempts):
 
 WON = ("caught", "caught-test-gap", "stopped", "delivered", "built-then-asked",
        "proved", "decided", "found", "ruling", "maintained", "held",
-       "gate-checked", "said-checked", "checked", "none")
+       "gate-checked", "said-checked", "checked", "evidence", "cite", "none")
 # what the record shows a pass bought in clarity rather than in a defect, a
 # stop or a proof: a gate that could have refused ran green on it, or an
 # executing gate passed it and it found nothing. `checked` is the label of a
@@ -864,9 +866,10 @@ def line(entry, outcome, why=None, to=None, cause=None, task_file=None,
            "gates": gates,
            "ungated": entry.ungated,
            "outcome": outcome,
-           "won": won(outcome, cause, gates, to, entry.proved, entry.changed,
-                      entry.decided, entry.kind, entry.handoff, entry.facts,
-                      checks, said_checks),
+           "won": entry.consulted or won(
+               outcome, cause, gates, to, entry.proved, entry.changed,
+               entry.decided, entry.kind, entry.handoff, entry.facts, checks,
+               said_checks),
            "checked": checks,
            "checked_said": said_checks,
            "cause": cause,

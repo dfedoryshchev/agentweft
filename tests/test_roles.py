@@ -67,9 +67,9 @@ def a_flow(tmp_path, minimalist, maximalist):
 
 
 def test_the_library_keeps_the_roles_that_repeat():
-    assert resolver.library_roles() == ["investigator", "judge", "merge",
-                                        "planner", "retro", "reviewer",
-                                        "verify"]
+    assert resolver.library_roles() == ["architect", "ba", "investigator",
+                                        "judge", "merge", "planner", "retro",
+                                        "reviewer", "verify"]
 
 
 def test_no_flow_repeats_a_line_the_library_already_says():

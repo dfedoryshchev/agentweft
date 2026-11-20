@@ -1,6 +1,7 @@
 name: build-feature
 retro: true
 lead: planner
+consults: 2
 steps:
   - role: planner
     prompt: planner.md

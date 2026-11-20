@@ -92,7 +92,7 @@ KNOWN = ("name", "steps", "promises", "schedule", "timeout", "retries", "workers
          "efforts", "commits", "worktree", "sacrifice", "retro", "brief",
          "reviewers", "police", "network", "facts_per_run", "tickets_per_run",
          "lane", "conformance", "small_reviewers", "on_fallback",
-         "connectors")
+         "connectors", "consults")
 # the runner's own last step (`runner/retro.py`): its role, skill and file
 RETRO = "retro"
 # `retro: conditional` runs it only after a run that had something to look
@@ -563,6 +563,8 @@ def check(raw):
         bad.append("tests_integration should be true, false or auto")
     if "send_backs" in raw and not counts(raw["send_backs"]):
         bad.append("send_backs should be a whole number, 0 or more")
+    if "consults" in raw and not counts(raw["consults"]):
+        bad.append("consults should be a whole number, 0 or more")
     if "facts_per_run" in raw and not counts(raw["facts_per_run"]):
         bad.append("facts_per_run should be a whole number, 0 or more")
     if "tickets_per_run" in raw and not counts(raw["tickets_per_run"]):

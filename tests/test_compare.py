@@ -142,8 +142,11 @@ def test_the_sides_are_not_the_same_size():
     #
     # `connectors` is one more, one way: a phase names an agent and never
     # who answers it or with which credential.
+    #
+    # `consults` is one more, one way: a workflow has no lead that decides,
+    # so nothing it could consult for.
     assert len(compare.pairs()) == 9
-    assert len(compare.flow_only()) == 53
+    assert len(compare.flow_only()) == 54
     assert len(compare.phase_only()) == 7
 
 

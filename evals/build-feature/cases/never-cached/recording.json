@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T13:25:53",
+  "recorded": "2026-11-19T17:03:10",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "3bc3d728fc2b4b77211bcab7feb18681d5f5133f2a72158a8a1b8db00a9ab73a",
+      "prompt": "7c38fbfd9d87ccddac63437aad2849959b6797ecd1fcb837b1be3e5b3b2adbb6",
       "say": "- behaviour: api.list_items() called twice within 5 minutes fetches once\n  file: api.py\n  spec: contradicts TASK.md:3\n\nCONFLICT: TASK.md:3 \"The list is never cached: every call fetches it again.\"\nrequest: cache the list, so the page does not fetch it again within 5 minutes\n",
       "detail": "",
       "retryable": null,

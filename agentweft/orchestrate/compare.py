@@ -119,6 +119,10 @@ FLOW_ONLY = (
          "the spec, and anything over it still comes to the operator. a "
          "workflow's `lead` is the same word for something else, the prompt "
          "that runs the whole thing, so they are not a pair."),
+    Pair("flow.consults", "",
+         "how many times a run's lead may ask an architect or a business "
+         "analyst role one read-only question before it decides its own. a "
+         "workflow has no lead that decides, so nothing to consult for."),
     Pair("flow.on_stop", "",
          "what a run that stops short does with the tests it added or changed: "
          "leaves them, or puts them back to their bytes at the start. a phase "

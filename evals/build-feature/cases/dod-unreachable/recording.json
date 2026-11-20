@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T16:13:17",
+  "recorded": "2026-11-19T17:02:24",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "589335e108f4e82542a974dc3ddb13dd39d73e5f1845ff166e58cc6f105154cd",
+      "prompt": "52de7eae26b0c6ed2fd59e112c1cab91d4a8ac27e29731cb948f0a2f0139cb0a",
       "say": "- div(6, 3) is 2 | calc.py\n",
       "detail": "",
       "retryable": null,
@@ -22,7 +22,7 @@
       "step": "planner.md",
       "task": null,
       "go": 2,
-      "prompt": "a9d10ab4d99a5a36bc051a1be0379d22bd6c6420add7f168cd26e07ce0ac6dc1",
+      "prompt": "d2823e8315038a586be0470f983fde263bbe3856f47a0953815449605ec757d1",
       "say": "DECIDED: div(a, 0) returns None\nwhy: TASK.md:4 says no function in calc raises, so the error is the value None, not an exception\n",
       "detail": "",
       "retryable": null,

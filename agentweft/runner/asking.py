@@ -8,7 +8,7 @@ from pathlib import Path
 
 from agentweft.guardrails import rulings
 
-from . import lead, ruling, trace
+from . import consult, lead, ruling, trace
 from .gating import (and_forged, check_step, cited_past_end, gate_why,
                      off_task, police_line)
 from .handoff import EMPTY, PARTIAL, PRESENT
@@ -682,7 +682,7 @@ def adjacent_fix(run, out, mark):
     return True
 
 
-STATE = ("adjacent", "not_broken", "assumed_led", "found")
+STATE = ("adjacent", "not_broken", "assumed_led", "found", "consulted")
 
 
 def keep_state(run):
@@ -690,8 +690,9 @@ def keep_state(run):
     record of the run (`rulings.Kept.state`), so a resumed leg carries them
     on: the marks waiting on or shown by a sibling test (`run.adjacent`),
     the marks not shown broken (`run.not_broken`), the ASSUMED items that
-    answered a step (`run.assumed_led`) and the findings put to the lead
-    (`run.found`). nothing is written for a run that holds none."""
+    answered a step (`run.assumed_led`), the findings put to the lead
+    (`run.found`) and the questions a consult was asked on
+    (`run.consulted`). nothing is written for a run that holds none."""
     kept = getattr(run, "kept", None)
     if kept is None or not hasattr(kept, "state"):
         return
@@ -727,7 +728,8 @@ def carry_state(run):
             raise ValueError("its marks are not in the form written")
         held = dict((name, state.get(name) or []) for name in STATE[1:])
         if not all(isinstance(v, list) for v in held.values()) or not all(
-                isinstance(k, str) for k in held["not_broken"]) or not all(
+                isinstance(k, str) for k in held["not_broken"]
+                + held["consulted"]) or not all(
                 isinstance(k, list) for k in held["assumed_led"]
                 + held["found"]):
             raise ValueError("its lists are not in the form written")
@@ -740,6 +742,7 @@ def carry_state(run):
     run.not_broken = set(held["not_broken"])
     run.assumed_led = set(tuple(k) for k in held["assumed_led"])
     run.found = set(tuple(k) for k in held["found"])
+    run.consulted = set(held["consulted"])
 
 
 def sibling_named(output):
@@ -1350,14 +1353,15 @@ UNREAD = "NEEDS: the plan holds a line the runner cannot read in any form it" \
     " was taught"
 UNREAD_SAID = " (not read: not in the form taught for it)"
 ASK_KEY = re.compile(r"^\s*(?:[-*+]\s*)?[*_`]*\s*(QUESTION|SETTLED\s+BY|SPLIT|"
-                     r"RECOMMEND|SIZE)\b[*_`]*\s*(?:[:=]|-\s|$)", re.I)
+                     r"RECOMMEND|SIZE|CONSULT)\b[*_`]*\s*(?:[:=]|-\s|$)", re.I)
 ASK_BARE = re.compile(r"^\s*(?:[-*+]\s*)?[*_`]*\s*(QUESTION|SETTLED BY|SPLIT|"
-                      r"RECOMMEND|SIZE)[*_`]*\s+\S")
+                      r"RECOMMEND|SIZE|CONSULT)[*_`]*\s+\S")
 
 
 def unread_asking(output):
     """-> each line of the answer's HANDOFF block that opens with a key a
-    QUESTION carries (QUESTION, SETTLED BY, SPLIT, RECOMMEND, SIZE), written
+    QUESTION carries (QUESTION, SETTLED BY, SPLIT, RECOMMEND, SIZE,
+    CONSULT), written
     with a capital, that the block's reader does not take as that key: a
     bulleted one, one with `-` or `=` or nothing for its colon. the reader
     drops such a line, so a risk it would have typed is lost; it parks
@@ -1541,7 +1545,7 @@ def split_checked(run, split):
     return ""
 
 
-def lead_parks(run, step, out):
+def lead_parks(run, step, out, consulting=()):
     """-> (the NEEDS question the lead's own answer parks the run on, what
     the run's record keeps of it or None), or ("", None) when every
     QUESTION of it is the lead's to decide (`lead_decides`). it parks only
@@ -1557,7 +1561,11 @@ def lead_parks(run, step, out):
       SPLIT line parking;
     - no recommendation (`no_recommendation`).
     a question or mark already put to the person in this run and answered
-    is not asked again. the lead's own question has no one above it."""
+    is not asked again. the lead's own question has no one above it.
+    `consulting` holds the questions, by `lead.key`, a consult is about to
+    be asked on: every risk above is read on them first, so a consult is
+    never called on one, and only the missing recommendation waits for it
+    (`consult.before`)."""
     answered = answered_here(run)
     marks = marked(run, step, out, answered)
     questions = lead_questions(run, step, out, answered)
@@ -1576,7 +1584,7 @@ def lead_parks(run, step, out):
                        [asked, settled, rec] + cites, split)
         if said[0]:
             return said
-        if no_recommendation(rec):
+        if no_recommendation(rec) and lead.key(asked) not in consulting:
             return asked_as(asked, cites, rec, size), None
     return "", None
 
@@ -1720,16 +1728,19 @@ def lead_decides(run, step, out, where):
         if lead.key(asked) in run.led:
             continue
         line, quote = settled_reason(run, settled)
+        cite, cited, beside = consult.reason(run, step, asked, line)
+        if cite:
+            line, quote = cite, cited
         count += 1
         run.led[lead.key(asked)] = rec
         run.rule(*lead.recorded(
             step, step, where, asked, rec,
-            "the recommendation of " + step + "'s own handoff, which "
-            + line + ' "' + quote + '"' + lead.SETTLES + step
+            "the recommendation of " + step + "'s own handoff" + beside
+            + ", which " + line + ' "' + quote + '"' + lead.SETTLES + step
             + lead.SETTLES_END if line else
-            "the recommendation of " + step + "'s own handoff; no spec mark,"
-            " start test or split on it goes to the operator, so " + step
-            + lead.SETTLES_END), by=rulings.LEAD)
+            "the recommendation of " + step + "'s own handoff" + beside
+            + "; no spec mark, start test or split on it goes to the"
+            " operator, so " + step + lead.SETTLES_END), by=rulings.LEAD)
         # the handoff was made before the ruling was on record, and the
         # next step reads the rulings off it
         out.meta["rulings"] = run.rulings()

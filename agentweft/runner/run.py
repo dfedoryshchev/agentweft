@@ -30,7 +30,7 @@ from .errors import Fatal, Outage, kind_of
 from . import prompts
 from .prompts import load_prompt
 from . import commits
-from . import (fan, levels, manifest, models, retro, ruling, warm)
+from . import (consult, fan, levels, manifest, models, retro, ruling, warm)
 from . import settings
 from . import state
 from . import summary
@@ -163,6 +163,13 @@ class Run(object):
                 provider, providers.Provider) else providers.build(
                     provider or fm.get("provider") or {}, where=self.workdir,
                     grant=retro.GRANT, connectors=named)
+        if consult.cap_of(fm):
+            for role in consult.ROLES:
+                self.by_step[consult.step_of(role)] = pinned if isinstance(
+                    provider, providers.Provider) else providers.build(
+                        provider or fm.get("provider") or {},
+                        where=self.workdir, grant=consult.GRANT,
+                        connectors=named)
         # before anything takes the place's start: what heal rewrites is the
         # runner's, not a change any step made
         self.facts = factsguard.Store(self.workdir,

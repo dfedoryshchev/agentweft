@@ -2459,12 +2459,13 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                 + i["claim"] + " (" + i["cmd"] + ")"
                 for role, b in blocks if _present(b) for i in b["verified"]
                 if i["backed"] == handoff.SHORTENED)
+    from .consult import ROLES, step_of
     from .retro import STEP as RETRO
 
+    unblocked = (RETRO, trace.RUNNER) + tuple(step_of(r) for r in ROLES)
     for p in every:
         state = p["block"].get("state")
-        if state == handoff.MISSING and p["step"] not in (RETRO,
-                                                          trace.RUNNER):
+        if state == handoff.MISSING and p["step"] not in unblocked:
             said.append("- handoff missing: " + at(p))
         elif state in (handoff.UNREADABLE, handoff.PARTIAL):
             said.append("- handoff " + state + ": " + at(p) + " ("

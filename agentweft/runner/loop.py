@@ -13,8 +13,8 @@ from agentweft.orchestrate import decisions, park
 from .config import steps
 from .handoff import EMPTY
 from . import investigate
-from . import (chain, lead, leftred, manifest, resume, retro, ruling, upkeep,
-               warm)
+from . import (chain, consult, lead, leftred, manifest, resume, retro, ruling,
+               upkeep, warm)
 from . import ending
 from . import state
 from . import stops
@@ -573,8 +573,18 @@ def go(leg):
                     (trail.folder / entry.file).write_text(out.output,
                                                            encoding="utf-8")
             said = run.asked(step, out) if honest else None
-            own, own_asked = lead_parks(run, step, out) \
-                if honest and not said else ("", None)
+            met = None
+            if honest and not said and step == getattr(run, "lead", None):
+                again, met = consult.rung(run, step, out, given, trail)
+                if again is not out:
+                    (step_dir / (step[:-len(".md")] + ".before-consult.md")
+                     ).write_text(out.output, encoding="utf-8")
+                    out = again
+                    (step_dir / step).write_text(out.output, encoding="utf-8")
+                    entry.handoff = out.block
+                    said = run.asked(step, out)
+            own, own_asked = met or (lead_parks(run, step, out)
+                                     if honest and not said else ("", None))
             if own:
                 said = (ruling.ASKED, own)
             checked = None

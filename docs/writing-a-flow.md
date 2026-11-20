@@ -445,6 +445,39 @@ mark read any other way and an answer in no taught form park. a lead the run
 cannot pay for leaves the finding in the handoff and the run goes on. an item
 that cites no spec line stays under "found beside the change" with no call.
 
+the lead may ask an architect or a business analyst before it decides its own
+question, by a line under the `QUESTION:`, `CONSULT: architect <the one thing
+it needs>` or `CONSULT: ba <the one thing it needs>`, and `consults` caps how
+many a run makes, one per question:
+
+    consults: 2
+
+0, the default, turns it off; build-feature ships with 2. the two roles are
+in no step of the route, read only, and decide nothing. the page is read for
+every risk above first, so a question that names a test the run started with,
+sits beside an unruled spec mark, carries a `SPLIT:` line or a line the runner
+cannot read parks as it would have, with no consult; so does one whose
+`RECOMMEND:` hands the answer to you. the consult is handed the question, each
+line it cites as the run found it, the request, the lead's recommendation and
+the rulings in force, and answers `FOUND:`, one to three `from: <file>:<line>
+"<the line>"` lines, one `RISK:` line (`none`, `spec <file>:<line> "<line>"`,
+`test <file>::<name>`, `split the request "<its words>" reads as <one>, or as
+<the other>`, or `person <what only you hold>`) and, when the lead
+recommended, `AGREES: yes` or `AGREES: no <its answer>`. a `RISK:` other than
+`none` parks the question with what the consult found under it (a start test
+as the test question); a `RISK:` line in no taught form, two of them or none,
+an empty answer, a consult the run cannot pay for and one that changed a file
+park it too. with `RISK: none` the lead goes once more, the answer last in its
+prompt and the `from:` lines it gave checked against their lines, and its
+final page is read as any lead page is; a page that leaves the question out
+parks it. a checked `from:` line is the reason recorded beside the decision
+when its own `SETTLED BY` gives none, a `from:` line not on its line is
+dropped and said, and an `AGREES: no` goes on the record beside the decision,
+never parks. the consult has its own line in `steps.jsonl`, `won` `evidence`
+(its risk sent the question to you), `cite` (its line became the decision's
+reason) or `none`; the questions consulted on are kept in `rulings.json` and
+carried by a resume, so a question is never consulted twice.
+
 a question another step asks the lead, and the lead's decision of it, are
 read by the reader the lead's own question goes through: a NEEDS that names a
 test the run started with, or carries a typed `SPLIT:` line beside it (one in

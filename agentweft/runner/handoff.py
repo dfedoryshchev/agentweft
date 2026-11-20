@@ -58,7 +58,7 @@ KNOWN = set(KEYS.values())
 # own; from any step but the flow's lead it never stops the run the way a
 # NEEDS line does
 ASKING = {"QUESTION": "question", "RECOMMEND": "recommend", "SIZE": "size",
-          "SETTLED BY": "settled", "SPLIT": "split"}
+          "SETTLED BY": "settled", "SPLIT": "split", "CONSULT": "consult"}
 
 MISSING = "missing"
 PRESENT = "present"

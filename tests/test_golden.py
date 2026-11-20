@@ -37,7 +37,8 @@ sys.path.insert(0, ".")
 from agentweft.evals import recording
 from agentweft.evals import steps as took
 from agentweft.providers import cli_provider, fake_provider
-from agentweft.runner import (engine, prompts, resume, retro, ruling, settings,
+from agentweft.runner import (consult, engine, prompts, resume, retro, ruling,
+                              settings,
                               stops, trace)
 
 HERE = Path(__file__).resolve().parent
@@ -250,6 +251,16 @@ MUL_SETTLED = ("\nHANDOFF\nDID:\n- planned mul in calc.py\n"
                "RECOMMEND: keep: return the product as it is\n"
                'SETTLED BY: TASK.md:3 "mul(a, b) returns a times b"\n'
                "SIZE: none\nEND HANDOFF\n")
+MUL_CONSULTS = MUL_SETTLED.replace(
+    'SETTLED BY: TASK.md:3 "mul(a, b) returns a times b"', "SETTLED BY: none"
+).replace("RECOMMEND: keep: return the product as it is",
+          "RECOMMEND: none\nCONSULT: architect does calc keep a float product"
+          " as it is")
+CONSULT_NO_RISK = ("FOUND: calc returns what TASK.md:3 says, a times b\n"
+                   'from: TASK.md:3 "mul(a, b) returns a times b"\n'
+                   "RISK: none\n")
+CONSULT_TEST_RISK = ("FOUND: a test pins add\n"
+                     "RISK: test test_add.py::test_add\n")
 MUL_UNSETTLED = MUL_SETTLED.replace(
     'SETTLED BY: TASK.md:3 "mul(a, b) returns a times b"', "SETTLED BY: none")
 MUL_ON_A_TEST = ("\nHANDOFF\nDID:\n- planned mul in calc.py\n"
@@ -516,6 +527,22 @@ CASES = {
             "worker.md": [MUL_NEEDS, say(MUL_BUILT, {"calc.py": WITH_MUL})],
             "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
             "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "consult-cite"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
+        "args": ["--task", FEATURE], "answers": {
+            "planner.md": [MUL_PLAN + MUL_CONSULTS,
+                           MUL_PLAN + MUL_UNSETTLED],
+            "architect.md": [CONSULT_NO_RISK],
+            "tester.md": [MUL_RED],
+            "worker.md": [say(MUL_BUILT, {"calc.py": WITH_MUL})],
+            "reviewer.md": ["VERDICT: ok\n\n" + MUL_BUILT],
+            "reviewer-runs.md": ["VERDICT: ok\n\n" + MUL_BUILT]}},
+    ("build-feature", "consult-risk"): {
+        "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC,
+                  "test_add.py": ADD_TEST},
+        "args": ["--task", FEATURE], "ends": ["parked"], "answers": {
+            "planner.md": [MUL_PLAN + MUL_CONSULTS],
+            "architect.md": [CONSULT_TEST_RISK]}},
     ("build-feature", "lead-settles"): {
         "place": {"calc.py": ADD_ONLY, "TASK.md": MUL_SPEC},
         "args": ["--task", FEATURE], "answers": {
@@ -928,6 +955,13 @@ def replay(flow, case, tmp_path, monkeypatch, capsys):
         return real_ask(run, text, used)
 
     monkeypatch.setattr(retro, "ask", ask)
+    real_consult = consult.ask
+
+    def consulted(run, text, name, used):
+        script.asking(name, None)
+        return real_consult(run, text, name, used)
+
+    monkeypatch.setattr(consult, "ask", consulted)
     # a go that failed waits before the next; a replay has nothing to wait for
     real_retry = engine.retry
     monkeypatch.setattr(engine, "retry", lambda fn, cap=3, sleep=None:
