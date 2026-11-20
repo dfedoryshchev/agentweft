@@ -530,7 +530,8 @@ def broken_lines(broken):
     return out
 
 
-SPREAD = ("- the consumer contract changed: {cites} changed by the"
+SPREAD = ("- a spec line restating the ruled rename changed: {cites} changed"
+          " by the"
           " replacement `{a}` to `{b}` the ruled lines made, under the ruling"
           " of {stamp}; each is listed under that ruling in the record")
 

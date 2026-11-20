@@ -137,8 +137,8 @@ def test_a_line_restating_the_ruled_rename_changes_by_it_under_the_ruling(
         " `qty` to `quantity` as the ruled lines)" in handoff
     decision = handoff.split("## the one decision" + NL, 1)[1]
     assert decision.startswith(
-        "- the consumer contract changed: docs/consumers.md:3 changed by the"
-        " replacement `qty` to `quantity` the ruled lines made, under the"
+        "- a spec line restating the ruled rename changed: docs/consumers.md:3"
+        " changed by the replacement `qty` to `quantity` the ruled lines made, under the"
         " ruling of " + stamp)
     assert "- spec docs/consumers.md +1 -1 <- ruling " + stamp in handoff
 
