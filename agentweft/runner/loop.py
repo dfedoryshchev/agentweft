@@ -196,7 +196,8 @@ def go(leg):
                                   run.policing, hits, seen, told, unseen),
                               sized=sized_said,
                               unwired=unwired_lines(run),
-                              goal=getattr(run, "goal", None))
+                              goal=getattr(run, "goal", None),
+                              stale=getattr(run, "stale", None) or ())
         path = summary.write(state.RUNS / run_id, lines)
         if retro.on(fm):
             went = len(trail.closed)

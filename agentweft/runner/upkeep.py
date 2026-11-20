@@ -112,6 +112,8 @@ class Maintained(object):
         self.pins = ""
         # each critical ticket put to the lead, and what it decided
         self.escalated = []
+        # each spec line a ticket found out of date, put to the operator
+        self.stale = []
 
     def record(self):
         """-> the `facts` field of the retro's steps.jsonl line."""
@@ -124,6 +126,8 @@ class Maintained(object):
             out["tickets"] = list(self.tickets)
         if self.escalated:
             out["escalated"] = [dict(e) for e in self.escalated]
+        if self.stale:
+            out["stale"] = [dict(s) for s in self.stale]
         if self.pins:
             out["pins"] = self.pins
         if self.note:
@@ -450,7 +454,8 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
             before = store.new + store.tickets_new
             fact, why = store.add(Proposal(fields), record, origin="retro")
             if fact is None:
-                refuse(done, what, why)
+                refuse(done, what, why + put_to_operator(store.root, fields,
+                                                         done))
             else:
                 kept(store, done, fact, before, run_id)
                 if merges:
@@ -591,11 +596,67 @@ def as_ticket(store, record, verb, value, fields, done, what, head, keys,
         before = store.new + store.tickets_new
         fact, why = store.add(Proposal(ticket), record, origin="retro")
     if fact is None:
-        failed(store, done, what, NO_WRITE + why, head, fields, keys)
+        failed(store, done, what, NO_WRITE + why + (put_to_operator(
+            store.root, ticket, done) if ticket is not None else ""), head,
+            fields, keys)
         return
     kept(store, done, fact, before, run_id)
     if merges:
         cap.took(fact, done)
+
+
+REPLACE = re.compile(r'^replace "(.*)" with "(.*)"$')
+
+
+def stale_of(root, fields):
+    """-> the head's item for a nice-to-do on one spec file whose evidence
+    quotes one line of that file as it reads now: the line, and the text
+    proposed for it (the whole line as it would read, for a `replace "<now>"
+    with "<after>"` claim whose now words are on it; else the claim). None
+    for any other proposal: the store refuses it and nothing more."""
+    from agentweft.guardrails import snapshot
+    from agentweft.guardrails.factsguard import quote_of
+
+    p = Proposal(fields)
+    scopes = [facts.norm(s) for s in p.get("scope")]
+    if p.get("kind").strip() != facts.NICE or len(scopes) != 1 \
+            or not snapshot.is_spec(scopes[0]):
+        return None
+    m = EVIDENCE.search(p.get("source") or "")
+    quoted = quote_of(m.group(1).strip()) if m else None
+    if quoted is None or quoted[4] is None or quoted[1] != quoted[2] \
+            or facts.norm(quoted[0]) != scopes[0]:
+        return None
+    path = Path(root) / scopes[0]
+    try:
+        lines = facts.text_lines(path) if path.is_file() else []
+    except (OSError, ValueError):
+        return None
+    if not 1 <= quoted[1] <= len(lines):
+        return None
+    line, quote = lines[quoted[1] - 1].strip(), one_line(quoted[4])
+    if not quote or quote not in one_line(line):
+        return None
+    claim = one_line(p.get("claim"))
+    said = REPLACE.match(claim)
+    item = {"at": scopes[0] + ":" + str(quoted[1]), "line": line,
+            "proposed": claim, "quoted": False,
+            "by": "the retro, after the run"}
+    if said and said.group(1) and said.group(1) in line:
+        item["proposed"] = line.replace(said.group(1), said.group(2), 1)
+        item["quoted"] = True
+    return item
+
+
+def put_to_operator(root, fields, done):
+    """-> what a refusal adds when the proposal is a stale spec line
+    (`stale_of`): the line goes on `done.stale`, a question for the head."""
+    item = stale_of(root, fields)
+    if item is None:
+        return ""
+    if all(item["at"] != s["at"] for s in done.stale):
+        done.stale.append(item)
+    return "; put to the operator as a question on the head: " + item["at"]
 
 
 def kept(store, done, fact, before, run_id):

@@ -191,7 +191,7 @@ def brief(asker, question):
 
 def finding_brief(asker, question):
     """-> the end of the lead's prompt for what a step found beside the
-    change: each finding by its number, its three answers last."""
+    change: each finding by its number, its four answers last."""
     return ("\n\nFINDINGS FOR THE LEAD. " + asker + " found beside the change"
             " what may be a line of the spec the code already broke when the"
             " run started, on a path the request does not touch, or it"
@@ -205,7 +205,11 @@ def finding_brief(asker, question):
             " a test and fixes it, so the line holds for the old path and the"
             " new\n- a line `DECIDED <n>: <what stands>` with a line `why:"
             " <why, with the spec line it rests on>` under it, when it is no"
-            " breach, or your decision stands\n- `ESCALATE <n>: <why>` when"
+            " breach, or your decision stands\n- a line `STALE <n>: <spec"
+            " file>:<line> \"<the line, word for word>\" -> \"<the line as it"
+            " should read>\"`, when the code is right and that spec line is"
+            " out of date: the run goes on and the head asks the operator to"
+            " change the line\n- `ESCALATE <n>: <why>` when"
             " only the operator can decide it; a bare `ESCALATE: <why>`"
             " sends them all.\n\nwhat " + asker + " found:\n\n" + question
             + "\n")

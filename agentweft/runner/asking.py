@@ -305,6 +305,8 @@ def each_to_lead(run, step, question, given, where, folder, out):
 
 FOUND_LINE = re.compile(r"^\s*(fixed|test)\s*:\s*(.*?)\s*$", re.I)
 FIX_N = re.compile(r"^[\s*_`-]*FIX\s+(\d+)[\s*_`]*:\s*(.*?)\s*$", re.I)
+STALE_N = re.compile(r'^[\s*_`-]*STALE\s+(\d+)[\s*_`]*:\s*(\S+?):(\d+)\s+"(.*)"'
+                     r'\s*->\s*"(.*)"\s*$')
 
 
 def split_found(item):
@@ -424,6 +426,39 @@ def lead_fixes(output, wanted):
     return out
 
 
+def lead_stales(output, wanted):
+    """-> {number: (the spec file, its line number, the line as quoted, the
+    line proposed)} of a lead's `STALE <n>:` lines."""
+    from . import verbs
+
+    out = {}
+    for _, line in verbs.visible(output):
+        m = STALE_N.match(line)
+        if m and int(m.group(1)) in wanted and int(m.group(1)) not in out:
+            out[int(m.group(1))] = (m.group(2), int(m.group(3)), m.group(4),
+                                    m.group(5).strip())
+    return out
+
+
+def stale_held(run, said, pairs):
+    """-> the head's item for a lead's `STALE` answer (`lead_stales`), None
+    when it does not hold: the file is a spec file as the run found it, the
+    line is the finding's spec line, it reads as quoted, and the proposed
+    line is another line."""
+    rel, n, quote, proposed = said
+    start = getattr(run, "start", None)
+    cite = ruling.path_of(rel) + ":" + str(n)
+    if not spec_cites(cite, run.workdir, start) or \
+            cite not in [p[0] for p in pairs] or not proposed:
+        return None
+    text, _ = ruling.lines_of(run.workdir, ruling.path_of(rel), n, n, start)
+    if text is None or ruling.flat(text[n - 1]) != ruling.flat(quote) or \
+            ruling.flat(proposed) == ruling.flat(quote):
+        return None
+    return {"at": cite, "line": text[n - 1].strip(), "proposed": proposed,
+            "quoted": True}
+
+
 def finding_pass(run, step, found, given, where, folder):
     """-> (the lead's Handoff or None, what follows, the question as the
     operator gets it): the findings of `step` (`findings`) go to the lead in
@@ -454,13 +489,24 @@ def finding_pass(run, step, found, given, where, folder):
     wanted = list(range(1, len(found) + 1))
     decided, escalated, whole = lead.each(out.output, wanted)
     fixes = lead_fixes(out.output, wanted)
+    stales = lead_stales(out.output, wanted)
     start = getattr(run, "start", None)
-    wrong, marks = [], {}
+    wrong, marks, stale = [], {}, []
     for n in wanted:
         if whole is not None or n in escalated:
             wrong.append(str(n) + " escalated: " + (
                 (whole if whole is not None else escalated[n])
                 or "no reason"))
+        elif n in stales and n not in fixes:
+            held = stale_held(run, stales[n], found[n - 1][1])
+            if held is None:
+                wrong.append(str(n) + " is called stale, but " + stales[n][0]
+                             + ":" + str(stales[n][1]) + " is not the"
+                             " finding's spec line as quoted, or nothing new"
+                             " is proposed for it")
+            else:
+                held["by"] = head + ", for what " + step + " found"
+                stale.append(held)
         elif n in fixes:
             mark = fixes[n][1]
             held_at = ruling.already_at(mark, run.workdir, start)
@@ -482,8 +528,16 @@ def finding_pass(run, step, found, given, where, folder):
         out.meta["passed"] = why
         return out, "park", lead.passed(question, why)
     asked = lead.parts(question) if len(found) > 1 else {1: question}
+    held_stale = getattr(run, "stale", None)
+    if held_stale is None:
+        held_stale = run.stale = []
+    for s in stale:
+        if all(s["at"] != h["at"] for h in held_stale):
+            held_stale.append(s)
+        print(head + ", the flow's lead, finds " + s["at"] + " out of date;"
+              " the head asks the operator to change it")
     for n in sorted(decided):
-        if n in fixes:
+        if n in fixes or n in stales:
             continue
         run.rule(*lead.recorded(head, step, where, asked[n], *decided[n]),
                  by=rulings.LEAD, question=n if len(found) > 1 else None)
@@ -694,8 +748,9 @@ def keep_state(run):
     on: the marks waiting on or shown by a sibling test (`run.adjacent`),
     the marks not shown broken (`run.not_broken`), the ASSUMED items that
     answered a step (`run.assumed_led`), the findings put to the lead
-    (`run.found`) and the questions a consult was asked on
-    (`run.consulted`). nothing is written for a run that holds none."""
+    (`run.found`), the questions a consult was asked on (`run.consulted`)
+    and the spec lines the lead found out of date (`run.stale`). nothing is
+    written for a run that holds none."""
     kept = getattr(run, "kept", None)
     if kept is None or not hasattr(kept, "state"):
         return
@@ -708,6 +763,9 @@ def keep_state(run):
         if held:
             state[name] = sorted([list(k) if isinstance(k, tuple) else k
                                   for k in held], key=json.dumps)
+    stale = getattr(run, "stale", None)
+    if stale:
+        state["stale"] = [dict(s) for s in stale]
     kept.state = state
     kept.save()
 
@@ -736,6 +794,12 @@ def carry_state(run):
                 isinstance(k, list) for k in held["assumed_led"]
                 + held["found"]):
             raise ValueError("its lists are not in the form written")
+        stale = state.get("stale") or []
+        if not isinstance(stale, list) or not all(
+                isinstance(s, dict) and all(isinstance(s.get(k), str) for k in
+                                            ("at", "line", "proposed"))
+                for s in stale):
+            raise ValueError("its stale lines are not in the form written")
     except ValueError as e:
         run.state_unread = ("the marks the run picked up held could not be"
                             " read (" + str(e) + ")")
@@ -746,6 +810,8 @@ def carry_state(run):
     run.assumed_led = set(tuple(k) for k in held["assumed_led"])
     run.found = set(tuple(k) for k in held["found"])
     run.consulted = set(held["consulted"])
+    if stale:
+        run.stale = [dict(s) for s in stale]
 
 
 def sibling_named(output):

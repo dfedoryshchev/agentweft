@@ -436,19 +436,40 @@ def handed(by):
     return bool(m) and handed_back(m.group(1))
 
 
+NOTHING_WAITS = "- none: nothing waits on you."
+STALE_LINE = '- a spec line that may be stale: {at} "{line}"'
+STALE_SO = ("  proposed: {proposed} (raised by {by}; the run did not wait on it,"
+            " and the line is the operator's to change)")
+
+
+def stale_lines(stale):
+    """-> the head's lines for each spec or doc line a step or the retro
+    found out of date: the line as the run found it, then the text proposed
+    for it, quoted when it is the whole line as it would read."""
+    out = []
+    for s in stale or ():
+        out.append(STALE_LINE.format(at=s["at"], line=s["line"]))
+        proposed = s["proposed"]
+        out.append(STALE_SO.format(
+            proposed='"' + proposed + '"' if s.get("quoted") else proposed,
+            by=s.get("by") or "a step"))
+    return out
+
+
 SPREAD = ("- the consumer contract changed: {cites} changed by the"
           " replacement `{a}` to `{b}` the ruled lines made, under the ruling"
           " of {stamp}; each is listed under that ruling in the record")
 
 
-def _decision(found, most, width, stop=None, led=(), spread=()):
+def _decision(found, most, width, stop=None, led=(), spread=(), stale=()):
     """the questions, the lead's own decisions and every recommendation are
     printed whole whatever the width: a cut one is a choice the person
     cannot make from the head. a stop's own reason may be a tool's whole
     output, and is in full in the record below. a spec line the run changed
     beyond the ones a ruling named, by the replacement those made
     (`spread`), comes first: whoever reads that line reads a changed
-    contract."""
+    contract. a spec line found out of date (`stale`) is a question the run
+    did not wait on, listed after the lead's decisions."""
     out = ["## the one decision"]
     for stamp, a, b, cites in spread:
         out.append(SPREAD.format(cites=", ".join(cites), a=a, b=b,
@@ -460,7 +481,8 @@ def _decision(found, most, width, stop=None, led=(), spread=()):
         out.append(LED_SO.format(rec=rec))
         if by:
             out.append(LED_BY + by)
-    if led and not stop and not found:
+    out.extend(stale_lines(stale))
+    if (led or stale) and not stop and not found:
         return out
     if stop:
         out.append(_cut("- " + stop[0], width))
@@ -469,7 +491,7 @@ def _decision(found, most, width, stop=None, led=(), spread=()):
             out.append("  recommendation: " + stop[2])
         return out + _also(found, most)
     if not found:
-        out.append("- none: nothing waits on you.")
+        out.append(NOTHING_WAITS)
         return out
     first = found[0]
     out.append("- " + first["text"])
@@ -540,7 +562,7 @@ def gaps(found, spec_changed=(), lead=True):
 
 
 def view(head, found, why, not_done, product_gaps, stop=None, led=(),
-         spread=()):
+         spread=(), stale=()):
     """-> the default view: `head` as it is, then the one decision, why,
     not done and product gaps, cut until it fits BUDGET. `why` and
     `not_done` are [(label or None, [items])]. `stop` is (how the run
@@ -549,7 +571,8 @@ def view(head, found, why, not_done, product_gaps, stop=None, led=(),
     decides on, not a question a step left open. `led` is [(question,
     decision, the line that settled it or "")] the lead decided of its own
     handoff: each is listed first under the one decision, with the line that
-    settled it, before what waits on the person. the head is
+    settled it, before what waits on the person. `stale` is the spec lines
+    found out of date (`stale_lines`). the head is
     cut too, last, when cutting the lists is not enough: a long task line or
     stop reason is in full in the record below. the suite line and the
     decisions are never cut, so a view that cannot fit them runs over."""
@@ -559,7 +582,7 @@ def view(head, found, why, not_done, product_gaps, stop=None, led=(),
         out = [_cut(l, width) if not l.startswith(SUITE) else l
                for l in head] if cut else list(head)
         out.append("")
-        out.extend(_decision(found, most, width, stop, led, spread))
+        out.extend(_decision(found, most, width, stop, led, spread, stale))
         out.append("")
         out.extend(_section("why", why, most, width))
         out.append("")

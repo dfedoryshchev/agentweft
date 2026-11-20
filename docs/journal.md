@@ -483,7 +483,9 @@ and `continued`
   a critical ticket the retro wrote is `facts.escalated` (its id and what
   the lead decided, null when it did not), and the lead's go at it is one
   more line after the retro's, `outcome` `decided`, `escalated` or
-  `overruled`, as for a step's question.
+  `overruled`, as for a step's question. a ticket on a spec file whose
+  evidence quotes one of its lines is `facts.stale` (`at`, `line`,
+  `proposed`, `quoted`, `by`): put on the head as a question, never kept.
 - a run with `--keep-warm` charges each warm call to the step it kept warm:
   its tokens and cost are on that step's next line. a step not asked again
   after one gets a line of its own when the run ends, `outcome` `warm`, `won`

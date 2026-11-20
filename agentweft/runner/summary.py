@@ -2008,8 +2008,19 @@ def after_retro(path, every, spend, police=None, added=1):
     of `every` (its own, a lead's at what it escalated) in the read section,
     and the run's spend as it stands. `every` is every pass, the retro's
     last. `police` is the police section with what police saw of the retro,
-    None when police did not read it."""
+    None when police did not read it. each spec line the retro found out of
+    date goes on the head, under the one decision, as a question the run did
+    not wait on (`front.stale_lines`); the outcome line is not touched."""
     lines = Path(path).read_text(encoding="utf-8").split("\n")
+    stale = front.stale_lines([s for p in every for s in (
+        (p.get("facts") or {}).get("kept_facts") or {}).get("stale") or []])
+    found = section(lines, "the one decision")
+    if found and stale:
+        first, end = found
+        if lines[first:end] == [front.NOTHING_WAITS]:
+            lines[first:end] = stale
+        else:
+            lines[end:end] = stale
     past = ["- " + at(p) + " cites past a file's last line: "
             + _past_said(p["facts"]["past_end"])
             for p in every[len(every) - added:] if added > 0
@@ -2097,7 +2108,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
           spec_files=None, clock=None, held=True, proof=None, shadowed=(),
-          told=(), police=(), sized=(), unwired=(), goal=None):
+          told=(), police=(), sized=(), unwired=(), goal=None, stale=()):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -2131,7 +2142,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     `sized` is a line on the size of the change and one per reviewer it left
     out, empty for a flow with no `small_reviewers`. `unwired` is a line per
     def or class the run added that nothing in the product calls
-    (`gating.unwired_lines`), printed under "changed".
+    (`gating.unwired_lines`), printed under "changed". `stale` is each spec
+    line the lead found out of date (`asking.finding_pass`), a question on
+    the head the run did not wait on.
     """
     every = list(before) + list(passes)
     blocks = [(p["role"], p["block"]) for p in every]
@@ -2283,7 +2296,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                       front.gaps(found, changes.get("spec_changed", []),
                                  lead=not stop), stop=stop,
                       led=lead_own_decisions(decided, every, run_id),
-                      spread=spread_lines(gates))
+                      spread=spread_lines(gates), stale=stale)
     out[:] = view
     out.append("")
     out.extend(front.pointer(run_id))

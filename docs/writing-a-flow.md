@@ -446,13 +446,25 @@ numbered ask with the two lines printed as found, once per spec line and
 code line in a run; so does a DOUBTS line that names a question the lead
 decided by its first words. the lead answers each with `FIX <n>: <spec
 line> for <the path>` and the `spec: breaks ..., already at ...` mark under
-it, `DECIDED <n>:` with a `why:`, or `ESCALATE <n>:`. a mark whose quote is on
+it, `DECIDED <n>:` with a `why:`, `STALE <n>: <spec file>:<line> "<the
+line>" -> "<the line as it should read>"` when the code is right and the spec
+line is out of date, or `ESCALATE <n>:`. a mark whose quote is on
 the code line and whose two lines are the finding's sends the run back to the
 step held to a red test for the sibling test, and is then shown and fixed as a
-planned one is; a decision goes on record as the lead's; an escalation, a
-mark read any other way and an answer in no taught form park. a lead the run
-cannot pay for leaves the finding in the handoff and the run goes on. an item
-that cites no spec line stays under "found beside the change" with no call.
+planned one is; a decision goes on record as the lead's; a stale line that is
+the finding's spec line, reads as quoted when the run started and gets a new
+text is listed on the head among the questions, with the line and the text
+proposed, and the run goes on without waiting on it; an escalation, a
+mark or a stale line read any other way and an answer in no taught form park.
+a lead the run cannot pay for leaves the finding in the handoff and the run
+goes on. an item that cites no spec line stays under "found beside the change"
+with no call.
+
+the retro may not ticket a spec file: a change to one is the operator's. its
+nice-to-do (or doc edit) on a spec file whose evidence quotes one line of it
+as it reads now is refused as a ticket and put on the head after the run, in
+the same form: the line, and the line as it would read (for a `replace "<now>"
+with "<after>"` claim) or the claim. the run's outcome stands.
 
 the lead may ask an architect or a business analyst before it decides its own
 question, by a line under the `QUESTION:`, `CONSULT: architect <the one thing
