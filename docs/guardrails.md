@@ -253,6 +253,11 @@ from is read instead, unless that directory is the run's place, inside it,
 or in the git repo the place is in (`--workdir`, else where agentweft
 starts): a table there is the project's,
 and a cheaper one would loosen the money cap, so the shipped table stands.
+when the place is not known as agentweft starts (a flow's `workdir:`, a
+resume started without `--workdir`), the directory you run from counts as
+the place too. whenever a `prices.yaml` in the directory you run from is
+left unread this way, the run says so once, naming the shipped table it
+prices on.
 a table with a rate missing, negative or not a number is refused
 with the model and the rate named.
 
@@ -849,10 +854,15 @@ list.
 
 what was there at the start is what the run was pointed at, and it is not
 questioned. a step on the `api` or `fake` provider sends text and reads
-nothing in the place, so it is never refused for this. every start takes its
-own digest, `--resume` included, so a file a step wrote before a park is
-something the operator who carried the run on has let through. `.git/` is not
-walked, and nothing above the place is looked at.
+nothing in the place, so it is never refused for this. the digest and the
+text handed are the run's first start's, kept in its record: a leg that
+picks the run up (`--resume`) compares against them and hands them, never
+the place as it is at the resume, so a file a step wrote in an earlier leg is
+still refused, and to carry on the operator puts it back as it was or starts
+a new run. a record whose kept digest cannot be read hands nothing and holds
+every instruction file as changed; one written before the digest was kept
+takes the place at the resume, as before. `.git/` is not walked, and nothing
+above the place is looked at.
 
 the cli itself reads none of the place's files as settings or instructions:
 every `claude` step loads the operator's settings only (`providers.md`, "what
@@ -862,6 +872,9 @@ handed to every step as text from `<run>/brief/place.md`; `AGENTS.md`,
 `CLAUDE.local.md`, a subfolder's `CLAUDE.md`, `.claude/settings.json`, its
 hooks and `.mcp.json` are never loaded. the guard still watches all of them:
 a step writing one is writing what a later reader, or a later run, takes in.
+a handed file that is a symlink is read through the link, wherever it
+points, and handed as that text: a floor beside the ones above, since the
+model's own read tool can follow the link too.
 
 ## the scope fence
 

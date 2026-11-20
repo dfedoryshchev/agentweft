@@ -15,7 +15,9 @@ repo is not the person. so the cli no longer reads the place's instruction
 files either, and the run hands the ones it read itself, as text: the root
 CLAUDE.md, `.claude/CLAUDE.md` and every `.md` under `.claude/rules/`, as they
 read when the run started (`handed`, `text`), in one file under the run's own
-folder that every `claude` step is passed.
+folder that every `claude` step is passed. the run's record keeps the digest
+and that text (`kept`), and a leg that picks the run up takes them from there
+(`carried`), never from the place as it is then.
 """
 import hashlib
 import os
@@ -83,6 +85,37 @@ def handed(where, briefed):
         out.append((rel, None if raw is None
                     else raw.decode("utf-8", "replace")))
     return out
+
+
+def kept(briefed, files):
+    """-> what the run's record keeps of its first start: the digest and the
+    text handed, so a leg that picks it up hands the same (`carried`)."""
+    return {"digest": dict(briefed),
+            "files": [[rel, said] for rel, said in files]}
+
+
+def carried(said):
+    """-> (the digest, the files handed, "") a record kept (`kept`); (None,
+    None, "") for a record that kept none, written before it was kept; ({},
+    [], why) for one that cannot be read: nothing is handed and every
+    instruction file in the place counts as changed."""
+    if said is None:
+        return None, None, ""
+    try:
+        digest, files = said["digest"], said["files"]
+        if not isinstance(digest, dict) or not all(
+                isinstance(k, str) and isinstance(v, str)
+                for k, v in digest.items()):
+            raise ValueError("its digest is not in the form written")
+        if not isinstance(files, list) or not all(
+                isinstance(f, list) and len(f) == 2 and isinstance(f[0], str)
+                and (f[1] is None or isinstance(f[1], str)) for f in files):
+            raise ValueError("its files are not in the form written")
+    except (KeyError, TypeError, ValueError) as e:
+        return {}, [], ("the brief the run started on could not be read ("
+                        + str(e) + "), so nothing is handed and every"
+                        " instruction file in the place counts as changed")
+    return dict(digest), [(rel, text) for rel, text in files], ""
 
 
 def text(files):

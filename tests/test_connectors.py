@@ -3,6 +3,7 @@ step, beside its model, each started with its own credential and no other."""
 import json
 import sys
 import types
+from pathlib import Path
 
 import pytest
 
@@ -690,7 +691,7 @@ def test_an_inline_block_s_line_says_inherit_and_reads_no_auth(
     assert not [a for a in cli.asides if a[1:3] == ["auth", "status"]]
 
 
-def test_the_cli_s_auth_is_read_once_per_connector_in_the_place(
+def test_the_cli_s_auth_is_read_once_per_connector_outside_the_place(
         tmp_path, monkeypatch, fake_cli):
     place, cli = two_connectors(tmp_path, monkeypatch, fake_cli,
                                 third="claude-api")
@@ -699,7 +700,12 @@ def test_the_cli_s_auth_is_read_once_per_connector_in_the_place(
              if a[1:3] == ["auth", "status"]]
     assert len(asked) == 2
     assert all(a == ["claude", "auth", "status", "--json"] for a, _ in asked)
-    assert all(kw["cwd"] == str(place) for _, kw in asked)
+    # `auth status` takes no --setting-sources, so in the place it reads the
+    # place's settings (an apiKeyHelper there) that the step never loads
+    for _, kw in asked:
+        where = Path(kw["cwd"]).resolve()
+        assert where != Path(place).resolve()
+        assert Path(place).resolve() not in where.parents
     api_env = [kw["env"] for a, kw in asked]
     assert sorted("ANTHROPIC_API_KEY" in env for env in api_env) == [False,
                                                                      True]

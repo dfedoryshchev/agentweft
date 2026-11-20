@@ -1180,17 +1180,22 @@ class CliProvider(Provider):
 
     def auth_status(self):
         """-> (exit code, authMethod or None, why it could not be asked or
-        ""), from `claude auth status --json` started in the place with the
-        environment a step gets. of what it prints, only `authMethod` is
+        ""), from `claude auth status --json` started in an empty folder of
+        its own, outside the place, with the environment a step gets: the
+        subcommand takes no `--setting-sources`, so in the place it would
+        read the place's settings (an `apiKeyHelper` there), which the step
+        it vouches for never loads. of what it prints, only `authMethod` is
         kept: the rest names the account."""
+        import tempfile
+
         from .connectors import NoKey
 
         try:
-            r = subprocess.run([self.command, "auth", "status", "--json"],
-                               capture_output=True, encoding="utf-8",
-                               errors="replace", timeout=30,
-                               cwd=str(self.where) if self.where else None,
-                               env=self.child_env())
+            with tempfile.TemporaryDirectory(prefix="agentweft-auth-") as away:
+                r = subprocess.run([self.command, "auth", "status", "--json"],
+                                   capture_output=True, encoding="utf-8",
+                                   errors="replace", timeout=30, cwd=away,
+                                   env=self.child_env())
         except NoKey as e:
             return None, None, str(e)
         except (OSError, subprocess.TimeoutExpired) as e:

@@ -8,8 +8,8 @@ from agentweft.roles import resolver
 
 from .config import config, due, steps, where
 from agentweft.flow.spec import REVIEWER, lead_of, off_lead, step_id
-from agentweft.guardrails import (baseline, factsguard, redorder, sacrifice,
-                                  signoff, skips, snapshot)
+from agentweft.guardrails import (baseline, briefing, factsguard, redorder,
+                                  sacrifice, signoff, skips, snapshot)
 from agentweft.orchestrate import decisions, park, project
 
 from .handoff import EMPTY, Handoff
@@ -576,6 +576,12 @@ def begin(unrecorded):
     folder = state.RUNS / run_id
     folder.mkdir(parents=True, exist_ok=True)
     run.folder = folder
+    if found:
+        digest, files, why = briefing.carried(found.data.get("brief"))
+        if why:
+            print(why)
+        if digest is not None:
+            run.briefed, run.handed = digest, files
     run.keep_in(folder)
     if pick_up:
         from .asking import carry_state
@@ -619,6 +625,7 @@ def begin(unrecorded):
     if found:
         route.ups.update(found.data.get("raised") or {})
     record.data["raised"] = route.ups
+    record.data["brief"] = briefing.kept(run.briefed, run.handed)
     if held:
         record.data["caps"] = held
     if made:

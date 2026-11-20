@@ -183,13 +183,16 @@ def of_reply(table, reply, asked=None):
 
 
 CACHE = {}
+SAID = set()
 
 
 def where_from(path=None):
     """-> the table: the one named, else `PRICES`, else `./prices.yaml`
     unless agentweft started in the run's place or the repo it is in (a
     cheaper table there would loosen the money cap, and those files are the
-    project's), else the shipped one."""
+    project's), else the shipped one. a `./prices.yaml` left unread that way
+    is said once: with the place not known at the start, it can be the
+    person's own."""
     from agentweft.runner import settings
 
     if path:
@@ -198,6 +201,11 @@ def where_from(path=None):
         return Path(os.environ["PRICES"])
     own = Path("prices.yaml")
     if settings.STARTED_IN_PLACE:
+        if own.is_file() and str(own.resolve()) not in SAID:
+            SAID.add(str(own.resolve()))
+            print("prices: " + str(own) + " is not read: agentweft started"
+                  " in the run's place, its repo, or with no place named"
+                  " yet, so the shipped table prices this run")
         return SHIPPED
     return own if own.is_file() else SHIPPED
 
