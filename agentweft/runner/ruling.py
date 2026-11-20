@@ -1328,6 +1328,28 @@ def question_of_start_tests(step, red):
     return "\n".join(out)
 
 
+START_TESTS_ASKED = re.compile(r"^NEEDS: \S+ wrote product code, and (?:a test"
+                               r"|\d+ tests) the run started with, green then,")
+START_TEST_CITED = re.compile(r'^- (\S+) - "')
+
+
+def start_tests_asked(question):
+    """-> the test ids the question a start test gone red stops the run on
+    names (`question_of_start_tests`), read from the runner's own form; []
+    for any other question."""
+    lines = (question or "").split("\n")
+    if not START_TESTS_ASKED.match(lines[0]):
+        return []
+    out = []
+    for line in lines[1:]:
+        if line.strip() == "OPTIONS:":
+            break
+        m = START_TEST_CITED.match(line)
+        if m and "::" in m.group(1):
+            out.append(m.group(1))
+    return out
+
+
 def kind_of(answer):
     """-> OVERRIDE, REQUEST or None, from the word the answer starts with."""
     m = re.match(r"\s*(\w+)\s*:", answer or "")

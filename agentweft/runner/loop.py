@@ -383,6 +383,8 @@ def go(leg):
                     + "  at " + at, waiting=None if conflict else "user",
                     question=stands.get("question"),
                     asked=stands.get("runner"),
+                    replayed=conflict and bool(ruling.start_tests_asked(
+                        stands.get("question"))),
                     kind=None if conflict else trace.HELD)
     try:
         while step:

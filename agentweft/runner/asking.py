@@ -1904,8 +1904,10 @@ def hand_back_pick(run, kind, step, question):
     of its two answers, read word for word (`lead.fixed_pick`), with a
     `why:`. the pick stands for an `override:` or `put them back:` on the
     tests named, or an `override:` or `request:` on the lines cited, with
-    the why as its words. the lead's go is kept on `run.picked` for its
-    line on the trail."""
+    the why as its words. a conflict the start tests raised, picked `the
+    request holds`, names each red start test of the runner's question in
+    the `override:`, so the replay lets exactly those change. the lead's go
+    is kept on `run.picked` for its line on the trail."""
     head = getattr(run, "lead", None)
     if head is None:
         return None, "this flow names no lead to decide it"
@@ -1929,8 +1931,14 @@ def hand_back_pick(run, kind, step, question):
     run.picked = (out, step, True)
     print(head + ", the flow's lead, picked under the operator's hand-back: "
           + option)
-    return (says_first if option == first else says_second) + " ".join(
-        why.split()), ""
+    said = (says_first if option == first else says_second) + " ".join(
+        why.split())
+    named = ruling.start_tests_asked(question) \
+        if kind == CONFLICT_PICK and option == first else []
+    if named:
+        said = said.rstrip(". ") + ". the start tests it lets change: " \
+            + ", ".join(named)
+    return said, ""
 
 
 def departures(run, step, out, where):

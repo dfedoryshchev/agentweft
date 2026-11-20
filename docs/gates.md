@@ -197,6 +197,12 @@ with a `why:` line under it. the pick goes on record as the answer it
 stands for, with its why as the words: `override:` (on the lines the
 conflict cites, or the tests the park names), `request:`, or `put them
 back:`, answered by the lead "picking under the operator's you decide".
+on a conflict the start tests raised (a test green when the run started,
+red against the product now), `the request holds` names each red test of
+the question the runner wrote in its `override:`, so the replay lets
+exactly those change and a start test the question did not name still
+stops the run; a pick that cannot be read stops it again with the start
+tests' wording.
 the lead's go is priced on its own line of the leg; a pick the program
 cannot read, or a lead that escalates, parks the run again on the same
 question in a new leg.
