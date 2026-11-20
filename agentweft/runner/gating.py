@@ -144,6 +144,56 @@ def clocked(gate, text):
     return timed(r, began)
 
 
+MATCHED = re.compile(r"the fact says \d+: (.+?):(\d+):(.*)$", re.S)
+
+
+def breach_at(c):
+    """-> (file, line number, the line) a broken check matched, read from
+    what it said, None when it matched no line (a line the fact expects is
+    gone)."""
+    m = MATCHED.search((c or {}).get("said") or "")
+    return (m.group(1), int(m.group(2)), m.group(3)) if m else None
+
+
+def breach_writes(c):
+    """-> what a step writes to own a broken check's file: `tests` for a test
+    file, else `product`; the fact's scope stands in when no line matched."""
+    from agentweft.guardrails.snapshot import is_test
+
+    at = breach_at(c)
+    path = at[0] if at else ((c or {}).get("scope") or [""])[0]
+    return "tests" if is_test(path) else "product"
+
+
+def breach_brief(run, step):
+    """-> what `step` is handed of each fact the run's own check read broken
+    last, in files the step writes (`writes: product` for code, `writes:
+    tests` for a test file), "" for none: fix it in a few lines, or say why
+    not; the head lists it until a check holds or a ticket carries it."""
+    breaches = getattr(run, "breaches", None) or {}
+    writes = getattr(run, "writes_for", None)
+    if not breaches or writes is None:
+        return ""
+    mine = [c for _, c in sorted(breaches.items())
+            if writes(step) and writes(step) == breach_writes(c)]
+    if not mine:
+        return ""
+    lines = []
+    for c in mine:
+        at = breach_at(c)
+        lines.append("- " + c["fact"] + " on " + ", ".join(c.get("scope")
+                                                            or []) + ": "
+                     + c.get("claim", "") + "; `" + c.get("check", "") + "`"
+                     + (" matched " + at[0] + ":" + str(at[1]) + ":"
+                        + at[2] if at else " - " + c.get("said", "")))
+    return ("\n\nA CONVENTION THE RUN'S OWN CHECK READS BROKEN, in files this"
+            " step writes:\n" + NEWLINE.join(lines) + "\n\nfix each so its"
+            " check holds, in this go, when it takes a few lines of the file"
+            " named; when it is not this run's to fix, leave it and say why on"
+            " a DOUBTS line. until its check holds or a ticket on that file"
+            " carries it, the handoff's head lists it for the operator.\n")
+
+
 AS_FOUND = "red as found: "
 
 

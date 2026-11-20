@@ -278,9 +278,16 @@ class Run(object):
             print("facts: checks not run after " + step + ": "
                   + type(e).__name__ + ": " + str(e))
             return [], None
+        breaches = getattr(self, "breaches", None)
+        if breaches is None:
+            breaches = self.breaches = {}
         for c in lines:
             print("  conformance " + c["fact"] + " " + c["result"]
                   + (": " + c["said"] if c["said"] else ""))
+            if c["result"] == "broken":
+                breaches[c["fact"]] = dict(c)
+            elif c["result"] == "held":
+                breaches.pop(c["fact"], None)
         if not fail or not lines:
             return lines, None
         broken = [c for c in lines if c["result"] == "broken"]
@@ -1833,6 +1840,8 @@ class Run(object):
                             1) if briefed else head
         if extra:
             prompt = prompt + extra
+        from .gating import breach_brief
+        prompt = prompt + breach_brief(self, step)
         ran = [line for k, lines in getattr(self, "proven", {}).items()
                if k != step for line in lines]
         if ran:

@@ -800,6 +800,15 @@ the default: a broken check is said and the run goes on. the handoff lists
 each fact whose last check in the run did not hold under "not done" (`a
 fact's check broken at the end of the run:`), and every check that ran under
 `## conformance`; the retro is handed the ones that broke or could not run.
+a fact whose last check in the run reads broken is also on the head, among
+the questions: the line the check matched, the check, and the step of the
+flow that writes that file (`writes: product` for code, `writes: tests` for a
+test file), with the recommendation to fix the line or keep a ticket on its
+file. it stays there until a later check of that fact holds or the retro
+keeps a nice-to-do on the matched file; the run does not wait on it. the
+step that writes the file is handed the breach on its next go in the run,
+after its prompt: fix it in a few lines of that file, or say why not on a
+DOUBTS line.
 
     conformance: fail
 

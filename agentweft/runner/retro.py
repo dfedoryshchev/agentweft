@@ -450,7 +450,9 @@ def parts(looked, rulings, changed, stale, live, cap, docs=(),
             ("facts marked stale, to re-anchor, retire or supersede:", stale),
             ("facts on record for the files this run changed:", live),
             ("fact checks a step's change broke or that could not run,"
-             " from steps.jsonl:", unheld(looked)),
+             " from steps.jsonl. one still broken stays on the handoff's head"
+             " for the operator until it holds or a nice-to-do on the file its"
+             " check matched carries it:", unheld(looked)),
             ("new facts this run may write:", ["- " + str(cap)]),
             ("nice-to-do tickets this run may write:",
              ["- " + str(tickets)])]
@@ -727,6 +729,8 @@ def look_back(run, trail, run_id, flow, outcome, folder, stopped, earlier):
         done.pins = pinned.id if pinned is not None else ""
     led, passes = escalated(run, folder, store, done, run_id) \
         if not why and not held_back else ([], [])
+    run.ticketed = [s for id in done.tickets
+                    for s in getattr(store.held(id), "scopes", None) or []]
     files = upkeep.files_changed(done, store.touched[touched:], store.root)
     kept = committed(run, [p for p, _ in files], done) if files else None
     entry = trail.open(STEP, [tried], used, None, output=said or None)

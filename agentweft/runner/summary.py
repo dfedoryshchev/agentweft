@@ -721,6 +721,33 @@ def check_left(passes):
     return out
 
 
+def conventions_broken(passes):
+    """-> the head's items for each fact whose last check in the run read
+    broken (`front.broken_lines`): the line it matched, or its scope when it
+    matched none, and the steps of the run that write that file."""
+    from .gating import breach_at, breach_writes
+
+    last = {}
+    for p, c in checked(passes):
+        last[c.get("fact")] = c
+    out = []
+    for fact, c in last.items():
+        if c.get("result") != "broken":
+            continue
+        at = breach_at(c)
+        kind = breach_writes(c)
+        owners = []
+        for p in passes:
+            if p.get("writes") == kind and p["step"] not in owners:
+                owners.append(p["step"])
+        out.append({"fact": fact, "scope": ", ".join(c.get("scope") or []),
+                    "claim": c.get("claim", ""), "check": c.get("check", ""),
+                    "at": at[0] + ":" + str(at[1]) if at else ", ".join(
+                        c.get("scope") or []),
+                    "file": at[0] if at else "", "owners": owners})
+    return out
+
+
 def passes_of(folder, roles, fm):
     """-> the passes of every leg up to a run folder, first leg first, for a
     run that picks it up. with more than one leg, each pass carries the
@@ -2001,7 +2028,7 @@ def section(lines, heading):
     return first, end
 
 
-def after_retro(path, every, spend, police=None, added=1):
+def after_retro(path, every, spend, police=None, added=1, ticketed=()):
     """the handoff the retro read, once the retro has run: the retro's pass
     in the retro section with the sums taken again over every pass, the
     cites past a file's end of the `added` passes the retro added at the end
@@ -2010,8 +2037,27 @@ def after_retro(path, every, spend, police=None, added=1):
     last. `police` is the police section with what police saw of the retro,
     None when police did not read it. each spec line the retro found out of
     date goes on the head, under the one decision, as a question the run did
-    not wait on (`front.stale_lines`); the outcome line is not touched."""
+    not wait on (`front.stale_lines`); the outcome line is not touched. a
+    broken fact check on the head whose matched file the retro kept a
+    nice-to-do on (`ticketed`, the files of its tickets) leaves the head: it
+    is carried by the ticket."""
     lines = Path(path).read_text(encoding="utf-8").split("\n")
+    found = section(lines, "the one decision")
+    if found and ticketed:
+        first, end = found
+        kept = []
+        n = first
+        while n < end:
+            held = front.BROKEN_AT.match(lines[n + 1]) if n + 1 < end else None
+            if lines[n].startswith(front.BROKEN_LINE) and held and \
+                    held.group(1) in ticketed:
+                n += 2
+                continue
+            kept.append(lines[n])
+            n += 1
+        if not any(l.startswith("- ") for l in kept):
+            kept.insert(0, front.NOTHING_WAITS)
+        lines[first:end] = kept
     stale = front.stale_lines([s for p in every for s in (
         (p.get("facts") or {}).get("kept_facts") or {}).get("stale") or []])
     found = section(lines, "the one decision")
@@ -2296,7 +2342,8 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
                       front.gaps(found, changes.get("spec_changed", []),
                                  lead=not stop), stop=stop,
                       led=lead_own_decisions(decided, every, run_id),
-                      spread=spread_lines(gates), stale=stale)
+                      spread=spread_lines(gates), stale=stale,
+                      broken=conventions_broken(every))
     out[:] = view
     out.append("")
     out.extend(front.pointer(run_id))

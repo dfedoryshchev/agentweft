@@ -742,7 +742,9 @@ either.
 a fact can carry a `check:`, one grep the runner runs itself after every
 step that changes a file in the fact's scope (`docs/guardrails.md`, "a
 fact's check"). by default, `conformance: warn`, a broken check is said on
-the step's line and in the handoff and the run goes on; `fail` makes it a
+the step's line and in the handoff, it stays on the head until fixed or
+ticketed, the step that writes the file is handed it on its next go, and
+the run goes on; `fail` makes it a
 gate that sends the step back, and a resumed leg is held to a break the
 last leg left. a check that cannot run is never counted as one that held:
 it is said, and under `fail` the gate passes with an `issue`.

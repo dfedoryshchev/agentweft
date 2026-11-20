@@ -219,7 +219,8 @@ def go(leg):
                                              for t in looked.told],
                                             str(run.workdir)))
                                     if looked is not None else None,
-                                    added=len(trail.closed) - went)
+                                    added=len(trail.closed) - went,
+                                    ticketed=getattr(run, "ticketed", ()))
         upkeep.tally(run, trail)
         return path, lines
 
