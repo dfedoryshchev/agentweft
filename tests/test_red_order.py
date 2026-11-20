@@ -378,7 +378,8 @@ def test_a_proof_holds_while_its_own_test_is_as_it_was_shown(tmp_path,
     order, path = proved_on(tmp_path, said)
     assert list(order.proof["nodes"]) == ["tests/test_calc.py"]
     path.write_text(HELPED.replace("add(0, 0) == 0", "add(0, 1) == 1")
-                    + NL + "# a note" + NL, encoding="utf-8")
+                    + NL + "# a note" + NL + NL + NL + "def test_more():" + NL
+                    + "    assert add(2, 2) == 4" + NL, encoding="utf-8")
     assert order.recheck() == ""
     assert order.proof is not None
 
@@ -388,7 +389,15 @@ def test_a_proof_holds_while_its_own_test_is_as_it_was_shown(tmp_path,
     HELPED.replace("add(1, 2) == WANT", "add(1, 2) >= 0"),
     HELPED.replace("def test_add():", "def test_sum():"),
     HELPED + NL + "def broken(:" + NL,
-    None])
+    None,
+    HELPED + NL + "pytestmark = pytest.mark.skip(reason='later')" + NL,
+    HELPED + NL + "def setup_module():" + NL + "    pytest.skip('later')"
+    + NL,
+    HELPED + NL + "import calc" + NL + "calc.add = lambda a, b: 3" + NL,
+    HELPED.replace("WANT = 3", "WANT = 3" + NL + "SEEN = []"),
+], ids=["a constant it reads", "its assert", "renamed away",
+        "no longer parses", "deleted", "pytestmark", "setup_module",
+        "a patched import", "module code it does not read"])
 def test_a_proof_whose_own_test_or_what_it_reads_moved_is_dropped(tmp_path,
                                                                  now):
     order, path = proved_on(tmp_path, "TEST: tests/test_calc.py::test_add"

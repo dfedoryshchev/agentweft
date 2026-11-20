@@ -511,16 +511,30 @@ def read_by(source, name, test):
 def code_of(source, name, test):
     """-> the test `test` (an id under `name`, a case's `[...]` left off) in
     `source` as its syntax tree reads, with the code at the top of the file
-    it reads and the other members of its test class: what decides how it
-    runs from inside its file. formatting and comments are not in it. ""
-    when the test is not there or the source does not parse."""
+    it reads, the other members of its test class and the class's own
+    decorators and bases, and every other statement at the top of the file
+    that is not another test or test class (a `pytestmark`, a
+    `setup_module`, a patch of what it imports): what decides how it runs
+    from inside its file. formatting and comments are not in it. "" when
+    the test is not there or the source does not parse."""
     try:
         tree = ast.parse(source)
     except (SyntaxError, ValueError):
         return ""
     plain = test.split("[", 1)[0]
-    return "\n".join(ast.dump(p) for p in _read_parts(tree, name, plain,
-                                                      members=True))
+    parts = _read_parts(tree, name, plain, members=True)
+    if not parts:
+        return ""
+    node = parts[0]
+    for top in tree.body:
+        if top in parts or _is_test_func(top) or _docstring(top):
+            continue
+        if isinstance(top, ast.ClassDef) and node in top.body:
+            parts.extend(top.decorator_list + top.bases
+                         + [k.value for k in top.keywords])
+        elif not (isinstance(top, ast.ClassDef) and collected(top)):
+            parts.append(top)
+    return "\n".join(ast.dump(p) for p in parts)
 
 
 def claimable(test, how):

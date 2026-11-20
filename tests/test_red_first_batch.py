@@ -269,6 +269,21 @@ def test_one_test_run_with_a_results_command_leaves_no_file_in_the_place(
     assert git(place, "status", "--porcelain") == status
 
 
+def test_a_skipped_test_is_left_out_of_the_results_and_read_green_alone(
+        tmp_path):
+    # the floor a resumed red proof leans on: nothing here reads a skip as
+    # not green, so a proved file's module code moving drops the proof
+    place = a_repo(tmp_path / "repo")
+    (place / "tests" / "test_old.py").write_text(
+        "import pytest" + NL + NL + "pytestmark = pytest.mark.skip('later')"
+        + NL + NL + NL + "def test_old():" + NL + "    assert False" + NL,
+        encoding="utf-8")
+    g = redfirst_gate.RedFirstGate(command=JUNIT, results="junit")
+    said, stopped = g.batch(JUNIT, ["tests/test_old.py::test_old"], place)
+    assert said == {} and not stopped
+    assert g.one(JUNIT, "tests/test_old.py::test_old", place) == ("green", "")
+
+
 @pytest.mark.parametrize("flow", ["fix-with-test", "build-feature"])
 def test_the_shipped_flows_name_a_junit_results_file(flow):
     fm = runner.config(flow)

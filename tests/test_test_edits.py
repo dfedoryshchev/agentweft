@@ -944,6 +944,38 @@ def test_a_proof_whose_own_test_changed_is_still_dropped(tmp_path,
         " tests/test_report.py" in read(folders()[-1] / "why.md")
 
 
+@pytest.mark.parametrize("added", [
+    "pytestmark = pytest.mark.skip(reason='later')" + NL,
+    "def setup_module():" + NL + "    pytest.skip('later')" + NL,
+    "report.count = lambda names: 1" + NL,
+], ids=["pytestmark", "setup_module", "a patched import"])
+def test_a_run_born_proof_whose_module_code_moved_is_dropped_on_resume(
+        tmp_path, monkeypatch, added):
+    # a skipped test exits 0, which the suite reads as passing, so the
+    # proof itself has to go
+    place = a_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", TESTER + PATCHER)
+    born = "tests/test_count.py"
+    shown = "import pytest" + NL + module(COUNT)
+    does = {"tester.md": ({born: shown}, "FAILS: assert False" + NL
+                          + "TEST: " + born + "::test_count" + NL),
+            "worker.md": ({"report.py": COUNTED, FILE: module()},
+                          WORKER_SAID)}
+    code, called = running(tmp_path, monkeypatch, place, does, False)
+    assert called == ["tester.md", "worker.md", "worker.md"]
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    (place / born).write_text(shown + NL + added, encoding="utf-8")
+    code, called = running(tmp_path, monkeypatch, place, does, False,
+                           "--resume", first.name, "--answer",
+                           "override: the alphabetical case goes with the"
+                           " count")
+    assert called == []
+    assert code != 0
+    assert "the tests its red proof was shown on are not as they were: " \
+        + born in read(folders()[-1] / "why.md")
+
+
 REVERSED = "def report(names):" + NL \
     + "    return sorted(names, reverse=True)" + NL + NL + NL \
     + "def count(names):" + NL + "    return len(names)" + NL
