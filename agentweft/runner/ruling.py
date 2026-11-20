@@ -2077,6 +2077,24 @@ def hands_back_to(d, asked):
     return said[0], said[1]
 
 
+def handed_line(d, rel, line, asked):
+    """whether a hand-back answer lets `line` of the spec file `rel`, as
+    the run found it, change: a line `asked` keeps for its leg
+    (`hands_back_to`) with the same words in the same file, by its cite,
+    never the same words in another file."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if rel is None or not found or not handed_back(found[1]) or not m:
+        return False
+    said = (asked or {}).get(m.group(1)) or ((), (), ())
+    if len(said[1]) != len(said[2]):
+        return False
+    have = path_of(rel).casefold()
+    return any(flat(kept) == flat(line)
+               and path_of(cite.rpartition(":")[0]).casefold() == have
+               for kept, cite in zip(said[1], said[2]))
+
+
 def conflict_asked(output, workdir, start=None, ruled=None):
     """-> `lines_asked` of the lines every CONFLICT line in `output` the run
     stops on (`every_unruled`) cites, as the run found them, or None when
@@ -2131,10 +2149,11 @@ def spec_line_ruled(decided, line, asked=None, rel=None, request="",
     or the request names that file to change (`files_named`). an answer of
     `request:` keeps the spec, so it never rules one. a hand-back to the
     lead's own question stopped on marks rules the lines `handed` keeps for
-    it ({run id: `handed_asked`}). the lead's pick (`picked`) rules only
+    it ({run id: `handed_asked`}), each in the file its cite names
+    (`handed_line`). the lead's pick (`picked`) rules only
     the lines of the question it answers (`answers_lines`)."""
     for d in decided:
-        if flat(line) in hands_back_to(d, handed)[1]:
+        if handed_line(d, rel, line, handed):
             return d
         said = answered(d)
         kind = kind_of(said or d.decided)

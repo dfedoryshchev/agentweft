@@ -185,7 +185,8 @@ file the runner kept (a file it kept covers only a change of the whole
 file), and each marked line as the run found it (a mark citing no line, a
 line that cannot be read or an unread line beside the marks keeps
 nothing). the entry says so: "this authorises changing <the set>, and
-nothing else". a change to any other spec line or start test parks again.
+nothing else". a change to any other spec line or start test parks again,
+a line with the same words in another spec file included.
 an `override:` to such a park is read as before. it lifts no
 `spec: breaks` or `spec: contradicts` mark on a line the operator was not
 asked about, and a question with no `RECOMMEND:` still parks.

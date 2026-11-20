@@ -178,6 +178,57 @@ def test_a_hand_back_to_a_marked_line_lets_no_other_spec_line_change(
     assert 'was "' + LINE + '"' not in question
 
 
+def test_a_hand_back_to_a_marked_line_lets_no_same_words_elsewhere_change(
+        tmp_path, monkeypatch):
+    from test_test_edits import git
+    place = spec_place(tmp_path / "repo")
+    (place / "docs").mkdir()
+    (place / "docs" / "spec.md").write_text("# also" + NL + NL + LINE + NL,
+                                            encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "second spec")
+    a_flow(tmp_path, "build", PLANNER + TESTER + PATCHER + LEAD
+           + "spec_files: additions" + NL)
+    planned(tmp_path)
+    does = {"planner.md": ({}, page(MARK_Q, "let the order line say by"
+                                     " entry", MARK)),
+            "tester.md": ({FILE: module(RIGHT, OTHER, COUNT)}, TESTER_SAID),
+            "worker.md": ({"report.py": COUNTED}, WORKER_SAID)}
+    code, _ = running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    does["worker.md"] = ({"report.py": COUNTED,
+                          "TASK.md": SPEC.replace(LINE, RULED),
+                          "docs/spec.md": "# also" + NL + NL + RULED + NL},
+                         WORKER_SAID)
+    code, _ = running(tmp_path, monkeypatch, place, does, False,
+                      "--resume", first.name, "--answer", "you decide")
+    assert code == stops.exit_code(stops.PARKED), read(
+        folders()[-1] / "gates.md")
+    question = read(folders()[-1] / "question.md")
+    assert "- docs/spec.md:3 - was" in question
+    assert "- TASK.md:3 - was" not in question
+
+
+def test_a_hand_back_matches_a_marked_line_by_its_file_and_words():
+    cafe = "le caf" + chr(0xe9) + " est servi chaud"
+    entry = decisions.Decision(
+        "ruling for planner.md: you decide",
+        "asked by planner.md in r1:" + NL + NL + "NEEDS: x" + ruling.ANSWERED
+        + "you decide" + ruling.ANSWERED_BY + "op" + ruling.ANSWERED_END,
+        None)
+    handed = {"r1": ((), (cafe,), ("docs/api.md:1",))}
+    assert ruling.handed_line(entry, "docs/api.md", cafe, handed)
+    assert ruling.handed_line(entry, "docs\\api.md", cafe, handed)
+    assert not ruling.handed_line(entry, "TASK.md", cafe, handed)
+    assert not ruling.handed_line(entry, None, cafe, handed)
+    assert not ruling.handed_line(entry, "docs/api.md", "other", handed)
+    assert not ruling.handed_line(entry, "docs/api.md", cafe,
+                                  {"r1": ((), (cafe,), ())})
+    assert not ruling.handed_line(entry, "docs/api.md", cafe, {"r2": handed[
+        "r1"]})
+
+
 def test_an_override_to_a_marked_line_is_read_as_before(tmp_path, monkeypatch):
     place, first, does = marks_parked(tmp_path, monkeypatch)
     does["worker.md"] = ({"report.py": COUNTED,
