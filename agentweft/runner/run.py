@@ -1784,6 +1784,11 @@ class Run(object):
         if step == investigate.STEP:
             prompt = prompt + investigate.plan_words(self.fm)
         values = prompts.spec_of(prompt, getattr(self, "start", None))
+        lead = getattr(self, "lead", None)
+        led = bool(lead) and not getattr(self, "lead_off", False)
+        values.update(prompts.plan_of(prompt, (
+            self.produced.get(lead) or getattr(self, "plan_kept", ""))
+            if led else "", led))
         notes = getattr(self, "brief", None)
         briefed = ""
         handed = []

@@ -21,6 +21,15 @@ what has changed in it since:
 
 {SPEC_DIFF}
 
+the plan the run's lead set out, its behaviour lines as written:
+
+{PLAN}
+
+each planned behaviour has code and a test that checks it: one without is a
+redo. a thing the spec asks for that the plan missed is a redo too. a
+decision on record you would answer otherwise is not a redo: name the
+question by its first words on a DOUBTS line of your handoff.
+
 under the verdict line, whatever the verdict, the likeliest wrong
 implementation the tests as they are would let pass, and the case that would
 fail it, each on its own line:

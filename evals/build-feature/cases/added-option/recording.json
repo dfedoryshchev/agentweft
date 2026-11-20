@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T17:01:48",
+  "recorded": "2026-11-20T10:15:38",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -37,7 +37,7 @@
       "step": "reviewer-runs.md",
       "task": null,
       "go": 1,
-      "prompt": "bd61afc87165f152b7217c280ef33767e74b5cf08df389a3cb16011c23d599d8",
+      "prompt": "b8163f5e60e500fae206391f9e453a77a013718db0a25e95f6026e1d1bcf9339",
       "say": "VERDICT: ok\n\n- roster.py: fields takes a delimiter, the comma by default\n",
       "detail": "",
       "retryable": null,
@@ -52,7 +52,7 @@
       "step": "reviewer.md",
       "task": null,
       "go": 1,
-      "prompt": "4efe875cf79364873f9d795c9953fc1025ed7a8f91ca3f2d74cdb947a67e78c4",
+      "prompt": "a433a5b754522df7f719e3e87a6dceb35829b7a8d05936301455ec53cabd9234",
       "say": "VERDICT: ok\n\n- roster.py: fields takes a delimiter, the comma by default\n",
       "detail": "",
       "retryable": null,

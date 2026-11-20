@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-19T17:03:16",
+  "recorded": "2026-11-20T10:16:16",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -37,7 +37,7 @@
       "step": "reviewer-runs.md",
       "task": null,
       "go": 1,
-      "prompt": "1aea2a930c99f199b98c98662c00065f2d6b64e565d46feb081833ae87dc9eae",
+      "prompt": "62b500295f557c924a2e4090bebdfb7d73c075be05c0019539a5f57f444bc0d0",
       "say": "VERDICT: ok\n\n- calc.py: mul(a, b) added\n",
       "detail": "",
       "retryable": null,
@@ -52,7 +52,7 @@
       "step": "reviewer.md",
       "task": null,
       "go": 1,
-      "prompt": "955fe75cfd7220f9691d1aae9aefc3fc09e066f2374bd2395ed068fd0c12caa9",
+      "prompt": "0aa452ef5859b2166ddcde74bbc0fe7cc4fd30738dd7a655d1bb22e79cde45b8",
       "say": "VERDICT: ok\n\n- calc.py: mul(a, b) added\n",
       "detail": "",
       "retryable": null,

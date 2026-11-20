@@ -44,6 +44,38 @@ def spec_of(text, start):
             SPEC_DIFF: specfiles.diff(start)}
 
 
+PLAN = "{PLAN}"
+NO_PLAN_STEP = "(no plan step in this flow: its lead runs no step of it)"
+NO_BEHAVIOURS = ("(the plan lists no `- behaviour:` line, so nothing here"
+                 " is covered by it: check each thing against the spec)")
+PLANNED = re.compile(r"^-\s*behaviour:", re.I)
+
+
+def plan_of(text, plan, led):
+    """-> {PLAN: ..} for a prompt that names it, {} for one that does not:
+    the `- behaviour:` lines of `plan`, the answer of the flow's lead step,
+    each with the indented lines under it, as written and outside code
+    fences. `led` is False for a flow whose lead is no step of its route,
+    or that names none: it has no plan, and says so; a plan with no such
+    line says so too."""
+    if PLAN not in text:
+        return {}
+    if not led:
+        return {PLAN: NO_PLAN_STEP}
+    from . import verbs
+
+    out, inside = [], False
+    for _, line in verbs.visible(plan or ""):
+        if PLANNED.match(line):
+            inside = True
+            out.append(line.rstrip())
+        elif inside and line[:1] in (" ", "\t") and line.strip():
+            out.append(line.rstrip())
+        else:
+            inside = False
+    return {PLAN: "\n".join(out) if out else NO_BEHAVIOURS}
+
+
 BRIEF = "{BRIEF}"
 
 

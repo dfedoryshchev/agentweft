@@ -562,6 +562,11 @@ def begin(unrecorded):
             entry = found.step(investigate.STEP) if found else None
             run.produced[investigate.STEP] = resume.step_output(
                 (entry or {}).get("in") or pick_up, investigate.STEP)
+        planner = lead_of(fm)
+        if planner and planner not in todo:
+            entry = found.step(planner) if found else None
+            run.plan_kept = resume.step_output(
+                (entry or {}).get("in") or pick_up, planner)
         print("picking " + pick_up + " up at " + start)
     seen = state.last_output(flow, run.workdir, asked)
     folder = state.RUNS / run_id

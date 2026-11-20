@@ -43,5 +43,11 @@ the spec as the run found it:
 
 {SPEC_AT_START}
 
+the plan the run's lead set out, its behaviour lines as written:
+
+{PLAN}
+
+each planned behaviour you can run, run by hand on its boundaries too.
+
 after the verdict line, the list of changed files, corrected, in the worker's
 shape: one `- <file>: <what changed>` line each.

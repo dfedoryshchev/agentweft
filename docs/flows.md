@@ -42,7 +42,8 @@ exactly where `{TASK}` is and nowhere else: in a step's own file it reaches
 that step, in `instructions.md` it reaches every step. a fanned-out flow that
 names it in `planner.md` hands it to the planner, and the workers get the
 plan. `{INBOX}` and friends are put in first, so a task that quotes one keeps
-it as written. `{TASK}`, `{BRIEF}`, `{SPEC_AT_START}` and `{SPEC_DIFF}` are
+it as written. `{TASK}`, `{BRIEF}`, `{SPEC_AT_START}`, `{SPEC_DIFF}` and
+`{PLAN}` are
 then put in together, in one pass over the step's own words, so a task, a
 quoted line or a spec line that holds one of those spellings reaches the step
 as it was written.
@@ -83,6 +84,14 @@ called:
 a flow whose prompts name either takes the start snapshot even without
 `spec_files:`. the reviewers that ship with `build-feature` and
 `code-review` read them.
+
+- `{PLAN}`: the `- behaviour:` lines of the answer of the flow's lead step,
+  each with the indented lines under it, as written and outside code fences
+  (on a resume after the lead ran, read from the leg it ran in). a flow whose
+  lead runs no step of its route, or that names none, gets "(no plan step in
+  this flow ...)", and a plan with no such line says so, never an empty
+  section. both reviewers of `build-feature` read it, so each planned
+  behaviour is checked for code and a test.
 
 a step whose own words name one of them and ask for a verdict is held to it:
 an `ok` while the spec has moved is a redo, unless each line that moved,
