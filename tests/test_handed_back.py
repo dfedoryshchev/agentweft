@@ -60,7 +60,7 @@ def test_a_new_question_after_a_hand_back_is_the_lead_s_to_decide(
     entry = decisions.read(tmp_path)[-1]
     assert entry.decided == "planner.md decided for planner.md: " + STALE
     first = decision(folder(tmp_path)).strip().split(NL)
-    assert first[0] == "- decided by the lead: " + NEW
+    assert first[0] == "- decided under the operator's hand-back: " + NEW
     assert first[2] == "  settled by " + answer_cite(tmp_path, answer)
 
 

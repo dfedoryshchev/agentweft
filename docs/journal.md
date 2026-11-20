@@ -1226,8 +1226,9 @@ and ends with the command that answers it:
     python run.py fix-with-test --resume <run-id> --answer "numbers"
 
 `--answer-file <path>` takes a longer answer from a file, and in a flow that
-names a lead an answer that opens with `you decide` hands the call back
-(`writing-a-flow.md`, section 8). the resume runs the
+names a lead step an answer that opens with `you decide` hands the call back
+(`gates.md`): on a park of the lead's own page, the page's recommendations go
+on record as its decisions before it goes again. the resume runs the
 step that asked again, AT that step and not after it, on what it was handed
 before, with the question and the answer at the very end of its prompt. the
 question, the answer and who gave it go into `decisions.md` in the place the

@@ -280,7 +280,7 @@
     "worker.md go 1 8d363322fd9130f6973c1fcc6c3a6ea77f9dce82eabee5076eec07007df469bd"
   ],
   "fix-with-test/lead-closes": [
-    "architect.md go 1 da7f400d947580d66142f87d7940fbe6dd831398987d18e2a1ab541b1793b1db",
+    "architect.md go 1 45bd8ae7760fdc1d7914b418703bff297a7cf0f30e6909344f8bd30528c71317",
     "retro.md go 1 8850ec1e0fdde3dfd5bcd1816ebfccd2d1f286fe2c27dec92358ec8849f584b0",
     "worker.md go 1 8d363322fd9130f6973c1fcc6c3a6ea77f9dce82eabee5076eec07007df469bd",
     "worker.md go 2 4d44988053a0cab396806a92eb371d8c6b8384b2ba26d09d0e5e3e3318990a8a"
@@ -291,13 +291,13 @@
     "worker.md go 2 8d363322fd9130f6973c1fcc6c3a6ea77f9dce82eabee5076eec07007df469bd"
   ],
   "fix-with-test/no-change": [
-    "architect.md go 1 da7f400d947580d66142f87d7940fbe6dd831398987d18e2a1ab541b1793b1db",
+    "architect.md go 1 45bd8ae7760fdc1d7914b418703bff297a7cf0f30e6909344f8bd30528c71317",
     "retro.md go 1 457647d2494a377200eea96dd7d1836d70fb165ce77e11a04c107f2bf66b14ca",
     "worker.md go 1 8d363322fd9130f6973c1fcc6c3a6ea77f9dce82eabee5076eec07007df469bd",
     "worker.md go 2 eabeeffa3e6147d3b49d7b7c1d13a5e900fa208bfa2c99d38c8707dfdeb6b085"
   ],
   "fix-with-test/no-red-asks": [
-    "architect.md go 1 da7f400d947580d66142f87d7940fbe6dd831398987d18e2a1ab541b1793b1db",
+    "architect.md go 1 45bd8ae7760fdc1d7914b418703bff297a7cf0f30e6909344f8bd30528c71317",
     "worker.md go 1 8d363322fd9130f6973c1fcc6c3a6ea77f9dce82eabee5076eec07007df469bd"
   ],
   "fix-with-test/no-red-proof": [
@@ -331,7 +331,7 @@
     "worker.md go 2 ff054c2530584ec5a968af2f2c077da8aea951c9a98957bd32925b98ef738af6"
   ],
   "fix-with-test/ruling-resume": [
-    "architect.md go 1 018f97704d95a5bef48b07d49d44af3890e556e087cf05946a124d6c8bbf2992",
+    "architect.md go 1 97bd1a697867c7c41f6b38a92f3e74a2ce78a98c0d755c6c27e71f9969b58b3b",
     "patcher.md go 1 dd2e979ea9a875ca42cecabce63f6dc59170f5a6f20e9a7b8cbdeba98ab1d117",
     "retro.md go 1 eebfd2cbb418b3f67856077d452f0cb429364f997dc39ff051c1fe8d9b0d5eab",
     "worker.md go 1 8d363322fd9130f6973c1fcc6c3a6ea77f9dce82eabee5076eec07007df469bd",

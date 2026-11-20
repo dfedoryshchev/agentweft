@@ -17,8 +17,8 @@ from . import investigate
 from .prompts import flow_path
 from . import prompts
 from . import commits
-from . import (chain, fan, leftred, manifest, models, resume, router, ruling,
-               warm)
+from . import (asking, chain, fan, leftred, manifest, models, resume, router,
+               ruling, warm)
 from . import state
 from . import stops
 from . import summary
@@ -591,12 +591,18 @@ def begin(unrecorded):
         run.rule(ruling.decided(asker, answer),
                  ruling.why(asker, pick_up, question, answer, ruling.who(),
                             kind, files), by="answer")
+        page = state.RUNS / pick_up / asker
+        stood = asking.stopped_decided(run, asker, page.read_text(
+            encoding="utf-8"), pick_up) if kind is None \
+            and asker == lead_of(fm) and ruling.handed_back(answer) \
+            and page.is_file() \
+            and not ruling.held_edits(found.data.get("stopped")) else ""
         if kind == ruling.REQUEST:
             print("ruled: the request is amended, and the run starts again at "
                   + start)
         else:
-            run.ruled[start] = ruling.told(question, answer, kind, files,
-                                           lead=lead_of(fm), step=start)
+            run.ruled[start] = stood + ruling.told(
+                question, answer, kind, files, lead=lead_of(fm), step=start)
             print("ruled: " + start + " runs again with the answer")
     return Leg(flow=flow, fm=fm, run=run, route=route, record=record,
                folder=folder, run_id=run_id, started=started, ticks=ticks,

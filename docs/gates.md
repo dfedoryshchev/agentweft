@@ -162,7 +162,19 @@ flow with no lead, or with a lead that is no step, offers no hand-back, and
 such an answer is read as any other), read
 off its first two words and never off what the rest says: a later
 decision of the lead's with no other reason names the line of decisions.md
-the answer starts on. it lifts no `spec: breaks` or `spec: contradicts`
+the answer starts on. when the run stopped on the lead's own page, every
+QUESTION that page asked with a `RECOMMEND:` holding a choice goes on record
+as the lead's decision before the lead goes again, under the hand-back, and
+the lead is handed them; a page that now answers one of them otherwise says
+so on a line `DEPARTS: <the question's first words> - <the new answer> -
+<why>`, which goes on record beside the recommendation it had when its
+first words name exactly one of those questions, and is listed first on the
+head ("departs from the recommendation it stopped on"). a DEPARTS line in
+another form, or naming none of them, is said and recorded as nothing. a
+decision the hand-back settles is listed on the head as "decided under the
+operator's hand-back". a question of that page with no recommendation has
+no default. none of it lets a spec line or a start test change. it lifts no `spec: breaks` or
+`spec: contradicts`
 mark on a line the operator was not asked about, and a question with no
 `RECOMMEND:` still parks; a conflict's answer is `override:` or `request:`
 and never `you decide`.

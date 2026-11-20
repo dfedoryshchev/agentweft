@@ -1724,6 +1724,7 @@ def lead_decides(run, step, out, where):
     on record."""
     if lead_parks(run, step, out)[0]:
         return 0
+    departures(run, step, out, where)
     answered = answered_here(run)
     count = 0
     for asked, rec, _, _, settled, _ in lead_questions(run, step, out,
@@ -1749,6 +1750,75 @@ def lead_decides(run, step, out, where):
         out.meta["rulings"] = run.rulings()
         print(step + ", the flow's lead, decided its own question: " + rec)
     return count
+
+
+def stopped_decided(run, step, page, where):
+    """the operator answered the lead's page `page` (its text), the one the
+    run stopped on, with a hand-back: each QUESTION of it with a RECOMMEND
+    that holds a choice is put on record as the lead's decision before the
+    lead goes again, under the hand-back, and kept on `run.stood` for its
+    DEPARTS lines. a question with no recommendation, or one handing the
+    answer on, has no default. -> the end of the lead's next prompt naming
+    each, "" when none was put on record."""
+    from .handoff import Handoff
+
+    settled = handed_back(run)
+    if not settled or not page.strip():
+        return ""
+    run.stood = dict(getattr(run, "stood", None) or {})
+    told = []
+    for asked, rec, _, _, _, _ in lead_questions(run, step, Handoff(
+            step[:-len(".md")], page)):
+        key = lead.key(asked)
+        if no_recommendation(rec) or consult.hands_on(rec) or key in run.led:
+            continue
+        run.led[key] = rec
+        run.stood[key] = (asked, rec)
+        run.rule(*lead.recorded(
+            step, step, where, asked, rec,
+            "the recommendation of " + step + "'s handoff the run stopped on"
+            + lead.HANDED + ", which " + settled[0] + ' "' + settled[1] + '"'
+            + lead.SETTLES + step + lead.SETTLES_END), by=rulings.LEAD)
+        print(step + "'s recommendation from the page the run stopped on is"
+              " its decision under the operator's hand-back: " + rec)
+        told.append("- " + asked[len("NEEDS: "):] + "\n  decided: " + rec)
+    if not told:
+        return ""
+    return ("\n\nDECIDED UNDER THE HAND-BACK. the recommendations of your"
+            " plan the run stopped on, now on record as your decisions:\n"
+            + "\n".join(told) + "\n")
+
+
+def departures(run, step, out, where):
+    """each DEPARTS line of the lead's page on the leg after a hand-back
+    that names, by its first words, exactly one question `stopped_decided`
+    put on record goes on record as the lead's new decision of it, with the
+    recommendation it had and the why beside it. a line in no taught form,
+    or one that names no such question or more than one, is said and
+    recorded as nothing: the page's own questions are read as before."""
+    stood = getattr(run, "stood", None) or {}
+    found = lead.departs_of(out.output) if stood else []
+    settled = handed_back(run) if found else None
+    for said in found:
+        if said[0] is None or not settled:
+            print("a DEPARTS line not in the form taught for it, recorded as"
+                  " nothing: " + said[-1])
+            continue
+        words, now, why = said
+        start = "needs: " + " ".join(words.lower().split())
+        named = [k for k in stood if k.startswith(start)]
+        if len(named) != 1:
+            print("a DEPARTS line names no question of the page the run"
+                  " stopped on, or more than one, recorded as nothing:"
+                  " DEPARTS: " + words)
+            continue
+        asked, was = stood.pop(named[0])
+        run.led[named[0]] = now
+        run.rule(*lead.departed(step, where, asked, was, now, why,
+                                settled[0] + ' "' + settled[1] + '"'),
+                 by=rulings.LEAD)
+        out.meta["rulings"] = run.rulings()
+        print(step + " departs from the recommendation it stopped on: " + now)
 
 
 def asked_file(step):

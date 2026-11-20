@@ -2111,7 +2111,12 @@ HANDS_BACK = (MAKE_IT + " every later QUESTION of the flow's lead in this"
               " run that has a RECOMMEND is decided by it, settled by this"
               " answer and on record for the operator to overrule, so ask it"
               " as before, with its RECOMMEND. a mark on a spec line the"
-              " operator was not asked about still goes to the operator.")
+              " operator was not asked about still goes to the operator."
+              " each QUESTION your plan asked with a RECOMMEND when the run"
+              " stopped is already decided by that RECOMMEND, on record;"
+              " where you now answer one of them otherwise, say so"
+              " on a line of its own: `DEPARTS: <the question's first words>"
+              " - <the new answer> - <why>`.")
 
 
 def took(question):

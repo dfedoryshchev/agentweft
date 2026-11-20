@@ -348,19 +348,61 @@ SETTLED_BY = re.compile(r", which (.+)" + SETTLES + r"\S+" + SETTLES_END + "$")
 
 def own(d):
     """-> (the run it was asked in, the question, the decision, the cite and
-    quote that settled it or "") of a decisions.md entry the lead wrote on a
-    QUESTION of its own handoff; None for any other entry."""
+    quote that settled it or "", whether it departs from the recommendation
+    of the page the run stopped on) of a decisions.md entry the lead wrote on a QUESTION of
+    its own handoff; None for any other entry."""
     decided = decided_of(d.why)
     m = OWN.match(d.why)
-    if decided is None or not m or not d.decided.startswith(
-            m.group(1) + " decided for " + m.group(1) + ": ") \
-            or not d.why.endswith(LEAD_BY + m.group(1) + LEAD_BY_END):
+    if decided is None or not m or not d.why.endswith(
+            LEAD_BY + m.group(1) + LEAD_BY_END):
+        return None
+    departs = d.decided.startswith(m.group(1) + DEPARTS_FOR + m.group(1)
+                                   + ": ")
+    if not departs and not d.decided.startswith(
+            m.group(1) + " decided for " + m.group(1) + ": "):
         return None
     asked = d.why[m.end():].rpartition(LEAD_DECIDED)[0]
     option, why, _ = read(decided)
     by = SETTLED_BY.search(why or "")
     return (m.group(2), asked.split("\n")[0], option or "",
-            by.group(1) if by else "")
+            by.group(1) if by else "", departs)
+
+
+DEPARTS_FOR = " departs for "
+HANDED = ", decided under the operator's hand-back"
+# a lead page on the leg after a hand-back says where it now answers
+# otherwise a question of the page the run stopped on
+DEPARTS = re.compile(r"^\s*DEPARTS:\s*(.*?)\s*$")
+
+
+def departed(lead, where, question, was, now, why, settled):
+    """-> (the decisions.md heading, its body) of a lead page that answers
+    otherwise a question the page the run stopped on recommended, after the
+    operator handed the call back; `settled` is the hand-back's `<cite>
+    "<quote>"`."""
+    return (lead + DEPARTS_FOR + lead + ": " + " ".join(now.split()),
+            "asked by " + lead + " in " + where + ":\n\n" + question
+            + LEAD_DECIDED + "DECIDED: " + now + "\nwhy: departs from the"
+            " recommendation it stopped on \"" + " ".join(was.split()) + "\": "
+            + " ".join(why.split()) + HANDED + ", which " + settled + SETTLES
+            + lead + SETTLES_END + LEAD_BY + lead + LEAD_BY_END)
+
+
+def departs_of(output):
+    """-> [(the question's first words, the new answer, why) or (None, the
+    line)] of each DEPARTS line of a lead page, outside fences and quotes;
+    a line not in the three parts the form has is (None, the line)."""
+    out = []
+    for _, line in verbs.visible(output or ""):
+        m = DEPARTS.match(line)
+        if not m:
+            continue
+        parts = [p.strip() for p in m.group(1).split(" - ", 2)]
+        if len(parts) != 3 or not all(parts):
+            out.append((None, line.strip()))
+        else:
+            out.append(tuple(parts))
+    return out
 
 
 NOW, LATER = "re-iterate now", "accept as later"

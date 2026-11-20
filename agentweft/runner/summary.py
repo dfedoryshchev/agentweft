@@ -2612,9 +2612,10 @@ def answered_by(text, asked, passes, record):
 
 
 def lead_own_decisions(decided, passes, run_id):
-    """-> [(the question, the decision, the line that settled it or "")]
-    the lead decided of its own handoff in this run or a leg before it
-    (`lead.own`)."""
+    """-> [(the question, the decision, the line that settled it or "",
+    whether it departs from the recommendation it stopped on)] the lead
+    decided of
+    its own handoff in this run or a leg before it (`lead.own`)."""
     runs = set([run_id] + [p["run"] for p in passes if p.get("run")])
     return [found[1:] for found in map(lead.own, decided or [])
             if found and found[0] in runs]

@@ -422,6 +422,18 @@ LED = "- decided by the lead: "
 LED_SO = ("  its decision: {rec} (on record in decisions.md; it rules no spec"
           " line or test, and is the operator's to overrule)")
 LED_BY = "  settled by "
+LED_HANDED = "- decided under the operator's hand-back: "
+LED_DEPARTS = "- departs from the recommendation it stopped on: "
+QUOTED = re.compile(r'^\S+:\d+ "(.*)"$')
+
+
+def handed(by):
+    """whether the line a lead's decision is settled by is the operator's
+    answer that handed the call back, read off the quote's first words."""
+    from .ruling import handed_back
+
+    m = QUOTED.match(by or "")
+    return bool(m) and handed_back(m.group(1))
 
 
 SPREAD = ("- the consumer contract changed: {cites} changed by the"
@@ -441,8 +453,10 @@ def _decision(found, most, width, stop=None, led=(), spread=()):
     for stamp, a, b, cites in spread:
         out.append(SPREAD.format(cites=", ".join(cites), a=a, b=b,
                                  stamp=stamp))
-    for question, rec, by in led:
-        out.append(LED + question)
+    for question, rec, by, *departs in sorted(
+            led, key=lambda d: not (len(d) > 3 and d[3])):
+        out.append(LED_DEPARTS + question if departs and departs[0] else
+                   LED_HANDED + question if handed(by) else LED + question)
         out.append(LED_SO.format(rec=rec))
         if by:
             out.append(LED_BY + by)
