@@ -632,7 +632,9 @@ runner reads at no model cost (`runner/duplicates.py`: in one file, so one
 tier, their bodies share at least 80% of their tokens, every string and
 number counted as one), one line per group, and the nice-to-do that names
 two or more tests of a group is kept once a run, a second one refused,
-whether a fact, a test guard or a doc edit makes it; the
+whether a fact, a test guard or a doc edit makes it, and kept without a
+check, `unchecked: a merge ticket` (a check is one grep and its exit code,
+which cannot count, and a merge keeps one of the names it greps for); the
 project's facts that are stale or hold for those files
 (`docs/journal.md`, "what is known about a file"); how many new facts, and
 how many nice-to-do tickets, it may write; `why.md` when the run stopped

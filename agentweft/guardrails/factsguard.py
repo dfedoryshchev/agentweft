@@ -211,13 +211,16 @@ def breaches(line, folder):
 
 
 class Proposal(object):
-    """a fact the runner is asked to write: `fields` by name, `scope` a list."""
+    """a fact the runner is asked to write: `fields` by name, `scope` a list.
+    `exempt` says why its check is not read at all (a merge ticket's, which
+    one grep cannot hold), "" for one whose check is."""
 
-    def __init__(self, fields):
+    def __init__(self, fields, exempt=""):
         self.fields = dict(fields)
         scope = self.fields.get("scope") or []
         self.fields["scope"] = [scope] if isinstance(scope, str) else \
             list(scope)
+        self.exempt = exempt
 
     def get(self, key):
         value = self.fields.get(key)
@@ -905,7 +908,7 @@ class Store(object):
                 " place"
         if said and self.anchor_for(said) is None:
             return "the anchor " + said.split()[0] + " is not lines of the file"
-        said = p.get("check").strip()
+        said = "" if getattr(p, "exempt", "") else p.get("check").strip()
         if said:
             why, form = self.check_refusal(said, scopes)
             if not why and "|" in said:
@@ -1179,10 +1182,14 @@ class Store(object):
         if said:
             fact.fields.append(("anchor", str(self.anchor_for(said))))
         unchecked = getattr(p, "unchecked", "")
+        exempt = getattr(p, "exempt", "") if p.get("check").strip() else ""
         for key in ("check", "supersedes"):
-            if p.get(key).strip() and not (key == "check" and unchecked):
+            if p.get(key).strip() and not (key == "check"
+                                           and (unchecked or exempt)):
                 fact.fields.append((key, p.get(key).strip()))
-        if unchecked:
+        if exempt:
+            fact.fields.append((UNCHECKED, exempt))
+        elif unchecked:
             fact.fields.append((UNCHECKED, REFUSED_CHECK + unchecked))
         stamp = today or datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         fact.fields.append(("written", stamp + " by runner"

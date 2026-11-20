@@ -90,6 +90,9 @@ CHANGES = "## the retro's changes (unstaged, the operator's to stage)"
 COMMITTED = ("## the retro's changes (in their own commit, the operator's to"
              " review)")
 DONE_HEAD = "## what the runner did with the FACTS block"
+# a merge leaves one name of the tests it merges, so a grep for them still
+# holds after it: no check of one grep and an exit code can say it is done
+MERGE = "a merge ticket"
 
 
 class Maintained(object):
@@ -452,7 +455,8 @@ def execute(store, record, items, done, run_id, today=None, pins=None):
                 continue
             fields, restated = ruling_alone(store.root, fields)
             before = store.new + store.tickets_new
-            fact, why = store.add(Proposal(fields), record, origin="retro")
+            fact, why = store.add(Proposal(fields, MERGE if merges else ""),
+                                  record, origin="retro")
             if fact is None:
                 refuse(done, what, why + put_to_operator(store.root, fields,
                                                          done))
@@ -594,7 +598,8 @@ def as_ticket(store, record, verb, value, fields, done, what, head, keys,
     fact = None
     if ticket is not None:
         before = store.new + store.tickets_new
-        fact, why = store.add(Proposal(ticket), record, origin="retro")
+        fact, why = store.add(Proposal(ticket, MERGE if merges else ""),
+                              record, origin="retro")
     if fact is None:
         failed(store, done, what, NO_WRITE + why + (put_to_operator(
             store.root, ticket, done) if ticket is not None else ""), head,
