@@ -15,6 +15,8 @@ import datetime
 import subprocess
 import sys
 
+import pytest
+
 sys.path.insert(0, ".")
 from agentweft.guardrails.gates.base import Result
 from agentweft.orchestrate import decisions, park
@@ -125,6 +127,37 @@ def test_a_red_line_on_a_test_the_gate_did_not_run_stays_open():
         "red without the change not shown: " + other + " - not run"]),
         gates=[red_first(NEW)])])
     assert other in section(head(lines), "not done")
+
+
+SAME_NAME = "tests/test_report.py::test_stats_mean_half_rounds_up"
+
+
+@pytest.mark.parametrize("key", ["red without the change not shown: ",
+                                 "green with the change not shown: "])
+@pytest.mark.parametrize("named", [
+    SAME_NAME,
+    NEW + " and " + SAME_NAME,
+    NEW + "[1]",
+    "tests/test_report.py",
+], ids=["same name in another file", "one of two in another file",
+        "a case the replay did not run alone", "another file"])
+def test_a_line_on_a_test_the_replay_did_not_run_by_its_whole_id_stays_open(
+        key, named):
+    lines = build([a_pass("patcher.md", block("fixed it", [
+        key + named + " - not run"]), gates=[red_first(NEW + "[2]")])])
+    assert "answered by" not in section(lines, "not verified")
+    assert named in section(head(lines), "not done")
+
+
+@pytest.mark.parametrize("named", [
+    NEW, ".\\tests\\test_stats.py::test_stats_mean_half_rounds_up",
+    "./" + NEW, "test_stats_mean_half_rounds_up", "tests\\test_stats.py"])
+def test_a_red_line_on_the_replayed_test_by_its_id_or_bare_name_is_answered(
+        named):
+    lines = build([a_pass("patcher.md", block("fixed it", [
+        "red without the change not shown: " + named + " - not run"]),
+        gates=[red_first(NEW)])])
+    assert "answered by the red-first gate" in section(lines, "not verified")
 
 
 def test_the_keys_are_read_as_typed_never_from_words():

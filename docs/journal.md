@@ -813,8 +813,11 @@ it answers, in order:
   by ...` after it; so is a line keyed on one of the three standard checks
   that a gate of the run, on its step or a later one, made: `suite not run:`
   by the last command gate when it passed, `red without the change not
-  shown:` by the newest red-first replay when it passed and ran every test
-  the line names, `green with the change not shown:` by that replay or the
+  shown:` by the newest red-first replay when it passed and showed red each
+  test the line names by its whole id (file and test, a `\` read as `/`), each
+  test file it names by a test in that file, and each test it names by a bare
+  function name; a test of the same name in another file answers nothing,
+  `green with the change not shown:` by that replay, read the same way, or the
   last command gate, ` - answered by the command gate on patcher.md, pass 2
   of the run: exit 0 (<command>)`; the key is read where the line opens,
   never from its words), the gates' unproven checks, and the

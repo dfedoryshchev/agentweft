@@ -2668,6 +2668,47 @@ def named_tests(text):
     return set(TEST_NAME.findall(text or ""))
 
 
+TEST_ID = re.compile(r"""([^\s:`'"(),]+\.py)::([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*"""
+                     r"""(?:\[[^\]\s]*\])?)""")
+
+
+def test_id(test):
+    """-> a test id with its file as a path from the place: `\\` read as
+    `/`, a leading `./` taken off."""
+    path, sep, node = (test or "").partition("::")
+    path = path.replace("\\", "/")
+    return (path[2:] if path.startswith("./") else path) + sep + node
+
+
+TEST_FILE = re.compile(r"""[^\s:`'"(),]+\.py(?![\w.])""")
+
+
+def named_ids(text):
+    """-> (the whole test ids `text` names, `test_id` of each, with each
+    python file it names outside an id as a whole-file id; the test function
+    names it names bare, outside any id)."""
+    text = text or ""
+    ids, bare, last = set(), [], 0
+    for m in TEST_ID.finditer(text):
+        ids.add(test_id(m.group(0)))
+        bare.append(text[last:m.start()])
+        last = m.end()
+    bare.append(text[last:])
+    outside = " ".join(bare)
+    ids |= set(test_id(f) for f in TEST_FILE.findall(outside))
+    return ids, named_tests(outside)
+
+
+def ran_whole(test, want):
+    """whether a run of the test id `test` ran the test id `want`: the same
+    id, or the plain id of the case `want` names. a whole file `want` is run
+    by a test id in it, never by a test of the same name elsewhere."""
+    have = test_id(test)
+    if "::" not in want:
+        return have == want or have.startswith(want + "::")
+    return have == want or have == want.split("[", 1)[0]
+
+
 def pass_label(passes, n):
     """-> where the `n`th of `passes` ran, with its place among the passes of
     its own run: `tester.md, pass 4 of the run`."""
@@ -2711,13 +2752,14 @@ def gate_answered(text, asked, passes):
     pass that said it in `passes`; only that pass's gates and later ones
     count. the suite line is the last command gate's, which must have
     passed; a red or green line is the newest red-first replay's, which must
-    have passed and run every test the item names (any test when it names
-    none); a green line is also the last command gate's when it passed."""
+    have passed and run every test the item names by its whole id, file and
+    node (`ran_whole`), and every test it names by a bare function name (any
+    test when it names none); a green line is also the last command gate's
+    when it passed."""
     found = handoff.not_shown(text)
     if found is None or asked is None:
         return ""
     key, rest = found
-    names = named_tests(rest)
     later = list(enumerate(passes))[asked:]
     suite = next(((n, g) for n, p in reversed(later)
                   for g in reversed(p["gates"]) if g["gate"] == "command"
@@ -2736,10 +2778,14 @@ def gate_answered(text, asked, passes):
              if isinstance(t, dict) and t.get("test")] \
         if replayed and replayed[1]["ok"] else []
     red = key == handoff.RED_NOT_SHOWN
-    held = [t["test"] for t in tests
-            if (t.get("before") == "red" if red else t.get("after") == "green")
-            and (not names or names & named_tests(t["test"]))]
-    if held and (not names or names <= named_tests(" ".join(held))):
+    ids, bare = named_ids(rest)
+    shown = [t["test"] for t in tests
+             if (t.get("before") == "red" if red else t.get("after") == "green")]
+    held = [t for t in shown if not (ids or bare)
+            or any(ran_whole(t, i) for i in ids)
+            or bare & named_tests(t)]
+    if held and all(any(ran_whole(t, i) for t in held) for i in ids) \
+            and bare <= named_tests(" ".join(held)):
         return ("the red-first gate on " + pass_label(passes, replayed[0])
                 + ": " + ", ".join(held) + (" red without the change" if red
                                             else " green with the change"))
