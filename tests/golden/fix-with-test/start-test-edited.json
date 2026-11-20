@@ -55,9 +55,12 @@
     "again to put each test back as the run found it. any other answer",
     "decides nothing and the run stays parked. the question and the",
     "answer go into decisions.md.",
+    "an answer that opens with you decide hands the pick between the",
+    "two to the flow's lead.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"override: <why the change holds>\"",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"put them back\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -101,7 +104,8 @@
     "- chain: 2 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"override: <why the change holds>\"",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"put them back\""
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"put them back\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\""
   ],
   "files": [
     "fix-with-test-<run>/budget-plan.md",
@@ -359,9 +363,12 @@
     "again to put each test back as the run found it. any other answer",
     "decides nothing and the run stays parked. the question and the",
     "answer go into decisions.md.",
+    "an answer that opens with you decide hands the pick between the",
+    "two to the flow's lead.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"override: <why the change holds>\"",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"put them back\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\"",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [

@@ -156,10 +156,11 @@ records of what it wrote), cited by line number or by the entry's stamp
 the lines of the operator's answer, never the entry's heading, the question
 it repeats or its closing line. an answer line quoted whole counts however
 short (a one-word answer), any other quote of it needs three words. in a
-flow whose lead is one of its steps, an answer that opens with `you decide`
-(any case, with or without a colon and more words) hands the call back (a
-flow with no lead, or with a lead that is no step, offers no hand-back, and
-such an answer is read as any other), read
+flow that names a lead, an answer that opens with `you decide`
+(any case, with or without a colon and more words) hands the call back (in
+a flow with no lead it decides nothing: `--resume` takes no leg, prints the
+question with "this flow names no lead to decide it", and the run stays
+parked), read
 off its first two words and never off what the rest says: a later
 decision of the lead's with no other reason names the line of decisions.md
 the answer starts on. when the run stopped on the lead's own page, every
@@ -173,11 +174,32 @@ head ("departs from the recommendation it stopped on"). a DEPARTS line in
 another form, or naming none of them, is said and recorded as nothing. a
 decision the hand-back settles is listed on the head as "decided under the
 operator's hand-back". a question of that page with no recommendation has
-no default. none of it lets a spec line or a start test change. it lifts no `spec: breaks` or
-`spec: contradicts`
-mark on a line the operator was not asked about, and a question with no
-`RECOMMEND:` still parks; a conflict's answer is `override:` or `request:`
-and never `you decide`.
+no default. when that page stopped the run on a test it started with that it
+names, or on lines of the spec it marks `spec: breaks` / `spec: contradicts`,
+the hand-back lets exactly those change and nothing else, read from what
+the runner kept of the question in the leg's `manifest.json`
+(`stopped.runner`), never from its words: the tests it names by id in a
+file the runner kept (a file it kept covers only a change of the whole
+file), and each marked line as the run found it (a mark citing no line, a
+line that cannot be read or an unread line beside the marks keeps
+nothing). the entry says so: "this authorises changing <the set>, and
+nothing else". a change to any other spec line or start test parks again.
+an `override:` to such a park is read as before. it lifts no
+`spec: breaks` or `spec: contradicts` mark on a line the operator was not
+asked about, and a question with no `RECOMMEND:` still parks.
+a conflict stop and the test-edits check's park (below) hold no
+recommendation: a hand-back to either is one go of the lead, which picks
+one of the park's two answers, `the request holds` or `the spec holds` for
+a conflict, `override` or `put them back` for the test edits, as the first
+words of its `DECIDED:` line, word for word (a line naming both, opening
+any other way, or taking the pick back with a no after it, is no pick),
+with a `why:` line under it. the pick goes on record as the answer it
+stands for, with its why as the words: `override:` (on the lines the
+conflict cites, or the tests the park names), `request:`, or `put them
+back:`, answered by the lead "picking under the operator's you decide".
+the lead's go is priced on its own line of the leg; a pick the program
+cannot read, or a lead that escalates, parks the run again on the same
+question in a new leg.
 any other answer decides its own question only. the step that runs again is
 told which marks of its question the answer took, and of a hand-back, that
 the call is its to make; only the lead is told its later questions are
@@ -880,8 +902,9 @@ in `gates.md`:
   not break still goes back first. two answers decide that
   park: `override:` (below), and one that says to put the tests back (`put
   them back`, `restore`, `revert`, `undo`, `as they were`), which sends the
-  step again to do so. any other answer, a `you decide` or a `request:`
-  included, decides nothing: the step would run again with the tests still
+  step again to do so. in a flow that names a lead, a `you decide` hands
+  the pick between those two to the lead (above). any other answer, a
+  `request:` included, decides nothing: the step would run again with the tests still
   changed and the check would park on them once more, so `--resume` takes
   no leg, prints the question with the two answers, and the run stays
   parked. the park is known by what the runner wrote in the leg's

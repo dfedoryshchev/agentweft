@@ -60,9 +60,12 @@
     "with your answer. request keeps the spec: your words are added",
     "to the request and the run starts again from its first step",
     "that reads it. either answer goes into decisions.md.",
+    "an answer that opens with you decide hands the pick between the",
+    "two to the flow's lead.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"override: <the new rule>\"",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"request: <what to do instead>\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## open questions",
@@ -113,7 +116,8 @@
     "- chain: 2 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"override: <the new rule>\"",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"request: <what to do instead>\""
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"request: <what to do instead>\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\""
   ],
   "files": [
     "fix-with-test-<run>/brief.md",
@@ -382,9 +386,12 @@
     "with your answer. request keeps the spec: your words are added",
     "to the request and the run starts again from its first step",
     "that reads it. either answer goes into decisions.md.",
+    "an answer that opens with you decide hands the pick between the",
+    "two to the flow's lead.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"override: <the new rule>\"",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"request: <what to do instead>\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\"",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [

@@ -53,7 +53,8 @@ def lines(step, who, done, left, command, why=None, again=False, cause=None,
     putting them back decides and nothing else does.
     """
     if question is not None and conflict:
-        return contradicted(step, done, left, command, question, replayed)
+        return contradicted(step, done, left, command, question, replayed,
+                            led)
     if question is not None:
         return ruling(step, who, done, left, command, question, worked,
                       stopped_for, run_did, led, edits)
@@ -149,10 +150,15 @@ def ruling(step, who, done, left, command, question, worked=None,
         out.append("again to put each test back as the run found it. any other answer")
         out.append("decides nothing and the run stays parked. the question and the")
         out.append("answer go into decisions.md.")
+        if led:
+            out.append("an answer that opens with you decide hands the pick between the")
+            out.append("two to the flow's lead.")
         out.append("")
         out.append("to carry on")
         out.append("  " + command + STANDS)
         out.append("  " + command + PUT_BACK)
+        if led:
+            out.append("  " + command + YOU_DECIDE)
         return out
     out.append(step + " runs again with the operator's answer at the end of its")
     out.append("prompt, and the question and the answer go into decisions.md. a")
@@ -179,7 +185,8 @@ STANDS = ' --answer "override: <why the change holds>"'
 PUT_BACK = ' --answer "put them back"'
 
 
-def contradicted(step, done, left, command, question, replayed=False):
+def contradicted(step, done, left, command, question, replayed=False,
+                 led=False):
     out = ["cause          conflict", "stopped at     " + step, ""]
     if replayed:
         out.append(step + " wrote product code, and the tests the run started")
@@ -208,10 +215,15 @@ def contradicted(step, done, left, command, question, replayed=False):
         out.append("with your answer. request keeps the spec: your words are added")
         out.append("to the request and the run starts again from its first step")
         out.append("that reads it. either answer goes into decisions.md.")
+    if led:
+        out.append("an answer that opens with you decide hands the pick between the")
+        out.append("two to the flow's lead.")
     out.append("")
     out.append("to carry on")
     out.append("  " + command + (STANDS if replayed else OVERRIDE))
     out.append("  " + command + REQUEST)
+    if led:
+        out.append("  " + command + YOU_DECIDE)
     return out
 
 

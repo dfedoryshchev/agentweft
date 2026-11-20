@@ -1753,11 +1753,15 @@ def asked_edits(stopped):
     return tuple(t for t in said["tests"] if isinstance(t, str))
 
 
-def answers_edits(d, test, asked):
+def answers_edits(d, test, asked, handed=None):
     """whether `d` is an `override:` answer, given with --answer, to the
     question a test edit parked a leg on, and that question named `test`.
     `asked` is {run id: the tests its record says the runner asked about},
-    so a step's own question in the runner's words is never taken for it."""
+    so a step's own question in the runner's words is never taken for it.
+    a hand-back answer to the lead's own test question covers the tests
+    `handed` ({run id: `handed_asked`}) keeps for it."""
+    if test in hands_back_to(d, handed)[0]:
+        return True
     found = asked_and_answered(d)
     m = ASKED_IN.match(d.why)
     if not found or kind_of(found[1]) != OVERRIDE or not m:
@@ -1818,7 +1822,7 @@ def answers_wrong(d, asked):
     return said
 
 
-def edit_ruled(decided, test, workdir, start=None, asked=None):
+def edit_ruled(decided, test, workdir, start=None, asked=None, handed=None):
     """-> the decisions.md entry that lets `test`, a test the run started
     with, be changed or removed, or None. `test` is a test id, or a file when
     the change is the file's. an `override:` answer to the question a test
@@ -1827,9 +1831,10 @@ def edit_ruled(decided, test, workdir, start=None, asked=None):
     a test id is also covered by what covers a start test gone red, and by
     an entry naming the test by its name alone. naming the file covers
     nothing: a ruling on where a new case goes names it too. an answer of
-    `request:` never covers one."""
+    `request:` never covers one. a hand-back to the lead's own test
+    question covers what `handed` keeps for it (`answers_edits`)."""
     for d in decided:
-        if answers_edits(d, test, asked):
+        if answers_edits(d, test, asked, handed):
             return d
     path, sep, name = test.partition("::")
     if not sep:
@@ -1906,6 +1911,120 @@ def asked_lines(stopped):
     return tuple(l for l in said["lines"] if isinstance(l, str))
 
 
+SPEC_MARKS = "spec-marks"
+
+
+def marks_asked(marks, workdir, start=None):
+    """-> what the runner keeps of the lead's own question stopped on its
+    `spec: breaks` / `spec: contradicts` marks: each line they cite, as the
+    run found it, and its cite; None when a mark cites no line, or a cited
+    line cannot be read. it is what a hand-back to that question lets
+    change (`handed_asked`), and an `override:` reads none of it."""
+    lines, cites = [], []
+    for m in marks:
+        cited = sorted(mark_lines(m), key=lambda c: (c[1], c[2]))
+        if not cited:
+            return None
+        for _, rel, n in cited:
+            found, _ = lines_of(workdir, rel, n, n, start)
+            if found is None:
+                return None
+            cite = rel + ":" + str(n)
+            if cite not in cites:
+                lines.append(flat(found[n - 1]))
+                cites.append(cite)
+    if not cites:
+        return None
+    return {"id": SPEC_MARKS, "lines": lines, "cites": cites}
+
+
+NAMED_TEST = re.compile(r"""([^\s:`'"(),]+)::([A-Za-z_]\w*(?:::[A-Za-z_]\w*)*"""
+                        r"""(?:\[[^\]\s]*\])?)""")
+
+
+def question_ids(question, files):
+    """-> the test ids, `<file>::<name>`, the NEEDS line and the CITES of a
+    runner's test question name in one of `files`, each with the file as
+    `files` spells it."""
+    lines = (question or "").split("\n")
+    said = lines[:1]
+    under = False
+    for line in lines[1:]:
+        if line.strip() in ("CITES:", "OPTIONS:"):
+            under = line.strip() == "CITES:"
+            continue
+        if under and line.startswith("- "):
+            said.append(line)
+    out = []
+    for m in NAMED_TEST.finditer("\n".join(said)):
+        named = path_of(m.group(1)).casefold()
+        for rel in files:
+            have = rel.casefold()
+            if have == named or have.endswith("/" + named.lstrip("./")):
+                found = rel + "::" + m.group(2)
+                if found not in out:
+                    out.append(found)
+    return out
+
+
+def handed_asked(stopped, lead):
+    """-> (the start tests, the spec lines as the run found them, the cites
+    of both) a hand-back answer to a leg's park lets change, read from what
+    the runner kept of the question, never its words: the lead's own
+    question that stopped the run on a test it started with and names (the
+    tests the question names by id in a file the runner kept, and each kept
+    file it names no test of, which covers only a change of the whole
+    file), or on
+    lines of the spec it marks broken (`marks_asked`). ((), (), ()) for any
+    other stop, a flow with no `lead`, and a record in no form the runner
+    writes."""
+    none = ((), (), ())
+    said = stopped if isinstance(stopped, dict) else {}
+    kept = said.get("runner")
+    if not lead or said.get("step") != lead or not isinstance(kept, dict):
+        return none
+    from . import stops
+    if said.get("cause") != stops.PARKED:
+        return none
+    if kept.get("id") == SPEC_MARKS:
+        lines, cites = kept.get("lines"), kept.get("cites")
+        if not isinstance(lines, list) or not isinstance(cites, list) or \
+                not all(isinstance(x, str) for x in lines + cites):
+            return none
+        return (), tuple(lines), tuple(cites)
+    if kept.get("held") is True:
+        return none
+    files = asked_edits(stopped)
+    if not files:
+        return none
+    ids = question_ids(said.get("question"), files)
+    tests = tuple(ids) + tuple(f for f in files if f not in [
+        i.split("::")[0] for i in ids])
+    return tests, (), tests
+
+
+def handed_scope(stopped, lead):
+    """-> the sentence saying what a hand-back to the leg's park lets
+    change (`handed_asked`), or ""."""
+    cites = handed_asked(stopped, lead)[2]
+    if not cites:
+        return ""
+    return ("this authorises changing " + ", ".join(cites)
+            + ", and nothing else.")
+
+
+def hands_back_to(d, asked):
+    """-> what a hand-back answer, given with --answer, lets change of the
+    question it answers: (the tests, the spec lines) `asked` keeps for its
+    leg, {run id: `handed_asked`}; ((), ()) for any other entry."""
+    found = asked_and_answered(d)
+    m = ASKED_IN.match(d.why)
+    if not found or not handed_back(found[1]) or not m:
+        return (), ()
+    said = (asked or {}).get(m.group(1)) or ((), (), ())
+    return said[0], said[1]
+
+
 def conflict_asked(output, workdir, start=None, ruled=None):
     """-> `lines_asked` of the lines every CONFLICT line in `output` the run
     stops on (`every_unruled`) cites, as the run found them, or None when
@@ -1950,7 +2069,7 @@ def holds_line(d, line, asked):
 
 
 def spec_line_ruled(decided, line, asked=None, rel=None, request="",
-                    specs=()):
+                    specs=(), handed=None):
     """-> the decisions.md entry that lets a spec line the run started with
     be removed or rewritten, or None. it quotes the line in its own words,
     or it is an `override:` answer to a question the runner asked that named
@@ -1958,8 +2077,12 @@ def spec_line_ruled(decided, line, asked=None, rel=None, request="",
     quoting the line, answered the same way, rules nothing. such an answer
     also lets every line of `rel`, the file the line is in, change when it
     or the request names that file to change (`files_named`). an answer of
-    `request:` keeps the spec, so it never rules one."""
+    `request:` keeps the spec, so it never rules one. a hand-back to the
+    lead's own question stopped on marks rules the lines `handed` keeps for
+    it ({run id: `handed_asked`})."""
     for d in decided:
+        if flat(line) in hands_back_to(d, handed)[1]:
+            return d
         said = answered(d)
         kind = kind_of(said or d.decided)
         if kind == REQUEST:
@@ -2098,8 +2221,11 @@ def scope(question, kind, files=()):
     return ""
 
 
-def why(step, run_id, question, answer, by, kind=None, files=()):
-    said = scope(question, kind, files)
+def why(step, run_id, question, answer, by, kind=None, files=(), also=""):
+    """-> the decisions.md body of an answer given with --answer. `also`
+    is what a hand-back lets change (`handed_scope`), said where an
+    override's scope is."""
+    said = scope(question, kind, files) or also
     return ("asked by " + step + " in " + run_id + ":\n\n" + question
             + ANSWERED + answer + ("\n\n" + said if said else "")
             + ANSWERED_BY + by + ANSWERED_END)
@@ -2141,11 +2267,13 @@ def handing_back(answer, lead, step):
     return HANDS_BACK if step == lead else MAKE_IT
 
 
-def told(question, answer, kind=None, files=(), lead=None, step=None):
+def told(question, answer, kind=None, files=(), lead=None, step=None,
+         also=""):
     """-> the end of the step's prompt on the run that carries on: last, so
     the answer is the final thing the step reads. `step` is the step that
-    runs again and `lead` the step the flow names as its lead, if any."""
-    said = [s for s in (scope(question, kind, files), took(question),
+    runs again and `lead` the step the flow names as its lead, if any.
+    `also` is what a hand-back lets change (`handed_scope`)."""
+    said = [s for s in (scope(question, kind, files) or also, took(question),
                         handing_back(answer, lead, step)) if s]
     return ("\n\nRULING. when this step last ran it asked:\n\n" + question
             + "\n\nthe answer, which decides it:\n\n" + answer

@@ -54,9 +54,13 @@
     "  patcher.md",
     "worker.md runs again with the operator's answer at the end of its",
     "prompt, and the question and the answer go into decisions.md. a",
-    "longer answer can come from a file: --answer-file <path>.",
+    "longer answer can come from a file: --answer-file <path>. an",
+    "answer that opens with you decide hands the call back: the step",
+    "makes it, and the flow's lead decides each later question of its",
+    "own by its recommendation.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<the ruling>\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\"",
     "## assumed - tell me if wrong",
     "- nothing assumed, or no step said",
     "## doubts",
@@ -96,7 +100,8 @@
     "- record: runs/fix-with-test-<run>/steps.jsonl, gates.jsonl, gates.md, steps/",
     "- chain: 2 lines, head <hash> (python run.py verify fix-with-test-<run>)",
     "to carry on",
-    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<the ruling>\""
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<the ruling>\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\""
   ],
   "files": [
     "fix-with-test-<run>/brief.md",
@@ -361,9 +366,13 @@
     "  patcher.md",
     "worker.md runs again with the operator's answer at the end of its",
     "prompt, and the question and the answer go into decisions.md. a",
-    "longer answer can come from a file: --answer-file <path>.",
+    "longer answer can come from a file: --answer-file <path>. an",
+    "answer that opens with you decide hands the call back: the step",
+    "makes it, and the flow's lead decides each later question of its",
+    "own by its recommendation.",
     "to carry on",
     "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"<the ruling>\"",
+    "  python run.py fix-with-test --resume fix-with-test-<run> --force --answer \"you decide\"",
     "handoff: <tmp>/runs/fix-with-test-<run>/handoff.md"
   ],
   "prompts": [

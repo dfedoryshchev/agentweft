@@ -141,8 +141,8 @@ def lead_less(tmp_path):
         "lead: planner", "lead: none"), encoding="utf-8")
 
 
-def test_a_flow_with_no_lead_offers_no_hand_back(tmp_path, monkeypatch,
-                                                 capsys):
+def test_a_flow_with_no_lead_offers_no_hand_back_and_one_given_decides_nothing(
+        tmp_path, monkeypatch, capsys):
     a_flow(tmp_path, monkeypatch)
     lead_less(tmp_path)
     worker = NL.join(["HANDOFF", "DID:", "- built it", "NEEDS: " + ASK,
@@ -158,10 +158,15 @@ def test_a_flow_with_no_lead_offers_no_hand_back(tmp_path, monkeypatch,
                                       folder(tmp_path).name])
     assert engine.main() == stops.EXIT_STOP
     assert YOU_DECIDE not in capsys.readouterr().out
-    _, asked = resumed(tmp_path, monkeypatch, block("none"), YOURS)
-    told = " ".join(dict(asked)["worker.md"].split())
-    assert YOURS in told
-    assert "hands the call back" not in told
+    legs = len(list((tmp_path / "runs").iterdir()))
+    code, asked = resumed(tmp_path, monkeypatch, block("none"), YOURS)
+    assert code == stops.EXIT_STOP
+    assert asked == []
+    assert len(list((tmp_path / "runs").iterdir())) == legs
+    said = capsys.readouterr().out
+    assert "this flow names no lead to decide it" in said
+    assert ASK in said
+    assert decisions.read(tmp_path) == []
 
 
 def test_only_the_lead_is_told_the_lead_decides_its_later_questions():
@@ -194,6 +199,8 @@ def test_a_golden_of_a_flow_with_no_lead_shows_no_hand_back():
 
     golden = Path(__file__).resolve().parent / "golden"
     assert YOU_DECIDE.replace('"', '\\"') not in (
+        golden / "code-review" / "ruling.json").read_text(encoding="utf-8")
+    assert YOU_DECIDE.replace('"', '\\"') in (
         golden / "fix-with-test" / "ruling-resume.json").read_text(
             encoding="utf-8")
     assert YOU_DECIDE.replace('"', '\\"') in (
@@ -201,7 +208,8 @@ def test_a_golden_of_a_flow_with_no_lead_shows_no_hand_back():
             encoding="utf-8")
 
 
-def test_a_conflict_is_not_handed_back(tmp_path, monkeypatch, capsys):
+def test_a_conflict_handed_back_stays_parked_when_the_lead_picks_neither(
+        tmp_path, monkeypatch, capsys):
     a_flow(tmp_path, monkeypatch)
     planner = ('CONFLICT: TASK.md:2 "the list is cached"' + NL
                + "request: never cache the list" + NL)
@@ -212,4 +220,7 @@ def test_a_conflict_is_not_handed_back(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["run.py", "led", "--force", "--resume",
                                       folder(tmp_path).name, "--answer",
                                       YOURS])
-    assert engine.main() == 1
+    capsys.readouterr()
+    assert engine.main() == stops.exit_code(stops.CONFLICT)
+    assert "picked neither of the park's answers" in capsys.readouterr().out
+    assert decisions.read(tmp_path) == []

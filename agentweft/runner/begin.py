@@ -7,7 +7,7 @@ from pathlib import Path
 from agentweft.roles import resolver
 
 from .config import config, due, steps, where
-from agentweft.flow.spec import REVIEWER, lead_of, step_id
+from agentweft.flow.spec import REVIEWER, lead_of, off_lead, step_id
 from agentweft.guardrails import (baseline, factsguard, redorder, sacrifice,
                                   signoff, skips, snapshot)
 from agentweft.orchestrate import decisions, park, project
@@ -72,6 +72,21 @@ def carried(name, run, fm):
             return None, name + "'s record does not hold: " + broke
         return redorder.carry_run(folder, name, run.start)
     return redorder.carry_commit(run.start, name, redorder.test_command(fm))
+
+
+def answers_to(ended, again, leads):
+    """-> the lines naming each answer that decides the park `ended` (a
+    leg's record of its stop), `again` the command that carries it on: a
+    hand-back among them only when the flow names a lead to take it."""
+    if ended.get("cause") == stops.CONFLICT:
+        out = [park.OVERRIDE, park.REQUEST]
+    elif ruling.held_edits(ended):
+        out = [park.STANDS, park.PUT_BACK]
+    else:
+        out = [park.ANSWER]
+    if leads:
+        out.append(park.YOU_DECIDE)
+    return ["  " + again + said for said in out]
 
 
 def caps_given(argv):
@@ -179,22 +194,25 @@ def begin(unrecorded):
                   + ": " + str(ended.get("why"))
                   + ". that is its answer; there is nothing to pick up")
             return 1
-        if question is not None and answer is None:
+    leads = lead_of(fm) or off_lead(fm)
+    if found and question is not None and (
+            answer is None or (ruling.handed_back(answer) and not leads)):
+        if answer is None:
             print(pick_up + " is waiting for a ruling. "
                   + ended.get("step") + " asked:")
-            print("")
-            print(question)
-            print("")
-            print("answer it with")
-            again = resume_command(flow, pick_up, found.data.get("caps"))
-            if ended.get("cause") == stops.CONFLICT:
-                print("  " + again + park.OVERRIDE)
-                print("  " + again + park.REQUEST)
-            else:
-                print("  " + again + park.ANSWER)
-                if lead_of(fm):
-                    print("  " + again + park.YOU_DECIDE)
-            return stops.EXIT_STOP
+        else:
+            print(pick_up + " is waiting for a ruling, and this flow names no"
+                  " lead to decide it, so the answer " + ruling.YOU_DECIDE
+                  + " decides nothing and the run stays parked. "
+                  + ended.get("step") + " asked:")
+        print("")
+        print(question)
+        print("")
+        print("answer it with")
+        print("\n".join(answers_to(
+            ended, resume_command(flow, pick_up, found.data.get("caps")),
+            leads)))
+        return stops.EXIT_STOP
     if answer is not None and question is None:
         print(pick_up + " is not waiting for a ruling, so --answer has nothing"
               " to answer")
@@ -205,16 +223,23 @@ def begin(unrecorded):
     conflicted = answer is not None and \
         (found.data.get("stopped") or {}).get("cause") == stops.CONFLICT
     kind = ruling.kind_of(answer) if conflicted else None
-    if conflicted and kind is None:
+    picking = None
+    if conflicted and kind is None and ruling.handed_back(answer):
+        picking = asking.CONFLICT_PICK
+    elif conflicted and kind is None:
         print(pick_up + " stopped on a spec conflict, so the answer says which"
               " one holds: --answer \"override: <the new rule>\" lets the"
               " request win, --answer \"request: <what to do instead>\" keeps"
-              " the spec")
+              " the spec, and --answer \"" + ruling.YOU_DECIDE + "\" hands"
+              " the pick to the flow's lead")
         return 1
     if answer is not None and found is not None and \
             ruling.held_edits(found.data.get("stopped")) and \
+            ruling.handed_back(answer):
+        picking = asking.EDITS_PICK
+    elif answer is not None and found is not None and \
+            ruling.held_edits(found.data.get("stopped")) and \
             not ruling.decides_edits(answer):
-        again = resume_command(flow, pick_up, found.data.get("caps"))
         print(pick_up + " parked on tests " + str(ended.get("step"))
               + " changed, and the answer neither lets the change stand nor"
               " puts them back, so it decides nothing and the run stays"
@@ -223,8 +248,9 @@ def begin(unrecorded):
         print(question)
         print("")
         print("answer it with")
-        print("  " + again + park.STANDS)
-        print("  " + again + park.PUT_BACK)
+        print("\n".join(answers_to(
+            ended, resume_command(flow, pick_up, found.data.get("caps")),
+            leads)))
         return stops.EXIT_STOP
     try:
         asked = task.settle(flow, task.places(flow_path(flow), fm),
@@ -464,6 +490,23 @@ def begin(unrecorded):
     except ValueError as e:
         print(str(e))
         return undo(1)
+    stands = None
+    if picking:
+        ended = found.data.get("stopped") or {}
+        said, why = asking.hand_back_pick(run, picking, ended.get("step")
+                                          or start, question)
+        if said is None:
+            print(pick_up + " was answered " + ruling.YOU_DECIDE + ", and the"
+                  " flow's lead picked neither of the park's answers: " + why
+                  + ". so the run stays parked")
+            stands, answer = ended, None
+        else:
+            answer = said
+            kind = ruling.kind_of(answer) if conflicted else None
+            if kind == ruling.REQUEST:
+                asked = ruling.amended(asked, answer)
+                run.task_text = asked
+                start = first_reader(flow, fm, order, start)
     out = EMPTY
     came_from = None
     todo = order[order.index(start):]
@@ -588,9 +631,15 @@ def begin(unrecorded):
                                        run.spec_paths()) \
             if kind == ruling.OVERRIDE and ruling.asked_lines(
                 found.data.get("stopped")) else {}
+        handed = ruling.handed_scope(found.data.get("stopped"), lead_of(fm)) \
+            if ruling.handed_back(answer) else ""
+        by = ruling.who()
+        if picking:
+            by = run.lead + ", the flow's lead, picking under the operator's " \
+                + ruling.YOU_DECIDE + " (" + by + ")"
         run.rule(ruling.decided(asker, answer),
-                 ruling.why(asker, pick_up, question, answer, ruling.who(),
-                            kind, files), by="answer")
+                 ruling.why(asker, pick_up, question, answer, by, kind, files,
+                            also=handed), by="answer")
         page = state.RUNS / pick_up / asker
         stood = asking.stopped_decided(run, asker, page.read_text(
             encoding="utf-8"), pick_up) if kind is None \
@@ -602,11 +651,12 @@ def begin(unrecorded):
                   + start)
         else:
             run.ruled[start] = stood + ruling.told(
-                question, answer, kind, files, lead=lead_of(fm), step=start)
+                question, answer, kind, files, lead=leads, step=start,
+                also=handed)
             print("ruled: " + start + " runs again with the answer")
     return Leg(flow=flow, fm=fm, run=run, route=route, record=record,
                folder=folder, run_id=run_id, started=started, ticks=ticks,
                clock=clock, made=made, origin=origin, earlier=earlier, asked=asked,
                pick_up=pick_up, order=order, todo=todo, start=start,
                found=found, seen=seen, out=out, came_from=came_from,
-               uncut=uncut)
+               uncut=uncut, stands=stands)

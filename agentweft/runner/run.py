@@ -596,11 +596,12 @@ class Run(object):
         asked = self.runner_asked(ruling.asked_lines)
         specs, request = self.spec_paths(), self.request()
         made = self.ruled_replacement(found)
+        handed = self.handed_over()
         left, ruled = [], []
         for rel, was, now in found:
             for n, line, there in specfiles.lost(was, now):
                 d = ruling.spec_line_ruled(decided, line, asked, rel,
-                                           request, specs)
+                                           request, specs, handed)
                 same = self.spec_line_replaced(line, there, made) \
                     if d is None else None
                 if same is not None:
@@ -634,6 +635,12 @@ class Run(object):
                 if m is not None:
                     asked[leg.name] = read(m.data.get("stopped"))
         return asked
+
+    def handed_over(self):
+        """-> {run id: what a hand-back to that leg's park lets change}
+        (`ruling.handed_asked`), read off each leg's record."""
+        lead = getattr(self, "lead", None)
+        return self.runner_asked(lambda s: ruling.handed_asked(s, lead))
 
     def cuts_a_check(self):
         """-> complaints about a `sacrifice:` name whose step checks the spec
@@ -681,13 +688,14 @@ class Run(object):
         asked = self.runner_asked(ruling.asked_lines)
         specs, request = self.spec_paths(), self.request()
         by = self.ruled_replacement(found)
+        handed = self.handed_over()
         out = []
         for rel, was, now in found:
             standing = dict(((n, line), there) for n, line, there
                             in specfiles.lost(was, now))
             for n, line in specfiles.moved(was, now, mode):
                 if ruling.spec_line_ruled(decided, line, asked, rel, request,
-                                          specs) is None and \
+                                          specs, handed) is None and \
                         self.spec_line_replaced(line, standing.get(
                             (n, line)), by) is None:
                     out.append(rel + ":" + str(n))
@@ -709,7 +717,7 @@ class Run(object):
         the run found it, change, or None."""
         return ruling.spec_line_ruled(
             self.spec_rulings(), line, self.runner_asked(ruling.asked_lines),
-            rel, self.request(), self.spec_paths())
+            rel, self.request(), self.spec_paths(), self.handed_over())
 
     def spec_line_restated(self, rel, line):
         """-> the `override:` answer to the runner's own spec-lines question
@@ -1073,14 +1081,15 @@ class Run(object):
         if decided is None:
             decided = self.spec_rulings()
         asked = self.runner_asked(ruling.asked_edits)
+        handed = self.handed_over()
         said = self.answered(output)
         out = []
         for edit in found:
             for test, how in edit.items:
                 d = ruling.edit_ruled(decided, test, self.workdir, start,
-                                      asked)
+                                      asked, handed)
                 cite = testedits.NAMED_IN if d is not None and \
-                    ruling.answers_edits(d, test, asked) else ""
+                    ruling.answers_edits(d, test, asked, handed) else ""
                 if d is None:
                     d, cite = self.claimed(
                         said, testedits.claimed_by(edit, test, how)) \

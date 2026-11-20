@@ -425,15 +425,21 @@ def ticket_question(fact):
 
 
 def ticket_pick(head):
-    """-> how the lead `head`'s DECIDED is read for a critical ticket: the
-    option its line opens on, word for word, or why it is neither. the
-    option ends the line or is followed by a `:`, `-`, `,`, `;` or `.` whose
-    reason does not open on a no ("re-iterate now is not needed" and
-    "re-iterate now: no" are neither); a line that opens any other way, or
-    names the other option after, is neither."""
+    """-> how the lead `head`'s DECIDED is read for a critical ticket:
+    `fixed_pick` of its two options."""
+    return fixed_pick(head, NOW, LATER)
+
+
+def fixed_pick(head, first, second):
+    """-> how the lead `head`'s DECIDED is read when it picks one of two
+    fixed options: the option its line opens on, word for word, or why it
+    is neither. the option ends the line or is followed by a `:`, `-`, `,`,
+    `;` or `.` whose reason does not open on a no ("re-iterate now is not
+    needed" and "re-iterate now: no" are neither); a line that opens any
+    other way, or names the other option after, is neither."""
     def pick(decided):
         said = " ".join(decided.lower().split()).lstrip("`'\"*- ")
-        for option, other in ((NOW, LATER), (LATER, NOW)):
+        for option, other in ((first, second), (second, first)):
             rest = said[len(option):]
             if not said.startswith(option) or rest[:1].isalnum() \
                     or rest[:1] == "-" or other in rest:
@@ -441,8 +447,8 @@ def ticket_pick(head):
             rest = rest.lstrip("`'\"* ")
             if not rest or rest[0] in ":-,;." and not NO.match(rest[1:]):
                 return option, ""
-        return None, (head + " decided " + decided + ", neither " + NOW
-                      + " nor " + LATER)
+        return None, (head + " decided " + decided + ", neither " + first
+                      + " nor " + second)
     return pick
 
 

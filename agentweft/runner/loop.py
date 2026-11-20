@@ -121,6 +121,10 @@ def go(leg):
 
     sized_said = []
     sizing = {}
+    picked = getattr(run, "picked", None)
+    if picked is not None:
+        lead_pass(trail, run, *picked)
+        run.picked = None
 
     def leave(stopped=None, needs=None, signed=()):
         """write the run's handoff.md from what the runner knows, and hand
@@ -291,7 +295,7 @@ def go(leg):
                                question=question, conflict=conflict,
                                replayed=replayed, worked=worked,
                                stopped_for=stopped_for, run_did=did,
-                               led=bool(run.lead) and not run.lead_off,
+                               led=bool(run.lead),
                                edits=ruling.held_edits({"runner": asked}))
             print("stopped at " + at + " on a spec conflict" if conflict
                   else "parked at " + at + ", waiting for a ruling")
@@ -366,6 +370,17 @@ def go(leg):
     switched = False
     case_for = None
     seen_head = (run.signoff or {}).get("head")
+    stands = getattr(leg, "stands", None)
+    if stands:
+        conflict = stands.get("cause") == stops.CONFLICT
+        at = stands.get("step") or step
+        return stop(stands.get("cause"), stands.get("why") or "",
+                    "conflict" if conflict else "parked", at=at,
+                    index=("CONFLICT  " if conflict else "PARKED  ") + flow
+                    + "  at " + at, waiting=None if conflict else "user",
+                    question=stands.get("question"),
+                    asked=stands.get("runner"),
+                    kind=None if conflict else trace.HELD)
     try:
         while step:
             lap.to("sizing")

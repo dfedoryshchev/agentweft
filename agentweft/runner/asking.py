@@ -1574,14 +1574,21 @@ def lead_parks(run, step, out, consulting=()):
     questions = lead_questions(run, step, out, answered)
     unread = [line + UNREAD_SAID for line in unread_asking(out.output)] \
         if step == getattr(run, "lead", None) else []
+    # a hand-back to the park lets the marked lines change, so only marks
+    # read in their taught form, with nothing unread beside them, are kept
+    kept = ruling.marks_asked(marks, run.workdir, getattr(run, "start", None)) \
+        if marks and not unread and all(
+            ruling.BREAKS.match(m) or ruling.CONTRADICTS.match(m)
+            for m in marks) else None
     if (marks or unread) and questions:
         asked, rec, cites, size, _, _ = questions[0]
-        return asked_as(asked, marks + unread + cites, rec, size), None
+        return asked_as(asked, marks + unread + cites, rec, size), kept
     alone = [m for m in marks if not ruling.CONTRADICTS.match(m)] + unread
     if alone:
         head = UNASKED if all(ruling.BREAKS.match(m) for m in alone) \
             else UNREAD
-        return "\n".join([head, "CITES:"] + ["- " + m for m in alone]), None
+        return "\n".join([head, "CITES:"] + ["- " + m for m in alone]), \
+            kept if len(alone) == len(marks) else None
     for asked, rec, cites, size, settled, split in questions:
         said = risk_of(run, step, asked, cites, rec, size,
                        [asked, settled, rec] + cites, split)
@@ -1787,6 +1794,77 @@ def stopped_decided(run, step, page, where):
     return ("\n\nDECIDED UNDER THE HAND-BACK. the recommendations of your"
             " plan the run stopped on, now on record as your decisions:\n"
             + "\n".join(told) + "\n")
+
+
+EDITS_PICK, CONFLICT_PICK = "edits", "conflict"
+OVERRIDE, PUT_BACK = "override", "put them back"
+REQUEST_HOLDS, SPEC_HOLDS = "the request holds", "the spec holds"
+PICKS = {EDITS_PICK: ((OVERRIDE, "override: "), (PUT_BACK, "put them back: ")),
+         CONFLICT_PICK: ((REQUEST_HOLDS, "override: "),
+                         (SPEC_HOLDS, "request: "))}
+
+
+def pick_brief(kind, step, question):
+    """-> the end of the lead's prompt when the operator hands back a park
+    that holds no recommendation: the park's question, then its two
+    answers, word for word, last."""
+    (first, _), (second, _) = PICKS[kind]
+    if kind == EDITS_PICK:
+        what = (first + ": the change " + step + " made to the tests named"
+                " above stands, and nothing wider", second + ": " + step
+                + " runs again and puts each test back as the run found it")
+    else:
+        what = (first + ": the request wins, and only the spec lines the"
+                " question cites may change", second + ": the spec stays as"
+                " it is; your why is added to the request and the run starts"
+                " again from its first step that reads it")
+    return ("\n\nHANDED BACK TO THE LEAD. " + step + " stopped the run on the"
+            " question below, and the operator answered `" + ruling.YOU_DECIDE
+            + "`: this flow's lead picks one of its two answers, in the"
+            " question's own context, from the spec and the request; do not"
+            " do " + step + "'s work.\n\nwhat stopped the run:\n\n" + question
+            + "\n\nthe two answers:\n- " + what[0] + "\n- " + what[1]
+            + "\n\nanswer with a line `DECIDED: <the exact words of one"
+            " answer, `" + first + "` or `" + second + "`>` and under it a"
+            " line `why: <why, with the spec line it rests on>`. a decision"
+            " that opens any other way decides nothing, and the run stays"
+            " parked for the operator.\n")
+
+
+def hand_back_pick(run, kind, step, question):
+    """-> (the answer the lead's pick stands for, "") or (None, why the park
+    stands): the operator handed back a park with no recommendation of its
+    own, a test-edits park or a conflict, and one go of the lead picks one
+    of its two answers, read word for word (`lead.fixed_pick`), with a
+    `why:`. the pick stands for an `override:` or `put them back:` on the
+    tests named, or an `override:` or `request:` on the lines cited, with
+    the why as its words. the lead's go is kept on `run.picked` for its
+    line on the trail."""
+    head = getattr(run, "lead", None)
+    if head is None:
+        return None, "this flow names no lead to decide it"
+    waits = run.budget.ahead(1)
+    if waits:
+        return None, "the run cannot pay for " + head + " to pick, " + waits[1]
+    (first, says_first), (second, says_second) = PICKS[kind]
+    out, held = lead_go(run, head, {}, pick_brief(kind, step, question), None)
+    run.picked = (out, step, False)
+    if held:
+        out.meta["passed"] = held
+        return None, held
+    decided, why, wrong = lead.judged(out.output, head, run.workdir,
+                                      getattr(run, "start", None))
+    option = None
+    if not wrong:
+        option, wrong = lead.fixed_pick(head, first, second)(decided)
+    if wrong:
+        out.meta["passed"] = wrong
+        return None, wrong
+    run.picked = (out, step, True)
+    print(head + ", the flow's lead, picked under the operator's hand-back: "
+          + option)
+    return (says_first if option == first else says_second) + " ".join(
+        why.split()), ""
 
 
 def departures(run, step, out, where):
