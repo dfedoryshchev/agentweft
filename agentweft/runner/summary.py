@@ -264,12 +264,14 @@ class Tree(object):
                     out["ranges"][(path, kind)] = span
                 for path, found in _touched(diff).items():
                     names.setdefault(path, set()).update(found)
-        committed = _numstat(_git(self.place, "diff", "--numstat",
+        unquoted = ("-c", "core.quotepath=false")
+        committed = _numstat(_git(self.place, *unquoted, "diff", "--numstat",
                                   self.start, "HEAD", "--", ".")
                              if self.start else "")
-        uncommitted = _numstat(_git(self.place, "diff", "--numstat", "HEAD",
-                                    "--", ".") if self.start else "")
-        listed = _git(self.place, "ls-tree", "-r", "--name-only",
+        uncommitted = _numstat(_git(self.place, *unquoted, "diff",
+                                    "--numstat", "HEAD", "--", ".")
+                               if self.start else "")
+        listed = _git(self.place, *unquoted, "ls-tree", "-r", "--name-only",
                       "--full-tree", self.start) if self.start else None
         # a listing git could not give counts every test file as one the
         # run started with, so a changed one still owes its ruling

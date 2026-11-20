@@ -246,6 +246,27 @@ def test_a_test_file_the_run_wrote_and_committed_is_not_pre_existing(
         " tests/test_old.py, tests/test_top.py.")
 
 
+@pytest.mark.parametrize("committed", [False, True])
+def test_a_changed_start_test_with_a_non_ascii_name_is_pre_existing(
+        tmp_path, committed):
+    place = tmp_path / "place"
+    (place / "tests").mkdir(parents=True)
+    name = "tests/test_caf" + chr(0xE9) + ".py"
+    (place / name).write_text("def test_one():" + NL + "    assert 1 == 1"
+                              + NL, encoding="utf-8")
+    git(place, "init", "-q")
+    git(place, "add", "-A")
+    git(place, "commit", "-qm", "start")
+    tree = summary.Tree(place)
+    (place / name).write_text("def test_one():" + NL + "    assert True" + NL,
+                              encoding="utf-8")
+    if committed:
+        git(place, "commit", "-qam", "loosened")
+    changes = tree.changes()
+    assert [p for p, _, _ in changes["tests_changed"]] == [name], \
+        changes["files"]
+
+
 def test_left_names_no_step_that_ran_and_the_stopped_step_runs_again():
     lines = park.lines("planner.md", None, [("planner.md", 38.6)],
                        ["planner.md", "tester.md", "worker.md"],
