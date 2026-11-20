@@ -67,10 +67,12 @@ the one that catches a run going round in a loop, so it is on until a flow
 sets its own.
 
 a token cap only guards a runaway, so it sits above what the flow's measured
-runs spend. `code-review` is the one shipped flow that sets one: 160000, one
-and a half times the most a measured review counted (105278, its worker and
-reviewer, with the retro still to come; the 80% pause is then 128000). a cap
-under that parks an ordinary review before its reviewer, or holds its retro.
+runs spend. a review runs with no token cap by default: `code-review` sets
+none, and neither does `build-feature` around its two reviewers or
+`fix-with-test` around its verify step, so a big diff costs more and is still
+read to the end, by its reviewer and then its retro. a cap given with
+`--max-tokens` or `AGENTWEFT_MAX_TOKENS` still holds a review to it: the run
+pauses once 80% of it is spent.
 
 the cap is read between steps, so it does not reach inside one: a `claude -p`
 step's own turns are not counted until the step answers, and one step can go

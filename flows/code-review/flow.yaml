@@ -15,6 +15,5 @@ promises:
     - nothing is reported that the diff does not show
 journal: false
 max_calls: 7
-max_tokens: 160000
 timeout: 300
 retries: 2

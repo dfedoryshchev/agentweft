@@ -137,9 +137,9 @@
       "cost_from": null,
       "cost_parts": null,
       "budget": {
-        "spent": 120,
-        "planned": 131200,
-        "buffer": 16000,
+        "spent": 1,
+        "planned": 1,
+        "buffer": 5,
         "risk": "ok"
       },
       "session": "worker-1",

@@ -6,12 +6,13 @@ worker that reviews it and the reviewer that holds each finding to a line of
 it. a run with no diff is refused before anything is called, and the caps
 are the flow's own.
 """
+import json
 import shutil
 import sys
 from pathlib import Path
 
 sys.path.insert(0, ".")
-from agentweft.guardrails import budget
+from agentweft.guardrails import budget, defaults
 from agentweft.runner import cli, prompts, task
 from agentweft.runner.config import config
 
@@ -82,11 +83,14 @@ def test_show_says_where_code_review_takes_its_diff(monkeypatch, capsys):
 def test_the_code_review_caps_are_the_flow_s_own(monkeypatch):
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
     fm = config("code-review")
-    assert (fm.raw["max_calls"], fm.raw["max_tokens"]) == (7, 160000)
+    assert fm.raw["max_calls"] == 7
+    assert "max_tokens" not in fm.raw
+    assert defaults.for_flow(fm) == (7, 0)
 
 
-def spent(fm, *steps):
-    b = budget.Budget(fm.raw["max_calls"], fm.raw["max_tokens"])
+def spent(fm, *steps, max_tokens=None):
+    calls, tokens = defaults.for_flow(fm)
+    b = budget.Budget(calls, tokens if max_tokens is None else max_tokens)
     b.retro = True
     counted = dict.fromkeys(budget.SPLIT, 0)
     for step in steps:
@@ -120,9 +124,67 @@ def test_a_measured_review_leaves_its_retro_room(monkeypatch):
     assert b.ahead(retro=True) is None
 
 
-def test_the_code_review_cap_still_stops_a_runaway(monkeypatch):
+def test_a_review_twice_the_measured_size_still_reaches_its_reviewer(
+        monkeypatch):
     monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
     b = spent(config("code-review"), WORKER_BIG, WORKER_BIG)
+    assert b.capped == 141056
+    assert b.ahead() is None
+    assert b.ahead(retro=True) is None
+
+
+def test_a_token_cap_the_operator_gives_still_pauses_a_review(monkeypatch):
+    monkeypatch.setattr(prompts, "FLOW_ROOT", [str(FLOWS)])
+    b = spent(config("code-review"), WORKER_BIG, WORKER_BIG,
+              max_tokens=128000)
     word, why = b.ahead()
-    assert word in (budget.REACHED, budget.REACHING)
-    assert why.startswith("token cap: 141056 of ")
+    assert word == budget.REACHED
+    assert why.startswith("token cap: 141056 of 128000 ")
+
+
+def a_call(text, counted):
+    said = {"type": "result", "is_error": False, "result": text,
+            "session_id": "s-1", "total_cost_usd": 0.25,
+            "modelUsage": {"m-1": {}},
+            "usage": {"input_tokens": counted, "output_tokens": 0}}
+    return (0, json.dumps(said).encode("utf-8"), b"")
+
+
+RETRO = "TICKETS: none\nFACTS: none\n"
+
+
+def handoff(tmp_path):
+    [folder] = folders(tmp_path)
+    return (folder / "handoff.md").read_text(encoding="utf-8")
+
+
+def test_a_review_counting_200k_tokens_reaches_its_reviewer_and_retro(
+        tmp_path, monkeypatch, fake_cli):
+    shipped(tmp_path, monkeypatch)
+    cli = fake_cli(a_call(FINDING, 200000),
+                   a_call("VERDICT: ok\n\n" + FINDING, 1000),
+                   a_call(RETRO, 1000))
+    code = run(monkeypatch, "code-review", "--force", "--task", DIFF)
+    said = handoff(tmp_path)
+    assert "token cap" not in said
+    assert code == 0, said
+    assert len(cli.calls) == 3
+    [folder] = folders(tmp_path)
+    lines = (folder / "steps.jsonl").read_text(encoding="utf-8").splitlines()
+    assert [(json.loads(x)["step"], json.loads(x)["outcome"])
+            for x in lines] == [("worker.md", "ok"), ("reviewer.md", "ok"),
+                                ("retro.md", "ok")]
+
+
+def test_a_review_given_a_token_cap_still_pauses_before_its_reviewer(
+        tmp_path, monkeypatch, fake_cli):
+    shipped(tmp_path, monkeypatch)
+    cli = fake_cli(a_call(FINDING, 200000),
+                   a_call("VERDICT: ok\n\n" + FINDING, 1000),
+                   a_call(RETRO, 1000))
+    code = run(monkeypatch, "code-review", "--force", "--task", DIFF,
+               "--max-tokens", "150000")
+    said = handoff(tmp_path)
+    assert code == 2
+    assert "token cap: 200000 of 150000 spent" in said
+    assert len(cli.calls) == 1
