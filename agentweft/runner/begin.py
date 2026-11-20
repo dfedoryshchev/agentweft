@@ -22,6 +22,7 @@ from . import (asking, chain, fan, leftred, manifest, models, resume, router,
 from . import state
 from . import stops
 from . import summary
+from . import goal
 from . import task
 from . import worktrees
 from .ending import CAPS, FLAG_OF, cap_of, resume_command
@@ -261,6 +262,8 @@ def begin(unrecorded):
                             pick_up)
         if kind == ruling.REQUEST:
             asked = ruling.amended(asked, answer)
+        aim = goal.settle(goal.given(sys.argv), goal.saved(
+            state.RUNS / pick_up) if pick_up else None, pick_up)
         chosen = models.parse(models.pairs(sys.argv))
         kept = {}
         if pick_up:
@@ -377,6 +380,7 @@ def begin(unrecorded):
                   chosen=chosen, efforts=efforts,
                   held=project.kept(state.RUNS / pick_up, started_in)
                   if pick_up else None)
+        run.goal = aim
         if pick_up and run.start is not None:
             # a snapshot taken now would count the tests the first run wrote
             # as already there
@@ -593,6 +597,8 @@ def begin(unrecorded):
     project.keep(folder, run.project)
     if asked is not None:
         task.save(folder, asked)
+    if aim is not None:
+        goal.save(folder, aim)
     models.save(folder, chosen)
     models.save(folder, efforts, models.EFFORT_FILE)
     chain.wrote(folder)

@@ -66,6 +66,21 @@ the mcp `run_flow` tool takes an optional `task`, an eval case gives one as
 `task:` in case.yaml or a `task.md` beside it, and `cron.py` skips a flow that
 takes a task, saying so, since it has none to give.
 
+## the goal beside the task
+
+`--goal "<text>"` or `--goal-file <path>` (UTF-8, a byte order mark dropped)
+says what problem the run solves, the why beside the spec's what. it is kept
+as `runs/<id>/goal.md`, apart from the task and from every spec file, so no
+step can cite a goal sentence as a spec line. with a goal, every step the
+runner calls ends its own words with it once ("THE GOAL. the problem this run
+solves ..."), asked to name the part of its work that drives it and the one
+thing it was handed that it doubts most; the business analyst consult is
+handed it beside the request; the handoff's carry forward section names its
+first line. the retro and a lead that runs no step of the route are not
+handed it. `--resume` carries the goal the run started with, and refuses
+another. an empty goal is no goal, and with none nothing is added to any
+prompt.
+
 ## the spec as the run found it
 
 a reviewer called after a step edited the spec, and handed only the spec as

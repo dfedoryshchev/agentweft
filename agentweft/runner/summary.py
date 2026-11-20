@@ -2097,7 +2097,7 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
           found="", order="", left=None, suite=(), chained=None,
           skipped=(), kept="", worktree=(), headline="", signed=(),
           spec_files=None, clock=None, held=True, proof=None, shadowed=(),
-          told=(), police=(), sized=(), unwired=()):
+          told=(), police=(), sized=(), unwired=(), goal=None):
     """-> the lines of handoff.md.
 
     `passes` is this run's passes in order and `before` the ones of the run
@@ -2482,6 +2482,9 @@ def build(run_id, flow_name, task, passes, changes, decided, spend,
     if first_line:
         out.append("- task: " + first_line + " (all of it in runs/" + run_id
                    + "/task.md)")
+    if goal:
+        out.append("- goal: " + goal.strip().split("\n")[0] + " (all of it in"
+                   " runs/" + run_id + "/goal.md)")
     out.extend("- keep: " + line + " (" + ", ".join(roles) + ")"
                for line, roles in handoff.keeps(
                    (role, i) for role, b in blocks if _present(b)

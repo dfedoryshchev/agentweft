@@ -30,7 +30,7 @@ import re
 
 from agentweft.flow.spec import OFF_ROUTE
 
-from . import lead, ruling, trace
+from . import goal, lead, ruling, trace
 
 ROLES = OFF_ROUTE
 GRANT = ["read", "grep"]
@@ -162,6 +162,8 @@ def brief(run, role, what, asked, rec, cites):
                + "\n".join(shown) if shown else "")
             + "\n\nthe request:\n\n" + (getattr(run, "task_text", None)
                                         or "(none given)")
+            + (goal.fragment(getattr(run, "goal", None)) if role == "ba"
+               else "")
             + "\n\nthe lead recommends: " + (rec or "none")
             + "\n\nrulings in force:\n" + ("\n".join(
                 "- " + r for r in rulings_now) or "- none")

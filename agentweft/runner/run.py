@@ -27,7 +27,7 @@ from .handoff import EMPTY, Handoff, back, parse, to_files, transcript
 from . import brief as kept
 from . import investigate
 from .errors import Fatal, Outage, kind_of
-from . import prompts
+from . import goal, prompts
 from .prompts import load_prompt
 from . import commits
 from . import (consult, fan, levels, manifest, models, retro, ruling, warm)
@@ -1804,6 +1804,7 @@ class Run(object):
         if self.task_text is not None:
             values[prompts.MARK] = self.task_text
         prompt = prompts.fill(prompt, values)
+        prompt = prompt + goal.fragment(getattr(self, "goal", None))
         if self.writes_tests(step):
             prompt = prompt + levels.as_prompt(self.fm, self.workdir)
         if self.writes_for(step) == "spec":
