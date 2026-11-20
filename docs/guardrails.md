@@ -67,10 +67,13 @@ the one that catches a run going round in a loop, so it is on until a flow
 sets its own.
 
 a token cap only guards a runaway, so it sits above what the flow's measured
-runs spend. a review runs with no token cap by default: `code-review` sets
-none, and neither does `build-feature` around its two reviewers or
-`fix-with-test` around its verify step, so a big diff costs more and is still
-read to the end, by its reviewer and then its retro. a cap given with
+runs spend. `code-review` sets none, and neither does `build-feature` around
+its two reviewers or `fix-with-test` around its verify step, so in those
+three a big diff costs more and is still read to the end, by its reviewer
+and then its retro. `repo-audit` (250000) and `weekly-digest` (120000) keep
+a flow token cap: it guards their fanned-out workers, and since a cap is
+read before every step, a run that spent 80% of it before the reviewer
+pauses there too. a cap given with
 `--max-tokens` or `AGENTWEFT_MAX_TOKENS` still holds a review to it: the run
 pauses once 80% of it is spent.
 
