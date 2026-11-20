@@ -1567,7 +1567,7 @@ def files_named(d, asked, request, specs):
     found = asked_and_answered(d)
     m = ASKED_IN.match(d.why)
     if not found or kind_of(found[1]) != OVERRIDE or not m \
-            or not (asked or {}).get(m.group(1)):
+            or not (asked or {}).get(m.group(1)) or picked(d):
         return {}
     return files_to_change(found[1], request, specs)
 
@@ -1630,6 +1630,30 @@ def answered(d):
     entry written any other way."""
     found = asked_and_answered(d)
     return found[1] if found else ""
+
+
+PICKED = ", the flow's lead, picking under the operator's " + YOU_DECIDE \
+    + " ("
+PICKED_BY = re.compile(r"\S+" + re.escape(PICKED) + r".*\)", re.S)
+
+
+def picked_by(lead, who):
+    """-> who answered, as the runner writes it for the lead's pick of a
+    conflict's or a test park's answer under the operator's YOU_DECIDE."""
+    return lead + PICKED + who + ")"
+
+
+def picked(d):
+    """whether `d` is the lead's pick under the operator's YOU_DECIDE, read
+    off the `answered by` line the runner writes after the answer
+    (`picked_by`), never off the answer's words. such a pick lets change
+    only what the question it answers cites, as the leg's record keeps it:
+    its why may quote a spec line, name a spec file or a test, and none of
+    that lets anything change."""
+    if not asked_and_answered(d):
+        return False
+    by = d.why.rpartition(ANSWERED_BY)[2][:-len(ANSWERED_END)]
+    return bool(PICKED_BY.fullmatch(by))
 
 
 ASKER = re.compile(r"^asked by \S+ in (\S+):\n\n")
@@ -1713,10 +1737,16 @@ def covering(decided, test, workdir, start=None):
     and answers a question naming the test. a lead decides inside the tests
     it was given, so its quote never covers one by the question alone. an
     answer of `request:` keeps what the run started with, so it never covers
-    one."""
+    one. the lead's pick (`picked`) covers only a start test the runner's
+    question it answers names (`start_tests_asked`)."""
     for d in decided:
         said = answered(d)
         if kind_of(said or d.decided) == REQUEST:
+            continue
+        if picked(d):
+            found = settled(d)
+            if found and test in start_tests_asked(found[1]):
+                return d
             continue
         own = own_words(d)
         if names_test(own, test):
@@ -1865,7 +1895,7 @@ def edit_ruled(decided, test, workdir, start=None, asked=None, handed=None):
     if found is not None:
         return found
     for d in decided:
-        if kind_of(answered(d) or d.decided) == REQUEST:
+        if kind_of(answered(d) or d.decided) == REQUEST or picked(d):
             continue
         if names_test(own_words(d), name.rsplit("::", 1)[-1]):
             return d
@@ -2101,13 +2131,18 @@ def spec_line_ruled(decided, line, asked=None, rel=None, request="",
     or the request names that file to change (`files_named`). an answer of
     `request:` keeps the spec, so it never rules one. a hand-back to the
     lead's own question stopped on marks rules the lines `handed` keeps for
-    it ({run id: `handed_asked`})."""
+    it ({run id: `handed_asked`}). the lead's pick (`picked`) rules only
+    the lines of the question it answers (`answers_lines`)."""
     for d in decided:
         if flat(line) in hands_back_to(d, handed)[1]:
             return d
         said = answered(d)
         kind = kind_of(said or d.decided)
         if kind == REQUEST:
+            continue
+        if picked(d):
+            if answers_lines(d, line, asked):
+                return d
             continue
         if quotes_line(own_words(d), line):
             return d
@@ -2156,10 +2191,11 @@ def renames(request):
 def override_lines(d, asked):
     """-> the spec lines, as the run found them, of the runner's question
     `d` answers with `override:` (`answers_lines`), () for any other
-    entry."""
+    entry. the lead's pick (`picked`) has none: a rename it would carry to
+    other lines is no line its question cited."""
     found = asked_and_answered(d)
     m = ASKED_IN.match(d.why)
-    if not found or kind_of(found[1]) != OVERRIDE or not m:
+    if not found or kind_of(found[1]) != OVERRIDE or not m or picked(d):
         return ()
     return tuple((asked or {}).get(m.group(1), ()))
 

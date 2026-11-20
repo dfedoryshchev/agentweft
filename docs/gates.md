@@ -194,14 +194,18 @@ a conflict, `override` or `put them back` for the test edits, as the first
 words of its `DECIDED:` line, word for word (a line naming both, opening
 any other way, or taking the pick back with a no after it, is no pick),
 with a `why:` line under it. the pick goes on record as the answer it
-stands for, with its why as the words: `override:` (on the lines the
-conflict cites, or the tests the park names), `request:`, or `put them
-back:`, answered by the lead "picking under the operator's you decide".
+stands for, with its why as the words: `override:`, `request:`, or `put
+them back:`, answered by the lead "picking under the operator's you
+decide". that `answered by` line, which the runner writes, is how every
+check tells a pick from the operator's own answer: a pick's `override:`
+lets change exactly the lines the conflict cites or the tests the park
+names, as the leg's record keeps them, and nothing its why says widens
+that. a spec line it quotes, a spec file it names to change or a test it
+names stays held, and no rename it carries reaches another line.
 on a conflict the start tests raised (a test green when the run started,
-red against the product now), `the request holds` names each red test of
-the question the runner wrote in its `override:`, so the replay lets
-exactly those change and a start test the question did not name still
-stops the run; a pick that cannot be read stops it again with the start
+red against the product now), `the request holds` lets change each red
+test the runner's question names, so the replay lets exactly those change
+and a start test the question did not name still stops the run; a pick that cannot be read stops it again with the start
 tests' wording.
 the lead's go is priced on its own line of the leg; a pick the program
 cannot read, or a lead that escalates, parks the run again on the same

@@ -428,6 +428,115 @@ def test_a_conflict_offers_the_hand_back_when_the_flow_has_a_lead(
     assert '--answer "you decide"' in read(first / "handoff.md")
 
 
+# what a pick lets change: the cited set, never what its why names
+
+def conflict_on_two_lines(tmp_path, monkeypatch):
+    place = spec_place(tmp_path / "repo")
+    a_flow(tmp_path, "build", PLANNER + TESTER + WORKER + LEAD
+           + "spec_files: additions" + NL)
+    planned(tmp_path)
+    does = {"planner.md": ({}, WORKER_SAID),
+            "tester.md": ({FILE: module(RIGHT, OTHER, COUNT)}, TESTER_SAID),
+            "worker.md": [({}, CONFLICT), ({"report.py": COUNTED},
+                                           WORKER_SAID)]}
+    code, _ = running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.CONFLICT)
+    return place, folders()[-1], does
+
+
+def picked_with_both_lines_changed(tmp_path, monkeypatch, why):
+    place, first, does = conflict_on_two_lines(tmp_path, monkeypatch)
+    does["planner.md"] = ({}, "DECIDED: the request holds" + NL + "why: "
+                          + why + NL)
+    does["worker.md"] = ({"report.py": COUNTED, "TASK.md": SPEC.replace(
+        LINE, RULED).replace(SECOND, SECOND_NOW)}, WORKER_SAID)
+    code, _ = running(tmp_path, monkeypatch, place, does, False,
+                      "--resume", first.name, "--answer", "you decide")
+    return place, code
+
+
+@pytest.mark.parametrize("why", [
+    'the request says the order changes, and "' + SECOND + '" goes with it',
+    "the request says the order changes, so update TASK.md",
+    "the request says the order changes",
+])
+def test_a_conflict_pick_lets_only_the_cited_line_change_whatever_its_why(
+        tmp_path, monkeypatch, why):
+    place, code = picked_with_both_lines_changed(tmp_path, monkeypatch, why)
+    assert code == stops.exit_code(stops.PARKED), read(
+        folders()[-1] / "gates.md")
+    question = read(folders()[-1] / "question.md")
+    assert 'was "' + SECOND + '"' in question
+    assert 'was "' + LINE + '"' not in question
+    [given] = [d for d in decisions.read(place)
+               if d.decided.startswith("ruling for worker.md: ")]
+    assert "this authorises changing TASK.md:3, and nothing else." \
+        in given.why
+
+
+def test_the_operator_s_own_override_naming_the_spec_file_still_widens(
+        tmp_path, monkeypatch):
+    place, first, does = conflict_on_two_lines(tmp_path, monkeypatch)
+    does["worker.md"] = ({"report.py": COUNTED, "TASK.md": SPEC.replace(
+        LINE, RULED).replace(SECOND, SECOND_NOW)}, WORKER_SAID)
+    code, _ = running(tmp_path, monkeypatch, place, does, False,
+                      "--resume", first.name, "--answer",
+                      "override: the order changes, so update TASK.md")
+    assert code == 0, read(folders()[-1] / "gates.md")
+
+
+def edits_held_on_one_of_two(tmp_path, monkeypatch):
+    place = a_place(tmp_path / "repo", baseline=module(RIGHT, OTHER))
+    a_flow(tmp_path, "build", PLANNER + TESTER + PATCHER + LEAD)
+    planned(tmp_path)
+    does = {"planner.md": ({}, WORKER_SAID),
+            "tester.md": ({FILE: module(RIGHT, OTHER, COUNT)},
+                          "FAILS: assert False" + NL + "TEST: " + FILE + NL),
+            "worker.md": ({"report.py": COUNTED, FILE: module(OTHER, COUNT)},
+                          WORKER_SAID)}
+    code, _ = running(tmp_path, monkeypatch, place, does, False)
+    assert code == stops.exit_code(stops.PARKED)
+    first = folders()[-1]
+    question = read(first / "question.md")
+    assert ID + " - removed" in question and "test_other" not in question
+    return place, first, does
+
+
+@pytest.mark.parametrize("why", [
+    "the alphabetical case goes with the count, and so does test_other",
+    "the alphabetical case goes with the count, and so does " + OTHER_ID,
+    "the alphabetical case goes with the count",
+])
+def test_an_edits_pick_lets_only_the_named_tests_change_whatever_its_why(
+        tmp_path, monkeypatch, why):
+    place, first, does = edits_held_on_one_of_two(tmp_path, monkeypatch)
+    does["planner.md"] = ({}, "DECIDED: override" + NL + "why: " + why + NL)
+    does["worker.md"] = ({"report.py": COUNTED, FILE: module(COUNT)},
+                         WORKER_SAID)
+    code, _ = running(tmp_path, monkeypatch, place, does, False,
+                      "--resume", first.name, "--answer", "you decide")
+    assert code == stops.exit_code(stops.PARKED), read(
+        folders()[-1] / "gates.md")
+    question = read(folders()[-1] / "question.md")
+    assert OTHER_ID + " - removed" in question
+    assert ID + " - removed" not in question
+
+
+def test_a_pick_is_told_apart_by_the_runner_s_line_never_by_its_words():
+    def entry(by, answer="override: as TASK.md:4 says"):
+        return decisions.Decision(
+            "ruling for worker.md: " + answer,
+            "asked by worker.md in r1:" + NL + NL + "NEEDS: x" + ruling.ANSWERED
+            + answer + ruling.ANSWERED_BY + by + ruling.ANSWERED_END, None)
+    assert ruling.picked(entry(ruling.picked_by("planner.md", "op")))
+    assert ruling.picked(entry(ruling.picked_by("architect.md", "o p")))
+    # the operator's own answer, even one quoting the pick's words
+    assert not ruling.picked(entry("op"))
+    assert not ruling.picked(entry(
+        "op", "override: " + ruling.picked_by("planner.md", "op")))
+    assert not ruling.picked(decisions.Decision("by hand", "a note", None))
+
+
 # a flow with no lead
 
 @pytest.mark.parametrize("parks", ["edits", "conflict"])

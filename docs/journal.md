@@ -1255,7 +1255,8 @@ names a lead an answer that opens with `you decide` hands the call back
 (`gates.md`): on a park of the lead's own page, the page's recommendations go
 on record as its decisions before it goes again, and the tests or spec lines
 the question it stopped on cites may change; on a conflict or a test-edits park the
-lead picks one of the park's two answers. in a flow with no lead it decides
+lead picks one of the park's two answers, which lets change only what the
+park cites, whatever its why says. in a flow with no lead it decides
 nothing and the run stays parked. the resume runs the
 step that asked again, AT that step and not after it, on what it was handed
 before, with the question and the answer at the very end of its prompt. the
@@ -1339,8 +1340,10 @@ the same `NEEDS:` asked again after the lead decided it parks too. the
 question in `question.md` then says why the lead did not decide it. a flow
 with `lead: none` or no `lead:`, and a question the lead itself asks, park
 at once; fix-with-test's lead is the architect role, which no step plays and
-which runs only when a step asks. a spec conflict never goes to the lead: which of
-the request and the spec holds is yours.
+which runs only when a step asks. a spec conflict never goes to the lead
+on its own: which of the request and the spec holds is yours, unless you
+answer `you decide`, which hands the pick to the lead inside the lines the
+conflict cites.
 
 a step can also decline:
 

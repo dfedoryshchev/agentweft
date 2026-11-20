@@ -647,14 +647,12 @@ def begin(unrecorded):
         asker = (found.data.get("stopped") or {}).get("step") or start
         files = ruling.files_to_change(answer, run.request(),
                                        run.spec_paths()) \
-            if kind == ruling.OVERRIDE and ruling.asked_lines(
+            if kind == ruling.OVERRIDE and not picking and ruling.asked_lines(
                 found.data.get("stopped")) else {}
         handed = ruling.handed_scope(found.data.get("stopped"), lead_of(fm)) \
             if ruling.handed_back(answer) else ""
-        by = ruling.who()
-        if picking:
-            by = run.lead + ", the flow's lead, picking under the operator's " \
-                + ruling.YOU_DECIDE + " (" + by + ")"
+        by = ruling.picked_by(run.lead, ruling.who()) if picking \
+            else ruling.who()
         run.rule(ruling.decided(asker, answer),
                  ruling.why(asker, pick_up, question, answer, by, kind, files,
                             also=handed), by="answer")
