@@ -603,8 +603,13 @@ def go(leg):
                     (step_dir / step).write_text(out.output, encoding="utf-8")
                     entry.handoff = out.block
                     said = run.asked(step, out)
-            own, own_asked = met or (lead_parks(run, step, out)
-                                     if honest and not said else ("", None))
+            own, own_asked = met if met is not None else (
+                lead_parks(run, step, out) if honest and not said
+                else ("", None))
+            if met is not None and not own:
+                own, own_asked = lead_parks(run, step, out)
+                own = own or (step + "'s consult came back with no question"
+                              " to put, so it is the operator's")
             if own:
                 said = (ruling.ASKED, own)
             checked = None

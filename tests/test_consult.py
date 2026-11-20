@@ -158,15 +158,36 @@ def test_no_recommendation_and_no_consult_line_parks_as_before(
     'RISK: split the request "calc gets mul(a, b)" reads as ints, or as'
     " floats" + NL,
     "",
+    "FOUND: x" + NL + "RISK: split none" + NL,
+    "FOUND: x" + NL + "RISK: split -" + NL,
+    "FOUND: x" + NL + "RISK: split nothing" + NL,
+    "FOUND: x" + NL + "RISK: split no split" + NL,
+    "FOUND: x" + NL + "RISK: split" + NL,
 ], ids=["two risk lines", "off form", "no risk line", "untaught risk",
-        "person", "spec", "split", "empty"])
+        "person", "spec", "split", "empty", "split none", "split dash",
+        "split nothing", "split no split", "split bare"])
 def test_a_consult_answer_that_holds_a_risk_or_cannot_be_read_parks(
         tmp_path, monkeypatch, said):
-    asked, _, code, folder, _ = build(
+    asked, _, code, folder, project = build(
         tmp_path, monkeypatch, [ASKS, DECIDES], [said])
     assert asked == ["planner.md", ARCH]
     assert code == stops.EXIT_STOP
-    assert (folder / "question.md").is_file()
+    q = (folder / "question.md").read_text(encoding="utf-8")
+    assert "should mul keep a float product as it is" in q
+    assert "decided" not in decisions_of(project)
+
+
+def test_a_consult_whose_question_comes_back_empty_still_parks(
+        tmp_path, monkeypatch):
+    monkeypatch.setattr(consult, "goes_up", lambda *a, **k: ("", None))
+    asked, _, code, folder, project = build(
+        tmp_path, monkeypatch, [ASKS, DECIDES],
+        ["FOUND: x" + NL + "RISK: person the date" + NL])
+    assert asked == ["planner.md", ARCH]
+    assert code == stops.EXIT_STOP
+    q = (folder / "question.md").read_text(encoding="utf-8")
+    assert "should mul keep a float product as it is" in q
+    assert "decided" not in decisions_of(project)
 
 
 def test_a_consult_that_changes_a_file_parks(tmp_path, monkeypatch):

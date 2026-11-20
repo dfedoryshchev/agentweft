@@ -274,7 +274,12 @@ def goes_up(run, step, role, asked, rec, cites, size, risk):
             None
     if kind == "split":
         said, _ = risk_read(run, step, asked, cites, rec, size, [], words)
-        return said.replace("SPLIT: ", "SPLIT (" + by + "): ", 1), None
+        if said:
+            return said.replace("SPLIT: ", "SPLIT (" + by + "): ", 1), None
+        return asked_as(asked, cites + [by + ": RISK: split " + words + " (a"
+                                        " split that names no two readings"
+                                        " is not read, so the question is"
+                                        " the operator's)"], rec, size), None
     if kind == "spec":
         line, _ = ruling.settled_by(words, run.workdir,
                                     getattr(run, "start", None))

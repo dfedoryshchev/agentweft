@@ -486,8 +486,9 @@ the rulings in force, and answers `FOUND:`, one to three `from: <file>:<line>
 <the other>`, or `person <what only you hold>`) and, when the lead
 recommended, `AGREES: yes` or `AGREES: no <its answer>`. a `RISK:` other than
 `none` parks the question with what the consult found under it (a start test
-as the test question); a `RISK:` line in no taught form, two of them or none,
-an empty answer, a consult the run cannot pay for and one that changed a file
+as the test question), and a `split` that names no two readings (`split
+none`, `split -`) parks it as well; a `RISK:` line in no taught form, two of
+them or none, an empty answer, a consult the run cannot pay for and one that changed a file
 park it too. with `RISK: none` the lead goes once more, the answer last in its
 prompt and the `from:` lines it gave checked against their lines, and its
 final page is read as any lead page is; a page that leaves the question out
