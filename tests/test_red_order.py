@@ -419,6 +419,75 @@ def test_a_proof_whose_own_test_or_what_it_reads_moved_is_dropped(tmp_path,
     assert order.proof is None
 
 
+SKIPS_ALL = ("import pytest" + NL + NL + NL + "@pytest.fixture(autouse=True)"
+             + NL + "def off():" + NL + "    pytest.skip('later')" + NL)
+
+
+@pytest.mark.parametrize("said,at", [
+    ("TEST: tests/test_calc.py::test_add" + NL, "tests/conftest.py"),
+    ("TEST: .\\tests\\test_calc.py::test_add" + NL, "tests/conftest.py"),
+    ("TEST: tests/test_calc.py::test_add" + NL, "conftest.py"),
+    ("TEST: tests/test_calc.py" + NL, "tests/conftest.py"),
+], ids=["beside it", "beside it, a Windows id", "at the place root",
+        "beside a file proved whole"])
+def test_a_proof_drops_when_a_conftest_over_its_file_is_added(tmp_path, said,
+                                                              at):
+    order, path = proved_on(tmp_path, said)
+    (path.parents[1] / at).write_text(SKIPS_ALL, encoding="utf-8")
+    assert order.recheck() == ("the tests its red proof was shown on are not"
+                               " as they were: " + at)
+    assert order.proof is None
+
+
+@pytest.mark.parametrize("now", [SKIPS_ALL, None], ids=["changed", "removed"])
+def test_a_proof_drops_when_a_conftest_over_its_file_changes(tmp_path, now):
+    place = a_repo(tmp_path / "repo")
+    (place / "conftest.py").write_text("X = 1" + NL, encoding="utf-8")
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
+    (place / "tests" / "test_calc.py").write_text(HELPED, encoding="utf-8")
+    assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
+                        "TEST: tests/test_calc.py::test_add" + NL)
+    if now is None:
+        (place / "conftest.py").unlink()
+    else:
+        (place / "conftest.py").write_text(now, encoding="utf-8")
+    assert "conftest.py" in order.recheck()
+    assert order.proof is None
+
+
+@pytest.mark.parametrize("added", [False, True])
+def test_a_proof_that_kept_no_conftests_reads_them_as_the_run_started(
+        tmp_path, added):
+    place = a_repo(tmp_path / "repo")
+    folder = place / "tests" / ("caf" + chr(0xE9))
+    folder.mkdir()
+    (place / "conftest.py").write_text("X = 1" + NL, encoding="utf-8")
+    git(place, "add", ".")
+    git(place, "commit", "-qm", "a conftest")
+    order = redorder.Order(snapshot.take(place), cmd=PYTEST)
+    (folder / "test_calc.py").write_text(HELPED, encoding="utf-8")
+    said = "TEST: tests/caf" + chr(0xE9) + "/test_calc.py::test_add" + NL
+    assert order.proven("tester.md", [Result("red-test", True, "red, exit 1")],
+                        said)
+    del order.proof["conftests"]
+    if added:
+        (folder / "conftest.py").write_text(SKIPS_ALL, encoding="utf-8")
+        assert order.recheck().endswith(
+            ": tests/caf" + chr(0xE9) + "/conftest.py")
+    else:
+        assert order.recheck() == ""
+
+
+def test_a_conftest_in_another_folder_keeps_the_proof(tmp_path):
+    order, path = proved_on(tmp_path, "TEST: tests/test_calc.py::test_add"
+                            + NL)
+    other = path.parents[1] / ("caf" + chr(0xE9))
+    other.mkdir()
+    (other / "conftest.py").write_text(SKIPS_ALL, encoding="utf-8")
+    assert order.recheck() == ""
+    assert order.proof is not None
+
+
 IN_CLASS = ("import pytest" + NL + NL + NL + "class TestCalc:" + NL
             + "    def test_add(self):" + NL + "        assert 1 == 2" + NL)
 

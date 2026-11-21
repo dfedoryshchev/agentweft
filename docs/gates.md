@@ -816,7 +816,10 @@ not read), one that is gone, or a file that no
 longer parses drops the proof: a skipped test exits 0, which the suite and
 a test run one by one both read as passing. any change to a proved file
 read whole drops it too: a test file in another
-language, a proof whose gate named only the file, a carried proof. a product
+language, a proof whose gate named only the file, a carried proof. so does
+a `conftest.py` added, changed or removed in a proved file's folder or any
+folder above it up to the place, read against the proof as it was shown (a
+carried proof, against the place as the run started). a product
 step after a dropped proof is refused saying which file moved.
 
 ## the tests the run started with, after product code

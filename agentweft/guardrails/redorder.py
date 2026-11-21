@@ -25,7 +25,8 @@ commit plus the test files changed but not committed when the run started
 place as it starts. neither is assumed: a carried test whose content moved
 since, or one that does not fail, carries nothing. a resumed run re-reads the
 proved tests too: a python test the gate named by its code and the code of
-its file it reads, any other proved file whole. a moved one drops the proof.
+its file it reads, any other proved file whole, and each conftest.py from a
+proved file's folder up to the place. a moved one drops the proof.
 
 the proof is kept as runs/<id>/red-proof.json beside the start snapshot, so
 a run picked up later has both.
@@ -34,7 +35,7 @@ import json
 import os
 import posixpath
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from agentweft.guardrails import testedits, worktree
 from agentweft.guardrails import writes as bounds
@@ -78,6 +79,17 @@ def norm(path):
     `./`, and case-folded where the file system ignores case."""
     out = posixpath.normpath((path or "").replace("\\", "/"))
     return out.casefold() if os.name == "nt" else out
+
+
+def over(files):
+    """-> the conftest.py paths, from the place, in the folder of each file
+    in `files` (paths from the place) and in every folder above it up to
+    the place, sorted."""
+    out = set()
+    for f in files:
+        for folder in PurePosixPath((f or "").replace("\\", "/")).parents:
+            out.add((folder / "conftest.py").as_posix())
+    return sorted(out)
 
 
 class Order(object):
@@ -203,7 +215,8 @@ class Order(object):
                 self.proof = {"how": "gate", "step": step, "gate": r.gate,
                               "source": source, "tests": dict(found),
                               "ids": ids,
-                              "nodes": self.nodes(dict(found), proved)}
+                              "nodes": self.nodes(dict(found), proved),
+                              "conftests": self.conftests(dict(found))}
                 self.lost = ""
                 return True
         return False
@@ -292,21 +305,61 @@ class Order(object):
                 return False
         return True
 
+    def _sha_now(self, f):
+        try:
+            return _sha((self.start.place / f).read_bytes())
+        except OSError:
+            return None
+
+    def conftests(self, files):
+        """-> {conftest.py path from the place: sha256, None when there is
+        none} for the folder of each file in `files` and each folder above
+        it up to the place: what pytest loads before those tests run."""
+        return dict((c, self._sha_now(c)) for c in over(files))
+
+    def _moved_since_start(self, c):
+        """whether conftest.py `c` (from the place) is not as the run
+        started, read from the start snapshot; True when that cannot be
+        read."""
+        try:
+            now = (self.start.place / c).read_bytes()
+        except OSError:
+            now = None
+        try:
+            rel = (self.start.place / c).relative_to(
+                self.start.root).as_posix()
+        except (TypeError, ValueError):
+            return now is not None
+        for hashed in (self.start.tests, self.start.specs, self.start.product):
+            if rel in hashed:
+                return now is None or _sha(now) != hashed[rel]
+        was = self.start.before(rel)
+        if was is None or now is None:
+            return was is not None or now is not None
+        # a file the start commit keeps is read back as git stores it, which
+        # a checkout with autocrlf on does not match byte for byte
+        return was.replace(b"\r\n", b"\n") != now.replace(b"\r\n", b"\n")
+
     def recheck(self):
         """drop a proof whose proved tests are not what it proved, saying why
         in `lost`: each proved python test read by its code and the code of
-        its file it reads, any other proved file by its whole content.
-        -> the why, "" when it holds."""
+        its file it reads, any other proved file by its whole content, and
+        each conftest.py over a proved file as the proof found it (as the
+        run started, for a proof that did not keep them). -> the why, ""
+        when it holds."""
         if not self.proof or self.start is None:
             return ""
         moved = []
-        for f, sha in sorted((self.proof.get("tests") or {}).items()):
-            try:
-                now = _sha((self.start.place / f).read_bytes())
-            except OSError:
-                now = None
-            if now != sha and not self.held_by_tests(f):
+        tests = self.proof.get("tests") or {}
+        for f, sha in sorted(tests.items()):
+            if self._sha_now(f) != sha and not self.held_by_tests(f):
                 moved.append(f)
+        kept = self.proof.get("conftests")
+        kept = kept if isinstance(kept, dict) else {}
+        for c in over(tests):
+            if (self._sha_now(c) != kept[c]) if c in kept \
+                    else self._moved_since_start(c):
+                moved.append(c)
         if moved:
             self.lost = ("the tests its red proof was shown on are not as"
                          " they were: " + ", ".join(moved))
