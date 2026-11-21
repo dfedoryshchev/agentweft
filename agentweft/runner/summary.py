@@ -2687,8 +2687,9 @@ TEST_FILE = re.compile(r"""[^\s:`'"(),]+\.py(?![\w.])""")
 
 def named_ids(text):
     """-> (the whole test ids `text` names, `test_id` of each, with each
-    python file it names outside an id as a whole-file id; the test function
-    names it names bare, outside any id)."""
+    python test file it names outside an id as a whole-file id, a product
+    file being none; the test function names it names bare, outside any
+    id)."""
     text = text or ""
     ids, bare, last = set(), [], 0
     for m in TEST_ID.finditer(text):
@@ -2697,7 +2698,8 @@ def named_ids(text):
         last = m.end()
     bare.append(text[last:])
     outside = " ".join(bare)
-    ids |= set(test_id(f) for f in TEST_FILE.findall(outside))
+    ids |= set(f for f in map(test_id, TEST_FILE.findall(outside))
+               if is_test(f))
     return ids, named_tests(outside)
 
 
@@ -2755,7 +2757,8 @@ def gate_answered(text, asked, passes):
     count. the suite line is the last command gate's, which must have
     passed; a red or green line is the newest red-first replay's, which must
     have passed and run every test the item names by its whole id, file and
-    node (`ran_whole`), and every test it names by a bare function name (any
+    node (`ran_whole`), showing each test it replayed in a test file the
+    item names whole, and every test it names by a bare function name (any
     test when it names none); a green line is also the last command gate's
     when it passed."""
     found = handoff.not_shown(text)
@@ -2786,7 +2789,14 @@ def gate_answered(text, asked, passes):
     held = [t for t in shown if not (ids or bare)
             or any(ran_whole(t, i) for i in ids)
             or bare & named_tests(t)]
-    if held and all(any(ran_whole(t, i) for t in held) for i in ids) \
+
+    def covered(i):
+        if "::" in i:
+            return any(ran_whole(t, i) for t in held)
+        ran = [t["test"] for t in tests if ran_whole(t["test"], i)]
+        return bool(ran) and all(t in held for t in ran)
+
+    if held and all(covered(i) for i in ids) \
             and bare <= named_tests(" ".join(held)):
         return ("the red-first gate on " + pass_label(passes, replayed[0])
                 + ": " + ", ".join(held) + (" red without the change" if red

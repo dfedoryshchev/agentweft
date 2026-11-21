@@ -160,6 +160,32 @@ def test_a_red_line_on_the_replayed_test_by_its_id_or_bare_name_is_answered(
     assert "answered by the red-first gate" in section(lines, "not verified")
 
 
+@pytest.mark.parametrize("calls", ["stats.py", "src\\stats.py",
+                                   "pkg/caf" + chr(0xE9) + ".py"])
+def test_a_product_file_named_beside_the_replayed_test_holds_nothing_open(
+        calls):
+    lines = build([a_pass("patcher.md", block("fixed it", [
+        "red without the change not shown: " + NEW + ", which calls " + calls
+        + " - not run"]), gates=[red_first(NEW)])])
+    assert "answered by the red-first gate" in section(lines, "not verified")
+
+
+@pytest.mark.parametrize("key,shown", [
+    ("red without the change not shown: ", "before"),
+    ("green with the change not shown: ", "after")])
+def test_a_line_naming_a_test_file_needs_every_test_replayed_in_it_shown(
+        key, shown):
+    replay = red_first(NEW, "tests/test_stats.py::test_other")
+    replay["tests"][1][shown] = "error"
+    lines = build([a_pass("patcher.md", block("fixed it", [
+        key + "tests/test_stats.py - not run"]), gates=[replay])])
+    assert "answered by" not in section(lines, "not verified")
+    lines = build([a_pass("patcher.md", block("fixed it", [
+        key + "tests/test_stats.py - not run"]), gates=[
+            red_first(NEW, "tests/test_stats.py::test_other")])])
+    assert "answered by the red-first gate" in section(lines, "not verified")
+
+
 def test_the_keys_are_read_as_typed_never_from_words():
     said = ["The full suite on the current code - not run",
             "suite not run - no colon after the key",
