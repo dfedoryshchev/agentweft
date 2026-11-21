@@ -803,12 +803,16 @@ a run picked up with `--resume` keeps its snapshot and its proof, and reads
 the proved tests again. the proof keeps each python test its red was shown
 on (the ids the gate ran) by its syntax tree, with every statement at the
 top of its file that is not another test or test class, and the other
-members, decorators and bases of its own test class, so a step that changed
+members, decorators and bases of its own test class. another test is a
+`test*` function under another name with no fixture decorator; a second
+definition under the proving test's own name (pytest runs the last one)
+and a fixture under any name are not, so they count. a step that changed
 other tests in the same file (start tests a test-edits park then asks about)
 leaves the proof standing while the proving test is as it was. a proved
 test whose own code changed, any other code at the top of its file that
-changed (a `pytestmark`, a `setup_module` that skips, a patch of what it
-imports, a helper it does not read), one that is gone, or a file that no
+changed (a `pytestmark`, a `setup_module` that skips, an autouse fixture,
+the test defined again below, a patch of what it imports, a helper it does
+not read), one that is gone, or a file that no
 longer parses drops the proof: a skipped test exits 0, which the suite and
 a test run one by one both read as passing. any change to a proved file
 read whole drops it too: a test file in another

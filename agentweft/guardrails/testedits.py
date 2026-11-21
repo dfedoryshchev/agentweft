@@ -486,8 +486,27 @@ def _read_parts(tree, name, test, members=False):
     for top in tree.body if members else ():
         if isinstance(top, ast.ClassDef) and node in top.body:
             parts.extend(m for m in top.body
-                         if m is not node and not _is_test_func(m))
+                         if m is not node and not _another_test(m, node))
     return parts
+
+
+def _fixture(node):
+    for d in node.decorator_list:
+        d = d.func if isinstance(d, ast.Call) else d
+        named = d.attr if isinstance(d, ast.Attribute) else getattr(d, "id",
+                                                                    "")
+        if named.endswith("fixture"):
+            return True
+    return False
+
+
+def _another_test(other, node):
+    """whether `other`, in the scope of the test `node`, is a test pytest
+    runs as itself: a test function under another name and no fixture. one
+    under the same name is what pytest runs in `node`'s place, since the
+    last definition wins."""
+    return _is_test_func(other) and other.name != node.name \
+        and not _fixture(other)
 
 
 def read_by(source, name, test):
@@ -514,9 +533,10 @@ def code_of(source, name, test):
     it reads, the other members of its test class and the class's own
     decorators and bases, and every other statement at the top of the file
     that is not another test or test class (a `pytestmark`, a
-    `setup_module`, a patch of what it imports): what decides how it runs
-    from inside its file. formatting and comments are not in it. "" when
-    the test is not there or the source does not parse."""
+    `setup_module`, a patch of what it imports, a fixture under any name, a
+    second definition of the test itself): what decides how it runs from
+    inside its file. formatting and comments are not in it. "" when the
+    test is not there or the source does not parse."""
     try:
         tree = ast.parse(source)
     except (SyntaxError, ValueError):
@@ -526,8 +546,11 @@ def code_of(source, name, test):
     if not parts:
         return ""
     node = parts[0]
+    top_level = any(top is node for top in tree.body)
     for top in tree.body:
-        if top in parts or _is_test_func(top) or _docstring(top):
+        if top in parts or _docstring(top) or (
+                _another_test(top, node) if top_level
+                else _is_test_func(top) and not _fixture(top)):
             continue
         if isinstance(top, ast.ClassDef) and node in top.body:
             parts.extend(top.decorator_list + top.bases

@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, ".")
 from agentweft.flow import spec
-from agentweft.guardrails import redorder, snapshot
+from agentweft.guardrails import redorder, snapshot, testedits
 from agentweft.guardrails.gates.base import Result
 from agentweft.providers import cli_provider, fake_provider
 from agentweft.runner import engine, prompts, resume, state, stops
@@ -395,9 +395,17 @@ def test_a_proof_holds_while_its_own_test_is_as_it_was_shown(tmp_path,
     + NL,
     HELPED + NL + "import calc" + NL + "calc.add = lambda a, b: 3" + NL,
     HELPED.replace("WANT = 3", "WANT = 3" + NL + "SEEN = []"),
+    HELPED + NL + NL + "def test_add():" + NL + "    assert True" + NL,
+    HELPED + NL + NL + "@pytest.fixture(autouse=True)" + NL
+    + "def testing_off():" + NL + "    pytest.skip('later')" + NL,
+    HELPED + NL + NL + "@fixture(autouse=True)" + NL
+    + "async def test_setup():" + NL + "    pytest.skip('later')" + NL,
 ], ids=["a constant it reads", "its assert", "renamed away",
         "no longer parses", "deleted", "pytestmark", "setup_module",
-        "a patched import", "module code it does not read"])
+        "a patched import", "module code it does not read",
+        "the proved test defined again below",
+        "an autouse fixture whose name starts test",
+        "an async fixture named as a test"])
 def test_a_proof_whose_own_test_or_what_it_reads_moved_is_dropped(tmp_path,
                                                                  now):
     order, path = proved_on(tmp_path, "TEST: tests/test_calc.py::test_add"
@@ -409,6 +417,32 @@ def test_a_proof_whose_own_test_or_what_it_reads_moved_is_dropped(tmp_path,
     assert order.recheck() == ("the tests its red proof was shown on are not"
                                " as they were: tests/test_calc.py")
     assert order.proof is None
+
+
+IN_CLASS = ("import pytest" + NL + NL + NL + "class TestCalc:" + NL
+            + "    def test_add(self):" + NL + "        assert 1 == 2" + NL)
+
+
+@pytest.mark.parametrize("now,moves", [
+    (IN_CLASS + NL + "    def test_add(self):" + NL + "        assert True"
+     + NL, True),
+    (IN_CLASS + NL + "    @pytest.fixture(autouse=True)" + NL
+     + "    def test_off(self):" + NL + "        pytest.skip('later')" + NL,
+     True),
+    (IN_CLASS + NL + "    def test_more(self):" + NL + "        assert True"
+     + NL, False),
+    (IN_CLASS + NL + NL + "def test_add():" + NL + "    assert True" + NL,
+     False),
+    (IN_CLASS + NL + NL + "@pytest.fixture(autouse=True)" + NL
+     + "def test_off():" + NL + "    pytest.skip('later')" + NL, True),
+], ids=["defined again in its class", "a fixture named as a test in its class",
+        "a sibling test in its class", "a top-level test of the same name",
+        "a top-level fixture named as a test"])
+def test_what_runs_as_a_test_in_a_class_decides_its_code(now, moves):
+    name, test = "tests/test_calc.py", "tests/test_calc.py::TestCalc::test_add"
+    was = testedits.code_of(IN_CLASS, name, test)
+    assert was
+    assert (testedits.code_of(now, name, test) != was) is moves
 
 
 def test_a_proof_naming_only_its_file_is_held_by_the_whole_file(tmp_path):
