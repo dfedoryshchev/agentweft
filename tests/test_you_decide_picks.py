@@ -588,6 +588,29 @@ def test_a_pick_is_told_apart_by_the_runner_s_line_never_by_its_words():
     assert not ruling.picked(decisions.Decision("by hand", "a note", None))
 
 
+@pytest.mark.parametrize("lead", [
+    "lead.md", "the lead.md", "prompts\\the lead.md", "prompts/lead.md",
+    "l" + chr(0xE9) + "ad.md", "a  lead (2).md"])
+def test_a_pick_is_told_apart_whatever_the_lead_step_is_called(lead):
+    d = decisions.Decision("ruling for worker.md: override: because", ruling.why(
+        "worker.md", "r1", "CONFLICT: TASK.md:3", "override: because",
+        ruling.picked_by(lead, "an operator"), ruling.OVERRIDE), None)
+    assert ruling.asked_and_answered(d) is not None
+    assert ruling.picked(d)
+
+
+def test_an_answered_by_line_read_as_neither_form_is_taken_as_a_pick():
+    by ="lead.md" + ruling.PICKED + "an operator"
+    d = decisions.Decision("ruling for worker.md: override: because", ruling.why(
+        "worker.md", "r1", "CONFLICT: TASK.md:3", "override: because", by,
+        ruling.OVERRIDE), None)
+    assert ruling.picked(d)
+    assert not ruling.picked(decisions.Decision(
+        "ruling for worker.md: override: because", ruling.why(
+            "worker.md", "r1", "CONFLICT: TASK.md:3", "override: because",
+            "an operator", ruling.OVERRIDE), None))
+
+
 # a flow with no lead
 
 @pytest.mark.parametrize("parks", ["edits", "conflict"])

@@ -1634,7 +1634,6 @@ def answered(d):
 
 PICKED = ", the flow's lead, picking under the operator's " + YOU_DECIDE \
     + " ("
-PICKED_BY = re.compile(r"\S+" + re.escape(PICKED) + r".*\)", re.S)
 
 
 def picked_by(lead, who):
@@ -1649,11 +1648,12 @@ def picked(d):
     (`picked_by`), never off the answer's words. such a pick lets change
     only what the question it answers cites, as the leg's record keeps it:
     its why may quote a spec line, name a spec file or a test, and none of
-    that lets anything change."""
+    that lets anything change. the lead's step id may hold any character,
+    so any `answered by` line holding the pick's marker is a pick, whole
+    form or not: one read as neither form keeps the pick's narrower reach."""
     if not asked_and_answered(d):
         return False
-    by = d.why.rpartition(ANSWERED_BY)[2][:-len(ANSWERED_END)]
-    return bool(PICKED_BY.fullmatch(by))
+    return PICKED in d.why.rpartition(ANSWERED_BY)[2][:-len(ANSWERED_END)]
 
 
 ASKER = re.compile(r"^asked by \S+ in (\S+):\n\n")

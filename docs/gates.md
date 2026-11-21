@@ -200,9 +200,11 @@ with a `why:` line under it. the pick goes on record as the answer it
 stands for, with its why as the words: `override:`, `request:`, or `put
 them back:`, answered by the lead "picking under the operator's you
 decide". that `answered by` line, which the runner writes, is how every
-check tells a pick from the operator's own answer: a pick's `override:`
-lets change exactly the lines the conflict cites or the tests the park
-names, as the leg's record keeps them, and nothing its why says widens
+check tells a pick from the operator's own answer, whatever the lead's
+step is called; an `answered by` line holding that phrase is read as a
+pick even when the rest of it is not in the runner's form. a pick's
+`override:` lets change exactly the lines the conflict cites or the tests
+the park names, as the leg's record keeps them, and nothing its why says widens
 that. a spec line it quotes, a spec file it names to change or a test it
 names stays held, and no rename it carries reaches another line.
 on a conflict the start tests raised (a test green when the run started,
