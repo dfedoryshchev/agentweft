@@ -361,6 +361,8 @@ def refused(work, name, why):
     ("AGENTWEFT_KEY_FILE", "~/.ssh/id_any",
      "picks a credential or where one is sent"),
     ("AGENTWEFT_PROVIDER", "api", "picks a credential or where one is sent"),
+    ("AGENTWEFT_PROVIDER_ENV", "GITHUB_TOKEN",
+     "picks a credential or where one is sent"),
     ("API_KEY", "decoy-api-key-for-tests",
      "picks a credential or where one is sent"),
     ("API_URL", "https://elsewhere.example",

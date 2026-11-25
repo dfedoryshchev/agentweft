@@ -69,12 +69,44 @@ EFFORT_VAR = "CLAUDE_CODE_EFFORT_LEVEL"
 CAP_VAR = "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
 
 KEY_VAR = "ANTHROPIC_API_KEY"
+# a cloud route the cli is switched to finds its login and region by names
+# outside its own prefixes, as the cli's reference page for that route names
+# them. they are handed only while the route's switch is on. none of them
+# holds a secret: a key or token reaches a step only when the operator lists
+# it in OPERATOR_ENV
+AWS_WHERE = ("AWS_PROFILE", "AWS_REGION", "AWS_DEFAULT_REGION",
+             "AWS_CONFIG_FILE", "AWS_SHARED_CREDENTIALS_FILE", "AWS_CA_BUNDLE")
+GOOGLE_WHERE = ("GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG")
+VERTEX_REGIONS = ("CLOUD_ML_REGION",) + tuple(
+    "VERTEX_REGION_CLAUDE_" + model for model in (
+        "3_5_HAIKU", "3_5_SONNET", "3_7_SONNET", "4_0_OPUS", "4_0_SONNET",
+        "4_1_OPUS", "4_5_OPUS", "4_5_SONNET", "4_6_OPUS", "4_6_SONNET",
+        "4_7_OPUS", "4_8_OPUS", "5_5_OPUS", "5_5_SONNET", "5_OPUS", "5_SONNET",
+        "FABLE_5", "FABLE_5_1", "FABLE_5_2", "HAIKU_4_5", "HAIKU_5_5"))
+AZURE_WHERE = ("AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_AUTHORITY_HOST",
+               "AZURE_FEDERATED_TOKEN_FILE", "AZURE_CLIENT_CERTIFICATE_PATH",
+               "AZURE_CONFIG_DIR")
+ROUTES = {"CLAUDE_CODE_USE_BEDROCK": AWS_WHERE,
+          "CLAUDE_CODE_USE_MANTLE": AWS_WHERE,
+          "CLAUDE_CODE_USE_ANTHROPIC_AWS": AWS_WHERE,
+          "CLAUDE_CODE_USE_VERTEX": GOOGLE_WHERE + VERTEX_REGIONS,
+          "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD": GOOGLE_WHERE,
+          "CLAUDE_CODE_USE_FOUNDRY": AZURE_WHERE}
+ROUTE_NAMES = tuple(sorted({n for names in ROUTES.values() for n in names}))
+# what those routes log in with, never handed by a route: only a name the
+# operator lists, and a connector takes them out with the route
+ROUTE_SECRETS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                 "AWS_SESSION_TOKEN", "AWS_BEARER_TOKEN_BEDROCK",
+                 "AZURE_CLIENT_SECRET", "AZURE_CLIENT_CERTIFICATE_PASSWORD")
+# the values the cli reads a route switch as on by, trimmed and lower case
+ON = ("1", "true", "yes", "on")
+# names the operator lists for every step of every flow, comma separated
+OPERATOR_ENV = "AGENTWEFT_PROVIDER_ENV"
 # what the cli would log in with ahead of a subscription login: a key or a
 # bearer token, a cloud provider switch, a named profile or federation
 KEYS = (KEY_VAR, "ANTHROPIC_AUTH_TOKEN")
-AHEAD = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX",
-         "CLAUDE_CODE_USE_FOUNDRY", "ANTHROPIC_PROFILE",
-         "ANTHROPIC_FEDERATION_RULE_ID", "ANTHROPIC_ORGANIZATION_ID")
+AHEAD = tuple(ROUTES) + ("ANTHROPIC_PROFILE", "ANTHROPIC_FEDERATION_RULE_ID",
+                         "ANTHROPIC_ORGANIZATION_ID")
 LOGINS = ("CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN")
 SCRUB_VAR = "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
 # an api key's cache lives 5 minutes unless asked for the hour, and a step
@@ -217,6 +249,43 @@ def sent_to():
     if isinstance(said, str) and said.strip():
         return said.strip()
     return os.environ.get(BASE_URL_VAR, "").strip() or DEFAULT_BASE_URL
+
+
+def switched_on(value):
+    return isinstance(value, str) and value.strip().lower() in ON
+
+
+def routes(environ):
+    """-> {name: value}: the switch of every cloud route and, for each one
+    switched on, the names that say where its login and region live
+    (ROUTES), each from the person's own settings file's `env` block first,
+    then `environ`: the cli writes that block over the shell's values. a step
+    that only looks runs --restricted and reads no settings file, so this is
+    how it gets the route a step that acts gets from the file. nothing else
+    of the block is read."""
+    block = user_settings().get("env")
+    block = block if isinstance(block, dict) else {}
+
+    def said(name):
+        value = block.get(name)
+        return value if isinstance(value, str) else environ.get(name)
+
+    out = {}
+    for switch, names in ROUTES.items():
+        on = said(switch)
+        if on is None:
+            continue
+        out[switch] = on
+        if switched_on(on):
+            out.update((name, said(name)) for name in names
+                       if said(name) is not None)
+    return out
+
+
+def operator_listed():
+    """-> the names OPERATOR_ENV lists, upper case."""
+    said = os.environ.get(OPERATOR_ENV) or ""
+    return {n.strip().upper() for n in said.split(",") if n.strip()}
 
 
 def no_model_ran(data):
@@ -766,20 +835,24 @@ class CliProvider(Provider):
 
     def child_env(self):
         """-> the environment the command starts with: what any process needs,
-        for `claude` its own login and settings, and the names the provider's
-        `env` lists. nothing else the run holds, its keys and tokens included,
-        reaches the model's process."""
+        for `claude` its own login and settings and the cloud route it is
+        switched to (`routes`), and the names the provider's `env` and the
+        operator's OPERATOR_ENV list. nothing else the run holds, its keys and
+        tokens included, reaches the model's process."""
         keep = set(BASE)
         listed = self.opts.get("env") or ()
         if isinstance(listed, str):
             listed = [listed]
         keep.update(str(name).upper() for name in listed)
+        keep.update(operator_listed())
         own = OWN if is_claude(self.command) else ()
         drop = EFFORT_VAR if self.chooses_effort() and self.asks_effort() \
             else None
         out = {k: v for k, v in os.environ.items()
                if (k.upper() in keep or k.upper().startswith(own))
                and k.upper() != drop}
+        if own:
+            out.update(routes(os.environ))
         limit = self.output_limit()
         if limit:
             out[CAP_VAR] = str(limit)
@@ -801,7 +874,7 @@ class CliProvider(Provider):
         refused = connectors.command_refused(self)
         if refused:
             raise connectors.NoKey(refused)
-        gone = KEYS + AHEAD
+        gone = KEYS + AHEAD + ROUTE_NAMES + ROUTE_SECRETS
         if self.auth == connectors.API_KEY:
             gone = gone + LOGINS
         out = {k: v for k, v in env.items() if k.upper() not in gone}

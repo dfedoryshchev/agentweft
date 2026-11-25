@@ -230,9 +230,14 @@ step as it always did, and your own settings decide where it goes.
 
 - `subscription`: `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are taken
   out, and with them the switches the cli would log in with ahead of its
-  login (`CLAUDE_CODE_USE_BEDROCK`, `_VERTEX`, `_FOUNDRY`,
-  `ANTHROPIC_PROFILE` and the federation pair), so `claude` falls to its own
-  subscription login (`CLAUDE_CODE_OAUTH_TOKEN` stays: it is that login).
+  login (`CLAUDE_CODE_USE_BEDROCK`, `_MANTLE`, `_ANTHROPIC_AWS`, `_VERTEX`,
+  `_ANTHROPIC_GOOGLE_CLOUD`, `_FOUNDRY`, `ANTHROPIC_PROFILE` and the
+  federation pair), every cloud route's names (below, "what the command's
+  process holds") and the cloud keys (`AWS_ACCESS_KEY_ID`,
+  `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_BEARER_TOKEN_BEDROCK`,
+  `AZURE_CLIENT_SECRET`, `AZURE_CLIENT_CERTIFICATE_PASSWORD`), so `claude`
+  falls to its own subscription login (`CLAUDE_CODE_OAUTH_TOKEN` stays: it
+  is that login).
 - `api-key`: the same names and both login tokens
   (`CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CODE_OAUTH_REFRESH_TOKEN`) are taken
   out, and `ANTHROPIC_API_KEY` is the key read from the key file when the call
@@ -555,7 +560,9 @@ and a granted step is started with:
   `CLAUDE_CONFIG_DIR`) would not reach it, and it would run on the cli's
   default while every step that acts runs on that model: such a step is
   passed it as `--model`, unless the flow or `MODEL` named one already or
-  `ANTHROPIC_MODEL` is set, which the cli reads itself.
+  `ANTHROPIC_MODEL` is set, which the cli reads itself. a cloud route that
+  file switches on reaches it in the environment ("what the command's
+  process holds").
 - for a grant that acts, `--setting-sources user` (below).
 
 a step with no grant gets none of the fence: the host's own defaults decide
@@ -816,17 +823,61 @@ working. any other command gets none of those: its login is not ours to
 guess. the same environment answers `--version` and `claude auth status`, so
 the check says what a step will see.
 
+`claude` on a cloud route also gets the names that route finds its login
+and region by, as the cli's own page for each route names them, and only
+while the route's switch is on (the cli reads a switch as on for `1`,
+`true`, `yes` or `on`):
+
+- `CLAUDE_CODE_USE_BEDROCK`, `_MANTLE` and `_ANTHROPIC_AWS`: `AWS_PROFILE`,
+  `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_CONFIG_FILE`,
+  `AWS_SHARED_CREDENTIALS_FILE`, `AWS_CA_BUNDLE`.
+- `CLAUDE_CODE_USE_VERTEX`: `GOOGLE_APPLICATION_CREDENTIALS`,
+  `CLOUDSDK_CONFIG`, `CLOUD_ML_REGION` and the cli's `VERTEX_REGION_CLAUDE_*`
+  names, each listed (`cli_provider.ROUTES`).
+- `CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD`: `GOOGLE_APPLICATION_CREDENTIALS`,
+  `CLOUDSDK_CONFIG`.
+- `CLAUDE_CODE_USE_FOUNDRY`: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
+  `AZURE_AUTHORITY_HOST`, `AZURE_FEDERATED_TOKEN_FILE`,
+  `AZURE_CLIENT_CERTIFICATE_PATH`, `AZURE_CONFIG_DIR`.
+
+each of those says where the login lives (a profile, a region, a file, a
+host), never a secret: an access key, a session token, a bedrock api key or
+a client secret is not handed by a route. a step that acts loads your
+settings file and its `env` block itself; a step that only looks starts
+`--restricted` and reads no settings file, so a route switched on in that
+block alone, or one whose profile and region live only in the run's
+environment, would reach it with no profile and no region to log in by. so
+the switch of every
+route and a switched-on route's names are read from your own settings
+file's `env` block first, then the run's environment, the way the cli
+writes that block over the shell's values; an empty switch there turns a
+shell's route off. nothing else of the block is handed: not a model, not a
+key helper, not a key.
+
 a name the command needs beyond that is listed in the provider block in the
-flow (a connector `project.yml` declares may not list one), for example the
-cloud credentials a Bedrock or Vertex login reads:
+flow (a connector `project.yml` declares may not list one):
 
     provider:
       provider: cli
       env: [AWS_PROFILE, AWS_REGION]
 
+or once for every step of every flow in `AGENTWEFT_PROVIDER_ENV`, comma
+separated, the names a flow shipped by someone else cannot know (a route's
+key, a proxy token). it is yours to set: a `.env` inside the place is
+refused it, as it is a key file. a secret your route logs in with reaches a
+step only this way, and only from the run's environment: one kept only in
+your settings file's `env` block reaches the steps that act (the cli loads
+the file) and not the ones that only look.
+
 all of this is `auth: inherit`. a connector's `subscription` or `api-key`
 then takes the credentials out as under "connectors", a listed name
 included.
+
+the cli keeps a route's names for the model's own shell: its subprocess
+scrub (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, on for every connector's step)
+removes a variable whose name or value looks like a credential, and a
+profile, a region or a file path does not. so a step's shell can reach the
+same cloud profile the cli does.
 
 `--bare` would fence the cli harder, but it reads only `ANTHROPIC_API_KEY` or
 a key helper and never the subscription login, so it is not passed.
