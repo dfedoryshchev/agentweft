@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,8 @@ from agentweft.guardrails.gates import redfirst_gate
 from agentweft.providers import fake_provider
 from agentweft.roles import resolver
 from agentweft.runner import engine, prompts, resume, state
+
+from conftest import link_folder
 
 NL = chr(10)
 FLOWS = Path(__file__).resolve().parent.parent / "flows"
@@ -342,6 +345,38 @@ def test_an_error_is_placed_at_its_innermost_frame_in_the_repo(
     said = output.replace("{last}", last).replace("{stdlib}", stdlib) \
         .replace("{place}", str(place)).replace("{outside}", str(tmp_path))
     assert raised_in(said, place) == raised
+
+
+@pytest.mark.parametrize("output,last,raised", [
+    (SHORT, "calc.py", "calc.py"),
+    (NATIVE, "", "tests/test_calc.py")],
+    ids=["short, relative frame", "native, absolute frame"])
+def test_an_error_is_placed_in_a_repo_reached_through_a_link(
+        tmp_path, output, last, raised):
+    from agentweft.guardrails.gates.redfirst_gate import raised_in
+    place = a_repo(tmp_path / "repo")
+    linked = link_folder(tmp_path / "linked", place)
+    stdlib = str(Path(sys.base_prefix) / "Lib" / "importlib" / "__init__.py")
+    said = output.replace("{last}", last).replace("{stdlib}", stdlib) \
+        .replace("{place}", str(linked))
+    assert raised_in(said, linked) == raised
+
+
+def test_a_temporary_checkout_is_handed_out_by_its_real_path(tmp_path,
+                                                             monkeypatch):
+    import tempfile
+
+    from agentweft.guardrails import worktree
+    place = a_repo(tmp_path / "repo")
+    real = tmp_path / "real-tmp"
+    real.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir",
+                        str(link_folder(tmp_path / "linked-tmp", real)))
+    with worktree.temporary(place, git(place, "rev-parse", "HEAD").strip()) \
+            as tree:
+        assert str(tree) == os.path.realpath(str(tree))
+        assert (tree / "calc.py").is_file()
+    assert not list(real.iterdir())
 
 
 def test_a_killed_run_leaves_no_worktree_after_the_next_start(tmp_path):

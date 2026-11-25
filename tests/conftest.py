@@ -188,6 +188,22 @@ def answering(run):
     return call
 
 
+def link_folder(link, to):
+    """-> `link`, made a link to the folder `to`, as a macos temp folder is
+    reached through /var -> /private/var."""
+    try:
+        Path(link).symlink_to(to, target_is_directory=True)
+    except OSError:
+        if sys.platform != "win32":
+            raise
+        # windows makes a symlink only with a privilege; a junction is a link
+        # to a folder that realpath follows the same way
+        import _winapi
+
+        _winapi.CreateJunction(str(to), str(link))
+    return Path(link)
+
+
 LOCALE = "cp1252"
 
 

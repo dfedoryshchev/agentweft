@@ -303,13 +303,14 @@ def raised_in(output, where):
 
 def raised_at(output, where):
     """-> (the file, as `raised_in` gives it, the line) of that frame, or
-    None when no frame is in the repo."""
+    None when no frame is in the repo. a frame is resolved as the top is, so
+    a place reached through a link keeps its own frames."""
     top = top_of(where)
     for f, n in reversed(frames_at(output)):
         if f.startswith("<"):
             continue
         try:
-            rel = os.path.relpath(os.path.normpath(
+            rel = os.path.relpath(os.path.realpath(
                 os.path.join(str(where), f)), str(top))
         except ValueError:
             continue

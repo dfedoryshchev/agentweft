@@ -86,9 +86,11 @@ def remove(root, path):
 
 @contextmanager
 def temporary(root, start):
-    """-> the path of a checkout of `start`, detached, gone on the way out
-    whatever happened inside."""
-    path = tempfile.mkdtemp(prefix=PREFIX)
+    """-> the real path of a checkout of `start`, detached, gone on the way
+    out whatever happened inside. real, so it compares with the resolved
+    paths the gates read: a temp folder reached through a link (macos's /var
+    is one) would not."""
+    path = os.path.realpath(tempfile.mkdtemp(prefix=PREFIX))
     hooks = tempfile.mkdtemp(prefix=PREFIX + "hooks-")
     try:
         _git(root, "-c", "core.hooksPath=" + hooks, "worktree", "add",
