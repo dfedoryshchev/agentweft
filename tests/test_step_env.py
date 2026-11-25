@@ -155,6 +155,35 @@ def test_every_connector_s_cli_scrubs_its_own_children(child_env, tmp_path,
                      key_file=str(key))[SCRUB] == "set"
 
 
+@pytest.mark.parametrize("handed", ["a route", "a route in the settings file",
+                                    "a listed name"])
+def test_a_step_handed_a_route_or_a_listed_name_scrubs_the_model_s_shell(
+        child_env, tmp_path, monkeypatch, handed):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "decoy-bedrock-key")
+    if handed == "a route":
+        monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "1")
+    elif handed == "a route in the settings file":
+        a_settings_file(tmp_path, monkeypatch,
+                        {"env": {"CLAUDE_CODE_USE_VERTEX": "true"}})
+    else:
+        monkeypatch.setenv("AGENTWEFT_PROVIDER_ENV", "AWS_BEARER_TOKEN_BEDROCK")
+    assert child_env()[SCRUB] == "set"
+    monkeypatch.setenv(SCRUB, "decoy-0")
+    assert child_env()[SCRUB] == "decoy-0"
+
+
+def test_no_route_on_and_nothing_listed_by_the_operator_leaves_no_scrub(
+        child_env, monkeypatch):
+    monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "0")
+    monkeypatch.setenv("AWS_PROFILE", "decoy-profile")
+    monkeypatch.setenv("AGENTWEFT_PROVIDER_ENV", " , ")
+    assert SCRUB not in child_env()
+    assert SCRUB not in child_env(env=["AWS_PROFILE"])
+    monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "1")
+    monkeypatch.setenv("AGENTWEFT_PROVIDER_ENV", "AWS_PROFILE")
+    assert SCRUB not in child_env(command="sometool")
+
+
 CAFE = "caf" + chr(0xE9)
 # for each route, names that say where its login and region live, as the
 # cli's own reference for that route names them

@@ -256,7 +256,7 @@ step as it always did, and your own settings decide where it goes.
 - `inherit` (the default, and every inline block that says no `auth`): the
   credentials the run holds, under "what the command's process holds"; a
   named connector on `inherit` also gets the subprocess scrub (below), an
-  inline block does not.
+  inline block only on a cloud route or a name you list for every step.
 
 which `claude` steps are started with `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`:
 
@@ -264,9 +264,15 @@ which `claude` steps are started with `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`:
   `connectors:`), whatever its `auth`, `inherit` included; when the run's own
   environment already sets the name, its value is kept.
 - a step whose `auth` is `api-key`, named or written inline, always gets `1`.
+- any other step on a cloud route that is switched on (in your environment or
+  your settings file's `env` block), or run while `AGENTWEFT_PROVIDER_ENV`
+  lists a name: the route's names and a listed key reach `claude` ("what the
+  command's process holds"), and the scrub keeps the keys among them out of
+  the commands the model runs. a value the run's environment sets is kept, so
+  `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` turns it off.
 - a provider block written inline with `subscription` or `inherit`, and the
-  flow's default provider when it names no connector, get nothing: they run
-  as they did before connectors.
+  flow's default provider when it names no connector, get nothing otherwise:
+  they run as they did before connectors.
 
 the cli then takes credentials out of the environment of the shell commands,
 hooks and stdio MCP servers it starts, so a key the step was handed, or one
@@ -274,13 +280,24 @@ exported in your shell, does not reach a command the model runs; the cli
 keeps it for its own calls. the cli knows a credential by its name or the
 shape of its value, takes `CLAUDE_CONFIG_DIR` out too, and leaves
 `GITHUB_TOKEN`, `GH_TOKEN`, the proxy names and `GIT_CONFIG_*` in place (its
-env-vars reference, "What the subprocess environment scrub removes"). so
+env-vars reference, "What the subprocess environment scrub removes"). of a
+cloud route's names, the cli's own lists (read in the cli this was checked
+against; its reference names only examples) take out the cloud keys and the
+names that point at a login file (`GOOGLE_APPLICATION_CREDENTIALS`,
+`AWS_CONFIG_FILE`, `AWS_SHARED_CREDENTIALS_FILE`, `CLOUDSDK_CONFIG`,
+`AZURE_CONFIG_DIR`, `AZURE_FEDERATED_TOKEN_FILE`,
+`AZURE_CLIENT_CERTIFICATE_PATH`), and leave a profile, a region and a tenant
+or client id, so the model's shell can still name the profile the cli uses.
+on linux the scrub also runs the shell's commands in a process namespace of
+their own, where `ps` and `kill` do not see the host's processes. so
 `claude-sub` and an inline block with the same settings do not give the
 model's shell the same environment: under the connector a test that reads a
 `DATABASE_URL` with a password, an `NPM_TOKEN`, or a nested `claude` that
 needs `CLAUDE_CONFIG_DIR` loses it. the inline block is left without the
 scrub on purpose: it is how a step whose tests need those variables keeps
-them, and an inline block that carries a key still gets the scrub.
+them (a name the block's `env:` lists turns no scrub on), and an inline
+block that carries a key, a cloud route or a name you list for every step
+still gets the scrub.
 
 the key file is a full path (or starts with `~`) outside the place, so that no
 run commits it, a step quotes it from the tree or a gate's command finds it
@@ -883,13 +900,8 @@ the file) and not the ones that only look.
 
 all of this is `auth: inherit`. a connector's `subscription` or `api-key`
 then takes the credentials out as under "connectors", a listed name
-included.
-
-the cli keeps a route's names for the model's own shell: its subprocess
-scrub (`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, on for every connector's step)
-removes a variable whose name or value looks like a credential, and a
-profile, a region or a file path does not. so a step's shell can reach the
-same cloud profile the cli does.
+included. a step handed a switched-on route or a listed name also gets the
+subprocess scrub ("connectors", which steps get it).
 
 `--bare` would fence the cli harder, but it reads only `ANTHROPIC_API_KEY` or
 a key helper and never the subscription login, so it is not passed.

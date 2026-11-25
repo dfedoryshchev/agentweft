@@ -857,12 +857,13 @@ class CliProvider(Provider):
         out = {k: v for k, v in os.environ.items()
                if (k.upper() in keep or k.upper().startswith(own))
                and k.upper() != drop}
-        if own:
-            out.update(routes(os.environ))
+        route = routes(os.environ) if own else {}
+        out.update(route)
         limit = self.output_limit()
         if limit:
             out[CAP_VAR] = str(limit)
-        if self.connector and own:
+        if own and (self.connector or operator_listed()
+                    or any(switched_on(route.get(s)) for s in ROUTES)):
             out.setdefault(SCRUB_VAR, "1")
         return self.credential(out)
 
