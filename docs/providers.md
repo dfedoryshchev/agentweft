@@ -58,6 +58,18 @@ run side by side in one flow, and every step's line says which one paid.
 
 ## what an answer carries
 
+a text the model never wrote is not an answer. `claude -p` prints a result
+even when nothing reached the model: a `UserPromptSubmit` hook in the
+operator's own cli settings that refused the prompt, a wrapper in front of
+the binary, the cli's own notice. such a result exits 0 with `is_error:
+false`, and its text may echo the prompt, the role's answer template
+included, which a gate would read as claims. so a result that printed
+`num_turns: 0` and counted no output token is the cli answering without the
+model (`cli_provider.no_model_ran`, read before a carried-on call's turn
+count is dropped): no text, not retried, the first line of what it printed in
+the reason, and the step is not sent back. a cli that prints no `num_turns`
+is read as before. the run stops on it as a tool fault.
+
 besides the text:
 
 - `usage` - the tokens the provider counted. `usage.raw` is its block exactly

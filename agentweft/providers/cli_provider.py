@@ -219,6 +219,18 @@ def sent_to():
     return os.environ.get(BASE_URL_VAR, "").strip() or DEFAULT_BASE_URL
 
 
+def no_model_ran(data):
+    """whether a `claude -p` result says the model never ran: it printed a
+    turn count of 0 and counted no output token. a cli that prints no
+    `num_turns`, or prints it as anything but a number, is not read as 0."""
+    turns = data.get("num_turns")
+    if not isinstance(turns, int) or isinstance(turns, bool) or turns != 0:
+        return False
+    usage = data.get("usage")
+    return not (usage.get("output_tokens") if isinstance(usage, dict)
+                else None)
+
+
 def is_claude(command):
     """`claude`, `claude.cmd`, `/usr/bin/claude`: the one command whose flags
     and output this knows."""
@@ -1102,6 +1114,9 @@ class CliProvider(Provider):
 
     def read(self, data, r, carry=None, chosen=None):
         kept = None
+        # before carried_on drops num_turns: a 0 is no turn whether it counts
+        # the call or the session, and usage is the call's own
+        alone = no_model_ran(data)
         if carry is not None:
             if chosen:
                 kept = {"usage": data.get("usage"),
@@ -1142,6 +1157,12 @@ class CliProvider(Provider):
             return Reply("", detail=cut, retryable=False, **said)
         if not isinstance(text, str) or not text:
             return Reply("", detail="an empty answer", **said)
+        if alone:
+            first = next((l.strip() for l in text.splitlines() if l.strip()),
+                         "")
+            return Reply("", detail="the cli answered without the model (0"
+                         " turns, 0 output tokens): " + first[:160],
+                         retryable=False, **said)
         return Reply(text, **said)
 
     def check(self):
