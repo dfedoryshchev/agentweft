@@ -106,13 +106,16 @@ the counts are the argument, not the prose:
     loaded as                   8 flow specs      8 flow specs, translated
     conditions in prose         22 invariants     16 entry and exit lines
     of those, something checks  4 of 22           none of 16
-    declares a tool grant       7 of 24 steps     20 of 20 seats
+    declares a tool grant       9 of 24 steps     20 of 20 seats
     something executes it       24 of 24 steps    0 of 8 phases
 
 the grant row is the one to watch. every seat says what it may touch; of the
-steps, the seven reviewers do, because a reviewer that reproduces a finding
-needs the shell it runs the command in granted to it, and a grant is now
-something the cli is handed rather than only asked for.
+steps, the reviewers do, because a reviewer that reproduces a finding needs
+the shell it runs the command in granted to it, and so does build-feature's
+planner, which reads the repo through the shell and writes nothing. a grant
+is now something the cli is handed rather than only asked for, and a step
+that says it writes tests or product is granted the tools for it without
+naming them.
 
 the bottom two rows did not move when the merge landed, and that is the best
 evidence it was a merge and not a rewrite. an exit line is an invariant now and
