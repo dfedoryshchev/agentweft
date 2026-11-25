@@ -21,3 +21,41 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -e . -r requirements-dev.txt
       - run: python -m pytest -q
+
+  pytest-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e . -r requirements-dev.txt
+      - run: python -m pytest -q
+
+  # the cases that run on windows only and the path and separator tests; the
+  # whole suite on windows takes hours, so it is run by hand
+  pytest-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e . -r requirements-dev.txt
+      - run: >-
+          python -m pytest -q
+          tests/test_own_git.py tests/test_quote_gate.py
+          tests/test_redtest_gate.py tests/test_init.py
+          tests/test_leftover_shells.py tests/test_connectors.py
+          tests/test_outside_writes.py tests/test_shellwrite.py
+          tests/test_police.py::test_a_whole_path_in_another_case_on_a_drive_is_inside
+          tests/test_police.py::test_a_write_inside_the_place_in_the_shells_form_is_no_hit
+          tests/test_police.py::test_a_write_outside_the_place_in_the_shells_form_is_a_hit
+          tests/test_police.py::test_a_share_path_is_not_read_as_a_drive
+          tests/test_host_fault.py::test_a_new_test_that_cannot_start_without_the_fix_once_is_run_again
+          tests/test_host_fault.py::test_a_new_test_that_cannot_start_without_the_fix_twice_is_the_hosts
+          tests/test_host_fault.py::test_an_oserror_caught_at_the_spawn_says_where_it_was_raised
+          tests/test_red_first_gate.py::test_an_error_is_placed_at_its_innermost_frame_in_the_repo
+          tests/test_red_first_gate.py::test_an_error_is_placed_in_a_repo_reached_through_a_link
+          tests/test_red_first_gate.py::test_a_temporary_checkout_is_handed_out_by_its_real_path
+          tests/test_bench.py::test_a_suite_reached_through_a_link_names_its_cases_by_file

@@ -8,6 +8,7 @@ early days. the shape is settled, the edges are not.
     pytest
 
 they run on the fake provider, so nothing is called and nothing costs anything.
+the suite is about 5,150 tests, about an hour run serially on linux.
 
 a change that moves what a shipped flow does fails its golden in
 `tests/golden/`. read the changed lines it prints, then rewrite that golden
