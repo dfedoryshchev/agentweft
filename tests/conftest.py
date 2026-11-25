@@ -1,4 +1,5 @@
 import ipaddress
+import os
 import socket
 import subprocess
 import sys
@@ -153,6 +154,23 @@ def not_on_ci():
     with pytest.MonkeyPatch.context() as mp:
         mp.delenv("CI", raising=False)
         mp.delenv("BUILD_NUMBER", raising=False)
+        yield
+
+
+def operators(name):
+    """whether `name` is one agentweft reads as the operator's setting (a
+    login, a route, a model, an effort, a cap) or a cloud route's: the shell
+    the suite runs from may hold one, and a test sets the one it needs."""
+    upper = name.upper()
+    return (settings.class_of(upper) not in (None, settings.STEERS)
+            or upper.startswith(settings.TIERED + ("AWS_",)))
+
+
+@pytest.fixture(autouse=True, scope="session")
+def not_the_operators_route():
+    with pytest.MonkeyPatch.context() as mp:
+        for name in [k for k in os.environ if operators(k)]:
+            mp.delenv(name, raising=False)
         yield
 
 

@@ -3,7 +3,9 @@ OSError with a WinError or errno code on every red, says nothing about the
 change. the start-tests replay, the `command` gate and red-first's run with
 the fix run it once more; a fault that holds is an issue the gate could not
 get past, never a spec conflict question or a send-back."""
+import errno
 import json
+import os
 import subprocess
 import sys
 
@@ -338,11 +340,15 @@ def test_any_code_is_the_hosts_when_the_traceback_shows_the_spawn():
 
 
 def test_an_oserror_caught_at_the_spawn_says_where_it_was_raised():
+    # by name: 36 is EINPROGRESS on macos, where OSError(36, ...) is built as
+    # a BlockingIOError and not a bare OSError
+    too_long = errno.ENAMETOOLONG, os.strerror(errno.ENAMETOOLONG)
+
     def _execute_child():
-        raise OSError(36, "File name too long")
+        raise OSError(*too_long)
 
     def elsewhere():
-        raise OSError(36, "File name too long")
+        raise OSError(*too_long)
 
     for raiser, host in ((_execute_child, True), (elsewhere, False)):
         try:
