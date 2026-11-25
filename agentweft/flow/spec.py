@@ -131,6 +131,12 @@ WRITES = ("tests", "product", "spec", "none")
 # a `writes: spec` step with no `tools:` of its own: looking and editing, no
 # shell, since a shell writes where no grant can say
 SPEC_GRANT = ["read", "grep", "write", "edit"]
+# a `writes: tests` or `writes: product` step with no `tools:` of its own:
+# writing code and running its tests. with no grant the cli starts in the
+# host's own mode, and a new install's denies writes in `-p`
+WORK_GRANT = ["read", "grep", "write", "edit", "shell"]
+DEFAULT_GRANTS = {"spec": SPEC_GRANT, "tests": WORK_GRANT,
+                  "product": WORK_GRANT}
 PROMISES_KNOWN = ("inputs", "outputs", "invariants")
 CONTEXT_KNOWN = ("command", "arguments", "tool", "timeout")
 PREFLIGHT_KNOWN = ("mode", "threshold")
@@ -515,11 +521,14 @@ def ordered(raw):
 
 
 def grant_of(step):
-    """-> the tools a step may use: its own `tools:`, SPEC_GRANT for a
-    `writes: spec` step that names none, None when it said nothing."""
+    """-> the tools a step may use: its own `tools:`, else the grant of what
+    it says it writes (DEFAULT_GRANTS), None for a `writes: none` step or one
+    that said neither, which the host's own defaults decide."""
     if step.get("tools") is not None:
         return step["tools"]
-    return list(SPEC_GRANT) if step.get("writes") == "spec" else None
+    writes = step.get("writes")
+    said = DEFAULT_GRANTS.get(writes) if isinstance(writes, str) else None
+    return list(said) if said is not None else None
 
 
 def may_write(step):

@@ -3,6 +3,9 @@ the step: tests touch no product code and no spec, product touches no spec,
 spec touches nothing but the spec files, none touches nothing."""
 import subprocess
 import sys
+from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, ".")
 from agentweft import runner
@@ -236,7 +239,75 @@ def test_a_spec_step_is_granted_only_the_read_and_edit_tools():
         ["read", "grep", "write", "edit"]
     assert spec.grant_of({"role": "analyst", "writes": "spec",
                           "tools": ["read"]}) == ["read"]
-    assert spec.grant_of({"role": "worker", "writes": "product"}) is None
+    assert spec.grant_of({"role": "worker"}) is None
+
+
+@pytest.mark.parametrize("writes", ["tests", "product"])
+def test_a_step_that_writes_tests_or_product_is_granted_the_working_tools(
+        writes):
+    assert spec.grant_of({"role": "worker", "writes": writes}) == \
+        ["read", "grep", "write", "edit", "shell"]
+    assert spec.grant_of({"role": "worker", "writes": writes,
+                          "tools": ["read", "edit"]}) == ["read", "edit"]
+    assert spec.grant_of({"role": "worker", "writes": writes,
+                          "tools": []}) == []
+
+
+def test_the_working_grant_is_a_copy_a_step_cannot_change_for_the_next():
+    first = spec.grant_of({"role": "worker", "writes": "tests"})
+    first.append("browser")
+    assert spec.grant_of({"role": "patcher", "writes": "product"}) == \
+        ["read", "grep", "write", "edit", "shell"]
+
+
+@pytest.mark.parametrize("step", [{"role": "verify", "writes": "none"},
+                                  {"role": "worker"},
+                                  {"role": "worker", "writes": None},
+                                  {"role": "worker", "writes": ["tests"]}])
+def test_a_step_that_writes_nothing_or_says_nothing_is_left_to_the_host(step):
+    assert spec.grant_of(step) is None
+
+
+def test_a_shipped_working_step_s_claude_is_fenced_and_never_left_to_the_host():
+    fm = runner.config("fix-with-test")
+    run = engine.Run("fix-with-test", fm, {},
+                     provider={"provider": "cli", "command": "claude"})
+    for step in ("worker.md", "patcher.md"):
+        p = run.by_step[step]
+        assert p.grant == ["read", "grep", "write", "edit", "shell"], step
+        argv = p.argv("go")[0]
+        tools = argv[argv.index("--tools") + 1].split(",")
+        assert {"Read", "Grep", "Write", "Edit", "Bash"} <= set(tools), step
+        assert argv[argv.index("--allowedTools") + 1].split(",") == tools
+        assert argv[argv.index("--permission-mode") + 1] == "dontAsk", step
+        assert argv[argv.index("--setting-sources") + 1] == "user", step
+        assert "--restricted" not in argv, step
+    assert "verify.md" not in run.by_step
+
+
+def test_build_feature_s_planner_keeps_the_shell_its_runs_use():
+    fm = runner.config("build-feature")
+    [planner] = [s for s in fm.steps if s["role"] == "planner"]
+    assert planner.get("writes") == "none"
+    assert spec.grant_of(planner) == ["read", "grep", "shell"]
+
+
+def test_every_shipped_step_that_writes_tests_or_product_has_a_grant_that_writes():
+    import yaml
+
+    seen = 0
+    for path in sorted(Path("flows").glob("*/flow.yaml")):
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for step in raw.get("steps") or []:
+            if not isinstance(step, dict) or step.get("writes") not in (
+                    "tests", "product"):
+                continue
+            seen += 1
+            grant = spec.grant_of(step)
+            assert isinstance(grant, list), (path, step.get("role"))
+            assert {"write", "edit"} & set(grant), (path, step.get("role"))
+            assert "shell" in grant, (path, step.get("role"))
+    assert seen >= 4
 
 
 def test_a_spec_steps_claude_is_fenced_to_those_tools(tmp_path, monkeypatch):

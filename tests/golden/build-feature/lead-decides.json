@@ -157,7 +157,39 @@
         "applies": true
       },
       "verbosity": null,
-      "grant": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\"]}]}]},\"disableAllHooks\":false}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -236,7 +268,41 @@
         "applies": true
       },
       "verbosity": null,
-      "grant": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "write",
+          "edit",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\",\"--keep\",\"<tmp>/place/decisions.md\",\"--keep\",\"<tmp>/place/facts/\",\"--place\",\"<tmp>/place\",\"--keep-all\",\"<tmp>/place/.git\"]}]}]},\"disableAllHooks\":false}",
+          "--tools",
+          "Read,Glob,Grep,Write,Edit,NotebookEdit,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Write,Edit,NotebookEdit,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -321,7 +387,41 @@
         "applies": true
       },
       "verbosity": null,
-      "grant": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "write",
+          "edit",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\",\"--keep\",\"<tmp>/place/decisions.md\",\"--keep\",\"<tmp>/place/facts/\",\"--place\",\"<tmp>/place\",\"--keep-all\",\"<tmp>/place/.git\"]}]}]},\"disableAllHooks\":false}",
+          "--tools",
+          "Read,Glob,Grep,Write,Edit,NotebookEdit,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Write,Edit,NotebookEdit,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -400,7 +500,39 @@
         "applies": true
       },
       "verbosity": null,
-      "grant": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\"]}]}]},\"disableAllHooks\":false}",
+          "--tools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
+      },
       "tokens": {
         "counted": true,
         "input": 100,
@@ -479,7 +611,41 @@
         "applies": true
       },
       "verbosity": null,
-      "grant": null,
+      "grant": {
+        "tools": [
+          "read",
+          "grep",
+          "write",
+          "edit",
+          "shell"
+        ],
+        "enforced": true,
+        "argv": [
+          "-p",
+          "--output-format",
+          "json",
+          "--settings",
+          "{\"switchModelsOnFlag\":false,\"attribution\":{\"commit\":\"\",\"pr\":\"\",\"sessionUrl\":false},\"hooks\":{\"PreToolUse\":[{\"matcher\":\"Bash|PowerShell|Write|Edit|MultiEdit|NotebookEdit\",\"hooks\":[{\"type\":\"command\",\"command\":\"<python>\",\"args\":[\"-I\",\"<repo>/agentweft/guardrails/shellwrite.py\",\"<tmp>/runs/build-feature-<run>/tool-denials.jsonl\",\"--keep\",\"<tmp>/place/decisions.md\",\"--keep\",\"<tmp>/place/facts/\",\"--place\",\"<tmp>/place\",\"--keep-all\",\"<tmp>/place/.git\"]}]}]},\"disableAllHooks\":false}",
+          "--tools",
+          "Read,Glob,Grep,Write,Edit,NotebookEdit,Bash,PowerShell",
+          "--allowedTools",
+          "Read,Glob,Grep,Write,Edit,NotebookEdit,Bash,PowerShell",
+          "--permission-mode",
+          "dontAsk",
+          "--strict-mcp-config",
+          "--disallowedTools",
+          "mcp__*",
+          "--disable-slash-commands",
+          "--setting-sources",
+          "user",
+          "--max-turns",
+          "50",
+          "--model",
+          "model-in-replay"
+        ],
+        "cli_version": "2.1.296",
+        "shell_writes": "refused"
+      },
       "tokens": {
         "counted": true,
         "input": 100,

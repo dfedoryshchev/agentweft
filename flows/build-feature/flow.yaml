@@ -6,6 +6,7 @@ steps:
   - role: planner
     prompt: planner.md
     writes: none
+    tools: [read, grep, shell]
   - role: tester
     prompt: tester.md
     writes: tests

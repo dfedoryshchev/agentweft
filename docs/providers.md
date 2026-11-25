@@ -565,8 +565,15 @@ and a granted step is started with:
   process holds").
 - for a grant that acts, `--setting-sources user` (below).
 
-a step with no grant gets none of the fence: the host's own defaults decide
-its tools and what it may write (for an operator whose settings say
+a step that says it writes and names no `tools:` is granted what that needs
+(`flows.md`, "what a step writes"): `writes: tests` and `writes: product`
+get `read, grep, write, edit, shell`, `writes: spec` gets `read, grep, write,
+edit`. so a working step runs under the fence and `dontAsk` on any host, a
+new install whose cli denies writes in `-p` included.
+
+a step with no grant gets none of the fence: one with no `tools:` that says
+`writes: none` or nothing about what it writes. the host's own defaults
+decide its tools and what it may write (for an operator whose settings say
 `acceptEdits` and an allow list, those; for a new install, the cli's default,
 which denies writes in `-p`). it is started with `--setting-sources user`
 too.

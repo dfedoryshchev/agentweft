@@ -196,11 +196,12 @@ def test_the_census_says_how_much_of_it_is_prose():
 
 
 def test_the_census_counts_the_grant_on_both_sides():
-    """every seat declares one; of the steps, only the reviewers do, because
-    a reviewer that reproduces a finding has to be granted the shell it runs
-    the command in."""
+    """every seat declares one; of the steps, the reviewers do, because a
+    reviewer that reproduces a finding has to be granted the shell it runs
+    the command in, and build-feature's planner, which reads the repo through
+    the shell and writes nothing."""
     rows = by_label(compare.census())
-    assert rows["declares a tool grant"].flow == "8 of 24 steps"
+    assert rows["declares a tool grant"].flow == "9 of 24 steps"
     assert rows["declares a tool grant"].phase == "20 of 20 seats"
 
 

@@ -522,6 +522,20 @@ def test_a_step_granted_nothing_has_its_refused_writes_counted(
     assert line.get("shell_writes_denied") == 1
 
 
+def test_a_step_granted_by_what_it_writes_still_has_its_refused_writes_counted(
+        tmp_path, monkeypatch, fake_cli):
+    a_flow(tmp_path, monkeypatch, "working", ["worker\nwrites: product"],
+           args=("--skip-tests", "the step only writes"))
+    cli_ = fake_cli(answer("did it\n", session="s-1"))
+    refusing(cli_, monkeypatch, "s-1")
+    engine.main()
+    [line] = lines(folders(tmp_path)[0])
+    assert line["grant"]["tools"] == ["read", "grep", "write", "edit",
+                                      "shell"]
+    assert line["grant"]["shell_writes"] == "refused"
+    assert line.get("shell_writes_denied") == 1
+
+
 def transcript(home, session, said):
     d = home / "a-project"
     d.mkdir(parents=True, exist_ok=True)

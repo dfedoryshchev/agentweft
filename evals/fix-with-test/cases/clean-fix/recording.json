@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-20T16:57:27",
+  "recorded": "2026-11-25T20:18:30",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "patcher.md",
       "task": null,
       "go": 1,
-      "prompt": "f1cdc276b06553183c372efde4b98c50ec9358fbac1ab6522faea3a8d1c73224",
+      "prompt": "853484a1f90cbd950bba0b9671a9a0adbc1e3dcc38f050e1b41a38a699b75649",
       "say": "TEST: tests/test_add.py\n\ncalc.py: add returned a - b, it returns a + b now\n",
       "detail": "",
       "retryable": null,
@@ -40,7 +40,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "bd29a8da63dd9d71cf8c50645304c78daa0db0658ad22457fa2cd01a06241402",
+      "prompt": "4af5e9f44d2c9262d2dca9ee5a7f53bd86115aee4998c7c9921e60e384a45945",
       "say": "FAILS: assert -1 == 3\nTEST: tests/test_add.py\n",
       "detail": "",
       "retryable": null,

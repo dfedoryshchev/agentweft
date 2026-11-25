@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-20T16:56:13",
+  "recorded": "2026-11-25T20:15:03",
   "provider": "fake",
   "asked": null,
   "calls": [
@@ -7,7 +7,7 @@
       "step": "planner.md",
       "task": null,
       "go": 1,
-      "prompt": "e444e3d8c4c73cc4ec4e72b542db0a0ee66731761667d6a190a35803fdd2cffe",
+      "prompt": "73727ca05abe41f27d6f710b531908ca893e69f255dc7e60cc7bd28a095251c0",
       "say": "- behaviour: fields(\"a;b\", delimiter=\";\") is [\"a\", \"b\"]\n  file: roster.py\n  spec: adds to TASK.md:3\n- behaviour: fields(\"a,b\") with no delimiter is still [\"a\", \"b\"]\n  file: roster.py\n  spec: allows TASK.md:3\n",
       "detail": "",
       "retryable": null,
@@ -67,7 +67,7 @@
       "step": "tester.md",
       "task": null,
       "go": 1,
-      "prompt": "0f54d4f7d33a17872437f788e9d696aa76bc4a4fa3797f6c41b1efa4c9c09df3",
+      "prompt": "ebaa7c3b37f4483a9f26e46a835614bf4f6693265eb098315eb55e7dc66ea130",
       "say": "FAILS: TypeError: fields() got an unexpected keyword argument 'delimiter'\nTEST: tests/test_delimiter.py\n",
       "detail": "",
       "retryable": null,
@@ -85,7 +85,7 @@
       "step": "worker.md",
       "task": null,
       "go": 1,
-      "prompt": "62c07ceccd712ba5f93206250d75d00706de63f0dd33e50299d5b16460edd349",
+      "prompt": "18173827b79c3b125c5ef6722a43b8082571e0ec8b4cb15924c5456003b8afe3",
       "say": "- roster.py: fields takes a delimiter, the comma by default\n- TASK.md: a new line under the comma line describes the option\n",
       "detail": "",
       "retryable": null,

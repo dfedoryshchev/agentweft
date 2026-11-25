@@ -312,11 +312,14 @@ loads.
 those. it is not a sandbox of agentweft's own, and `guardrails.md` is exact
 about the difference - the grant is put into the step's prompt, handed to
 `claude` as the cli's own permission flags (`providers.md`), and the step's
-answer is read back against it. a step that says nothing has declared no
-boundary, nothing is passed and nothing is checked; `tools: []` is a step
+answer is read back against it. a step with no `tools:` that says it writes
+tests, product or spec is granted by that ("what a step writes", below). a
+step that says neither, or says `writes: none` and no `tools:`, has declared
+no boundary, nothing is passed and nothing is checked; `tools: []` is a step
 saying it may touch nothing, which is a boundary: `claude` gets no tools at
-all, and the answer is checked. every shipped reviewer is granted
-`[read, grep, shell]`, so it can run the command that reproduces a finding.
+all, and the answer is checked. every shipped reviewer, and build-feature's
+planner, is granted `[read, grep, shell]`, so it can run the command that
+reproduces a finding or reads the project's history.
 
 `police: on` at the top of the flow reads what each step did with its tools
 off its transcript once it answers, and stops the run off task on a call
@@ -449,8 +452,14 @@ are still changed. a test runner's own files (`conftest.py`, `pytest.ini`,
 `.coverage*`, `.hypothesis/`, `.pytest_cache/`) are none of the three and
 never count. a step with no `writes:` is not checked.
 
-a `spec` step with no `tools:` of its own is granted `read, grep, write,
-edit`: no shell and no browser. with the `claude` cli that is a fence, the
+a step with no `tools:` of its own is granted by what it writes. `tests` and
+`product` get `read, grep, write, edit, shell`: writing code and running its
+tests, no browser. a shell can write any file, so with `claude` the
+shell-write hook refuses its writes and files are written with the write
+tools (`providers.md`, "a shell step writes files with the write tool"). a `spec`
+step gets `read, grep, write, edit`: no shell and no browser. `none` gets no
+grant, so the host decides, as for a step with no `writes:`; give it a
+`tools:` line to fence it. with the `claude` cli a grant is a fence, the
 other tools are not there (`docs/providers.md`). the cli cannot hold an edit
 to a path, so which files is said in the step's prompt, the spec globs one a
 line, and checked after the step as above. a `tools:` on the step is used
