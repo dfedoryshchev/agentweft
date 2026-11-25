@@ -861,8 +861,10 @@ while the route's switch is on (the cli reads a switch as on for `1`,
   `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_CONFIG_FILE`,
   `AWS_SHARED_CREDENTIALS_FILE`, `AWS_CA_BUNDLE`.
 - `CLAUDE_CODE_USE_VERTEX`: `GOOGLE_APPLICATION_CREDENTIALS`,
-  `CLOUDSDK_CONFIG`, `CLOUD_ML_REGION` and the cli's `VERTEX_REGION_CLAUDE_*`
-  names, each listed (`cli_provider.ROUTES`).
+  `CLOUDSDK_CONFIG`, `CLOUD_ML_REGION` and every name starting
+  `VERTEX_REGION_CLAUDE_`: the cli adds one per model as models ship, and a
+  region is no secret, so the prefix covers a model the cli adds later. a
+  connector takes them out by the same prefix.
 - `CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD`: `GOOGLE_APPLICATION_CREDENTIALS`,
   `CLOUDSDK_CONFIG`.
 - `CLAUDE_CODE_USE_FOUNDRY`: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,

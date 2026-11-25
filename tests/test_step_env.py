@@ -264,6 +264,24 @@ def test_a_connector_that_takes_the_route_away_takes_its_names_too(
         assert name not in sub, name
 
 
+NEWER = "VERTEX_REGION_CLAUDE_9_OPUS"
+
+
+def test_a_vertex_region_for_any_model_reaches_a_step_on_vertex(
+        child_env, tmp_path, monkeypatch):
+    monkeypatch.setenv(NEWER, "decoy-europe-west1")
+    assert NEWER not in child_env()
+    monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "1")
+    assert NEWER not in child_env()
+    monkeypatch.setenv("CLAUDE_CODE_USE_VERTEX", "1")
+    assert child_env()[NEWER] == "decoy-europe-west1"
+    a_settings_file(tmp_path, monkeypatch, {"env": {
+        "VERTEX_REGION_CLAUDE_9_SONNET": "decoy-from-file"}})
+    assert child_env()["VERTEX_REGION_CLAUDE_9_SONNET"] == "decoy-from-file"
+    sub = child_env(auth="subscription")
+    assert NEWER not in sub and "VERTEX_REGION_CLAUDE_9_SONNET" not in sub
+
+
 GATEWAY = {"CLAUDE_CODE_USE_GATEWAY": "1",
            "CLAUDE_CODE_GATEWAY_TOKEN": "decoy-gateway-token",
            "CLAUDE_CODE_GATEWAY_TOKEN_FILE_DESCRIPTOR": "decoy-7"}

@@ -77,21 +77,19 @@ KEY_VAR = "ANTHROPIC_API_KEY"
 AWS_WHERE = ("AWS_PROFILE", "AWS_REGION", "AWS_DEFAULT_REGION",
              "AWS_CONFIG_FILE", "AWS_SHARED_CREDENTIALS_FILE", "AWS_CA_BUNDLE")
 GOOGLE_WHERE = ("GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG")
-VERTEX_REGIONS = ("CLOUD_ML_REGION",) + tuple(
-    "VERTEX_REGION_CLAUDE_" + model for model in (
-        "3_5_HAIKU", "3_5_SONNET", "3_7_SONNET", "4_0_OPUS", "4_0_SONNET",
-        "4_1_OPUS", "4_5_OPUS", "4_5_SONNET", "4_6_OPUS", "4_6_SONNET",
-        "4_7_OPUS", "4_8_OPUS", "5_5_OPUS", "5_5_SONNET", "5_OPUS", "5_SONNET",
-        "FABLE_5", "FABLE_5_1", "FABLE_5_2", "HAIKU_4_5", "HAIKU_5_5"))
+# the cli adds a region name per model as models ship, and a region is no
+# secret, so these go by their prefix
+VERTEX_REGION = "VERTEX_REGION_CLAUDE_"
 AZURE_WHERE = ("AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_AUTHORITY_HOST",
                "AZURE_FEDERATED_TOKEN_FILE", "AZURE_CLIENT_CERTIFICATE_PATH",
                "AZURE_CONFIG_DIR")
 ROUTES = {"CLAUDE_CODE_USE_BEDROCK": AWS_WHERE,
           "CLAUDE_CODE_USE_MANTLE": AWS_WHERE,
           "CLAUDE_CODE_USE_ANTHROPIC_AWS": AWS_WHERE,
-          "CLAUDE_CODE_USE_VERTEX": GOOGLE_WHERE + VERTEX_REGIONS,
+          "CLAUDE_CODE_USE_VERTEX": GOOGLE_WHERE + ("CLOUD_ML_REGION",),
           "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD": GOOGLE_WHERE,
           "CLAUDE_CODE_USE_FOUNDRY": AZURE_WHERE}
+ROUTE_PREFIXES = {"CLAUDE_CODE_USE_VERTEX": (VERTEX_REGION,)}
 ROUTE_NAMES = tuple(sorted({n for names in ROUTES.values() for n in names}))
 # what those routes log in with, never handed by a route: only a name the
 # operator lists, and a connector takes them out with the route
@@ -264,11 +262,11 @@ def switched_on(value):
 def routes(environ):
     """-> {name: value}: the switch of every cloud route and, for each one
     switched on, the names that say where its login and region live
-    (ROUTES), each from the person's own settings file's `env` block first,
-    then `environ`: the cli writes that block over the shell's values. a step
-    that only looks runs --restricted and reads no settings file, so this is
-    how it gets the route a step that acts gets from the file. nothing else
-    of the block is read."""
+    (ROUTES, and every name under the route's ROUTE_PREFIXES), each from the
+    person's own settings file's `env` block first, then `environ`: the cli
+    writes that block over the shell's values. a step that only looks runs
+    --restricted and reads no settings file, so this is how it gets the route
+    a step that acts gets from the file. nothing else of the block is read."""
     block = user_settings().get("env")
     block = block if isinstance(block, dict) else {}
 
@@ -283,7 +281,10 @@ def routes(environ):
             continue
         out[switch] = on
         if switched_on(on):
-            out.update((name, said(name)) for name in names
+            prefixes = ROUTE_PREFIXES.get(switch, ())
+            under = tuple(n for n in list(block) + list(environ)
+                          if prefixes and n.upper().startswith(prefixes))
+            out.update((name, said(name)) for name in names + under
                        if said(name) is not None)
     return out
 
@@ -884,7 +885,9 @@ class CliProvider(Provider):
         gone = KEYS + AHEAD + ROUTE_NAMES + ROUTE_SECRETS
         if self.auth == connectors.API_KEY:
             gone = gone + LOGINS
-        out = {k: v for k, v in env.items() if k.upper() not in gone}
+        under = tuple(p for ps in ROUTE_PREFIXES.values() for p in ps)
+        out = {k: v for k, v in env.items() if k.upper() not in gone
+               and not k.upper().startswith(under)}
         if self.auth == connectors.API_KEY:
             out[KEY_VAR] = connectors.key_of(self)
             out.update(ON_KEY)
