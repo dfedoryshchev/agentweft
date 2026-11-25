@@ -75,13 +75,16 @@ def the_hook(fake_cli, tmp_path, grant=None):
     return args[2:]
 
 
-@pytest.mark.parametrize("rel", [".git/config", ".git/hooks/pre-commit",
-                                 ".git\\info\\attributes"])
+@pytest.mark.parametrize("rel", [
+    ".git/config", ".git/hooks/pre-commit",
+    pytest.param(".git\\info\\attributes", marks=pytest.mark.skipif(
+        sys.platform != "win32",
+        reason="a backslash only separates paths on windows"))])
 @pytest.mark.parametrize("grant", [None, ["read", "edit"]])
 def test_no_edit_tool_writes_inside_the_place_s_git_folder(
         fake_cli, tmp_path, rel, grant):
     argv = the_hook(fake_cli, tmp_path, grant)
-    code, said = shellwrite.decide(argv, edit(str(tmp_path / rel),
+    code, said = shellwrite.decide(argv, edit(str(tmp_path) + os.sep + rel,
                                               tool="Edit", cwd=tmp_path))
     assert code == 2 and ".git/" in said
     assert shellwrite.decide(argv, edit(str(tmp_path / "gitconfig.md"),

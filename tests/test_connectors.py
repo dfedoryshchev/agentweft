@@ -375,14 +375,17 @@ def test_a_claude_in_a_run_s_folder_is_handed_no_credential(tmp_path,
     written.parent.mkdir(parents=True)
     written.write_text("@echo off\n", encoding="utf-8")
     path = str(key_file(tmp_path))
-    for command in (str(written), str(written).replace("/", "\\")):
+    real = str(written.resolve())
+    for command in dict.fromkeys((str(written), written.as_posix())):
         for block in ({"provider": "cli", "auth": "api-key", "key_file": path,
                        "command": command},
                       {"provider": "cli", "auth": "subscription",
                        "command": command}):
             p = providers.build(block, where=place)
+            started = command if command == real else (
+                command + " (" + real + ")")
             assert p.refuses() == (
-                "cli starts " + command + ", in agentweft's"
+                "cli starts " + started + ", in agentweft's"
                 " runs folder, where a step can write it: a credential goes"
                 " only to a claude outside the place and the runs folder")
             with pytest.raises(providers.connectors.NoKey):
