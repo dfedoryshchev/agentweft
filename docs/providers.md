@@ -231,13 +231,18 @@ step as it always did, and your own settings decide where it goes.
 - `subscription`: `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are taken
   out, and with them the switches the cli would log in with ahead of its
   login (`CLAUDE_CODE_USE_BEDROCK`, `_MANTLE`, `_ANTHROPIC_AWS`, `_VERTEX`,
-  `_ANTHROPIC_GOOGLE_CLOUD`, `_FOUNDRY`, `ANTHROPIC_PROFILE` and the
-  federation pair), every cloud route's names (below, "what the command's
-  process holds") and the cloud keys (`AWS_ACCESS_KEY_ID`,
+  `_ANTHROPIC_GOOGLE_CLOUD`, `_FOUNDRY`, the gateway mode's `_GATEWAY` with
+  its `CLAUDE_CODE_GATEWAY_TOKEN` and `_FILE_DESCRIPTOR`, `ANTHROPIC_PROFILE`
+  and the federation pair), every cloud route's names (below, "what the
+  command's process holds") and the cloud keys (`AWS_ACCESS_KEY_ID`,
   `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_BEARER_TOKEN_BEDROCK`,
   `AZURE_CLIENT_SECRET`, `AZURE_CLIENT_CERTIFICATE_PASSWORD`), so `claude`
   falls to its own subscription login (`CLAUDE_CODE_OAUTH_TOKEN` stays: it
-  is that login).
+  is that login). a step that acts loads your own settings file, whose `env`
+  block the cli writes over the environment it was started with, so every
+  one of those switches is also set to `""` in the `--settings` the step is
+  started with, which sits above your settings file: the cli reads an empty
+  switch as off, so a route your file switches on is off for the step.
 - `api-key`: the same names and both login tokens
   (`CLAUDE_CODE_OAUTH_TOKEN`, `CLAUDE_CODE_OAUTH_REFRESH_TOKEN`) are taken
   out, and `ANTHROPIC_API_KEY` is the key read from the key file when the call

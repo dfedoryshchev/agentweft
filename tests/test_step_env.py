@@ -235,6 +235,31 @@ def test_a_connector_that_takes_the_route_away_takes_its_names_too(
         assert name not in sub, name
 
 
+GATEWAY = {"CLAUDE_CODE_USE_GATEWAY": "1",
+           "CLAUDE_CODE_GATEWAY_TOKEN": "decoy-gateway-token",
+           "CLAUDE_CODE_GATEWAY_TOKEN_FILE_DESCRIPTOR": "decoy-7"}
+
+
+@pytest.mark.parametrize("auth", ["subscription", "api-key"])
+def test_a_connector_takes_the_gateway_away_with_its_token(
+        child_env, tmp_path, monkeypatch, auth):
+    for name, value in GATEWAY.items():
+        monkeypatch.setenv(name, value)
+    key = tmp_path / "keys" / "k.txt"
+    key.parent.mkdir()
+    key.write_text("decoy-file-key-for-tests\n", encoding="utf-8")
+    seen = child_env(auth=auth, key_file=str(key))
+    for name in GATEWAY:
+        assert name not in seen, name
+
+
+def test_an_inherit_step_keeps_the_gateway_it_was_given(child_env,
+                                                        monkeypatch):
+    for name, value in GATEWAY.items():
+        monkeypatch.setenv(name, value)
+    assert child_env()["CLAUDE_CODE_GATEWAY_TOKEN"] == "decoy-gateway-token"
+
+
 def test_the_route_names_are_claude_s_not_another_command_s(child_env,
                                                            monkeypatch):
     monkeypatch.setenv("CLAUDE_CODE_USE_BEDROCK", "1")

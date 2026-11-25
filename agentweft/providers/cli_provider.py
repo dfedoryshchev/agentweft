@@ -102,11 +102,17 @@ ROUTE_SECRETS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
 ON = ("1", "true", "yes", "on")
 # names the operator lists for every step of every flow, comma separated
 OPERATOR_ENV = "AGENTWEFT_PROVIDER_ENV"
+# the switch of the cli's gateway mode, which logs in with a gateway token
+GATEWAY = "CLAUDE_CODE_USE_GATEWAY"
+SWITCHES = tuple(ROUTES) + (GATEWAY,)
 # what the cli would log in with ahead of a subscription login: a key or a
-# bearer token, a cloud provider switch, a named profile or federation
+# bearer token, a cloud provider or gateway switch and the gateway's token, a
+# named profile or federation
 KEYS = (KEY_VAR, "ANTHROPIC_AUTH_TOKEN")
-AHEAD = tuple(ROUTES) + ("ANTHROPIC_PROFILE", "ANTHROPIC_FEDERATION_RULE_ID",
-                         "ANTHROPIC_ORGANIZATION_ID")
+AHEAD = SWITCHES + ("CLAUDE_CODE_GATEWAY_TOKEN",
+                    "CLAUDE_CODE_GATEWAY_TOKEN_FILE_DESCRIPTOR",
+                    "ANTHROPIC_PROFILE", "ANTHROPIC_FEDERATION_RULE_ID",
+                    "ANTHROPIC_ORGANIZATION_ID")
 LOGINS = ("CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN")
 SCRUB_VAR = "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB"
 # an api key's cache lives 5 minutes unless asked for the hour, and a step
@@ -1075,6 +1081,12 @@ class CliProvider(Provider):
             settings["disableAllHooks"] = False
         if self.grant is None and self.auth != connectors.INHERIT:
             settings["env"] = {BASE_URL_VAR: sent_to()}
+        if self.auth != connectors.INHERIT:
+            # a step that loads the person's settings file gets its env block
+            # written over the environment this hands it, so a route switched
+            # on there is turned off above it: the cli reads "" as off
+            settings["env"] = dict(settings.get("env") or {},
+                                   **dict.fromkeys(SWITCHES, ""))
         if settings:
             argv = argv + ["--settings",
                            json.dumps(settings, separators=(",", ":"))]

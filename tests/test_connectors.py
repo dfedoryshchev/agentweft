@@ -648,6 +648,48 @@ def test_a_call_with_no_credential_or_a_grant_pins_nothing(tmp_path,
         assert pinned(cli) is None, block
 
 
+SWITCHES = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_MANTLE",
+            "CLAUDE_CODE_USE_ANTHROPIC_AWS", "CLAUDE_CODE_USE_VERTEX",
+            "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD",
+            "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_USE_GATEWAY")
+
+
+def settings_env(cli):
+    argv = cli.calls[-1]["argv"]
+    return json.loads(argv[argv.index("--settings") + 1]).get("env") or {}
+
+
+@pytest.mark.parametrize("grant", [["read", "edit", "shell"], ["read"], None],
+                         ids=["acts", "looks", "no grant"])
+@pytest.mark.parametrize("connector", ["claude-api", "claude-sub"])
+def test_a_connector_step_turns_off_every_route_its_settings_file_switches_on(
+        tmp_path, monkeypatch, fake_cli, connector, grant):
+    own = tmp_path / "own-settings.json"
+    own.write_text(json.dumps({"env": dict.fromkeys(SWITCHES, "1")}),
+                   encoding="utf-8")
+    monkeypatch.setattr(providers.cli_provider, "USER_SETTINGS", str(own))
+    monkeypatch.setenv("AGENTWEFT_KEY_FILE", str(key_file(tmp_path)))
+    cli = fake_cli(answer("done\n"))
+    assert providers.build(connector, where=tmp_path / "place",
+                           grant=grant).ask("go", timeout=5)
+    env = settings_env(cli)
+    for switch in SWITCHES:
+        assert env.get(switch) == "", (switch, env)
+
+
+def test_an_inherit_step_leaves_the_person_s_route_as_it_is(
+        tmp_path, monkeypatch, fake_cli):
+    own = tmp_path / "own-settings.json"
+    own.write_text(json.dumps({"env": {"CLAUDE_CODE_USE_BEDROCK": "1"}}),
+                   encoding="utf-8")
+    monkeypatch.setattr(providers.cli_provider, "USER_SETTINGS", str(own))
+    cli = fake_cli(answer("done\n"))
+    for grant in (["read", "edit", "shell"], ["read"], None):
+        assert providers.build({"provider": "cli"}, where=tmp_path / "place",
+                               grant=grant).ask("go", timeout=5)
+        assert not set(SWITCHES) & set(settings_env(cli)), grant
+
+
 def lines():
     return [json.loads(l) for p in state.RUNS.rglob("steps.jsonl")
             for l in p.read_text(encoding="utf-8").split("\n") if l]
