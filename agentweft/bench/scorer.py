@@ -53,8 +53,10 @@ def tests_in(folder):
 def pytest(where, targets, env=None, timeout=None):
     """-> {case: passed} for one pytest over `targets` in `where`, every case
     by its file and name, with a config of its own so nothing above `where`
-    is read as one."""
-    where = Path(where)
+    is read as one. `where` is resolved first: pytest names each case by its
+    real path, so a rootdir given through a link would leave every case
+    without its file."""
+    where = Path(where).resolve()
     ini = where / ".bench-pytest.ini"
     ini.write_text("[pytest]\n", encoding="utf-8")
     report = where / ".bench-report.xml"

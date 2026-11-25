@@ -18,6 +18,8 @@ from agentweft.bench import runner, scorer
 from agentweft.providers import Provider, Reply, base
 from agentweft.runner import cli, prompts, stops
 
+from conftest import link_folder
+
 REPO = Path(__file__).resolve().parent.parent
 AXES = ("outcome", "finished", "core_correct", "false_refusal",
         "false_success", "probe_stop", "red_first", "tests_added", "pins",
@@ -451,6 +453,16 @@ def test_a_probe_stopped_on_a_spec_change_request_is_a_ruling(
     probe = {r["task"]: r for r in results(out)["runs"]}["zero-amount"]
     assert probe["outcome"] == stops.outcome(stops.PARKED), probe["why"]
     assert probe["core_correct"] is True
+
+
+def test_a_suite_reached_through_a_link_names_its_cases_by_file(tmp_path):
+    real = tmp_path / "real"
+    real.mkdir()
+    (real / "test_calc.py").write_text(
+        "def test_adds():\n    assert 1 + 2 == 3\n", encoding="utf-8")
+    linked = link_folder(tmp_path / "linked", real)
+    got = scorer.pytest(linked, ["test_calc.py"], timeout=60)
+    assert got == {"test_calc::test_adds": True}, got
 
 
 def test_a_suite_that_times_out_leaves_no_child_running(tmp_path):
