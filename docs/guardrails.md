@@ -922,6 +922,10 @@ the run's own `runs/<id>/tmp/`, for a scratch file; the refusal names it:
 
     refused: `../../fix.py` is outside the place this step works in, and nothing outside it is the step's to change. write the project's files inside the place, and a scratch file under `runs/<id>/tmp`.
 
+a path longer than 120 characters is cut from its front (`...` and its end),
+so the refusal still names the file; the same holds for a refused write on a
+kept file or inside `.git/`.
+
 the cli shows the refusal to the model and the step carries on. the refusal
 is a line in `runs/<id>/tool-denials.jsonl` with the path, and the step's
 line in `steps.jsonl` says it on its `why`:

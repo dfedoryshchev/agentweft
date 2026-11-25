@@ -15,6 +15,7 @@ from agentweft.guardrails import boundary
 from agentweft.providers import cli_provider
 from agentweft.runner import engine, handoff
 
+from conftest import link_folder
 from test_grant import claude, flag
 from test_trace import a_flow, answer, folders, lines
 
@@ -127,6 +128,34 @@ def test_a_python_heredoc_that_rewrites_a_product_file_is_refused(tmp_path):
     code, said = check().decide([], bash(PRODUCT_REWRITE, cwd=tmp_path))
     assert code == 2
     assert "Write tool" in said and "Edit" in said
+
+
+@pytest.mark.parametrize("temp_is,write_to", [
+    ("linked", "real"), ("real", "linked")],
+    ids=["temp through a link, write by its real path",
+         "temp by its real path, write through the link"])
+def test_a_write_into_the_system_temp_passes_whichever_way_it_is_spelled(
+        tmp_path, monkeypatch, temp_is, write_to):
+    real = tmp_path / "private-temp"
+    real.mkdir()
+    paths = {"real": real,
+             "linked": link_folder(tmp_path / "temp", real)}
+    monkeypatch.setattr(check().tempfile, "gettempdir",
+                        lambda: str(paths[temp_is]))
+    tree = tmp_path / "tree"
+    tree.mkdir()
+    target = str(paths[write_to] / "scratch.txt")
+    assert check().is_sink(target, str(tree)) is True
+
+
+def test_a_tree_inside_a_linked_temp_is_still_the_tree(tmp_path,
+                                                        monkeypatch):
+    real = tmp_path / "private-temp"
+    (real / "tree").mkdir(parents=True)
+    linked = link_folder(tmp_path / "temp", real)
+    monkeypatch.setattr(check().tempfile, "gettempdir", lambda: str(linked))
+    for cwd in (linked / "tree", real / "tree"):
+        assert check().is_sink("calc.py", str(cwd)) is False, cwd
 
 
 def run_folder(tmp_path, monkeypatch):

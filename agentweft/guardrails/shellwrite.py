@@ -391,9 +391,11 @@ def is_sink(target, cwd, scratch=None):
         return True
     if scratch and not outside(t, scratch, cwd):
         return True
-    full = os.path.normcase(os.path.abspath(os.path.join(cwd, t)))
-    tmp = os.path.normcase(os.path.abspath(tempfile.gettempdir()))
-    tree = os.path.normcase(os.path.abspath(cwd))
+    # real paths: a temp folder reached through a link (macos's /var is one)
+    # is named either way, by the model and by gettempdir
+    full = os.path.normcase(os.path.realpath(os.path.join(cwd, t)))
+    tmp = os.path.normcase(os.path.realpath(tempfile.gettempdir()))
+    tree = os.path.normcase(os.path.realpath(cwd))
     in_tree = full == tree or full.startswith(tree + os.sep)
     return not in_tree and (full == tmp or full.startswith(tmp + os.sep))
 
@@ -530,6 +532,12 @@ def writes(command, cwd=None, scratch=None):
 def snippet(text, most=120):
     text = " ".join(text.split())
     return text if len(text) <= most else text[:most - 3] + "..."
+
+
+def path_snippet(text, most=120):
+    """`snippet` for a path, cut from the front: its end names the file."""
+    text = " ".join(text.split())
+    return text if len(text) <= most else "..." + text[-(most - 3):]
 
 
 def note(path, data, hit, more=None):
@@ -680,14 +688,14 @@ def decide(argv, raw):
                 more = {"path": hit, "outside": True}
                 tail = SCRATCH_SAID.format(scratch.replace("\\", "/")) \
                     if scratch else ""
-                said = OUTSIDE.format(snippet(hit), tail)
+                said = OUTSIDE.format(path_snippet(hit), tail)
             else:
                 hit = held(data, whole) if whole else ""
-                said = KEPT_GIT.format(snippet(hit))
+                said = KEPT_GIT.format(path_snippet(hit))
             if not hit:
                 hit, under = edited(data, kept) if kept else ("", "")
                 said = (KEPT_FACTS if under.endswith(("/", "\\"))
-                        else KEPT).format(snippet(hit))
+                        else KEPT).format(path_snippet(hit))
         elif tool in TOOLS:
             command = data["tool_input"]["command"]
             if not isinstance(command, str):

@@ -53,6 +53,26 @@ def test_a_write_beside_the_place_is_refused_and_noted(tmp_path):
     assert line["outside"] is True and line["path"] == beside
 
 
+@pytest.mark.parametrize("kind,name", [
+    ("outside", "helper.py"), ("git", "pre-commit"),
+    ("rulings", "decisions.md")])
+def test_a_long_path_refused_still_names_its_file(tmp_path, kind, name):
+    place, denials = a_place(tmp_path)
+    argv = [str(denials), shellwrite.PLACE, str(place)]
+    deep = Path("d" * 45) / ("e" * 45) / name
+    path = {"outside": tmp_path / deep,
+            "git": place / ".git" / "hooks" / deep,
+            "rulings": place / deep}[kind]
+    if kind == "git":
+        argv += [shellwrite.KEEP_ALL, str(place / ".git")]
+    if kind == "rulings":
+        argv += [shellwrite.KEEP, str(path)]
+    assert len(str(path)) > 120
+    code, said = shellwrite.decide(argv, edit(str(path), cwd=place))
+    assert code == 2
+    assert name + "`" in said
+
+
 @pytest.mark.parametrize("tail", [
     "../helper.py", "..\\helper.py", "pkg/../../helper.py",
     "../" + CAFE + ".py", "../place2/a.py",

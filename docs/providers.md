@@ -638,7 +638,9 @@ command by its prefix and "Bash, but not the Bash that writes" has none.
 the hook reads the command and exits 2, which the cli takes as a refusal and
 shows the model, for a redirect or a heredoc into a file (`/dev/null`, a
 duplicated descriptor such as `2>&1`, the temp dir and the run's own
-`runs/<run-id>/tmp/` excepted), `tee`, `cp`,
+`runs/<run-id>/tmp/` excepted; the temp dir and the place are compared by
+their real paths, so a temp dir reached through a link, as macos's is, counts
+whichever way it is spelled), `tee`, `cp`,
 `mv` and `install`, `sed -i` and `perl -i`, `dd of=`, `truncate`, a
 `python -c` or python heredoc that opens a file to write or calls
 `write_text`, and PowerShell's `Set-Content`, `Add-Content`, `Out-File` and
